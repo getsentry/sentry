@@ -1,5 +1,6 @@
 import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useQuery} from '@tanstack/react-query';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -12,21 +13,23 @@ import {
 } from 'sentry/components/checkInTimeline/gridLines';
 import {tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import {CheckIndicator} from 'sentry/views/alerts/rules/uptime/checkIndicator';
-import {CheckStatus} from 'sentry/views/alerts/rules/uptime/types';
+import {CheckIndicator} from 'sentry/views/detectors/components/uptime/checkIndicator';
+import {CheckStatus} from 'sentry/views/detectors/components/uptime/types';
 import {
   checkStatusPrecedent,
+  MAX_BUCKET_INTERVAL,
   statusToText,
   tickStyle,
 } from 'sentry/views/insights/uptime/timelineConfig';
 import {useUptimeMonitorStats} from 'sentry/views/insights/uptime/utils/useUptimeMonitorStats';
-import {useIssueDetails} from 'sentry/views/issueDetails/context';
-import {useIssueTimeWindowConfig} from 'sentry/views/issueDetails/useIssueTimeWindowConfig';
-import {groupEventApiOptions} from 'sentry/views/issueDetails/utils';
+
+import {useDispatchIssueEventCount} from './hooks/useDispatchIssueEventCount';
+import {useIssueDetails} from './context';
+import {useIssueTimeWindowConfig} from './useIssueTimeWindowConfig';
+import {groupEventApiOptions} from './utils';
 
 export function useUptimeIssueDetectorId({
   groupId,
@@ -61,7 +64,6 @@ export function useUptimeIssueDetectorId({
     ? String(event?.occurrence?.evidenceData.detectorId)
     : undefined;
 
-  // Fall back to the fetched event since the legacy UI isn't nested within the provider the provider
   return hasUptimeDetector ? detectorId : evidenceDetectorId;
 }
 
@@ -69,8 +71,14 @@ export function IssueUptimeCheckTimeline({group}: {group: Group}) {
   const detectorId = useUptimeIssueDetectorId({groupId: group.id});
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions({elementRef});
-  const timelineWidth = useDebouncedValue(containerWidth, 500);
-  const timeWindowConfig = useIssueTimeWindowConfig({timelineWidth, group});
+  const [timelineWidth] = useDebouncedValue(containerWidth, {wait: 500});
+  const timeWindowConfig = useIssueTimeWindowConfig({
+    timelineWidth,
+    group,
+    maxBucketInterval: MAX_BUCKET_INTERVAL,
+  });
+
+  useDispatchIssueEventCount(group);
 
   const {data: uptimeStats, isPending} = useUptimeMonitorStats({
     detectorIds: detectorId ? [detectorId] : [],

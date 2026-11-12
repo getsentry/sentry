@@ -21,8 +21,7 @@ export function VercelProviderFixture(): IntegrationProvider {
       noun: 'Installation',
       issue_url:
         'https://github.com/getsentry/sentry/issues/new?template=bug.yml&title=Vercel%20Integration:%20&labels=Component%3A%20Integrations',
-      source_url:
-        'https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/vercel',
+      source_url: 'https://docs.sentry.io/integrations/deployment/vercel/',
       aspects: {},
     },
   };

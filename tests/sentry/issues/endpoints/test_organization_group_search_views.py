@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from typing import NotRequired, TypedDict
 
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -12,10 +13,13 @@ from sentry.models.groupsearchview import (
 )
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.user import User
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 # Ignores the dateCreated and dateUpdated fields
@@ -75,11 +79,11 @@ class GroupSearchViewAPITestCase(APITestCase):
                 view=view,
             )
         if last_visited:
-            GroupSearchViewLastVisited.objects.create_or_update(
+            GroupSearchViewLastVisited.objects.update_or_create(
                 user_id=self.user.id,
                 organization=self.organization,
                 group_search_view=view,
-                values={"last_visited": last_visited},
+                defaults={"last_visited": last_visited},
             )
         return view
 
@@ -141,6 +145,34 @@ class OrganizationGroupSearchViewsGetTest(GroupSearchViewAPITestCase):
         assert response.data[2]["stars"] == 0
         assert response.data[2]["createdBy"]["id"] == str(self.user.id)
         assert not response.data[2]["starred"]
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_sees_shared_views_without_personal_state(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["member:read"]
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+        url = reverse(self.endpoint, args=[self.organization.slug])
+
+        mine = self.client.get(url, {"createdBy": "me"}, HTTP_X_VIEWER_CONTEXT=viewer_context)
+        assert mine.status_code == 200, mine.content
+        assert mine.data == []
+
+        others = self.client.get(url, {"createdBy": "others"}, HTTP_X_VIEWER_CONTEXT=viewer_context)
+        assert others.status_code == 200, others.content
+        shared = GroupSearchView.objects.filter(
+            organization=self.organization, visibility=GroupSearchViewVisibility.ORGANIZATION
+        )
+        assert {view["id"] for view in others.data} == {str(view.id) for view in shared}
+        assert not any(view["starred"] for view in others.data)
+        assert not any(view.get("lastVisited") for view in others.data)
 
     def test_get_views_created_by_others(self) -> None:
         self.login_as(user=self.user)
@@ -445,6 +477,81 @@ class OrganizationGroupSearchViewsPostTest(APITestCase):
 
         response = self.get_error_response(self.organization.slug, **data)
         assert "timeFilters" in response.data
+
+    @with_feature({"organizations:issue-views": True})
+    def test_invalid_query_with_boolean_operator(self) -> None:
+        """Issue search has allow_boolean=False, so AND/OR must be rejected on write."""
+        data = {
+            "name": "Boolean Query View",
+            "query": "is:unresolved (issue:PROJ-AB1 OR issue:PROJ-CD2)",
+            "querySort": "date",
+            "projects": [],
+            "environments": [],
+            "timeFilters": {"period": "14d"},
+        }
+
+        response = self.get_error_response(self.organization.slug, **data)
+        assert "query" in response.data
+        assert str(response.data["query"][0]) == (
+            "Invalid issue search query: Boolean statements containing "
+            '"OR" or "AND" are not supported in this search'
+        )
+
+        assert not GroupSearchView.objects.filter(
+            organization=self.organization, name="Boolean Query View"
+        ).exists()
+
+    @with_feature({"organizations:issue-views": True})
+    def test_invalid_query_reports_the_parser_reason(self) -> None:
+        """A non-boolean failure gets the parser's own reason, not a generic message."""
+        data = {
+            "name": "Malformed Query View",
+            "query": 'is:unresolved message:"unterminated',
+            "querySort": "date",
+            "projects": [],
+            "environments": [],
+            "timeFilters": {"period": "14d"},
+        }
+
+        response = self.get_error_response(self.organization.slug, **data)
+        assert "query" in response.data
+        assert str(response.data["query"][0]) == (
+            "Invalid issue search query: Invalid quote at '\"unterminated': "
+            "quotes must enclose text or be escaped."
+        )
+
+        assert not GroupSearchView.objects.filter(
+            organization=self.organization, name="Malformed Query View"
+        ).exists()
+
+    @with_feature({"organizations:issue-views": True})
+    def test_create_view_with_issue_list_query(self) -> None:
+        """The list form is how you match several issues; it must keep working."""
+        data = {
+            "name": "Issue List View",
+            "query": "is:unresolved issue:[PROJ-AB1, PROJ-CD2]",
+            "querySort": "date",
+            "projects": [],
+            "environments": [],
+            "timeFilters": {"period": "14d"},
+        }
+
+        response = self.get_success_response(self.organization.slug, **data, status_code=201)
+        assert response.data["query"] == "is:unresolved issue:[PROJ-AB1, PROJ-CD2]"
+
+    @with_feature({"organizations:issue-views": True})
+    def test_create_view_with_blank_query(self) -> None:
+        data = {
+            "name": "Blank Query View",
+            "query": "",
+            "querySort": "date",
+            "projects": [],
+            "environments": [],
+            "timeFilters": {"period": "14d"},
+        }
+
+        response = self.get_success_response(self.organization.slug, **data, status_code=201)
+        assert response.data["query"] == ""
 
     @with_feature({"organizations:issue-views": True})
     def test_nonexistent_project(self) -> None:
@@ -900,3 +1007,52 @@ class OrganizationGroupSearchViewsGetSortTest(GroupSearchViewAPITestCase):
         assert response.data[1]["id"] == str(view_2.id)
         assert response.data[2]["id"] == str(view_4.id)
         assert response.data[3]["id"] == str(view_3.id)
+
+
+@with_feature(["organizations:granular-permission-scopes", "organizations:issue-views"])
+class OrganizationGroupSearchViewsScopeTest(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.view = self.create_group_search_view(
+            name="Shared View", visibility=GroupSearchViewVisibility.ORGANIZATION
+        )
+        self.url = reverse(
+            "sentry-api-0-organization-group-search-views",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+        self.view_data = {
+            "name": "Created View",
+            "query": "is:unresolved",
+            "querySort": "date",
+            "projects": [],
+            "environments": [],
+            "timeFilters": {"period": "14d"},
+        }
+
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    def test_read_scope_can_list(self) -> None:
+        self._use_token(["saved_query:read"])
+        response = self.client.get(self.url)
+        assert response.status_code == 200, response.content
+        assert [view["name"] for view in response.data] == ["Shared View"]
+
+    def test_read_scope_cannot_create(self) -> None:
+        self._use_token(["saved_query:read"])
+        assert self.client.post(self.url, self.view_data, format="json").status_code == 403
+        assert not GroupSearchView.objects.filter(name="Created View").exists()
+
+    def test_write_scope_can_create(self) -> None:
+        self._use_token(["saved_query:write"])
+        response = self.client.post(self.url, self.view_data, format="json")
+        assert response.status_code == 201, response.content
+        assert GroupSearchView.objects.filter(name="Created View").exists()
+
+    def test_write_scope_cannot_list(self) -> None:
+        # Write does not imply read.
+        self._use_token(["saved_query:write"])
+        assert self.client.get(self.url).status_code == 403

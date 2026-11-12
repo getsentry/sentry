@@ -17,6 +17,7 @@ from sentry.api.event_search import (
 from sentry.db.models.fields.bounded import I64_MAX
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
+from sentry.preprod.build_distribution_utils import build_install_groups_q
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactQuerySet,
@@ -85,6 +86,7 @@ search_config = SearchConfig.create_from(
         "images_renamed",
         "images_skipped",
         "images_unchanged",
+        "install_groups",
         "install_size",
         "installable",
         "is",
@@ -333,6 +335,25 @@ def apply_filters(
                 queryset = queryset.exclude(q)
             else:
                 queryset = queryset.filter(q)
+            continue
+
+        if name == "install_groups":
+            if token.value.value == "":
+                raise InvalidSearchQuery("Enter at least one install group.")
+
+            groups = token.value.value if token.is_in_filter else [token.value.value]
+            install_groups_q = build_install_groups_q(groups)
+
+            if install_groups_q is None:
+                raise InvalidSearchQuery("Enter at least one install group.")
+
+            if token.is_negation:
+                # Missing JSON keys evaluate to SQL NULL, so include them explicitly.
+                queryset = queryset.filter(
+                    Q(extras__install_groups__isnull=True) | ~install_groups_q
+                )
+            else:
+                queryset = queryset.filter(install_groups_q)
             continue
 
         if name == "is_approved":

@@ -1,9 +1,9 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {IconLightning} from '@sentry/icons/lightning';
 import type {vec2} from 'gl-matrix';
 
 import {BoundTooltip} from 'sentry/components/profiling/boundTooltip';
-import {IconLightning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
@@ -235,8 +235,8 @@ export const FlamegraphTooltipFrameMainInfo = styled('div')`
 `;
 
 export const FlamegraphTooltipColorIndicator = styled('div')<{
-  backgroundColor: React.CSSProperties['backgroundColor'];
-  backgroundImage?: React.CSSProperties['backgroundImage'];
+  backgroundColor: string;
+  backgroundImage?: string;
 }>`
   width: 12px;
   height: 12px;

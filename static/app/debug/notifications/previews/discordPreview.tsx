@@ -1,10 +1,11 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Image} from '@sentry/scraps/image';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {DebugNotificationsPreview} from 'sentry/debug/notifications/components/debugNotificationsPreview';
@@ -20,7 +21,7 @@ export function DiscordPreview({
   registration: NotificationTemplateRegistration;
 }) {
   const {body, actions, subject, chart, footer} = registration.example;
-  const previewTime = moment(new Date()).format('MM/DD/YY, h:mm A');
+  const [previewTime] = useState(() => moment(new Date()).format('MM/DD/YY, h:mm A'));
   const payload = registration.previews[NotificationProviderKey.DISCORD];
   return (
     <DebugNotificationsPreview title="Discord">
@@ -81,7 +82,7 @@ export function DiscordPreview({
         <Disclosure>
           <Disclosure.Title>Discord JSON Payload</Disclosure.Title>
           <Disclosure.Content>
-            <Flex direction="column" gap="xl">
+            <Stack gap="xl">
               <Text>
                 Below is the JSON payload that will be sent to Discord. There is no online
                 preview tool, so we're mocking it here, so use this as an approximation of
@@ -90,7 +91,7 @@ export function DiscordPreview({
               <CodeBlock language="json">
                 {payload ? JSON.stringify(payload, null, 2) : ''}
               </CodeBlock>
-            </Flex>
+            </Stack>
           </Disclosure.Content>
         </Disclosure>
       </Container>

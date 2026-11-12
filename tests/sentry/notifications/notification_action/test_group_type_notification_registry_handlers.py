@@ -15,7 +15,7 @@ from sentry.notifications.notification_action.utils import execute_via_group_typ
 from sentry.types.activity import ActivityType
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import Action
-from sentry.workflow_engine.types import ActionInvocation, WorkflowEventData
+from sentry.workflow_engine.types import ActionInvocation, DetectorType, WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -60,15 +60,10 @@ class TestMetricAlertRegistryInvoker(BaseWorkflowTest):
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
 
     @mock.patch(
-        "sentry.notifications.notification_action.group_type_notification_registry.handlers.metric_alert_registry_handler.logger"
-    )
-    @mock.patch(
         "sentry.notifications.notification_action.registry.metric_alert_handler_registry.get"
     )
-    def test_handle_workflow_action_no_handler(
-        self, mock_registry_get: mock.MagicMock, mock_logger: mock.MagicMock
-    ) -> None:
-        """Test that handle_workflow_action re-raises NoRegistrationExistsError without logging it as an exception"""
+    def test_handle_workflow_action_no_handler(self, mock_registry_get: mock.MagicMock) -> None:
+        """Test that handle_workflow_action propagates NoRegistrationExistsError."""
         mock_registry_get.side_effect = NoRegistrationExistsError()
 
         with pytest.raises(NoRegistrationExistsError):
@@ -83,12 +78,10 @@ class TestMetricAlertRegistryInvoker(BaseWorkflowTest):
             )
             MetricAlertRegistryHandler.handle_workflow_action(invocation)
 
-        mock_logger.exception.assert_not_called()
-
     def test_handle_activity_update(self) -> None:
         self.event_data = WorkflowEventData(event=self.activity, group=self.group)
 
-        with mock.patch.object(self.activity, "send_notification"):
+        with mock.patch.object(self.activity, "send_notification") as mock_send_notification:
             notification_uuid = str(uuid.uuid4())
 
             invocation = ActionInvocation(
@@ -99,10 +92,12 @@ class TestMetricAlertRegistryInvoker(BaseWorkflowTest):
                 workflow_id=self.workflow.id,
             )
             execute_via_group_type_registry(invocation)
-            self.activity.send_notification.assert_called_once_with()
+            mock_send_notification.assert_called_once_with()
 
     @mock.patch("sentry.notifications.notification_action.utils.execute_via_metric_alert_handler")
-    def test_handle_metric_issue_resolution(self, mock_execute_metric_alert_handler) -> None:
+    def test_handle_metric_issue_resolution(
+        self, mock_execute_metric_alert_handler: mock.MagicMock
+    ) -> None:
         group = self.create_group(type=MetricIssue.type_id)
         activity = self.create_group_activity(
             group=group,
@@ -127,7 +122,10 @@ class TestGroupTypeNotificationRegistryHandler(BaseWorkflowTest):
     def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
-        self.detector = self.create_detector(project=self.project, type=SendTestNotification.slug)
+        # Use a valid detector type without a notification registry handler.
+        self.detector = self.create_detector(
+            project=self.project, type=DetectorType.MONITOR_CHECK_IN_FAILURE
+        )
         self.workflow = self.create_workflow()
         self.action = Action(type=Action.Type.DISCORD)
         self.group, self.event, self.group_event = self.create_group_event(

@@ -1,19 +1,22 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from enum import Enum
 from typing import ClassVar
 
 from django.db import models, router, transaction
-from django.db.models import Q, UniqueConstraint
+from django.db.models import CheckConstraint, Q, UniqueConstraint
 from django.utils import timezone
 
 from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
+from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.bounded import BoundedBigIntegerField, BoundedPositiveIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.dashboard_widget import TypesClass
+from sentry.models.organization import Organization
 from sentry.models.projectteam import ProjectTeam
 from sentry.tasks.relay import schedule_invalidate_project_config
 
@@ -61,7 +64,7 @@ class DatasetSourcesTypes(Enum):
     FORCED = 3
 
     @classmethod
-    def as_choices(cls):
+    def as_choices(cls) -> tuple[tuple[int, str], ...]:
         return tuple((source.value, source.name.lower()) for source in cls)
 
 
@@ -89,6 +92,14 @@ class DiscoverSavedQuery(Model):
     projects = models.ManyToManyField("sentry.Project", through=DiscoverSavedQueryProject)
     organization = FlexibleForeignKey("sentry.Organization")
     created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+    # Service accounts and org auth tokens authenticate without a user, so they need their
+    # own creator columns. At most one creator column is set.
+    created_by_service_account_id = HybridCloudForeignKey(
+        "service_accounts.ServiceAccount", null=True, on_delete="SET_NULL"
+    )
+    created_by_org_auth_token_id = HybridCloudForeignKey(
+        "sentry.OrgAuthToken", null=True, on_delete="SET_NULL"
+    )
     name = models.CharField(max_length=255)
     query = models.JSONField()
     version = models.IntegerField(null=True)
@@ -122,12 +133,21 @@ class DiscoverSavedQuery(Model):
                 fields=["organization", "created_by_id", "is_homepage"],
                 condition=Q(is_homepage=True),
                 name="unique_user_homepage_query",
-            )
+            ),
+            CheckConstraint(
+                condition=(
+                    Q(created_by_service_account_id__isnull=True)
+                    & Q(created_by_org_auth_token_id__isnull=True)
+                )
+                | (Q(created_by_id__isnull=True) & Q(created_by_org_auth_token_id__isnull=True))
+                | (Q(created_by_id__isnull=True) & Q(created_by_service_account_id__isnull=True)),
+                name="sentry_discoversavedquery_single_creator",
+            ),
         ]
 
     __repr__ = sane_repr("organization_id", "created_by_id", "name")
 
-    def set_projects(self, project_ids):
+    def set_projects(self, project_ids: Sequence[int]) -> None:
         with transaction.atomic(router.db_for_write(DiscoverSavedQueryProject)):
             DiscoverSavedQueryProject.objects.filter(discover_saved_query=self).exclude(
                 project__in=project_ids
@@ -149,7 +169,9 @@ class DiscoverSavedQuery(Model):
 
 class TeamKeyTransactionModelManager(BaseManager["TeamKeyTransaction"]):
     @staticmethod
-    def __schedule_invalidate_project_config_transaction_commit(instance, trigger):
+    def __schedule_invalidate_project_config_transaction_commit(
+        instance: TeamKeyTransaction, trigger: str
+    ) -> None:
         try:
             project = getattr(instance.project_team, "project", None)
         except ProjectTeam.DoesNotExist:
@@ -182,7 +204,7 @@ class TeamKeyTransactionModelManager(BaseManager["TeamKeyTransaction"]):
             instance, "teamkeytransaction.post_save"
         )
 
-    def post_delete(self, instance, **kwargs):
+    def post_delete(self, instance: TeamKeyTransaction, **kwargs: object) -> None:
         # this hook may be called from model hooks during an
         # open transaction. In that case, wait until the current transaction has
         # been committed or rolled back to ensure we don't read stale data in the
@@ -210,3 +232,157 @@ class TeamKeyTransaction(Model):
         app_label = "sentry"
         db_table = "sentry_performanceteamkeytransaction"
         unique_together = (("project_team", "transaction"),)
+
+
+class DiscoverSavedQueryStarredManager(BaseManager["DiscoverSavedQueryStarred"]):
+    """
+    Positions here are not local to this table, being shared with ExploreSavedQueryStarred.
+    See `explore/utils.py` and `saved_query_starred_order.py` for the implementation details.
+    """
+
+    def get_starred_query(
+        self, organization: Organization, user_id: int, query: DiscoverSavedQuery
+    ) -> DiscoverSavedQueryStarred | None:
+        """
+        Returns the starred query if it exists, otherwise None.
+        """
+        return self.filter(
+            organization=organization, user_id=user_id, discover_saved_query=query
+        ).first()
+
+    def insert_starred_query(
+        self,
+        organization: Organization,
+        user_id: int,
+        query: DiscoverSavedQuery,
+        starred: bool = True,
+    ) -> bool:
+        """
+        Inserts a new starred query at the end of the shared list.
+
+        Args:
+            organization: The organization the queries belong to
+            user_id: The ID of the user whose starred queries are being updated
+            discover_saved_query: The query to insert
+
+        Returns:
+            True if the query was starred, False if the query was already starred
+        """
+        from sentry.explore.utils import next_starred_position
+
+        with transaction.atomic(using=router.db_for_write(DiscoverSavedQueryStarred)):
+            if self.get_starred_query(organization, user_id, query):
+                return False
+
+            self.create(
+                organization=organization,
+                user_id=user_id,
+                discover_saved_query=query,
+                position=next_starred_position(organization, user_id),
+                starred=starred,
+            )
+            return True
+
+    def delete_starred_query(
+        self, organization: Organization, user_id: int, query: DiscoverSavedQuery
+    ) -> bool:
+        """
+        Deletes a starred query from the list.
+        Decrements the position of all later queries in both tables to close the gap.
+
+        Args:
+            organization: The organization the queries belong to
+            user_id: The ID of the user whose starred queries are being updated
+            discover_saved_query: The query to delete
+
+        Returns:
+            True if the query was unstarred, False if the query was already unstarred
+        """
+        from sentry.explore.utils import shift_starred_positions
+
+        with transaction.atomic(using=router.db_for_write(DiscoverSavedQueryStarred)):
+            if not (starred_query := self.get_starred_query(organization, user_id, query)):
+                return False
+
+            deleted_position = starred_query.position
+            starred_query.delete()
+
+            # A row unstarred via ``updated_starred_query`` holds no position and so left no
+            # gap to close. Filtering on ``position__gt=None`` would raise, not match nothing.
+            if deleted_position is not None:
+                shift_starred_positions(
+                    organization, user_id, from_position=deleted_position, delta=-1
+                )
+            return True
+
+    def updated_starred_query(
+        self,
+        organization: Organization,
+        user_id: int,
+        query: DiscoverSavedQuery,
+        starred: bool,
+    ) -> bool:
+        """
+        Updates the starred status of a query.
+        """
+        from sentry.explore.utils import next_starred_position
+
+        with transaction.atomic(using=router.db_for_write(DiscoverSavedQueryStarred)):
+            if not (starred_query := self.get_starred_query(organization, user_id, query)):
+                return False
+
+            starred_query.starred = starred
+            if starred:
+                starred_query.position = next_starred_position(organization, user_id)
+            else:
+                starred_query.position = None
+
+            starred_query.save()
+            return True
+
+
+@cell_silo_model
+class DiscoverSavedQueryStarred(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Excluded
+
+    user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
+    organization = FlexibleForeignKey("sentry.Organization")
+    discover_saved_query = FlexibleForeignKey("discover.DiscoverSavedQuery")
+
+    position = models.PositiveSmallIntegerField(null=True, db_default=None)
+    starred = models.BooleanField(db_default=True)
+
+    objects: ClassVar[DiscoverSavedQueryStarredManager] = DiscoverSavedQueryStarredManager()
+
+    class Meta:
+        app_label = "discover"
+        db_table = "sentry_discoversavedquerystarred"
+        constraints = [
+            # A position appears at most once in an organization user's list, starred or not.
+            UniqueConstraint(
+                fields=["user_id", "organization_id", "position"],
+                name="sentry_discoversavedquerystarred_unique_query_per_org_user",
+                deferrable=models.Deferrable.DEFERRED,
+            ),
+        ]
+
+
+@cell_silo_model
+class DiscoverSavedQueryLastVisited(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Excluded
+
+    user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
+    organization = FlexibleForeignKey("sentry.Organization")
+    discover_saved_query = FlexibleForeignKey("discover.DiscoverSavedQuery")
+
+    last_visited = models.DateTimeField(null=False, default=timezone.now)
+
+    class Meta:
+        app_label = "discover"
+        db_table = "sentry_discoversavedquerylastvisited"
+        constraints = [
+            UniqueConstraint(
+                fields=["user_id", "organization_id", "discover_saved_query_id"],
+                name="sentry_disc_savedquery_lastvisited_uniq",
+            )
+        ]

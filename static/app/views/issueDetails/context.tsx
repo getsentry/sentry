@@ -8,7 +8,7 @@ import {
   type Reducer,
 } from 'react';
 
-import type {DetectorDetails} from 'sentry/views/issueDetails/sidebar/detectorDetails';
+import type {DetectorDetails} from './sidebar/detectorDetails';
 
 export const enum SectionKey {
   /**
@@ -30,6 +30,7 @@ export const enum SectionKey {
   RESOURCES = 'resources', // Position controlled by flag
 
   EXCEPTION = 'exception',
+  GPU_CRASH_REPORT = 'gpu-crash-report',
   STACKTRACE = 'stacktrace',
   CHAINED_EXCEPTION = 'chained-exception',
   THREADS = 'threads',
@@ -43,10 +44,7 @@ export const enum SectionKey {
   HYDRATION_DIFF = 'hydration-diff',
   REPLAY = 'replay',
 
-  HPKP = 'hpkp',
   CSP = 'csp',
-  EXPECTCT = 'expectct',
-  EXPECTSTAPLE = 'expectstaple',
   TEMPLATE = 'template',
 
   BREADCRUMBS = 'breadcrumbs',
@@ -57,6 +55,7 @@ export const enum SectionKey {
    * Also called images loaded
    */
   DEBUGMETA = 'debugmeta',
+  PROGUARD = 'proguard',
   REQUEST = 'request',
 
   TAGS = 'tags',
@@ -66,8 +65,8 @@ export const enum SectionKey {
   CONTEXTS = 'contexts',
   EXTRA = 'extra',
   PACKAGES = 'packages',
-  DEVICE = 'device',
   VIEW_HIERARCHY = 'view-hierarchy',
+  FLAMEGRAPH_ATTACHMENT = 'flamegraph-attachment',
   ATTACHMENTS = 'attachments',
   SDK = 'sdk',
   GROUPING_INFO = 'grouping-info',
@@ -114,13 +113,25 @@ export interface SectionConfig {
   initialCollapse?: boolean;
 }
 
+/**
+ * Where issue details is scrolled. `page` scrolls with the page below the top
+ * bar, while `pane` scrolls inside its own container (e.g. a preview pane).
+ */
+export type IssueDetailsScrollContext = 'page' | 'pane';
+
 interface IssueDetailsContextType extends IssueDetailsState {
   dispatch: Dispatch<IssueDetailsActions>;
+  /**
+   * Determines where sticky headers stick. When `pane`, they stick to the top
+   * of the scroll container rather than below the top bar.
+   */
+  scrollContext: IssueDetailsScrollContext;
 }
 
 const initialState: IssueDetailsState = {
   sectionData: {},
   detectorDetails: {},
+  eventNavigationHeight: 0,
   isSidebarOpen: true,
   eventCount: 0,
   navScrollMargin: 0,
@@ -128,6 +139,7 @@ const initialState: IssueDetailsState = {
 
 export const IssueDetailsContext = createContext<IssueDetailsContextType>({
   ...initialState,
+  scrollContext: 'page',
   dispatch: () => {},
 });
 
@@ -144,6 +156,10 @@ interface IssueDetailsState {
    * Allows updating the event count based on the date/time/environment filters.
    */
   eventCount: number;
+  /**
+   * Height of the sticky issue event navigation. Used to stack the event title below it.
+   */
+  eventNavigationHeight: number;
   /**
    * Controls whether the sidebar is open.
    */
@@ -168,6 +184,11 @@ type UpdateNavScrollMarginAction = {margin: number; type: 'UPDATE_NAV_SCROLL_MAR
 
 type UpdateEventCountAction = {count: number; type: 'UPDATE_EVENT_COUNT'};
 
+type UpdateEventNavigationHeightAction = {
+  height: number;
+  type: 'UPDATE_EVENT_NAVIGATION_HEIGHT';
+};
+
 type UpdateSidebarAction = {isOpen: boolean; type: 'UPDATE_SIDEBAR_STATE'};
 
 type UpdateDetectorDetailsAction = {
@@ -184,6 +205,7 @@ type IssueDetailsActions =
   | UpdateEventSectionAction
   | UpdateNavScrollMarginAction
   | UpdateEventCountAction
+  | UpdateEventNavigationHeightAction
   | UpdateSidebarAction
   | UpdateDetectorDetailsAction
   | RemoveEventSectionAction;
@@ -208,7 +230,13 @@ function updateEventSection(
  * If trying to use the current state of the issue/event page, you likely want to use
  * `useIssueDetails` instead. This hook is just meant to create state for the provider.
  */
-export function IssueDetailsContextProvider({children}: {children: React.ReactNode}) {
+export function IssueDetailsContextProvider({
+  children,
+  scrollContext = 'page',
+}: {
+  children: React.ReactNode;
+  scrollContext?: IssueDetailsScrollContext;
+}) {
   const reducer: Reducer<IssueDetailsState, IssueDetailsActions> = useCallback(
     (state, action): IssueDetailsState => {
       switch (action.type) {
@@ -220,9 +248,14 @@ export function IssueDetailsContextProvider({children}: {children: React.ReactNo
           return updateEventSection(state, action.key, action.config ?? {});
         case 'UPDATE_EVENT_COUNT':
           return {...state, eventCount: action.count};
+        case 'UPDATE_EVENT_NAVIGATION_HEIGHT':
+          return state.eventNavigationHeight === action.height
+            ? state
+            : {...state, eventNavigationHeight: action.height};
         case 'UPDATE_DETECTOR_DETAILS':
           return {...state, detectorDetails: action.detectorDetails};
         case 'REMOVE_EVENT_SECTION': {
+          // oxlint-disable-next-line react/todo
           const {[action.key]: _removed, ...remainingSections} = state.sectionData;
           return {...state, sectionData: remainingSections};
         }
@@ -235,7 +268,10 @@ export function IssueDetailsContextProvider({children}: {children: React.ReactNo
 
   const [issueDetails, dispatch] = useReducer(reducer, initialState);
 
-  const value = useMemo(() => ({...issueDetails, dispatch}), [issueDetails, dispatch]);
+  const value = useMemo(
+    () => ({...issueDetails, scrollContext, dispatch}),
+    [issueDetails, scrollContext, dispatch]
+  );
 
   return <IssueDetailsContext value={value}>{children}</IssueDetailsContext>;
 }

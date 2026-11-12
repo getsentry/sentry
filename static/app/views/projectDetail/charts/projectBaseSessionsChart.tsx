@@ -1,8 +1,11 @@
 import {Component, Fragment} from 'react';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
+import {IconWarning} from '@sentry/icons/warning';
 import type {LegendComponentOption, LineSeriesOption} from 'echarts';
 import isEqual from 'lodash/isEqual';
+
+import {InfoTip} from '@sentry/scraps/info';
 
 import type {Client} from 'sentry/api';
 import {BarChart} from 'sentry/components/charts/barChart';
@@ -11,24 +14,21 @@ import ChartZoom from 'sentry/components/charts/chartZoom';
 import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import type {LineChartProps} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import ReleaseSeries from 'sentry/components/charts/releaseSeries';
+import {useReleaseSeries} from 'sentry/components/charts/releaseSeries';
 import {StackedAreaChart} from 'sentry/components/charts/stackedAreaChart';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {TransitionChart} from 'sentry/components/charts/transitionChart';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {RELEASE_LINES_THRESHOLD} from 'sentry/components/charts/utils';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
-import {IconWarning} from 'sentry/icons';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
 import type {EChartEventHandler, Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
-import {withPageFilters} from 'sentry/utils/withPageFilters';
 import {displayCrashFreePercent} from 'sentry/views/explore/releases/utils';
 import {sessionTerm} from 'sentry/views/explore/releases/utils/sessionTerm';
-import {DisplayModes} from 'sentry/views/projectDetail/projectCharts';
+import {DisplayModes} from 'sentry/views/projectDetail/displayModes';
 
 import {ProjectSessionsAnrRequest} from './projectSessionsAnrRequest';
 import ProjectSessionsChartRequest from './projectSessionsChartRequest';
@@ -43,17 +43,15 @@ type Props = {
     | DisplayModes.STABILITY;
   onTotalValuesChange: (value: number | null) => void;
   organization: Organization;
-  selection: PageFilters;
   title: string;
   disablePrevious?: boolean;
   help?: string;
   query?: string;
 };
 
-function ProjectBaseSessionsChart({
+export function ProjectBaseSessionsChart({
   title,
   organization,
-  selection,
   api,
   onTotalValuesChange,
   displayMode,
@@ -62,9 +60,20 @@ function ProjectBaseSessionsChart({
   query,
 }: Props) {
   const theme = useTheme();
+  const {selection} = usePageFilters();
 
   const {projects, environments, datetime} = selection;
   const {start, end, period, utc} = datetime;
+
+  const {releaseSeries} = useReleaseSeries({
+    utc,
+    period,
+    start,
+    end,
+    projects,
+    environments,
+    query,
+  });
 
   const Request = [DisplayModes.ANR_RATE, DisplayModes.FOREGROUND_ANR_RATE].includes(
     displayMode
@@ -94,55 +103,39 @@ function ProjectBaseSessionsChart({
                   timeseriesData,
                   previousTimeseriesData,
                   additionalSeries,
-                }) => (
-                  <ReleaseSeries
-                    utc={utc}
-                    period={period}
-                    start={start}
-                    end={end}
-                    projects={projects}
-                    environments={environments}
-                    query={query}
-                  >
-                    {({releaseSeries}) => {
-                      if (errored) {
-                        return (
-                          <ErrorPanel>
-                            <IconWarning variant="muted" size="lg" />
-                          </ErrorPanel>
-                        );
-                      }
+                }) => {
+                  if (errored) {
+                    return (
+                      <ErrorPanel>
+                        <IconWarning variant="muted" size="lg" />
+                      </ErrorPanel>
+                    );
+                  }
 
-                      return (
-                        <TransitionChart loading={loading} reloading={reloading}>
-                          <TransparentLoadingMask visible={reloading} />
+                  return (
+                    <TransitionChart loading={loading} reloading={reloading}>
+                      <TransparentLoadingMask visible={reloading} />
 
-                          <HeaderTitleLegend>
-                            {title}
-                            {help && (
-                              <QuestionTooltip size="sm" position="top" title={help} />
-                            )}
-                          </HeaderTitleLegend>
+                      <HeaderTitleLegend>
+                        {title}
+                        {help && <InfoTip size="sm" position="top" title={help} />}
+                      </HeaderTitleLegend>
 
-                          <Chart
-                            theme={theme}
-                            zoomRenderProps={zoomRenderProps}
-                            reloading={reloading}
-                            timeSeries={timeseriesData}
-                            previousTimeSeries={
-                              previousTimeseriesData
-                                ? [previousTimeseriesData]
-                                : undefined
-                            }
-                            releaseSeries={releaseSeries}
-                            displayMode={displayMode}
-                            additionalSeries={additionalSeries}
-                          />
-                        </TransitionChart>
-                      );
-                    }}
-                  </ReleaseSeries>
-                )}
+                      <Chart
+                        theme={theme}
+                        zoomRenderProps={zoomRenderProps}
+                        reloading={reloading}
+                        timeSeries={timeseriesData}
+                        previousTimeSeries={
+                          previousTimeseriesData ? [previousTimeseriesData] : undefined
+                        }
+                        releaseSeries={releaseSeries}
+                        displayMode={displayMode}
+                        additionalSeries={additionalSeries}
+                      />
+                    </TransitionChart>
+                  );
+                }}
               </Request>
             )}
           </ChartZoom>
@@ -301,7 +294,7 @@ class Chart extends Component<ChartProps, ChartState> {
           }
 
           if (this.isCrashFree) {
-            return displayCrashFreePercent(value, 0, 3);
+            return displayCrashFreePercent(value, 0);
           }
 
           if (this.isAnr) {
@@ -363,5 +356,3 @@ class Chart extends Component<ChartProps, ChartState> {
     );
   }
 }
-
-export default withPageFilters(ProjectBaseSessionsChart);

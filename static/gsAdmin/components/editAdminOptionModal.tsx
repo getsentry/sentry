@@ -1,8 +1,8 @@
 import {Fragment, useMemo} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {BooleanField} from 'sentry/components/forms/fields/booleanField';
 import {RangeField} from 'sentry/components/forms/fields/rangeField';
 
@@ -26,6 +26,7 @@ export function EditAdminOptionModal({
       : [option];
     options.sort((a, b) => (a.groupingInfo?.order || 0) - (b.groupingInfo?.order || 0));
     return options;
+    // oxlint-disable-next-line react/memo-dependencies
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (

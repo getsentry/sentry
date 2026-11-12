@@ -115,7 +115,7 @@ class ReleaseThresholdStatusIndexSerializer(
 class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
     owner: ApiOwner = ApiOwner.REPLAY
     publish_status = {
-        "GET": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
 
     @extend_schema(
@@ -135,8 +135,6 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
         self, request: Request, organization: Organization | RpcOrganization
     ) -> Response[dict[str, list[EnrichedThreshold]]] | Response[ValidationErrorResponse]:
         r"""
-        **`[WARNING]`**: This API is an experimental Alpha feature and is subject to change!
-
         List all derived statuses of releases that fall within the provided start/end datetimes.
 
         Constructs a response key'd off \{`release_version`\}-\{`project_slug`\} that lists thresholds with their status for *specified* projects.
@@ -215,11 +213,13 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
             )
             .order_by("-date")
             .distinct()
+            # prefetch the release_thresholds via the projects model
+            .prefetch_related(
+                "projects__release_thresholds__environment",
+                "releaseprojectenvironment_set",
+                "deploy_set",
+            )
         )
-        # prefetching the release_thresholds via the projects model
-        queryset.prefetch_related("projects__release_thresholds__environment")
-        queryset.prefetch_related("releaseprojectenvironment_set")
-        queryset.prefetch_related("deploy_set")
 
         logger.info(
             "Fetched releases",

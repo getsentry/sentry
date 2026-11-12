@@ -31,6 +31,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.projectrepository import ProjectRepository
 from sentry.projectoptions.defaults import SEER_PROJECT_PREFERENCE_OPTION_KEYS
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.issue_summary import STOPPING_POINT_HIERARCHY
@@ -38,8 +39,11 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     AutomationCodingAgent,
     get_automation_handoff,
+    get_token_based_billing_project_repos,
+    get_token_based_billing_repo_filter,
     get_valid_automated_run_stopping_points,
     is_seer_seat_based_tier_enabled,
+    is_seer_token_based_billing_onboarding_enabled,
     update_seer_project_settings,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
@@ -70,6 +74,7 @@ parse_search_query = partial(base_parse_search_query, config=search_config)
 class SeerProjectSettings(TypedDict):
     automation_tuning: str
     handoff: SeerAutomationHandoffConfiguration | None
+    pr_iteration: bool
     repos_count: int
     scanner_automation: bool
     stopping_point: str
@@ -84,6 +89,7 @@ class SeerProjectSettingsResponse(TypedDict):
     autoCreatePr: bool | None
     automationTuning: str
     scannerAutomation: bool
+    prIteration: bool
     reposCount: int
 
 
@@ -93,14 +99,21 @@ def _get_project_settings(project: Project) -> SeerProjectSettings:
         scanner_automation=project.get_option("sentry:seer_scanner_automation"),
         stopping_point=project.get_option("sentry:seer_automated_run_stopping_point"),
         handoff=get_automation_handoff(project.get_option),
-        repos_count=SeerProjectRepository.objects.filter(
-            project_repository__project=project,
-            project_repository__repository__status=ObjectStatus.ACTIVE,
-        ).count(),
+        pr_iteration=project.get_option("sentry:seer_pr_iteration"),
+        repos_count=(
+            get_token_based_billing_project_repos(project.organization, [project.id]).count()
+            if is_seer_token_based_billing_onboarding_enabled(project.organization)
+            else SeerProjectRepository.objects.filter(
+                project_repository__project=project,
+                project_repository__repository__status=ObjectStatus.ACTIVE,
+            ).count()
+        ),
     )
 
 
-def _bulk_get_project_settings(projects: list[Project]) -> dict[int, SeerProjectSettings]:
+def _bulk_get_project_settings(
+    organization: Organization, projects: list[Project]
+) -> dict[int, SeerProjectSettings]:
     if not projects:
         return {}
 
@@ -111,20 +124,32 @@ def _bulk_get_project_settings(projects: list[Project]) -> dict[int, SeerProject
         for key in SEER_PROJECT_PREFERENCE_OPTION_KEYS
     }
 
-    repo_counts: dict[int, int] = dict(
-        SeerProjectRepository.objects.filter(
-            project_repository__project_id__in=project_ids,
-            project_repository__repository__status=ObjectStatus.ACTIVE,
+    repo_counts: dict[int, int]
+    if is_seer_token_based_billing_onboarding_enabled(organization):
+        repo_counts = dict(
+            ProjectRepository.objects.filter(
+                get_token_based_billing_repo_filter(organization, prefix="repository__"),
+                project_id__in=project_ids,
+            )
+            .values_list("project_id")
+            .annotate(count=Count("id"))
+            .values_list("project_id", "count")
         )
-        .values_list("project_repository__project_id")
-        .annotate(count=Count("id"))
-        .values_list("project_repository__project_id", "count")
-    )
+    else:
+        repo_counts = dict(
+            SeerProjectRepository.objects.filter(
+                project_repository__project_id__in=project_ids,
+                project_repository__repository__status=ObjectStatus.ACTIVE,
+            )
+            .values_list("project_repository__project_id")
+            .annotate(count=Count("id"))
+            .values_list("project_repository__project_id", "count")
+        )
 
     settings_by_project_id: dict[int, SeerProjectSettings] = {}
     for project in projects:
 
-        def _get_option(key: str):
+        def _get_option(key: str) -> Any:
             value = project_options[key].get(project.id)
             if value is None:
                 value = projectoptions.get_well_known_default(key, project=project)
@@ -135,6 +160,7 @@ def _bulk_get_project_settings(projects: list[Project]) -> dict[int, SeerProject
             scanner_automation=_get_option("sentry:seer_scanner_automation"),
             stopping_point=_get_option("sentry:seer_automated_run_stopping_point"),
             handoff=get_automation_handoff(_get_option),
+            pr_iteration=_get_option("sentry:seer_pr_iteration"),
             repos_count=repo_counts.get(project.id, 0),
         )
 
@@ -172,6 +198,7 @@ def _serialize(project: Project, settings: SeerProjectSettings) -> SeerProjectSe
         autoCreatePr=auto_create_pr,
         automationTuning=settings["automation_tuning"],
         scannerAutomation=settings["scanner_automation"],
+        prIteration=settings["pr_iteration"],
         reposCount=settings["repos_count"],
     )
 
@@ -180,12 +207,14 @@ def serialize_project(project: Project) -> SeerProjectSettingsResponse:
     return _serialize(project, _get_project_settings(project))
 
 
-def serialize_projects(projects: list[Project]) -> list[SeerProjectSettingsResponse]:
-    settings_by_project_id = _bulk_get_project_settings(projects)
+def serialize_projects(
+    organization: Organization, projects: list[Project]
+) -> list[SeerProjectSettingsResponse]:
+    settings_by_project_id = _bulk_get_project_settings(organization, projects)
     return [_serialize(p, settings_by_project_id[p.id]) for p in projects]
 
 
-def _annotate_queryset(queryset):
+def _annotate_queryset(queryset: Any, organization: Organization) -> Any:
     # ProjectOption.value is a LegacyTextJSONField — a text column storing JSON.
     # Use LegacyTextJSONField as output_field for project options. Coalesce fallback
     # values must also be JSON-encoded.
@@ -196,11 +225,22 @@ def _annotate_queryset(queryset):
             output_field=LegacyTextJSONField(),
         )
 
-    return queryset.annotate(
-        repos_count=Count(
+    repos_count = (
+        Count(
+            "projectrepository",
+            filter=get_token_based_billing_repo_filter(
+                organization, prefix="projectrepository__repository__"
+            ),
+        )
+        if is_seer_token_based_billing_onboarding_enabled(organization)
+        else Count(
             "projectrepository__seerprojectrepository",
             filter=Q(projectrepository__repository__status=ObjectStatus.ACTIVE),
-        ),
+        )
+    )
+
+    return queryset.annotate(
+        repos_count=repos_count,
         _tuning=Coalesce(
             _project_option_subquery("sentry:autofix_automation_tuning"),
             Value(json.dumps(AUTOFIX_AUTOMATION_TUNING_DEFAULT)),
@@ -241,7 +281,7 @@ def _annotate_queryset(queryset):
     )
 
 
-def _apply_search_filters(queryset, filters: Sequence[QueryToken]):
+def _apply_search_filters(queryset: Any, filters: Sequence[QueryToken]) -> Any:
     for f in filters:
         if not isinstance(f, SearchFilter):
             continue
@@ -314,7 +354,7 @@ def _apply_search_filters(queryset, filters: Sequence[QueryToken]):
     return queryset
 
 
-class _BaseProjectSettingsUpdateSerializer(CamelSnakeSerializer):
+class _BaseProjectSettingsUpdateSerializer(CamelSnakeSerializer[dict[str, Any]]):
     agent = serializers.ChoiceField(choices=[*AutomationCodingAgent], required=False)
     integration_id = serializers.IntegerField(required=False)
     stopping_point = serializers.ChoiceField(choices=[*AutofixStoppingPoint], required=False)
@@ -322,9 +362,16 @@ class _BaseProjectSettingsUpdateSerializer(CamelSnakeSerializer):
     automation_tuning = serializers.ChoiceField(
         choices=[*AutofixAutomationTuningSettings], required=False
     )
+    pr_iteration = serializers.BooleanField(required=False)
 
     def _update_fields(self) -> set[str]:
-        return {"agent", "stopping_point", "scanner_automation", "automation_tuning"}
+        return {
+            "agent",
+            "stopping_point",
+            "scanner_automation",
+            "automation_tuning",
+            "pr_iteration",
+        }
 
     def validate_integration_id(self, value: int) -> int:
         organization = self.context["organization"]
@@ -340,7 +387,7 @@ class _BaseProjectSettingsUpdateSerializer(CamelSnakeSerializer):
             raise serializers.ValidationError(f'"{value}" is not a valid choice.')
         return value
 
-    def validate(self, data):
+    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         if "agent" in data and data["agent"] != "seer" and "integration_id" not in data:
             raise serializers.ValidationError(
                 {"integration_id": "Required when agent is an external coding agent."}
@@ -370,7 +417,7 @@ class ProjectSettingsUpdateSerializer(_BaseProjectSettingsUpdateSerializer):
         required=False,
     )
 
-    def validate(self, data):
+    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         data = super().validate(data)
 
         # Keep stopping point in sync with handoff auto_create_pr.
@@ -452,7 +499,7 @@ class OrganizationSeerProjectSettingsEndpoint(OrganizationEndpoint):
 
         accessible_projects = self.get_projects(request, organization, include_all_accessible=True)
         queryset = _annotate_queryset(
-            Project.objects.filter(id__in={p.id for p in accessible_projects})
+            Project.objects.filter(id__in={p.id for p in accessible_projects}), organization
         )
 
         search_query = request.GET.get("query", "")
@@ -467,7 +514,7 @@ class OrganizationSeerProjectSettingsEndpoint(OrganizationEndpoint):
             request=request,
             queryset=queryset,
             order_by=order_by,
-            on_results=serialize_projects,
+            on_results=lambda projects: serialize_projects(organization, projects),
             paginator_cls=OffsetPaginator,
         )
 
@@ -486,7 +533,7 @@ class OrganizationSeerProjectSettingsEndpoint(OrganizationEndpoint):
 
         accessible_projects = self.get_projects(request, organization, include_all_accessible=True)
         queryset = _annotate_queryset(
-            Project.objects.filter(id__in={p.id for p in accessible_projects})
+            Project.objects.filter(id__in={p.id for p in accessible_projects}), organization
         )
 
         if search_query:

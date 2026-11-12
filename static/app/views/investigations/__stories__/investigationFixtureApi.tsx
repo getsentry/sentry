@@ -1,0 +1,853 @@
+import {useEffect, useState, type ReactNode} from 'react';
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
+
+import {GlobalDrawer} from '@sentry/scraps/drawer';
+import {Container} from '@sentry/scraps/layout';
+
+import type {RequestOptions} from 'sentry/api';
+import type {ResponseMeta} from 'sentry/types/api';
+import type {AvatarUser} from 'sentry/types/user';
+import {QUERY_API_CLIENT} from 'sentry/utils/api/apiFetch';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
+import {DEFAULT_QUERY_CLIENT_CONFIG} from 'sentry/utils/queryClientConfig';
+import {RequestError} from 'sentry/utils/requestError/requestError';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
+import type {ActionRequestError} from 'sentry/views/investigations/api';
+import {
+  InvestigationBlockExecutionFixture,
+  InvestigationCommentFixture,
+  InvestigationBlockFixture,
+  InvestigationDetailFixture,
+  InvestigationExecutionDetailFixture,
+  InvestigationQueryOutputFixture,
+  InvestigationTranscriptBlockFixture,
+} from 'sentry/views/investigations/fixtures';
+import {getSourceMonitor} from 'sentry/views/investigations/source';
+import type {
+  InvestigationActionRequest,
+  InvestigationComment,
+  InvestigationDetail,
+  InvestigationExecutionDetail,
+  InvestigationListItem,
+  InvestigationOrchestration,
+  InvestigationOrchestrationCommand,
+  InvestigationTitleGeneration,
+} from 'sentry/views/investigations/types';
+
+import {commentStoryAuthors} from './commentStoryFixtures';
+
+type FixtureApiMode = 'success' | 'loading' | 'error';
+
+type InvestigationFixtureApiProps = {
+  children: ReactNode;
+  organizationSlug: string;
+  /** `Link` header for an investigation's comments, keyed by investigation id. */
+  commentPageLinks?: Record<string, string>;
+  /** Page-level and block comments, keyed by investigation id. */
+  comments?: Record<string, InvestigationComment[]>;
+  details?: InvestigationDetail[];
+  /** Dry-run error responses, keyed by action request id. */
+  dryRunErrors?: Record<string, FixtureErrorResponse>;
+  executions?: Record<string, InvestigationExecutionDetail>;
+  featureEnabled?: boolean;
+  list?: InvestigationListItem[];
+  mode?: FixtureApiMode;
+  openMembership?: boolean;
+  /** Agentic run state, keyed by investigation id. */
+  orchestration?: Record<string, InvestigationOrchestration>;
+  pageLinks?: string;
+  titleGenerations?: Record<string, InvestigationTitleGeneration>;
+};
+
+type FixtureApiConfig = Omit<InvestigationFixtureApiProps, 'children'> & {
+  /** Author of comments posted through the fixture. */
+  viewer: AvatarUser;
+};
+
+type FixtureResponse = {
+  body: unknown;
+  headers?: Record<string, string>;
+};
+
+type FixtureErrorResponse = {
+  body: ActionRequestError & {detail: string};
+  status: number;
+};
+
+type FixtureHandlerResult = Promise<FixtureResponse> | typeof NO_MATCH;
+type FixtureHandler = (
+  path: string,
+  options: Readonly<RequestOptions> & {includeAllArgs?: boolean}
+) => FixtureHandlerResult;
+
+type RequestPromise = typeof QUERY_API_CLIENT.requestPromise;
+
+const NO_MATCH = Symbol('NO_MATCH');
+const fixtureHandlers = new Map<string, FixtureHandler>();
+let originalRequestPromise: RequestPromise | null = null;
+
+export function investigationExecutionFixtureKey(blockId: string, executionId: string) {
+  return `${blockId}:${executionId}`;
+}
+
+export function InvestigationFixtureApi({
+  children,
+  organizationSlug,
+  commentPageLinks = {},
+  comments = {},
+  details = [],
+  dryRunErrors = {},
+  executions = {},
+  featureEnabled = true,
+  list = [],
+  mode = 'success',
+  openMembership = true,
+  orchestration = {},
+  pageLinks,
+  titleGenerations = {},
+}: InvestigationFixtureApiProps) {
+  const outerOrganization = useOrganization();
+  const viewer = useStoryViewer();
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        ...DEFAULT_QUERY_CLIENT_CONFIG,
+        defaultOptions: {
+          ...DEFAULT_QUERY_CLIENT_CONFIG.defaultOptions,
+          queries: {
+            ...DEFAULT_QUERY_CLIENT_CONFIG.defaultOptions?.queries,
+            retry: false,
+          },
+        },
+      })
+  );
+  const [handler] = useState(() =>
+    createFixtureHandler({
+      organizationSlug,
+      commentPageLinks,
+      comments,
+      details,
+      dryRunErrors,
+      executions,
+      featureEnabled,
+      list,
+      mode,
+      openMembership,
+      orchestration,
+      pageLinks,
+      titleGenerations,
+      viewer,
+    })
+  );
+  const [ready, setReady] = useState(false);
+  const organization = {
+    ...outerOrganization,
+    slug: organizationSlug,
+    features: featureEnabled
+      ? Array.from(new Set([...outerOrganization.features, 'investigations']))
+      : outerOrganization.features.filter(feature => feature !== 'investigations'),
+    openMembership,
+  };
+
+  useEffect(() => {
+    registerFixtureHandler(organizationSlug, handler);
+    // oxlint-disable-next-line react/set-state-in-effect
+    setReady(true);
+
+    return () => {
+      queryClient.clear();
+      unregisterFixtureHandler(organizationSlug);
+    };
+  }, [handler, organizationSlug, queryClient]);
+
+  if (!ready) {
+    return null;
+  }
+
+  // Drawers render where GlobalDrawer is mounted, so mount one inside the
+  // fixture. The app's drawer would read the real organization and API.
+  return (
+    <OrganizationContext value={organization}>
+      <QueryClientProvider client={queryClient}>
+        {/* The product's own headings (Activity, chart titles, the thread
+            drawer) aren't story sections, so keep them out of the Scraps page
+            index. */}
+        <Container display="contents" data-storybook-demo>
+          <GlobalDrawer>{children}</GlobalDrawer>
+        </Container>
+      </QueryClientProvider>
+    </OrganizationContext>
+  );
+}
+
+/**
+ * Stories view investigations as Ada Lovelace, with the signed-in user's id, so
+ * they look the same for everyone who opens them. Ada's fixture comments are
+ * yours, so they get the author-only actions.
+ */
+function useStoryViewer(): AvatarUser {
+  const {id} = useUser();
+  return {...commentStoryAuthors.ADA, id};
+}
+
+function registerFixtureHandler(key: string, handler: FixtureHandler) {
+  if (fixtureHandlers.size === 0) {
+    originalRequestPromise = QUERY_API_CLIENT.requestPromise;
+    QUERY_API_CLIENT.requestPromise = fixtureRequestPromise;
+  }
+  fixtureHandlers.set(key, handler);
+}
+
+function unregisterFixtureHandler(key: string) {
+  fixtureHandlers.delete(key);
+  if (fixtureHandlers.size === 0 && originalRequestPromise) {
+    QUERY_API_CLIENT.requestPromise = originalRequestPromise;
+    originalRequestPromise = null;
+  }
+}
+
+const fixtureRequestPromise = (async (
+  path: string,
+  options?: Readonly<RequestOptions> & {includeAllArgs?: boolean}
+) => {
+  const requestOptions = options ?? {};
+  for (const handler of fixtureHandlers.values()) {
+    const result = handler(path, requestOptions);
+    if (result === NO_MATCH) {
+      continue;
+    }
+
+    const {body, headers = {}} = await result;
+    if (!requestOptions.includeAllArgs) {
+      return body;
+    }
+
+    const response: ResponseMeta = {
+      status: 200,
+      statusText: 'OK',
+      responseJSON: body,
+      responseText: body === undefined ? '' : JSON.stringify(body),
+      getResponseHeader: header => headers[header] ?? null,
+    };
+    return [body, 'success', response];
+  }
+
+  if (!originalRequestPromise) {
+    throw new Error(`No API client is available for ${path}.`);
+  }
+  return originalRequestPromise.call(QUERY_API_CLIENT, path, requestOptions);
+}) as RequestPromise;
+
+function createFixtureHandler(config: FixtureApiConfig): FixtureHandler {
+  const basePaths = [
+    `/organizations/${config.organizationSlug}/notebooks/`,
+    `/organizations/${config.organizationSlug}/investigations/`,
+  ];
+  const state = createFixtureState(config);
+
+  return (path, options) => {
+    const basePath = basePaths.find(base => path.startsWith(base));
+    if (!basePath) {
+      return NO_MATCH;
+    }
+    if (config.mode === 'loading') {
+      return new Promise(() => {});
+    }
+    if (config.mode === 'error') {
+      return Promise.reject(
+        fixtureRequestError(normalizeMethod(options.method), path, {
+          status: 500,
+          body: {detail: 'Fixture API error'},
+        })
+      );
+    }
+
+    return Promise.resolve(handleFixtureRequest(state, basePath, path, options));
+  };
+}
+
+type FixtureState = {
+  allocatedBlockIds: Set<string>;
+  allocatedInvestigationIds: Set<string>;
+  commentPageLinks: Record<string, string>;
+  comments: Map<string, InvestigationComment[]>;
+  details: Map<string, InvestigationDetail>;
+  dryRunErrors: Record<string, FixtureErrorResponse>;
+  executions: Map<string, InvestigationExecutionDetail>;
+  list: InvestigationListItem[];
+  orchestration: Map<string, InvestigationOrchestration>;
+  titleGenerations: Map<string, InvestigationTitleGeneration>;
+  viewer: AvatarUser;
+  pageLinks?: string;
+};
+
+function createFixtureState(config: FixtureApiConfig): FixtureState {
+  const details = new Map(
+    (config.details ?? []).map(detail => [detail.id, cloneFixture(detail)])
+  );
+  const list = cloneFixture(
+    config.list?.length ? config.list : Array.from(details.values())
+  );
+
+  return {
+    allocatedBlockIds: new Set(
+      Array.from(details.values()).flatMap(detail =>
+        (detail.blocks ?? []).map(block => block.id)
+      )
+    ),
+    allocatedInvestigationIds: new Set([
+      ...details.keys(),
+      ...list.map(investigation => investigation.id),
+    ]),
+    commentPageLinks: {...config.commentPageLinks},
+    comments: new Map(
+      Object.entries(config.comments ?? {}).map(([key, comments]) => [
+        key,
+        cloneFixture(comments).map(comment =>
+          comment.author?.id === commentStoryAuthors.ADA.id
+            ? {...comment, author: config.viewer}
+            : comment
+        ),
+      ])
+    ),
+    details,
+    dryRunErrors: {...config.dryRunErrors},
+    list,
+    orchestration: new Map(
+      Object.entries(config.orchestration ?? {}).map(([key, run]) => [
+        key,
+        cloneFixture(run),
+      ])
+    ),
+    pageLinks: config.pageLinks,
+    executions: new Map(
+      Object.entries(config.executions ?? {}).map(([key, execution]) => [
+        key,
+        cloneFixture(execution),
+      ])
+    ),
+    titleGenerations: new Map(
+      Object.entries(config.titleGenerations ?? {}).map(([key, generation]) => [
+        key,
+        cloneFixture(generation),
+      ])
+    ),
+    viewer: config.viewer,
+  };
+}
+
+function handleFixtureRequest(
+  state: FixtureState,
+  basePath: string,
+  path: string,
+  options: Readonly<RequestOptions>
+): FixtureResponse {
+  const method = normalizeMethod(options.method);
+  const parts = path.slice(basePath.length).split('/').filter(Boolean);
+  const data = (options.data ?? {}) as Record<string, unknown>;
+
+  if (parts.length === 0) {
+    if (method === 'GET') {
+      const query = String(options.query?.query ?? '')
+        .trim()
+        .toLocaleLowerCase();
+      const visibleList = query
+        ? state.list.filter(investigation =>
+            investigation.title.toLocaleLowerCase().includes(query)
+          )
+        : state.list;
+      return {
+        body: cloneFixture(visibleList),
+        headers: state.pageLinks ? {Link: state.pageLinks} : undefined,
+      };
+    }
+    if (method === 'POST') {
+      const id = reserveFixtureId(
+        `investigation-story-${state.list.length + 1}`,
+        state.allocatedInvestigationIds
+      );
+      const detail = InvestigationDetailFixture({
+        id,
+        title: getDataString(data, 'title') ?? 'Untitled investigation',
+        sourceType: data.source ? 'metric_open_period' : 'manual',
+        blocks: [],
+      });
+      state.details.set(id, detail);
+      state.list.push(detail);
+      return {body: cloneFixture(detail)};
+    }
+  }
+
+  const investigationId = parts[0];
+  if (!investigationId) {
+    throw new Error(`Invalid fixture investigation path: ${path}`);
+  }
+
+  if (parts.length === 1) {
+    if (method === 'GET') {
+      return {body: cloneFixture(getFixtureDetail(state, investigationId))};
+    }
+    if (method === 'PUT') {
+      const detail = getFixtureDetail(state, investigationId);
+      const updated = {
+        ...detail,
+        title: getDataString(data, 'title') ?? detail.title,
+        version: detail.version + 1,
+        dateUpdated: '2026-08-27T15:45:00Z',
+      };
+      setFixtureDetail(state, updated);
+      return {body: cloneFixture(updated)};
+    }
+    if (method === 'DELETE') {
+      state.details.delete(investigationId);
+      state.list = state.list.filter(item => item.id !== investigationId);
+      return {body: undefined};
+    }
+  }
+
+  if (parts[1] === 'favorite' && method === 'PUT') {
+    const detail = getFixtureDetail(state, investigationId);
+    setFixtureDetail(state, {
+      ...detail,
+      isFavorited: data.shouldFavorite === true,
+    });
+    return {body: undefined};
+  }
+
+  if (parts[1] === 'duplicate' && method === 'POST') {
+    const detail = getFixtureDetail(state, investigationId);
+    const duplicate = {
+      ...cloneFixture(detail),
+      id: reserveFixtureId(`${detail.id}-copy`, state.allocatedInvestigationIds),
+      title: `${detail.title} copy`,
+      dateCreated: '2026-08-27T15:45:00Z',
+      dateUpdated: '2026-08-27T15:45:00Z',
+      isFavorited: false,
+      version: 1,
+    };
+    setFixtureDetail(state, duplicate);
+    return {body: cloneFixture(duplicate)};
+  }
+
+  if (parts[1] === 'orchestration' && parts.length === 2 && method === 'GET') {
+    return {body: cloneFixture(getFixtureOrchestration(state, investigationId))};
+  }
+
+  if (
+    parts[1] === 'orchestration' &&
+    parts[2] === 'commands' &&
+    parts.length === 3 &&
+    method === 'POST'
+  ) {
+    const run = getFixtureOrchestration(state, investigationId);
+    const command = data.command as InvestigationOrchestrationCommand;
+    // Seer would take the question and push a new projection; the fixture
+    // starts the run inline so a story stays interactive.
+    const updated: InvestigationOrchestration = {
+      ...run,
+      ...(command.type === 'provide_input'
+        ? {phase: 'broad_scan', status: 'processing', pendingInput: null}
+        : {}),
+      workflowVersion: run.workflowVersion + 1,
+    };
+    state.orchestration.set(investigationId, updated);
+    return {
+      body: {
+        accepted: true,
+        duplicate: false,
+        requestId: getDataString(data, 'requestId') ?? 'fixture-request',
+        runId: run.runId,
+        workflowVersion: updated.workflowVersion,
+        projection: cloneFixture(updated),
+      },
+    };
+  }
+
+  if (
+    parts[1] === 'action-requests' &&
+    parts[3] === 'apply' &&
+    parts.length === 4 &&
+    method === 'POST'
+  ) {
+    const detail = getFixtureDetail(state, investigationId);
+    const actionRequest = detail.actionRequests?.find(
+      candidate => candidate.id === parts[2]
+    );
+    if (!actionRequest?.action) {
+      throw new Error(`Unknown fixture action request: ${parts[2]}`);
+    }
+    if (data.dryRun === true) {
+      const dryRunError = state.dryRunErrors[actionRequest.id];
+      if (dryRunError) {
+        throw fixtureRequestError(method, path, dryRunError);
+      }
+      return {body: {actionRequest: cloneFixture(actionRequest)}};
+    }
+    const {action} = actionRequest;
+    const applied: InvestigationActionRequest = {
+      ...actionRequest,
+      state: 'applied',
+      appliedBy: state.viewer,
+      appliedDetails:
+        action.kind === 'update_detector'
+          ? {
+              detectorId: action.detectorId,
+              detectorName:
+                getSourceMonitor(detail.source, action.detectorId)?.name ??
+                action.detectorId,
+              fields: Object.keys(action.changes),
+            }
+          : null,
+      canApply: false,
+      cannotApplyReason: 'not_suggested',
+      dateApplied: new Date().toISOString(),
+    };
+    setFixtureDetail(state, {
+      ...detail,
+      actionRequests: detail.actionRequests?.map(candidate =>
+        candidate.id === applied.id ? applied : candidate
+      ),
+    });
+    return {body: {actionRequest: cloneFixture(applied)}};
+  }
+
+  if (parts[1] === 'title-generation' && method === 'GET') {
+    const detail = getFixtureDetail(state, investigationId);
+    return {
+      body: cloneFixture(
+        state.titleGenerations.get(investigationId) ?? {
+          status: detail.titleGeneration?.status ?? null,
+          preview: null,
+        }
+      ),
+    };
+  }
+
+  if (parts[1] === 'comments' && parts.length === 2 && method === 'GET') {
+    const link = state.commentPageLinks[investigationId];
+    const blockId = options.query?.blockId;
+    const comments = getFixtureComments(state, investigationId);
+    return {
+      body: cloneFixture(
+        typeof blockId === 'string'
+          ? comments.filter(comment => comment.blockId === blockId)
+          : comments
+      ),
+      headers: link ? {Link: link} : undefined,
+    };
+  }
+
+  if (parts[1] === 'comment-counts' && parts.length === 2 && method === 'GET') {
+    const counts: Record<string, number> = {};
+    for (const comment of state.comments.get(investigationId) ?? []) {
+      if (comment.blockId) {
+        counts[comment.blockId] = (counts[comment.blockId] ?? 0) + 1;
+      }
+    }
+    return {body: counts};
+  }
+
+  if (parts[1] === 'comments' && parts.length === 2 && method === 'POST') {
+    const comments = state.comments.get(investigationId) ?? [];
+    const now = new Date().toISOString();
+    const comment = InvestigationCommentFixture({
+      id: reserveFixtureId(
+        `storybook-comment-${comments.length + 1}`,
+        new Set(comments.map(existing => existing.id))
+      ),
+      author: state.viewer,
+      blockId: getDataString(data, 'blockId') ?? null,
+      body: getDataString(data, 'body') ?? '',
+      dateCreated: now,
+      dateUpdated: now,
+    });
+    state.comments.set(investigationId, [...comments, comment]);
+    return {body: cloneFixture(comment)};
+  }
+
+  const commentId = parts[2];
+  if (parts[1] === 'comments' && commentId && parts.length === 3) {
+    const comments = state.comments.get(investigationId) ?? [];
+    const comment = comments.find(candidate => candidate.id === commentId);
+    if (!comment) {
+      throw new Error(`Unknown fixture investigation comment: ${commentId}`);
+    }
+
+    if (method === 'PUT') {
+      const updated = {
+        ...comment,
+        body: getDataString(data, 'body') ?? comment.body,
+        dateUpdated: new Date().toISOString(),
+      };
+      state.comments.set(
+        investigationId,
+        comments.map(candidate => (candidate.id === commentId ? updated : candidate))
+      );
+      return {body: cloneFixture(updated)};
+    }
+
+    if (method === 'DELETE') {
+      state.comments.set(
+        investigationId,
+        comments.filter(candidate => candidate.id !== commentId)
+      );
+      return {body: undefined};
+    }
+  }
+
+  if (parts[1] === 'blocks' && parts.length === 2 && method === 'POST') {
+    const detail = getFixtureDetail(state, investigationId);
+    const kind = data.kind === 'query' ? 'query' : 'text';
+    const blocks = detail.blocks ?? [];
+    const block = InvestigationBlockFixture({
+      id: reserveFixtureId(
+        `storybook-${kind}-${blocks.length + 1}`,
+        state.allocatedBlockIds
+      ),
+      position: Math.max(-1, ...blocks.map(existingBlock => existingBlock.position)) + 1,
+      kind,
+      title: getDataString(data, 'title') ?? '',
+      content: '',
+      generationPrompt: getDataString(data, 'generationPrompt') ?? '',
+      display: {type: kind === 'query' ? 'table' : 'markdown'},
+    });
+    setFixtureDetail(state, {
+      ...detail,
+      blocks: [...blocks, block],
+      blockCount: detail.blockCount + 1,
+      version: detail.version + 1,
+    });
+    return {body: cloneFixture(block)};
+  }
+
+  const blockId = parts[2];
+  if (parts[1] === 'blocks' && blockId && parts.length === 3) {
+    const detail = getFixtureDetail(state, investigationId);
+    const block = detail.blocks?.find(candidate => candidate.id === blockId);
+    if (!block) {
+      throw new Error(`Unknown fixture investigation block: ${blockId}`);
+    }
+
+    if (method === 'PUT') {
+      const updatedBlock = {
+        ...block,
+        generationPrompt:
+          getDataString(data, 'generationPrompt') ?? block.generationPrompt,
+        version: block.version + 1,
+      };
+      setFixtureDetail(state, {
+        ...detail,
+        blocks: detail.blocks?.map(candidate =>
+          candidate.id === blockId ? updatedBlock : candidate
+        ),
+        version: detail.version + 1,
+      });
+      return {body: cloneFixture(updatedBlock)};
+    }
+
+    if (method === 'DELETE') {
+      setFixtureDetail(state, {
+        ...detail,
+        blocks: detail.blocks?.filter(candidate => candidate.id !== blockId),
+        blockCount: Math.max(0, detail.blockCount - 1),
+        version: detail.version + 1,
+      });
+      return {body: undefined};
+    }
+  }
+
+  if (
+    parts[1] === 'blocks' &&
+    blockId &&
+    parts[3] === 'executions' &&
+    parts.length === 4 &&
+    method === 'POST'
+  ) {
+    const detail = getFixtureDetail(state, investigationId);
+    const executionId = `${blockId}-storybook-run`;
+    const execution = InvestigationExecutionDetailFixture({
+      id: executionId,
+      status: 'completed',
+      blocks: [
+        InvestigationTranscriptBlockFixture({
+          id: `${executionId}-request`,
+          message: {
+            role: 'user',
+            content: 'Compare the regression with the most recent deploy.',
+          },
+        }),
+        InvestigationTranscriptBlockFixture({
+          id: `${executionId}-answer`,
+          timestamp: '2026-08-17T10:00:06Z',
+          message: {
+            role: 'assistant',
+            content:
+              'The regression starts four minutes after the deploy and affects every checkout region.',
+          },
+        }),
+      ],
+    });
+    state.executions.set(
+      investigationExecutionFixtureKey(blockId, executionId),
+      execution
+    );
+    setFixtureDetail(state, {
+      ...detail,
+      blocks: detail.blocks?.map(block =>
+        block.id === blockId
+          ? {
+              ...block,
+              output:
+                block.kind === 'query'
+                  ? InvestigationQueryOutputFixture({
+                      tableMarkdown:
+                        '| Transaction | p95 before | p95 after |\n| --- | ---: | ---: |\n| `POST /api/checkout` | 421ms | 1.84s |',
+                    })
+                  : {
+                      schemaVersion: 1,
+                      markdown:
+                        'The regression begins four minutes after the deploy and is concentrated in database connection acquisition.',
+                    },
+              outputStatus: 'completed',
+              currentExecution: InvestigationBlockExecutionFixture({id: executionId}),
+            }
+          : block
+      ),
+    });
+    return {body: {id: executionId, status: 'completed'}};
+  }
+
+  const executionId = parts[4];
+  if (
+    parts[1] === 'blocks' &&
+    blockId &&
+    parts[3] === 'executions' &&
+    executionId &&
+    parts.length === 5
+  ) {
+    const key = investigationExecutionFixtureKey(blockId, executionId);
+    if (method === 'GET') {
+      return {
+        body: cloneFixture(
+          state.executions.get(key) ??
+            InvestigationExecutionDetailFixture({id: executionId})
+        ),
+      };
+    }
+
+    if (method === 'DELETE' || method === 'PATCH') {
+      const detail = getFixtureDetail(state, investigationId);
+      const status = method === 'DELETE' ? 'cancelled' : 'completed';
+      const current =
+        state.executions.get(key) ??
+        InvestigationExecutionDetailFixture({id: executionId});
+      state.executions.set(key, {
+        ...current,
+        status,
+        pendingUserInput: null,
+      });
+      setFixtureDetail(state, {
+        ...detail,
+        blocks: detail.blocks?.map(block =>
+          block.id === blockId
+            ? {
+                ...block,
+                outputStatus: status,
+                currentExecution: InvestigationBlockExecutionFixture({
+                  id: executionId,
+                  status,
+                  error:
+                    status === 'cancelled' ? {message: 'Stopped by the user.'} : null,
+                }),
+              }
+            : block
+        ),
+      });
+      return {body: undefined};
+    }
+  }
+
+  throw new Error(`Unhandled fixture API request: ${method} ${path}`);
+}
+
+function getFixtureDetail(state: FixtureState, investigationId: string) {
+  const detail = state.details.get(investigationId);
+  if (detail) {
+    return detail;
+  }
+
+  const listItem = state.list.find(item => item.id === investigationId);
+  if (!listItem) {
+    throw new Error(`Unknown fixture investigation: ${investigationId}`);
+  }
+  const generatedDetail = InvestigationDetailFixture({...listItem, blocks: []});
+  state.details.set(investigationId, generatedDetail);
+  return generatedDetail;
+}
+
+/** Newest first, like the endpoint. */
+function getFixtureComments(state: FixtureState, investigationId: string) {
+  return (state.comments.get(investigationId) ?? []).toSorted((a, b) =>
+    b.dateCreated.localeCompare(a.dateCreated)
+  );
+}
+
+function getFixtureOrchestration(state: FixtureState, investigationId: string) {
+  const run = state.orchestration.get(investigationId);
+  if (!run) {
+    // The real endpoint 404s for an investigation with no agentic run behind
+    // it, so a story that forgot to supply one should say so loudly.
+    throw new Error(`No fixture orchestration run for investigation: ${investigationId}`);
+  }
+  return run;
+}
+
+function setFixtureDetail(state: FixtureState, detail: InvestigationDetail) {
+  state.details.set(detail.id, detail);
+  const listIndex = state.list.findIndex(item => item.id === detail.id);
+  if (listIndex === -1) {
+    state.list.push(detail);
+    return;
+  }
+  state.list[listIndex] = {...state.list[listIndex], ...detail};
+}
+
+function fixtureRequestError(
+  method: ReturnType<typeof normalizeMethod>,
+  path: string,
+  {body, status}: {body: {detail: string}; status: number}
+) {
+  const response: ResponseMeta = {
+    status,
+    statusText: 'Fixture API error',
+    responseJSON: body,
+    responseText: JSON.stringify(body),
+    getResponseHeader: () => null,
+  };
+  return new RequestError(method, path, new Error('Fixture API error'), response);
+}
+
+function normalizeMethod(method: RequestOptions['method']) {
+  return method ?? 'GET';
+}
+
+function getDataString(data: Record<string, unknown>, key: string) {
+  const value = data[key];
+  return typeof value === 'string' ? value : undefined;
+}
+
+function reserveFixtureId(preferredId: string, allocatedIds: Set<string>) {
+  let id = preferredId;
+  let suffix = 2;
+  while (allocatedIds.has(id)) {
+    id = `${preferredId}-${suffix}`;
+    suffix += 1;
+  }
+  allocatedIds.add(id);
+  return id;
+}
+
+function cloneFixture<T>(fixture: T): T {
+  return JSON.parse(JSON.stringify(fixture)) as T;
+}

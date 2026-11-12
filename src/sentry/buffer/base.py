@@ -3,8 +3,8 @@ from datetime import datetime
 from typing import Any
 
 import psycopg2.errors
-from django.db import DataError
-from django.db.models import F
+from django.db import DataError, IntegrityError, router, transaction
+from django.db.models import Case, F, Value, When
 
 from sentry.db import models
 from sentry.db.models.fields.bounded import BoundedPositiveIntegerField
@@ -106,8 +106,10 @@ class Buffer(Service):
         filters: dict[str, Any] | None,
         extra: dict[str, Any] | None = None,
         signal_only: bool | None = None,
+        **kwargs: Any,
     ) -> None:
         from sentry.models.group import Group
+        from sentry.models.grouptombstone import GroupTombstone
 
         if not columns:
             columns = {}
@@ -118,6 +120,15 @@ class Buffer(Service):
 
         if not signal_only:
             update_kwargs: dict[str, Any] = {c: F(c) + v for c, v in columns.items()}
+
+            if model is GroupTombstone and "times_seen" in columns:
+                # The exact count isn't important, so saturate rather than overflow.
+                max_value = BoundedPositiveIntegerField.MAX_VALUE
+                increment = columns["times_seen"]
+                update_kwargs["times_seen"] = Case(
+                    When(times_seen__gte=max_value - increment, then=Value(max_value)),
+                    default=F("times_seen") + increment,
+                )
 
             if extra:
                 # Because of the group.update() below, we need to parse
@@ -130,7 +141,7 @@ class Buffer(Service):
             # HACK(dcramer): this is gross, but we don't have a good hook to compute this property today
             # XXX(dcramer): remove once we can replace 'priority' with something reasonable via Snuba
             if model is Group:
-                # XXX: create_or_update doesn't fire `post_save` signals, and so this update never
+                # XXX: QuerySet.update doesn't fire `post_save` signals, and so this update never
                 # ends up in the cache. This causes issues when handling issue alerts, and likely
                 # elsewhere. Use `update` here since we're already special casing, and we know that
                 # the group will already exist.
@@ -187,7 +198,20 @@ class Buffer(Service):
                                 raise
                 created = False
             elif model:
-                _, created = model.objects.create_or_update(values=update_kwargs, **filters)
+                # update_or_create cannot insert F() expressions. Create with raw increments,
+                # then retry the update if a concurrent insert wins.
+                using = router.db_for_write(model)
+                objects = model.objects.using(using)
+                affected = objects.filter(**filters).update(**update_kwargs)
+                if not affected:
+                    create_kwargs = {**filters, **columns, **(extra or {})}
+                    try:
+                        with transaction.atomic(using=using):
+                            objects.create(**create_kwargs)
+                    except IntegrityError:
+                        objects.filter(**filters).update(**update_kwargs)
+                    else:
+                        created = True
 
         buffer_incr_complete.send_robust(
             model=model,

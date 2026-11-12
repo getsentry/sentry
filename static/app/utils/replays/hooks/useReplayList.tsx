@@ -23,7 +23,7 @@ type Result = State;
 
 /**
  * @deprecated due to its reliance on EventView which is unpleasant to work with
- * Use useApiQuery instead
+ * Use apiOptions with useQuery instead
  */
 export function useReplayList({
   enabled,
@@ -79,6 +79,7 @@ export function useReplayList({
   ]);
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     loadReplays();
   }, [loadReplays]);
 

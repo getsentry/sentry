@@ -1,8 +1,10 @@
 import logging
+from typing import Any
 
 from django.conf import settings
 from django.contrib.auth import logout
 from django.contrib.auth.models import AnonymousUser
+from django.http import HttpRequest
 from django.utils.http import url_has_allowed_host_and_scheme
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
@@ -21,9 +23,15 @@ from sentry.api.serializers import serialize
 from sentry.api.validators import AuthVerifyValidator
 from sentry.api.validators.auth import MISSING_PASSWORD_OR_U2F_CODE
 from sentry.auth.authenticators.u2f import U2fInterface
+from sentry.auth.principal import (
+    acting_user_id,
+    is_owned_by_acting_user,
+    require_user,
+    set_request_principal,
+)
 from sentry.auth.providers.saml2.provider import handle_saml_single_logout
 from sentry.auth.services.auth.impl import promote_request_rpc_user
-from sentry.auth.superuser import SUPERUSER_ORG_ID
+from sentry.auth.superuser import SUPERUSER_ORG_ID, SuperuserAccessSerializer
 from sentry.demo_mode.utils import is_demo_user
 from sentry.organizations.services.organization import organization_service
 from sentry.ratelimits.config import RateLimitConfig
@@ -33,6 +41,7 @@ from sentry.users.models.authenticator import Authenticator
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import DISABLE_SSO_CHECK_FOR_LOCAL_DEV, has_completed_sso, initiate_login
 from sentry.utils.settings import is_self_hosted
+from sudo.utils import grant_sudo_privileges
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -83,7 +92,7 @@ class BaseAuthIndexEndpoint(Endpoint):
         # See if we have a u2f challenge/response
         if "challenge" in validator.validated_data and "response" in validator.validated_data:
             try:
-                interface = Authenticator.objects.get_interface(request.user, "u2f")
+                interface = Authenticator.objects.get_interface(require_user(request), "u2f")
                 assert isinstance(interface, U2fInterface)
                 if not interface.is_enrolled():
                     raise LookupError()
@@ -93,7 +102,7 @@ class BaseAuthIndexEndpoint(Endpoint):
                 if not authenticated:
                     logger.warning(
                         "u2f_authentication.verification_failed",
-                        extra={"user": request.user.id},
+                        extra={"user": acting_user_id(request.user)},
                     )
                 else:
                     metrics.incr("auth.2fa.success", sample_rate=1.0, skip_internal=False)
@@ -101,12 +110,15 @@ class BaseAuthIndexEndpoint(Endpoint):
             except ValueError as err:
                 logger.warning(
                     "u2f_authentication.value_error",
-                    extra={"user": request.user.id, "error_message": err},
+                    extra={"user": acting_user_id(request.user), "error_message": err},
                 )
             except LookupError:
                 logger.warning(
                     "u2f_authentication.interface_not_enrolled",
-                    extra={"validated_data": validator.validated_data, "user": request.user.id},
+                    extra={
+                        "validated_data": validator.validated_data,
+                        "user": acting_user_id(request.user),
+                    },
                 )
         # attempt password authentication
         elif "password" in validator.validated_data:
@@ -135,7 +147,7 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
     and simple HTTP authentication.
     """
 
-    def initialize_request(self, request, *args, **kwargs):
+    def initialize_request(self, request: HttpRequest, *args: Any, **kwargs: Any) -> Request:
         rv = super().initialize_request(request, *args, **kwargs)
         # Allow Bearer token authentication for GET (whoami) only.
         # POST/PUT/DELETE are session-management operations where Bearer auth
@@ -150,8 +162,8 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
         limit_overrides={
             "PUT": {
                 RateLimitCategory.USER: RateLimit(
-                    limit=5, window=60 * 60
-                ),  # 5 PUT requests per hour per user
+                    limit=20, window=60 * 60
+                ),  # 20 PUT requests per hour per user
             }
         }
     )
@@ -172,7 +184,7 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
         logger.info(
             "auth-index.validate_superuser",
             extra={
-                "user": request.user.id,
+                "user": acting_user_id(request.user),
                 "raise_exception": not DISABLE_SSO_CHECK_FOR_LOCAL_DEV,
                 "verify_authenticator": verify_authenticator,
             },
@@ -217,7 +229,7 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
 
         # If 2fa login is enabled then we cannot sign in with username and
         # password through this api endpoint.
-        if request.user.has_2fa():
+        if require_user(request).has_2fa():
             return Response(
                 {
                     "2fa_required": True,
@@ -237,7 +249,7 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        request.user = request._request.user
+        set_request_principal(request, request._request.user, request.auth)
 
         return self.get(request)
 
@@ -255,6 +267,34 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+        if request.data.get("isSuperuserOrgAuth") and request.user.is_superuser:
+            su = getattr(request, "superuser", None)
+            if not su or not su.is_active:
+                return Response(
+                    {"detail": {"code": "superuser-required"}},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+            org_slug = request.data.get("orgSlug")
+            if not org_slug:
+                return Response(
+                    {"detail": "orgSlug is required"}, status=status.HTTP_400_BAD_REQUEST
+                )
+            if not organization_service.check_organization_by_slug(
+                slug=org_slug, only_visible=False
+            ):
+                return Response(
+                    {"detail": "Organization not found"}, status=status.HTTP_404_NOT_FOUND
+                )
+            serializer = SuperuserAccessSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            su.authorize_org(
+                org_slug,
+                serializer.validated_data["superuserAccessCategory"],
+                serializer.validated_data["superuserReason"],
+            )
+            return Response(status=status.HTTP_200_OK)
+
         validator = AuthVerifyValidator(data=request.data)
 
         if not (request.user.is_superuser and request.data.get("isSuperuserModal")):
@@ -275,7 +315,7 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
 
                 if verify_authenticator:
                     if not Authenticator.objects.filter(
-                        user_id=request.user.id, type=U2fInterface.type
+                        is_owned_by_acting_user(request.user), type=U2fInterface.type
                     ).exists():
                         return Response(
                             {"detail": {"code": "no_u2f"}}, status=status.HTTP_403_FORBIDDEN
@@ -284,7 +324,7 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
                     "auth-index.put",
                     extra={
                         "organization": SUPERUSER_ORG_ID,
-                        "user": request.user.id,
+                        "user": acting_user_id(request.user),
                         "verify_authenticator": verify_authenticator,
                     },
                 )
@@ -296,13 +336,8 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
         if not authenticated:
             return Response({"detail": {"code": "ignore"}}, status=status.HTTP_403_FORBIDDEN)
 
-        try:
-            # Must use the httprequest object instead of request
-            auth.login(request._request, promote_request_rpc_user(request))
-            metrics.incr(
-                "sudo_modal.success",
-            )
-        except auth.AuthUserPasswordExpired:
+        user = promote_request_rpc_user(request)
+        if user.is_password_expired:
             metrics.incr(
                 "sudo_modal.failure",
             )
@@ -314,14 +349,29 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
+        # Must use the HttpRequest so SudoMiddleware can set the sudo cookie.
+        grant_sudo_privileges(request._request)
+        metrics.incr(
+            "sudo_modal.success",
+        )
+
         if request.user.is_superuser and request.data.get("isSuperuserModal"):
             request.superuser.set_logged_in(request.user)
+            org_slug = request.data.get("superuserOrgSlug")
+            if org_slug:
+                serializer = SuperuserAccessSerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                request.superuser.authorize_org(
+                    org_slug,
+                    serializer.validated_data["superuserAccessCategory"],
+                    serializer.validated_data["superuserReason"],
+                )
 
-        request.user = request._request.user
+        set_request_principal(request, request._request.user, request.auth)
 
         return self.get(request)
 
-    def delete(self, request: Request, *args, **kwargs) -> Response:
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         Logout the Authenticated User
         `````````````````````````````
@@ -338,7 +388,7 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
 
         # For signals to work here, we must promote the request.user to a full user object
         logout(request._request)
-        request.user = AnonymousUser()
+        set_request_principal(request, AnonymousUser(), request.auth)
 
         # Force cookies to be deleted
         response = Response()

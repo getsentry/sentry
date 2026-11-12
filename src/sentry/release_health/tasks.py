@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 from typing import Any, TypedDict
 
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError
 from django.db.models import F, Q
 from django.utils import timezone
 from sentry_sdk import capture_exception
@@ -19,6 +18,7 @@ from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.release_health import release_monitor
 from sentry.release_health.release_monitor.base import Totals
+from sentry.releases.auto_creation import should_auto_create_releases
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import release_health_tasks
 from sentry.utils import metrics
@@ -42,7 +42,7 @@ logger = logging.getLogger("sentry.tasks.releasemonitor")
     retry=Retry(times=5, on=(Exception,)),
     processing_deadline_duration=400,
 )
-def monitor_release_adoption(**kwargs) -> None:
+def monitor_release_adoption(**kwargs: object) -> None:
     metrics.incr("sentry.tasks.monitor_release_adoption.start", sample_rate=1.0)
     with metrics.timer(
         "sentry.tasks.monitor_release_adoption.process_projects_with_sessions", sample_rate=1.0
@@ -55,7 +55,8 @@ def monitor_release_adoption(**kwargs) -> None:
 
 
 def get_process_projects_with_sessions_countdown(org_id: int) -> int:
-    jitter_seconds = max(0, options.get(PROCESS_PROJECTS_WITH_SESSIONS_JITTER_SECONDS_OPTION))
+    jitter_option = options.get(PROCESS_PROJECTS_WITH_SESSIONS_JITTER_SECONDS_OPTION)
+    jitter_seconds = max(0, jitter_option)
     if jitter_seconds == 0:
         return 0
 
@@ -68,10 +69,27 @@ def get_process_projects_with_sessions_countdown(org_id: int) -> int:
     retry=Retry(times=5, on=(Exception,), delay=5),
     processing_deadline_duration=160,
 )
-def process_projects_with_sessions(org_id, project_ids) -> None:
+def process_projects_with_sessions(org_id: int, project_ids: Sequence[int]) -> None:
     # Takes a single org id and a list of project ids
 
     with metrics.timer("sentry.tasks.monitor_release_adoption.process_projects_with_sessions.core"):
+        # Session data has a 6h lookback, so it can still reference projects that
+        # have since been deleted. Skip those instead of failing per release later.
+        existing_project_ids = list(
+            Project.objects.filter(organization_id=org_id, id__in=project_ids).values_list(
+                "id", flat=True
+            )
+        )
+        missing_count = len(set(project_ids)) - len(existing_project_ids)
+        if missing_count:
+            metrics.incr(
+                "sentry.tasks.process_projects_with_sessions.missing_projects",
+                amount=missing_count,
+            )
+        if not existing_project_ids:
+            return
+        project_ids = existing_project_ids
+
         # Set the `has_sessions` flag for these projects
         Project.objects.filter(
             organization_id=org_id,
@@ -126,8 +144,13 @@ def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
 
 
 def _update_last_seen(
-    org_id, current_time, cutoff_time, project_id, environment_name, release_version
-):
+    org_id: int,
+    current_time: datetime,
+    cutoff_time: datetime,
+    project_id: int,
+    environment_name: str,
+    release_version: str,
+) -> None:
     # Skip last_seen updates when the disable option is set (default True)
     if options.get("release-health.disable-release-last-seen-update", True):
         return
@@ -196,19 +219,28 @@ def _handle_release_adoption(
     except (Release.DoesNotExist, ReleaseProjectEnvironment.DoesNotExist):
         metrics.incr("sentry.tasks.process_projects_with_sessions.creating_rpe")
         try:
+            project = Project.objects.select_related("organization").get(id=project_id)
+            create_release = should_auto_create_releases(project)
+
             env = Environment.objects.get_or_create(name=environment_name, organization_id=org_id)[
                 0
             ]
             try:
-                release = Release.objects.get_or_create(
-                    organization_id=org_id,
-                    version=release_version,
-                    defaults={
-                        "status": ReleaseStatus.OPEN,
-                    },
-                )[0]
-            except IntegrityError:
-                release = Release.objects.get(organization_id=org_id, version=release_version)
+                if create_release:
+                    release = Release.objects.get_or_create(
+                        organization_id=org_id,
+                        version=release_version,
+                        defaults={
+                            "status": ReleaseStatus.OPEN,
+                        },
+                    )[0]
+                else:
+                    release = Release.objects.get(organization_id=org_id, version=release_version)
+            except Release.DoesNotExist:
+                release = None
+                metrics.incr(
+                    "sentry.tasks.process_projects_with_sessions.release_autocreation_skipped"
+                )
             except ValidationError:
                 release = None
                 logger.exception(
@@ -220,7 +252,7 @@ def _handle_release_adoption(
                 )
 
             if release:
-                release.add_project(Project.objects.get(id=project_id))
+                release.add_project(project)
 
                 ReleaseEnvironment.objects.get_or_create(
                     environment=env, organization_id=org_id, release=release
@@ -233,8 +265,10 @@ def _handle_release_adoption(
                     adopted=current_time,
                     last_seen=current_time,
                 )
+        except Project.DoesNotExist:
+            # The project was deleted while this task was running; nothing to adopt.
+            metrics.incr("sentry.tasks.process_projects_with_sessions.project_not_found")
         except (
-            Project.DoesNotExist,
             Environment.DoesNotExist,
             Release.DoesNotExist,
             ReleaseEnvironment.DoesNotExist,

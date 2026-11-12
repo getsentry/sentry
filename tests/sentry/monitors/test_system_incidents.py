@@ -2,11 +2,14 @@ import itertools
 from collections.abc import Sequence
 from datetime import datetime, timedelta
 from unittest import mock
+from unittest.mock import MagicMock
 
 from django.conf import settings
 from django.utils import timezone
 
 from sentry.monitors.system_incidents import (
+    MONITOR_LAST_SYSTEM_INCIDENT_TS,
+    MONITOR_TICK_DECISION,
     MONITOR_TICK_METRIC,
     MONITOR_VOLUME_DECISION_STEP,
     MONITOR_VOLUME_HISTORY,
@@ -22,6 +25,7 @@ from sentry.monitors.system_incidents import (
     process_clock_tick_for_system_incidents,
     prune_incident_check_in_volume,
     record_clock_tick_volume_metric,
+    record_last_incident_ts,
     update_check_in_volume,
 )
 from sentry.testutils.helpers.options import override_options
@@ -33,7 +37,7 @@ redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
 def fill_historic_volume(
     start: datetime, length: timedelta, step: timedelta, counts: Sequence[int]
-):
+) -> None:
     """
     Creates a volume history starting at the `start` and going back `length`,
     where each bucket is spaced by `step`s apart.
@@ -61,7 +65,7 @@ def fill_historic_volume(
     update_check_in_volume(ts_list)
 
 
-def fill_historic_metrics(start: datetime, metrics: Sequence[float | None]):
+def fill_historic_metrics(start: datetime, metrics: Sequence[float | None]) -> None:
     """
     Creates historic metrics starting from the `start` datetime backfilling the
     `metrics`, popping from the end of the list until all metrics have been
@@ -113,12 +117,12 @@ def test_update_check_in_volume() -> None:
 @mock.patch("sentry.monitors.system_incidents.make_clock_tick_decision")
 @mock.patch("sentry.monitors.system_incidents.prune_incident_check_in_volume")
 def test_process_clock_tick_for_system_incident(
-    mock_prune_incident_check_in_volume,
-    mock_make_clock_tick_decision,
-    mock_record_clock_tick_volume_metric,
-    mock_metrics,
-    mock_logger,
-):
+    mock_prune_incident_check_in_volume: MagicMock,
+    mock_make_clock_tick_decision: MagicMock,
+    mock_record_clock_tick_volume_metric: MagicMock,
+    mock_metrics: MagicMock,
+    mock_logger: MagicMock,
+) -> None:
     ts = timezone.now().replace(second=0, microsecond=0)
 
     mock_make_clock_tick_decision.return_value = DecisionResult(
@@ -172,6 +176,13 @@ def test_process_clock_tick_for_system_incident(
     )
 
 
+def test_record_last_incident_ts_expires() -> None:
+    record_last_incident_ts(timezone.now().replace(second=0, microsecond=0))
+
+    ttl = redis_client.ttl(MONITOR_LAST_SYSTEM_INCIDENT_TS)
+    assert 0 < ttl <= MONITOR_VOLUME_RETENTION.total_seconds()
+
+
 @mock.patch("sentry.monitors.system_incidents.logger")
 @mock.patch("sentry.monitors.system_incidents.metrics")
 @override_options({"crons.system_incidents.collect_metrics": True})
@@ -183,7 +194,7 @@ def test_record_clock_tick_volume_metric_simple(
     # This is the timestamp we're looking at just before the tick
     past_ts = tick - timedelta(minutes=1)
 
-    # Fill histroic volume data for earlier minutes.
+    # Fill historic volume data for earlier minutes.
     fill_historic_volume(
         start=past_ts - MONITOR_VOLUME_DECISION_STEP,
         length=MONITOR_VOLUME_RETENTION,
@@ -238,7 +249,7 @@ def test_record_clock_tick_volume_metric_volume_drop(
     # This is the timestamp we're looking at just before the tick
     past_ts = tick - timedelta(minutes=1)
 
-    # Fill histroic volume data for earlier minutes.
+    # Fill historic volume data for earlier minutes.
     fill_historic_volume(
         start=past_ts - MONITOR_VOLUME_DECISION_STEP,
         length=MONITOR_VOLUME_RETENTION,
@@ -386,8 +397,8 @@ def test_prune_incident_check_in_volume() -> None:
 
     volumes = [redis_client.get(make_key(timedelta(minutes=offset))) for offset in range(10)]
 
-    # Ensure we removed the correct keys. remmeber,
-    # prune_incident_check_in_volume recieves the timestamp of the incident
+    # Ensure we removed the correct keys. remember,
+    # prune_incident_check_in_volume receives the timestamp of the incident
     # tick decisions, but the volume data is recorded in the timestamp before
     assert volumes == ["1", None, None, None, None, "6", "7", "8", "9", "10"]
 
@@ -456,9 +467,13 @@ def test_tick_decision_anomaly_recovery() -> None:
         assert result.transition == AnomalyTransition.ABNORMALITY_RECOVERED
         assert result.ts == ts
 
-    # The last 6 ABNORMAL ticks transitioned to NORMAL
+    # The last 6 ABNORMAL ticks transitioned to NORMAL, keeping their expiry
     for i in range(1, 7):
-        assert get_clock_tick_decision(ts - timedelta(minutes=i)) == TickAnomalyDecision.NORMAL
+        backfilled_ts = ts - timedelta(minutes=i)
+        assert get_clock_tick_decision(backfilled_ts) == TickAnomalyDecision.NORMAL
+
+        key = MONITOR_TICK_DECISION.format(ts=_make_reference_ts(backfilled_ts))
+        assert 0 < redis_client.ttl(key) <= MONITOR_VOLUME_RETENTION.total_seconds()
 
 
 @django_db_all

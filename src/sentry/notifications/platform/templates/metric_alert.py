@@ -18,7 +18,6 @@ class MetricAlertNotificationData(NotificationData):
 
     # Identity / threading
     group_id: int
-    organization_id: int
     notification_uuid: str
     action_id: int  # for ThreadKey key_data (used in PR 2 hookup)
     open_period_context: OpenPeriodContext  # id + date_started used in renderer and threading
@@ -28,9 +27,16 @@ class MetricAlertNotificationData(NotificationData):
     title: str
     title_link: str
     text: str
+    notes: str | None = None
+
+    # The workflow (alert) that sent this notification, if known
+    workflow_name: str | None = None
+    workflow_link: str | None = None
 
     # Pre-computed chart URL (None if feature disabled or build failed)
     chart_url: str | None = None
+
+    show_investigation_button: bool = False
 
 
 _EXAMPLE_OPEN_PERIOD_CONTEXT = OpenPeriodContext(
@@ -50,7 +56,7 @@ class MetricAlertNotificationTemplate(NotificationTemplate[MetricAlertNotificati
         open_period_context=_EXAMPLE_OPEN_PERIOD_CONTEXT,
         new_status=20,  # IncidentStatus.CRITICAL
         title="Critical: Example Alert",
-        title_link="https://sentry.io/organizations/example/alerts/rules/details/1/",
+        title_link="https://sentry.io/organizations/example/monitors/1/",
         text="123 events in the last 5 minutes",
     )
 

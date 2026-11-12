@@ -1,8 +1,13 @@
+from typing import Any
 from unittest import mock
 
 from django.db import IntegrityError
 from django.urls import reverse
+from rest_framework.response import Response
 
+from sentry.integrations.api.endpoints.organization_code_mappings import (
+    INVALID_SOURCE_ROOT_ERROR_MESSAGE,
+)
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.projectrepository import ProjectRepository
@@ -34,8 +39,8 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
             args=[self.organization.slug],
         )
 
-    def make_post(self, data=None, **kwargs):
-        payload = {
+    def make_post(self, data: dict[str, object] | None = None, **kwargs: Any) -> Response:
+        payload: dict[str, object] = {
             "project": self.project1.slug,
             "repository": self.repo1.name,
             "defaultBranch": "main",
@@ -48,7 +53,8 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         }
         if data:
             payload.update(data)
-        return self.client.post(self.url, data=payload, format="json", **kwargs)
+        response: Response[Any] = self.client.post(self.url, data=payload, format="json", **kwargs)
+        return response
 
     def test_create_single_mapping(self) -> None:
         response = self.make_post()
@@ -77,6 +83,39 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["created"] == 1
+
+    def test_allows_parent_directory_in_stack_root(self) -> None:
+        response = self.make_post(
+            {
+                "mappings": [
+                    {
+                        "stackRoot": "../../",
+                        "sourceRoot": "src/",
+                    }
+                ]
+            }
+        )
+
+        assert response.status_code == 200
+
+    def test_rejects_unsafe_source_root(self) -> None:
+        response = self.make_post(
+            {
+                "mappings": [
+                    {
+                        "stackRoot": "src/",
+                        "sourceRoot": "src/../../config",
+                    }
+                ]
+            }
+        )
+
+        assert response.status_code == 400
+        assert response.data["mappings"] == [{"sourceRoot": [INVALID_SOURCE_ROOT_ERROR_MESSAGE]}]
+        assert response.data["rejectedSourceRoots"] == [
+            {"index": 0, "sourceRoot": "src/../../config"}
+        ]
+        assert "indices: [0]" in response.data["detail"]
 
     def test_create_multiple_mappings(self) -> None:
         response = self.make_post(
@@ -534,7 +573,9 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         original_save = RepositoryProjectPathConfig.save
         call_count = 0
 
-        def failing_save(self_inner, *args, **kwargs):
+        def failing_save(
+            self_inner: RepositoryProjectPathConfig, *args: Any, **kwargs: Any
+        ) -> None:
             nonlocal call_count
             call_count += 1
             if call_count == 2:

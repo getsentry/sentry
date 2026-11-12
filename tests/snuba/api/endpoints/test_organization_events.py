@@ -1,13 +1,16 @@
 import math
 import uuid
+from collections.abc import Sequence
 from datetime import timedelta
 from typing import Any
 from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
+from rest_framework.response import Response
 from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 
@@ -17,17 +20,19 @@ from sentry.discover.models import (
     DiscoverSavedQueryTypes,
     TeamKeyTransaction,
 )
+from sentry.ingestion_delay.status import IngestionDelayStatus, IngestionStatus
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.group import GroupStatus
 from sentry.models.project import Project
 from sentry.models.projectteam import ProjectTeam
-from sentry.models.releaseprojectenvironment import ReleaseStages
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
 from sentry.models.transaction_threshold import (
     ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
 from sentry.search.events import constants
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import (
     APITransactionTestCase,
     OurLogTestCase,
@@ -42,6 +47,7 @@ from sentry.testutils.cases import (
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.discover import user_misery_formula
+from sentry.testutils.helpers.eap import EAP_DEFAULT_STATS_PERIOD
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 from sentry.utils.samples import load_data
@@ -64,6 +70,12 @@ class OrganizationEventsEndpointTestBase(
 ):
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"
+    # Match EAPClient / EAP_FULL_FIDELITY_QUERY_DAYS. Snuba forces tier 8 when the
+    # query start is older than the standard retention window (~30d). API endpoints
+    # still default unset windows to 90d, and some EAP paths (e.g. trace-meta) are
+    # not covered by EAPClient's path/dataset heuristics, so this base injects the
+    # full-fidelity window unless the test sets an explicit one.
+    default_stats_period = EAP_DEFAULT_STATS_PERIOD
 
     def setUp(self) -> None:
         super().setUp()
@@ -75,22 +87,66 @@ class OrganizationEventsEndpointTestBase(
         self.transaction_data = load_data("transaction", timestamp=self.ten_mins_ago)
         self.features: dict[str, bool] = {}
 
-    def client_get(self, *args, **kwargs):
-        return self.client.get(*args, **kwargs)
+    def with_default_stats_period(self, data: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Ensure EAP queries stay on tier 1 unless the test sets an explicit window."""
+        query = {} if data is None else dict(data)
+        has_explicit_window = any(
+            key in query
+            for key in (
+                "statsPeriod",
+                "statsPeriodStart",
+                "statsPeriodEnd",
+                "start",
+                "end",
+                "range",
+                "timestamp",
+            )
+        )
+        if not has_explicit_window:
+            query["statsPeriod"] = self.default_stats_period
+        return query
 
-    def reverse_url(self):
+    def client_get(
+        self,
+        path: str | None = None,
+        query: dict[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
+        url: str | None = None,
+    ) -> Response:
+        """GET helper that defaults statsPeriod for EAP tier-1 routing."""
+        target = path if path is not None else url
+        if target is None:
+            target = getattr(self, "url", None)
+        if target is None:
+            raise TypeError("client_get requires url= or a path argument")
+
+        params = query if path is not None else data
+        if params is None and "?" in target:
+            response: Response[Any] = self.client.get(target, format="json")
+            return response
+        response = self.client.get(target, self.with_default_stats_period(params), format="json")
+        return response
+
+    def reverse_url(self) -> str:
         return reverse(
             self.viewname,
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
-    def do_request(self, query, features=None, **kwargs):
+    def do_request(
+        self,
+        query: dict[str, Any],
+        features: dict[str, bool] | None = None,
+    ) -> Response:
         if features is None:
             features = {"organizations:discover-basic": True}
         features.update(self.features)
         self.login_as(user=self.user)
         with self.feature(features):
-            return self.client_get(self.reverse_url(), query, format="json", **kwargs)
+            return self.client_get(
+                self.reverse_url(),
+                self.with_default_stats_period(query),
+            )
 
     def _setup_user_misery(
         self, per_transaction_threshold: bool = False, project: Project | None = None
@@ -708,6 +764,21 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
                     self.transaction_data["user"]["ip_address"]
                 )
 
+    def test_range_as_statsperiod(self) -> None:
+        self.store_event(self.transaction_data, project_id=self.project.id)
+
+        features = {"organizations:discover-basic": True}
+        query = {
+            "field": ["project", "user"],
+            "query": "",
+            "range": "14d",
+            "dataset": "discover",
+        }
+        response = self.do_request(query, features=features)
+
+        assert response.status_code == 400, response.content
+        assert response.data["detail"] == "range is not a supported parameter"
+
     def test_team_param_no_access(self) -> None:
         org = self.create_organization(
             owner=self.user,  # use other user as owner
@@ -748,6 +819,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         event = self.store_event(
             {"timestamp": before_now(minutes=1).isoformat()}, project_id=self.project.id
         )
+        assert event.group is not None
 
         query = {"field": ["issue"], "query": f"issue.id:>{event.group.id - 1}"}
         response = self.do_request(query)
@@ -762,6 +834,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
     def test_negation_on_numeric_field_excludes_issue(self) -> None:
         event = self.store_event({"timestamp": self.ten_mins_ago_iso}, project_id=self.project.id)
+        assert event.group is not None
 
         query = {"field": ["issue"], "query": f"issue.id:{event.group.id}"}
         response = self.do_request(query)
@@ -776,6 +849,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
     def test_negation_on_numeric_in_filter_excludes_issue(self) -> None:
         event = self.store_event({"timestamp": self.ten_mins_ago_iso}, project_id=self.project.id)
+        assert event.group is not None
 
         query = {"field": ["issue"], "query": f"issue.id:[{event.group.id}]"}
         response = self.do_request(query)
@@ -790,7 +864,11 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
     def test_negation_on_duration_filter_excludes_transaction(self) -> None:
         event = self.store_event(self.transaction_data, project_id=self.project.id)
-        duration = int(event.data.get("timestamp") - event.data.get("start_timestamp")) * 1000
+        timestamp = event.data.get("timestamp")
+        start_timestamp = event.data.get("start_timestamp")
+        assert timestamp is not None
+        assert start_timestamp is not None
+        duration = int(timestamp - start_timestamp) * 1000
 
         for dataset in ["discover", "transactions"]:
             query = {
@@ -810,6 +888,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
     def test_has_issue(self) -> None:
         event = self.store_event({"timestamp": self.ten_mins_ago_iso}, project_id=self.project.id)
+        assert event.group is not None
 
         self.store_event(self.transaction_data, project_id=self.project.id)
 
@@ -867,6 +946,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
     @pytest.mark.skip("Cannot look up group_id of transaction events")
     def test_unknown_issue(self) -> None:
         event = self.store_event({"timestamp": self.ten_mins_ago_iso}, project_id=self.project.id)
+        assert event.group is not None
 
         self.store_event(self.transaction_data, project_id=self.project.id)
 
@@ -1384,6 +1464,43 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             replaced_release_e_1,
             replaced_release_e_2,
         }
+
+    def test_release_stage_is_scoped_to_selected_environment(self) -> None:
+        staging = self.create_environment(name="staging", project=self.project)
+        release = self.create_release(
+            version="adopted_in_production_only",
+            environments=[self.environment, staging],
+            adopted=timezone.now(),
+        )
+        ReleaseProjectEnvironment.objects.filter(release=release, environment=staging).update(
+            adopted=None
+        )
+        staging_event = self.store_event(
+            data={
+                "release": release.version,
+                "timestamp": self.ten_mins_ago_iso,
+                "environment": staging.name,
+            },
+            project_id=self.project.id,
+        ).event_id
+
+        query = {
+            "field": ["id"],
+            "query": f"{constants.RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED.value}",
+            "environment": [staging.name],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == []
+
+        query = {
+            "field": ["id"],
+            "query": f"{constants.RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION.value}",
+            "environment": [staging.name],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {staging_event}
 
     def test_semver_package(self) -> None:
         release_1 = self.create_release(version="test@1.2.3")
@@ -2669,6 +2786,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             },
             project_id=project1.id,
         )
+        assert event1.group is not None
         event2 = self.store_event(
             data={
                 "event_id": "b" * 32,
@@ -2679,6 +2797,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             },
             project_id=project2.id,
         )
+        assert event2.group is not None
 
         features = {"organizations:discover-basic": True}
         query = {"field": ["id", "issue"], "orderby": ["id"]}
@@ -2706,6 +2825,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             },
             project_id=project1.id,
         )
+        assert event1.group is not None
         self.store_event(
             data={
                 "event_id": "b" * 32,
@@ -2751,6 +2871,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             },
             project_id=project1.id,
         )
+        assert event1.group is not None
         event2 = self.store_event(
             data={
                 "event_id": "b" * 32,
@@ -3319,7 +3440,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             "organizations:discover-basic": True,
         }
 
-        query = {
+        second_query: dict[str, Any] = {
             "field": [
                 "event.type",
                 "p50()",
@@ -3339,7 +3460,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             "query": "event.type:transaction",
             "project": [self.project.id],
         }
-        response = self.do_request(query, features=features)
+        response = self.do_request(second_query, features=features)
         assert response.status_code == 200, response.content
         meta = response.data["meta"]["fields"]
         units = response.data["meta"]["units"]
@@ -3716,6 +3837,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             },
             project_id=self.project.id,
         )
+        assert event1.group is not None
         event2 = self.store_event(
             data={
                 "event_id": "b" * 32,
@@ -3724,6 +3846,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             },
             project_id=self.project.id,
         )
+        assert event2.group is not None
         event2.group.delete()
 
         features = {"organizations:discover-basic": True}
@@ -3859,8 +3982,12 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["count(id)"] == 2
 
     def run_test_in_query(
-        self, query, expected_events, expected_negative_events=None, dataset="discover"
-    ):
+        self,
+        query: str,
+        expected_events: Sequence[Event],
+        expected_negative_events: Sequence[Event] | None = None,
+        dataset: str = "discover",
+    ) -> None:
         params = {"field": ["id"], "query": query, "orderby": "id", "dataset": dataset}
         response = self.do_request(params, {"organizations:discover-basic": True})
         assert response.status_code == 200, response.content
@@ -3892,6 +4019,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             },
             project_id=project_1.id,
         )
+        assert event_1.group is not None
         project_2 = self.create_project()
         event_2 = self.store_event(
             data={
@@ -3907,6 +4035,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             },
             project_id=project_2.id,
         )
+        assert event_2.group is not None
         project_3 = self.create_project()
         event_3 = self.store_event(
             data={
@@ -4338,7 +4467,9 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
                 == self.transaction_data["measurements"]["fcp"]["value"]
             )
 
-    def get_measurement_condition_response(self, query_str, field, dataset="discover"):
+    def get_measurement_condition_response(
+        self, query_str: str, field: list[str] | None, dataset: str = "discover"
+    ) -> Response:
         query = {
             "field": ["transaction", "count()"] + (field if field else []),
             "query": query_str,
@@ -4349,12 +4480,14 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         return response
 
     def assert_measurement_condition_without_results(
-        self, query_str, field=None, dataset="discover"
-    ):
+        self, query_str: str, field: list[str] | None = None, dataset: str = "discover"
+    ) -> None:
         response = self.get_measurement_condition_response(query_str, field, dataset=dataset)
         assert len(response.data["data"]) == 0
 
-    def assert_measurement_condition_with_results(self, query_str, field=None, dataset="discover"):
+    def assert_measurement_condition_with_results(
+        self, query_str: str, field: list[str] | None = None, dataset: str = "discover"
+    ) -> None:
         response = self.get_measurement_condition_response(query_str, field, dataset=dataset)
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["transaction"] == self.transaction_data["metadata"]["title"]
@@ -5199,8 +5332,8 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
     @mock.patch("sentry.search.events.builder.base.raw_snql_query")
     def test_removes_unnecessary_default_project_and_transaction_thresholds_keeps_others(
-        self, mock_snql_query
-    ):
+        self, mock_snql_query: MagicMock
+    ) -> None:
         mock_snql_query.side_effect = [{"meta": {}, "data": []}]
 
         ProjectTransactionThreshold.objects.create(
@@ -5629,14 +5762,16 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
     def test_device_class(self) -> None:
         project1 = self.create_project()
-        for i in range(3):
+        # Relay derives ``device.class`` from the device context rather than
+        # trusting a client-supplied tag, so classify via known device models.
+        for model in ("iPhone8,1", "iPhone10,1", "iPhone14,3"):
             self.store_event(
                 data={
                     "event_id": "a" * 32,
                     "transaction": "/example",
                     "message": "how to make fast",
                     "timestamp": self.ten_mins_ago_iso,
-                    "tags": {"device.class": f"{i + 1}"},
+                    "contexts": {"device": {"type": "device", "family": "iPhone", "model": model}},
                 },
                 project_id=project1.id,
             )
@@ -5665,7 +5800,9 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
                 "transaction": "/example",
                 "message": "how to make fast",
                 "timestamp": self.ten_mins_ago_iso,
-                "tags": {"device.class": "1"},
+                "contexts": {
+                    "device": {"type": "device", "family": "iPhone", "model": "iPhone8,1"}
+                },
             },
             project_id=project1.id,
         )
@@ -6064,7 +6201,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert "MATCH" in response.data["meta"]["debug_info"]["query"]
 
     @mock.patch("sentry.utils.snuba_rpc.table_rpc")
-    def test_debug_param_with_error(self, mock_query) -> None:
+    def test_debug_param_with_error(self, mock_query: MagicMock) -> None:
         mock_query.side_effect = SnubaRPCError("test")
         self.user = self.create_user("superuser@example.com", is_superuser=True)
         self.create_team(organization=self.organization, members=[self.user])
@@ -6326,8 +6463,8 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(
             f"regression_score(function.duration, 0.95, {int(mid.timestamp())})": None,
         }
 
-        def all_examples_sort_key(example):
-            return example.get("profile_id") or example.get("profiler_id")
+        def all_examples_sort_key(example: dict[str, Any]) -> str:
+            return example.get("profile_id") or example.get("profiler_id") or ""
 
         for row in response.data["data"]:
             row["examples()"].sort()
@@ -6631,6 +6768,7 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             },
             project_id=self.project.id,
         ).group
+        assert group_2 is not None
         group_3 = self.store_event(
             data={
                 "event_id": "c" * 32,
@@ -6639,6 +6777,7 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             },
             project_id=self.project.id,
         ).group
+        assert group_3 is not None
 
         query = {
             "field": ["count()"],
@@ -7068,6 +7207,7 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
                 },
                 project_id=self.project.id,
             )
+            assert event_a.group is not None
 
             event_b1 = self.store_event(
                 data={
@@ -7080,6 +7220,7 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
                 },
                 project_id=self.project.id,
             )
+            assert event_b1.group is not None
             self.store_event(
                 data={
                     "event_id": "c" * 32,
@@ -7158,6 +7299,7 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             },
             project_id=self.project.id,
         ).group
+        assert group_2 is not None
         group_3 = self.store_event(
             data={
                 "event_id": "c" * 32,
@@ -7166,6 +7308,7 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             },
             project_id=self.project.id,
         ).group
+        assert group_3 is not None
 
         query = {
             "field": ["count()"],
@@ -7198,6 +7341,7 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             },
             project_id=self.project.id,
         ).group
+        assert group_1 is not None
         query = {
             "field": ["count()"],
             "statsPeriod": "1h",
@@ -7220,6 +7364,7 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             },
             project_id=self.project.id,
         ).group
+        assert group_1 is not None
 
         features = {
             "organizations:discover-basic": True,
@@ -7298,6 +7443,7 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             },
             project_id=self.project.id,
         )
+        assert event.group is not None
 
         query = {
             "field": [
@@ -7470,3 +7616,40 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 2
+
+
+class OrganizationEventsIngestionDelayTest(OrganizationEventsEndpointTestBase):
+    def _do_request(self, flagged: bool = True, dataset: str = "spans") -> Response:
+        query: dict[str, Any] = {
+            "field": ["count()"],
+            "project": [self.project.id],
+            "dataset": dataset,
+        }
+        features = {
+            "organizations:discover-basic": True,
+            "organizations:measured-ingestion-delay-metadata": flagged,
+        }
+        return self.do_request(query, features=features)
+
+    @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
+    def test_ingestion_absent_for_a_non_eap_dataset(self, mock_measure: mock.MagicMock) -> None:
+        response = self._do_request(dataset="errors")
+        assert response.status_code == 200, response.content
+        assert "ingestion" not in response.data["meta"]
+        assert not mock_measure.called
+
+    @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
+    def test_ingestion_present(self, mock_measure: mock.MagicMock) -> None:
+        complete_through = before_now(minutes=5)
+        mock_measure.return_value = IngestionDelayStatus(
+            delay_seconds=42.5,
+            complete_through=complete_through,
+            status=IngestionStatus.HEALTHY,
+        )
+        response = self._do_request()
+        assert response.status_code == 200, response.content
+        assert response.data["meta"]["ingestion"] == {
+            "status": "healthy",
+            "delaySeconds": 42.5,
+            "completeThrough": complete_through.timestamp() * 1000,
+        }

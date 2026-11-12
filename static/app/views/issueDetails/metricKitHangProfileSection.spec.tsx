@@ -6,7 +6,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {
   MetricKitHangProfileSection,
   type HangProfileData,
-} from 'sentry/views/issueDetails/metricKitHangProfileSection';
+} from './metricKitHangProfileSection';
 
 jest.mock(
   'sentry/components/events/interfaces/crashContent/stackTrace/flamegraph',
@@ -78,6 +78,6 @@ describe('MetricKitHangProfileSection', () => {
 
     render(<MetricKitHangProfileSection data={data} />, {organization});
 
-    expect(screen.getByTestId('more-information')).toBeInTheDocument();
+    expect(screen.getByRole('img', {name: 'More information'})).toBeInTheDocument();
   });
 });

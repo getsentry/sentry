@@ -1,0 +1,158 @@
+---
+title: Separator
+description: A flexible separator component that creates visual divisions between content with customizable orientation and styling.
+category: layout
+source: '@sentry/scraps/separator'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/packages/scraps/src/separator/separator.tsx
+---
+
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Separator} from '@sentry/scraps/separator';
+import {Text} from '@sentry/scraps/text';
+
+import * as Storybook from 'sentry/stories';
+
+export const documentation = import('!!type-loader!@sentry/scraps/separator');
+
+The `Separator` component creates visual divisions between content areas. It renders as an HTML `<hr>` element with flexible styling options and supports both horizontal and vertical orientations.
+
+## Basic Usage
+
+The Separator component requires an `orientation` prop to determine its layout direction.
+
+```jsx
+// Horizontal separator (default styling)
+<Separator orientation="horizontal" border="primary" />
+
+// Vertical separator
+<Separator orientation="vertical" border="primary" />
+```
+
+## Horizontal Separators
+
+Horizontal separators are ideal for dividing content vertically, such as between sections or list items.
+
+<Storybook.Demo>
+  <Stack gap="md">
+    <Container padding="md" border="primary" radius="md" background="primary">
+      Content above separator
+    </Container>
+    <Separator orientation="horizontal" border="primary" />
+    <Container padding="md" border="primary" radius="md" background="primary">
+      Content below separator
+    </Container>
+  </Stack>
+</Storybook.Demo>
+
+```jsx
+<Flex direction="column" gap="md">
+  <div>Content above separator</div>
+  <Separator orientation="horizontal" border="primary" />
+  <div>Content below separator</div>
+</Flex>
+```
+
+## Vertical Separators
+
+Vertical separators work well for dividing content horizontally, typically within flex layouts.
+
+<Storybook.Demo>
+  <Flex direction="row" align="center" gap="md">
+    <Container padding="md" border="primary" radius="md" background="primary">
+      Left content
+    </Container>
+    <Separator orientation="vertical" border="primary" />
+    <Container padding="md" border="primary" radius="md" background="primary">
+      Right content
+    </Container>
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<Flex direction="row" align="center" gap="md">
+  <div>Left content</div>
+  <Separator orientation="vertical" border="primary" />
+  <div>Right content</div>
+</Flex>
+```
+
+## Border Styling
+
+The `border` prop accepts any border token from the theme, allowing you to customize the separator's visual weight and color.
+
+<Storybook.Demo>
+  <Flex direction="row" gap="md" justify="start" align="start">
+    <Stack align="start" justify="start" gap="md">
+      <Text bold>Horizontal Orientation</Text>
+      <Stack gap="md">
+        <Stack gap="xs">
+          <Text>Primary border</Text>
+          <Separator orientation="horizontal" border="primary" />
+        </Stack>
+        <Stack gap="xs">
+          <Text>Secondary border</Text>
+          <Separator orientation="horizontal" border="secondary" />
+        </Stack>
+        <Stack gap="xs">
+          <Text>Success border</Text>
+          <Separator orientation="horizontal" border="success" />
+        </Stack>
+        <Stack gap="xs">
+          <Text>Warning border</Text>
+          <Separator orientation="horizontal" border="warning" />
+        </Stack>
+        <Stack gap="xs">
+          <Text>Danger border</Text>
+          <Separator orientation="horizontal" border="danger" />
+        </Stack>
+      </Stack>
+    </Stack>
+    <Stack align="start" justify="start" gap="md">
+      <Text bold>Vertical Orientation</Text>
+      <Stack gap="md">
+        <Flex direction="row" gap="xs">
+          <Text>Primary border</Text>
+          <Separator orientation="vertical" border="primary" />
+        </Flex>
+        <Flex direction="row" gap="xs">
+          <Text>Secondary border</Text>
+          <Separator orientation="vertical" border="secondary" />
+        </Flex>
+        <Flex direction="row" gap="xs">
+          <Text>Success border</Text>
+          <Separator orientation="vertical" border="success" />
+        </Flex>
+        <Flex direction="row" gap="xs">
+          <Text>Warning border</Text>
+          <Separator orientation="vertical" border="warning" />
+        </Flex>
+        <Flex direction="row" gap="xs">
+          <Text>Danger border</Text>
+          <Separator orientation="vertical" border="danger" />
+        </Flex>
+      </Stack>
+    </Stack>
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<div>
+  <Text bold>Horizontal Orientation</Text>
+  <Flex direction="column" gap="md">
+    <Flex direction="column" gap="xs">
+      <Text>Example border</Text>
+      <Separator orientation="horizontal" border="primary" />
+    </Flex>
+  </Flex>
+</div>
+<div>
+  <Text bold>Vertical Orientation</Text>
+  <Flex direction="column" gap="md">
+    <Flex direction="row" gap="xs">
+      <Text>Example border</Text>
+      <Separator orientation="vertical" border="primary" />
+    </Flex>
+  </Flex>
+</div>
+```

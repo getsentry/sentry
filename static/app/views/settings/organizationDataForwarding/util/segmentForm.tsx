@@ -1,13 +1,14 @@
+import {IconDelete} from '@sentry/icons/delete';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm, withFieldGroup} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
-import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {DataForwarderDeleteConfirm} from 'sentry/views/settings/organizationDataForwarding/components/dataForwarderDeleteConfirm';
+
 import {
   baseDataForwarderSchema,
   baseFormEditDefaults,
@@ -15,12 +16,12 @@ import {
   buildProjectOptions,
   EnablementFields,
   ProjectConfigFields,
-} from 'sentry/views/settings/organizationDataForwarding/util/forms';
+} from './forms';
 import {
   DataForwarderProviderSlug,
   type DataForwarder,
   type DataForwarderPayload,
-} from 'sentry/views/settings/organizationDataForwarding/util/types';
+} from './types';
 
 const segmentSchema = baseDataForwarderSchema.extend({
   write_key: z.string().min(1, t('Write key is required')),

@@ -5,7 +5,8 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import {WeeklyReportProjectExclusions} from 'sentry/views/settings/account/notifications/weeklyReportProjectExclusions';
+
+import {WeeklyReportProjectExclusions} from './weeklyReportProjectExclusions';
 
 describe('WeeklyReportProjectExclusions', () => {
   const organization = OrganizationFixture();
@@ -23,13 +24,6 @@ describe('WeeklyReportProjectExclusions', () => {
     ConfigStore.set('customerDomain', {
       ...ConfigStore.get('customerDomain')!,
       subdomain: organization.slug,
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/`,
-      body: OrganizationFixture({
-        ...organization,
-        features: ['weekly-report-project-exclusions'],
-      }),
     });
   });
 
@@ -352,32 +346,6 @@ describe('WeeklyReportProjectExclusions', () => {
     await selectEvent.select(await screen.findByText('Off'), 'On');
 
     expect(handleRemove).toHaveBeenCalledWith('42');
-  });
-
-  it('does not show project toggles when feature flag is disabled', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/`,
-      body: OrganizationFixture({...organization, features: []}),
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/projects/`,
-      body: [projectA],
-    });
-
-    render(
-      <WeeklyReportProjectExclusions
-        organizations={[organization]}
-        {...defaultNotificationProps}
-      />
-    );
-
-    expect(await screen.findByText('On')).toBeInTheDocument();
-
-    expect(
-      screen.queryByRole('checkbox', {
-        name: 'Toggle weekly report for project-a',
-      })
-    ).not.toBeInTheDocument();
   });
 
   describe('pagination', () => {

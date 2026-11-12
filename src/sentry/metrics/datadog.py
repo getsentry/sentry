@@ -1,6 +1,7 @@
 __all__ = ["DatadogMetricsBackend"]
 
-from typing import Any
+from collections.abc import Callable
+from typing import Any, cast
 
 from datadog import initialize
 from datadog.threadstats.base import ThreadStats
@@ -8,6 +9,9 @@ from datadog.util.hostname import get_hostname
 from django.utils.functional import cached_property
 
 from .base import MetricsBackend, Tags
+from .datadog_stats import DatadogStats
+
+_ThreadStats = cast("Callable[[], DatadogStats]", ThreadStats)
 
 
 class DatadogMetricsBackend(MetricsBackend):
@@ -29,8 +33,8 @@ class DatadogMetricsBackend(MetricsBackend):
             pass
 
     @cached_property
-    def stats(self) -> ThreadStats:
-        instance = ThreadStats()
+    def stats(self) -> DatadogStats:
+        instance = _ThreadStats()
         instance.start()
         return instance
 
@@ -111,6 +115,27 @@ class DatadogMetricsBackend(MetricsBackend):
     ) -> None:
         # We keep the same implementation for Datadog.
         return self.timing(key, value, instance, tags, sample_rate)
+
+    def set(
+        self,
+        key: str,
+        value: str | int,
+        instance: str | None = None,
+        tags: Tags | None = None,
+        sample_rate: float = 1,
+        stacklevel: int = 0,
+    ) -> None:
+        tags = dict(tags or ())
+
+        if self.tags:
+            tags.update(self.tags)
+        if instance:
+            tags["instance"] = instance
+
+        tags_list = [f"{k}:{v}" for k, v in tags.items()]
+        self.stats.set(
+            self._get_key(key), value, sample_rate=sample_rate, tags=tags_list, host=self.host
+        )
 
     def event(
         self,

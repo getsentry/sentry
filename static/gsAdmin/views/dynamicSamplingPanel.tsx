@@ -1,31 +1,32 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconOpen} from '@sentry/icons/open';
 import isEmpty from 'lodash/isEmpty';
 import startCase from 'lodash/startCase';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DateTime} from 'sentry/components/dateTime';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
-import {PanelTable} from 'sentry/components/panels/panelTable';
-import {IconArrow, IconOpen} from 'sentry/icons';
+import {SearchInput} from 'sentry/components/resultGrid';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
-
-import {SearchInput} from 'admin/components/resultGrid';
 
 type Props = {
   organization?: Organization;
@@ -76,6 +77,13 @@ enum RuleType {
   INVESTIGATION_RULE = 'Investigation Rule',
   MINIMUM_SAMPLE_RATE_TARGET = 'Minimum Sample Rate',
 }
+
+const DS_RULE_COLUMNS: TableColumnConfig[] = [
+  {key: 'name', width: 'auto'},
+  {key: 'type', width: 'auto'},
+  {key: 'value', width: 'auto'},
+  {key: 'target', width: 'auto'},
+];
 
 const getRuleType = ({id}: RuleV2): RuleType | undefined => {
   const RESERVED_IDS = {
@@ -188,11 +196,11 @@ export function DynamicSamplingPanel({projectId, organization}: Props) {
         method: 'POST',
         data: {projectId},
       });
-      addSuccessMessage('Project config successfully invalidated');
+      toast.success('Project config successfully invalidated');
     } catch (error) {
       const message = 'Unable to invalidate project config';
       handleXhrErrorResponse(message, error as RequestError);
-      addErrorMessage(message);
+      toast.error(message);
     }
   }
 
@@ -223,10 +231,11 @@ export function DynamicSamplingPanel({projectId, organization}: Props) {
       } catch (error) {
         const message = 'Unable to fetch project config';
         handleXhrErrorResponse(message, error as RequestError);
-        addErrorMessage(message);
+        toast.error(message);
       }
     }
 
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     fetchProjectConfig();
   }, [projectId, api, regionHost]);
 
@@ -368,13 +377,22 @@ function DynamicSamplingRulesTable({
   return (
     <Fragment>
       <DSRulesTable
-        headers={['Name', 'Type', 'Value', 'Target']}
-        isEmpty={!dynamicSamplingRules.length}
-        emptyMessage="No dynamic sampling rules to display"
+        columns={DS_RULE_COLUMNS}
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>Name</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>Type</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>Value</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>Target</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
       >
+        {dynamicSamplingRules.length === 0 && (
+          <SimpleTable.Empty>No dynamic sampling rules to display</SimpleTable.Empty>
+        )}
         {dynamicSamplingRules.map(row => (
-          <Fragment key={row.id}>
-            <Stack gap="xs">
+          <SimpleTable.Row key={row.id}>
+            <SimpleTable.RowCell direction="column" align="start" gap="xs">
               {row.type}
               {defined(row.timeRange) && (
                 <div data-test-id="timerange">
@@ -392,14 +410,11 @@ function DynamicSamplingRulesTable({
                   </NameColumnDetail>
                 </div>
               )}
-            </Stack>
-            <div>{row.formattedRateType}</div>
-            <Flex justify="end" paddingRight="3xl" gap="md">
-              <Tooltip isHoverable title={row.samplingValue.value}>
-                {row.formattedRateValue}
-              </Tooltip>
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell>{row.formattedRateType}</SimpleTable.RowCell>
+            <SimpleTable.RowCell justify="end" paddingRight="3xl" gap="md">
+              <Tooltip title={row.samplingValue.value}>{row.formattedRateValue}</Tooltip>
               <Tooltip
-                isHoverable
                 title={`This rule ${
                   row.impact > 0 ? 'increases' : 'decreases'
                 } sample rate of matching events`}
@@ -410,9 +425,9 @@ function DynamicSamplingRulesTable({
                   size="xs"
                 />
               </Tooltip>
-            </Flex>
-            <div>{row.target}</div>
-          </Fragment>
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell>{row.target}</SimpleTable.RowCell>
+          </SimpleTable.Row>
         ))}
       </DSRulesTable>
     </Fragment>
@@ -432,15 +447,13 @@ const PanelHeaderRight = styled('div')`
 `;
 
 const BaseSampleRateWrapper = styled(Alert)`
-  padding: ${p => p.theme.space.md};
   margin-right: ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.md};
   font-weight: 600;
-  width: max-content;
   flex-basis: 50%;
 `;
 
-const DSRulesTable = styled(PanelTable)`
+const DSRulesTable = styled(SimpleTable)`
   border: none;
   border-radius: 0 0 4px 4px;
   margin-bottom: 0;

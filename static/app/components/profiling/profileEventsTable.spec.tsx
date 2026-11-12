@@ -3,10 +3,11 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {FieldValueType} from 'sentry/utils/fields';
 import type {EventsResults} from 'sentry/utils/profiling/hooks/types';
+
+import {ProfileEventsTable} from './profileEventsTable';
 
 function customEncodeURIComponent(str: string) {
   return encodeURIComponent(str).replace(/[!'()*]/g, c => {
@@ -71,7 +72,7 @@ describe('ProfileEventsTable', () => {
       }
     );
 
-    expect(screen.getByTestId('error-indicator')).toBeInTheDocument();
+    expect(screen.getByTestId('loading-error')).toBeInTheDocument();
   });
 
   it('renders asc sort links on the header', () => {

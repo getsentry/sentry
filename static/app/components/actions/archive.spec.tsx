@@ -6,8 +6,9 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {ArchiveActions} from 'sentry/components/actions/archive';
 import {GroupStatus} from 'sentry/types/group';
+
+import {ArchiveActions} from './archive';
 
 describe('ArchiveActions', () => {
   const onUpdate = jest.fn();
@@ -62,7 +63,10 @@ describe('ArchiveActions', () => {
 
   it('disables button and dropdown', async () => {
     render(<ArchiveActions onUpdate={onUpdate} disabled />);
-    expect(screen.getByRole('button', {name: 'Archive'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Archive'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
     expect(screen.getByRole('button', {name: 'Archive options'})).toBeDisabled();
     await userEvent.click(screen.getByRole('button', {name: 'Archive options'}));
     expect(onUpdate).not.toHaveBeenCalled();

@@ -5,7 +5,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/eventGraphWidget';
+import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/constants';
 
 export type ChartId = keyof typeof CHART_MAP;
 interface Props extends LoadableChartWidgetProps {
@@ -34,6 +34,7 @@ const CHART_MAP = {
  */
 export function ChartWidgetLoader(props: Props) {
   const query = useQuery<{default: React.FC<LoadableChartWidgetProps>}>({
+    // oxlint-disable-next-line react/refs
     queryKey: [`widget-${props.id}`],
     queryFn: () => {
       if (Object.hasOwn(CHART_MAP, props.id)) {

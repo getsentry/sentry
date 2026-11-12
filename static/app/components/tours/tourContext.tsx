@@ -74,14 +74,7 @@ type TourOptions<T extends TourEnumType> = Partial<{
   requireAllStepsRegistered: boolean;
 }>;
 
-function computeStartTourStep<T extends TourEnumType>(
-  state: TourState<T>,
-  stepId?: T
-): T | null {
-  if (stepId && state.orderedStepIds.includes(stepId)) {
-    return stepId;
-  }
-
+function computeStartTourStep<T extends TourEnumType>(state: TourState<T>): T | null {
   return state.orderedStepIds[0] ?? null;
 }
 
@@ -198,22 +191,19 @@ export function useTourReducer<T extends TourEnumType>(
     [orderedStepIds, options?.requireAllStepsRegistered]
   );
 
-  const startTour = useCallback(
-    (incomingStepId?: T) => {
-      if (options?.requireAllStepsRegistered !== false && !state.isRegistered) {
-        return;
-      }
+  const startTour = useCallback(() => {
+    if (options?.requireAllStepsRegistered !== false && !state.isRegistered) {
+      return;
+    }
 
-      const stepId = computeStartTourStep(state, incomingStepId);
+    const stepId = computeStartTourStep(state);
 
-      if (stepId) {
-        dispatch({type: 'START_TOUR', stepId});
-        options?.onStartTour?.(stepId);
-        options?.onStepChange?.(stepId);
-      }
-    },
-    [options, state]
-  );
+    if (stepId) {
+      dispatch({type: 'START_TOUR', stepId});
+      options?.onStartTour?.(stepId);
+      options?.onStepChange?.(stepId);
+    }
+  }, [options, state]);
 
   const endTour = useCallback(() => {
     dispatch({type: 'END_TOUR'});
@@ -286,5 +276,21 @@ export interface TourContextType<T extends TourEnumType> extends TourState<T> {
   nextStep: () => void;
   previousStep: () => void;
   setStep: (stepId: T) => void;
-  startTour: (stepId?: T) => void;
+  startTour: () => void;
+  /**
+   * Set by `TourContextProvider` for subtle tours. True while a guide hands its
+   * focus over to the guide of the next step.
+   */
+  focusHandoffRef?: React.RefObject<boolean>;
+  /**
+   * How the tour presents itself. Set by `TourContextProvider`.
+   */
+  variant?: TourVariant;
 }
+
+/**
+ * `spotlight` blurs the page around the highlighted element and handles the
+ * tour's keyboard shortcuts anywhere on the page. `subtle` leaves the page
+ * readable and usable, and only handles them while the guide has focus.
+ */
+export type TourVariant = 'spotlight' | 'subtle';

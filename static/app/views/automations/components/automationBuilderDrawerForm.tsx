@@ -8,8 +8,8 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {TextField} from 'sentry/components/forms/fields/textField';
 import {Form} from 'sentry/components/forms/form';
 import {FormModel} from 'sentry/components/forms/model';
@@ -17,29 +17,26 @@ import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {AutomationBuilder} from 'sentry/views/automations/components/automationBuilder';
+import {useCreateAutomation} from 'sentry/views/automations/hooks';
+import {useAutomationBuilderErrors} from 'sentry/views/automations/hooks/useAutomationBuilderErrors';
+import {mapAutomationFormErrors} from 'sentry/views/automations/utils/mapAutomationFormErrors';
+import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
+
+import {ActionThrottleSelectField} from './forms/actionThrottleSelectField';
+import {getAutomationAnalyticsPayload} from './forms/common/getAutomationAnalyticsPayload';
+import {AutomationFormProvider, useAutomationFormContext} from './forms/context';
+import {useSetAutomaticAutomationName} from './forms/useSetAutomaticAutomationName';
+import {AutomationBuilder} from './automationBuilder';
 import {
   AutomationBuilderContext,
   useAutomationBuilderReducer,
-} from 'sentry/views/automations/components/automationBuilderContext';
-import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
-import type {AutomationFormData} from 'sentry/views/automations/components/automationFormData';
-import {
-  getNewAutomationData,
-  validateAutomationBuilderState,
-} from 'sentry/views/automations/components/automationFormData';
-import {ActionThrottleSelectField} from 'sentry/views/automations/components/forms/actionThrottleSelectField';
-import {getAutomationAnalyticsPayload} from 'sentry/views/automations/components/forms/common/getAutomationAnalyticsPayload';
-import {
-  AutomationFormProvider,
-  useAutomationFormContext,
-} from 'sentry/views/automations/components/forms/context';
-import {useSetAutomaticAutomationName} from 'sentry/views/automations/components/forms/useSetAutomaticAutomationName';
-import {useCreateAutomation} from 'sentry/views/automations/hooks';
-import {useAutomationBuilderErrors} from 'sentry/views/automations/hooks/useAutomationBuilderErrors';
-import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
+} from './automationBuilderContext';
+import {AutomationBuilderErrorContext} from './automationBuilderErrorContext';
+import type {AutomationFormData} from './automationFormData';
+import {getNewAutomationData, validateAutomationBuilderState} from './automationFormData';
 
 const DEFAULT_INITIAL_DATA = {
+  allProjects: false,
   name: '',
   environment: null,
   frequency: 0,
@@ -68,12 +65,12 @@ function FormBody({closeDrawer, model}: {closeDrawer: () => void; model: FormMod
         <Alert variant="info">
           {t('This alert will only trigger on issues created by this monitor.')}
         </Alert>
-        <Flex direction="column" gap="lg">
+        <Stack gap="lg">
           <Stack gap="md">
             <AutomationBuilder />
           </Stack>
           <ActionThrottleSelectField />
-        </Flex>
+        </Stack>
         <EmbeddedTextField
           required
           name="name"
@@ -83,9 +80,7 @@ function FormBody({closeDrawer, model}: {closeDrawer: () => void; model: FormMod
           inline={false}
         />
         <Flex justify="end" gap="md">
-          <Button type="button" onClick={closeDrawer}>
-            {t('Cancel')}
-          </Button>
+          <Button onClick={closeDrawer}>{t('Cancel')}</Button>
           <Observer>
             {() => (
               <Button variant="primary" type="submit" busy={model.isSaving}>
@@ -118,7 +113,9 @@ export function AutomationBuilderDrawerForm({
     removeError,
   } = useAutomationBuilderErrors();
 
-  const {mutateAsync: createAutomation, error} = useCreateAutomation();
+  const {mutateAsync: createAutomation, error} = useCreateAutomation({
+    suppressErrorMessage: true,
+  });
 
   const handleSubmit = useCallback<OnSubmitCallback>(
     async (data, onSubmitSuccess, onSubmitError, _event, formModel) => {
@@ -161,7 +158,7 @@ export function AutomationBuilderDrawerForm({
 
       try {
         formModel.setFormSaving();
-        addLoadingMessage(t('Creating Alert...'));
+        toast.loading(t('Creating Alert...'));
         const newAutomationData = getNewAutomationData({
           data: formData,
           state,
@@ -175,7 +172,7 @@ export function AutomationBuilderDrawerForm({
           success: true,
         });
         onSuccess?.(automation.id);
-        addSuccessMessage(t('Alert created'));
+        toast.success(t('Alert created'));
       } catch (err) {
         onSubmitError(err);
         Sentry.logger.warn('Create alert request failure (drawer)', {
@@ -206,6 +203,7 @@ export function AutomationBuilderDrawerForm({
       initialData={{...DEFAULT_INITIAL_DATA, ...initialData}}
       onSubmit={handleSubmit}
       model={model}
+      mapFormErrors={mapAutomationFormErrors}
     >
       <AutomationFormProvider>
         <DrawerHeader hideBar />

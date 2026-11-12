@@ -1,27 +1,34 @@
+import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Grid, type GridProps} from '@sentry/scraps/layout';
 
 import {PanelBody} from 'sentry/components/panels/panelBody';
 
-export const SubscriptionBody = styled(PanelBody)`
-  display: grid;
-  grid-auto-flow: column;
-  justify-content: space-between;
-  gap: ${p => p.theme.space['3xl']};
-
+const StyledSubscriptionBody = styled(PanelBody)`
   h3 {
     margin-bottom: ${p => p.theme.space.md};
     font-size: ${p => p.theme.font.size.xl};
     font-weight: 400;
   }
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-auto-flow: row;
-    grid-auto-columns: 1fr;
-    gap: ${p => p.theme.space.md};
-  }
 `;
+
+export function SubscriptionBody({children}: {children: ReactNode}) {
+  return (
+    <Grid
+      flow={{zero: 'row', xl: 'column'}}
+      autoColumns={{zero: '1fr', xl: 'auto'}}
+      justify="between"
+      gap={{zero: 'md', xl: '3xl'}}
+    >
+      {containerProps => (
+        <StyledSubscriptionBody withPadding {...containerProps}>
+          {children}
+        </StyledSubscriptionBody>
+      )}
+    </Grid>
+  );
+}
 
 export const ButtonWrapper = styled((props: GridProps) => (
   <Grid flow="column" align="center" gap="md" {...props} />
@@ -71,10 +78,10 @@ export const PanelBodyWithTable = styled(PanelBody)`
   display: grid;
   gap: ${p => p.theme.space['2xl']};
 
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
+  @container (min-width: ${p => p.theme.container['4xl']}) {
     grid-template-columns: repeat(2, 1fr);
   }
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
+  @container (max-width: ${p => p.theme.container['4xl']}) {
     grid-auto-flow: row;
   }
 

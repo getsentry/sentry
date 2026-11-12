@@ -1,5 +1,7 @@
 import type {mat3} from 'gl-matrix';
 
+import {lowerBound} from 'sentry/utils/array/lowerBound';
+import {upperBound} from 'sentry/utils/array/upperBound';
 import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import type {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
@@ -7,15 +9,14 @@ import {getFlamegraphFrameSearchId} from 'sentry/utils/profiling/flamegraphFrame
 import {
   computeHighlightedBounds,
   getContext,
-  lowerBound,
   resizeCanvasToDisplaySize,
-  upperBound,
 } from 'sentry/utils/profiling/gl/utils';
-import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import type {Rect} from 'sentry/utils/profiling/speedscope';
 import {findRangeBinarySearch} from 'sentry/utils/profiling/speedscope';
 import {trimTextCenter} from 'sentry/utils/string/trimTextCenter';
 import {ELLIPSIS} from 'sentry/utils/string/unicode';
+
+import {TextRenderer} from './textRenderer';
 
 class FlamegraphTextRenderer extends TextRenderer {
   flamegraph: Flamegraph;

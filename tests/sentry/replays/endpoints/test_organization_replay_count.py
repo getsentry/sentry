@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime
 import uuid
 from typing import Any
+from unittest import mock
 
 import pytest
 from django.db.models import F
@@ -107,6 +108,8 @@ class OrganizationReplayCountEndpointTest(
             project_id=self.project.id,
         )
 
+        assert event_a.group is not None
+        assert event_c.group is not None
         query = {"query": f"(issue.id:[{event_a.group.id}, {event_c.group.id}] or abc)"}
         with self.feature(self.features):
             response = self.client.get(self.url, query, format="json")
@@ -183,6 +186,8 @@ class OrganizationReplayCountEndpointTest(
             project_id=self.project.id,
         )
 
+        assert event_a.group is not None
+        assert event_c.group is not None
         query: dict[str, Any] = {
             "query": f"issue.id:[{event_a.group.id}, {event_c.group.id}]",
             "returnIds": True,
@@ -297,6 +302,12 @@ class OrganizationReplayCountEndpointTest(
         assert response.data == expected
 
     def test_simple_events(self) -> None:
+        self._test_simple_events(Dataset.Events.value)
+
+    def test_simple_errors(self) -> None:
+        self._test_simple_events("errors")
+
+    def _test_simple_events(self, data_source: str) -> None:
         replay1_id = uuid.uuid4().hex
         replay2_id = uuid.uuid4().hex
 
@@ -333,9 +344,11 @@ class OrganizationReplayCountEndpointTest(
             project_id=self.project.id,
         )
 
+        assert event_a.group is not None
+        assert event_b.group is not None
         query = {
             "query": f"issue.id:[{event_a.group.id}, {event_b.group.id}]",
-            "data_source": Dataset.Events.value,
+            "data_source": data_source,
         }
         with self.feature(self.features):
             response = self.client.get(self.url, query, format="json")
@@ -413,6 +426,8 @@ class OrganizationReplayCountEndpointTest(
             project_id=self.project.id,
         )
 
+        assert event_a.group is not None
+        assert event_b.group is not None
         query = {"query": f"issue.id:[{event_a.group.id}, {event_b.group.id}]"}
         with self.feature(self.features):
             response = self.client.get(self.url, query, format="json")
@@ -455,6 +470,8 @@ class OrganizationReplayCountEndpointTest(
             project_id=self.project.id,
         )
 
+        assert event_a.group is not None
+        assert event_b.group is not None
         query = {"query": f"issue.id:[{event_a.group.id}, {event_b.group.id}]"}
         with self.feature(self.features):
             response = self.client.get(self.url, query, format="json")
@@ -520,6 +537,21 @@ class OrganizationReplayCountEndpointTest(
             assert response.status_code == 400
             assert response.data["detail"] == "Too many values provided"
 
+    def test_unexpected_value_error_is_not_exposed(self) -> None:
+        query = {"query": "issue.id:[1]"}
+
+        with (
+            self.feature(self.features),
+            mock.patch(
+                "sentry.replays.endpoints.organization_replay_count.get_replay_counts",
+                side_effect=ValueError("internal detail"),
+            ),
+        ):
+            response = self.client.get(self.url, query, format="json")
+
+        assert response.status_code == 500
+        assert b"internal detail" not in response.content
+
     def test_invalid_params_only_one_of_issue_and_transaction(self) -> None:
         query = {"query": "issue.id:[1] transaction:[2]"}
 
@@ -572,7 +604,8 @@ class OrganizationReplayCountEndpointTest(
 
         assert response.status_code == 400, response.content
         assert response.content == (
-            b'{"detail":"Invalid quote at \'[\\"root\': quotes must enclose text or be escaped."}'
+            b'{"detail":"Invalid quote at \'[\\"root\': quotes must enclose text or be escaped.",'
+            b'"code":"invalid_search_query"}'
         ), response.content
 
     def test_replay_count_invalid_replay_ids(self) -> None:
@@ -594,6 +627,7 @@ class OrganizationReplayCountEndpointTest(
                 query = {"query": f"replay_id:[{id}]"}
                 response = self.client.get(self.url, query, format="json")
                 assert response.status_code == 400
+                assert response.data["detail"] == "Invalid replay_id value"
 
     def test_endpoint_org_hasnt_sent_replays(self) -> None:
         event_id_a = "a" * 32
@@ -605,6 +639,7 @@ class OrganizationReplayCountEndpointTest(
             },
             project_id=self.project.id,
         )
+        assert event_a.group is not None
         query = {"query": f"issue.id:[{event_a.group.id}]"}
 
         with self.feature(self.features):
@@ -673,6 +708,8 @@ class OrganizationReplayCountEndpointTest(
         )
 
         # IDs from both orgs are passed to the endpoint.
+        assert event_a.group is not None
+        assert event_b.group is not None
         query = {"query": f"issue.id:[{event_a.group.id}, {event_b.group.id}]"}
         with self.feature(self.features):
             response = self.client.get(self.url, query, format="json")
@@ -724,6 +761,7 @@ class OrganizationReplayCountEndpointTest(
         )
 
         self.login_as(user=restricted_user)
+        assert event_b.group is not None
         query = {"query": f"issue.id:[{event_b.group.id}]"}
         with self.feature(self.features):
             response = self.client.get(self.url, query, format="json")

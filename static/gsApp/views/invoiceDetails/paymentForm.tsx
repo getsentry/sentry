@@ -1,19 +1,16 @@
 import {Fragment} from 'react';
+import {useQueryState} from 'nuqs';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
 
 import {CreditCardForm} from 'getsentry/components/creditCardEdit/form';
 import type {Invoice} from 'getsentry/types';
-import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
+import {displayPriceWithCents} from 'getsentry/utils/billing';
 
 type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'closeModal'> & {
   invoice: Invoice;
@@ -29,18 +26,13 @@ export default function InvoiceDetailsPaymentForm({
   invoice,
   reloadInvoice,
 }: Props) {
-  const location = useLocation();
-  const endpoint = [
-    getApiUrl('/organizations/$organizationIdOrSlug/payments/$paymentId/new/', {
-      path: {organizationIdOrSlug: invoice.customer.slug, paymentId: invoice.id},
-    }),
-  ] satisfies ApiQueryKey;
+  const [referrer] = useQueryState('referrer');
 
   return (
     <Fragment>
       <Header>{t('Pay Bill')}</Header>
       <Body>
-        <Flex direction="column" gap="sm">
+        <Stack gap="sm">
           <Text as="p">
             {tct('Complete payment for [amount] USD', {
               amount: displayPriceWithCents({cents: invoice.amountBilled ?? 0}),
@@ -55,16 +47,16 @@ export default function InvoiceDetailsPaymentForm({
             onCancel={() => closeModal()}
             amount={invoice.amountBilled ?? 0}
             cardMode="payment"
+            invoiceGuid={invoice.id}
             onSuccess={() => {
               reloadInvoice();
               closeModal();
             }}
             organization={organization}
-            intentDataQueryKey={endpoint}
-            referrer={decodeScalar(location?.query?.referrer)}
+            referrer={referrer || undefined}
             buttonText={t('Pay Now')}
           />
-        </Flex>
+        </Stack>
       </Body>
     </Fragment>
   );

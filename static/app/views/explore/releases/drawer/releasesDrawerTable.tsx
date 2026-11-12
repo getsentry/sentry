@@ -1,26 +1,27 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
+import {DateTime} from 'sentry/components/dateTime';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {
   extractSelectionParameters,
   normalizeDateTimeParams,
 } from 'sentry/components/pageFilters/parse';
-import {renderSortableHeaderCell} from 'sentry/components/replays/renderSortableHeaderCell';
-import type {
-  GridColumnHeader,
-  GridColumnOrder,
-} from 'sentry/components/tables/gridEditable';
-import {GridEditable} from 'sentry/components/tables/gridEditable';
-import {useQueryBasedSorting} from 'sentry/components/tables/gridEditable/useQueryBasedSorting';
+import {
+  DataGrid,
+  type GridColumnHeader,
+  type GridColumnOrder,
+} from 'sentry/components/tables/dataGrid';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -28,15 +29,14 @@ import type {Release, ReleaseProject} from 'sentry/types/release';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import {
-  cleanReleaseCursors,
-  ReleasesDrawerFields,
-} from 'sentry/views/explore/releases/drawer/utils';
 import {getReleaseNewIssuesUrl} from 'sentry/views/explore/releases/utils';
+
+import {cleanReleaseCursors, ReleasesDrawerFields} from './utils';
 
 type ReleaseHealthItem = {
   date: string;
@@ -55,9 +55,9 @@ type ReleaseHealthGridItem = Pick<ReleaseHealthItem, 'date' | 'release' | 'error
 type Column = GridColumnHeader<keyof ReleaseHealthGridItem>;
 
 const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthGridItem>> = [
-  {key: 'release', name: 'release', width: 320},
-  {key: 'error_count', name: 'new issues', width: 110},
-  {key: 'date', name: 'created', width: 200},
+  {key: 'release', name: t('Release'), width: 320},
+  {key: 'error_count', name: t('New issues'), width: 110},
+  {key: 'date', name: t('Created'), width: 200},
 ];
 
 /**
@@ -77,13 +77,17 @@ export function ReleasesDrawerTable({
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
+  const [rdListCursor, setRdListCursor] = useQueryState(
+    ReleasesDrawerFields.LIST_CURSOR,
+    parseAsString
+  );
   const {data, isLoading, isError} = useQuery({
     ...apiOptions.as<Release[]>()('/organizations/$organizationIdOrSlug/releases/', {
       path: {organizationIdOrSlug: organization.slug},
       query: {
         project: projects,
         environment: environments,
-        cursor: location.query[ReleasesDrawerFields.LIST_CURSOR],
+        cursor: rdListCursor ?? undefined,
         ...normalizeDateTimeParams(datetime),
         per_page: 15,
       },
@@ -100,23 +104,6 @@ export function ReleasesDrawerTable({
     error_count: d.projects[0]?.newGroups ?? 0,
     project_id: d.projects[0]?.id ?? 0,
   }));
-
-  const {currentSort, makeSortLinkGenerator} = useQueryBasedSorting({
-    defaultSort: {field: 'date', kind: 'desc'},
-    location,
-  });
-
-  const renderHeadCell = useMemo(
-    () =>
-      renderSortableHeaderCell({
-        currentSort,
-        makeSortLinkGenerator,
-        onClick: () => {},
-        rightAlignedColumns: [],
-        sortableColumns: [],
-      }),
-    [currentSort, makeSortLinkGenerator]
-  );
 
   const renderBodyCell = useCallback(
     (column: Column, dataRow: ReleaseHealthItem) => {
@@ -182,6 +169,13 @@ export function ReleasesDrawerTable({
           <Count value={value} />
         );
       }
+      if (column.key === 'date') {
+        return (
+          <Text tabular variant="muted" wrap="nowrap">
+            {props => <DateTime {...props} date={dataRow.date} seconds timeZone year />}
+          </Text>
+        );
+      }
       if (!meta?.fields) {
         return dataRow[column.key];
       }
@@ -211,28 +205,22 @@ export function ReleasesDrawerTable({
 
   return (
     <div>
-      <GridEditable
+      <DataGrid
         error={isError}
         isLoading={isLoading}
         data={releaseData ?? []}
         columnOrder={BASE_COLUMNS}
         emptyMessage={tableEmptyMessage}
-        columnSortBy={[]}
+        fit="max-content"
         stickyHeader
-        scrollable
         grid={{
-          renderHeadCell,
+          renderHeadCell: column => <span>{column.name}</span>,
           renderBodyCell,
         }}
       />
       <PaginationNoMargin
-        pageLinks={pageLinks}
-        onCursor={(cursor, path, searchQuery) => {
-          navigate({
-            pathname: path,
-            query: {...searchQuery, [ReleasesDrawerFields.LIST_CURSOR]: cursor},
-          });
-        }}
+        {...getPaginationProps(pageLinks)}
+        onCursor={cursor => setRdListCursor(cursor ?? null)}
       />
     </div>
   );

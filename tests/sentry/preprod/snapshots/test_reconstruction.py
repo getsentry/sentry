@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from collections.abc import Collection
 from unittest.mock import MagicMock
 
 import orjson
 from objectstore_client import RequestError
 
 from sentry.models.commitcomparison import CommitComparison
+from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
 from sentry.preprod.snapshots.reconstruction import (
     fold_child_onto_parent,
@@ -15,7 +17,12 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
 
 
-def _m(names_to_hashes, *, selective=False, all_image_file_names=None):
+def _m(
+    names_to_hashes: dict[str, str],
+    *,
+    selective: bool = False,
+    all_image_file_names: Collection[str] | None = None,
+) -> SnapshotManifest:
     return SnapshotManifest(
         images={
             n: ImageMetadata(content_hash=h, width=10, height=10)
@@ -26,7 +33,7 @@ def _m(names_to_hashes, *, selective=False, all_image_file_names=None):
     )
 
 
-def test_fold_inherits_untouched_and_overlays_changed():
+def test_fold_inherits_untouched_and_overlays_changed() -> None:
     parent = _m({"Help": "v0", "Feed": "v0", "Settings": "v0"})
     child = _m({"Feed": "v1"}, selective=True)  # changed Feed only
     resolved = fold_child_onto_parent(child, parent)
@@ -38,7 +45,7 @@ def test_fold_inherits_untouched_and_overlays_changed():
     assert resolved.selective is False
 
 
-def test_fold_mode1_drops_removed_names():
+def test_fold_mode1_drops_removed_names() -> None:
     parent = _m({"Help": "v0", "Feed": "v0", "Old": "v0"})
     child = _m({"Feed": "v1"}, selective=True, all_image_file_names=["Help", "Feed"])
     resolved = fold_child_onto_parent(child, parent)
@@ -46,7 +53,7 @@ def test_fold_mode1_drops_removed_names():
     assert resolved.images["Feed"].content_hash == "v1"
 
 
-def test_fold_mode2_keeps_phantom_on_rename():
+def test_fold_mode2_keeps_phantom_on_rename() -> None:
     parent = _m({"old.png": "v0", "Keep": "v0"})
     child = _m({"new.png": "v0"}, selective=True)  # rename old->new, mode 2
     resolved = fold_child_onto_parent(child, parent)
@@ -54,12 +61,16 @@ def test_fold_mode2_keeps_phantom_on_rename():
     assert set(resolved.images.keys()) == {"old.png", "new.png", "Keep"}
 
 
-def _session(manifests_by_key: dict[str, bytes]) -> MagicMock:
+def _session(
+    manifests_by_key: dict[str, bytes], unavailable_keys: Collection[str] = ()
+) -> MagicMock:
     session = MagicMock()
 
-    def _get(key):
+    def _get(key: str) -> MagicMock | None:
+        if key in unavailable_keys:
+            raise RequestError("unavailable", 503, "unavailable")
         if key not in manifests_by_key:
-            raise RequestError(f"Key not found: {key}", 404, "not found")
+            return None
         result = MagicMock()
         result.payload.read.return_value = manifests_by_key[key]
         return result
@@ -70,7 +81,7 @@ def _session(manifests_by_key: dict[str, bytes]) -> MagicMock:
 
 @cell_silo_test
 class ReconstructBaseManifestTest(TestCase):
-    def _commit(self, head_sha, base_sha):
+    def _commit(self, head_sha: str, base_sha: str | None) -> CommitComparison:
         return CommitComparison.objects.create(
             organization_id=self.organization.id,
             head_repo_name="o/r",
@@ -80,7 +91,15 @@ class ReconstructBaseManifestTest(TestCase):
             provider="github",
         )
 
-    def _build(self, head_sha, base_sha, images, *, selective, key):
+    def _build(
+        self,
+        head_sha: str,
+        base_sha: str | None,
+        images: dict[str, str],
+        *,
+        selective: bool,
+        key: str,
+    ) -> tuple[PreprodArtifact, str, bytes]:
         cc = self._commit(head_sha, base_sha)
         artifact = self.create_preprod_artifact(
             project=self.project, app_id="com.x", commit_comparison=cc
@@ -91,7 +110,7 @@ class ReconstructBaseManifestTest(TestCase):
         manifest = _m(images, selective=selective)
         return artifact, key, orjson.dumps(manifest.dict())
 
-    def test_non_selective_base_returns_as_is(self):
+    def test_non_selective_base_returns_as_is(self) -> None:
         artifact, key, blob = self._build(
             "h_main", None, {"a": "v0"}, selective=False, key="k_main"
         )
@@ -100,7 +119,7 @@ class ReconstructBaseManifestTest(TestCase):
         assert result.manifest is not None
         assert {n: m.content_hash for n, m in result.manifest.images.items()} == {"a": "v0"}
 
-    def test_three_deep_carries_pr1_change(self):
+    def test_three_deep_carries_pr1_change(self) -> None:
         a_main, k_main, b_main = self._build(
             "h_main",
             None,
@@ -124,7 +143,7 @@ class ReconstructBaseManifestTest(TestCase):
             "Settings": "v0",
         }
 
-    def test_missing_ancestor_manifest_is_incomplete(self):
+    def test_missing_ancestor_manifest_is_incomplete(self) -> None:
         a_main, k_main, b_main = self._build(
             "h_main", None, {"a": "v0"}, selective=False, key="k_main"
         )
@@ -137,14 +156,28 @@ class ReconstructBaseManifestTest(TestCase):
         assert result.incomplete is True
         assert result.manifest is None
 
-    def test_no_non_selective_ancestor_is_unresolvable(self):
+    def test_transient_objectstore_error_is_incomplete(self) -> None:
+        # A transient objectstore failure is indistinguishable from a manifest that has
+        # not been written yet, so it defers rather than terminating.
+        a_main, k_main, b_main = self._build(
+            "h_main", None, {"a": "v0"}, selective=False, key="k_main"
+        )
+        a_pr1, k_pr1, b_pr1 = self._build(
+            "h_pr1", "h_main", {"a": "v1"}, selective=True, key="k_pr1"
+        )
+        session = _session({k_pr1: b_pr1}, unavailable_keys={k_main})
+        result = reconstruct_base_manifest(a_pr1, session)
+        assert result.incomplete is True
+        assert result.manifest is None
+
+    def test_no_non_selective_ancestor_is_unresolvable(self) -> None:
         # selective build whose base_sha is null -> no complete reference exists.
         a_pr1, k_pr1, b_pr1 = self._build("h_pr1", None, {"a": "v1"}, selective=True, key="k_pr1")
         result = reconstruct_base_manifest(a_pr1, _session({k_pr1: b_pr1}))
         assert result.unresolvable is True
         assert result.manifest is None
 
-    def test_cycle_in_chain_is_unresolvable(self):
+    def test_cycle_in_chain_is_unresolvable(self) -> None:
         # A's base points at B, B's base points back at A -> cycle -> unresolvable.
         a, k_a, b_a = self._build("h_a", "h_b", {"x": "v1"}, selective=True, key="k_a")
         b, k_b, b_b = self._build("h_b", "h_a", {"y": "v1"}, selective=True, key="k_b")
@@ -152,7 +185,7 @@ class ReconstructBaseManifestTest(TestCase):
         assert result.unresolvable is True
         assert result.manifest is None
 
-    def test_resolves_ancestor_when_base_repo_name_is_null(self):
+    def test_resolves_ancestor_when_base_repo_name_is_null(self) -> None:
         # Non-fork PR: the child's commit_comparison has base_repo_name=None. The ancestor
         # must still be found via the head_repo_name fallback.
         a_main, k_main, b_main = self._build(
@@ -178,7 +211,7 @@ class ReconstructBaseManifestTest(TestCase):
         assert result.manifest is not None
         assert {n: m.content_hash for n, m in result.manifest.images.items()} == {"a": "v1"}
 
-    def test_corrupt_ancestor_manifest_is_unresolvable(self):
+    def test_corrupt_ancestor_manifest_is_unresolvable(self) -> None:
         # A corrupt ancestor manifest is permanent — it will never become valid by waiting,
         # so it must terminate (unresolvable) immediately rather than deferring through the
         # whole grace window and failing as a misleading TIMEOUT.
@@ -195,7 +228,7 @@ class ReconstructBaseManifestTest(TestCase):
         assert result.manifest is None
         assert result.error_message is not None
 
-    def test_manifests_fetched_in_parallel(self):
+    def test_manifests_fetched_in_parallel(self) -> None:
         import threading
 
         # A 3-deep chain requires reading 3 manifests. If the reads run sequentially the
@@ -215,7 +248,7 @@ class ReconstructBaseManifestTest(TestCase):
 
         session = MagicMock()
 
-        def _get(key):
+        def _get(key: str) -> MagicMock | None:
             barrier.wait()
             result = MagicMock()
             result.payload.read.return_value = blobs[key]
@@ -229,7 +262,7 @@ class ReconstructBaseManifestTest(TestCase):
         assert result.manifest is not None
         assert {n: m.content_hash for n, m in result.manifest.images.items()} == {"a": "v2"}
 
-    def test_completeness_uses_manifest_flag_not_db_flag(self):
+    def test_completeness_uses_manifest_flag_not_db_flag(self) -> None:
         # The manifest is the single source of truth for "is this a complete anchor".
         # Here the DB flag (is_selective=False) DISAGREES with the manifest
         # (selective=True). The walk must trust the manifest and fold this build as a

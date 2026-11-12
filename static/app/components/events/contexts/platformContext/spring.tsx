@@ -1,4 +1,4 @@
-import {getContextKeys} from 'sentry/components/events/contexts/utils';
+import {getContextKeys} from 'sentry/components/events/contexts/dataUtils';
 import {t} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
 
@@ -12,13 +12,7 @@ export interface SpringContext {
   [SpringContextKeys.ACTIVE_PROFILES]?: string[];
 }
 
-export function getSpringContextData({
-  data,
-  meta,
-}: {
-  data: SpringContext;
-  meta?: Record<keyof SpringContext, any>;
-}): KeyValueListData {
+export function getSpringContextData({data}: {data: SpringContext}): KeyValueListData {
   return getContextKeys({data}).map(ctxKey => {
     switch (ctxKey) {
       case SpringContextKeys.ACTIVE_PROFILES:
@@ -32,7 +26,6 @@ export function getSpringContextData({
           key: ctxKey,
           subject: ctxKey,
           value: data[ctxKey],
-          meta: meta?.[ctxKey]?.[''],
         };
     }
   });

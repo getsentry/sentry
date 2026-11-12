@@ -1,3 +1,5 @@
+import {skipToken, useQuery} from '@tanstack/react-query';
+
 import {t} from 'sentry/locale';
 import {
   EventGroupVariantType,
@@ -5,11 +7,10 @@ import {
   type EventGroupVariant,
 } from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type EventGroupingInfoResponse = {
+export type EventGroupingInfoResponse = {
   grouping_config: string | null;
   variants: Record<string, EventGroupVariant>;
 };
@@ -36,7 +37,7 @@ function generatePerformanceGroupInfo({
           [group.issueType]: {
             contributes: true,
             description: t('performance problem'),
-            hash: event.occurrence?.fingerprint[0] || '',
+            hash,
             hashMismatch: false,
             hint: null,
             key: group.issueType,
@@ -66,25 +67,24 @@ export function useEventGroupingInfo({
 }) {
   const organization = useOrganization();
 
-  const hasPerformanceGrouping = event.occurrence && event.type === 'transaction';
+  const hasPerformanceGrouping = Boolean(
+    event.occurrence && event.type === 'transaction'
+  );
 
-  const {data, isPending, isError, isSuccess} = useApiQuery<EventGroupingInfoResponse>(
-    [
-      getApiUrl(
-        '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/grouping-info/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: projectSlug,
-            eventId: event.id,
-          },
-        }
-      ),
-    ],
-    {
-      enabled: !hasPerformanceGrouping,
-      staleTime: Infinity,
-    }
+  const {data, isPending, isError} = useQuery(
+    apiOptions.as<EventGroupingInfoResponse>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/grouping-info/',
+      {
+        path: hasPerformanceGrouping
+          ? skipToken
+          : {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: projectSlug,
+              eventId: event.id,
+            },
+        staleTime: Infinity,
+      }
+    )
   );
 
   const groupInfo = hasPerformanceGrouping
@@ -93,9 +93,7 @@ export function useEventGroupingInfo({
 
   return {
     groupInfo,
-    isPending,
-    isError,
-    isSuccess,
-    hasPerformanceGrouping,
+    isPending: isPending && !hasPerformanceGrouping,
+    isError: isError && !hasPerformanceGrouping,
   };
 }

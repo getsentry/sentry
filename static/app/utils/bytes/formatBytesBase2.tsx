@@ -16,11 +16,16 @@ import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNu
 export function formatBytesBase2(bytes: number, fixPoints: number | false = 1): string {
   const units = ['KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB'];
   const thresh = 1024;
+  const prefix = bytes < 0 ? '-' : '';
+  bytes = Math.abs(bytes);
+
   if (bytes < thresh) {
     return (
+      prefix +
       (fixPoints === false
         ? formatNumberWithDynamicDecimalPoints(bytes)
-        : bytes.toFixed(fixPoints)) + ' B'
+        : bytes.toFixed(fixPoints)) +
+      ' B'
     );
   }
 
@@ -30,6 +35,7 @@ export function formatBytesBase2(bytes: number, fixPoints: number | false = 1): 
     ++u;
   } while (bytes >= thresh);
   return (
+    prefix +
     (fixPoints === false
       ? formatNumberWithDynamicDecimalPoints(bytes)
       : bytes.toFixed(fixPoints)) +

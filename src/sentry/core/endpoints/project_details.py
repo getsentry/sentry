@@ -5,8 +5,9 @@ from uuid import uuid4
 
 import orjson
 from django.db import IntegrityError, router, transaction
+from django.db.models import Exists, OuterRef, Q
 from django.utils import timezone
-from drf_spectacular.utils import extend_schema, extend_schema_serializer
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -16,8 +17,7 @@ from sentry import audit_log, features, roles
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
-from sentry.api.decorators import is_considered_sudo
-from sentry.api.exceptions import SudoRequired
+from sentry.api.decorators import require_sudo
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.permissions import StaffPermissionMixin
@@ -27,27 +27,28 @@ from sentry.api.serializers.rest_framework.list import EmptyListField
 from sentry.api.serializers.rest_framework.origin import OriginField
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.project_examples import ProjectExamples
+from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import (
     DetailResponse,
     ValidationErrorResponse,
     as_validation_errors,
 )
+from sentry.auth.principal import acting_user_id
 from sentry.constants import (
     PROJECT_SLUG_MAX_LENGTH,
     RESERVED_PROJECT_SLUGS,
-    SAMPLING_MODE_DEFAULT,
     ObjectStatus,
 )
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.dynamic_sampling import get_supported_biases_ids, get_user_biases
-from sentry.dynamic_sampling.types import DynamicSamplingMode
-from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, has_dynamic_sampling
+from sentry.dynamic_sampling.utils import has_dynamic_sampling
 from sentry.grouping.enhancer import EnhancementsConfig
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingConfig
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
+from sentry.ingest.legacy_filter_lists import clean_lines, set_list
 from sentry.issues.highlights import HighlightContextField
 from sentry.lang.native.sources import (
     InvalidSourcesError,
@@ -56,6 +57,7 @@ from sentry.lang.native.sources import (
     redact_source_secrets,
 )
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_MAX, convert_crashreport_count
+from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
@@ -63,6 +65,7 @@ from sentry.models.projectredirect import ProjectRedirect
 from sentry.notifications.utils import has_alert_integration
 from sentry.relay.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
+from sentry.seer.similarity.utils import project_uses_seer_similarity
 from sentry.tasks.seer.delete_seer_grouping_records import call_seer_delete_project_grouping_records
 from sentry.tempest.utils import has_tempest_access
 
@@ -75,11 +78,11 @@ logger = logging.getLogger(__name__)
 MAX_SENSITIVE_FIELD_CHARS = 4000
 
 
-def coerce_to_string_or_none(value) -> str | None:
+def coerce_to_string_or_none(value: object) -> str | None:
     return None if value is None else str(value)
 
 
-def clean_newline_inputs(value, case_insensitive=True):
+def clean_newline_inputs(value: str, case_insensitive: bool = True) -> list[str]:
     result = []
     for v in value.split("\n"):
         if case_insensitive:
@@ -94,7 +97,7 @@ class DynamicSamplingBiasSerializer(serializers.Serializer):
     id = serializers.ChoiceField(required=True, choices=get_supported_biases_ids())
     active = serializers.BooleanField(default=False)
 
-    def validate(self, data):
+    def validate(self, data: dict[str, object]) -> dict[str, object]:
         if data.keys() != {"id", "active"}:
             raise serializers.ValidationError(
                 "Error: Only 'id' and 'active' fields are allowed for bias."
@@ -110,92 +113,107 @@ class ProjectMemberSerializer(serializers.Serializer):
     autofixAutomationTuning = serializers.ChoiceField(
         choices=[item.value for item in AutofixAutomationTuningSettings],
         required=False,
+        help_text="How aggressively Seer runs Autofix on new issues. Can be updated with **`project:read`** permission.",
     )
-    seerScannerAutomation = serializers.BooleanField(required=False)
+    seerScannerAutomation = serializers.BooleanField(
+        required=False,
+        help_text="Let Seer scan new issues automatically. Can be updated with **`project:read`** permission.",
+    )
     seerNightshiftTweaks = serializers.JSONField(required=False, allow_null=True)
     preprodSizeStatusChecksEnabled = serializers.BooleanField(
         help_text="Enable preprod size status checks. Can be updated with **`project:read`** permission.",
         required=False,
     )
-    preprodSizeStatusChecksRules = serializers.JSONField(required=False)
-    preprodSnapshotStatusChecksEnabled = serializers.BooleanField(required=False)
-    preprodSnapshotStatusChecksFailOnAdded = serializers.BooleanField(required=False)
-    preprodSnapshotStatusChecksFailOnRemoved = serializers.BooleanField(required=False)
-    preprodSnapshotStatusChecksFailOnChanged = serializers.BooleanField(required=False)
-    preprodSnapshotStatusChecksFailOnRenamed = serializers.BooleanField(required=False)
-    preprodSizeEnabledByCustomer = serializers.BooleanField(required=False, allow_null=True)
-    preprodDistributionEnabledByCustomer = serializers.BooleanField(required=False, allow_null=True)
-    preprodDistributionPrCommentsEnabledByCustomer = serializers.BooleanField(
-        required=False, allow_null=True
+    preprodSizeStatusChecksRules = serializers.JSONField(
+        required=False,
+        help_text="Rules controlling when preprod size status checks fail. Can be updated with **`project:read`** permission.",
     )
-    preprodSnapshotPrCommentsEnabled = serializers.BooleanField(required=False, allow_null=True)
-    preprodSnapshotPrCommentsPostOnAdded = serializers.BooleanField(required=False, allow_null=True)
+    preprodSizePrCommentsEnabled = serializers.BooleanField(
+        help_text="Enable preprod size PR comments. Can be updated with **`project:read`** permission.",
+        required=False,
+    )
+    preprodSizePrCommentsRules = serializers.JSONField(
+        required=False,
+        help_text="Rules controlling which preprod size changes are posted as PR comments. Can be updated with **`project:read`** permission.",
+    )
+    preprodSnapshotStatusChecksEnabled = serializers.BooleanField(
+        required=False,
+        help_text="Enable preprod snapshot status checks.",
+    )
+    preprodSnapshotStatusChecksFailOnAdded = serializers.BooleanField(
+        required=False,
+        help_text="Fail the preprod snapshot status check when snapshots are added.",
+    )
+    preprodSnapshotStatusChecksFailOnRemoved = serializers.BooleanField(
+        required=False,
+        help_text="Fail the preprod snapshot status check when snapshots are removed.",
+    )
+    preprodSnapshotStatusChecksFailOnChanged = serializers.BooleanField(
+        required=False,
+        help_text="Fail the preprod snapshot status check when snapshots change.",
+    )
+    preprodSnapshotStatusChecksFailOnRenamed = serializers.BooleanField(
+        required=False,
+        help_text="Fail the preprod snapshot status check when snapshots are renamed.",
+    )
+    preprodSizeEnabledByCustomer = serializers.BooleanField(
+        required=False,
+        allow_null=True,
+        help_text="Enable preprod size analysis. Can be updated with **`project:read`** permission.",
+    )
+    preprodDistributionEnabledByCustomer = serializers.BooleanField(
+        required=False,
+        allow_null=True,
+        help_text="Enable preprod build distribution. Can be updated with **`project:read`** permission.",
+    )
+    preprodDistributionPrCommentsEnabledByCustomer = serializers.BooleanField(
+        required=False,
+        allow_null=True,
+        help_text="Post preprod distribution updates as PR comments. Can be updated with **`project:read`** permission.",
+    )
+    preprodSnapshotPrCommentsEnabled = serializers.BooleanField(
+        required=False,
+        allow_null=True,
+        help_text="Post preprod snapshot changes as PR comments.",
+    )
+    preprodSnapshotPrCommentsPostOnAdded = serializers.BooleanField(
+        required=False,
+        allow_null=True,
+        help_text="Include added snapshots in preprod snapshot PR comments.",
+    )
     preprodSnapshotPrCommentsPostOnRemoved = serializers.BooleanField(
-        required=False, allow_null=True
+        required=False,
+        allow_null=True,
+        help_text="Include removed snapshots in preprod snapshot PR comments.",
     )
     preprodSnapshotPrCommentsPostOnChanged = serializers.BooleanField(
-        required=False, allow_null=True
+        required=False,
+        allow_null=True,
+        help_text="Include changed snapshots in preprod snapshot PR comments.",
     )
     preprodSnapshotPrCommentsPostOnRenamed = serializers.BooleanField(
-        required=False, allow_null=True
+        required=False,
+        allow_null=True,
+        help_text="Include renamed snapshots in preprod snapshot PR comments.",
     )
-    preprodSizeEnabledQuery = serializers.CharField(required=False, allow_null=True)
-    preprodDistributionEnabledQuery = serializers.CharField(required=False, allow_null=True)
+    preprodSizeEnabledQuery = serializers.CharField(
+        required=False,
+        allow_null=True,
+        help_text="Query selecting which preprod builds are size-analyzed. Can be updated with **`project:read`** permission.",
+    )
+    preprodDistributionEnabledQuery = serializers.CharField(
+        required=False,
+        allow_null=True,
+        help_text="Query selecting which preprod builds are distributed. Can be updated with **`project:read`** permission.",
+    )
 
 
-@extend_schema_serializer(
-    exclude_fields=[
-        "options",
-        "team",
-        "digestsMinDelay",
-        "digestsMaxDelay",
-        "securityToken",
-        "securityTokenHeader",
-        "verifySSL",
-        "defaultEnvironment",
-        "dataScrubber",
-        "dataScrubberDefaults",
-        "sensitiveFields",
-        "safeFields",
-        "storeCrashReports",
-        "relayPiiConfig",
-        "builtinSymbolSources",
-        "symbolSources",
-        "scrubIPAddresses",
-        "groupingConfig",
-        "groupingEnhancements",
-        "derivedGroupingEnhancements",
-        "fingerprintingRules",
-        "secondaryGroupingConfig",
-        "secondaryGroupingExpiry",
-        "scrapeJavaScript",
-        "allowedDomains",
-        "copy_from_project",
-        "targetSampleRate",
-        "dynamicSamplingBiases",
-        "tempestFetchScreenshots",
-        "autofixAutomationTuning",
-        "seerScannerAutomation",
-        "seerNightshiftTweaks",
-        "debugFilesRole",
-        "preprodSizeStatusChecksEnabled",
-        "preprodSizeStatusChecksRules",
-        "preprodSizeEnabledQuery",
-        "preprodDistributionEnabledQuery",
-        "preprodSizeEnabledByCustomer",
-        "preprodDistributionEnabledByCustomer",
-        "preprodSnapshotStatusChecksEnabled",
-        "preprodSnapshotStatusChecksFailOnAdded",
-        "preprodSnapshotStatusChecksFailOnRemoved",
-        "preprodSnapshotStatusChecksFailOnChanged",
-        "preprodSnapshotStatusChecksFailOnRenamed",
-        "preprodDistributionPrCommentsEnabledByCustomer",
-        "preprodSnapshotPrCommentsEnabled",
-        "preprodSnapshotPrCommentsPostOnAdded",
-        "preprodSnapshotPrCommentsPostOnRemoved",
-        "preprodSnapshotPrCommentsPostOnChanged",
-        "preprodSnapshotPrCommentsPostOnRenamed",
-    ]
+@sentry_schema_serializer(
+    omit_from_public_schema={
+        "options": "Legacy writer for raw project option keys, kept for backward compatibility; "
+        "the typed fields on this serializer are the public surface.",
+        "seerNightshiftTweaks": "Experimental Seer internals with no stable shape.",
+    }
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
     name = serializers.CharField(
@@ -247,44 +265,146 @@ E.g. `{'user': ['id', 'email']}`""",
         help_text="""A list of strings with tag keys to highlight on this project's issues.
 E.g. `['release', 'environment']`""",
     )
-    # TODO: Add help_text to all the fields for public documentation, then remove them from 'exclude_fields'
-    team = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50)
-    digestsMinDelay = serializers.IntegerField(min_value=60, max_value=3600)
-    digestsMaxDelay = serializers.IntegerField(min_value=60, max_value=3600)
+    digestsMinDelay = serializers.IntegerField(
+        min_value=60,
+        max_value=3600,
+        help_text="Minimum time in seconds to wait before sending an issue digest email.",
+    )
+    digestsMaxDelay = serializers.IntegerField(
+        min_value=60,
+        max_value=3600,
+        help_text="Maximum time in seconds to wait before sending an issue digest email.",
+    )
     securityToken = serializers.RegexField(
-        r"^[-a-zA-Z0-9+/=\s]+$", max_length=255, allow_blank=True
+        r"^[-a-zA-Z0-9+/=\s]+$",
+        max_length=255,
+        allow_blank=True,
+        help_text="Token sent with security reports (CSP, Expect-CT, HPKP) so Sentry can verify their origin.",
     )
     securityTokenHeader = serializers.RegexField(
-        r"^[a-zA-Z0-9_\-]+$", max_length=64, allow_blank=True
+        r"^[a-zA-Z0-9_\-]+$",
+        max_length=64,
+        allow_blank=True,
+        help_text="Name of the header carrying the security token on inbound security reports.",
     )
-    verifySSL = serializers.BooleanField(required=False)
+    verifySSL = serializers.BooleanField(
+        required=False,
+        help_text="Verify SSL certificates when delivering outbound webhooks and service hooks.",
+    )
 
-    defaultEnvironment = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-    dataScrubber = serializers.BooleanField(required=False)
-    dataScrubberDefaults = serializers.BooleanField(required=False)
-    sensitiveFields = ListField(child=serializers.CharField(), required=False)
-    safeFields = ListField(child=serializers.CharField(), required=False)
+    defaultEnvironment = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="Environment selected by default when viewing this project.",
+    )
+    dataScrubber = serializers.BooleanField(
+        required=False,
+        help_text="Remove known sensitive values from events before storing them.",
+    )
+    dataScrubberDefaults = serializers.BooleanField(
+        required=False,
+        help_text="Also scrub Sentry's built-in list of sensitive field names.",
+    )
+    sensitiveFields = ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text="Additional field names to scrub from events, beyond the defaults.",
+    )
+    safeFields = ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text="Field names to exempt from scrubbing, including the built-in defaults.",
+    )
     storeCrashReports = serializers.IntegerField(
-        min_value=-1, max_value=STORE_CRASH_REPORTS_MAX, required=False, allow_null=True
+        min_value=-1,
+        max_value=STORE_CRASH_REPORTS_MAX,
+        required=False,
+        allow_null=True,
+        help_text="Number of native crash report files to store per issue. Use `-1` for unlimited or `0` to store none.",
     )
-    relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    builtinSymbolSources = ListField(child=serializers.CharField(), required=False)
-    symbolSources = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    scrubIPAddresses = serializers.BooleanField(required=False)
-    groupingConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    groupingEnhancements = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    fingerprintingRules = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    relayPiiConfig = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text="Advanced data scrubbing rules, as a JSON string, applied before events are stored.",
+    )
+    builtinSymbolSources = ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text="Identifiers of Sentry-hosted symbol sources to use when symbolicating events.",
+    )
+    symbolSources = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text="Custom symbol sources, as a JSON string, to use when symbolicating events.",
+    )
+    enableNativeSourceServerMapping = serializers.BooleanField(
+        required=False,
+        help_text="Apply source server (srcsrv) information from native debug files to symbolicated frames.",
+    )
+    scrubIPAddresses = serializers.BooleanField(
+        required=False,
+        help_text="Discard client IP addresses rather than storing them on events.",
+    )
+    groupingConfig = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text="Identifier of the grouping algorithm used to assign events to issues.",
+    )
+    groupingEnhancements = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text="Grouping enhancement rules, as a newline-delimited config string, adjusting which stack frames contribute to an issue.",
+    )
+    fingerprintingRules = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text="Fingerprinting rules, as a newline-delimited config string, controlling how events are grouped into issues.",
+    )
     secondaryGroupingConfig = serializers.CharField(
-        required=False, allow_blank=True, allow_null=True
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text="Grouping algorithm run alongside the primary one during a grouping migration.",
     )
-    secondaryGroupingExpiry = serializers.IntegerField(min_value=1, required=False, allow_null=True)
-    scrapeJavaScript = serializers.BooleanField(required=False)
-    allowedDomains = EmptyListField(child=OriginField(allow_blank=True), required=False)
+    secondaryGroupingExpiry = serializers.IntegerField(
+        min_value=1,
+        required=False,
+        allow_null=True,
+        help_text="Unix timestamp after which the secondary grouping algorithm stops running.",
+    )
+    scrapeJavaScript = serializers.BooleanField(
+        required=False,
+        help_text="Allow Sentry to fetch source files and source maps from your servers.",
+    )
+    enableAutoReleaseCreation = serializers.BooleanField(
+        required=False,
+        help_text="Automatically create releases from ingested events. When disabled, releases must be created manually (e.g. via the Sentry CLI).",
+    )
+    allowedDomains = EmptyListField(
+        child=OriginField(allow_blank=True),
+        required=False,
+        help_text="Origins permitted to send events to this project. Use `*` to allow any.",
+    )
 
-    copy_from_project = serializers.IntegerField(required=False)
-    targetSampleRate = serializers.FloatField(required=False, min_value=0, max_value=1)
-    dynamicSamplingBiases = DynamicSamplingBiasSerializer(required=False, many=True)
-    tempestFetchScreenshots = serializers.BooleanField(required=False)
+    copy_from_project = serializers.IntegerField(
+        required=False,
+        help_text="ID of a project whose settings, teams, and keys should be copied into this one.",
+    )
+    dynamicSamplingBiases = DynamicSamplingBiasSerializer(
+        required=False,
+        many=True,
+        help_text="Per-bias toggles adjusting which transactions dynamic sampling favors retaining.",
+    )
+    tempestFetchScreenshots = serializers.BooleanField(
+        required=False,
+        help_text="Fetch screenshots attached to console crash reports. Requires the Tempest feature.",
+    )
     scmSourceContextEnabled = serializers.BooleanField(
         required=False,
         help_text="Enable on-demand source context fetching from SCM integrations for stack traces.",
@@ -303,7 +423,7 @@ E.g. `['release', 'environment']`""",
         help_text="The role required to download debug information files, ProGuard mappings and source maps. If not set, inherits from organization setting.",
     )
 
-    def validate(self, data):
+    def validate(self, data: dict[str, int | None]) -> dict[str, int | None]:
         max_delay = (
             data["digestsMaxDelay"]
             if "digestsMaxDelay" in data
@@ -322,7 +442,7 @@ E.g. `['release', 'environment']`""",
 
         return data
 
-    def validate_allowedDomains(self, value):
+    def validate_allowedDomains(self, value: list[str]) -> list[str]:
         value = list(filter(bool, value))
         if len(value) == 0:
             raise serializers.ValidationError(
@@ -345,14 +465,14 @@ E.g. `['release', 'environment']`""",
             )
         return slug
 
-    def validate_relayPiiConfig(self, value):
+    def validate_relayPiiConfig(self, value: str | None) -> str | None:
         organization = self.context["project"].organization
         return validate_pii_config_update(organization, value)
 
-    def validate_builtinSymbolSources(self, value):
+    def validate_builtinSymbolSources(self, value: list[str]) -> list[str]:
         return value
 
-    def validate_symbolSources(self, sources_json) -> str:
+    def validate_symbolSources(self, sources_json: str) -> str:
         if not sources_json:
             return sources_json
 
@@ -378,6 +498,11 @@ E.g. `['release', 'environment']`""",
         if not added_or_modified_sources:
             return orjson.dumps(sources).decode() if sources else ""
 
+        if any(s.get("type") == "azure" for s in added_or_modified_sources) and not features.has(
+            "organizations:azure-symbol-sources", organization, actor=request.user
+        ):
+            raise serializers.ValidationError("Azure symbol sources are not enabled.")
+
         # All modified sources should get a new UUID, as a way to invalidate caches.
         # Downstream symbolicator uses this ID as part of a cache key, so assigning
         # a new ID does have the following effects/tradeoffs:
@@ -400,7 +525,7 @@ E.g. `['release', 'environment']`""",
 
         return sources_json
 
-    def validate_groupingEnhancements(self, value):
+    def validate_groupingEnhancements(self, value: str | None) -> str | None:
         if not value:
             return value
 
@@ -412,16 +537,16 @@ E.g. `['release', 'environment']`""",
         return value
 
     # TODO: Once these have been in place for a while we can probably remove them
-    def validate_groupingConfig(self, value):
+    def validate_groupingConfig(self, value: object) -> None:
         raise serializers.ValidationError("Grouping config cannot be manually set.")
 
-    def validate_secondaryGroupingConfig(self, value):
+    def validate_secondaryGroupingConfig(self, value: object) -> None:
         raise serializers.ValidationError("Secondary grouping config cannot be manually set.")
 
-    def validate_secondaryGroupingExpiry(self, value):
+    def validate_secondaryGroupingExpiry(self, value: object) -> None:
         raise serializers.ValidationError("Secondary grouping expiry cannot be manually set.")
 
-    def validate_fingerprintingRules(self, value):
+    def validate_fingerprintingRules(self, value: str | None) -> str | None:
         if not value:
             return value
 
@@ -432,7 +557,7 @@ E.g. `['release', 'environment']`""",
 
         return value
 
-    def validate_copy_from_project(self, other_project_id):
+    def validate_copy_from_project(self, other_project_id: int) -> int:
         try:
             other_project = Project.objects.filter(
                 id=other_project_id, organization_id=self.context["project"].organization_id
@@ -454,38 +579,20 @@ E.g. `['release', 'environment']`""",
 
         return other_project_id
 
-    def validate_platform(self, value):
+    def validate_platform(self, value: str) -> str:
         if Project.is_valid_platform(value):
             return value
         raise serializers.ValidationError("Invalid platform")
 
-    def validate_sensitiveFields(self, value):
+    def validate_sensitiveFields(self, value: list[str]) -> list[str]:
         if sum(map(len, value)) > MAX_SENSITIVE_FIELD_CHARS:
             raise serializers.ValidationError("List of sensitive fields is too long.")
         return value
 
-    def validate_safeFields(self, value):
+    def validate_safeFields(self, value: list[str]) -> list[str]:
         return validate_pii_selectors(value)
 
-    def validate_targetSampleRate(self, value):
-        organization = self.context["project"].organization
-        actor = self.context["request"].user
-        if not has_custom_dynamic_sampling(organization, actor=actor):
-            raise serializers.ValidationError(
-                "Organization does not have the custom dynamic sample rate feature enabled."
-            )
-
-        if (
-            organization.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
-            != DynamicSamplingMode.PROJECT.value
-        ):
-            raise serializers.ValidationError(
-                "Must enable Manual Mode to configure project sample rates."
-            )
-
-        return value
-
-    def validate_tempestFetchScreenshots(self, value):
+    def validate_tempestFetchScreenshots(self, value: bool) -> bool:
         organization = self.context["project"].organization
         if not has_tempest_access(organization):
             raise serializers.ValidationError(
@@ -493,7 +600,7 @@ E.g. `['release', 'environment']`""",
             )
         return value
 
-    def validate_debugFilesRole(self, value):
+    def validate_debugFilesRole(self, value: str | None) -> str | None:
         if value is None:
             return value
 
@@ -533,16 +640,21 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (RelaxedProjectAndStaffPermission,)
 
-    def _get_unresolved_count(self, project):
+    def _get_unresolved_count(self, project: Project) -> int:
         queryset = Group.objects.filter(status=GroupStatus.UNRESOLVED, project=project)
 
         resolve_age = project.get_option("sentry:resolve_age", None)
         if resolve_age:
-            queryset = queryset.filter(
-                last_seen__gte=timezone.now() - timedelta(hours=int(resolve_age))
+            cutoff = timezone.now() - timedelta(hours=int(resolve_age))
+            recently_reopened = Exists(
+                Activity.objects.get_recent_unresolved_activities(project.id, cutoff).filter(
+                    group_id=OuterRef("id")
+                )
             )
+            queryset = queryset.filter(Q(last_seen__gt=cutoff) | recently_reopened)
 
         return queryset.count()
 
@@ -609,7 +721,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         examples=ProjectExamples.DETAILED_PROJECT,
     )
     def put(
-        self, request: Request, project
+        self, request: Request, project: Project
     ) -> (
         Response[_ProjectDetailsResponse]
         | Response[None]
@@ -622,6 +734,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         Note that solely having the **`project:read`** scope restricts updatable settings to
         `isBookmarked`, `autofixAutomationTuning`, `seerScannerAutomation`,
         `preprodSizeStatusChecksEnabled`, `preprodSizeStatusChecksRules`,
+        `preprodSizePrCommentsEnabled`, `preprodSizePrCommentsRules`,
         `preprodSizeEnabledQuery`, `preprodDistributionEnabledQuery`,
         `preprodSizeEnabledByCustomer`, `preprodDistributionEnabledByCustomer`,
         and `preprodDistributionPrCommentsEnabledByCustomer`.
@@ -664,7 +777,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                         status=403,
                     )
         changed = False
-        changed_proj_settings = {}
+        changed_proj_settings: dict[str, object] = {}
 
         old_slug = None
         if result.get("slug"):
@@ -688,14 +801,21 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if old_slug:
                 ProjectRedirect.record(project, old_slug)
 
-        if result.get("isBookmarked"):
-            try:
-                with transaction.atomic(router.db_for_write(ProjectBookmark)):
-                    ProjectBookmark.objects.create(project_id=project.id, user_id=request.user.id)
-            except IntegrityError:
-                pass
-        elif result.get("isBookmarked") is False:
-            ProjectBookmark.objects.filter(project_id=project.id, user_id=request.user.id).delete()
+        # Bookmarks are per user: skipped without one, like token callers always were.
+        bookmark_user_id = acting_user_id(request.user)
+        if bookmark_user_id is not None:
+            if result.get("isBookmarked"):
+                try:
+                    with transaction.atomic(router.db_for_write(ProjectBookmark)):
+                        ProjectBookmark.objects.create(
+                            project_id=project.id, user_id=bookmark_user_id
+                        )
+                except IntegrityError:
+                    pass
+            elif result.get("isBookmarked") is False:
+                ProjectBookmark.objects.filter(
+                    project_id=project.id, user_id=bookmark_user_id
+                ).delete()
 
         if result.get("digestsMinDelay"):
             project.update_option("digests:mail:minimum_delay", result["digestsMinDelay"])
@@ -790,6 +910,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get("scrapeJavaScript") is not None:
             if project.update_option("sentry:scrape_javascript", result["scrapeJavaScript"]):
                 changed_proj_settings["sentry:scrape_javascript"] = result["scrapeJavaScript"]
+        if result.get("enableAutoReleaseCreation") is not None:
+            if project.update_option(
+                "sentry:enable_auto_release_creation", result["enableAutoReleaseCreation"]
+            ):
+                changed_proj_settings["sentry:enable_auto_release_creation"] = result[
+                    "enableAutoReleaseCreation"
+                ]
         if result.get("allowedDomains"):
             if project.update_option("sentry:origins", result["allowedDomains"]):
                 changed_proj_settings["sentry:origins"] = result["allowedDomains"]
@@ -807,13 +934,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:scm_source_context_enabled"] = result[
                     "scmSourceContextEnabled"
                 ]
-        if result.get("targetSampleRate") is not None:
+        if result.get("enableNativeSourceServerMapping") is not None:
             if project.update_option(
-                "sentry:target_sample_rate", round(result["targetSampleRate"], 4)
+                "sentry:enable_native_source_server_mapping",
+                result["enableNativeSourceServerMapping"],
             ):
-                changed_proj_settings["sentry:target_sample_rate"] = round(
-                    result["targetSampleRate"], 4
-                )
+                changed_proj_settings["sentry:enable_native_source_server_mapping"] = result[
+                    "enableNativeSourceServerMapping"
+                ]
         if "dynamicSamplingBiases" in result:
             updated_biases = get_user_biases(user_set_biases=result["dynamicSamplingBiases"])
             if project.update_option("sentry:dynamic_sampling_biases", updated_biases):
@@ -857,6 +985,22 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             ):
                 changed_proj_settings["sentry:preprod_size_status_checks_rules"] = result[
                     "preprodSizeStatusChecksRules"
+                ]
+        if result.get("preprodSizePrCommentsEnabled") is not None:
+            if project.update_option(
+                "sentry:preprod_size_pr_comments_enabled",
+                result["preprodSizePrCommentsEnabled"],
+            ):
+                changed_proj_settings["sentry:preprod_size_pr_comments_enabled"] = result[
+                    "preprodSizePrCommentsEnabled"
+                ]
+        if result.get("preprodSizePrCommentsRules") is not None:
+            if project.update_option(
+                "sentry:preprod_size_pr_comments_rules",
+                result["preprodSizePrCommentsRules"],
+            ):
+                changed_proj_settings["sentry:preprod_size_pr_comments_rules"] = result[
+                    "preprodSizePrCommentsRules"
                 ]
 
         if "preprodSizeEnabledByCustomer" in result:
@@ -1082,6 +1226,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "sentry:toolbar_allowed_origins",
                     clean_newline_inputs(options["sentry:toolbar_allowed_origins"]),
                 )
+            if "sentry:relay_automatic_json_expansion" in options:
+                project.update_option(
+                    "sentry:relay_automatic_json_expansion",
+                    bool(options["sentry:relay_automatic_json_expansion"]),
+                )
             if "filters:react-hydration-errors" in options:
                 project.update_option(
                     "filters:react-hydration-errors",
@@ -1099,19 +1248,24 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 )
             if f"filters:{FilterTypes.RELEASES}" in options:
                 if features.has("projects:custom-inbound-filters", project, actor=request.user):
-                    project.update_option(
-                        f"sentry:{FilterTypes.RELEASES}",
-                        clean_newline_inputs(options[f"filters:{FilterTypes.RELEASES}"]),
+                    set_list(
+                        project,
+                        FilterTypes.RELEASES,
+                        clean_lines(
+                            FilterTypes.RELEASES,
+                            options[f"filters:{FilterTypes.RELEASES}"].split("\n"),
+                        ),
                     )
                 else:
                     return Response({"detail": "You do not have that feature enabled"}, status=400)
             if f"filters:{FilterTypes.ERROR_MESSAGES}" in options:
                 if features.has("projects:custom-inbound-filters", project, actor=request.user):
-                    project.update_option(
-                        f"sentry:{FilterTypes.ERROR_MESSAGES}",
-                        clean_newline_inputs(
-                            options[f"filters:{FilterTypes.ERROR_MESSAGES}"],
-                            case_insensitive=False,
+                    set_list(
+                        project,
+                        FilterTypes.ERROR_MESSAGES,
+                        clean_lines(
+                            FilterTypes.ERROR_MESSAGES,
+                            options[f"filters:{FilterTypes.ERROR_MESSAGES}"].split("\n"),
                         ),
                     )
                 else:
@@ -1122,11 +1276,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 ) and features.has(
                     "organizations:ourlogs-ingestion", project.organization, actor=request.user
                 ):
-                    project.update_option(
-                        f"sentry:{FilterTypes.LOG_MESSAGES}",
-                        clean_newline_inputs(
-                            options[f"filters:{FilterTypes.LOG_MESSAGES}"],
-                            case_insensitive=False,
+                    set_list(
+                        project,
+                        FilterTypes.LOG_MESSAGES,
+                        clean_lines(
+                            FilterTypes.LOG_MESSAGES,
+                            options[f"filters:{FilterTypes.LOG_MESSAGES}"].split("\n"),
                         ),
                     )
                 else:
@@ -1137,11 +1292,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 ) and features.has(
                     "organizations:tracemetrics-ingestion", project.organization, actor=request.user
                 ):
-                    project.update_option(
-                        f"sentry:{FilterTypes.TRACE_METRIC_NAMES}",
-                        clean_newline_inputs(
-                            options[f"filters:{FilterTypes.TRACE_METRIC_NAMES}"],
-                            case_insensitive=False,
+                    set_list(
+                        project,
+                        FilterTypes.TRACE_METRIC_NAMES,
+                        clean_lines(
+                            FilterTypes.TRACE_METRIC_NAMES,
+                            options[f"filters:{FilterTypes.TRACE_METRIC_NAMES}"].split("\n"),
                         ),
                     )
                 else:
@@ -1212,8 +1368,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         # In most cases we want to confirm password before deleting a project, but this isn't
         # necessary if we never received any events in the first place. This allows us to avoid
         # password confirmation in onboarding when undoing project creation.
-        if project.first_event is not None and not is_considered_sudo(request):
-            raise SudoRequired(request.user)
+        if project.first_event is not None:
+            require_sudo(request)
 
         updated = Project.objects.filter(id=project.id, status=ObjectStatus.ACTIVE).update(
             status=ObjectStatus.PENDING_DELETION
@@ -1224,11 +1380,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             common_audit_data = {
                 "organization": project.organization,
                 "target_object": project.id,
-                "transaction_id": scheduled.id,
             }
 
             if request.data.get("origin"):
                 self.create_audit_entry(
+                    transaction_id=scheduled.id,
                     **common_audit_data,
                     request=request,
                     event=audit_log.get_event_id("PROJECT_REMOVE_WITH_ORIGIN"),
@@ -1239,6 +1395,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 )
             else:
                 self.create_audit_entry(
+                    transaction_id=scheduled.id,
                     **common_audit_data,
                     request=request,
                     event=audit_log.get_event_id("PROJECT_REMOVE"),
@@ -1248,14 +1405,18 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.rename_on_pending_deletion()
 
             # Tell seer to delete all the project's grouping records
-            if project.get_option("sentry:similarity_backfill_completed"):
+            if project_uses_seer_similarity(project):
                 call_seer_delete_project_grouping_records.apply_async(args=[project.id])
 
         return Response(status=204)
 
     def dynamic_sampling_biases_audit_log(
-        self, project, request, old_raw_dynamic_sampling_biases, new_raw_dynamic_sampling_biases
-    ):
+        self,
+        project: Project,
+        request: Request,
+        old_raw_dynamic_sampling_biases: list[dict[str, object]] | None,
+        new_raw_dynamic_sampling_biases: list[dict[str, object]],
+    ) -> None:
         """
         Compares the previous and next dynamic sampling biases object, triggering audit logs according to the changes.
         We are currently verifying the following cases:

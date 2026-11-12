@@ -26,7 +26,6 @@ export function PlatformSelector() {
   return (
     <Flex>
       <SegmentedControl
-        size="md"
         value={platform}
         aria-label={t('Filter platform')}
         onChange={val => {

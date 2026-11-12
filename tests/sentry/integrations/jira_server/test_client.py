@@ -1,9 +1,15 @@
+from unittest import mock
+
+import responses
 from django.test import override_settings
 from requests import Request
+from responses.matchers import query_param_matcher
 
 from sentry.integrations.jira_server.client import JiraServerClient
 from sentry.testutils.cases import BaseTestCase, TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
+from sentry.utils import json
 from tests.sentry.integrations.jira_server import EXAMPLE_PRIVATE_KEY
 
 control_address = "http://controlserver"
@@ -41,6 +47,17 @@ class JiraServerClientTest(TestCase, BaseTestCase):
         install = self.integration.get_installation(self.organization.id)
         self.jira_server_client: JiraServerClient = install.get_client()
 
+    @override_options({"system.url-prefix": "https://sentry.example.com:9000/sentry/"})
+    def test_set_issue_property(self) -> None:
+        with mock.patch.object(self.jira_server_client, "put_mapping") as put:
+            self.jira_server_client.set_issue_property("ABC-123", 2)
+
+        put.assert_called_once_with(
+            "/rest/api/3/issue/ABC-123/properties/"
+            "com.atlassian.jira.issue:sentry.example.com.jira:sentry-issues-glance:status",
+            data={"type": "badge", "value": {"label": 2}},
+        )
+
     def test_authorize_request(self) -> None:
         method = "GET"
         request = Request(
@@ -59,3 +76,49 @@ class JiraServerClientTest(TestCase, BaseTestCase):
         ]
         for hc in header_components:
             assert hc in str(request.headers["Authorization"])
+
+    @responses.activate
+    def test_search_issues_with_pasted_issue_url(self) -> None:
+        body = {"issues": [{"key": "ABC-123", "fields": {"summary": "My Issue"}}]}
+        responses.add(
+            method=responses.GET,
+            url="https://jira.example.com/rest/api/2/search/",
+            match=[
+                query_param_matcher(
+                    {
+                        "jql": 'id="ABC-123"',
+                        "startAt": 0,
+                        "maxResults": 20,
+                        "fields": "summary",
+                    }
+                )
+            ],
+            body=json.dumps(body),
+            status=200,
+            content_type="application/json",
+        )
+        res = self.jira_server_client.search_issues("https://jira.example.com/browse/ABC-123")
+        assert res == body
+
+    @responses.activate
+    def test_search_issues_with_free_text(self) -> None:
+        body: dict[str, list[str]] = {"issues": []}
+        responses.add(
+            method=responses.GET,
+            url="https://jira.example.com/rest/api/2/search/",
+            match=[
+                query_param_matcher(
+                    {
+                        "jql": 'text ~ "login crash"',
+                        "startAt": 0,
+                        "maxResults": 20,
+                        "fields": "summary",
+                    }
+                )
+            ],
+            body=json.dumps(body),
+            status=200,
+            content_type="application/json",
+        )
+        res = self.jira_server_client.search_issues("login crash")
+        assert res == body

@@ -20,8 +20,10 @@ from sentry.api.serializers.models.seer_run import (
     SeerRunSerializer,
 )
 from sentry.api.utils import get_date_range_from_params
+from sentry.auth.principal import acting_user_id
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
+from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_utils import has_seer_agent_access_with_detail
 from sentry.seer.models.run import SeerRun, SeerRunType
 from sentry.seer.run_questions import (
@@ -31,7 +33,6 @@ from sentry.seer.run_questions import (
     build_user_questions,
     get_run_questions,
 )
-from sentry.seer.runs_query import filtered_runs_queryset
 
 MAX_USER_QUESTIONS = 5
 MAX_QUESTION_LENGTH = 4096
@@ -62,7 +63,7 @@ def _fetch_run_outputs(
         return {}
 
     answers_by_state_id = get_run_questions(
-        [run.seer_run_state_id for run in qualifying],
+        [run.seer_run_state_id for run in qualifying if run.seer_run_state_id is not None],
         organization,
         questions=questions,
         user_id=user_id,
@@ -75,10 +76,12 @@ def _fetch_run_outputs(
             output["question"] = q["question"]
         return output
 
-    return {
-        run.id: [to_output(q) for q in answers_by_state_id.get(run.seer_run_state_id, [])]
-        for run in qualifying
-    }
+    output: dict[int, list[RunQuestionOutput]] = {}
+    for run in qualifying:
+        state_id = run.seer_run_state_id
+        assert state_id is not None
+        output[run.id] = [to_output(q) for q in answers_by_state_id.get(state_id, [])]
+    return output
 
 
 class OrganizationSeerRunsPermission(OrganizationPermission):
@@ -169,6 +172,7 @@ class OrganizationSeerRunsEndpoint(OrganizationEndpoint):
         has_access, error = has_seer_agent_access_with_detail(organization, request.user)
         if not has_access:
             raise PermissionDenied(error)
+        client = SeerAgentClient(organization, request.user)
 
         feature_enabled = features.has(
             "organizations:seer-run-questions", organization, actor=request.user
@@ -204,10 +208,8 @@ class OrganizationSeerRunsEndpoint(OrganizationEndpoint):
         ]
 
         try:
-            queryset = filtered_runs_queryset(
-                organization=organization,
+            queryset = client.get_runs(
                 query=query,
-                user_id=request.user.id,
                 accessible_project_ids=accessible_project_ids,
                 start=start,
                 end=end,
@@ -224,7 +226,7 @@ class OrganizationSeerRunsEndpoint(OrganizationEndpoint):
                     runs,
                     organization,
                     questions=run_questions,
-                    user_id=request.user.id,
+                    user_id=acting_user_id(request.user),
                 )
                 for run, data in zip(runs, serialized):
                     data["outputs"] = outputs_by_run_id.get(run.id, [])

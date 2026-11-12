@@ -8,10 +8,11 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
 from sentry.apidocs.examples.sentry_app_examples import SentryAppExamples
-from sentry.apidocs.parameters import GlobalParams, IssueParams
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupEndpoint
+from sentry.models.group import Group
 from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializerResponse,
 )
@@ -33,6 +34,7 @@ class GroupExternalIssuesEndpoint(GroupEndpoint):
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,
             IssueParams.ISSUE_ID,
+            CursorQueryParam,
         ],
         responses={
             200: inline_sentry_response_serializer(
@@ -47,7 +49,7 @@ class GroupExternalIssuesEndpoint(GroupEndpoint):
         url_names=["sentry-api-0-group-external-issues"],
     )
     def get(
-        self, request: Request, group
+        self, request: Request, group: Group
     ) -> Response[list[PlatformExternalIssueSerializerResponse]]:
         """
         Retrieve custom integration issue links for the given Sentry issue

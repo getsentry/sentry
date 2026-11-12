@@ -2,10 +2,12 @@ import {ActorFixture} from 'sentry-fixture/actor';
 import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {GroupStore} from 'sentry/stores/groupStore';
-import {IndicatorStore} from 'sentry/stores/indicatorStore';
+import {toast} from '@sentry/scraps/toast';
+
 import type {TimeseriesValue} from 'sentry/types/core';
 import type {Group, GroupStats} from 'sentry/types/group';
+
+import {GroupStore} from './groupStore';
 
 const MOCK_PROJECT = ProjectFixture();
 
@@ -112,11 +114,16 @@ describe('GroupStore', () => {
   describe('onPopulateStats()', () => {
     const stats: Record<string, TimeseriesValue[]> = {auto: [[1611576000, 10]]};
 
+    const listener = jest.fn();
+    let unsubscribe: () => void;
+
     beforeEach(() => {
-      jest.spyOn(GroupStore, 'trigger');
+      listener.mockClear();
+      unsubscribe = GroupStore.subscribe(listener);
       GroupStore.items = [g('1'), g('2'), g('3')];
     });
     afterEach(() => {
+      unsubscribe();
       jest.restoreAllMocks();
     });
 
@@ -133,7 +140,7 @@ describe('GroupStore', () => {
       const group = GroupStore.getAllItems()[0] as Group;
 
       expect(group.stats).toEqual(stats);
-      expect(GroupStore.trigger).toHaveBeenCalledWith(new Set(['1', '2', '3']));
+      expect(listener).toHaveBeenCalledTimes(1);
     });
 
     it('should not change current item ids', () => {
@@ -145,7 +152,7 @@ describe('GroupStore', () => {
       const group1 = GroupStore.getAllItems()[0] as Group;
       const group2 = GroupStore.getAllItems()[1] as Group;
 
-      expect(GroupStore.trigger).toHaveBeenCalledWith(new Set(['2', '3']));
+      expect(listener).toHaveBeenCalledTimes(1);
       expect(group1.stats).not.toEqual(stats);
       expect(group2.stats).toEqual(stats);
     });
@@ -173,11 +180,16 @@ describe('GroupStore', () => {
   });
 
   describe('update methods', () => {
+    const listener = jest.fn();
+    let unsubscribe: () => void;
+
     beforeEach(() => {
-      jest.spyOn(GroupStore, 'trigger');
+      listener.mockClear();
+      unsubscribe = GroupStore.subscribe(listener);
       GroupStore.items = [g('1'), g('2'), g('3')];
     });
     afterEach(() => {
+      unsubscribe();
       jest.restoreAllMocks();
     });
 
@@ -185,8 +197,7 @@ describe('GroupStore', () => {
       it("should treat undefined itemIds argument as 'all'", () => {
         GroupStore.onUpdate('1337', undefined, {});
 
-        expect(GroupStore.trigger).toHaveBeenCalledTimes(1);
-        expect(GroupStore.trigger).toHaveBeenCalledWith(new Set(['1', '2', '3']));
+        expect(listener).toHaveBeenCalledTimes(1);
       });
       it('should apply optimistic updates', () => {
         GroupStore.items = [g('1'), g('2')];
@@ -207,8 +218,7 @@ describe('GroupStore', () => {
       it("should treat undefined itemIds argument as 'all'", () => {
         GroupStore.onUpdateSuccess('1337', undefined, {});
 
-        expect(GroupStore.trigger).toHaveBeenCalledTimes(1);
-        expect(GroupStore.trigger).toHaveBeenCalledWith(new Set(['1', '2', '3']));
+        expect(listener).toHaveBeenCalledTimes(1);
       });
     });
 
@@ -216,8 +226,7 @@ describe('GroupStore', () => {
       it("should treat undefined itemIds argument as 'all'", () => {
         GroupStore.onUpdateError('1337', undefined, false);
 
-        expect(GroupStore.trigger).toHaveBeenCalledTimes(1);
-        expect(GroupStore.trigger).toHaveBeenCalledWith(new Set(['1', '2', '3']));
+        expect(listener).toHaveBeenCalledTimes(1);
       });
     });
 
@@ -225,35 +234,34 @@ describe('GroupStore', () => {
       it("should treat undefined itemIds argument as 'all'", () => {
         GroupStore.onDeleteSuccess('1337', undefined, {});
 
-        expect(GroupStore.trigger).toHaveBeenCalledTimes(1);
-        expect(GroupStore.trigger).toHaveBeenCalledWith(new Set(['1', '2', '3']));
+        expect(listener).toHaveBeenCalledTimes(1);
       });
 
       it('should show generic message when itemIds is undefined', () => {
-        const addMessageSpy = jest.spyOn(IndicatorStore, 'addMessage');
+        const successToastSpy = jest.spyOn(toast, 'success');
         GroupStore.onDeleteSuccess('1337', undefined, {});
 
-        expect(addMessageSpy).toHaveBeenCalledWith('Deleted selected issues', 'success', {
+        expect(successToastSpy).toHaveBeenCalledWith('Deleted selected issues', {
           duration: 4000,
         });
       });
 
       it('should show specific count when itemIds is provided', () => {
-        const addMessageSpy = jest.spyOn(IndicatorStore, 'addMessage');
+        const successToastSpy = jest.spyOn(toast, 'success');
         GroupStore.onDeleteSuccess('1337', ['1', '2'], {});
 
-        expect(addMessageSpy).toHaveBeenCalledWith('Deleted 2 Issues', 'success', {
+        expect(successToastSpy).toHaveBeenCalledWith('Deleted 2 Issues', {
           duration: 4000,
         });
       });
 
       it('should show shortId for single issue deletion', () => {
-        const addMessageSpy = jest.spyOn(IndicatorStore, 'addMessage');
+        const successToastSpy = jest.spyOn(toast, 'success');
         const mockGroup = g('1', {shortId: 'ABC-123'});
         jest.spyOn(GroupStore, 'get').mockReturnValue(mockGroup);
         GroupStore.onDeleteSuccess('1337', ['1'], {});
 
-        expect(addMessageSpy).toHaveBeenCalledWith('Deleted ABC-123', 'success', {
+        expect(successToastSpy).toHaveBeenCalledWith('Deleted ABC-123', {
           duration: 4000,
         });
       });
@@ -265,8 +273,7 @@ describe('GroupStore', () => {
         const assignedGroup = g('1', {assignedTo: ActorFixture()});
         GroupStore.onAssignToSuccess('1337', '1', assignedGroup);
 
-        expect(GroupStore.trigger).toHaveBeenCalledTimes(1);
-        expect(GroupStore.trigger).toHaveBeenCalledWith(new Set(['1']));
+        expect(listener).toHaveBeenCalledTimes(1);
         expect(GroupStore.items[0]).toEqual(assignedGroup);
       });
     });

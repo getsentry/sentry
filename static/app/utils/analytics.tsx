@@ -1,51 +1,17 @@
-import type {Span} from '@sentry/core';
-import * as Sentry from '@sentry/react';
-
-import {getOverride} from 'sentry/overrideRegistry';
-import type {Overrides} from 'sentry/types/overrides';
+import type {AgentMonitoringEventParameters} from './analytics/agentMonitoringAnalyticsEvents';
+import {agentMonitoringEventMap} from './analytics/agentMonitoringAnalyticsEvents';
 import {
   alertsEventMap,
   type AlertsEventParameters,
-} from 'sentry/utils/analytics/alertsAnalyticsEvents';
+} from './analytics/alertsAnalyticsEvents';
+import type {AuthV2EventParameters} from './analytics/authV2AnalyticsEvents';
+import {authV2EventMap} from './analytics/authV2AnalyticsEvents';
+import type {BreadcrumbsAnalyticsEventParameters} from './analytics/breadcrumbsAnalyticsEvents';
+import {breadcrumbsAnalyticsEventMap} from './analytics/breadcrumbsAnalyticsEvents';
 import {
   commandPaletteEventMap,
   type CommandPaletteEventParameters,
-} from 'sentry/utils/analytics/commandPaletteAnalyticsEvents';
-import {
-  exploreAnalyticsEventMap,
-  type ExploreAnalyticsEventParameters,
-} from 'sentry/utils/analytics/exploreAnalyticsEvents';
-import {
-  featureFlagEventMap,
-  type FeatureFlagEventParameters,
-} from 'sentry/utils/analytics/featureFlagAnalyticsEvents';
-import {
-  gamingEventMap,
-  type GamingAnalyticsEventParameters,
-} from 'sentry/utils/analytics/gamingAnalyticsEvents';
-import {
-  logsAnalyticsEventMap,
-  type LogsAnalyticsEventParameters,
-} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {
-  metricsAnalyticsEventMap,
-  type MetricsAnalyticsEventParameters,
-} from 'sentry/utils/analytics/metricsAnalyticsEvent';
-import {navigationAnalyticsEventMap} from 'sentry/utils/analytics/navigationAnalyticsEvents';
-import {nextJsInsightsEventMap} from 'sentry/utils/analytics/nextJsInsightsAnalyticsEvents';
-import {
-  quickStartEventMap,
-  type QuickStartEventParameters,
-} from 'sentry/utils/analytics/quickStartAnalyticsEvents';
-import {
-  statsEventMap,
-  type StatsEventParameters,
-} from 'sentry/utils/analytics/statsAnalyticsEvents';
-
-import type {AgentMonitoringEventParameters} from './analytics/agentMonitoringAnalyticsEvents';
-import {agentMonitoringEventMap} from './analytics/agentMonitoringAnalyticsEvents';
-import type {BreadcrumbsAnalyticsEventParameters} from './analytics/breadcrumbsAnalyticsEvents';
-import {breadcrumbsAnalyticsEventMap} from './analytics/breadcrumbsAnalyticsEvents';
+} from './analytics/commandPaletteAnalyticsEvents';
 import type {ConversationsEventParameters} from './analytics/conversationsAnalyticsEvents';
 import {conversationsEventMap} from './analytics/conversationsAnalyticsEvents';
 import type {CoreUIEventParameters} from './analytics/coreuiAnalyticsEvents';
@@ -58,8 +24,20 @@ import type {DynamicSamplingEventParameters} from './analytics/dynamicSamplingAn
 import {dynamicSamplingEventMap} from './analytics/dynamicSamplingAnalyticsEvents';
 import type {EcosystemEventParameters} from './analytics/ecosystemAnalyticsEvents';
 import {ecosystemEventMap} from './analytics/ecosystemAnalyticsEvents';
+import {
+  exploreAnalyticsEventMap,
+  type ExploreAnalyticsEventParameters,
+} from './analytics/exploreAnalyticsEvents';
+import {
+  featureFlagEventMap,
+  type FeatureFlagEventParameters,
+} from './analytics/featureFlagAnalyticsEvents';
 import type {FeedbackEventParameters} from './analytics/feedbackAnalyticsEvents';
 import {feedbackEventMap} from './analytics/feedbackAnalyticsEvents';
+import {
+  gamingEventMap,
+  type GamingAnalyticsEventParameters,
+} from './analytics/gamingAnalyticsEvents';
 import type {GrowthEventParameters} from './analytics/growthAnalyticsEvents';
 import {growthEventMap} from './analytics/growthAnalyticsEvents';
 import type {InsightEventParameters} from './analytics/insightAnalyticEvents';
@@ -70,11 +48,21 @@ import type {IssueEventParameters} from './analytics/issueAnalyticsEvents';
 import {issueEventMap} from './analytics/issueAnalyticsEvents';
 import type {LaravelInsightsEventParameters} from './analytics/laravelInsightsAnalyticsEvents';
 import {laravelInsightsEventMap} from './analytics/laravelInsightsAnalyticsEvents';
+import {
+  logsAnalyticsEventMap,
+  type LogsAnalyticsEventParameters,
+} from './analytics/logsAnalyticsEvent';
 import {makeAnalyticsFunction} from './analytics/makeAnalyticsFunction';
 import type {McpMonitoringEventParameters} from './analytics/mcpMonitoringAnalyticsEvents';
 import {mcpMonitoringEventMap} from './analytics/mcpMonitoringAnalyticsEvents';
+import {
+  metricsAnalyticsEventMap,
+  type MetricsAnalyticsEventParameters,
+} from './analytics/metricsAnalyticsEvent';
 import type {MonitorsEventParameters} from './analytics/monitorsAnalyticsEvents';
 import {monitorsEventMap} from './analytics/monitorsAnalyticsEvents';
+import {navigationAnalyticsEventMap} from './analytics/navigationAnalyticsEvents';
+import {nextJsInsightsEventMap} from './analytics/nextJsInsightsAnalyticsEvents';
 import type {OnboardingEventParameters} from './analytics/onboardingAnalyticsEvents';
 import {onboardingEventMap} from './analytics/onboardingAnalyticsEvents';
 import type {PerformanceEventParameters} from './analytics/performanceAnalyticsEvents';
@@ -85,6 +73,10 @@ import type {ProfilingEventParameters} from './analytics/profilingAnalyticsEvent
 import {profilingEventMap} from './analytics/profilingAnalyticsEvents';
 import type {ProjectCreationEventParameters} from './analytics/projectCreationAnalyticsEvents';
 import {projectCreationEventMap} from './analytics/projectCreationAnalyticsEvents';
+import {
+  quickStartEventMap,
+  type QuickStartEventParameters,
+} from './analytics/quickStartAnalyticsEvents';
 import type {ReleasesEventParameters} from './analytics/releasesAnalyticsEvents';
 import {releasesEventMap} from './analytics/releasesAnalyticsEvents';
 import type {ReplayEventParameters} from './analytics/replayAnalyticsEvents';
@@ -99,7 +91,7 @@ import type {SignupAnalyticsParameters} from './analytics/signupAnalyticsEvents'
 import {signupEventMap} from './analytics/signupAnalyticsEvents';
 import type {StackTraceEventParameters} from './analytics/stackTraceAnalyticsEvents';
 import {stackTraceEventMap} from './analytics/stackTraceAnalyticsEvents';
-import {starfishEventMap} from './analytics/starfishAnalyticsEvents';
+import {statsEventMap, type StatsEventParameters} from './analytics/statsAnalyticsEvents';
 import type {TempestEventParameters} from './analytics/tempestAnalyticsEvents';
 import {tempestEventMap} from './analytics/tempestAnalyticsEvents';
 import {tracingEventMap, type TracingEventParameters} from './analytics/tracingEventMap';
@@ -109,6 +101,7 @@ import {workflowEventMap} from './analytics/workflowAnalyticsEvents';
 interface EventParameters
   extends
     CommandPaletteEventParameters,
+    AuthV2EventParameters,
     GrowthEventParameters,
     AgentMonitoringEventParameters,
     AlertsEventParameters,
@@ -152,6 +145,7 @@ interface EventParameters
 
 const allEventMap: Record<string, string | null> = {
   ...commandPaletteEventMap,
+  ...authV2EventMap,
   ...agentMonitoringEventMap,
   ...alertsEventMap,
   ...conversationsEventMap,
@@ -187,7 +181,6 @@ const allEventMap: Record<string, string | null> = {
   ...ecosystemEventMap,
   ...integrationEventMap,
   ...projectCreationEventMap,
-  ...starfishEventMap,
   ...signupEventMap,
   ...statsEventMap,
   ...quickStartEventMap,
@@ -224,73 +217,6 @@ const allEventMap: Record<string, string | null> = {
  */
 export const trackAnalytics = makeAnalyticsFunction<EventParameters>(allEventMap);
 
-type RecordMetric = Overrides['metrics:event'] & {
-  endSpan: (opts: {
-    /**
-     * Name of the transaction to end
-     */
-    name: string;
-  }) => void;
-
-  mark: (opts: {
-    /**
-     * Name of the metric event
-     */
-    name: string;
-    /**
-     * Additional data that will be sent with measure()
-     * This is useful if you want to track initial state
-     */
-    data?: Record<PropertyKey, unknown>;
-  }) => void;
-
-  measure: (opts: {
-    /**
-     * Additional data to send with metric event.
-     * If a key collide with the data in mark(), this will overwrite them
-     */
-    data?: Record<PropertyKey, unknown>;
-    /**
-     * Name of ending mark
-     */
-    end?: string;
-    /**
-     * Name of the metric event
-     */
-    name?: string;
-    /**
-     * Do not clean up marks and measurements when completed
-     */
-    noCleanup?: boolean;
-    /**
-     * Name of starting mark
-     */
-    start?: string;
-  }) => void;
-
-  startSpan: (opts: {
-    /**
-     * Name of transaction
-     */
-    name: string;
-    /**
-     * Optional op code
-     */
-    op?: string;
-  }) => Span | undefined;
-};
-
-/**
- * Used to pass data between metric.mark() and metric.measure()
- */
-const metricDataStore = new Map<string, Record<PropertyKey, unknown>>();
-
-/**
- * Record metrics.
- */
-export const metric: RecordMetric = (name, value, tags) =>
-  getOverride('metrics:event')?.(name, value, tags);
-
 // JSDOM implements window.performance but not window.performance.mark
 export const CAN_MARK =
   window.performance &&
@@ -298,87 +224,3 @@ export const CAN_MARK =
   typeof window.performance.measure === 'function' &&
   typeof window.performance.getEntriesByName === 'function' &&
   typeof window.performance.clearMeasures === 'function';
-
-metric.mark = function metricMark({name, data = {}}) {
-  // Just ignore if browser is old enough that it doesn't support this
-  if (!CAN_MARK) {
-    return;
-  }
-
-  if (!name) {
-    throw new Error('Invalid argument provided to `metric.mark`');
-  }
-
-  window.performance.mark(name);
-  metricDataStore.set(name, data);
-};
-
-/**
- * Performs a measurement between `start` and `end` (or now if `end` is not
- * specified) Calls `metric` with `name` and the measured time difference.
- */
-metric.measure = function metricMeasure({name, start, end, data = {}, noCleanup}) {
-  // Just ignore if browser is old enough that it doesn't support this
-  if (!CAN_MARK) {
-    return;
-  }
-
-  if (!name || !start) {
-    throw new Error('Invalid arguments provided to `metric.measure`');
-  }
-
-  let endMarkName = end;
-
-  // Can't destructure from performance
-  const {performance} = window;
-
-  // NOTE: Edge REQUIRES an end mark if it is given a start mark
-  // If we don't have an end mark, create one now.
-  if (!end) {
-    endMarkName = `${start}-end`;
-    performance.mark(endMarkName);
-  }
-
-  // Check if starting mark exists
-  if (!performance.getEntriesByName(start, 'mark').length) {
-    return;
-  }
-
-  performance.measure(name, start, endMarkName);
-  const startData = metricDataStore.get(start) || {};
-
-  // Retrieve measurement entries
-  performance
-    .getEntriesByName(name, 'measure')
-    .forEach(measurement =>
-      metric(measurement.name, measurement.duration, {...startData, ...data})
-    );
-
-  // By default, clean up measurements
-  if (!noCleanup) {
-    performance.clearMeasures(name);
-    performance.clearMarks(start);
-    performance.clearMarks(endMarkName);
-    metricDataStore.delete(start);
-  }
-};
-
-/**
- * Used to pass data between startTransaction and endTransaction
- */
-const spanDataStore = new Map<string, Span | undefined>();
-
-metric.startSpan = ({name, op}) => {
-  const span = Sentry.startInactiveSpan({
-    name,
-    op,
-    forceTransaction: true,
-  });
-  spanDataStore.set(name, span);
-  return span;
-};
-
-metric.endSpan = ({name}) => {
-  const span = spanDataStore.get(name);
-  span?.end();
-};

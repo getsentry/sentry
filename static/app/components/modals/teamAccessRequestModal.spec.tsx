@@ -4,12 +4,13 @@ import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {makeCloseButton} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import type {CreateTeamAccessRequestModalProps} from 'sentry/components/modals/teamAccessRequestModal';
-import TeamAccessRequestModal from 'sentry/components/modals/teamAccessRequestModal';
+import type {CreateTeamAccessRequestModalProps} from './teamAccessRequestModal';
+import TeamAccessRequestModal from './teamAccessRequestModal';
 
 describe('TeamAccessRequestModal', () => {
   let createMock: any;
@@ -29,14 +30,11 @@ describe('TeamAccessRequestModal', () => {
     teamId,
     memberId,
     CloseButton: makeCloseButton(() => {}),
-    api: new MockApiClient(),
   };
 
-  function renderComponent() {
-    return render(<TeamAccessRequestModal {...modalRenderProps} />);
-  }
-
   beforeEach(() => {
+    jest.spyOn(toast, 'success');
+    jest.spyOn(toast, 'error');
     MockApiClient.clearMockResponses();
     createMock = MockApiClient.addMockResponse({
       url: `/organizations/${orgId}/members/${memberId}/teams/${teamId}/`,
@@ -45,7 +43,7 @@ describe('TeamAccessRequestModal', () => {
   });
 
   it('renders', () => {
-    const {container} = renderComponent();
+    const {container} = render(<TeamAccessRequestModal {...modalRenderProps} />);
 
     expect(container).toHaveTextContent(
       `You do not have permission to add members to the #${teamId} team, but we will send a request to your organization admins for approval.`
@@ -53,14 +51,32 @@ describe('TeamAccessRequestModal', () => {
   });
 
   it('creates access request on continue', async () => {
-    renderComponent();
+    render(<TeamAccessRequestModal {...modalRenderProps} />);
 
     await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
     expect(createMock).toHaveBeenCalled();
+    await waitFor(() => expect(closeModal).toHaveBeenCalled());
+    expect(toast.success).toHaveBeenCalledWith('Team request sent for approval');
+  });
+
+  it('closes modal when the request fails', async () => {
+    MockApiClient.clearMockResponses();
+    const failingMock = MockApiClient.addMockResponse({
+      url: `/organizations/${orgId}/members/${memberId}/teams/${teamId}/`,
+      method: 'POST',
+      statusCode: 400,
+    });
+    render(<TeamAccessRequestModal {...modalRenderProps} />);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+    expect(failingMock).toHaveBeenCalled();
+    await waitFor(() => expect(closeModal).toHaveBeenCalled());
+    expect(toast.error).toHaveBeenCalledWith('Unable to send team request');
   });
 
   it('closes modal on cancel', async () => {
-    renderComponent();
+    render(<TeamAccessRequestModal {...modalRenderProps} />);
 
     await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
     expect(createMock).not.toHaveBeenCalled();

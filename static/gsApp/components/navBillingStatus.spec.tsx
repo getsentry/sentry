@@ -1,10 +1,11 @@
+import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {DataCategory} from 'sentry/types/core';
@@ -19,6 +20,10 @@ const MOCK_TODAY = 1654492173000;
 //  prompts activity timestamps do not include milliseconds
 const MOCK_PERIOD_START = 1652140800; // May 10 2022
 const MOCK_BEFORE_PERIOD_START = 1652054400; // May 09 2022
+
+const BILLING_MEMBERS_QUERY = 'scope:"org:billing" isInvited:false';
+const UNNAMED_RECIPIENTS =
+  "Your org's Owners and Billing members will get an email asking them to increase your quota.";
 
 describe('PrimaryNavigationQuotaExceeded', () => {
   const organization = OrganizationFixture();
@@ -68,6 +73,11 @@ describe('PrimaryNavigationQuotaExceeded', () => {
       method: 'PUT',
       url: `/organizations/${organization.slug}/prompts-activity/`,
     });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/${organization.slug}/members/`,
+      body: [],
+    });
     requestUpgradeMock = MockApiClient.addMockResponse({
       method: 'POST',
       url: `/organizations/${organization.slug}/event-limit-increase-request/`,
@@ -82,11 +92,11 @@ describe('PrimaryNavigationQuotaExceeded', () => {
     // set localStorage to prevent auto-popup
     localStorage.setItem(
       `billing-status-last-shown-categories-${organization.id}`,
-      'errors-replays-spans-profileDuration' // exceeded categories
+      JSON.stringify('errors-replays-spans-profileDuration') // exceeded categories
     );
     localStorage.setItem(
       `billing-status-last-shown-date-${organization.id}`,
-      '2022-06-06T05:09:33.000Z' // MOCK_TODAY
+      JSON.stringify('2022-06-06T05:09:33.000Z') // MOCK_TODAY
     );
   });
 
@@ -94,13 +104,24 @@ describe('PrimaryNavigationQuotaExceeded', () => {
     resetMockDate();
   });
 
+  function mockBillingMembers(
+    response: Parameters<typeof MockApiClient.addMockResponse>[0]
+  ) {
+    return MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/${organization.slug}/members/`,
+      match: [MockApiClient.matchQuery({query: BILLING_MEMBERS_QUERY})],
+      ...response,
+    });
+  }
+
   function assertLocalStorageStateAfterAutoOpen() {
     expect(
       localStorage.getItem(`billing-status-last-shown-categories-${organization.id}`)
-    ).toBe('errors-replays-spans-profileDuration');
+    ).toBe(JSON.stringify('errors-replays-spans-profileDuration'));
     expect(
       localStorage.getItem(`billing-status-last-shown-date-${organization.id}`)
-    ).toBe('2022-06-06T05:09:33.000Z');
+    ).toBe(JSON.stringify('2022-06-06T05:09:33.000Z'));
   }
 
   it('should render for multiple categories', async () => {
@@ -133,7 +154,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
     SubscriptionStore.set(organization.slug, newSub);
     localStorage.setItem(
       `billing-status-last-shown-categories-${organization.id}`,
-      'errors' // exceeded categories
+      JSON.stringify('errors') // exceeded categories
     );
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
 
@@ -173,7 +194,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
   it('should render PAYG categories when there is shared PAYG', async () => {
     localStorage.setItem(
       `billing-status-last-shown-categories-${organization.id}`,
-      'errors-replays-spans-monitorSeats-profileDuration' // exceeded categories
+      JSON.stringify('errors-replays-spans-monitorSeats-profileDuration') // exceeded categories
     );
     subscription.onDemandMaxSpend = 100;
     SubscriptionStore.set(organization.slug, subscription);
@@ -203,7 +224,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
   it('should render PAYG categories with per category PAYG', async () => {
     localStorage.setItem(
       `billing-status-last-shown-categories-${organization.id}`,
-      'errors-replays-spans-monitorSeats-profileDuration' // exceeded categories
+      JSON.stringify('errors-replays-spans-monitorSeats-profileDuration') // exceeded categories
     );
     subscription.onDemandBudgets = {
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
@@ -281,6 +302,121 @@ describe('PrimaryNavigationQuotaExceeded', () => {
     expect(requestUpgradeMock).toHaveBeenCalled();
   });
 
+  it('should list billing members who receive the quota request', async () => {
+    mockBillingMembers({
+      body: [
+        MemberFixture({id: '1', email: 'owner@example.com'}),
+        MemberFixture({id: '2', email: 'billing@example.com'}),
+      ],
+    });
+    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
+    // Wait for the names: the sentence without them shows while the query loads.
+    expect(await screen.findByRole('link', {name: 'owner@example.com'})).toHaveAttribute(
+      'href',
+      'mailto:owner@example.com'
+    );
+    expect(
+      screen.getByText(/will get an email asking them to increase your quota/)
+    ).toHaveTextContent(
+      "Your org's Owners and Billing members (owner@example.com, billing@example.com) will get an email asking them to increase your quota."
+    );
+  });
+
+  it('should list three billing members and count the rest', async () => {
+    mockBillingMembers({
+      body: [1, 2, 3, 4, 5].map(n =>
+        MemberFixture({id: String(n), email: `billing${n}@example.com`})
+      ),
+    });
+    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
+    await screen.findByRole('link', {name: 'billing1@example.com'});
+    expect(
+      screen.getByText(/will get an email asking them to increase your quota/)
+    ).toHaveTextContent(
+      "Your org's Owners and Billing members (billing1@example.com, billing2@example.com, billing3@example.com, and 2 more) will get an email asking them to increase your quota."
+    );
+    expect(
+      screen.queryByRole('link', {name: 'billing4@example.com'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('should say nobody will get the request when there are no billing members', async () => {
+    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
+    expect(await screen.findByText(/nobody will get this request/)).toHaveTextContent(
+      'Your org has no active Owners or Billing members, so nobody will get this request. Contact us at support@sentry.io for help.'
+    );
+    expect(screen.getByRole('link', {name: 'support@sentry.io'})).toHaveAttribute(
+      'href',
+      'mailto:support@sentry.io'
+    );
+    expect(screen.queryByText(UNNAMED_RECIPIENTS)).not.toBeInTheDocument();
+  });
+
+  it('should not name recipients while billing members load', async () => {
+    let releaseMembers!: () => void;
+    mockBillingMembers({
+      body: [MemberFixture({id: '1', email: 'owner@example.com'})],
+      asyncDelay: new Promise<void>(resolve => {
+        releaseMembers = resolve;
+      }),
+    });
+    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
+    expect(await screen.findByText(UNNAMED_RECIPIENTS)).toBeInTheDocument();
+    expect(screen.queryByText(/nobody will get this request/)).not.toBeInTheDocument();
+
+    releaseMembers();
+    expect(
+      await screen.findByRole('link', {name: 'owner@example.com'})
+    ).toBeInTheDocument();
+  });
+
+  it('should not name recipients when billing members fail to load', async () => {
+    const membersMock = mockBillingMembers({
+      statusCode: 403,
+      body: {detail: 'You do not have permission to perform this action.'},
+    });
+    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
+    await waitFor(() => expect(membersMock).toHaveBeenCalled());
+    expect(await screen.findByText(UNNAMED_RECIPIENTS)).toBeInTheDocument();
+    expect(screen.queryByText(/nobody will get this request/)).not.toBeInTheDocument();
+    expect(screen.getByText('Request Additional Quota')).toBeInTheDocument();
+  });
+
+  it('should not list billing members for billing users', async () => {
+    organization.access = ['org:billing'];
+    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
+    expect(await screen.findByText('Quotas Exceeded')).toBeInTheDocument();
+    expect(screen.queryByText(/Billing members/)).not.toBeInTheDocument();
+  });
+
+  it('should not list billing members for upgrade requests', async () => {
+    const freeSub = SubscriptionFixture({organization, plan: 'am3_f', canTrial: false});
+    freeSub.categories.errors!.usageExceeded = true;
+    freeSub.categories.replays!.usageExceeded = true;
+    SubscriptionStore.set(organization.slug, freeSub);
+    localStorage.setItem(
+      `billing-status-last-shown-categories-${organization.id}`,
+      JSON.stringify('errors-replays')
+    );
+    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
+    expect(await screen.findByText('Request Upgrade')).toBeInTheDocument();
+    expect(screen.queryByText(/Billing members/)).not.toBeInTheDocument();
+  });
+
   it('should update prompts when billing user on free plan takes action', async () => {
     organization.access = ['org:billing'];
     const freeSub = SubscriptionFixture({
@@ -292,7 +428,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
     SubscriptionStore.set(organization.slug, freeSub);
     localStorage.setItem(
       `billing-status-last-shown-categories-${organization.id}`,
-      'errors-replays'
+      JSON.stringify('errors-replays')
     );
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -395,7 +531,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
 
     localStorage.setItem(
       `billing-status-last-shown-categories-${organization.id}`,
-      'errors-replays'
+      JSON.stringify('errors-replays')
     ); // spans not included, so alert should show even though last opened "today"
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
     expect(await screen.findByText('Quotas Exceeded')).toBeInTheDocument();
@@ -405,7 +541,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
   it('should auto open the alert when more than a day has passed (deprecated date format)', async () => {
     localStorage.setItem(
       `billing-status-last-shown-date-${organization.id}`,
-      'Sun Jun 05 2022'
+      JSON.stringify('Sun Jun 05 2022')
     ); // more than a day, so alert should show even though categories haven't changed
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
     expect(await screen.findByText('Quotas Exceeded')).toBeInTheDocument();
@@ -415,7 +551,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
   it('should auto open the alert when the last shown date is before the current usage cycle started (deprecated date format)', async () => {
     localStorage.setItem(
       `billing-status-last-shown-date-${organization.id}`,
-      'Sun May 29 2022'
+      JSON.stringify('Sun May 29 2022')
     ); // last seen before current usage cycle started, so alert should show even though categories haven't changed
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
     expect(await screen.findByText('Quotas Exceeded')).toBeInTheDocument();
@@ -425,7 +561,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
   it('should auto open the alert when more than a day has passed (ISO date format)', async () => {
     localStorage.setItem(
       `billing-status-last-shown-date-${organization.id}`,
-      '2022-06-05T15:00:32.000Z'
+      JSON.stringify('2022-06-05T15:00:32.000Z')
     ); // more than a day, so alert should show even though categories haven't changed
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
     expect(await screen.findByText('Quotas Exceeded')).toBeInTheDocument();
@@ -435,7 +571,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
   it('should auto open the alert when the last shown date is before the current usage cycle started (ISO date format))', async () => {
     localStorage.setItem(
       `billing-status-last-shown-date-${organization.id}`,
-      '2022-05-29T05:09:33.000Z'
+      JSON.stringify('2022-05-29T05:09:33.000Z')
     ); // last seen before current usage cycle started, so alert should show even though categories haven't changed
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
     expect(await screen.findByText('Quotas Exceeded')).toBeInTheDocument();
@@ -467,7 +603,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
       SubscriptionStore.set(organization.slug, newSub);
       localStorage.setItem(
         `billing-status-last-shown-categories-${organization.id}`,
-        'sizeAnalyses'
+        JSON.stringify('sizeAnalyses')
       );
 
       render(<PrimaryNavigationQuotaExceeded organization={organization} />);
@@ -522,7 +658,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
       SubscriptionStore.set(organization.slug, newSub);
       localStorage.setItem(
         `billing-status-last-shown-categories-${organization.id}`,
-        'installableBuilds'
+        JSON.stringify('installableBuilds')
       );
 
       render(<PrimaryNavigationQuotaExceeded organization={organization} />);
@@ -578,7 +714,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
       SubscriptionStore.set(organization.slug, newSub);
       localStorage.setItem(
         `billing-status-last-shown-categories-${organization.id}`,
-        'sizeAnalyses-installableBuilds'
+        JSON.stringify('sizeAnalyses-installableBuilds')
       );
 
       render(<PrimaryNavigationQuotaExceeded organization={organization} />);
@@ -627,8 +763,9 @@ describe('PrimaryNavigationQuotaExceeded', () => {
       SubscriptionStore.set(organization.slug, newSub);
       localStorage.setItem(
         `billing-status-last-shown-categories-${organization.id}`,
-        'errors-sizeAnalyses'
+        JSON.stringify('errors-sizeAnalyses')
       );
+      mockBillingMembers({body: [MemberFixture({id: '1', email: 'owner@example.com'})]});
 
       render(<PrimaryNavigationQuotaExceeded organization={organization} />);
 
@@ -655,6 +792,10 @@ describe('PrimaryNavigationQuotaExceeded', () => {
           /You have used up your quota for errors. Monitoring and new data are paused until your quota resets./
         )
       ).toBeInTheDocument();
+      expect(
+        await screen.findByRole('link', {name: 'owner@example.com'})
+      ).toHaveAttribute('href', 'mailto:owner@example.com');
+      expect(screen.getByText('Request Additional Quota')).toBeInTheDocument();
     });
   });
 });

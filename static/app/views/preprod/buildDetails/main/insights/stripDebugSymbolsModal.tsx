@@ -1,11 +1,12 @@
 import {Alert} from '@sentry/scraps/alert';
-import {CodeBlock} from '@sentry/scraps/code';
-import {Flex} from '@sentry/scraps/layout';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
+import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {openInsightInfoModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
-import {CodeBlockWrapper} from 'sentry/views/preprod/buildDetails/main/insights/insightInfoModal';
+
+import {CodeBlockWrapper} from './insightInfoModal';
 
 const STRIP_SINGLE_BINARY = 'strip -rSTx AppBinary -o AppBinaryStripped';
 
@@ -33,7 +34,7 @@ const DSYM_INPUT_FILE =
 
 function getStripDebugSymbolsContent() {
   return (
-    <Flex direction="column" gap="lg">
+    <Stack gap="lg">
       <Alert variant="warning">
         {t(
           'Stripping symbols before creating a dSYM breaks crash symbolication. Confirm your release build still produces and uploads dSYMs before stripping.'
@@ -78,7 +79,7 @@ function getStripDebugSymbolsContent() {
           {DSYM_INPUT_FILE}
         </CodeBlock>
       </CodeBlockWrapper>
-    </Flex>
+    </Stack>
   );
 }
 

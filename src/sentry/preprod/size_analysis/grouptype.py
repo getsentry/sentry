@@ -4,7 +4,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 from datetime import timezone as dt_timezone
-from typing import TYPE_CHECKING, Any, NotRequired, TypeAlias, TypedDict
+from typing import TYPE_CHECKING, Any, NotRequired, TypeAlias, TypedDict, override
 from uuid import uuid4
 
 from sentry.exceptions import InvalidSearchQuery
@@ -12,22 +12,22 @@ from sentry.issues.grouptype import GroupCategory, GroupType, NotificationConfig
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.preprod.artifact_search import artifact_matches_query
 from sentry.types.group import PriorityLevel
-from sentry.utils import metrics
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.handlers.detector.base import (
-    BaseDetectorHandler,
+    DetectorGroupValues,
     DetectorOccurrence,
-    GroupedDetectorEvaluationResult,
+    EventData,
 )
+from sentry.workflow_engine.handlers.detector.condition import DetectorHandler
 from sentry.workflow_engine.models import DataPacket
-from sentry.workflow_engine.processors.data_condition_group import (
-    ProcessedDataConditionGroup,
-    process_data_condition_group,
-)
+from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
+from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
-    DetectorEvaluationResult,
-    DetectorPriorityLevel,
+    DetectorAPIOperation,
+    DetectorGroupKey,
     DetectorSettings,
+    DetectorType,
+    FeatureGate,
 )
 
 if TYPE_CHECKING:
@@ -106,7 +106,7 @@ def _build_identifier_prefix(metadata: SizeAnalysisMetadata | None) -> str:
 
 def _build_evidence_text(
     detector_config: dict[str, Any],
-    evaluation_result: ProcessedDataConditionGroup,
+    evaluation: DataConditionGroupEvaluation | None,
     data_packet: SizeAnalysisDataPacket,
     platform: str,
 ) -> str:
@@ -124,8 +124,9 @@ def _build_evidence_text(
 
     # Threshold: type > value
     threshold_part = ""
-    if evaluation_result.condition_results:
-        condition = evaluation_result.condition_results[0].condition
+    condition_evaluations = evaluation.data["condition_evaluations"] if evaluation else []
+    if condition_evaluations:
+        condition = condition_evaluations[0].condition
         threshold_label = _THRESHOLD_TYPE_LABELS.get(threshold_type, threshold_type)
 
         if threshold_type == "relative_diff":
@@ -190,7 +191,7 @@ SizeAnalysisEvaluation: TypeAlias = int | float
 
 
 class PreprodSizeAnalysisDetectorHandler(
-    BaseDetectorHandler[SizeAnalysisValue, SizeAnalysisEvaluation]
+    DetectorHandler[SizeAnalysisValue, SizeAnalysisEvaluation]
 ):
     def _matches_query(self, data_packet: SizeAnalysisDataPacket) -> bool:
         query = self.detector.config.get("query", "")
@@ -204,7 +205,7 @@ class PreprodSizeAnalysisDetectorHandler(
             )
 
         artifact = metadata["head_artifact"]
-        organization = self.detector.project.organization
+        organization = self.detector.linked_project.organization
 
         try:
             return artifact_matches_query(artifact, query, organization)
@@ -215,52 +216,14 @@ class PreprodSizeAnalysisDetectorHandler(
             )
             return False
 
-    def evaluate_impl(self, data_packet: SizeAnalysisDataPacket) -> GroupedDetectorEvaluationResult:
-        if not self._matches_query(data_packet):
-            return GroupedDetectorEvaluationResult(result={}, tainted=False)
+    @override
+    def get_issue_fingerprint(self, group_key: DetectorGroupKey = None) -> list[str]:
+        # Every regression is its own issue
+        return [uuid4().hex]
 
-        value = self.extract_value(data_packet)
-        evaluation, priority = self._evaluate_conditions(value)
-        if evaluation is None or priority is None:
-            return GroupedDetectorEvaluationResult(result={}, tainted=False)
-
-        detector_occurrence, event_data = self.create_occurrence(evaluation, data_packet, priority)
-        occurrence = detector_occurrence.to_issue_occurrence(
-            occurrence_id=event_data["event_id"],
-            project_id=self.detector.project_id,
-            status=priority,
-            additional_evidence_data={},
-            fingerprint=[uuid4().hex],
-        )
-        result = DetectorEvaluationResult(
-            group_key=None,
-            is_triggered=True,
-            priority=priority,
-            event_data=event_data,
-            result=occurrence,
-        )
-        return GroupedDetectorEvaluationResult(result={None: result}, tainted=False)
-
-    def _evaluate_conditions(
-        self, value: SizeAnalysisEvaluation
-    ) -> tuple[ProcessedDataConditionGroup | None, DetectorPriorityLevel | None]:
-        if not self.condition_group:
-            metrics.incr("workflow_engine.detector.skipping_invalid_condition_group")
-            return None, None
-
-        condition_evaluation, _ = process_data_condition_group(self.condition_group, value)
-        if not condition_evaluation.logic_result.triggered:
-            return None, None
-
-        priorities = [
-            condition_result.result
-            for condition_result in condition_evaluation.condition_results
-            if isinstance(condition_result.result, DetectorPriorityLevel)
-        ]
-        if not priorities:
-            return None, None
-
-        return condition_evaluation, max(priorities)
+    @override
+    def get_occurrence_id(self, group_key: DetectorGroupKey, event_id: str) -> str:
+        return event_id
 
     def _extract_head(self, data_packet: SizeAnalysisDataPacket) -> int:
         measurement = self.detector.config["measurement"]
@@ -285,7 +248,13 @@ class PreprodSizeAnalysisDetectorHandler(
             raise ValueError(f"Missing base value for measurement: {measurement}")
         return base
 
-    def extract_value(self, data_packet: SizeAnalysisDataPacket) -> SizeAnalysisEvaluation:
+    def extract_value(
+        self, data_packet: SizeAnalysisDataPacket
+    ) -> SizeAnalysisEvaluation | DetectorGroupValues[SizeAnalysisEvaluation]:
+        # Skip evaluating artifacts the detector's query filters out
+        if not self._matches_query(data_packet):
+            return DetectorGroupValues()
+
         threshold_type = self.detector.config["threshold_type"]
         match threshold_type:
             case "absolute":
@@ -300,10 +269,10 @@ class PreprodSizeAnalysisDetectorHandler(
 
     def create_occurrence(
         self,
-        evaluation_result: ProcessedDataConditionGroup,
+        evaluation: DetectorEvaluation,
         data_packet: SizeAnalysisDataPacket,
-        priority: DetectorPriorityLevel,
-    ) -> tuple[DetectorOccurrence, dict[str, Any]]:
+    ) -> tuple[DetectorOccurrence, EventData]:
+        trigger_evaluation = evaluation.data["trigger_group_evaluation"]
         current_timestamp = datetime.now(dt_timezone.utc)
         metadata = data_packet.packet.get("metadata")
 
@@ -318,14 +287,8 @@ class PreprodSizeAnalysisDetectorHandler(
 
         platform = metadata["platform"] if metadata else "unknown"
 
-        evidence_data: dict[str, Any] = {
-            "detector_id": self.detector.id,
-            "value": self.extract_value(data_packet),
-            "conditions": [
-                result.condition.get_snapshot() for result in evaluation_result.condition_results
-            ],
-            "config": self.detector.config,
-        }
+        # The platform adds the detector id, value, triggered conditions, and config
+        evidence_data: dict[str, Any] = {}
         if metadata:
             evidence_data["head_artifact_id"] = metadata["head_artifact_id"]
             if "base_artifact_id" in metadata:
@@ -359,7 +322,7 @@ class PreprodSizeAnalysisDetectorHandler(
                     tags["git.pr_number"] = str(commit_comparison.pr_number)
 
         evidence_text = _build_evidence_text(
-            self.detector.config, evaluation_result, data_packet, platform
+            self.detector.config, trigger_evaluation, data_packet, platform
         )
 
         occurrence = DetectorOccurrence(
@@ -376,10 +339,10 @@ class PreprodSizeAnalysisDetectorHandler(
             type=PreprodSizeAnalysisGroupType,
             level="warning",
             culprit="",
-            priority=priority,
+            priority=evaluation.priority,
         )
 
-        event_data = {
+        event_data: EventData = {
             "event_id": uuid4().hex,
             "project_id": self.detector.project_id,
             "platform": platform,
@@ -389,9 +352,6 @@ class PreprodSizeAnalysisDetectorHandler(
         }
 
         return occurrence, event_data
-
-    def extract_dedupe_value(self, data_packet: SizeAnalysisDataPacket) -> int:
-        raise NotImplementedError
 
 
 class PreprodSizeAnalysisDetectorValidator(BaseDetectorTypeValidator):
@@ -412,30 +372,40 @@ class PreprodSizeAnalysisGroupType(GroupType):
         context=[],
         text_code_formatted=False,
     )
-    detector_settings = DetectorSettings(
-        handler=PreprodSizeAnalysisDetectorHandler,
-        validator=PreprodSizeAnalysisDetectorValidator,
-        config_schema={
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "description": "Configuration for preprod static analysis detector",
-            "type": "object",
-            "properties": {
-                "threshold_type": {
-                    "type": "string",
-                    "enum": ["absolute_diff", "absolute", "relative_diff"],
-                    "description": "The type of threshold to apply",
-                },
-                "measurement": {
-                    "type": "string",
-                    "enum": ["install_size", "download_size"],
-                    "description": "The measurement to track",
-                },
-                "query": {
-                    "type": "string",
-                    "description": "Search query to filter which artifacts are monitored",
-                },
+
+
+@detector_settings_registry.register(DetectorType.PREPROD_SIZE_ANALYSIS)
+class PreprodSizeAnalysisDetectorSettings(DetectorSettings):
+    api_availability = {
+        **DetectorSettings.DEFAULT_API_AVAILABILITY,
+        DetectorAPIOperation.DISCOVER: (
+            True
+            if PreprodSizeAnalysisGroupType.released
+            else FeatureGate(PreprodSizeAnalysisGroupType.build_visible_feature_name()[0])
+        ),
+    }
+    handler = PreprodSizeAnalysisDetectorHandler
+    validator = PreprodSizeAnalysisDetectorValidator
+    config_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "description": "Configuration for preprod static analysis detector",
+        "type": "object",
+        "properties": {
+            "threshold_type": {
+                "type": "string",
+                "enum": ["absolute_diff", "absolute", "relative_diff"],
+                "description": "The type of threshold to apply",
             },
-            "required": ["threshold_type", "measurement"],
-            "additionalProperties": False,
+            "measurement": {
+                "type": "string",
+                "enum": ["install_size", "download_size"],
+                "description": "The measurement to track",
+            },
+            "query": {
+                "type": "string",
+                "description": "Search query to filter which artifacts are monitored",
+            },
         },
-    )
+        "required": ["threshold_type", "measurement"],
+        "additionalProperties": False,
+    }

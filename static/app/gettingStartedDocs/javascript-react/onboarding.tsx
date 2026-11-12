@@ -6,6 +6,7 @@ import type {
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getAISetupStep,
+  getDataCollectionStep,
   getUploadSourceMapsStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t, tct} from 'sentry/locale';
@@ -97,7 +98,11 @@ export const onboarding: OnboardingConfig = {
       guideLink: 'https://docs.sentry.io/platforms/javascript/guides/react/sourcemaps/',
       ...params,
     }),
-    getAISetupStep({skillPath: 'sentry-react-sdk'}),
+    getAISetupStep({sdkName: 'React'}),
+    getDataCollectionStep({
+      docsLink:
+        'https://docs.sentry.io/platforms/javascript/guides/react/configuration/options/#dataCollection',
+    }),
   ],
   verify: (params: DocsParams) => [
     {

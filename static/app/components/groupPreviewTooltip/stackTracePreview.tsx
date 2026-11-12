@@ -6,11 +6,6 @@ import {NativeContent} from 'sentry/components/events/interfaces/crashContent/st
 import {findBestThread} from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
 import {getThreadStacktrace} from 'sentry/components/events/interfaces/threads/threadSelector/getThreadStacktrace';
 import {isStacktraceNewestFirst} from 'sentry/components/events/interfaces/utils';
-import {GroupPreviewHovercard} from 'sentry/components/groupPreviewTooltip/groupPreviewHovercard';
-import {
-  useDelayedLoadingState,
-  usePreviewEvent,
-} from 'sentry/components/groupPreviewTooltip/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IssueStackTracePreview} from 'sentry/components/stackTrace/issueStackTrace/issueStackTracePreview';
 import {t} from 'sentry/locale';
@@ -19,6 +14,9 @@ import {EntryType} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils/defined';
 import {isNativePlatform} from 'sentry/utils/platform';
+
+import {GroupPreviewHovercard} from './groupPreviewHovercard';
+import {useDelayedLoadingState, usePreviewEvent} from './utils';
 
 export function getStacktrace(event: Event): StacktraceType | null {
   const exceptionsWithStacktrace =
@@ -89,15 +87,13 @@ export function StackTracePreviewContent({
 type StackTracePreviewProps = {
   children: React.ReactNode;
   groupId: string;
-  eventId?: string;
   groupingCurrentLevel?: number;
-  projectSlug?: string;
   query?: string;
 };
 
 interface StackTracePreviewBodyProps extends Pick<
   StackTracePreviewProps,
-  'groupId' | 'eventId' | 'groupingCurrentLevel' | 'projectSlug' | 'query'
+  'groupId' | 'groupingCurrentLevel' | 'query'
 > {
   onRequestBegin: () => void;
   onRequestEnd: () => void;

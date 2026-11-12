@@ -1,11 +1,12 @@
 import {useRef, type ReactNode} from 'react';
+import {IconMegaphone} from '@sentry/icons/megaphone';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 
-import {type UseFeedbackOptions} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
-import {IconMegaphone} from 'sentry/icons/iconMegaphone';
 import {t} from 'sentry/locale';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+
+import {type UseFeedbackOptions} from './useFeedbackSDKIntegration';
 
 interface Props extends Omit<ButtonProps, 'children'> {
   children?: ReactNode;
@@ -30,7 +31,6 @@ interface Props extends Omit<ButtonProps, 'children'> {
  * @example
  * // Mix of Button and Feedback props
  * <FeedbackButton
- *   priority="primary"
  *   size="lg"
  *   feedbackOptions={{
  *     messagePlaceholder: 'Tell us what you think...',
@@ -46,12 +46,16 @@ interface Props extends Omit<ButtonProps, 'children'> {
  *
  * @param children - The content to display inside the button. If not provided, the default label 'Give Feedback' will be used.
  *
- * @param * - All standard Button props except `icon` (icon is fixed to megaphone).
- *                      Includes size, priority, disabled, onClick handlers, etc.
+ * @param * - All standard Button props. The button defaults to the `transparent` variant,
+ *            `sm` size, and megaphone icon; callers can override these defaults.
  *
  * @returns A Button that opens the feedback widget on click, or null if feedback is not enabled
  */
-export function FeedbackButton({feedbackOptions, ...buttonProps}: Props) {
+export function FeedbackButton({
+  feedbackOptions,
+  variant = 'transparent',
+  ...buttonProps
+}: Props) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const openForm = useFeedbackForm();
 
@@ -67,6 +71,7 @@ export function FeedbackButton({feedbackOptions, ...buttonProps}: Props) {
       ref={buttonRef}
       size="sm"
       icon={<IconMegaphone />}
+      variant={variant}
       {...buttonProps}
       onClick={e => {
         openForm?.(feedbackOptions);

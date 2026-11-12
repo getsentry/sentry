@@ -4,13 +4,12 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
-import {
-  AttributesTree,
-  type AttributesFieldRendererProps,
-} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+
+import {AttributesTree, type AttributesFieldRendererProps} from './attributesTree';
 
 describe('attributesTree', () => {
   const organization = OrganizationFixture();
@@ -18,6 +17,135 @@ describe('attributesTree', () => {
   const location = LocationFixture();
 
   const theme = ThemeFixture();
+
+  it.each([
+    ['span.op', 'sentry.op', 'span.op'],
+    ['sentry.logger.name', 'sentry.logger.name', 'logger.name'],
+    ['log.custom.name', 'log.custom.name', 'custom.name'],
+    ['tags[sentry.custom,number]', 'sentry.custom', 'custom'],
+  ])('gates display normalization for %s', (name, rawName, legacyName) => {
+    const attributes: TraceItemResponseAttribute[] = [
+      {name, rawName, type: 'str', value: 'test value'},
+    ];
+    const rendererExtra = {theme, location, navigate: jest.fn(), organization};
+    const {rerender} = render(
+      <AttributesTree attributes={attributes} rendererExtra={rendererExtra} />
+    );
+
+    expect(screen.getByTitle(legacyName)).toBeInTheDocument();
+    expect(screen.getByText('test value')).toBeInTheDocument();
+
+    rerender(
+      <AttributesTree
+        attributes={attributes}
+        rendererExtra={{
+          ...rendererExtra,
+          organization: OrganizationFixture({
+            features: ['trace-item-details-raw-attribute-names'],
+          }),
+        }}
+      />
+    );
+
+    expect(screen.getByTitle(rawName)).toBeInTheDocument();
+    expect(screen.queryByTitle(legacyName)).not.toBeInTheDocument();
+    expect(screen.getByText('test value')).toBeInTheDocument();
+  });
+
+  it('falls back to legacy display when rawName is unavailable', () => {
+    render(
+      <AttributesTree
+        attributes={[{name: 'sentry.custom', type: 'str', value: 'test value'}]}
+        rendererExtra={{
+          theme,
+          location,
+          navigate: jest.fn(),
+          organization: OrganizationFixture({
+            features: ['trace-item-details-raw-attribute-names'],
+          }),
+        }}
+      />
+    );
+
+    expect(screen.getByTitle('custom')).toBeInTheDocument();
+    expect(screen.getByText('test value')).toBeInTheDocument();
+  });
+
+  it.each([false, true])(
+    'preserves caller order with mixed raw names (raw names enabled: %s)',
+    useRawAttributeNames => {
+      render(
+        <AttributesTree
+          columnCount={1}
+          attributes={[
+            {
+              name: 'span.op',
+              rawName: 'sentry.op',
+              type: 'str',
+              value: 'operation value',
+            },
+            {
+              name: 'span.duration',
+              rawName: 'sentry.duration_ms',
+              type: 'int',
+              value: 42,
+            },
+            {name: 'middle', type: 'str', value: 'fallback value'},
+            {
+              name: 'tags[aaa.custom,string]',
+              rawName: 'aaa.custom',
+              type: 'str',
+              value: 'custom value',
+            },
+          ]}
+          rendererExtra={{
+            theme,
+            location,
+            navigate: jest.fn(),
+            organization: OrganizationFixture({
+              features: useRawAttributeNames
+                ? ['trace-item-details-raw-attribute-names']
+                : [],
+            }),
+          }}
+        />
+      );
+
+      expect(
+        screen
+          .getAllByText(/^(operation value|42|fallback value|custom value)$/)
+          .map(element => element.textContent)
+      ).toEqual(['operation value', '42', 'fallback value', 'custom value']);
+    }
+  );
+
+  it('preserves deliberate order without raw names when the flag is enabled', () => {
+    render(
+      <AttributesTree
+        columnCount={1}
+        attributes={[
+          {name: 'operation', type: 'str', value: 'http.server'},
+          {name: 'duration', type: 'str', value: '200ms'},
+          {name: 'start_timestamp', type: 'str', value: 'start value'},
+          {name: 'end_timestamp', type: 'str', value: 'end value'},
+        ]}
+        rendererExtra={{
+          theme,
+          location,
+          navigate: jest.fn(),
+          organization: OrganizationFixture({
+            features: ['trace-item-details-raw-attribute-names'],
+          }),
+        }}
+      />
+    );
+
+    expect(
+      screen
+        .getAllByText(/^(http.server|200ms|start value|end value)$/)
+        .map(element => element.textContent)
+    ).toEqual(['http.server', '200ms', 'start value', 'end value']);
+  });
 
   it('correctly renders attributes tree', () => {
     const attributes: TraceItemResponseAttribute[] = [
@@ -114,7 +242,7 @@ describe('attributesTree', () => {
           organization,
         }}
         getCustomActions={content => {
-          if (!content.originalAttribute) {
+          if (!content.original) {
             return [];
           }
 
@@ -155,10 +283,139 @@ describe('attributesTree', () => {
         expect(row?.textContent).toBe('some-inner-thing');
         continue;
       }
-      await userEvent.click(actionsButton);
+      // jsdom does not evaluate :hover styles, so bypass the hidden action's pointer-events check.
+      await userEvent.click(actionsButton, {pointerEventsCheck: 0});
       expect(await within(row).findByText('Visible Action')).toBeInTheDocument();
       expect(await within(row).findByText('Disabled Action')).toBeInTheDocument();
       expect(within(row).queryByText('Hidden Action')).not.toBeInTheDocument();
     }
+  });
+
+  it('renders an array attribute and types it as array in its details', async () => {
+    const attributes: TraceItemResponseAttribute[] = [
+      {
+        type: 'array',
+        value: ['timestamp', 'message'],
+        name: 'tags[csv_headers,array]',
+      },
+    ];
+
+    render(
+      <AttributesTree
+        attributes={attributes}
+        config={{attributeDetailsType: 'log'}}
+        rendererExtra={{
+          theme,
+          location,
+          navigate: jest.fn(),
+          organization,
+        }}
+      />
+    );
+
+    expect(screen.getByTestId('attribute-tree-row')).toHaveTextContent(
+      '[timestamp,message]'
+    );
+
+    await userEvent.hover(
+      within(screen.getByTestId('tree-key-tags[csv_headers,array]')).getByText(
+        'csv_headers'
+      )
+    );
+
+    expect(await screen.findByText('array')).toBeInTheDocument();
+  });
+
+  it('describes an attribute key when an attribute details type is given', async () => {
+    const attributes: TraceItemResponseAttribute[] = [
+      {
+        type: 'str',
+        value: 'sentry.python',
+        name: 'sentry.logger.name',
+      },
+    ];
+
+    render(
+      <AttributesTree
+        attributes={attributes}
+        config={{attributeDetailsType: 'log'}}
+        getAdjustedAttributeKey={() => 'logger.name'}
+        rendererExtra={{
+          theme,
+          location,
+          navigate: jest.fn(),
+          organization,
+        }}
+      />
+    );
+
+    await userEvent.hover(
+      within(screen.getByTestId('tree-key-logger.name')).getByText('name')
+    );
+
+    expect(
+      await screen.findByText('The name of the logger that generated this event.')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Added by Sentry')).toBeInTheDocument();
+  });
+
+  it('notes an attribute was scrubbed when its trace item meta carries a remark', async () => {
+    const attributes: TraceItemResponseAttribute[] = [
+      {
+        type: 'str',
+        value: '[Filtered]',
+        name: 'user.email',
+      },
+    ];
+
+    render(
+      <AttributesTree
+        attributes={attributes}
+        config={{attributeDetailsType: 'log'}}
+        rendererExtra={{
+          theme,
+          location,
+          navigate: jest.fn(),
+          organization,
+          traceItemMeta: {
+            'user.email': {
+              meta: {value: {'': {len: 10, rem: [['@email', 's', 0, 10]]}}},
+            },
+          },
+        }}
+      />
+    );
+
+    await userEvent.hover(
+      within(screen.getByTestId('tree-key-user.email')).getByText('email')
+    );
+
+    expect(await screen.findByText('Data scrubbed for privacy')).toBeInTheDocument();
+  });
+
+  it('falls back to a plain browser tooltip when no attribute details type is given', () => {
+    const attributes: TraceItemResponseAttribute[] = [
+      {
+        type: 'str',
+        value: 'sentry.python',
+        name: 'sentry.logger.name',
+      },
+    ];
+
+    render(
+      <AttributesTree
+        attributes={attributes}
+        rendererExtra={{
+          theme,
+          location,
+          navigate: jest.fn(),
+          organization,
+        }}
+      />
+    );
+
+    expect(screen.getByTitle('logger.name')).toContainElement(
+      screen.getByTestId('tree-key-sentry.logger.name')
+    );
   });
 });

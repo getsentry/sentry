@@ -33,8 +33,7 @@ EVENTS_MSG = json.dumps(
 def test_backpressure_unhealthy_events() -> None:
     record_consumer_health(
         {
-            "attachments-store": Exception("Couldn't check attachments-store"),
-            "processing-store": [],
+            "processing-store": Exception("Couldn't check processing-store"),
             "processing-store-transactions": [],
             "processing-locks": [],
             "post-process-locks": [],
@@ -56,7 +55,6 @@ def test_backpressure_unhealthy_events() -> None:
 def test_backpressure_healthy_events(preprocess_event: MagicMock) -> None:
     record_consumer_health(
         {
-            "attachments-store": [],
             "processing-store": [],
             "processing-store-transactions": [],
             "processing-locks": [],
@@ -68,10 +66,61 @@ def test_backpressure_healthy_events(preprocess_event: MagicMock) -> None:
     preprocess_event.assert_called_once()
 
 
-def process_one_message(payload: str) -> None:
+@patch("sentry.ingest.consumer.factory.maybe_multiprocess_step")
+@override_options(
+    {
+        "backpressure.checking.enabled": True,
+        "backpressure.checking.interval": 5,
+        "backpressure.monitoring.enabled": True,
+        "backpressure.status_ttl": 60,
+    }
+)
+def test_backpressure_ignores_removed_attachments_store(preprocess_event: MagicMock) -> None:
+    record_consumer_health(
+        {
+            "attachments-store": Exception("Couldn't check attachments-store"),
+            "processing-store": [],
+            "processing-store-transactions": [],
+            "processing-locks": [],
+            "post-process-locks": [],
+        }
+    )
+    process_one_message(payload=EVENTS_MSG)
+
+    preprocess_event.assert_called_once()
+
+
+@patch("sentry.ingest.consumer.factory.maybe_multiprocess_step")
+@override_options(
+    {
+        "backpressure.checking.enabled": True,
+        "backpressure.checking.interval": 5,
+        "backpressure.monitoring.enabled": True,
+        "backpressure.status_ttl": 60,
+    }
+)
+def test_backpressure_unhealthy_recovery_consumer(preprocess_event: MagicMock) -> None:
+    record_consumer_health(
+        {
+            "processing-store": Exception("Couldn't check processing-store"),
+            "processing-store-transactions": [],
+            "processing-locks": [],
+            "post-process-locks": [],
+        }
+    )
+    process_one_message(payload=EVENTS_MSG, reprocess_only_stuck_events=True)
+
+    preprocess_event.assert_called_once()
+
+
+def process_one_message(
+    payload: str,
+    reprocess_only_stuck_events: bool = False,
+) -> None:
     processing_strategy = IngestStrategyFactory(
         consumer_type=ConsumerType.Events,
-        reprocess_only_stuck_events=False,
+        reprocess_only_stuck_events=reprocess_only_stuck_events,
+        reprocess_only_events_not_in_nodestore=False,
         stop_at_timestamp=None,
         num_processes=1,
         max_batch_size=10,

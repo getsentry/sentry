@@ -11,6 +11,8 @@ from sentry.deletions.base import (
 from sentry.models.environment import Environment
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.organization import Organization, OrganizationStatus
+from sentry.notifications.models.inboxitem import InboxItem
+from sentry.notifications.models.inboxitemevent import InboxItemEvent
 from sentry.organizations.services.organization_actions.impl import (
     update_organization_with_outbox_message,
 )
@@ -32,7 +34,6 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
         from sentry.deletions.defaults.discoversavedquery import DiscoverSavedQueryDeletionTask
         from sentry.discover.models import DiscoverSavedQuery, TeamKeyTransaction
         from sentry.incidents.models.alert_rule import AlertRule
-        from sentry.incidents.models.incident import Incident
         from sentry.integrations.models.external_issue import ExternalIssue
         from sentry.models.artifactbundle import ArtifactBundle
         from sentry.models.commitauthor import CommitAuthor
@@ -44,18 +45,27 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
         from sentry.models.repository import Repository
         from sentry.models.team import Team
         from sentry.models.transaction_threshold import ProjectTransactionThreshold
-        from sentry.workflow_engine.models import Workflow
+        from sentry.notebooks.models import Notebook
+        from sentry.workflow_engine.models import Detector, Workflow
 
         # Team must come first
-        relations: list[BaseRelation] = [ModelRelation(Team, {"organization_id": instance.id})]
+        relations: list[BaseRelation] = [
+            ModelRelation(Team, {"organization_id": instance.id}),
+            ModelRelation(
+                InboxItemEvent,
+                {"inbox_item__organization_id": instance.id},
+                BulkModelDeletionTask,
+            ),
+            ModelRelation(InboxItem, {"organization_id": instance.id}, BulkModelDeletionTask),
+        ]
 
         pre_environment_models = (
             OrganizationMember,
             Repository,
             CommitAuthor,
-            Incident,
             AlertRule,
             Release,
+            Notebook,
             Project,
             Workflow,
         )
@@ -93,6 +103,14 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
                 DiscoverSavedQuery,
                 {"organization_id": instance.id},
                 task=DiscoverSavedQueryDeletionTask,
+            )
+        )
+        # The All Projects detector has project=NULL and stores org_id in config JSON.
+        # It must be deleted explicitly since it lacks a project FK cascade.
+        relations.append(
+            ModelRelation(
+                Detector,
+                {"project__isnull": True, "config__organization_id": instance.id},
             )
         )
 

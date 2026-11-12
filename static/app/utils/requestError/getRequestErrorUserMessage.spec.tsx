@@ -1,7 +1,7 @@
 import type {ResponseMeta} from 'sentry/types/api';
-import {RequestError} from 'sentry/utils/requestError/requestError';
 
 import {getRequestErrorUserMessage} from './getRequestErrorUserMessage';
+import {RequestError} from './requestError';
 
 describe('getRequestErrorUserMessage', () => {
   it('returns string detail from the API when present', () => {
@@ -20,12 +20,20 @@ describe('getRequestErrorUserMessage', () => {
     expect(getRequestErrorUserMessage(err)).toBe('Structured detail');
   });
 
+  it('returns details from an array response when present', () => {
+    const err = new RequestError('POST', '/api/', new Error('x'), {
+      status: 400,
+      responseJSON: [{details: 'Invalid OTP'}],
+    } as ResponseMeta);
+    expect(getRequestErrorUserMessage(err)).toBe('Invalid OTP');
+  });
+
   it('maps 429 to rate-limit copy', () => {
     const err = new RequestError('GET', '/api/', new Error('x'), {
       status: 429,
     } as ResponseMeta);
     expect(getRequestErrorUserMessage(err)).toBe(
-      'API requests have been temporarily rate-limited. Please wait a moment and try again.'
+      'API requests have been temporarily rate-limited. Please wait a few minutes and try again.'
     );
   });
 

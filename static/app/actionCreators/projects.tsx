@@ -1,42 +1,16 @@
 import {queryOptions, skipToken, useQueryClient} from '@tanstack/react-query';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {Client} from 'sentry/api';
-import {tct} from 'sentry/locale';
+import {tct, t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
-
-type UpdateParams = {
-  orgId: string;
-  projectId: string;
-  data?: Record<string, any>;
-};
-
-export function update(api: Client, params: UpdateParams) {
-  const endpoint = `/projects/${params.orgId}/${params.projectId}/`;
-  return api
-    .requestPromise(endpoint, {
-      method: 'PUT',
-      data: params.data,
-    })
-    .then(
-      data => {
-        ProjectsStore.onUpdateSuccess(data);
-        return data;
-      },
-      (err: Error) => {
-        throw err;
-      }
-    );
-}
 
 export function transferProject(
   api: Client,
@@ -44,7 +18,12 @@ export function transferProject(
   project: Project,
   email: string
 ) {
-  const endpoint = `/projects/${orgId}/${project.slug}/transfer/`;
+  const endpoint = getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/transfer/',
+    {
+      path: {organizationIdOrSlug: orgId, projectIdOrSlug: project.slug},
+    }
+  );
 
   return api
     .requestPromise(endpoint, {
@@ -55,7 +34,7 @@ export function transferProject(
     })
     .then(
       () => {
-        addSuccessMessage(
+        toast.success(
           tct('A request was sent to move [project] to a different organization', {
             project: project.slug,
           })
@@ -63,20 +42,26 @@ export function transferProject(
       },
       (err: RequestError) => {
         let message = '';
+        const detail = err.responseJSON?.detail;
         // Handle errors with known failures
-        if (err.status && err.status >= 400 && err.status < 500 && err.responseJSON) {
-          message = err.responseJSON.detail as string;
+        if (
+          err.status &&
+          err.status >= 400 &&
+          err.status < 500 &&
+          typeof detail === 'string'
+        ) {
+          message = detail;
         }
 
         if (message) {
-          addErrorMessage(
+          toast.error(
             tct('Error transferring [project]. [message]', {
               project: project.slug,
               message,
             })
           );
         } else {
-          addErrorMessage(
+          toast.error(
             tct('Error transferring [project]', {
               project: project.slug,
             })
@@ -97,9 +82,18 @@ export function addTeamToProject(
   projectSlug: string,
   team: Team
 ) {
-  const endpoint = `/projects/${orgSlug}/${projectSlug}/teams/${team.slug}/`;
+  const endpoint = getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/teams/$teamIdOrSlug/',
+    {
+      path: {
+        organizationIdOrSlug: orgSlug,
+        projectIdOrSlug: projectSlug,
+        teamIdOrSlug: team.slug,
+      },
+    }
+  );
 
-  addLoadingMessage();
+  toast.loading(t('Saving changes...'));
 
   return api
     .requestPromise(endpoint, {
@@ -107,7 +101,7 @@ export function addTeamToProject(
     })
     .then(
       project => {
-        addSuccessMessage(
+        toast.success(
           tct('[team] has been added to the [project] project', {
             team: `#${team.slug}`,
             project: projectSlug,
@@ -117,7 +111,7 @@ export function addTeamToProject(
         ProjectsStore.onUpdateSuccess(project);
       },
       err => {
-        addErrorMessage(
+        toast.error(
           tct('Unable to add [team] to the [project] project', {
             team: `#${team.slug}`,
             project: projectSlug,
@@ -137,9 +131,18 @@ function removeTeamFromProject(
   projectSlug: string,
   teamSlug: string
 ) {
-  const endpoint = `/projects/${orgSlug}/${projectSlug}/teams/${teamSlug}/`;
+  const endpoint = getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/teams/$teamIdOrSlug/',
+    {
+      path: {
+        organizationIdOrSlug: orgSlug,
+        projectIdOrSlug: projectSlug,
+        teamIdOrSlug: teamSlug,
+      },
+    }
+  );
 
-  addLoadingMessage();
+  toast.loading(t('Saving changes...'));
 
   return api
     .requestPromise(endpoint, {
@@ -147,7 +150,7 @@ function removeTeamFromProject(
     })
     .then(
       project => {
-        addSuccessMessage(
+        toast.success(
           tct('[team] has been removed from the [project] project', {
             team: `#${teamSlug}`,
             project: projectSlug,
@@ -157,7 +160,7 @@ function removeTeamFromProject(
         ProjectsStore.onUpdateSuccess(project);
       },
       err => {
-        addErrorMessage(
+        toast.error(
           tct('Unable to remove [team] from the [project] project', {
             team: `#${teamSlug}`,
             project: projectSlug,
@@ -189,10 +192,15 @@ export async function removeProject({
   origin: 'onboarding' | 'settings' | 'getting_started';
   projectSlug: Project['slug'];
 }) {
-  const response = await api.requestPromise(`/projects/${orgSlug}/${projectSlug}/`, {
-    method: 'DELETE',
-    data: {origin},
-  });
+  const response = await api.requestPromise(
+    getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+      path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
+    }),
+    {
+      method: 'DELETE',
+      data: {origin},
+    }
+  );
   ProjectsStore.onDeleteProject(projectSlug);
 
   return response;
@@ -202,7 +210,11 @@ export async function removeProject({
  * Load the counts of my projects and all projects for the current user
  */
 export function fetchProjectsCount(api: Client, orgSlug: string) {
-  return api.requestPromise(`/organizations/${orgSlug}/projects-count/`);
+  return api.requestPromise(
+    getApiUrl('/organizations/$organizationIdOrSlug/projects-count/', {
+      path: {organizationIdOrSlug: orgSlug},
+    })
+  );
 }
 
 export function projectTeamsApiOptions({

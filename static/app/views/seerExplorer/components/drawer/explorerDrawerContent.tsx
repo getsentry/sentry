@@ -7,15 +7,18 @@ import {SeerExplorerContent} from 'sentry/views/seerExplorer/components/seerExpl
  * header chrome. The close affordance comes from `DrawerHeader`, and its handler
  * from the drawer context.
  *
- * This is the only Seer file coupled to the scraps drawer — when the
- * persistent-sidebar flag is removed, deleting it (and `useSeerExplorerDrawer`)
- * drops the drawer surface entirely; the shared content has no drawer imports.
+ * This is the only Seer file coupled to the scraps drawer — once nothing opens
+ * the drawer (orgs without Seer Explorer, and Autofix's `useSeerPanel`), deleting
+ * it (and `useSeerExplorerDrawer`) drops the drawer surface entirely; the shared
+ * content has no drawer imports.
  */
 export function ExplorerDrawerContent({
   getPageReferrer,
   initialQuery,
+  appendInitialQuery,
 }: {
   getPageReferrer: () => string;
+  appendInitialQuery?: boolean;
   initialQuery?: string;
 }) {
   const {onClose = () => {}} = useDrawerContentContext();
@@ -24,6 +27,7 @@ export function ExplorerDrawerContent({
     <SeerExplorerContent
       getPageReferrer={getPageReferrer}
       initialQuery={initialQuery}
+      appendInitialQuery={appendInitialQuery}
       onClose={onClose}
       renderHeader={({children, isPoppedOut}) => (
         <DrawerHeader hideBar hideCloseButtonText hideCloseButton={isPoppedOut}>

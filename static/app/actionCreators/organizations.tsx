@@ -1,6 +1,7 @@
-import type {NavigateFunction} from 'react-router-dom';
+import type {NavigateFunction} from 'react-router';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {Client} from 'sentry/api';
 import {resetPageFilters} from 'sentry/components/pageFilters/actions';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
@@ -9,8 +10,8 @@ import {GuideStore} from 'sentry/stores/guideStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {TeamStore} from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
 type RedirectRemainingOrganizationParams = {
@@ -93,12 +94,12 @@ function remove(api: Client, {successMessage, errorMessage, orgId}: RemoveParams
       OrganizationsStore.onRemoveSuccess(orgId);
 
       if (successMessage) {
-        addSuccessMessage(successMessage);
+        toast.success(successMessage);
       }
     })
     .catch(() => {
       if (errorMessage) {
-        addErrorMessage(errorMessage);
+        toast.error(errorMessage);
       }
     });
 }
@@ -148,7 +149,9 @@ export async function fetchOrganizationByMember(
   memberId: string,
   {addOrg, fetchOrgDetails}: FetchOrganizationByMemberParams
 ) {
-  const data = await api.requestPromise(`/organizations/?query=member_id:${memberId}`);
+  const data = await api.requestPromise(
+    `${getApiUrl('/organizations/')}?query=member_id:${memberId}`
+  );
 
   if (!data.length) {
     return null;
@@ -176,11 +179,6 @@ type FetchOrganizationDetailsParams = {
   loadProjects?: boolean;
 
   /**
-   * Should load teams in TeamStore?
-   */
-  loadTeam?: boolean;
-
-  /**
    * Should set as active organization?
    */
   setActive?: boolean;
@@ -188,20 +186,21 @@ type FetchOrganizationDetailsParams = {
 export async function fetchOrganizationDetails(
   api: Client,
   orgId: string,
-  {setActive, loadProjects, loadTeam}: FetchOrganizationDetailsParams
+  {setActive, loadProjects}: FetchOrganizationDetailsParams
 ) {
-  const data = await api.requestPromise(`/organizations/${orgId}/`, {
-    query: {
-      include_feature_flags: 1,
-    },
-  });
+  const data = await api.requestPromise(
+    getApiUrl('/organizations/$organizationIdOrSlug/', {
+      path: {organizationIdOrSlug: orgId},
+    }),
+    {
+      query: {
+        include_feature_flags: 1,
+      },
+    }
+  );
 
   if (setActive) {
     setActiveOrganization(data);
-  }
-
-  if (loadTeam) {
-    TeamStore.loadInitialData(data.teams, false, null);
   }
 
   if (loadProjects) {

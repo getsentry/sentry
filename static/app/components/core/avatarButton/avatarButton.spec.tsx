@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {AvatarButton} from '@sentry/scraps/avatarButton';
 
@@ -37,18 +37,42 @@ describe('AvatarButton', () => {
     );
   });
 
-  it('calls `onClick` callback', async () => {
-    const spy = jest.fn();
+  it('renders a placeholder icon when no avatar is provided', () => {
+    render(<AvatarButton aria-label="Assign" />);
+
+    const button = screen.getByRole('button', {name: 'Assign'});
+    expect(button).toBeInTheDocument();
+    expect(button.querySelector('img')).not.toBeInTheDocument();
+    expect(button.querySelector('svg')).toBeInTheDocument();
+  });
+
+  it('renders a suggested letter avatar without throwing', () => {
+    render(
+      <AvatarButton
+        aria-label="Suggested assignee"
+        avatar={{
+          type: 'letter_avatar',
+          identifier: 'test-id',
+          name: 'Test User',
+          suggested: true,
+        }}
+      />
+    );
+
+    const button = screen.getByRole('button', {name: 'Suggested assignee'});
+    expect(button).toBeInTheDocument();
+    expect(button).toHaveTextContent('TU');
+  });
+
+  it('accepts a round shape override', () => {
     render(
       <AvatarButton
         aria-label="Open profile"
-        onClick={spy}
+        round
         avatar={{type: 'letter_avatar', identifier: 'test-id', name: 'Test User'}}
       />
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Open profile'}));
-
-    expect(spy).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', {name: 'Open profile'})).toBeInTheDocument();
   });
 });

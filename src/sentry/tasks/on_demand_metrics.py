@@ -6,6 +6,7 @@ from typing import Any
 
 import sentry_sdk
 from django.utils import timezone
+from sentry_sdk import traces
 
 from sentry import features, options
 from sentry.models.dashboard_widget import (
@@ -67,7 +68,8 @@ def _set_currently_processing_batch(current_batch: int) -> None:
 
 
 def _get_previous_processing_batch() -> int:
-    return cache.get(_get_widget_processing_batch_key(), 0)
+    batch = cache.get(_get_widget_processing_batch_key(), 0)
+    return batch
 
 
 def _get_current_processing_batch(total_batches: int) -> int:
@@ -93,8 +95,7 @@ class HighCardinalityWidgetException(Exception):
 def schedule_on_demand_check() -> None:
     """
     # Summary
-    This task schedules work to be done to check cardinality in group-by columns in dashboard widgets,
-    offloading it from `build_project_config` in the relay task (specifically in :func:`sentry.relay.config.metric_extraction.get_metric_extraction_config`).
+    This task schedules work to check cardinality in group-by columns in dashboard widgets.
 
     Spawns a series of child tasks :func:`process_widget_specs`, and limits them using
     a stateful (cached) count + modulo to spread out the work over `total_batches` number of scheduled task runs.
@@ -399,7 +400,7 @@ def _get_widget_query_low_cardinality(
     return all(field_cardinality.values())
 
 
-@sentry_sdk.tracing.trace
+@traces.trace
 def check_field_cardinality(
     query_columns: list[str] | None,
     organization: Organization,
@@ -475,7 +476,7 @@ def check_field_cardinality(
     return {key: cardinality_map.get(value, True) for key, value in cache_keys.items()}
 
 
-@sentry_sdk.tracing.trace
+@traces.trace
 def _query_cardinality(
     query_columns: list[str], organization: Organization, period: str = "30m"
 ) -> tuple[EventsResponse, list[str]]:

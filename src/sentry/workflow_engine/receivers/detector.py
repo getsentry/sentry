@@ -7,6 +7,7 @@ from django.dispatch import receiver
 from sentry.workflow_engine.caches.detector import invalidate_detectors_by_data_source_cache
 from sentry.workflow_engine.caches.workflow import invalidate_processing_workflows
 from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.processors.detector import invalidate_all_projects_detector_cache
 
 
 @receiver(post_save, sender=Detector)
@@ -24,7 +25,7 @@ def invalidate_processing_workflows_cache(
 @receiver(pre_save, sender=Detector)
 def enforce_config_schema_signal(sender: type[Detector], instance: Detector, **kwargs: Any) -> None:
     """
-    This needs to be a signal because the GroupType registry's entries are not available at import time.
+    This needs to be a signal because detector settings are not available at import time.
     """
     instance.enforce_config_schema()
 
@@ -32,12 +33,13 @@ def enforce_config_schema_signal(sender: type[Detector], instance: Detector, **k
 @receiver(post_save, sender=Detector)
 @receiver(pre_delete, sender=Detector)
 def invalidate_detector_cache(sender: type[Detector], instance: Detector, **kwargs: Any) -> None:
-    if kwargs.get("created") or not instance.id:
+    if not instance.id:
         return
 
     data_sources = list(instance.data_sources.values_list("source_id", "type"))
 
     def invalidate_cache() -> None:
+        invalidate_all_projects_detector_cache(instance)
         for source_id, source_type in data_sources:
             invalidate_detectors_by_data_source_cache(source_id, source_type)
 

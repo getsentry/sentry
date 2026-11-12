@@ -3,7 +3,7 @@ import random
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, MutableMapping, MutableSequence
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import cast
 
 import orjson
 import rapidjson
@@ -14,12 +14,10 @@ from arroyo.types import BrokerValue, Message
 from django.conf import settings
 from sentry_kafka_schemas.codecs import ValidationError
 from sentry_kafka_schemas.schema_types.ingest_metrics_v1 import IngestMetric
-from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMetric
 from sentry_kafka_schemas.schema_types.snuba_metrics_v1 import Metric
 
 from sentry import options
 from sentry.options.rollout import in_random_rollout
-from sentry.sentry_metrics.aggregation_option_registry import get_aggregation_options
 from sentry.sentry_metrics.configuration import MAX_INDEXED_COLUMN_LENGTH
 from sentry.sentry_metrics.consumers.indexer.common import (
     BrokerMeta,
@@ -27,7 +25,6 @@ from sentry.sentry_metrics.consumers.indexer.common import (
     MessageBatch,
 )
 from sentry.sentry_metrics.consumers.indexer.parsed_message import ParsedMessage
-from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
 from sentry.sentry_metrics.indexer.base import Metadata
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer.mri import extract_use_case_id
@@ -92,14 +89,10 @@ class IndexerBatch:
     def __init__(
         self,
         outer_message: Message[MessageBatch],
-        should_index_tag_values: bool,
-        is_output_sliced: bool,
         tags_validator: Callable[[Mapping[str, str]], bool],
         schema_validator: Callable[[str, IngestMetric], None],
     ) -> None:
         self.outer_message = outer_message
-        self.__should_index_tag_values = should_index_tag_values
-        self.is_output_sliced = is_output_sliced
         self.tags_validator = tags_validator
         self.schema_validator = schema_validator
 
@@ -267,10 +260,8 @@ class IndexerBatch:
             strings_in_message = {
                 metric_name,
                 *tags.keys(),
+                *tags.values(),
             }
-
-            if self.__should_index_tag_values:
-                strings_in_message.update(tags.values())
 
             strings[use_case_id][org_id].update(strings_in_message)
 
@@ -289,7 +280,7 @@ class IndexerBatch:
         mapping: Mapping[UseCaseID, Mapping[OrgId, Mapping[str, int | None]]],
         bulk_record_meta: Mapping[UseCaseID, Mapping[OrgId, Mapping[str, Metadata]]],
     ) -> IndexerOutputMessageBatch:
-        new_messages: MutableSequence[Message[RoutingPayload | KafkaPayload | InvalidMessage]] = []
+        new_messages: MutableSequence[Message[KafkaPayload | InvalidMessage]] = []
         cogs_usage: MutableMapping[UseCaseID, int] = defaultdict(int)
 
         for message in self.outer_message.payload:
@@ -340,24 +331,20 @@ class IndexerBatch:
                                 exceeded_org_quotas += 1
                             continue
 
-                        value_to_write: int | str = v
-                        if self.__should_index_tag_values:
-                            new_v = mapping[use_case_id][org_id][v]
-                            if new_v is None:
-                                metadata = bulk_record_meta[use_case_id][org_id].get(v)
-                                if (
-                                    metadata
-                                    and metadata.fetch_type_ext
-                                    and metadata.fetch_type_ext.is_global
-                                ):
-                                    exceeded_global_quotas += 1
-                                else:
-                                    exceeded_org_quotas += 1
-                                continue
+                        new_v = mapping[use_case_id][org_id][v]
+                        if new_v is None:
+                            metadata = bulk_record_meta[use_case_id][org_id].get(v)
+                            if (
+                                metadata
+                                and metadata.fetch_type_ext
+                                and metadata.fetch_type_ext.is_global
+                            ):
+                                exceeded_global_quotas += 1
                             else:
-                                value_to_write = new_v
+                                exceeded_org_quotas += 1
+                            continue
 
-                        new_tags[str(new_k)] = value_to_write
+                        new_tags[str(new_k)] = new_v
                 except KeyError:
                     logger.exception("process_messages.key_error", extra={"tags": tags})
                     continue
@@ -424,60 +411,28 @@ class IndexerBatch:
                     )
                 continue
 
-            new_payload_value: Mapping[str, Any]
-
             # timestamp when the message was produced to ingest-* topic,
             # used for end-to-end latency metrics
             sentry_received_timestamp = message.value.timestamp.timestamp()
 
             with metrics.timer("metrics_consumer.reconstruct_messages.build_new_payload"):
-                if self.__should_index_tag_values:
-                    # Metrics don't support gauges (which use dicts), so assert value type
-                    value = old_payload_value["value"]
-                    assert isinstance(value, (int, float, list))
-                    new_payload_v1: Metric = {
-                        "tags": cast(dict[str, int], new_tags),
-                        # XXX: relay actually sends this value unconditionally
-                        "retention_days": old_payload_value.get("retention_days", 90),
-                        "mapping_meta": output_message_meta,
-                        "use_case_id": old_payload_value["use_case_id"].value,
-                        "metric_id": numeric_metric_id,
-                        "org_id": old_payload_value["org_id"],
-                        "timestamp": old_payload_value["timestamp"],
-                        "project_id": old_payload_value["project_id"],
-                        "type": old_payload_value["type"],
-                        "value": value,
-                        "sentry_received_timestamp": sentry_received_timestamp,
-                    }
-
-                    new_payload_value = new_payload_v1
-                else:
-                    # When sending tag values as strings, set the version on the payload
-                    # to 2. This is used by the consumer to determine how to decode the
-                    # tag values.
-                    new_payload_v2: GenericMetric = {
-                        "tags": cast(dict[str, str], new_tags),
-                        "version": 2,
-                        "retention_days": old_payload_value.get("retention_days", 90),
-                        "mapping_meta": output_message_meta,
-                        "use_case_id": old_payload_value["use_case_id"].value,
-                        "metric_id": numeric_metric_id,
-                        "org_id": old_payload_value["org_id"],
-                        "timestamp": old_payload_value["timestamp"],
-                        "project_id": old_payload_value["project_id"],
-                        "type": old_payload_value["type"],
-                        "value": old_payload_value["value"],
-                        "sentry_received_timestamp": sentry_received_timestamp,
-                    }
-                    if aggregation_options := get_aggregation_options(old_payload_value["name"]):
-                        # TODO: This should eventually handle multiple aggregation options
-                        option = list(aggregation_options.items())[0][0]
-                        assert option is not None
-                        new_payload_v2["aggregation_option"] = option.value
-                    if sampling_weight := old_payload_value.get("sampling_weight"):
-                        new_payload_v2["sampling_weight"] = sampling_weight
-
-                    new_payload_value = new_payload_v2
+                # Metrics don't support gauges (which use dicts), so assert value type
+                value = old_payload_value["value"]
+                assert isinstance(value, (int, float, list))
+                new_payload_value: Metric = {
+                    "tags": cast(dict[str, int], new_tags),
+                    # XXX: relay actually sends this value unconditionally
+                    "retention_days": old_payload_value.get("retention_days", 90),
+                    "mapping_meta": output_message_meta,
+                    "use_case_id": old_payload_value["use_case_id"].value,
+                    "metric_id": numeric_metric_id,
+                    "org_id": old_payload_value["org_id"],
+                    "timestamp": old_payload_value["timestamp"],
+                    "project_id": old_payload_value["project_id"],
+                    "type": old_payload_value["type"],
+                    "value": value,
+                    "sentry_received_timestamp": sentry_received_timestamp,
+                }
 
                 with metrics.timer(
                     "metrics_consumer.reconstruct_messages.build_new_payload.json_step"
@@ -497,14 +452,7 @@ class IndexerBatch:
                             ("metric_type", new_payload_value["type"]),  # type: ignore[list-item]
                         ],
                     )
-                if self.is_output_sliced:
-                    routing_payload = RoutingPayload(
-                        routing_header={"org_id": org_id},
-                        routing_message=kafka_payload,
-                    )
-                    new_messages.append(Message(message.value.replace(routing_payload)))
-                else:
-                    new_messages.append(Message(message.value.replace(kafka_payload)))
+                new_messages.append(Message(message.value.replace(kafka_payload)))
 
         with metrics.timer("metrics_consumer.reconstruct_messages.emit_payload_metrics"):
             for use_case_id, metrics_by_type in self._message_metrics.items():

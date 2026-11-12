@@ -1,7 +1,7 @@
 import {lazy, useEffect, useRef} from 'react';
 import {skipToken, useQueries} from '@tanstack/react-query';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {isStacktraceNewestFirst} from 'sentry/components/events/interfaces/utils';
 import {LazyLoad} from 'sentry/components/lazyLoad';
@@ -15,7 +15,7 @@ import {getStacktraceBody} from 'sentry/utils/getStacktraceBody';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-const SplitDiffLazy = lazy(() => import('../splitDiff'));
+const SplitDiffLazy = lazy(() => import('sentry/components/splitDiff'));
 const STACKTRACE_SECTION_SEPARATOR = '\n\n';
 const SKELETON_ROW_COUNT = 8;
 
@@ -24,7 +24,6 @@ interface IssueDiffProps {
   targetIssueId: string;
   baseEventId?: string;
   hasSimilarityEmbeddingsProjectFeature?: boolean;
-  shouldBeGrouped?: string;
   targetEventId?: string;
 }
 
@@ -60,7 +59,6 @@ export function IssueDiff({
   baseEventId = 'latest',
   targetEventId = 'latest',
   hasSimilarityEmbeddingsProjectFeature,
-  shouldBeGrouped,
 }: IssueDiffProps) {
   const organization = useOrganization();
   const location = useLocation();
@@ -187,21 +185,14 @@ export function IssueDiff({
       project_id: baseEventData?.projectID,
       group_id: baseEventData?.groupID,
       parent_group_id: targetEventData?.groupID,
-      shouldBeGrouped,
     });
-  }, [
-    baseEventData,
-    hasSimilarityEmbeddingsFeature,
-    organization,
-    shouldBeGrouped,
-    targetEventData,
-  ]);
+  }, [baseEventData, hasSimilarityEmbeddingsFeature, organization, targetEventData]);
 
   if (hasError) {
     return (
-      <Flex background="secondary" overflow="auto" padding="md" direction="column">
+      <Stack background="secondary" overflow="auto" padding="md">
         <LoadingError message={t('Error loading events')} />
-      </Flex>
+      </Stack>
     );
   }
 
@@ -210,35 +201,33 @@ export function IssueDiff({
   }
 
   return (
-    <Flex background="secondary" overflow="auto" padding="md" direction="column">
+    <Stack background="secondary" overflow="auto" padding="md">
       <LazyLoad
         LazyComponent={SplitDiffLazy}
         base={combinedBase}
         target={combinedTarget}
-        type="lines"
         loadingFallback={<IssueDiffLoadingSkeletonRows />}
       />
-    </Flex>
+    </Stack>
   );
 }
 
 function IssueDiffLoadingState() {
   return (
-    <Flex
+    <Stack
       background="primary"
       overflow="auto"
       padding="md"
-      direction="column"
       data-test-id="issue-diff-loading-skeleton"
     >
       <IssueDiffLoadingSkeletonRows />
-    </Flex>
+    </Stack>
   );
 }
 
 function IssueDiffLoadingSkeletonRows() {
   return (
-    <Flex direction="column" gap="sm">
+    <Stack gap="sm">
       {Array.from({length: SKELETON_ROW_COUNT}).map((_, index) => (
         <Flex key={index} align="center">
           <Placeholder height="18px" style={{flex: 1}} />
@@ -246,6 +235,6 @@ function IssueDiffLoadingSkeletonRows() {
           <Placeholder height="18px" style={{flex: 1}} />
         </Flex>
       ))}
-    </Flex>
+    </Stack>
   );
 }

@@ -1,20 +1,49 @@
-import sentry_sdk
+from typing import TypedDict
+
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk import set_tag
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
-from sentry.api.utils import handle_query_errors
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.parameters import GlobalParams, OrganizationParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
-from sentry.search.events.fields import get_function_alias
-from sentry.snuba import metrics_performance
-
-COUNT_UNPARAM = "count_unparameterized_transactions()"
-COUNT_NULL = "count_null_transactions()"
 
 
+class MetricsCompatibilityResponse(TypedDict):
+    incompatible_projects: list[int]
+    compatible_projects: list[int]
+
+
+class MetricsCompatibilitySums(TypedDict):
+    metrics: int
+    metrics_null: int
+    metrics_unparam: int
+
+
+class MetricsCompatibilitySumsResponse(TypedDict):
+    sum: MetricsCompatibilitySums
+
+
+METRICS_COMPATIBILITY_PARAMETERS = [
+    GlobalParams.ORG_ID_OR_SLUG,
+    OrganizationParams.PROJECT,
+    GlobalParams.ENVIRONMENT,
+    GlobalParams.STATS_PERIOD,
+    GlobalParams.START,
+    GlobalParams.END,
+]
+METRICS_COMPATIBILITY_RESPONSES = {
+    401: RESPONSE_UNAUTHORIZED,
+    403: RESPONSE_FORBIDDEN,
+    404: RESPONSE_NOT_FOUND,
+}
+
+
+@extend_schema(tags=["Discover"])
 @cell_silo_endpoint
 class OrganizationMetricsCompatibility(OrganizationEventsEndpointBase):
     publish_status = {
@@ -22,12 +51,40 @@ class OrganizationMetricsCompatibility(OrganizationEventsEndpointBase):
     }
     """Metrics data can contain less than great data like null or unparameterized transactions
 
-    This endpoint will return projects that have dynamic sampling turned on, and another list of "compatible projects"
-    which are the projects which don't have null transactions and have at least 1 transaction with a valid name
+    This endpoint previously queried generic metrics to decide whether landing pages should use
+    metrics or transactions. Generic metrics performance queries are disabled, so always report
+    projects as incompatible and force the transactions path.
     """
 
-    def get(self, request: Request, organization: Organization) -> Response:
-        data: dict[str, list[int]] = {
+    @extend_schema(
+        operation_id="getOrganizationMetricsCompatibility",
+        summary="Retrieve Projects' Metrics Compatibility",
+        parameters=[
+            *METRICS_COMPATIBILITY_PARAMETERS,
+            OpenApiParameter(
+                name="per_page",
+                location="query",
+                required=False,
+                type=int,
+                description="The maximum number of project IDs to return. Defaults to 50.",
+            ),
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationMetricsCompatibilityResponse", MetricsCompatibilityResponse
+            ),
+            **METRICS_COMPATIBILITY_RESPONSES,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[MetricsCompatibilityResponse]:
+        """
+        Return which of the selected projects can use metrics-backed performance data.
+        Generic metrics queries are disabled, so every selected project is reported in
+        `incompatible_projects` and `compatible_projects` is always empty.
+        """
+        data: MetricsCompatibilityResponse = {
             "incompatible_projects": [],
             "compatible_projects": [],
         }
@@ -35,35 +92,15 @@ class OrganizationMetricsCompatibility(OrganizationEventsEndpointBase):
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response(data)
-        original_project_ids = snuba_params.project_ids[:]
 
-        with handle_query_errors():
-            count_has_txn = "count_has_transaction_name()"
-            count_null = "count_null_transactions()"
-            compatible_results = metrics_performance.query(
-                selected_columns=[
-                    "project.id",
-                    count_null,
-                    count_has_txn,
-                ],
-                snuba_params=snuba_params,
-                query=f"{count_null}:0 AND {count_has_txn}:>0",
-                referrer="api.organization-events-metrics-compatibility.compatible",
-                functions_acl=["count_null_transactions", "count_has_transaction_name"],
-                use_aggregate_conditions=True,
-            )
-            data["compatible_projects"] = sorted(
-                row["project.id"] for row in compatible_results["data"]
-            )
-            data["incompatible_projects"] = sorted(
-                list(set(original_project_ids) - set(data["compatible_projects"]))[
-                    : int(request.GET.get("per_page", 50))
-                ]
-            )
-
+        # Keep the old response shape, but do not query generic metrics.
+        data["incompatible_projects"] = sorted(
+            snuba_params.project_ids[: int(request.GET.get("per_page", 50))]
+        )
         return Response(data)
 
 
+@extend_schema(tags=["Discover"])
 @cell_silo_endpoint
 class OrganizationMetricsCompatibilitySums(OrganizationEventsEndpointBase):
     publish_status = {
@@ -72,45 +109,38 @@ class OrganizationMetricsCompatibilitySums(OrganizationEventsEndpointBase):
     """Return the total sum of metrics data, the null transactions and unparameterized transactions
 
     This is so the frontend can have an idea given its current selection of projects how good/bad the display would
-    be
+    be. Generic metrics performance queries are disabled, so always report empty metrics counts.
     """
 
-    def get(self, request: Request, organization: Organization) -> Response:
-        data = {
+    @extend_schema(
+        operation_id="getOrganizationMetricsCompatibilitySums",
+        summary="Retrieve Metrics Compatibility Counts",
+        parameters=METRICS_COMPATIBILITY_PARAMETERS,
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationMetricsCompatibilitySumsResponse", MetricsCompatibilitySumsResponse
+            ),
+            **METRICS_COMPATIBILITY_RESPONSES,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[MetricsCompatibilitySumsResponse]:
+        """
+        Return the number of metrics-backed transactions for the selected projects,
+        including those with a null or unparameterized transaction name. Generic metrics
+        queries are disabled, so all counts are always 0.
+        """
+        data: MetricsCompatibilitySumsResponse = {
             "sum": {
-                "metrics": None,
-                "metrics_null": None,
-                "metrics_unparam": None,
+                "metrics": 0,
+                "metrics_null": 0,
+                "metrics_unparam": 0,
             },
         }
         try:
-            snuba_params = self.get_snuba_params(request, organization)
+            self.get_snuba_params(request, organization)
         except NoProjects:
             return Response(data)
-
-        with handle_query_errors():
-            sum_metrics = metrics_performance.query(
-                selected_columns=[COUNT_UNPARAM, COUNT_NULL, "count()"],
-                snuba_params=snuba_params,
-                query="",
-                referrer="api.organization-events-metrics-compatibility.sum_metrics",
-                functions_acl=["count_unparameterized_transactions", "count_null_transactions"],
-                use_aggregate_conditions=True,
-            )
-            if len(sum_metrics["data"]) > 0:
-                metrics_count = sum_metrics["data"][0].get("count")
-                if metrics_count == 0:
-                    set_tag("empty_metrics", True)
-                    sentry_sdk.set_attribute("empty_metrics", True)
-
-                data["sum"].update(
-                    {
-                        "metrics": metrics_count,
-                        "metrics_null": sum_metrics["data"][0].get(get_function_alias(COUNT_NULL)),
-                        "metrics_unparam": sum_metrics["data"][0].get(
-                            get_function_alias(COUNT_UNPARAM)
-                        ),
-                    }
-                )
 
         return Response(data)

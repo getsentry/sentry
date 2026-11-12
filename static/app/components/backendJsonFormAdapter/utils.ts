@@ -2,7 +2,7 @@ import {z} from 'zod';
 
 import {unreachable} from 'sentry/utils/unreachable';
 
-import type {JsonFormAdapterFieldConfig} from './types';
+import type {JsonFormAdapterChoice, JsonFormAdapterFieldConfig} from './types';
 
 export function getZodType(fieldType: JsonFormAdapterFieldConfig['type']) {
   switch (fieldType) {
@@ -21,7 +21,6 @@ export function getZodType(fieldType: JsonFormAdapterFieldConfig['type']) {
       return z.url();
     case 'choice_mapper':
       return z.looseObject({});
-    case 'project_mapper':
     case 'table':
       return z.array(z.any());
     case 'select':
@@ -36,8 +35,8 @@ export function getZodType(fieldType: JsonFormAdapterFieldConfig['type']) {
 }
 
 export function transformChoices(
-  choices?: Array<[value: string, label: string]>
-): Array<{label: string; value: string}> {
+  choices?: readonly JsonFormAdapterChoice[]
+): Array<{label: string; value: JsonFormAdapterChoice[0]}> {
   if (!choices) {
     return [];
   }
@@ -131,7 +130,6 @@ export function getDefaultForField(field: JsonFormAdapterFieldConfig): unknown {
       return 0;
     case 'choice_mapper':
       return {};
-    case 'project_mapper':
     case 'table':
       return [];
     case 'select':

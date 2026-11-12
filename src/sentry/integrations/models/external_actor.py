@@ -7,11 +7,8 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, cell_silo_model
+from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, cell_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.hybridcloud.outbox.base import ReplicatedCellModel
-from sentry.hybridcloud.outbox.category import OutboxCategory
-from sentry.hybridcloud.services.replica import control_replica_service
 from sentry.integrations.types import (
     ExternalActorSource,
     ExternalProviders,
@@ -23,10 +20,8 @@ logger = logging.getLogger(__name__)
 
 
 @cell_silo_model
-class ExternalActor(ReplicatedCellModel):
+class ExternalActor(Model):
     __relocation_scope__ = RelocationScope.Excluded
-
-    category = OutboxCategory.EXTERNAL_ACTOR_UPDATE
 
     date_updated = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now, null=True)
@@ -44,6 +39,7 @@ class ExternalActor(ReplicatedCellModel):
             (ExternalProviders.GITHUB, IntegrationProviderSlug.GITHUB.value),
             (ExternalProviders.GITHUB_ENTERPRISE, IntegrationProviderSlug.GITHUB_ENTERPRISE.value),
             (ExternalProviders.GITLAB, IntegrationProviderSlug.GITLAB.value),
+            (ExternalProviders.CURSOR_ORIGIN, IntegrationProviderSlug.CURSOR_ORIGIN.value),
             (ExternalProviders.JIRA_SERVER, IntegrationProviderSlug.JIRA_SERVER.value),
             (ExternalProviders.PERFORCE, IntegrationProviderSlug.PERFORCE.value),
             # TODO: do migration to delete this from database
@@ -73,7 +69,9 @@ class ExternalActor(ReplicatedCellModel):
             ),
         ]
 
-    def delete(self, *args, **kwargs):
+    def delete(
+        self, using: str | None = None, keep_parents: bool = False
+    ) -> tuple[int, dict[str, int]]:
         from sentry.integrations.services.integration import integration_service
 
         # TODO: Extract this out of the delete method into the endpoint / controller instead.
@@ -89,21 +87,14 @@ class ExternalActor(ReplicatedCellModel):
                     team_id=team.id, provider=ExternalProviders(self.provider)
                 )
 
-        return super().delete(*args, **kwargs)
-
-    def handle_async_replication(self, shard_identifier: int) -> None:
-        from sentry.notifications.services.serial import serialize_external_actor
-
-        control_replica_service.upsert_external_actor_replica(
-            external_actor=serialize_external_actor(self)
-        )
+        return super().delete(using=using, keep_parents=keep_parents)
 
 
-def process_resource_change(instance: ExternalActor, **kwargs):
+def process_resource_change(instance: ExternalActor, **kwargs: object) -> None:
     from sentry.models.project import Project
     from sentry.tasks.codeowners import update_code_owners_schema
 
-    def _spawn_task():
+    def _spawn_task() -> None:
         update_code_owners_schema.apply_async(
             kwargs={
                 "organization": instance.organization_id,

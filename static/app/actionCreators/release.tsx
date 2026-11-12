@@ -1,11 +1,9 @@
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {ReleaseStatus} from 'sentry/types/release';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
 type ParamsGet = {
@@ -17,28 +15,33 @@ type ParamsGet = {
 export function archiveRelease(api: Client, params: ParamsGet) {
   const {orgSlug, releaseVersion} = params;
 
-  addLoadingMessage(t('Archiving Release\u2026'));
+  toast.loading(t('Archiving Release\u2026'));
 
   return api
-    .requestPromise(`/organizations/${orgSlug}/releases/`, {
-      method: 'POST',
-      data: {
-        status: ReleaseStatus.ARCHIVED,
-        projects: [],
-        version: releaseVersion,
-      },
-    })
+    .requestPromise(
+      getApiUrl('/organizations/$organizationIdOrSlug/releases/', {
+        path: {organizationIdOrSlug: orgSlug},
+      }),
+      {
+        method: 'POST',
+        data: {
+          status: ReleaseStatus.ARCHIVED,
+          projects: [],
+          version: releaseVersion,
+        },
+      }
+    )
     .then(() => {
-      addSuccessMessage(t('Release was successfully archived.'));
+      toast.success(t('Release was successfully archived.'));
     })
     .catch(error => {
       if (
         error instanceof RequestError &&
         typeof error.responseJSON?.detail === 'string'
       ) {
-        addErrorMessage(error.responseJSON?.detail);
+        toast.error(error.responseJSON?.detail);
       } else {
-        addErrorMessage(t('Release could not be archived.'));
+        toast.error(t('Release could not be archived.'));
       }
       throw error;
     });
@@ -47,28 +50,33 @@ export function archiveRelease(api: Client, params: ParamsGet) {
 export function restoreRelease(api: Client, params: ParamsGet) {
   const {orgSlug, releaseVersion} = params;
 
-  addLoadingMessage(t('Restoring Release\u2026'));
+  toast.loading(t('Restoring Release\u2026'));
 
   return api
-    .requestPromise(`/organizations/${orgSlug}/releases/`, {
-      method: 'POST',
-      data: {
-        status: ReleaseStatus.ACTIVE,
-        projects: [],
-        version: releaseVersion,
-      },
-    })
+    .requestPromise(
+      getApiUrl('/organizations/$organizationIdOrSlug/releases/', {
+        path: {organizationIdOrSlug: orgSlug},
+      }),
+      {
+        method: 'POST',
+        data: {
+          status: ReleaseStatus.ACTIVE,
+          projects: [],
+          version: releaseVersion,
+        },
+      }
+    )
     .then(() => {
-      addSuccessMessage(t('Release was successfully restored.'));
+      toast.success(t('Release was successfully restored.'));
     })
     .catch(error => {
       if (
         error instanceof RequestError &&
         typeof error.responseJSON?.detail === 'string'
       ) {
-        addErrorMessage(error.responseJSON?.detail);
+        toast.error(error.responseJSON?.detail);
       } else {
-        addErrorMessage(t('Release could not be restored.'));
+        toast.error(t('Release could not be restored.'));
       }
 
       throw error;

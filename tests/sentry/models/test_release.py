@@ -1,8 +1,11 @@
 from datetime import timedelta
-from unittest.mock import MagicMock, patch
+from typing import Any
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 from django.core.exceptions import ValidationError
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from sentry.analytics.events.issue_resolved import IssueResolvedEvent
@@ -10,8 +13,15 @@ from sentry.api.exceptions import InvalidRepository
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
 from sentry.exceptions import InvalidSearchQuery
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.source_code_management.metrics import (
+    SCMIntegrationInteractionType,
+    SCMResolutionHaltReason,
+)
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource
+from sentry.issues.action_log.types import SetResolvedInReleaseAction
+from sentry.models.activity import Activity
 from sentry.models.commit import Commit
-from sentry.models.commitauthor import CommitAuthor
+from sentry.models.commitauthor import COMMIT_AUTHOR_EMAIL_LENGTH, CommitAuthor
 from sentry.models.deploy import Deploy
 from sentry.models.distribution import Distribution
 from sentry.models.environment import Environment
@@ -23,6 +33,7 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironment
+from sentry.models.project import Project
 from sentry.models.release import (
     Release,
     ReleaseStatus,
@@ -33,16 +44,113 @@ from sentry.models.releaseactivity import ReleaseActivity
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
-from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
 from sentry.search.events.filter import parse_semver
 from sentry.signals import receivers_raise_on_send
-from sentry.testutils.cases import SetRefsTestCase, TestCase
+from sentry.testutils.cases import SetRefsTestCase, TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.types.activity import ActivityType
 from sentry.utils.strings import truncatechars
+
+
+@django_db_all
+@pytest.mark.parametrize("use_finalized_order", [False, True], ids=["legacy", "finalized"])
+@pytest.mark.parametrize("successor_status", [ReleaseStatus.OPEN, None], ids=["open", "null"])
+def test_next_release_excludes_archived_successors(
+    factories: Factories,
+    default_project: Project,
+    use_finalized_order: bool,
+    successor_status: int | None,
+) -> None:
+    now = timezone.now()
+    # An archived starting point is still valid; only successors are filtered.
+    anchor = factories.create_release(
+        project=default_project,
+        version="anchor",
+        date_added=now - timedelta(days=3),
+        status=ReleaseStatus.ARCHIVED,
+    )
+    factories.create_release(
+        project=default_project,
+        version="archived-successor",
+        date_added=now - timedelta(days=2),
+        status=ReleaseStatus.ARCHIVED,
+    )
+    with pytest.raises(Release.DoesNotExist):
+        Release.objects.get_next_release(
+            default_project, anchor, use_finalized_order=use_finalized_order
+        )
+
+    successor = factories.create_release(
+        project=default_project,
+        version="eligible-successor",
+        date_added=now - timedelta(days=1),
+        status=successor_status,
+    )
+    assert (
+        Release.objects.get_next_release(
+            default_project, anchor, use_finalized_order=use_finalized_order
+        )
+        == successor
+    )
+
+
+class NextReleaseOrderingTest(TestCase):
+    def test_finalized_order_and_legacy_order(self) -> None:
+        now = timezone.now()
+        current = self.create_release(version="current", date_added=now - timedelta(days=3))
+        next_release = self.create_release(
+            version="next",
+            date_added=now - timedelta(days=4),
+            date_released=now - timedelta(days=2),
+        )
+        late_old_release = self.create_release(
+            version="old", date_added=now - timedelta(days=1), date_released=now - timedelta(days=5)
+        )
+        assert (
+            Release.objects.get_next_release(self.project, current, use_finalized_order=True)
+            == next_release
+        )
+        assert (
+            Release.objects.get_next_release(self.project, current, use_finalized_order=False)
+            == late_old_release
+        )
+
+    def test_current_release_uses_its_finalized_date(self) -> None:
+        now = timezone.now()
+        current = self.create_release(
+            version="current", date_added=now, date_released=now - timedelta(days=3)
+        )
+        next_release = self.create_release(version="next", date_added=now - timedelta(days=2))
+        assert (
+            Release.objects.get_next_release(self.project, current, use_finalized_order=True)
+            == next_release
+        )
+
+    def test_no_successor(self) -> None:
+        current = self.create_release(version="current")
+        with pytest.raises(Release.DoesNotExist):
+            Release.objects.get_next_release(self.project, current, use_finalized_order=True)
+
+    def test_equal_dates_and_project_scope(self) -> None:
+        current = self.create_release(version="current")
+        other_project = self.create_project(organization=self.organization)
+        self.create_release(
+            project=other_project, version="other-project", date_added=current.date_added
+        )
+        next_release = self.create_release(version="next", date_added=current.date_added)
+        self.create_release(version="later", date_added=current.date_added)
+        assert (
+            Release.objects.get_next_release(self.project, current, use_finalized_order=True)
+            == next_release
+        )
 
 
 @pytest.mark.parametrize(
@@ -66,7 +174,7 @@ from sentry.utils.strings import truncatechars
         "fake_package@1.0.0.0-beta+exp.sha.5114f85",  # major, minor, patch, revision, pre-release, and build
     ],
 )
-def test_version_is_semver_valid(release_version) -> None:
+def test_version_is_semver_valid(release_version: str) -> None:
     assert Release.is_semver_version(release_version) is True
 
 
@@ -93,8 +201,51 @@ def test_version_is_semver_valid(release_version) -> None:
         "package@1.0.0-alpha.1+1..2",  # Empty build component
     ],
 )
-def test_version_is_semver_invalid(release_version) -> None:
+def test_version_is_semver_invalid(release_version: str) -> None:
     assert Release.is_semver_version(release_version) is False
+
+
+class GetOrCreateNoCreateTest(TestCase):
+    def setUp(self) -> None:
+        self.org = self.create_organization()
+        self.project = self.create_project(organization=self.org, name="foo")
+
+    def test_returns_none_on_miss_without_creating(self) -> None:
+        release = Release.get_or_create(project=self.project, version="1.0", create=False)
+        assert release is None
+        assert not Release.objects.filter(organization_id=self.org.id).exists()
+
+    def test_does_not_cache_miss(self) -> None:
+        # A miss must not be cached, so a release created later is still found.
+        assert Release.get_or_create(project=self.project, version="1.0", create=False) is None
+
+        existing = Release.objects.create(version="1.0", organization=self.org)
+        existing.add_project(self.project)
+
+        release = Release.get_or_create(project=self.project, version="1.0", create=False)
+        assert release is not None
+        assert release.id == existing.id
+
+    def test_returns_existing_release(self) -> None:
+        existing = Release.objects.create(version="1.0", organization=self.org)
+        existing.add_project(self.project)
+
+        release = Release.get_or_create(project=self.project, version="1.0", create=False)
+        assert release is not None
+        assert release.id == existing.id
+
+    def test_associates_existing_org_release_with_project(self) -> None:
+        # A release that exists in the org but is linked to a different project is
+        # associated with the ingesting project, not skipped.
+        other_project = self.create_project(organization=self.org, name="bar")
+        existing = Release.objects.create(version="1.0", organization=self.org)
+        existing.add_project(other_project)
+        assert not existing.projects.filter(id=self.project.id).exists()
+
+        release = Release.get_or_create(project=self.project, version="1.0", create=False)
+        assert release is not None
+        assert release.id == existing.id
+        assert release.projects.filter(id=self.project.id).exists()
 
 
 class MergeReleasesTest(TestCase):
@@ -225,6 +376,20 @@ class MergeReleasesTest(TestCase):
         assert Release.objects.filter(id=release.id).exists()
         assert not Release.objects.filter(id=release2.id).exists()
         assert not Release.objects.filter(id=release3.id).exists()
+
+    @patch("sentry.issues.attributes.produce_snapshot_to_kafka")
+    def test_merging_first_release_emits_snapshot(self, produce_snapshot: MagicMock) -> None:
+        release = self.create_release()
+
+        merged_release = self.create_release()
+
+        self.create_group(first_release=merged_release)
+
+        produce_snapshot.reset_mock()
+
+        Release.merge(release, [merged_release])
+
+        assert produce_snapshot.called
 
 
 class SetCommitsTestCase(TestCase):
@@ -492,6 +657,52 @@ class SetCommitsTestCase(TestCase):
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
         assert not GroupInbox.objects.filter(group=group).exists()
 
+    @patch("sentry.models.releases.set_commits.SCMIntegrationInteractionEvent")
+    @receivers_raise_on_send()
+    def test_resolution_creates_activity_when_group_already_resolved(
+        self, mock_lifecycle_event: MagicMock
+    ) -> None:
+        # A group already RESOLVED (e.g. "resolve now", no GroupResolution)
+        # whose commit later ships in a release gets a new GroupResolution. That
+        # resolution must still get a matching SET_RESOLVED_IN_RELEASE activity,
+        # even though the group's status didn't transition.
+        org = self.create_organization(owner=self.user)
+        project = self.create_project(organization=org, name="foo")
+        group = self.create_group(project=project, status=GroupStatus.RESOLVED)
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            name="test/repo",
+            provider="integrations:github",
+            integration_id=123,
+        )
+        author = CommitAuthor.objects.create(
+            organization_id=org.id, name="Foo Bar", email=self.user.email
+        )
+        author.preload_users()
+        commit = Commit.objects.create(
+            organization_id=org.id,
+            repository_id=repo.id,
+            message="fixes %s" % (group.qualified_short_id),
+            key="a" * 40,
+            author=author,
+        )
+
+        release = self.create_release(project=project, version="abcdabc")
+        release.set_commits([{"id": commit.key, "repository": repo.name}])
+
+        resolution = GroupResolution.objects.get(group=group)
+        assert resolution.release == release
+        assert Activity.objects.filter(
+            group=group,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
+            ident=resolution.id,
+        ).exists()
+        lifecycle = mock_lifecycle_event.return_value.capture.return_value.__enter__.return_value
+        lifecycle.record_halt.assert_called_once_with(
+            SCMResolutionHaltReason.ISSUE_ALREADY_RESOLVED
+        )
+        lifecycle.record_success.assert_not_called()
+
     @receivers_raise_on_send()
     def test_resolution_support_without_author(self) -> None:
         org = self.create_organization(owner=Factories.create_user())
@@ -523,15 +734,50 @@ class SetCommitsTestCase(TestCase):
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
         assert not GroupInbox.objects.filter(group=group).exists()
 
+    @receivers_raise_on_send()
+    def test_commit_resolves_only_when_released_to_issue_project(self) -> None:
+        org = self.create_organization(owner=Factories.create_user())
+        frontend_project = self.create_project(organization=org, name="frontend")
+        backend_project = self.create_project(organization=org, name="backend")
+        frontend_group = self.create_group(project=frontend_project)
+        repo = self.create_repo(project=backend_project, name="test/monorepo")
+        commit = self.create_commit(
+            repo=repo,
+            message=f"fixes {frontend_group.qualified_short_id}",
+        )
+        backend_release = self.create_release(project=backend_project, version="backend@1.0.0")
+
+        backend_release.set_commits([{"id": commit.key, "repository": repo.name}])
+
+        assert list(backend_release.projects.all()) == [backend_project]
+        assert not GroupResolution.objects.filter(
+            group=frontend_group, release=backend_release
+        ).exists()
+        assert Group.objects.get(id=frontend_group.id).status == GroupStatus.UNRESOLVED
+
+        frontend_release = self.create_release(project=frontend_project, version="frontend@1.0.0")
+        frontend_release.set_commits([{"id": commit.key, "repository": repo.name}])
+
+        resolution = GroupResolution.objects.get(group=frontend_group)
+        assert resolution.release == frontend_release
+        assert resolution.status == GroupResolution.Status.resolved
+        assert Group.objects.get(id=frontend_group.id).status == GroupStatus.RESOLVED
+
+    @patch("sentry.models.releases.set_commits.SCMIntegrationInteractionEvent")
     @patch("sentry.analytics.record")
     @receivers_raise_on_send()
-    def test_resolution_records_commit_provider(self, mock_record: MagicMock) -> None:
+    def test_resolution_records_commit_provider(
+        self, mock_record: MagicMock, mock_lifecycle_event: MagicMock
+    ) -> None:
         org = self.create_organization(owner=Factories.create_user())
         project = self.create_project(organization=org, name="foo")
         group = self.create_group(project=project)
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
         repo = Repository.objects.create(
-            organization_id=org.id, name="test/repo", provider="integrations:github"
+            organization_id=org.id,
+            name="test/repo",
+            provider="integrations:github",
+            integration_id=123,
         )
         commit = Commit.objects.create(
             organization_id=org.id,
@@ -544,6 +790,7 @@ class SetCommitsTestCase(TestCase):
         release.set_commits([{"id": commit.key, "repository": repo.name}])
 
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+        assert org.default_owner_id is not None
         assert_any_analytics_event(
             mock_record,
             IssueResolvedEvent(
@@ -559,6 +806,19 @@ class SetCommitsTestCase(TestCase):
                 issue_category=group.issue_category.name.lower(),
             ),
         )
+        mock_lifecycle_event.assert_called_once_with(
+            interaction_type=SCMIntegrationInteractionType.RESOLVE_ISSUE_VIA_COMMIT,
+            provider_key="github",
+            organization_id=org.id,
+            integration_id=repo.integration_id,
+        )
+        mock_lifecycle_event.return_value.capture.assert_called_once_with(assume_success=False)
+        capture_context = mock_lifecycle_event.return_value.capture.return_value
+        lifecycle = capture_context.__enter__.return_value
+        lifecycle.record_success.assert_called_once_with()
+        assert capture_context.mock_calls.index(
+            call.__enter__().record_success()
+        ) < capture_context.mock_calls.index(call.__exit__(None, None, None))
 
     @patch("sentry.analytics.record")
     @receivers_raise_on_send()
@@ -578,6 +838,7 @@ class SetCommitsTestCase(TestCase):
 
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
         commit = Commit.objects.get(organization_id=org.id, key="a" * 40)
+        assert org.default_owner_id is not None
         assert_any_analytics_event(
             mock_record,
             IssueResolvedEvent(
@@ -594,9 +855,31 @@ class SetCommitsTestCase(TestCase):
             ),
         )
 
+    @receivers_raise_on_send()
+    def test_resolution_attributes_to_system(self) -> None:
+        org = self.create_organization(owner=Factories.create_user())
+        project = self.create_project(organization=org, name="foo")
+        group = self.create_group(project=project)
+
+        release = self.create_release(project=project, version="abcdabc")
+        with capture_action_log() as log:
+            release.set_commits(
+                [{"id": "a" * 40, "message": "fixes %s" % (group.qualified_short_id)}]
+            )
+
+        log.assert_logged(
+            SetResolvedInReleaseAction,
+            group_id=group.id,
+            source=ActionSource.SYSTEM,
+            actor=SYSTEM_ACTOR,
+        )
+
+    @patch("sentry.models.releases.set_commits.SCMIntegrationInteractionEvent")
     @patch("sentry.analytics.record")
     @receivers_raise_on_send()
-    def test_resolution_via_pull_request_records_merge_commit(self, mock_record: MagicMock) -> None:
+    def test_resolution_via_pull_request_records_merge_commit(
+        self, mock_record: MagicMock, mock_lifecycle_event: MagicMock
+    ) -> None:
         """A group resolved by a pull request records the PR's merge commit id on
         the IssueResolvedEvent, resolved through the release's matching commit."""
         org = self.create_organization(owner=Factories.create_user())
@@ -604,7 +887,10 @@ class SetCommitsTestCase(TestCase):
         group = self.create_group(project=project)
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
         repo = Repository.objects.create(
-            organization_id=org.id, name="test/repo", provider="integrations:github"
+            organization_id=org.id,
+            name="test/repo",
+            provider="integrations:github",
+            integration_id=123,
         )
         commit = Commit.objects.create(organization_id=org.id, repository_id=repo.id, key="b" * 40)
         pull_request = self.create_pull_request(repository_id=repo.id, organization_id=org.id)
@@ -621,6 +907,7 @@ class SetCommitsTestCase(TestCase):
         release.set_commits([{"id": commit.key, "repository": repo.name}])
 
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+        assert org.default_owner_id is not None
         assert_any_analytics_event(
             mock_record,
             IssueResolvedEvent(
@@ -636,6 +923,15 @@ class SetCommitsTestCase(TestCase):
                 issue_category=group.issue_category.name.lower(),
             ),
         )
+        mock_lifecycle_event.assert_called_once_with(
+            interaction_type=SCMIntegrationInteractionType.RESOLVE_ISSUE_VIA_PR,
+            provider_key="github",
+            organization_id=org.id,
+            integration_id=repo.integration_id,
+        )
+        mock_lifecycle_event.return_value.capture.assert_called_once_with(assume_success=False)
+        lifecycle = mock_lifecycle_event.return_value.capture.return_value.__enter__.return_value
+        lifecycle.record_success.assert_called_once_with()
 
     @patch("sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound")
     @receivers_raise_on_send()
@@ -726,7 +1022,7 @@ class SetCommitsTestCase(TestCase):
         )
         commit = Commit.objects.get(repository_id=repo.id, organization_id=org.id, key="a" * 40)
         assert commit.author is not None
-        assert commit.author.email == truncatechars(commit_email, 75)
+        assert commit.author.email == truncatechars(commit_email, COMMIT_AUTHOR_EMAIL_LENGTH)
 
     @receivers_raise_on_send()
     def test_multiple_authors(self) -> None:
@@ -806,6 +1102,58 @@ class SetCommitsTestCase(TestCase):
         commit_d = Commit.objects.get(repository_id=repo.id, key="d" * 40)
         assert commit_d.author is None
 
+    @override_options({"releases.set-commits.max-commits": 2})
+    def test_keeps_only_newest_commits_over_limit(self) -> None:
+        org = self.create_organization(owner=Factories.create_user())
+        project = self.create_project(organization=org)
+        repo = Repository.objects.create(organization_id=org.id, name="test/repo")
+        release = Release.objects.create(version="abcdabc", organization=org)
+        release.add_project(project)
+        now = timezone.now()
+
+        with patch("sentry.models.releases.set_commits.logger") as mock_logger:
+            release.set_commits(
+                [
+                    {
+                        "id": "a" * 40,
+                        "repository": repo.name,
+                        "timestamp": now - timedelta(hours=2),
+                    },
+                    {"id": "b" * 40, "repository": repo.name, "timestamp": now},
+                    {
+                        "id": "c" * 40,
+                        "repository": repo.name,
+                        "timestamp": now - timedelta(hours=1),
+                    },
+                    # Ignored commits are dropped before the limit is applied.
+                    {
+                        "id": "d" * 40,
+                        "repository": repo.name,
+                        "timestamp": now + timedelta(hours=1),
+                        "message": "#skipsentry",
+                    },
+                ]
+            )
+
+        assert set(
+            ReleaseCommit.objects.filter(release=release).values_list("commit__key", flat=True)
+        ) == {"b" * 40, "c" * 40}
+        assert not Commit.objects.filter(repository_id=repo.id, key="a" * 40).exists()
+
+        release.refresh_from_db()
+        assert release.commit_count == 2
+        assert release.last_commit_id == Commit.objects.get(repository_id=repo.id, key="b" * 40).id
+
+        mock_logger.info.assert_any_call(
+            "set_commits.truncated",
+            extra={
+                "organization_id": org.id,
+                "release_id": release.id,
+                "original_count": 3,
+                "truncated_count": 2,
+            },
+        )
+
 
 class SetRefsTest(SetRefsTestCase):
     def setUp(self) -> None:
@@ -816,7 +1164,7 @@ class SetRefsTest(SetRefsTestCase):
     @patch("sentry.tasks.commits.fetch_commits")
     @receivers_raise_on_send()
     def test_simple(self, mock_fetch_commit: MagicMock) -> None:
-        refs = [
+        refs: list[dict[str, Any]] = [
             {
                 "repository": "test/repo",
                 "previousCommit": "previous-commit-id",
@@ -865,7 +1213,7 @@ class SetRefsTest(SetRefsTestCase):
     @patch("sentry.tasks.commits.fetch_commits")
     @receivers_raise_on_send()
     def test_handle_commit_ranges(self, mock_fetch_commit: MagicMock) -> None:
-        refs = [
+        refs: list[dict[str, Any]] = [
             {
                 "repository": "test/repo",
                 "previousCommit": None,
@@ -1164,7 +1512,14 @@ class ReleaseFilterBySemverTest(TestCase):
         ):
             Release.objects.filter_by_semver(self.organization.id, parse_semver("1.2.hi", ">"))
 
-    def run_test(self, operator, version, expected_releases, organization_id=None, projects=None):
+    def run_test(
+        self,
+        operator: str,
+        version: str,
+        expected_releases: list[Release],
+        organization_id: int | None = None,
+        projects: list[Project] | None = None,
+    ) -> None:
         organization_id = organization_id if organization_id else self.organization.id
         project_ids = [p.id for p in projects] if projects else None
         assert set(
@@ -1255,7 +1610,14 @@ class ReleaseFilterBySemverTest(TestCase):
 
 
 class ReleaseFilterBySemverBuildTest(TestCase):
-    def run_test(self, operator, build, expected_releases, organization_id=None, projects=None):
+    def run_test(
+        self,
+        operator: str,
+        build: str,
+        expected_releases: list[Release],
+        organization_id: int | None = None,
+        projects: list[Project] | None = None,
+    ) -> None:
         organization_id = organization_id if organization_id else self.organization.id
         project_ids = [p.id for p in projects] if projects else None
         assert set(
@@ -1297,6 +1659,118 @@ class ReleaseFilterBySemverBuildTest(TestCase):
         self.run_test("exact", "123a*", [release_3])
         self.run_test("exact", "123ab", [])
         self.run_test("exact", "123abc", [release_3])
+
+
+class ReleaseFilterByStageTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.production = self.create_environment(name="production", project=self.project)
+        self.staging = self.create_environment(name="staging", project=self.project)
+        now = timezone.now()
+
+        # Adopted in production, low adoption in staging.
+        self.adopted_in_production = self.create_release(
+            version="adopted-in-production",
+            environments=[self.production, self.staging],
+            adopted=now,
+        )
+        ReleaseProjectEnvironment.objects.filter(
+            release=self.adopted_in_production, environment=self.staging
+        ).update(adopted=None)
+
+        # Adopted in production, replaced in staging.
+        self.replaced_in_staging = self.create_release(
+            version="replaced-in-staging",
+            environments=[self.production, self.staging],
+            adopted=now,
+        )
+        ReleaseProjectEnvironment.objects.filter(
+            release=self.replaced_in_staging, environment=self.staging
+        ).update(unadopted=now)
+
+    def run_test(
+        self,
+        operator: str,
+        stage: str | list[str],
+        environment: str | int,
+        expected_releases: list[Release],
+    ) -> None:
+        assert set(
+            Release.objects.filter_by_stage(
+                self.organization.id,
+                operator,
+                stage,
+                project_ids=[self.project.id],
+                environments=[environment],
+            )
+        ) == set(expected_releases)
+
+    def test_stage_is_scoped_to_environment(self) -> None:
+        self.run_test(
+            "=",
+            ReleaseStages.ADOPTED,
+            "production",
+            [self.adopted_in_production, self.replaced_in_staging],
+        )
+        self.run_test("=", ReleaseStages.ADOPTED, "staging", [])
+        self.run_test("=", ReleaseStages.LOW_ADOPTION, "production", [])
+        self.run_test("=", ReleaseStages.LOW_ADOPTION, "staging", [self.adopted_in_production])
+        self.run_test("=", ReleaseStages.REPLACED, "production", [])
+        self.run_test("=", ReleaseStages.REPLACED, "staging", [self.replaced_in_staging])
+
+    def test_negated_stage_is_scoped_to_environment(self) -> None:
+        self.run_test("!=", ReleaseStages.ADOPTED, "production", [])
+        self.run_test(
+            "!=",
+            ReleaseStages.ADOPTED,
+            "staging",
+            [self.adopted_in_production, self.replaced_in_staging],
+        )
+
+    def test_multiple_stages_are_scoped_to_environment(self) -> None:
+        self.run_test(
+            "IN",
+            [ReleaseStages.ADOPTED, ReleaseStages.REPLACED],
+            "staging",
+            [self.replaced_in_staging],
+        )
+
+    def test_environment_id(self) -> None:
+        self.run_test(
+            "=",
+            ReleaseStages.ADOPTED,
+            self.production.id,
+            [self.adopted_in_production, self.replaced_in_staging],
+        )
+        self.run_test("=", ReleaseStages.ADOPTED, self.staging.id, [])
+        self.run_test(
+            "=", ReleaseStages.LOW_ADOPTION, self.staging.id, [self.adopted_in_production]
+        )
+
+    def test_unknown_environment(self) -> None:
+        self.run_test("=", ReleaseStages.ADOPTED, "does-not-exist", [])
+
+    def test_requires_single_environment(self) -> None:
+        with pytest.raises(InvalidSearchQuery, match="Choose a single environment"):
+            Release.objects.filter_by_stage(
+                self.organization.id, "=", ReleaseStages.ADOPTED, environments=None
+            )
+        with pytest.raises(InvalidSearchQuery, match="Choose a single environment"):
+            Release.objects.filter_by_stage(
+                self.organization.id,
+                "=",
+                ReleaseStages.ADOPTED,
+                environments=["production", "staging"],
+            )
+
+    def test_rejects_environment_that_is_not_a_name_or_id(self) -> None:
+        with pytest.raises(TypeError, match="Expected an environment name or id"):
+            Release.objects.filter_by_stage(
+                self.organization.id,
+                "=",
+                ReleaseStages.ADOPTED,
+                environments=[self.production],  # type: ignore[list-item]
+            )
 
 
 class FollowsSemverVersioningSchemeTestCase(TestCase):
@@ -2142,3 +2616,74 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
         unused_filter = Release.get_unused_filter(self.cutoff_date)
         unused_releases = Release.objects.filter(unused_filter)
         assert old_release not in unused_releases
+
+
+class WorkerKilled(BaseException):
+    pass
+
+
+class SetCommitsTransactionTest(TransactionTestCase):
+    def _swap_transaction(self, statements: list[str]) -> list[str]:
+        delete_index = None
+        for index, statement in enumerate(statements):
+            if statement.startswith('DELETE FROM "sentry_releasecommit"'):
+                delete_index = index
+                break
+        assert delete_index is not None
+        begin_index = delete_index
+        while statements[begin_index] != "BEGIN":
+            begin_index -= 1
+        commit_index = delete_index
+        while statements[commit_index] != "COMMIT":
+            commit_index += 1
+        return statements[begin_index:commit_index]
+
+    def test_swap_transaction_opens_no_subtransactions(self) -> None:
+        repo = self.create_repo(project=self.project, name="example/repo")
+        groups = [self.create_group(project=self.project) for _ in range(3)]
+        messages = [f"fixes {group.qualified_short_id}" for group in groups]
+        messages += [f"commit {i}" for i in range(len(groups), 70)]
+        commit_list: list[dict[str, Any]] = [
+            {"id": f"{i:040x}", "repository": repo.name, "message": message}
+            for i, message in enumerate(messages)
+        ]
+        commit_list.append(dict(commit_list[-1]))
+        release = self.create_release(project=self.project, version="1.0")
+
+        with CaptureQueriesContext(connection) as ctx:
+            release.set_commits(commit_list)
+
+        statements = [query["sql"] for query in ctx.captured_queries]
+        swap_statements = self._swap_transaction(statements)
+        savepoints = [s for s in swap_statements if s.startswith("SAVEPOINT")]
+        commit_upserts = [
+            s for s in swap_statements if s.startswith('INSERT INTO "sentry_commit" ')
+        ]
+        assert savepoints == []
+        assert commit_upserts == []
+        orders = ReleaseCommit.objects.filter(release=release).values_list("order", flat=True)
+        assert sorted(orders) == list(range(70))
+
+    def test_commit_update_and_issue_links_commit_together(self) -> None:
+        repo = self.create_repo(project=self.project, name="example/repo")
+        group = self.create_group(project=self.project)
+        release = self.create_release(project=self.project, version="1.0")
+        sha = "a" * 40
+        self.create_commit(repo=repo, key=sha, message="placeholder")
+        commit_list = [
+            {"id": sha, "repository": repo.name, "message": f"fixes {group.qualified_short_id}"}
+        ]
+
+        with patch.object(GroupLink.objects, "create", side_effect=WorkerKilled()):
+            with pytest.raises(WorkerKilled):
+                release.set_commits([dict(data) for data in commit_list])
+
+        commit = Commit.objects.get(repository_id=repo.id, key=sha)
+        assert commit.message == "placeholder"
+        assert not GroupLink.objects.filter(linked_id=commit.id).exists()
+
+        release.set_commits([dict(data) for data in commit_list])
+
+        commit = Commit.objects.get(repository_id=repo.id, key=sha)
+        assert commit.message == f"fixes {group.qualified_short_id}"
+        assert GroupLink.objects.filter(group_id=group.id, linked_id=commit.id).exists()

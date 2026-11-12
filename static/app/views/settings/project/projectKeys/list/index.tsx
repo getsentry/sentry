@@ -1,27 +1,26 @@
 import {Fragment, useState} from 'react';
+import {IconAdd} from '@sentry/icons/add';
+import {IconFlag} from '@sentry/icons/flag';
 import {useQuery, useMutation} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconAdd, IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {projectKeysApiOptions} from 'sentry/utils/projectKeys';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -37,6 +36,7 @@ import {KeyRow} from './keyRow';
 export default function ProjectKeys() {
   const params = useParams<{projectId: string}>();
   const location = useLocation();
+  const [cursor] = useQueryState('cursor', parseAsString);
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
   const api = useApi({persistInFlight: true});
@@ -54,7 +54,7 @@ export default function ProjectKeys() {
       orgSlug: organization.slug,
       projSlug: project.slug,
       query: {
-        cursor: decodeScalar(location.query.cursor),
+        cursor: cursor || undefined,
         per_page: 5,
       },
     }),
@@ -67,29 +67,41 @@ export default function ProjectKeys() {
   const handleRemoveKeyMutation = useMutation({
     mutationFn: (data: ProjectKey) => {
       return api.requestPromise(
-        `/projects/${organization.slug}/${project.slug}/keys/${data.id}/`,
+        getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/', {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: project.slug,
+            keyId: data.id,
+          },
+        }),
         {
           method: 'DELETE',
         }
       );
     },
     onMutate: (data: ProjectKey) => {
-      addLoadingMessage(t('Revoking key\u2026'));
+      toast.loading(t('Revoking key\u2026'));
       setKeyListState(keyList.filter(key => key.id !== data.id));
     },
     onSuccess: () => {
-      addSuccessMessage(t('Revoked key'));
+      toast.success(t('Revoked key'));
     },
     onError: () => {
       setKeyListState([...keyList]);
-      addErrorMessage(t('Unable to revoke key'));
+      toast.error(t('Unable to revoke key'));
     },
   });
 
   const handleToggleKeyMutation = useMutation({
     mutationFn: ({isActive, data}: {data: ProjectKey; isActive: boolean}) => {
       return api.requestPromise(
-        `/projects/${organization.slug}/${project.slug}/keys/${data.id}/`,
+        getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/', {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: project.slug,
+            keyId: data.id,
+          },
+        }),
         {
           method: 'PUT',
           data: {isActive},
@@ -97,7 +109,7 @@ export default function ProjectKeys() {
       );
     },
     onMutate: ({data}) => {
-      addLoadingMessage(t('Saving changes\u2026'));
+      toast.loading(t('Saving changes\u2026'));
       setKeyListState(
         keyList.map(key => {
           if (key.id === data.id) {
@@ -112,26 +124,32 @@ export default function ProjectKeys() {
       );
     },
     onSuccess: ({isActive}: {isActive: boolean}) => {
-      addSuccessMessage(isActive ? t('Enabled key') : t('Disabled key'));
+      toast.success(isActive ? t('Enabled key') : t('Disabled key'));
     },
     onError: ({isActive}: {isActive: boolean}) => {
-      addErrorMessage(isActive ? t('Error enabling key') : t('Error disabling key'));
+      toast.error(isActive ? t('Error enabling key') : t('Error disabling key'));
       setKeyListState([...keyList]);
     },
   });
 
   const handleCreateKeyMutation = useMutation({
     mutationFn: () => {
-      return api.requestPromise(`/projects/${organization.slug}/${project.slug}/keys/`, {
-        method: 'POST',
-      });
+      return api.requestPromise(
+        getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/', {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: project.slug,
+          },
+        }),
+        {method: 'POST'}
+      );
     },
     onSuccess: (updatedKey: ProjectKey) => {
       setKeyListState([...keyList, updatedKey]);
-      addSuccessMessage(t('Created a new key.'));
+      toast.success(t('Created a new key.'));
     },
     onError: () => {
-      addErrorMessage(t('Unable to create new key. Please try again.'));
+      toast.error(t('Unable to create new key. Please try again.'));
     },
   });
 
@@ -144,42 +162,6 @@ export default function ProjectKeys() {
   }
 
   const keyList = keyListState ? keyListState : keyListResponse.json;
-
-  const renderEmpty = () => {
-    return (
-      <Panel>
-        <EmptyMessage icon={<IconFlag />}>
-          {t('There are no keys active for this project.')}
-        </EmptyMessage>
-      </Panel>
-    );
-  };
-
-  const renderResults = () => {
-    const hasAccess = hasEveryAccess(['project:write'], {organization, project});
-
-    return (
-      <Fragment>
-        {keyList.map(key => (
-          <KeyRow
-            hasWriteAccess={hasAccess}
-            key={key.id}
-            projectId={project.slug}
-            project={project}
-            data={key}
-            onToggle={(isActive, data) =>
-              handleToggleKeyMutation.mutate({isActive, data})
-            }
-            onRemove={data => handleRemoveKeyMutation.mutate(data)}
-            routes={routes}
-            location={location}
-            params={params}
-          />
-        ))}
-        <Pagination pageLinks={keyListResponse.headers.Link} />
-      </Fragment>
-    );
-  };
 
   const isEmpty = !keyList.length;
   const hasAccess = hasEveryAccess(['project:write'], {organization, project});
@@ -217,7 +199,33 @@ export default function ProjectKeys() {
       <ProjectPermissionAlert project={project} />
       <RelayDsnOverrideAlert />
 
-      {isEmpty ? renderEmpty() : renderResults()}
+      {isEmpty ? (
+        <Panel>
+          <EmptyMessage icon={<IconFlag />}>
+            {t('There are no keys active for this project.')}
+          </EmptyMessage>
+        </Panel>
+      ) : (
+        <Fragment>
+          {keyList.map(key => (
+            <KeyRow
+              hasWriteAccess={hasAccess}
+              key={key.id}
+              projectId={project.slug}
+              project={project}
+              data={key}
+              onToggle={(isActive, data) =>
+                handleToggleKeyMutation.mutate({isActive, data})
+              }
+              onRemove={data => handleRemoveKeyMutation.mutate(data)}
+              routes={routes}
+              location={location}
+              params={params}
+            />
+          ))}
+          <Pagination {...getPaginationProps(keyListResponse.headers.Link)} />
+        </Fragment>
+      )}
     </div>
   );
 }

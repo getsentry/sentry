@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
+import {parseAsString} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -16,9 +17,13 @@ import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
 import {removeTracingKeysFromSearch} from 'sentry/views/performance/utils';
+
+const relatedIssuesParsers = {
+  query: parseAsString.withDefault(''),
+};
 
 type Props = {
   location: Location;
@@ -46,7 +51,9 @@ export function RelatedIssues({
       sort: 'trends',
       ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
     };
-    const currentFilter = new MutableSearch(decodeScalar(location.query.query, ''));
+    const currentFilter = new MutableSearch(
+      loadQueryParamsFromLocation(relatedIssuesParsers, location).query
+    );
     currentFilter.renameFilter('request.method', 'http.method');
     removeTracingKeysFromSearch(currentFilter);
     currentFilter
@@ -67,27 +74,24 @@ export function RelatedIssues({
     });
   };
 
-  const renderEmptyMessage = () => {
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expression of type 'string | null | undefined' can't be used to index type
-    const selectedTimePeriod = statsPeriod && DEFAULT_RELATIVE_PERIODS[statsPeriod];
-    const displayedPeriod = selectedTimePeriod
-      ? selectedTimePeriod.toLowerCase()
-      : t('given timeframe');
-
-    return (
-      <Panel>
-        <PanelBody>
-          <EmptyStateWarning>
-            <p>
-              {tct('No new issues for this transaction for the [timePeriod].', {
-                timePeriod: displayedPeriod,
-              })}
-            </p>
-          </EmptyStateWarning>
-        </PanelBody>
-      </Panel>
-    );
-  };
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expression of type 'string | null | undefined' can't be used to index type
+  const selectedTimePeriod = statsPeriod && DEFAULT_RELATIVE_PERIODS[statsPeriod];
+  const displayedPeriod = selectedTimePeriod
+    ? selectedTimePeriod.toLowerCase()
+    : t('given timeframe');
+  const emptyMessage = (
+    <Panel>
+      <PanelBody>
+        <EmptyStateWarning>
+          <p>
+            {tct('No new issues for this transaction for the [timePeriod].', {
+              timePeriod: displayedPeriod,
+            })}
+          </p>
+        </EmptyStateWarning>
+      </PanelBody>
+    </Panel>
+  );
 
   const {queryParams} = getIssuesEndpointQueryParams();
   const issueSearch = {
@@ -113,7 +117,7 @@ export function RelatedIssues({
         <GroupList
           queryParams={queryParams}
           canSelectGroups={false}
-          renderEmptyMessage={() => renderEmptyMessage()}
+          renderEmptyMessage={() => emptyMessage}
           withChart={false}
           withPagination={false}
           source="performance-related-issues"

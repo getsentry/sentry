@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from django.db import models
-from django.db.models import DateTimeField, IntegerField
+from django.db.models import DateTimeField, IntegerField, Q
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -36,7 +36,7 @@ class NotificationMessage(Model):
     error_code = IntegerField(null=True, db_index=True)
 
     # Resulting identifier from the vendor that can be leveraged for future interaction with the notification.
-    message_identifier = CharField(null=True)
+    message_identifier = CharField[str | None, str | None](null=True)
     # Reference to another notification if we choose to modify the original message or reply to it (like start a thread)
     parent_notification_message = FlexibleForeignKey("self", null=True)
 
@@ -58,6 +58,14 @@ class NotificationMessage(Model):
                 name="idx_notifmsg_group_action_date",
             ),
             models.Index(fields=["date_added"]),
+            models.Index(
+                fields=["group", "action", "open_period_start", "-date_added"],
+                condition=Q(
+                    parent_notification_message__isnull=True,
+                    error_code__isnull=True,
+                ),
+                name="idx_notifmsg_parent_lookup",
+            ),
         ]
 
     __repr__ = sane_repr("id", "message_identifier", "error_code")

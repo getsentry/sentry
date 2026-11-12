@@ -1,11 +1,11 @@
 import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {openModal} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {DatadogPatConnectModal} from 'sentry/components/seer/datadogPatConnectModal';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -58,7 +58,7 @@ export function ReauthMonitoringProviderBlock({
       testableWindowLocation.assign(responseData.redirectUrl);
     },
     onError: () => {
-      addErrorMessage(t('Failed to start reconnection.'));
+      toast.error(t('Failed to start reconnection.'));
     },
   });
 
@@ -71,7 +71,7 @@ export function ReauthMonitoringProviderBlock({
           orgSlug={organization.slug}
           isReauth
           onSuccess={() => {
-            addSuccessMessage(t('Provider reconnected.'));
+            toast.success(t('Provider reconnected.'));
             onComplete();
           }}
         />
@@ -85,7 +85,7 @@ export function ReauthMonitoringProviderBlock({
   return (
     <Container padding="xl">
       <Container padding="xl" border="primary" radius="md">
-        <Flex direction="column" gap="lg">
+        <Stack gap="lg">
           <Text>
             {t('Your %s connection has expired. Reconnect to continue.', providerLabel)}
           </Text>
@@ -99,7 +99,7 @@ export function ReauthMonitoringProviderBlock({
               {t('Reconnect')}
             </Button>
           </Flex>
-        </Flex>
+        </Stack>
       </Container>
     </Container>
   );

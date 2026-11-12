@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import control_silo_test
 
 
+@with_feature("organizations:seer-infra-telemetry-user-level-auth")
 @control_silo_test
 class OrganizationMonitoringProviderIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-monitoring-providers"
@@ -15,6 +17,16 @@ class OrganizationMonitoringProviderIndexEndpointTest(APITestCase):
 
     def test_list_requires_feature_flag(self) -> None:
         response = self.get_response(self.organization.slug)
+        assert response.status_code == 404
+
+    def test_list_requires_user_level_flag(self) -> None:
+        with self.feature(
+            {
+                "organizations:seer-infra-telemetry": True,
+                "organizations:seer-infra-telemetry-user-level-auth": False,
+            }
+        ):
+            response = self.get_response(self.organization.slug)
         assert response.status_code == 404
 
     def test_list_providers(self) -> None:

@@ -1,10 +1,11 @@
 import {Fragment, useContext, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/warning';
 import toNumber from 'lodash/toNumber';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Grid} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
@@ -16,12 +17,15 @@ import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {FormContext} from 'sentry/components/forms/formContext';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
-import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import {pulse} from 'sentry/styles/animations';
 import {PriorityLevel} from 'sentry/types/group';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
-import type {Detector, MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
+import type {
+  Detector,
+  MetricDetector,
+  MetricDetectorConfig,
+} from 'sentry/types/workflowEngine/detectors';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -38,24 +42,6 @@ import {AutomateSectionDeprecated} from 'sentry/views/detectors/components/forms
 import {IssueOwnershipSection} from 'sentry/views/detectors/components/forms/common/issueOwnershipSection';
 import {ProjectEnvironmentSection} from 'sentry/views/detectors/components/forms/common/projectEnvironmentSection';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
-import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
-import {
-  METRIC_DETECTOR_FORM_FIELDS,
-  metricDetectorFormDataToEndpointPayload,
-  metricSavedDetectorToFormData,
-  useMetricDetectorFormField,
-} from 'sentry/views/detectors/components/forms/metric/metricFormData';
-import {MetricIssuePreview} from 'sentry/views/detectors/components/forms/metric/metricIssuePreview';
-import {MetricDetectorPreviewChart} from 'sentry/views/detectors/components/forms/metric/previewChart';
-import {DetectorQueryFilterBuilder} from 'sentry/views/detectors/components/forms/metric/queryFilterBuilder';
-import {ResolveSection} from 'sentry/views/detectors/components/forms/metric/resolveSection';
-import {sanitizeDetectorQuery} from 'sentry/views/detectors/components/forms/metric/sanitizeDetectorQuery';
-import {TemplateSection} from 'sentry/views/detectors/components/forms/metric/templateSection';
-import {useAutoMetricDetectorName} from 'sentry/views/detectors/components/forms/metric/useAutoMetricDetectorName';
-import {useDatasetChoices} from 'sentry/views/detectors/components/forms/metric/useDatasetChoices';
-import {useInitialMetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/useInitialMetricDetectorFormData';
-import {useIntervalChoices} from 'sentry/views/detectors/components/forms/metric/useIntervalChoices';
-import {Visualize} from 'sentry/views/detectors/components/forms/metric/visualize';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {PriorityDot} from 'sentry/views/detectors/components/priorityDot';
@@ -66,6 +52,28 @@ import {
   getStaticDetectorThresholdPlaceholder,
 } from 'sentry/views/detectors/utils/metricDetectorSuffix';
 import {canUseMetricsEquationsInAlerts} from 'sentry/views/explore/metrics/metricsFlags';
+
+import {METRIC_DETECTOR_DRAFT_SCHEMA} from './metricDraftConfig';
+import {
+  metricDetectorFormDataToEndpointPayload,
+  metricSavedDetectorToFormData,
+} from './metricFormData';
+import type {MetricDetectorFormData} from './metricFormFields';
+import {
+  METRIC_DETECTOR_FORM_FIELDS,
+  useMetricDetectorFormField,
+} from './metricFormFields';
+import {MetricIssuePreview} from './metricIssuePreview';
+import {MetricDetectorPreviewChart} from './previewChart';
+import {DetectorQueryFilterBuilder} from './queryFilterBuilder';
+import {ResolveSection} from './resolveSection';
+import {sanitizeDetectorQuery} from './sanitizeDetectorQuery';
+import {TemplateSection} from './templateSection';
+import {useAutoMetricDetectorName} from './useAutoMetricDetectorName';
+import {useDatasetChoices} from './useDatasetChoices';
+import {useInitialMetricDetectorFormData} from './useInitialMetricDetectorFormData';
+import {useIntervalChoices} from './useIntervalChoices';
+import {Visualize} from './visualize';
 
 function MetricDetectorForm() {
   useAutoMetricDetectorName();
@@ -102,15 +110,24 @@ export function EditExistingMetricDetectorForm({detector}: {detector: Detector})
   );
 }
 
-export function NewMetricDetectorForm() {
+export function NewMetricDetectorForm({
+  duplicateDetector,
+}: {
+  duplicateDetector?: MetricDetector;
+}) {
   const initialMetricFormData = useInitialMetricDetectorFormData();
 
   return (
     <NewDetectorLayout
       detectorType="metric_issue"
+      draftSchema={METRIC_DETECTOR_DRAFT_SCHEMA}
       previewChart={<MetricDetectorPreviewChart />}
       formDataToEndpointPayload={metricDetectorFormDataToEndpointPayload}
-      initialFormData={initialMetricFormData}
+      initialFormData={
+        duplicateDetector
+          ? metricSavedDetectorToFormData(duplicateDetector)
+          : initialMetricFormData
+      }
       mapFormErrors={mapMetricDetectorFormErrors}
     >
       <MetricDetectorForm />
@@ -236,6 +253,7 @@ function useRevalidateMediumThreshold() {
 
   useEffect(() => {
     formContext.form?.validateField(METRIC_DETECTOR_FORM_FIELDS.mediumThreshold);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [highThreshold, formContext.form]);
 }
 
@@ -387,6 +405,7 @@ function IntervalPicker() {
         intervalChoices[0]![0]
       );
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [intervalChoices, formContext.form, interval, dataset]);
 
   return (
@@ -424,8 +443,8 @@ function CustomizeMetricSection({step}: {step?: number}) {
   return (
     <Container>
       <FormSection step={step} title={t('Customize Metric')}>
-        <Flex direction="column" gap="xs">
-          <DatasetRow>
+        <Stack gap="xs">
+          <Grid gap="xl" maxWidth="425px" columns="1fr 1fr">
             <DatasetField
               placeholder={t('Dataset')}
               flexibleControlStateSize
@@ -474,18 +493,16 @@ function CustomizeMetricSection({step}: {step?: number}) {
             />
             <Tooltip
               title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
-              isHoverable
               disabled={!isTransactionsDataset}
             >
               <DisabledSection disabled={isTransactionsDataset}>
                 <IntervalPicker />
               </DisabledSection>
             </Tooltip>
-          </DatasetRow>
-        </Flex>
+          </Grid>
+        </Stack>
         <Tooltip
           title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
-          isHoverable
           disabled={!isTransactionsDataset}
         >
           <DisabledSection disabled={isTransactionsDataset}>
@@ -496,7 +513,6 @@ function CustomizeMetricSection({step}: {step?: number}) {
         dataset === DetectorDataset.METRICS ? null : (
           <Tooltip
             title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
-            isHoverable
             disabled={!isTransactionsDataset}
           >
             <FilterRow disabled={isTransactionsDataset}>
@@ -540,15 +556,11 @@ function DetectSection({step}: {step?: number}) {
             <WarningIcon
               id="thresholds-warning-icon"
               tooltipProps={{
-                isHoverable: true,
                 title: tct(
                   'Your thresholds may need to be adjusted to take into account [samplingLink:sampling].',
                   {
                     samplingLink: (
-                      <ExternalLink
-                        href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer"
-                        openInNewTab
-                      />
+                      <ExternalLink href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer" />
                     ),
                   }
                 ),
@@ -558,9 +570,9 @@ function DetectSection({step}: {step?: number}) {
         }
       >
         <DetectionType />
-        <Flex direction="column">
+        <Stack>
           {(!detectionType || detectionType === 'static') && (
-            <Flex direction="column">
+            <Stack>
               <DefineThresholdParagraph>
                 <Text bold>{t('Define threshold & set priority')}</Text>
                 <Text variant="muted">
@@ -579,10 +591,10 @@ function DetectSection({step}: {step?: number}) {
                   aggregate={aggregate}
                 />
               </Stack>
-            </Flex>
+            </Stack>
           )}
           {detectionType === 'percent' && (
-            <Flex direction="column">
+            <Stack>
               <DefineThresholdParagraph>
                 <Text bold>{t('Define threshold & set priority')}</Text>
                 <Text variant="muted">
@@ -602,10 +614,10 @@ function DetectSection({step}: {step?: number}) {
                   aggregate={aggregate}
                 />
               </Stack>
-            </Flex>
+            </Stack>
           )}
           {detectionType === 'dynamic' && (
-            <Flex direction="column">
+            <Stack>
               <SelectField
                 required
                 name={METRIC_DETECTOR_FORM_FIELDS.sensitivity}
@@ -638,9 +650,9 @@ function DetectSection({step}: {step?: number}) {
                 }
                 preserveOnUnmount
               />
-            </Flex>
+            </Stack>
           )}
-        </Flex>
+        </Stack>
         {detectionType !== 'dynamic' && (
           <Fragment>
             <DefineThresholdParagraph>
@@ -682,10 +694,7 @@ function MigratedAlertWarningListener() {
             'The thresholds on this chart may look off. This is because, once saved, alerts will now take into account [samplingLink:sampling rate]. Before clicking save, take the time to update your [thresholdsLink:thresholds]. Cancel to continue running this alert in compatibility mode.',
             {
               samplingLink: (
-                <ExternalLink
-                  href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer"
-                  openInNewTab
-                />
+                <ExternalLink href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer" />
               ),
               thresholdsLink: (
                 <Link
@@ -721,13 +730,6 @@ function WarningIcon({id, tooltipProps}: {id: string; tooltipProps?: TooltipProp
 
 const StyledIconWarning = styled(IconWarning)`
   animation: ${() => pulse(1.15)} 1s ease infinite;
-`;
-
-const DatasetRow = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${p => p.theme.space.xl};
-  max-width: 425px;
 `;
 
 const FilterRow = styled('div')<{disabled: boolean}>`

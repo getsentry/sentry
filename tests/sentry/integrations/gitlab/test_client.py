@@ -1,18 +1,26 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import asdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from time import time
+from typing import Any, cast
 from unittest import mock
 from urllib.parse import quote
 
 import orjson
 import pytest
 import responses
+from responses import matchers
 
 from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.exceptions import RestrictedIPAddress
 from sentry.integrations.gitlab.blame import GitLabCommitResponse, GitLabFileBlameResponseItem
+from sentry.integrations.gitlab.client import (
+    GITLAB_WEBHOOK_REQUEST_TIMEOUT,
+    GitLabApiRequestType,
+)
 from sentry.integrations.gitlab.utils import get_rate_limit_info_from_response
 from sentry.integrations.source_code_management.commit_context import (
     CommitInfo,
@@ -23,12 +31,17 @@ from sentry.integrations.types import EventLifecycleOutcome
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
+    ApiPaginationTruncated,
     ApiRateLimitedError,
     ApiRetryError,
 )
+from sentry.shared_integrations.response import MappingApiResponse
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.identity import Identity
 from sentry.utils.cache import cache
+from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.locking.lock import Lock
 
 GITLAB_CODEOWNERS = {
     "filepath": "CODEOWNERS",
@@ -56,18 +69,213 @@ class GitLabClientTest(GitLabTestCase):
         self.original_identity_data = dict(self.gitlab_client.identity.data)
         self.gitlab_id = 123
 
+    def store_identity_data(self, **data: Any) -> None:
+        identity = Identity.objects.get(id=self.gitlab_client.identity.id)
+        identity.data.update(data)
+        identity.save()
+
+    def get_stored_identity_data(self) -> dict[str, Any]:
+        return cast(
+            "dict[str, Any]",
+            Identity.objects.get(id=self.gitlab_client.identity.id).data,
+        )
+
 
 @control_silo_test
+@freeze_time("2025-01-01T05:22:00Z")
 class GitLabGetAccessTokenTest(GitLabClientTest):
-    def test_returns_token_dict(self) -> None:
-        result = self.gitlab_client.get_access_token()
-        expected_token = self.gitlab_client.identity.data["access_token"]
-        assert result == {"access_token": expected_token, "permissions": None}
+    def set_expires(self, expires: int) -> None:
+        # The client holds the stored identity, so keep both in step.
+        self.gitlab_client.identity.data["expires"] = expires
+        self.store_identity_data(expires=expires)
 
+    @responses.activate
+    def test_returns_token_dict(self) -> None:
+        self.set_expires(int(time()) + 3600)
+
+        result = self.gitlab_client.get_access_token()
+
+        assert result == {
+            "access_token": "123456789",
+            "expires_at": "2025-01-01T06:17:00+00:00",
+            "permissions": None,
+        }
+        assert len(responses.calls) == 0
+
+    @responses.activate
     def test_returns_none_when_token_empty(self) -> None:
+        self.set_expires(int(time()) + 3600)
         self.gitlab_client.identity.data["access_token"] = ""
         result = self.gitlab_client.get_access_token()
         assert result is None
+
+    @responses.activate
+    def test_refreshes_a_token_about_to_expire(self) -> None:
+        self.set_expires(int(time()) + 60)
+        responses.add(
+            responses.POST, self.refresh_url, json={**self.refresh_response, "expires_in": 3600}
+        )
+
+        result = self.gitlab_client.get_access_token()
+
+        assert result == {
+            "access_token": "123432sfh29uhs29347",
+            "expires_at": "2025-01-01T06:17:00+00:00",
+            "permissions": None,
+        }
+        assert len(responses.calls) == 1
+        stored = self.get_stored_identity_data()
+        assert stored["access_token"] == "123432sfh29uhs29347"
+        assert stored["refresh_token"] == "29f43sdfsk22fsj929"
+        assert stored["expires"] == int(time()) + 3600
+
+    @responses.activate
+    def test_refreshes_a_token_within_the_requested_margin(self) -> None:
+        self.set_expires(int(time()) + 8 * 60)
+        responses.add(
+            responses.POST, self.refresh_url, json={**self.refresh_response, "expires_in": 3600}
+        )
+
+        result = self.gitlab_client.get_access_token(
+            token_minimum_validity_time=timedelta(minutes=10)
+        )
+
+        assert result == {
+            "access_token": "123432sfh29uhs29347",
+            "expires_at": "2025-01-01T06:12:00+00:00",
+            "permissions": None,
+        }
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_refreshes_a_token_with_no_recorded_expiry(self) -> None:
+        """GitLab before 15.0 can answer without an expiry too; the usual two hours is assumed."""
+        assert "expires" not in self.gitlab_client.identity.data
+        responses.add(responses.POST, self.refresh_url, json=self.refresh_response)
+
+        result = self.gitlab_client.get_access_token()
+
+        assert result == {
+            "access_token": "123432sfh29uhs29347",
+            "expires_at": "2025-01-01T07:17:00+00:00",
+            "permissions": None,
+        }
+        assert self.get_stored_identity_data()["expires"] == int(time()) + 7200
+
+    @responses.activate
+    def test_keeps_a_short_lived_token_for_half_its_lifetime(self) -> None:
+        self.store_identity_data(expires_in=300)
+        self.gitlab_client.identity.data["expires_in"] = 300
+        self.set_expires(int(time()) + 200)
+
+        result = self.gitlab_client.get_access_token()
+
+        assert result == {
+            "access_token": "123456789",
+            "expires_at": "2025-01-01T05:22:50+00:00",
+            "permissions": None,
+        }
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_refreshes_a_short_lived_token_only_once(self) -> None:
+        """A margin as long as the lifetime would refresh the new token again on every call."""
+        self.set_expires(int(time()) + 60)
+        responses.add(
+            responses.POST, self.refresh_url, json={**self.refresh_response, "expires_in": 300}
+        )
+
+        first = self.gitlab_client.get_access_token()
+        second = self.gitlab_client.get_access_token()
+
+        assert (
+            first
+            == second
+            == {
+                "access_token": "123432sfh29uhs29347",
+                "expires_at": "2025-01-01T05:24:30+00:00",
+                "permissions": None,
+            }
+        )
+        assert len(responses.calls) == 1
+        assert self.get_stored_identity_data()["expires_in"] == 300
+
+    @responses.activate
+    def test_returns_the_stored_token_without_a_refresh_token(self) -> None:
+        self.set_expires(int(time()) + 60)
+        del self.gitlab_client.identity.data["refresh_token"]
+
+        result = self.gitlab_client.get_access_token()
+
+        assert result == {
+            "access_token": "123456789",
+            "expires_at": "2025-01-01T05:18:00+00:00",
+            "permissions": None,
+        }
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_uses_a_token_another_request_refreshed(self) -> None:
+        # This client still holds the expiring token, while another request has
+        # since stored a fresh one. Refreshing again would use a revoked refresh token.
+        self.gitlab_client.identity.data["expires"] = int(time()) + 60
+        self.store_identity_data(access_token="fresh-token", expires=int(time()) + 7200)
+
+        result = self.gitlab_client.get_access_token()
+
+        assert result == {
+            "access_token": "fresh-token",
+            "expires_at": "2025-01-01T07:17:00+00:00",
+            "permissions": None,
+        }
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @mock.patch.object(Lock, "blocking_acquire", side_effect=UnableToAcquireLock)
+    def test_uses_a_token_stored_while_another_refresh_held_the_lock(
+        self, mock_acquire: mock.MagicMock
+    ) -> None:
+        self.gitlab_client.identity.data["expires"] = int(time()) + 60
+        self.store_identity_data(access_token="fresh-token", expires=int(time()) + 7200)
+
+        result = self.gitlab_client.get_access_token()
+
+        assert result is not None
+        assert result["access_token"] == "fresh-token"
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @mock.patch.object(Lock, "blocking_acquire", side_effect=UnableToAcquireLock)
+    def test_raises_when_another_refresh_holds_the_lock_and_stored_nothing(
+        self, mock_acquire: mock.MagicMock
+    ) -> None:
+        self.set_expires(int(time()) + 60)
+
+        with pytest.raises(UnableToAcquireLock):
+            self.gitlab_client.get_access_token()
+
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_raises_when_gitlab_refuses_the_refresh(self) -> None:
+        self.set_expires(int(time()) + 60)
+        responses.add(responses.POST, self.refresh_url, status=400, json={"error": "invalid_grant"})
+
+        with pytest.raises(IdentityNotValid):
+            self.gitlab_client.get_access_token()
+
+        assert self.get_stored_identity_data()["access_token"] == "123456789"
+
+    @responses.activate
+    def test_raises_api_error_when_gitlab_answers_without_a_token(self) -> None:
+        """A redirect or a proxy's HTML page, rather than a token."""
+        self.set_expires(int(time()) + 60)
+        responses.add(responses.POST, self.refresh_url, status=302, body="<html></html>")
+
+        with pytest.raises(ApiError):
+            self.gitlab_client.get_access_token()
+
+        assert self.get_stored_identity_data()["access_token"] == "123456789"
 
 
 @control_silo_test
@@ -80,10 +288,25 @@ class GitlabRefreshAuthTest(GitLabClientTest):
     def tearDown(self) -> None:
         responses.reset()
 
-    def make_users_request(self):
+    def make_users_request(self) -> MappingApiResponse:
         return self.gitlab_client.get_user()
 
-    def add_refresh_auth(self, success=True):
+    def add_user_responses_accepting_only_the_fresh_token(self) -> None:
+        responses.add(
+            responses.GET,
+            self.request_url,
+            status=401,
+            json={},
+            match=[matchers.header_matcher({"Authorization": "Bearer 123456789"})],
+        )
+        responses.add(
+            responses.GET,
+            self.request_url,
+            json=self.request_data,
+            match=[matchers.header_matcher({"Authorization": "Bearer fresh-token"})],
+        )
+
+    def add_refresh_auth(self, success: bool = True) -> None:
         responses.add(
             responses.POST,
             self.refresh_url,
@@ -91,7 +314,7 @@ class GitlabRefreshAuthTest(GitLabClientTest):
             json=self.refresh_response if success else {},
         )
 
-    def add_get_user_response(self, success):
+    def add_get_user_response(self, success: bool) -> None:
         responses.add(
             responses.GET,
             self.request_url,
@@ -99,23 +322,23 @@ class GitlabRefreshAuthTest(GitLabClientTest):
             status=200 if success else 401,
         )
 
-    def assert_response_call(self, call, url, status):
+    def assert_response_call(self, call: responses.Call, url: str, status: int) -> None:
         assert call.request.url == url
         assert call.response.status_code == status
 
-    def assert_data(self, data, expected_data):
+    def assert_data(self, data: Mapping[str, Any], expected_data: Mapping[str, Any]) -> None:
         assert data["access_token"] == expected_data["access_token"]
         assert data["refresh_token"] == expected_data["refresh_token"]
         assert data["created_at"] == expected_data["created_at"]
 
-    def assert_request_failed_refresh(self):
+    def assert_request_failed_refresh(self) -> None:
         responses_calls = responses.calls
         assert len(responses_calls) == 2
 
         self.assert_response_call(responses_calls[0], self.request_url, 401)
         self.assert_response_call(responses_calls[1], self.refresh_url, 401)
 
-    def assert_request_with_refresh(self):
+    def assert_request_with_refresh(self) -> None:
         responses_calls = responses.calls
         assert len(responses_calls) == 3
 
@@ -125,14 +348,14 @@ class GitlabRefreshAuthTest(GitLabClientTest):
 
         assert orjson.loads(responses_calls[2].response.text) == self.request_data
 
-    def assert_identity_was_refreshed(self):
+    def assert_identity_was_refreshed(self) -> None:
         data = self.gitlab_client.identity.data
         self.assert_data(data, self.refresh_response)
 
         data = Identity.objects.get(id=self.gitlab_client.identity.id).data
         self.assert_data(data, self.refresh_response)
 
-    def assert_identity_was_not_refreshed(self):
+    def assert_identity_was_not_refreshed(self) -> None:
         data = self.gitlab_client.identity.data
         self.assert_data(data, self.original_identity_data)
 
@@ -151,6 +374,38 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         self.assert_request_with_refresh()
         assert resp == self.request_data
         self.assert_identity_was_refreshed()
+
+    @responses.activate
+    def test_retries_with_a_token_another_request_stored(self) -> None:
+        """Refreshing with this client's refresh token would fail: the other refresh revoked it."""
+        self.store_identity_data(access_token="fresh-token", refresh_token="fresh-refresh")
+        self.add_user_responses_accepting_only_the_fresh_token()
+
+        resp = self.make_users_request()
+
+        assert resp == self.request_data
+        assert len(responses.calls) == 2
+
+    @responses.activate
+    @mock.patch.object(Lock, "blocking_acquire", side_effect=UnableToAcquireLock)
+    def test_retries_with_the_stored_token_while_another_refresh_holds_the_lock(
+        self, mock_acquire: mock.MagicMock
+    ) -> None:
+        self.store_identity_data(access_token="fresh-token")
+        self.add_user_responses_accepting_only_the_fresh_token()
+
+        assert self.make_users_request() == self.request_data
+
+    @responses.activate
+    def test_resets_the_refresh_flag_when_the_retry_fails(self) -> None:
+        self.add_get_user_response(success=False)
+        self.add_refresh_auth(success=True)
+        responses.add(responses.GET, self.request_url, status=404, json={})
+
+        with pytest.raises(ApiError):
+            self.make_users_request()
+
+        assert self.gitlab_client.is_refreshing_token is False
 
     @responses.activate
     def test_refresh_auth_fails_gracefully(self) -> None:
@@ -212,19 +467,24 @@ class GitlabRefreshAuthTest(GitLabClientTest):
             json={"text": 200},
         )
 
-        source_url = self.installation.get_stacktrace_link(self.repo, path, "master", ref)
+        with mock.patch.object(
+            self.installation,
+            "check_file",
+            wraps=self.installation.check_file,
+        ) as mock_check_file:
+            source_url = self.installation.get_stacktrace_link(self.repo, path, "master", ref)
         assert (
             source_url
             == "https://example.gitlab.com/example-repo/blob/537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3/src/file.py"
         )
-        assert (
-            len(mock_record.mock_calls) == 4
-        )  # get_stacktrace_link calls check_file, which also has metrics
-        start1, start2, halt1, halt2 = mock_record.mock_calls
-        assert start1.args[0] == EventLifecycleOutcome.STARTED
-        assert start2.args[0] == EventLifecycleOutcome.STARTED  # check_file
-        assert halt1.args[0] == EventLifecycleOutcome.SUCCESS  # check_file
-        assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
+        mock_check_file.assert_called_once_with(
+            self.repo,
+            path,
+            ref,
+        )
+        assert len(mock_record.mock_calls) == 2
+        assert mock_record.mock_calls[0].args[0] == EventLifecycleOutcome.STARTED
+        assert mock_record.mock_calls[1].args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
     @mock.patch(
@@ -245,14 +505,9 @@ class GitlabRefreshAuthTest(GitLabClientTest):
 
         source_url = self.installation.get_stacktrace_link(self.repo, path, "master", None)
         assert source_url is None
-        assert (
-            len(mock_record.mock_calls) == 4
-        )  # get_stacktrace_link calls check_file, which also has metrics
-        start1, start2, halt1, halt2 = mock_record.mock_calls
-        assert start1.args[0] == EventLifecycleOutcome.STARTED
-        assert start2.args[0] == EventLifecycleOutcome.STARTED  # check_file
-        assert halt1.args[0] == EventLifecycleOutcome.HALTED  # check_file
-        assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
+        assert len(mock_record.mock_calls) == 2
+        assert mock_record.mock_calls[0].args[0] == EventLifecycleOutcome.STARTED
+        assert mock_record.mock_calls[1].args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
     @mock.patch("requests.sessions.Session.send")
@@ -272,14 +527,9 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         with pytest.raises(ApiHostError):
             self.installation.get_stacktrace_link(self.repo, path, "master", None)
 
-        assert (
-            len(mock_record.mock_calls) == 4
-        )  # get_stacktrace_link calls check_file, which also has metrics
-        start1, start2, halt1, halt2 = mock_record.mock_calls
-        assert start1.args[0] == EventLifecycleOutcome.STARTED
-        assert start2.args[0] == EventLifecycleOutcome.STARTED  # check_file
-        assert halt1.args[0] == EventLifecycleOutcome.HALTED  # check_file
-        assert halt2.args[0] == EventLifecycleOutcome.HALTED
+        assert len(mock_record.mock_calls) == 2
+        assert mock_record.mock_calls[0].args[0] == EventLifecycleOutcome.STARTED
+        assert mock_record.mock_calls[1].args[0] == EventLifecycleOutcome.HALTED
 
     @mock.patch(
         "sentry.integrations.gitlab.integration.GitlabIntegration.check_file",
@@ -304,6 +554,11 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         )
 
         assert result == GITLAB_CODEOWNERS
+        mock_check_file.assert_called_once_with(
+            self.config.project_repository.repository,
+            "CODEOWNERS",
+            self.config.default_branch,
+        )
 
         assert (
             len(mock_record.mock_calls) == 2
@@ -459,7 +714,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
             ),
         )
 
-    def set_up_success_responses(self):
+    def set_up_success_responses(self) -> None:
         responses.add(
             responses.GET,
             url=self.make_blame_request(self.file_1),
@@ -482,7 +737,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
     def make_blame_request(self, file: SourceLineInfo) -> str:
         return f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/{quote(file.path.strip('/'), safe='')}/blame?ref={file.ref}&range[start]={file.lineno}&range[end]={file.lineno}"
 
-    def make_blame_response(self, **kwargs) -> list[GitLabFileBlameResponseItem]:
+    def make_blame_response(self, **kwargs: Any) -> list[GitLabFileBlameResponseItem]:
         return [
             GitLabFileBlameResponseItem(
                 lines=[],
@@ -802,3 +1057,93 @@ class GitLabGetMergeCommitShaFromCommitTest(GitLabClientTest):
 
         sha = self.gitlab_client.get_merge_commit_sha_from_commit(repo=self.repo, sha=commit_sha)
         assert sha is None
+
+
+@control_silo_test
+class GitLabProjectWebhookRequestTypeTest(GitLabClientTest):
+    @responses.activate
+    def test_project_webhook_listing_paginates(self) -> None:
+        hooks_url = f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/hooks"
+        responses.add(
+            responses.GET,
+            hooks_url,
+            status=200,
+            json=[{"id": 1}, {"id": 2}],
+        )
+        responses.add(
+            responses.GET,
+            hooks_url,
+            status=200,
+            json=[{"id": 3}],
+        )
+        self.gitlab_client.page_size = 2
+
+        with mock.patch.object(self.gitlab_client, "get", wraps=self.gitlab_client.get) as get:
+            hooks = self.gitlab_client.get_project_webhooks(self.gitlab_id)
+
+        assert hooks == [{"id": 1}, {"id": 2}, {"id": 3}]
+        assert [request.kwargs["timeout"] for request in get.call_args_list] == [
+            GITLAB_WEBHOOK_REQUEST_TIMEOUT,
+            GITLAB_WEBHOOK_REQUEST_TIMEOUT,
+        ]
+        assert [response.request.url for response in responses.calls] == [
+            f"{hooks_url}?page=1&per_page=2",
+            f"{hooks_url}?page=2&per_page=2",
+        ]
+
+    @responses.activate
+    def test_project_webhook_listing_fails_closed_at_page_limit(self) -> None:
+        hooks_url = f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/hooks"
+        responses.add(responses.GET, hooks_url, status=200, json=[{"id": 1}, {"id": 2}])
+        responses.add(responses.GET, hooks_url, status=200, json=[{"id": 3}, {"id": 4}])
+        self.gitlab_client.page_size = 2
+        self.gitlab_client.page_number_limit = 2
+
+        with pytest.raises(ApiPaginationTruncated) as excinfo:
+            self.gitlab_client.get_project_webhooks(self.gitlab_id)
+
+        assert excinfo.value.partial_data == [{"id": 1}, {"id": 2}, {"id": 3}, {"id": 4}]
+
+    @responses.activate
+    def test_get_project_webhook_has_request_timeout(self) -> None:
+        hooks_url = f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/hooks"
+        responses.add(responses.GET, f"{hooks_url}/7", status=200, json={"id": 7})
+
+        with mock.patch.object(self.gitlab_client, "get", wraps=self.gitlab_client.get) as get:
+            assert self.gitlab_client.get_project_webhook(self.gitlab_id, 7) == {"id": 7}
+
+        assert get.call_args.kwargs["timeout"] == GITLAB_WEBHOOK_REQUEST_TIMEOUT
+
+    @responses.activate
+    @mock.patch("sentry.shared_integrations.client.base.metrics.incr")
+    def test_hook_calls_are_tagged_by_request_type(self, mock_incr: mock.MagicMock) -> None:
+        hooks_url = f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/hooks"
+        responses.add(responses.POST, hooks_url, status=201, json={"id": 7})
+        responses.add(responses.PUT, f"{hooks_url}/7", status=200, json={"id": 7})
+        responses.add(responses.DELETE, f"{hooks_url}/7", status=204)
+
+        with (
+            mock.patch.object(self.gitlab_client, "post", wraps=self.gitlab_client.post) as post,
+            mock.patch.object(self.gitlab_client, "put", wraps=self.gitlab_client.put) as put,
+            mock.patch.object(
+                self.gitlab_client, "delete", wraps=self.gitlab_client.delete
+            ) as delete,
+        ):
+            self.gitlab_client.create_project_webhook(self.gitlab_id)
+            self.gitlab_client.update_project_webhook(self.gitlab_id, 7)
+            self.gitlab_client.delete_project_webhook(self.gitlab_id, 7)
+
+        assert post.call_args.kwargs["timeout"] == GITLAB_WEBHOOK_REQUEST_TIMEOUT
+        assert put.call_args.kwargs["timeout"] == GITLAB_WEBHOOK_REQUEST_TIMEOUT
+        assert delete.call_args.kwargs["timeout"] == GITLAB_WEBHOOK_REQUEST_TIMEOUT
+
+        for status, request_type in (
+            (201, GitLabApiRequestType.CREATE_PROJECT_WEBHOOK),
+            (200, GitLabApiRequestType.UPDATE_PROJECT_WEBHOOK),
+            (204, GitLabApiRequestType.DELETE_PROJECT_WEBHOOK),
+        ):
+            mock_incr.assert_any_call(
+                "integrations.http_response",
+                sample_rate=1.0,
+                tags={"integration": "gitlab", "status": status, "api_request_type": request_type},
+            )

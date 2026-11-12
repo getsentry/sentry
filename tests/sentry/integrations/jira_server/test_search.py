@@ -3,7 +3,10 @@ from urllib.parse import parse_qs, urlparse
 
 import responses
 from django.urls import reverse
+from requests import PreparedRequest
+from responses.matchers import query_param_matcher
 
+from sentry.integrations.models.integration import Integration
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -13,7 +16,7 @@ from . import EXAMPLE_ISSUE_SEARCH, EXAMPLE_USER_SEARCH_RESPONSE, get_integratio
 @control_silo_test
 class JiraServerSearchEndpointTest(APITestCase):
     @cached_property
-    def integration(self):
+    def integration(self) -> Integration:
         return get_integration(self.organization, self.user)
 
     @responses.activate
@@ -22,7 +25,17 @@ class JiraServerSearchEndpointTest(APITestCase):
         integration = self.integration
         responses.add(
             responses.GET,
-            'https://jira.example.org/rest/api/2/search/?jql=text ~ "test"',
+            "https://jira.example.org/rest/api/2/search/",
+            match=[
+                query_param_matcher(
+                    {
+                        "jql": 'text ~ "test"',
+                        "startAt": 0,
+                        "maxResults": 20,
+                        "fields": "summary",
+                    }
+                )
+            ],
             body=EXAMPLE_ISSUE_SEARCH,
             content_type="json",
         )
@@ -40,7 +53,17 @@ class JiraServerSearchEndpointTest(APITestCase):
         integration = self.integration
         responses.add(
             responses.GET,
-            'https://jira.example.org/rest/api/2/search/?jql=id="HSP-1"',
+            "https://jira.example.org/rest/api/2/search/",
+            match=[
+                query_param_matcher(
+                    {
+                        "jql": 'id="HSP-1"',
+                        "startAt": 0,
+                        "maxResults": 20,
+                        "fields": "summary",
+                    }
+                )
+            ],
             body=EXAMPLE_ISSUE_SEARCH,
             content_type="json",
         )
@@ -58,7 +81,17 @@ class JiraServerSearchEndpointTest(APITestCase):
         integration = self.integration
         responses.add(
             responses.GET,
-            'https://jira.example.org/rest/api/2/search/?jql=id="HSP-1"',
+            "https://jira.example.org/rest/api/2/search/",
+            match=[
+                query_param_matcher(
+                    {
+                        "jql": 'id="HSP-1"',
+                        "startAt": 0,
+                        "maxResults": 20,
+                        "fields": "summary",
+                    }
+                )
+            ],
             status=502,
             body="<p>We are down</p>",
         )
@@ -86,7 +119,10 @@ class JiraServerSearchEndpointTest(APITestCase):
             json=[{"key": "HSP", "id": "10000"}],
         )
 
-        def responder(request):
+        def responder(
+            request: PreparedRequest,
+        ) -> tuple[int, dict[str, str], str]:
+            assert request.url is not None
             query = parse_qs(urlparse(request.url).query)
             assert "HSP" == query["project"][0]
             assert "bob" == query["username"][0]

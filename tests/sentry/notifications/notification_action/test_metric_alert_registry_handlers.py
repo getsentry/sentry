@@ -4,6 +4,7 @@ from dataclasses import asdict
 from datetime import datetime
 from typing import Any
 from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
 from django.utils import timezone
@@ -69,7 +70,7 @@ class TestHandler(BaseMetricAlertHandler):
 
 
 class MetricAlertHandlerBase(BaseWorkflowTest):
-    def create_models(self):
+    def create_models(self) -> None:
         self.workflow, self.detector, _, _ = self.create_detector_and_workflow()
         self.snuba_query = self.create_snuba_query()
         self.subscription = self.create_snuba_query_subscription(snuba_query_id=self.snuba_query.id)
@@ -85,7 +86,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         self.evidence_data = MetricIssueEvidenceData(
             value=123.45,
             detector_id=self.detector.id,
-            data_packet_source_id=int(self.data_source.source_id),
+            data_packet_source_id=self.data_source.source_id,
             conditions=[
                 {
                     "id": 1,
@@ -120,7 +121,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         self.anomaly_detection_evidence_data = MetricIssueEvidenceData(
             value=anomaly_detection_result,
             detector_id=self.detector.id,
-            data_packet_source_id=int(self.data_source.source_id),
+            data_packet_source_id=self.data_source.source_id,
             conditions=[
                 {
                     "id": 1,
@@ -168,7 +169,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         priority: int | None = None,
         level: str = "error",
         evidence_data: Mapping[str, Any] | None = None,
-    ):
+    ) -> IssueOccurrence:
         if evidence_data is None:
             evidence_data = {}
 
@@ -199,7 +200,10 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         sentry_app_config: list[dict[str, Any]] | dict[str, Any] | None = None,
         sentry_app_id: str | None = None,
         target_type: ActionTarget | None = None,
-    ):
+        notes: str | None = None,
+        workflow_id: int | None = None,
+        workflow_name: str | None = None,
+    ) -> None:
         assert asdict(notification_context) == {
             "id": notification_context.id,
             "integration_id": integration_id,
@@ -208,6 +212,9 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
             "sentry_app_config": sentry_app_config,
             "sentry_app_id": sentry_app_id,
             "target_type": target_type,
+            "notes": notes,
+            "workflow_id": workflow_id,
+            "workflow_name": workflow_name,
         }
 
     def assert_alert_context(
@@ -221,7 +228,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         sensitivity: AlertRuleSensitivity | AnomalyDetectionSensitivity | None = None,
         resolve_threshold: float | None = None,
         alert_threshold: float | None = None,
-    ):
+    ) -> None:
         assert asdict(alert_context) == {
             "name": name,
             "action_identifier_id": action_identifier_id,
@@ -243,7 +250,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         metric_value: StoredMetricResult | None = None,
         subscription: QuerySubscription | None = None,
         group: Group | None = None,
-    ):
+    ) -> None:
         assert asdict(metric_issue_context) == {
             "id": metric_issue_context.id,
             "open_period_identifier": open_period_identifier,
@@ -261,14 +268,14 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         id: int,
         date_started: datetime,
         date_closed: datetime | None,
-    ):
+    ) -> None:
         assert open_period_context.dict() == {
             "id": id,
             "date_started": date_started,
             "date_closed": date_closed,
         }
 
-    def unpack_kwargs(self, mock_send_alert):
+    def unpack_kwargs(self, mock_send_alert: MagicMock) -> tuple[object, ...]:
         _, kwargs = mock_send_alert.call_args
         notification_context = kwargs["notification_context"]
         alert_context = kwargs["alert_context"]
@@ -314,6 +321,17 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
                 workflow_id=self.workflow.id,
             )
             self.handler.invoke_legacy_registry(invocation)
+
+    def test_metric_issue_context_allows_missing_metric_value(self) -> None:
+        evidence_data = MetricIssueEvidenceData(**{**asdict(self.evidence_data), "value": None})
+
+        context = MetricIssueContext.from_group_event(
+            self.group,
+            evidence_data,
+            DetectorPriorityLevel.HIGH,
+        )
+
+        assert context.metric_value is None
 
     def test_get_incident_status(self) -> None:
         # Initial priority is high -> incident is critical
@@ -421,6 +439,8 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             target_display=None,
             sentry_app_config=None,
             sentry_app_id=None,
+            workflow_id=self.workflow.id,
+            workflow_name=self.workflow.name,
         )
         self.assert_alert_context(
             alert_context,
@@ -443,7 +463,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             group=self.group_event.group,
             subscription=self.subscription,
         )
-        assert organization == self.detector.project.organization
+        assert organization == self.detector.linked_project.organization
         assert isinstance(notification_uuid, str)
 
     def test_send_alert_not_implemented(self) -> None:
@@ -507,6 +527,8 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             target_display=None,
             sentry_app_config=None,
             sentry_app_id=None,
+            workflow_id=self.workflow.id,
+            workflow_name=self.workflow.name,
         )
         self.assert_alert_context(
             alert_context,
@@ -529,7 +551,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             group=self.group,
             subscription=self.subscription,
         )
-        assert organization == self.detector.project.organization
+        assert organization == self.detector.linked_project.organization
         assert isinstance(notification_uuid, str)
 
     @mock.patch.object(TestHandler, "send_alert")
@@ -582,6 +604,8 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             target_display=None,
             sentry_app_config=None,
             sentry_app_id=None,
+            workflow_id=self.workflow.id,
+            workflow_name=self.workflow.name,
         )
         self.assert_alert_context(
             alert_context,
@@ -605,7 +629,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             group=self.group,
             subscription=self.subscription,
         )
-        assert organization == self.detector.project.organization
+        assert organization == self.detector.linked_project.organization
         assert isinstance(notification_uuid, str)
 
     def test_invoke_legacy_registry_activity_missing_data(self) -> None:

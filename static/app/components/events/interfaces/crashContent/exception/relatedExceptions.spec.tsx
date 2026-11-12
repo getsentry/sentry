@@ -2,7 +2,7 @@ import {EventEntryExceptionGroupFixture} from 'sentry-fixture/eventEntryChainedE
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
-import {RelatedExceptions} from 'sentry/components/events/interfaces/crashContent/exception/relatedExceptions';
+import {RelatedExceptions} from './relatedExceptions';
 
 describe('ExceptionGroupContext', () => {
   const entry = EventEntryExceptionGroupFixture();
@@ -74,6 +74,21 @@ describe('ExceptionGroupContext', () => {
     expect(
       within(items[2]!).getByRole('button', {name: 'ValueError: test'})
     ).toBeInTheDocument();
+  });
+
+  it('renders colored text without escape codes when given ANSI exception values', () => {
+    const allExceptions = defaultProps.allExceptions.map(exception =>
+      exception.type === 'TypeError'
+        ? {...exception, value: '\x1B[31mnested\x1B[0m failure'}
+        : exception
+    );
+
+    render(<RelatedExceptions {...defaultProps} allExceptions={allExceptions} />);
+
+    expect(
+      screen.getByRole('button', {name: 'TypeError: nested failure'})
+    ).toBeInTheDocument();
+    expect(screen.getByText('nested').style.color).toContain('color-mix(in srgb,');
   });
 
   it('does not render for sub-exception', () => {

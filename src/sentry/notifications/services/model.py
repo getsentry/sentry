@@ -5,21 +5,6 @@
 
 
 from sentry.hybridcloud.rpc import RpcModel
-from sentry.integrations.types import ExternalProviders
-
-
-class RpcExternalActor(RpcModel):
-    id: int = -1
-    team_id: int | None = None
-    user_id: int | None = None
-    organization_id: int = -1
-    integration_id: int = -1
-
-    provider: int = int(ExternalProviders.UNUSED_GH.value)
-    # The display name i.e. username, team name, channel name.
-    external_name: str = ""
-    # The unique identifier i.e user ID, channel ID.
-    external_id: str | None = None
 
 
 class RpcSubscriptionStatus(RpcModel):

@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
-import {useFetchOrganizationTags} from 'sentry/actionCreators/tags';
+import {organizationTagsApiOptions} from 'sentry/actionCreators/tags';
 import {makeFeatureFlagSearchKey} from 'sentry/components/events/featureFlags/utils';
 import {ItemType, type SearchGroup} from 'sentry/components/searchBar/types';
 import {
@@ -12,6 +13,7 @@ import {
   VALID_ISSUE_CATEGORIES,
   AI_DETECTED_ISSUE_TYPES,
   VISIBLE_ISSUE_TYPES,
+  type Tag,
   type TagCollection,
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -29,18 +31,15 @@ import {useAssignedSearchValues} from 'sentry/utils/membersAndTeams/useAssignedS
 import {useMemberUsernames} from 'sentry/utils/membersAndTeams/useMemberUsernames';
 import {escapeIssueTagKey} from 'sentry/utils/queryString';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import {useFetchOrganizationFeatureFlags} from 'sentry/views/issueList/utils/useFetchOrganizationFeatureFlags';
+
+import {organizationFeatureFlagsApiOptions} from './organizationFeatureFlagsApiOptions';
 
 type UseFetchIssueTagsParams = {
   org: Organization;
   projectIds: string[];
-  enabled?: boolean;
   end?: string;
-  includeFeatureFlags?: boolean;
-  keepPreviousData?: boolean;
   start?: string;
   statsPeriod?: string | null;
-  useCache?: boolean;
 };
 
 const PREDEFINED_FIELDS = {
@@ -84,24 +83,15 @@ const SEARCHABLE_ISSUE_CATEGORIES = VALID_ISSUE_CATEGORIES.filter(
  * Certain field keys may conflict with custom tags. In this case, the tag will be
  * renamed, e.g. `platform` -> `tags[platform]`
  */
-const renameConflictingTags = (tags: TagCollection): TagCollection => {
-  const renamedTags: TagCollection = {};
-
-  for (const [key, tag] of Object.entries(tags)) {
-    const newKey = escapeIssueTagKey(key);
-    if (key === newKey) {
-      renamedTags[key] = tag;
-    } else {
-      renamedTags[newKey] = {
-        ...tag,
-        key: newKey,
-        name: newKey,
-      };
-    }
-  }
-
-  return renamedTags;
-};
+const renameConflictingTags = (tags: Map<string, Tag>): TagCollection =>
+  // fromEntries defines own properties, so a "__proto__" tag key stays a tag
+  // instead of replacing the object's prototype.
+  Object.fromEntries(
+    Array.from(tags, ([key, tag]) => {
+      const newKey = escapeIssueTagKey(key);
+      return key === newKey ? [key, tag] : [newKey, {...tag, key: newKey, name: newKey}];
+    })
+  );
 
 /**
  * Fetches the tags from both the Errors and IssuePlatform dataset
@@ -110,51 +100,39 @@ const renameConflictingTags = (tags: TagCollection): TagCollection => {
 export const useFetchIssueTags = ({
   org,
   projectIds,
-  keepPreviousData = false,
-  useCache = true,
-  enabled = true,
-  includeFeatureFlags = false,
   ...statsPeriodParams
 }: UseFetchIssueTagsParams) => {
-  const eventsTagsQuery = useFetchOrganizationTags(
-    {
+  const eventsTagsQuery = useQuery({
+    ...organizationTagsApiOptions({
       orgSlug: org.slug,
       projectIds,
       dataset: Dataset.ERRORS,
-      useCache,
-      enabled,
-      keepPreviousData,
       ...statsPeriodParams,
-    },
-    {}
-  );
+    }),
+    placeholderData: keepPreviousData,
+  });
 
-  const issuePlatformTagsQuery = useFetchOrganizationTags(
-    {
+  const issuePlatformTagsQuery = useQuery({
+    ...organizationTagsApiOptions({
       orgSlug: org.slug,
       projectIds,
       dataset: Dataset.ISSUE_PLATFORM,
-      useCache,
-      enabled,
-      keepPreviousData,
       ...statsPeriodParams,
-    },
-    {}
-  );
+    }),
+    placeholderData: keepPreviousData,
+  });
 
   // For now, feature flag keys (see `flags` column of the ERRORS dataset) are exposed from the tags endpoint,
   // with query param useFlagsBackend=1. This is used for issue stream search suggestions.
-  const featureFlagTagsQuery = useFetchOrganizationFeatureFlags(
-    {
+  const featureFlagTagsQuery = useQuery({
+    ...organizationFeatureFlagsApiOptions({
       orgSlug: org.slug,
       projectIds,
-      useCache,
-      enabled: enabled && includeFeatureFlags, // Only make this query if includeFeatureFlags is true.
-      keepPreviousData,
+      useCache: true,
       ...statsPeriodParams,
-    },
-    {}
-  );
+    }),
+    placeholderData: keepPreviousData,
+  });
 
   const assignedValues = useAssignedSearchValues();
   const usernames = useMemberUsernames();
@@ -164,42 +142,33 @@ export const useFetchIssueTags = ({
     const issuePlatformTags = issuePlatformTagsQuery.data || [];
     const featureFlagTags = featureFlagTagsQuery.data || [];
 
-    const allTagsCollection: TagCollection = eventsTags.reduce<TagCollection>(
-      (acc, tag) => {
-        acc[tag.key] = {...tag, kind: FieldKind.TAG};
-        return acc;
-      },
-      {}
-    );
+    const tagsToMerge: Tag[] = [
+      ...eventsTags.map(tag => ({...tag, kind: FieldKind.TAG})),
+      ...issuePlatformTags.map(tag => ({...tag, kind: FieldKind.TAG})),
+      ...featureFlagTags.map(tag => ({
+        ...tag,
+        kind: FieldKind.FEATURE_FLAG,
+        key: makeFeatureFlagSearchKey(tag.key), // Update with wrapped key.
+      })),
+    ];
 
-    issuePlatformTags.forEach(tag => {
-      if (allTagsCollection[tag.key]) {
-        allTagsCollection[tag.key]!.totalValues =
-          (allTagsCollection[tag.key]!.totalValues ?? 0) + (tag.totalValues ?? 0);
+    // A Map, because tag keys like "constructor" or "__proto__" collide with
+    // properties every plain object already has.
+    const tagsByKey = new Map<string, Tag>();
+    for (const tag of tagsToMerge) {
+      const existing = tagsByKey.get(tag.key);
+      if (existing) {
+        existing.totalValues = (existing.totalValues ?? 0) + (tag.totalValues ?? 0);
       } else {
-        allTagsCollection[tag.key] = {...tag, kind: FieldKind.TAG};
+        tagsByKey.set(tag.key, tag);
       }
-    });
-
-    featureFlagTags.forEach(tag => {
-      const key = makeFeatureFlagSearchKey(tag.key);
-      if (allTagsCollection[key]) {
-        allTagsCollection[key].totalValues =
-          (allTagsCollection[key].totalValues ?? 0) + (tag.totalValues ?? 0);
-      } else {
-        allTagsCollection[key] = {
-          ...tag,
-          kind: FieldKind.FEATURE_FLAG,
-          key, // Update with wrapped key.
-        };
-      }
-    });
-
-    for (const excludedTag of EXCLUDED_TAGS) {
-      delete allTagsCollection[excludedTag];
     }
 
-    const renamedTags = renameConflictingTags(allTagsCollection);
+    for (const excludedTag of EXCLUDED_TAGS) {
+      tagsByKey.delete(excludedTag);
+    }
+
+    const renamedTags = renameConflictingTags(tagsByKey);
 
     const additionalTags = builtInIssuesFields({
       currentTags: renamedTags,
@@ -341,7 +310,7 @@ function builtInIssuesFields({
         value,
         type: ItemType.TAG_VALUE,
         children: [],
-      })) as SearchGroup[],
+      })),
       predefined: true,
     },
     [FieldKey.LAST_SEEN]: {
@@ -429,7 +398,7 @@ function builtInIssuesFields({
     ...semverFields,
   };
 
-  if (!organization.features.includes('issue-stream-progress-ui')) {
+  if (!organization.features.includes('issue-inbox')) {
     delete allFields[FieldKey.ISSUE_PROGRESS];
   }
 

@@ -1,11 +1,11 @@
 import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
-import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import type {ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
 
 import {Profile} from './profile/profile';
 import {SampledProfile} from './profile/sampledProfile';
+import type {ProfilingFormatterUnit} from './units/units';
 import {makeFormatter, makeTimelineFormatter} from './units/units';
 import {CallTreeNode} from './callTreeNode';
+import type {FlamegraphFrame} from './flamegraphFrame';
 import {Frame} from './frame';
 import {Rect} from './speedscope';
 
@@ -44,7 +44,7 @@ export class Flamegraph {
   sort: 'left heavy' | 'alphabetical' | 'call order' = 'call order';
 
   depth = 0;
-  configSpace: Rect = Rect.Empty();
+  configSpace: Rect = Rect.empty();
   root: FlamegraphFrame = {
     key: -1,
     parent: null,
@@ -60,14 +60,14 @@ export class Flamegraph {
   formatter: (value: number) => string;
   timelineFormatter: (value: number) => string;
 
-  static Empty(): Flamegraph {
+  static empty(): Flamegraph {
     return new Flamegraph(Profile.Empty, {
       inverted: false,
       sort: 'call order',
     });
   }
 
-  static Example(): Flamegraph {
+  static example(): Flamegraph {
     return new Flamegraph(SampledProfile.Example, {
       inverted: false,
       sort: 'call order',

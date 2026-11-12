@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import compassImage from 'sentry-images/spot/onboarding-compass.svg';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
@@ -11,22 +11,24 @@ import {getOverride} from 'sentry/overrideRegistry';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {RESERVED_EVENT_IDS} from 'sentry/views/issueDetails/useGroupEvent';
-import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
+
+import {useGroupId} from './groupIdContext';
+import {RESERVED_EVENT_IDS} from './useGroupEvent';
+import {useDefaultIssueEvent} from './utils';
 
 export function EventMissingBanner() {
   const location = useLocation();
   const organization = useOrganization();
   const defaultEventId = useDefaultIssueEvent();
-  const {groupId, eventId: eventIdParam} = useParams<{
+  const groupId = useGroupId();
+  const {eventId: eventIdParam} = useParams<{
     eventId: string;
-    groupId: string;
   }>();
   const eventId = eventIdParam ?? defaultEventId;
 
   const useGetMaxRetentionDays =
     getOverride('react-hook:use-get-max-retention-days') ?? (() => MAX_PICKABLE_DAYS);
-  const maxRetentionDays = useGetMaxRetentionDays();
+  const maxRetentionDays = useGetMaxRetentionDays(); // oxlint-disable-line react/hooks -- Hook comes from the override registry, which is populated before React renders.
   const statsPeriod = maxRetentionDays ? `${maxRetentionDays}d` : '30d';
 
   const baseUrl = `/organizations/${organization.slug}/issues/${groupId}/events`;
@@ -80,7 +82,7 @@ export function EventMissingBanner() {
     <Flex align="center" justify="center">
       <Flex align="center" gap="3xl">
         <img src={compassImage} alt="Compass illustration" height={122} />
-        <Flex justify="center" direction="column" gap="md">
+        <Stack justify="center" gap="md">
           <MainText>
             {tct("We couldn't track down [prep] event", {
               prep: isReservedEventId ? 'an' : 'that',
@@ -97,7 +99,7 @@ export function EventMissingBanner() {
               ))}
             </ul>
           </SubText>
-        </Flex>
+        </Stack>
       </Flex>
     </Flex>
   );

@@ -54,7 +54,7 @@ export function getTooltipText({
       return (
         <Wrapper>
           {tct(
-            "[method] because of the a data scrubbing rule in your organization's settings.",
+            "[method] because of a data scrubbing rule in your organization's settings.",
             {
               method,
             }

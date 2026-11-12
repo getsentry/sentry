@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -9,7 +9,6 @@ import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter'
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {
   SearchQueryBuilderProvider,
@@ -38,14 +37,16 @@ import {
   useQueryParamsQuery,
   useSetQueryParams,
 } from 'sentry/views/explore/queryParams/context';
-import {CrossEventQueryingDropdown} from 'sentry/views/explore/spans/crossEvents/crossEventQueryingDropdown';
-import {SpansTabCrossEventSearchBars} from 'sentry/views/explore/spans/crossEvents/crossEventSearchBars';
-import {useValidateSpansTab} from 'sentry/views/explore/spans/hooks/useValidateSpansTab';
-import {SamplesModeAggregateFilterWarning} from 'sentry/views/explore/spans/samplesModeAggregateFilterWarning';
-import {SPANS_BREAKDOWN_CURSOR_KEY} from 'sentry/views/explore/spans/spansQueryParams';
-import {SpansTabSeerComboBox} from 'sentry/views/explore/spans/spansTabSeerComboBox';
-import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
+import {ToolbarSaveAs} from 'sentry/views/explore/toolbar/toolbarSaveAs';
 import {findSuggestedColumns} from 'sentry/views/explore/utils';
+
+import {CrossEventQueryingDropdown} from './crossEvents/crossEventQueryingDropdown';
+import {SpansTabCrossEventSearchBars} from './crossEvents/crossEventSearchBars';
+import {useValidateSpansTab} from './hooks/useValidateSpansTab';
+import {SamplesModeAggregateFilterWarning} from './samplesModeAggregateFilterWarning';
+import {SPANS_BREAKDOWN_CURSOR_KEY} from './spansQueryParams';
+import {SpansTabSeerComboBox} from './spansTabSeerComboBox';
+import {ExploreSpansTour, ExploreSpansTourContext} from './tour';
 
 function SpansSearchBar({
   spanSearchQueryBuilderProps,
@@ -72,12 +73,8 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
   const crossEvents = useQueryParamsCrossEvents();
   const setQueryParams = useSetQueryParams();
   const [caseInsensitive, setCaseInsensitive] = useCaseInsensitivity();
-  const {selection} = usePageFilters();
 
   const hasCrossEvents = defined(crossEvents) && crossEvents.length > 0;
-  const hasAbsoluteDateSelection = Boolean(
-    selection.datetime.start && selection.datetime.end && !selection.datetime.period
-  );
 
   const {attributes: numberAttributes} = useSpanItemAttributes({}, 'number');
   const {attributes: stringAttributes} = useSpanItemAttributes({}, 'string');
@@ -118,6 +115,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
           : undefined,
       supportedAggregates:
         mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+      defaultToAskSeerOnFreeTextSearch: true,
       replaceRawSearchKeys: ['span.description'],
       matchKeySuggestions: [
         {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
@@ -147,11 +145,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
 
   return (
     <Layout.Main width="full">
-      <SearchQueryBuilderProvider
-        enableAISearch
-        aiSearchBadgeType="beta"
-        {...spanSearchQueryBuilderProviderProps}
-      >
+      <SearchQueryBuilderProvider enableAISearch {...spanSearchQueryBuilderProviderProps}>
         <TourElement<ExploreSpansTour>
           tourContext={ExploreSpansTourContext}
           id={ExploreSpansTour.SEARCH_BAR}
@@ -164,37 +158,66 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
         >
           {tourProps => (
             <div {...tourProps}>
-              <Grid gap="md">
+              <Grid
+                columns={{
+                  zero: '100%',
+                  xl: '1fr auto',
+                  '3xl': 'minmax(300px, auto) 1fr min-content',
+                }}
+                gap="md"
+              >
                 <Grid
-                  gap="md"
-                  columns={{
-                    'screen:sm': '1fr',
-                    'screen:md': 'minmax(300px, auto) 1fr min-content',
+                  column="1 / -1"
+                  areas={{
+                    zero: `
+                      "filters"
+                      "search"
+                      "actions"
+                    `,
+                    xl: `
+                      "filters actions"
+                      "search search"
+                    `,
+                    '3xl': '"filters search actions"',
                   }}
+                  columns={{
+                    zero: '100%',
+                    xl: '1fr auto',
+                    '3xl': 'subgrid',
+                  }}
+                  gap="md"
+                  width="100%"
                 >
-                  <StyledPageFilterBar condensed>
-                    <ProjectPageFilter
-                      resetParamsOnChange={[SPANS_BREAKDOWN_CURSOR_KEY]}
+                  <Container area="filters" justifySelf={{zero: 'stretch', sm: 'start'}}>
+                    <StyledPageFilterBar condensed>
+                      <ProjectPageFilter
+                        resetParamsOnChange={[SPANS_BREAKDOWN_CURSOR_KEY]}
+                      />
+                      <EnvironmentPageFilter
+                        resetParamsOnChange={[SPANS_BREAKDOWN_CURSOR_KEY]}
+                      />
+                      <DatePageFilter
+                        {...datePageFilterProps}
+                        resetParamsOnChange={[SPANS_BREAKDOWN_CURSOR_KEY]}
+                      />
+                    </StyledPageFilterBar>
+                  </Container>
+                  <Container area="search">
+                    <SpansSearchBar
+                      spanSearchQueryBuilderProps={spanSearchQueryBuilderProps}
                     />
-                    <EnvironmentPageFilter
-                      resetParamsOnChange={[SPANS_BREAKDOWN_CURSOR_KEY]}
-                    />
-                    <DatePageFilter
-                      {...datePageFilterProps}
-                      resetParamsOnChange={[SPANS_BREAKDOWN_CURSOR_KEY]}
-                    />
-                  </StyledPageFilterBar>
-                  <SpansSearchBar
-                    spanSearchQueryBuilderProps={spanSearchQueryBuilderProps}
-                  />
-                  <CrossEventQueryingDropdown />
-                  {hasCrossEvents && !hasAbsoluteDateSelection ? (
-                    <SpansTabCrossEventSearchBars />
-                  ) : null}
+                  </Container>
+                  <Flex
+                    area="actions"
+                    align="start"
+                    gap="md"
+                    justifySelf={{zero: 'stretch', sm: 'end'}}
+                  >
+                    <CrossEventQueryingDropdown />
+                    <ToolbarSaveAs />
+                  </Flex>
                 </Grid>
-                {hasCrossEvents && hasAbsoluteDateSelection ? (
-                  <SpansTabCrossEventSearchBars hasIndependentDateColumn />
-                ) : null}
+                {hasCrossEvents ? <SpansTabCrossEventSearchBars /> : null}
               </Grid>
             </div>
           )}

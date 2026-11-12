@@ -4,7 +4,8 @@ from unittest.mock import Mock, patch
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
 from sentry.integrations.github_copilot.models import GithubCopilotTask
-from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentStatus
+from sentry.seer.autofix.constants import CodingAgentStatus
+from sentry.seer.autofix.utils import CodingAgentProviderType
 from sentry.seer.models import SeerRepoDefinition
 from sentry.testutils.cases import TestCase
 
@@ -123,6 +124,7 @@ class GithubCopilotAgentClientTest(TestCase):
             "id": "task-123",
             "state": "in_progress",
             "created_at": "2024-06-01T12:00:00Z",
+            "html_url": "https://github.com/getsentry/sentry/copilot/tasks/task-123",
         }
         mock_response.status_code = 200
         mock_post.return_value = mock_response
@@ -136,6 +138,7 @@ class GithubCopilotAgentClientTest(TestCase):
         assert result.status == CodingAgentStatus.RUNNING
         assert result.provider == CodingAgentProviderType.GITHUB_COPILOT_AGENT
         assert result.started_at == datetime(2024, 6, 1, 12, 0, 0, tzinfo=UTC)
+        assert result.agent_url == "https://github.com/getsentry/sentry/copilot/tasks/task-123"
 
     @patch.object(GithubCopilotAgentClient, "post")
     def test_launch_with_missing_created_at(self, mock_post: Mock) -> None:

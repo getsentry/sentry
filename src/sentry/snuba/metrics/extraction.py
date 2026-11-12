@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from collections import defaultdict
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import Enum
@@ -20,13 +19,11 @@ from sentry.api.event_search import (
     SearchKey,
     SearchValue,
 )
-from sentry.constants import DataCategory
 from sentry.discover.arithmetic import is_equation
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
-from sentry.options.rollout import in_random_rollout
 from sentry.relay.types import RuleCondition
 from sentry.search.events import fields
 from sentry.search.events.builder.discover import UnresolvedQuery
@@ -35,16 +32,12 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, parse_mri
 from sentry.snuba.metrics.utils import MetricOperationType
 from sentry.utils import metrics
-from sentry.utils.hashlib import md5_text
 from sentry.utils.snuba import is_measurement, is_span_op_breakdown, resolve_column
 
 logger = logging.getLogger(__name__)
 
 # Functions that are not allowed for on-demand metric querying.
 OPS_DISALLOWED: set[str] = {"count_unique", "user_misery"}
-
-# Splits the bulk cache for on-demand resolution into N chunks
-WIDGET_QUERY_CACHE_MAX_CHUNKS = 6
 
 
 # This helps us control the different spec versions
@@ -79,21 +72,23 @@ class OnDemandMetricSpecVersioning:
     ]
 
     @classmethod
-    def get_query_spec_version(cls: Any, organization_id: int) -> SpecVersion:
+    def get_query_spec_version(
+        cls: type[OnDemandMetricSpecVersioning], organization_id: int
+    ) -> SpecVersion:
         return cls.spec_versions[0]
 
     @classmethod
-    def get_spec_versions(cls: Any) -> Sequence[SpecVersion]:
+    def get_spec_versions(cls: type[OnDemandMetricSpecVersioning]) -> Sequence[SpecVersion]:
         """Get all spec versions."""
         return cls.spec_versions
 
     @classmethod
-    def get_default_spec_version(cls: Any) -> SpecVersion:
+    def get_default_spec_version(cls: type[OnDemandMetricSpecVersioning]) -> SpecVersion:
         return cls.spec_versions[0]
 
 
 # Name component of MRIs used for custom alert metrics.
-CUSTOM_ALERT_METRIC_NAME = "transactions/on_demand"
+CUSTOM_ALERT_METRIC_NAME = "spans/on_demand"
 QUERY_HASH_KEY = "query_hash"
 
 # Comparison operators used by Relay.
@@ -639,39 +634,8 @@ def should_use_on_demand_metrics(
     query: str,
     groupbys: Sequence[str] | None = None,
     prefilling: bool = False,
-    organization_bulk_query_cache: dict[int, dict[str, bool]] | None = None,
     prefilling_for_deprecation: bool = False,
 ) -> bool:
-    if in_random_rollout("on_demand_metrics.cache_should_use_on_demand"):
-        if organization_bulk_query_cache is None:
-            organization_bulk_query_cache = defaultdict(dict)
-
-        dataset_str = dataset.value if isinstance(dataset, Enum) else str(dataset or "")
-        groupbys_str = ",".join(sorted(groupbys)) if groupbys else ""
-        local_cache_md5 = md5_text(
-            f"{dataset_str}-{aggregate}-{query or ''}-{groupbys_str}-prefilling={prefilling}"
-        )
-        local_cache_digest_chunk = local_cache_md5.digest()[0] % WIDGET_QUERY_CACHE_MAX_CHUNKS
-        local_cache_key = local_cache_md5.hexdigest()
-        cached_result = organization_bulk_query_cache.get(local_cache_digest_chunk, {}).get(
-            local_cache_key, None
-        )
-        if cached_result:
-            metrics.incr("on_demand_metrics.should_use_on_demand_metrics.cache_hit")
-            return cached_result
-        else:
-            result = _should_use_on_demand_metrics(
-                dataset=dataset,
-                aggregate=aggregate,
-                query=query,
-                groupbys=groupbys,
-                prefilling=prefilling,
-                prefilling_for_deprecation=prefilling_for_deprecation,
-            )
-            metrics.incr("on_demand_metrics.should_use_on_demand_metrics.cache_miss")
-            organization_bulk_query_cache[local_cache_digest_chunk][local_cache_key] = result
-            return result
-
     return _should_use_on_demand_metrics(
         dataset=dataset,
         aggregate=aggregate,
@@ -1373,7 +1337,7 @@ class OnDemandMetricSpec:
             extended_tags_conditions.append(self._tag_for_field("environment"))
 
         metric_spec: MetricSpec = {
-            "category": DataCategory.TRANSACTION.api_name(),
+            "category": "transaction",
             "mri": self.mri,
             "field": self.field_to_extract,
             "tags": extended_tags_conditions,
@@ -1506,7 +1470,7 @@ class OnDemandMetricSpec:
                 return FieldParsingResult(function=function, arguments=arguments, alias=alias)
 
             # TODO: why is this here?
-            column = query_builder.resolve_column(value)
+            column = cast("FieldParsingResult", query_builder.resolve_column(value))
             return column
         except InvalidSearchQuery as e:
             raise OnDemandMetricSpecError(
@@ -1619,7 +1583,7 @@ def _get_satisfactory_metric(project: Project) -> str:
     if len(result) == 0:
         metric = TransactionMetric.DURATION.value
     else:
-        metric = result[0][0]
+        metric = cast(int, result[0][0])
 
     if metric == TransactionMetric.DURATION.value:
         metric_field = "transaction.duration"

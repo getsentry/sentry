@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from hashlib import md5
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from django.http.request import HttpRequest
 from django.utils.functional import classproperty
@@ -12,7 +12,7 @@ from sentry.ratelimits import backend as ratelimiter
 from sentry.utils.otp import TOTP
 from sentry.utils.sms import phone_number_as_e164, send_sms, sms_available
 
-from .base import ActivationMessageResult, OtpMixin
+from .base import ActivationMessageResult, ActivationRateLimited, OtpMixin
 
 if TYPE_CHECKING:
     from django.utils.functional import _StrPromise
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger("sentry.auth")
 
 
-class SMSRateLimitExceeded(Exception):
+class SMSRateLimitExceeded(ActivationRateLimited):
     def __init__(self, phone_number: str, user_id: int | None, remote_ip: str | None) -> None:
         super().__init__()
         self.phone_number = phone_number
@@ -55,7 +55,7 @@ class SmsInterface(OtpMixin):
         return TOTP(self.config["secret"], digits=6, interval=self.code_ttl, default_window=1)
 
     @property
-    def phone_number(self) -> str:
+    def phone_number(self) -> str | None:
         return self.config["phone_number"]
 
     @phone_number.setter
@@ -75,7 +75,8 @@ class SmsInterface(OtpMixin):
                     "A confirmation code was sent to %(phone_mask)s. "
                     "It is valid for %(ttl)d seconds."
                 )
-                % {"phone_mask": "<strong>%s</strong>" % mask, "ttl": self.code_ttl}
+                % {"phone_mask": "<strong>%s</strong>" % mask, "ttl": self.code_ttl},
+                expires_in=self.code_ttl,
             )
         return ActivationMessageResult(
             _(
@@ -108,7 +109,7 @@ class SmsInterface(OtpMixin):
         else:
             user_id = None
 
-        phone_number = phone_number_as_e164(self.phone_number)
+        phone_number = phone_number_as_e164(cast("str", self.phone_number))
 
         if ratelimiter.is_limited(
             f"sms:{md5(phone_number.encode('utf-8')).hexdigest()}",

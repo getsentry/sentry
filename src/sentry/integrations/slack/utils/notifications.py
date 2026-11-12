@@ -11,7 +11,7 @@ from slack_sdk.errors import SlackApiError, SlackRequestError
 from slack_sdk.webhook import WebhookClient
 
 from sentry import features
-from sentry.constants import METRIC_ALERTS_THREAD_DEFAULT, ObjectStatus
+from sentry.constants import METRIC_ALERTS_THREAD_DEFAULT
 from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import (
@@ -41,6 +41,8 @@ from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.threads import NotificationActionThreadUtils
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.notifications.platform.shadow.capture import record_legacy_render
+from sentry.notifications.platform.types import NotificationProviderKey
 from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
     DetectorSerializerResponse,
@@ -129,6 +131,9 @@ def _build_notification_payload(
     open_period_context: OpenPeriodContext,
     detector_serialized_response: DetectorSerializerResponse | None,
     notification_uuid: str | None,
+    notes: str | None = None,
+    workflow_id: int | None = None,
+    workflow_name: str | None = None,
 ) -> tuple[str, str]:
     chart_url = None
     if features.has("organizations:metric-alert-chartcuterie", organization):
@@ -151,10 +156,18 @@ def _build_notification_payload(
         date_started=open_period_context.date_started,
         chart_url=chart_url,
         notification_uuid=notification_uuid,
+        notes=notes,
+        workflow_id=workflow_id,
+        workflow_name=workflow_name,
     ).build()
     text = str(attachment["text"])
     blocks = {"blocks": attachment["blocks"], "color": attachment["color"]}
     attachments = orjson.dumps([blocks]).decode()
+    record_legacy_render(
+        NotificationProviderKey.SLACK,
+        {"attachments": attachments, "text": text},
+        chart_url=chart_url,
+    )
 
     return attachments, text
 
@@ -284,14 +297,13 @@ def send_incident_alert_notification(
     notification_uuid: str | None = None,
 ) -> bool:
     # Make sure organization integration is still active:
-    result = integration_service.organization_context(
+    active = integration_service.organization_context(
         organization_id=organization.id, integration_id=notification_context.integration_id
-    )
-    integration = result.integration
-    org_integration = result.organization_integration
-    if org_integration is None or integration is None or integration.status != ObjectStatus.ACTIVE:
-        # Integration removed, but rule is still active.
+    ).active()
+    if active is None:
+        # Integration removed or disabled, but rule is still active.
         return False
+    integration, _ = active
 
     channel = notification_context.target_identifier
     if channel is None:
@@ -305,6 +317,9 @@ def send_incident_alert_notification(
         open_period_context=open_period_context,
         notification_uuid=notification_uuid,
         detector_serialized_response=detector_serialized_response,
+        notes=notification_context.notes,
+        workflow_id=notification_context.workflow_id,
+        workflow_name=notification_context.workflow_name,
     )
     return _handle_workflow_engine_notification(
         organization=organization,

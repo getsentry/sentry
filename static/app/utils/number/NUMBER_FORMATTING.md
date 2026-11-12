@@ -9,7 +9,7 @@ Each entry shows the function signature, the rounding/precision logic, and concr
 
 ### `getDuration(seconds, fixedDigits?, abbreviation?, extraShort?, absolute?, minimumUnit?)`
 
-[getDuration.tsx](getDuration.tsx) · Picks the largest fitting unit (year → microsecond) and formats using `value.toFixed(fixedDigits)`. `fixedDigits` defaults to **0** (whole numbers). Supports three label modes: long (`"3 seconds"`), abbreviated (`"3s"`/`"3sec"`), and extra-short (`"3s"`). Negative values are preserved unless `absolute=true`. `minimumUnit` forces a floor unit (e.g. 55 s with `minimumUnit=MINUTE` → `"1 minute"`).
+[getDuration.tsx](../duration/getDuration.tsx) · Picks the largest fitting unit (year → microsecond) and formats using `value.toFixed(fixedDigits)`. `fixedDigits` defaults to **0** (whole numbers). Supports three label modes: long (`"3 seconds"`), abbreviated (`"3s"`/`"3sec"`), and extra-short (`"3s"`). Negative values are preserved unless `absolute=true`. `minimumUnit` forces a floor unit (e.g. 55 s with `minimumUnit=MINUTE` → `"1 minute"`).
 
 | Input (seconds) | `fixedDigits` | Options              | Output            |
 | --------------- | ------------- | -------------------- | ----------------- |
@@ -30,7 +30,7 @@ Each entry shows the function signature, the rounding/precision logic, and concr
 
 ### `getExactDuration(seconds, abbreviation?, precision?)`
 
-[getExactDuration.tsx](getExactDuration.tsx) · Decomposes the full duration into every applicable unit and shows them all. Uses `lodash/round` + integer arithmetic (`Math.floor`/`Math.ceil`). **No fractional display** — each component is a whole number. `precision` truncates output at a given suffix level.
+[getExactDuration.tsx](../duration/getExactDuration.tsx) · Decomposes the full duration into every applicable unit and shows them all. Uses `lodash/round` + integer arithmetic (`Math.floor`/`Math.ceil`). **No fractional display** — each component is a whole number. `precision` truncates output at a given suffix level.
 
 | Input (seconds) | Options             | Output                             |
 | --------------- | ------------------- | ---------------------------------- |
@@ -44,7 +44,7 @@ Each entry shows the function signature, the rounding/precision logic, and concr
 
 ### `formatSecondsToClock(seconds, {padAll?})`
 
-[formatSecondsToClock.tsx](static/app/utils/duration/formatSecondsToClock.tsx) · Clock display (`H:MM:SS` or `HH:MM:SS`). Rounds to the nearest integer millisecond via `lodash/round`. Appends `.mmm` if milliseconds remain. Zero/NaN → `"0:00"`.
+[formatSecondsToClock.tsx](../duration/formatSecondsToClock.tsx) · Clock display (`H:MM:SS` or `HH:MM:SS`). Rounds to the nearest integer millisecond via `lodash/round`. Appends `.mmm` if milliseconds remain. Zero/NaN → `"0:00"`.
 
 | Input (seconds) | Options       | Output          |
 | --------------- | ------------- | --------------- |
@@ -58,7 +58,7 @@ Each entry shows the function signature, the rounding/precision logic, and concr
 
 ### `formatDuration({duration, precision, style})`
 
-[formatDuration.tsx](static/app/utils/duration/formatDuration.tsx) · Multi-format duration renderer. `Math.floor` for clock/ISO8601 decomposition; raw division for `count` style. Accepts any `[value, unit]` pair and converts to the target `precision` unit.
+[formatDuration.tsx](../duration/formatDuration.tsx) · Multi-format duration renderer. `Math.floor` for clock/ISO8601 decomposition; raw division for `count` style. Accepts any `[value, unit]` pair and converts to the target `precision` unit.
 
 | Input                      | `style`         | Output          |
 | -------------------------- | --------------- | --------------- |
@@ -72,7 +72,7 @@ Each entry shows the function signature, the rounding/precision logic, and concr
 
 ### `formatTraceDuration(duration_ms, precision?)`
 
-[formatTraceDuration.tsx](static/app/utils/duration/formatTraceDuration.tsx) · GC-friendly single-unit formatter for the trace view. Picks the best unit (ms/s/m/h/d) and formats with `value.toFixed(precision)`. Default **2 decimal places**. Returns `"0ms"` for `<= 0`.
+[formatTraceDuration.tsx](../duration/formatTraceDuration.tsx) · GC-friendly single-unit formatter for the trace view. Picks the best unit (ms/s/m/h/d) and formats with `value.toFixed(precision)`. Default **2 decimal places**. Returns `"0ms"` for `<= 0`.
 
 | Input (ms) | `precision` | Output       |
 | ---------- | ----------- | ------------ |
@@ -86,7 +86,7 @@ Each entry shows the function signature, the rounding/precision logic, and concr
 
 ### `axisDuration(milliseconds, durationUnit?)`
 
-[axisDuration.tsx](static/app/utils/duration/axisDuration.tsx) · Y-axis label formatter. Always **0 decimal places** (`toFixed(0)`) — intentionally sacrifices sub-unit accuracy for consistent label sizing. Returns `"0"` for zero (no unit suffix).
+[axisDuration.tsx](../duration/axisDuration.tsx) · Y-axis label formatter. Always **0 decimal places** (`toFixed(0)`) — intentionally sacrifices sub-unit accuracy for consistent label sizing. Returns `"0"` for zero (no unit suffix).
 
 | Input (ms) | Output    |
 | ---------- | --------- |
@@ -100,7 +100,7 @@ Each entry shows the function signature, the rounding/precision logic, and concr
 
 ### `formatYAxisDuration(milliseconds)`
 
-[formatYAxisDuration.tsx](static/app/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisDuration.tsx) · Dashboard widget Y-axis. Divides by the chosen unit multiplier then calls `toLocaleString()` with no explicit precision. Trusts ECharts to supply round axis values. Covers year/month/week/day/hr/min/s/ms/μs/ns.
+[formatYAxisDuration.tsx](../../views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisDuration.tsx) · Dashboard widget Y-axis. Divides by the chosen unit multiplier then calls `toLocaleString()` with no explicit precision. Trusts ECharts to supply round axis values. Covers year/month/week/day/hr/min/s/ms/μs/ns.
 
 | Input (ms) | Output    |
 | ---------- | --------- |
@@ -129,22 +129,9 @@ Each entry shows the function signature, the rounding/precision logic, and concr
 
 ---
 
-### `formatPercent(value)` (dynamic sampling)
-
-[formatPercent.tsx](static/app/views/settings/dynamicSampling/utils/formatPercent.tsx) · Input is already a **percentage (0–100)**. Uses `Math.round(value * 100 * 100) / 100` as a guard against floating-point drift (e.g. `89.9999 → 90`), then `formatFloat` which **truncates** (not rounds) to **2 decimal places**.
-
-| Input     | Output                     |
-| --------- | -------------------------- |
-| `50`      | `"50"`                     |
-| `12.345`  | `"12.34"`                  |
-| `89.9999` | `"90"` (round guard fires) |
-| `0.1`     | `"0.1"`                    |
-
----
-
 ### `formatYAxisValue(value, 'percentage', ...)` / `formatTooltipValue(value, 'percentage', ...)`
 
-[formatYAxisValue.tsx](static/app/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue.tsx) · Y-axis uses **3 dp** (`formatPercentage(value, 3)`); tooltip uses **2 dp** (`formatPercentage(value, 2)`).
+[formatYAxisValue.tsx](../../views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue.tsx) · Y-axis uses **3 dp** (`formatPercentage(value, 3)`); tooltip uses **2 dp** (`formatPercentage(value, 2)`).
 
 | Input     | Context | Output      |
 | --------- | ------- | ----------- |
@@ -178,8 +165,8 @@ Each entry shows the function signature, the rounding/precision logic, and concr
 | Input (bytes) | Output      |
 | ------------- | ----------- |
 | `500`         | `"500 B"`   |
-| `1000`        | `"1 KB"`    |
-| `1500`        | `"1.5 KB"`  |
+| `1000`        | `"1 kB"`    |
+| `1500`        | `"1.5 kB"`  |
 | `1000000`     | `"1 MB"`    |
 | `1234567`     | `"1.23 MB"` |
 | `1000000000`  | `"1 GB"`    |
@@ -217,18 +204,19 @@ Each entry shows the function signature, the rounding/precision logic, and concr
 
 ### `formatAbbreviatedNumber(number, maximumSignificantDigits?, includeDecimals?)`
 
-[formatters.tsx](../formatters.tsx) · K/M/B abbreviations. If `shortValue > 10` or evenly divisible → integer. Otherwise truncates (via `formatFloat`) to `maxSigDigits` (default **1**). Falls through to `toLocaleString` for numbers < 1 000.
+[formatters.tsx](../formatters.tsx) · K/M/B/T abbreviations (maximum multiplier: **T**, trillions / `1e12`). If `shortValue > 10` or evenly divisible → integer. Otherwise truncates (via `formatFloat`) to `maxSigDigits` (default **1**). Falls through to `toLocaleString` for numbers < 1 000. Values ≥ 1 000 T (`1e15`) exceed the largest suffix and render as e.g. `"1000T"`.
 
-| Input        | `maxSigDigits` | `includeDecimals` | Output    |
-| ------------ | -------------- | ----------------- | --------- |
-| `999`        | —              | —                 | `"999"`   |
-| `1000`       | —              | —                 | `"1K"`    |
-| `1500`       | —              | —                 | `"1.5K"`  |
-| `15000`      | —              | —                 | `"15K"`   |
-| `1234567`    | —              | —                 | `"1.2M"`  |
-| `1234567`    | `3`            | —                 | `"1.23M"` |
-| `1000000000` | —              | —                 | `"1B"`    |
-| `-1500`      | —              | —                 | `"-1.5K"` |
+| Input           | `maxSigDigits` | `includeDecimals` | Output    |
+| --------------- | -------------- | ----------------- | --------- |
+| `999`           | —              | —                 | `"999"`   |
+| `1000`          | —              | —                 | `"1K"`    |
+| `1500`          | —              | —                 | `"1.5K"`  |
+| `15000`         | —              | —                 | `"15K"`   |
+| `1234567`       | —              | —                 | `"1.2M"`  |
+| `1234567`       | `3`            | —                 | `"1.23M"` |
+| `1000000000`    | —              | —                 | `"1B"`    |
+| `1000000000000` | —              | —                 | `"1T"`    |
+| `-1500`         | —              | —                 | `"-1.5K"` |
 
 ---
 
@@ -245,6 +233,7 @@ Each entry shows the function signature, the rounding/precision logic, and concr
 | `12345`   | `"12.3K"` |
 | `123456`  | `"123K"`  |
 | `1234567` | `"1.23M"` |
+| `1e12`    | `"1T"`    |
 
 ---
 
@@ -264,15 +253,15 @@ Each entry shows the function signature, the rounding/precision logic, and concr
 
 ### `formatYAxisValue(value, 'number'/'integer', ...)`
 
-[formatYAxisValue.tsx](static/app/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue.tsx) · Integers → `formatAbbreviatedNumber`. Non-integers → `toLocaleString({maximumFractionDigits: 20})` (full precision, trusts ECharts to provide round values).
+[formatYAxisValue.tsx](../../views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue.tsx) · Integers → `formatAbbreviatedNumber`. Non-integers → `toLocaleString({maximumFractionDigits: 20})` (full precision, trusts ECharts to provide round values).
 
 ### `formatYAxisValue(value, 'number'/'integer', ...)`
 
-[formatYAxisValue.tsx](static/app/views/dashboards/widgets/heatMapWidget/formatters/formatYAxisValue.tsx) · NOTE: This function is ONLY for HEAT MAPS! Integers → `formatAbbreviatedNumber`. Non-integers → `formatNumberWithDynamicDecimalPoints(value)` (ECharts treats heat map y-axis as categories so it will not do a great job at formatting and providing round values. Hence we are rounding them off ourselves).
+[formatYAxisValue.tsx](../../views/dashboards/widgets/heatMapWidget/formatters/formatYAxisValue.tsx) · NOTE: This function is ONLY for HEAT MAPS! Integers → `formatAbbreviatedNumber`. Non-integers → `formatNumberWithDynamicDecimalPoints(value)` (ECharts treats heat map y-axis as categories so it will not do a great job at formatting and providing round values. Hence we are rounding them off ourselves).
 
 ### `formatTooltipValue(value, 'number'/'integer', ...)`
 
-[formatTooltipValue.tsx](static/app/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue.tsx) · `toLocaleString({maximumFractionDigits: 4})`. If `0 < value < 0.0001`: switches to `{maximumSignificantDigits: 4}` to avoid `"0.0000"`.
+[formatTooltipValue.tsx](../../views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue.tsx) · `toLocaleString({maximumFractionDigits: 4})`. If `0 < value < 0.0001`: switches to `{maximumSignificantDigits: 4}` to avoid `"0.0000"`.
 
 | Input        | Context | Output                   |
 | ------------ | ------- | ------------------------ |
@@ -302,7 +291,7 @@ Each entry shows the function signature, the rounding/precision logic, and concr
 
 ### `formatYAxisValue(value, 'rate', unit)` / `formatTooltipValue(value, 'rate', unit)`
 
-[formatYAxisValue.tsx](static/app/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue.tsx) · Y-axis uses compact notation with up to **6 significant digits**. Tooltip delegates to `formatRate` (**3 sig figs**).
+[formatYAxisValue.tsx](../../views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue.tsx) · Y-axis uses compact notation with up to **6 significant digits**. Tooltip delegates to `formatRate` (**3 sig figs**).
 
 | Input      | Context | Output        |
 | ---------- | ------- | ------------- |
@@ -328,7 +317,7 @@ Each entry shows the function signature, the rounding/precision logic, and concr
 
 ### `displayPrice({cents, formatBigNum?})` / `displayPriceWithCents({cents})` / `displayUnitPrice({cents})`
 
-[amCheckout/utils.tsx](static/gsApp/views/amCheckout/utils.tsx) · Billing price display. Input is always in **cents**. Hardcoded `'en-US'` locale.
+[gsApp/utils/billing.tsx](../../../gsApp/utils/billing.tsx) · Billing price display. Input is always in **cents**. Hardcoded `'en-US'` locale.
 
 | Function                | Input (cents) | Output                  |
 | ----------------------- | ------------- | ----------------------- |
@@ -345,14 +334,11 @@ Each entry shows the function signature, the rounding/precision logic, and concr
 | Method                                      | Used In                                                                  | Behavior                                        |
 | ------------------------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------- |
 | `lodash/round`                              | `formatPercentage`, `getExactDuration`, `formatSecondsToClock`           | Round half-away from zero                       |
-| `Math.round`                                | `formatPercent` (pre-truncation guard)                                   | Round half-up                                   |
 | `Math.floor` + `parseInt` truncation        | `formatFloat`, `formatAbbreviatedNumber`, `formatDuration` clock/ISO     | Truncate toward zero (floor for positives)      |
 | `.toFixed(n)`                               | `formatTraceDuration`, `axisDuration`, `getDuration`, `formatBytesBase2` | JS spec: round half-up; forces exactly n digits |
 | `Intl roundingMode: 'trunc'`                | `formatApdex`                                                            | Explicit truncation via `Intl`                  |
 | `toLocaleString` w/ `maximumFractionDigits` | Most formatters                                                          | Browser-defined (usually round half-even)       |
 | `notation: 'compact'`                       | `formatRate`, `formatYAxisValue` for rates                               | Compact SI with significant digit control       |
-
-> **Gotcha:** `formatPercent` uses `Math.round` as a pre-truncation guard (to avoid `89.9999 → 89.99`), but the final step is still `formatFloat` which **truncates**, not rounds.
 
 ---
 
@@ -494,19 +480,6 @@ Plus always via `formatDollars`. The dedicated function is barely used directly 
 
 ---
 
-## `formatPercent` (dynamic sampling variant) — 4 call sites
-
-All in `static/app/views/settings/dynamicSampling/`:
-
-- `projectsPreviewTable.tsx`
-- `samplingModeSwitchModal.tsx`
-- `samplingBreakdown.tsx`
-- `projectsEditTable.tsx`
-
-Entirely contained in that one feature area. The truncation-after-rounding behavior (unique to this formatter) is invisible to the rest of the app.
-
----
-
 ## `formatNumberWithDynamicDecimalPoints` — internal-only
 
 Not called directly from UI components — always via `formatBytesBase10`, `formatBytesBase2(x, false)` (unused), or `formatMetricUsingUnit`. One exception: `preprodBuildsDistributionTable.tsx:54` passes `(downloadCount, 0)` — which is essentially `toLocaleString()` with commas. That's the only direct UI usage.
@@ -575,7 +548,6 @@ The same data (a span duration in ms) gets formatted **at least four ways** acro
 - `formatSecondsToClock` — 2 call sites (replay share)
 - `axisDuration` — 1 call site (discover y-axis)
 - `formatTraceDuration` — 3 call sites (trace view only)
-- `formatPercent` — 4 call sites (dynamic sampling only)
 - `formatAbbreviatedNumberWithDynamicPrecision` (direct) — 2 call sites
 
 ### The two "default-only" champions

@@ -6,7 +6,7 @@ allowed-tools: Read, Grep, Glob, Write, Edit
 
 # Component Documentation (MDX Stories)
 
-Create a `.mdx` file for a Sentry component following the conventions in `static/app/components/core/`.
+Create a `.mdx` file for a Sentry component following the conventions in `static/packages/scraps/src/` and `static/app/components/core/`.
 
 ## Step 0: Gather Editorial Content
 
@@ -61,7 +61,7 @@ If the file already exists, read it first and update rather than overwrite.
 
 **Determining the import path:**
 
-- Components in `static/app/components/core/` are published as `@sentry/scraps/<name>`
+- Components in `static/packages/scraps/src/` (and the remaining ones in `static/app/components/core/`) are published as `@sentry/scraps/<name>`
 - All other components use the sentry-internal path: `sentry/components/<path>`
 
 To confirm the exact `@sentry/scraps` package name and type-loader path, check an existing import in the component directory or a neighboring `.mdx` file — the type-loader path can be `@sentry/scraps/<name>` or `@sentry/scraps/<name>/<name>` depending on the package structure.
@@ -101,19 +101,22 @@ For principle/pattern docs (no interactive component), use `layout: document` in
 
 Follow this import order exactly:
 
+<!-- prettier-ignore -->
 ```jsx
 // 1. External packages (react, etc.) — only if needed for examples
 import {useState} from 'react';
-// 5. Type-loader for auto-generated API docs (@sentry/scraps components only)
-import documentation from '!!type-loader!@sentry/scraps/<component>';
 
-// 3. @sentry/scraps component(s)
+// 2. @sentry/scraps component(s)
 import {ComponentName} from '@sentry/scraps/<component>';
 
-// 2. Sentry internals used in examples (icons, utils)
-import {IconAdd, IconEdit} from 'sentry/icons';
+// 3. Sentry internals used in examples (icons, utils)
+import {IconAdd} from '@sentry/icons/add';
+import {IconEdit} from '@sentry/icons/edit';
 // 4. Stories namespace (always last before type-loader)
 import * as Storybook from 'sentry/stories';
+
+// 5. Type-loader for auto-generated API docs (@sentry/scraps components only)
+import documentation from '!!type-loader!@sentry/scraps/<component>';
 
 export {documentation};
 ```

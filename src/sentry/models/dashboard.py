@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from typing import Any, ClassVar
 
 import sentry_sdk
@@ -17,6 +18,7 @@ from sentry.db.models.fields.bounded import BoundedBigIntegerField, BoundedPosit
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.manager.base import BaseManager
+from sentry.models.dashboard_widget import TypesClass
 from sentry.models.organization import Organization
 from sentry.utils import json
 
@@ -75,10 +77,14 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
 
     def reorder_favorite_dashboards(
         self, organization: Organization, user_id: int, new_dashboard_positions: list[int]
-    ):
+    ) -> None:
         """
         Reorders the positions of favorited dashboards for a user in an organization.
-        Does NOT add or remove favorited dashboards.
+        Does NOT add or remove favorited dashboards. Also normalizes the positions
+        to be 0...N-1, where N is the number of favorited dashboards.
+
+        Accepts a subset of dashboards IDs, which will reorder amongst the positions
+        occupied by the subset.
 
         Args:
             organization: The organization the dashboards belong to
@@ -86,16 +92,15 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
             new_dashboard_positions: List of dashboard IDs in their new order
 
         Raises:
-            ValueError: If there's a mismatch between existing favorited dashboards and the provided list
+            ValueError: If the provided list contains a dashboard that is not favorited
+                by the user, or names the same dashboard more than once
         """
-        existing_favorite_dashboards = self.filter(
-            organization=organization,
-            user_id=user_id,
-            favorited=True,
+        existing_favorite_dashboards = list(
+            self.get_favorite_dashboards(organization=organization, user_id=user_id)
         )
 
         existing_dashboard_ids = {
-            favorite.dashboard.id for favorite in existing_favorite_dashboards
+            favorite.dashboard_id for favorite in existing_favorite_dashboards
         }
         new_dashboard_ids = set(new_dashboard_positions)
 
@@ -111,28 +116,38 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
         sentry_sdk.set_attribute("reorder_favorite_dashboards.organization", organization.id)
         sentry_sdk.set_attribute("reorder_favorite_dashboards.user_id", user_id)
         sentry_sdk.set_attribute(
-            "reorder_favorite_dashboards.existing_dashboard_ids", json.dumps(existing_dashboard_ids)
+            "reorder_favorite_dashboards.existing_dashboard_ids",
+            json.dumps(sorted(existing_dashboard_ids)),
         )
         sentry_sdk.set_attribute(
             "reorder_favorite_dashboards.new_dashboard_positions",
             json.dumps(new_dashboard_positions),
         )
 
-        if existing_dashboard_ids != new_dashboard_ids:
+        if len(new_dashboard_ids) != len(new_dashboard_positions):
+            raise ValueError("Single dashboard cannot take up multiple positions.")
+
+        if not new_dashboard_ids.issubset(existing_dashboard_ids):
             raise ValueError("Mismatch between existing and provided favorited dashboards.")
 
-        position_map = {
-            dashboard_id: idx for idx, dashboard_id in enumerate(new_dashboard_positions)
+        favorites_by_dashboard_id = {
+            favorite.dashboard_id: favorite for favorite in existing_favorite_dashboards
         }
 
-        favorites_to_update = list(existing_favorite_dashboards)
+        # The provided dashboards only reorder amongst the positions they already occupy
+        new_positions = [
+            index
+            for index, favorite in enumerate(existing_favorite_dashboards)
+            if favorite.dashboard_id in new_dashboard_ids
+        ]
+        for position, dashboard_id in zip(new_positions, new_dashboard_positions):
+            existing_favorite_dashboards[position] = favorites_by_dashboard_id[dashboard_id]
 
-        for favorite in favorites_to_update:
-            favorite.position = position_map[favorite.dashboard.id]
+        for position, favorite in enumerate(existing_favorite_dashboards):
+            favorite.position = position
 
         with transaction.atomic(using=router.db_for_write(DashboardFavoriteUser)):
-            if favorites_to_update:
-                self.bulk_update(favorites_to_update, ["position"])
+            self.bulk_update(existing_favorite_dashboards, ["position"])
 
     def insert_favorite_dashboard(
         self,
@@ -173,6 +188,82 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
                 position = 0
             else:
                 position = self.get_last_position(organization, user_id) + 1
+
+            if existing:
+                existing.favorited = True
+                existing.position = position
+                existing.save(update_fields=["favorited", "position"])
+            else:
+                self.create(
+                    organization=organization,
+                    user_id=user_id,
+                    dashboard=dashboard,
+                    position=position,
+                )
+            return True
+
+    def insert_favorite_dashboard_alphabetically(
+        self,
+        organization: Organization,
+        user_id: int,
+        dashboard: Dashboard,
+    ) -> bool:
+        """
+        Inserts a favorited dashboard at the position of the next prebuilt favorited
+        dashboard whose title sorts after this one, shifting later positions by 1. Falls
+        back to appending at the end when nothing sorts later.
+        """
+        with transaction.atomic(using=router.db_for_write(DashboardFavoriteUser)):
+            existing = (
+                self.filter(
+                    organization=organization,
+                    user_id=user_id,
+                    dashboard=dashboard,
+                )
+                .select_for_update()
+                .first()
+            )
+
+            if existing and existing.favorited:
+                return False
+
+            next_prebuilt = (
+                self.filter(
+                    organization=organization,
+                    user_id=user_id,
+                    favorited=True,
+                    position__isnull=False,
+                    dashboard__prebuilt_id__isnull=False,
+                    dashboard__title__gt=dashboard.title,
+                )
+                .order_by("position")
+                .first()
+            )
+
+            position: int
+            if next_prebuilt is None or next_prebuilt.position is None:
+                position = self.get_last_position(organization, user_id) + 1
+                # get_last_position ignores unfavorited rows. One of those can still
+                # hold this slot, so append after the highest stored position instead.
+                highest_stored = (
+                    self.filter(
+                        organization=organization,
+                        user_id=user_id,
+                        position__isnull=False,
+                    )
+                    .order_by("-position")
+                    .values_list("position", flat=True)
+                    .first()
+                )
+                if highest_stored is not None and highest_stored >= position:
+                    position = highest_stored + 1
+            else:
+                position = next_prebuilt.position
+                self.filter(
+                    organization=organization,
+                    user_id=user_id,
+                    position__gte=position,
+                ).update(position=models.F("position") + 1)
 
             if existing:
                 existing.favorited = True
@@ -252,6 +343,40 @@ class DashboardFavoriteUser(DefaultFieldsModel):
 
 
 @cell_silo_model
+class DashboardLastVisited(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Organization
+
+    user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
+    dashboard = FlexibleForeignKey("sentry.Dashboard", on_delete=models.CASCADE)
+    last_visited = models.DateTimeField(null=False, default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_dashboardlastvisited"
+        constraints = [
+            UniqueConstraint(
+                fields=["user_id", "dashboard_id"],
+                name="sentry_dashboardlastvisited_unique_per_user_dashboard",
+            )
+        ]
+
+
+class QueryPriorities(TypesClass):
+    """
+    Which query priority this dashboard should use
+    """
+
+    NORMAL = 0
+    FASTER = 1
+
+    TYPES = [
+        (NORMAL, "normal"),
+        (FASTER, "faster"),
+    ]
+    TYPE_NAMES = [t[1] for t in TYPES]
+
+
+@cell_silo_model
 class Dashboard(Model):
     """
     A dashboard.
@@ -260,7 +385,17 @@ class Dashboard(Model):
     __relocation_scope__ = RelocationScope.Organization
 
     title = models.CharField(max_length=255)
-    created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="CASCADE")
+    # SET_NULL: org dashboards must survive creator deletion. CASCADE previously wiped
+    # every dashboard attributed to an internal-integration proxy user when that app was deleted.
+    created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+    # Service accounts and org auth tokens authenticate without a user, so they need their
+    # own creator columns. At most one creator column is set.
+    created_by_service_account_id = HybridCloudForeignKey(
+        "service_accounts.ServiceAccount", null=True, on_delete="SET_NULL"
+    )
+    created_by_org_auth_token_id = HybridCloudForeignKey(
+        "sentry.OrgAuthToken", null=True, on_delete="SET_NULL"
+    )
     organization = FlexibleForeignKey("sentry.Organization")
     date_added = models.DateTimeField(default=timezone.now)
     visits = BoundedBigIntegerField(null=True, default=1)
@@ -268,6 +403,8 @@ class Dashboard(Model):
     projects = models.ManyToManyField("sentry.Project", through=DashboardProject)
     filters: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
     prebuilt_id = BoundedPositiveIntegerField(null=True, db_default=None)
+    # defaults to normal if its null
+    query_priority = BoundedPositiveIntegerField(choices=QueryPriorities.as_choices(), null=True)
 
     MAX_WIDGETS = 30
 
@@ -291,12 +428,21 @@ class Dashboard(Model):
                 condition=Q(prebuilt_id__isnull=True) | Q(created_by_id__isnull=True),
                 name="sentry_dashboard_prebuilt_null_created_by",
             ),
+            CheckConstraint(
+                condition=(
+                    Q(created_by_service_account_id__isnull=True)
+                    & Q(created_by_org_auth_token_id__isnull=True)
+                )
+                | (Q(created_by_id__isnull=True) & Q(created_by_org_auth_token_id__isnull=True))
+                | (Q(created_by_id__isnull=True) & Q(created_by_service_account_id__isnull=True)),
+                name="sentry_dashboard_single_creator",
+            ),
         ]
 
     __repr__ = sane_repr("organization", "title")
 
     @property
-    def favorited_by(self):
+    def favorited_by(self) -> Iterable[int]:
         """
         @deprecated Use the DashboardFavoriteUser object manager instead.
         """
@@ -306,7 +452,7 @@ class Dashboard(Model):
         return user_ids
 
     @favorited_by.setter
-    def favorited_by(self, user_ids):
+    def favorited_by(self, user_ids: Iterable[int]) -> None:
         """
         @deprecated Use the DashboardFavoriteUser object manager instead.
         """
@@ -346,7 +492,7 @@ class Dashboard(Model):
             )
 
     @classmethod
-    def incremental_title(cls, organization, name):
+    def incremental_title(cls, organization: Organization, name: str) -> str:
         """
         Given a dashboard name that migh already exist, returns a new unique name that does not exist, by appending the word "copy" and an integer if necessary.
         """
@@ -389,6 +535,13 @@ class Dashboard(Model):
             "projects": projects,
         }
 
+    def get_audit_log_data(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "title": self.title,
+            "prebuilt_id": self.prebuilt_id,
+        }
+
 
 @cell_silo_model
 class DashboardRevision(DefaultFieldsModel):
@@ -428,9 +581,11 @@ class DashboardRevision(DefaultFieldsModel):
         Create a revision snapshot for the given dashboard and prune any revisions
         beyond the retention limit. Must be called inside a transaction.atomic block.
         """
+        from sentry.auth.principal import acting_user_id  # circular import
+
         revision = cls.objects.create(
             dashboard=dashboard,
-            created_by_id=user.id if user.is_authenticated else None,
+            created_by_id=acting_user_id(user),
             title=dashboard.title,
             source=source,
             snapshot=snapshot,

@@ -1,19 +1,20 @@
 import styled from '@emotion/styled';
+import {IconRefresh} from '@sentry/icons/refresh';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex} from '@sentry/scraps/layout';
 
-import {FeedbackListBulkSelection} from 'sentry/components/feedback/list/feedbackListBulkSelection';
-import {MailboxPicker} from 'sentry/components/feedback/list/mailboxPicker';
 import {useFeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
 import {useFeedbackCache} from 'sentry/components/feedback/useFeedbackCache';
 import {useFeedbackHasNewItems} from 'sentry/components/feedback/useFeedbackHasNewItems';
 import {useMailbox} from 'sentry/components/feedback/useMailbox';
-import {IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ListItemSelectedState} from 'sentry/utils/list/listItemSelectedState';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+
+import {FeedbackListBulkSelection} from './feedbackListBulkSelection';
+import {MailboxPicker} from './mailboxPicker';
 
 export function FeedbackListHeader() {
   const {countSelected, deselectAll, isAllSelected, selectAll, selectedIds} =

@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from typing import cast
 from unittest import mock
 from unittest.mock import MagicMock, Mock, patch
 
@@ -7,7 +8,9 @@ from django.contrib.auth.models import AnonymousUser
 from django.core import signing
 from django.test import override_settings
 from django.utils import timezone
+from rest_framework.request import Request
 
+from sentry.auth.access import RpcBackedAccess
 from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.auth.superuser import (
     COOKIE_DOMAIN,
@@ -31,6 +34,7 @@ from sentry.auth.superuser import (
 from sentry.auth.system import SystemToken
 from sentry.middleware.placeholder import placeholder_get_response
 from sentry.middleware.superuser import SuperuserMiddleware
+from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
@@ -40,6 +44,13 @@ from sentry.utils import json
 from sentry.utils.auth import mark_sso_complete
 
 UNSET = object()
+
+
+class SuperuserTestRequest(Request):
+    superuser: Superuser | None
+    access: RpcBackedAccess
+    organization: Organization
+
 
 BASETIME = datetime(2022, 3, 21, 0, 0, tzinfo=UTC)
 
@@ -61,32 +72,34 @@ class SuperuserTestCase(TestCase):
 
     def build_request(
         self,
-        cookie_token=UNSET,
-        session_token=UNSET,
-        expires=UNSET,
-        idle_expires=UNSET,
-        uid=UNSET,
-        session_data=True,
-        user=None,
-        method="get",
-    ):
+        cookie_token: object = UNSET,
+        session_token: object = UNSET,
+        expires: object = UNSET,
+        idle_expires: object = UNSET,
+        uid: object = UNSET,
+        session_data: bool = True,
+        user: User | None = None,
+        method: str = "get",
+    ) -> SuperuserTestRequest:
         if user is None:
             user = self.superuser
         current_datetime = self.current_datetime
-        request = self.make_request(user=user, method=method)
+        request = cast(SuperuserTestRequest, self.make_request(user=user, method=method))
         if cookie_token is not None:
             request.COOKIES[COOKIE_NAME] = signing.get_cookie_signer(
                 salt=COOKIE_NAME + COOKIE_SALT
-            ).sign(self.default_token if cookie_token is UNSET else cookie_token)
+            ).sign(self.default_token if cookie_token is UNSET else cast(str, cookie_token))
         if session_data:
             request.session[SESSION_KEY] = {
                 "exp": (
-                    current_datetime + timedelta(hours=4) if expires is UNSET else expires
+                    current_datetime + timedelta(hours=4)
+                    if expires is UNSET
+                    else cast(datetime, expires)
                 ).strftime("%s"),
                 "idl": (
                     current_datetime + timedelta(minutes=15)
                     if idle_expires is UNSET
-                    else idle_expires
+                    else cast(datetime, idle_expires)
                 ).strftime("%s"),
                 "tok": self.default_token if session_token is UNSET else session_token,
                 "uid": str(user.id) if uid is UNSET else uid,
@@ -145,6 +158,15 @@ class SuperuserTestCase(TestCase):
         request = self.build_request(cookie_token="foobar")
         superuser = Superuser(request, allowed_ips=())
         assert superuser.is_active is False
+
+    def test_reading_session_data_does_not_mutate_expiry(self) -> None:
+        request = self.build_request()
+        su = Superuser(request)
+        raw = dict(request.session[SESSION_KEY])
+        first = su.get_session_data()
+        assert first is not None
+        assert su.get_session_data() == first
+        assert request.session[SESSION_KEY] == raw
 
     def test_invalid_session_token(self) -> None:
         request = self.build_request(session_token="foobar")
@@ -274,7 +296,7 @@ class SuperuserTestCase(TestCase):
     @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
     def test_su_access_invalid_request_body(
         self,
-    ):
+    ) -> None:
         request = self.make_request(user=self.superuser, method="PUT")
         request._body = b'{"invalid" "json"}'
 
@@ -321,6 +343,7 @@ class SuperuserTestCase(TestCase):
 
         middleware = SuperuserMiddleware(placeholder_get_response)
         middleware.process_request(request)
+        assert request.superuser is not None
         assert request.superuser.is_active
 
         response = Mock()
@@ -343,6 +366,7 @@ class SuperuserTestCase(TestCase):
 
         middleware = SuperuserMiddleware(placeholder_get_response)
         middleware.process_request(request)
+        assert request.superuser is not None
         assert not request.superuser.is_active
 
         response = Mock()
@@ -357,6 +381,7 @@ class SuperuserTestCase(TestCase):
 
         middleware = SuperuserMiddleware(placeholder_get_response)
         middleware.process_request(request)
+        assert request.superuser is not None
         assert not request.superuser.is_active
 
         response = Mock()
@@ -383,7 +408,7 @@ class SuperuserTestCase(TestCase):
 
     def test_is_active_superuser_sys_token(self) -> None:
         request = self.build_request()
-        request.auth = SystemToken()
+        setattr(request, "auth", SystemToken())
         assert is_active_superuser(request)
 
     def test_is_active_superuser(self) -> None:
@@ -475,67 +500,54 @@ class SuperuserTestCase(TestCase):
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_superuser_scopes(self) -> None:
-        user = self.create_user(is_superuser=True)
-
         auth_state = RpcAuthState(sso_state=RpcMemberSsoState(), permissions=[])
         auth_state_with_write = RpcAuthState(
             sso_state=RpcMemberSsoState(), permissions=["superuser.write"]
         )
 
         assert (
-            get_superuser_scopes(auth_state, user, organization_context=self.organization)
+            get_superuser_scopes(auth_state, organization_context=self.organization)
             == SUPERUSER_SCOPES
         )
         assert (
-            get_superuser_scopes(
-                auth_state_with_write, user, organization_context=self.organization
-            )
+            get_superuser_scopes(auth_state_with_write, organization_context=self.organization)
             == SUPERUSER_SCOPES
         )
 
         # test scope separation
         with self.options({"superuser.read-write.ga-rollout": True}):
             assert (
-                get_superuser_scopes(auth_state, user, organization_context=self.organization)
+                get_superuser_scopes(auth_state, organization_context=self.organization)
                 == SUPERUSER_READONLY_SCOPES
             )
             assert (
-                get_superuser_scopes(
-                    auth_state_with_write, user, organization_context=self.organization
-                )
+                get_superuser_scopes(auth_state_with_write, organization_context=self.organization)
                 == SUPERUSER_SCOPES
             )
 
     def test_superuser_scopes_self_hosted(self) -> None:
         # self hosted always has superuser write scopes
-
-        user = self.create_user(is_superuser=True)
-
         auth_state = RpcAuthState(sso_state=RpcMemberSsoState(), permissions=[])
         auth_state_with_write = RpcAuthState(
             sso_state=RpcMemberSsoState(), permissions=["superuser.write"]
         )
 
         assert (
-            get_superuser_scopes(auth_state, user, organization_context=self.organization)
+            get_superuser_scopes(auth_state, organization_context=self.organization)
             == SUPERUSER_SCOPES
         )
         assert (
-            get_superuser_scopes(
-                auth_state_with_write, user, organization_context=self.organization
-            )
+            get_superuser_scopes(auth_state_with_write, organization_context=self.organization)
             == SUPERUSER_SCOPES
         )
 
         with self.feature({"superuser.read-write.ga-rollout": True}):
             assert (
-                get_superuser_scopes(auth_state, user, organization_context=self.organization)
+                get_superuser_scopes(auth_state, organization_context=self.organization)
                 == SUPERUSER_SCOPES
             )
             assert (
-                get_superuser_scopes(
-                    auth_state_with_write, user, organization_context=self.organization
-                )
+                get_superuser_scopes(auth_state_with_write, organization_context=self.organization)
                 == SUPERUSER_SCOPES
             )
 
@@ -616,3 +628,61 @@ class SuperuserTestCase(TestCase):
         # only superuser write has permissions for POST
         assert not superuser_has_permission(request, frozenset())
         assert superuser_has_permission(request, frozenset(["superuser.write"]))
+
+    @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
+    def test_requires_org_auth_non_member_org(self) -> None:
+        request = self.build_request()
+        superuser = Superuser(request, allowed_ips=(), current_datetime=self.current_datetime)
+        org = self.create_organization()
+        assert superuser.requires_org_auth(org)
+
+    @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
+    def test_requires_org_auth_after_authorization(self) -> None:
+        request = self.build_request()
+        superuser = Superuser(request, allowed_ips=(), current_datetime=self.current_datetime)
+        org = self.create_organization()
+        assert superuser.requires_org_auth(org)
+        superuser.authorize_org(org.slug, "for_unit_test", "testing")
+        assert not superuser.requires_org_auth(org)
+
+    def test_requires_org_auth_self_hosted(self) -> None:
+        request = self.build_request()
+        superuser = Superuser(request, allowed_ips=(), current_datetime=self.current_datetime)
+        org = self.create_organization()
+        assert not superuser.requires_org_auth(org)
+
+    @override_settings(
+        SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=False
+    )
+    def test_requires_org_auth_validation_disabled(self) -> None:
+        request = self.build_request()
+        superuser = Superuser(request, allowed_ips=(), current_datetime=self.current_datetime)
+        org = self.create_organization()
+        assert not superuser.requires_org_auth(org)
+
+    @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
+    def test_authorize_org_persists_to_session(self) -> None:
+        request = self.build_request()
+        superuser = Superuser(request, allowed_ips=(), current_datetime=self.current_datetime)
+        superuser.authorize_org("test-org", "for_unit_test", "testing")
+        data = request.session.get(SESSION_KEY)
+        assert data is not None
+        assert data["orgs"] == {"test-org": {"cat": "for_unit_test", "reason": "testing"}}
+
+    @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
+    def test_populate_restores_authorized_orgs(self) -> None:
+        request = self.build_request()
+        superuser = Superuser(request, allowed_ips=(), current_datetime=self.current_datetime)
+        superuser.authorize_org("test-org", "for_unit_test", "testing")
+
+        superuser2 = Superuser(request, allowed_ips=(), current_datetime=self.current_datetime)
+        assert not superuser2.requires_org_auth(Mock(id=999, slug="test-org"))
+
+    @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
+    def test_logout_clears_authorized_orgs(self) -> None:
+        request = self.build_request()
+        superuser = Superuser(request, allowed_ips=(), current_datetime=self.current_datetime)
+        superuser.authorize_org("test-org", "for_unit_test", "testing")
+        assert not superuser.requires_org_auth(Mock(id=999, slug="test-org"))
+        superuser.set_logged_out()
+        assert not request.session.get(SESSION_KEY)

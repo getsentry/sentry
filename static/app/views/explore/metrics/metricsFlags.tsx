@@ -23,31 +23,11 @@ export const canUseMetricsAlertsUI = (organization: Organization) => {
 };
 
 export const canUseMetricsStatsBytesUI = (organization: Organization) => {
-  return (
-    canUseMetricsUI(organization) &&
-    organization.features.includes('tracemetrics-stats-bytes-ui')
-  );
-};
-
-export const canUseMetricsEquations = (organization: Organization) => {
-  return (
-    canUseMetricsUI(organization) &&
-    organization.features.includes('tracemetrics-equations-in-explore')
-  );
+  return canUseMetricsUI(organization);
 };
 
 export const canUseMetricsEquationsInAlerts = (organization: Organization) => {
-  return (
-    canUseMetricsAlertsUI(organization) &&
-    organization.features.includes('tracemetrics-equations-in-alerts')
-  );
-};
-
-export const canUseMetricsEquationsInDashboards = (organization: Organization) => {
-  return (
-    canUseMetricsUI(organization) &&
-    organization.features.includes('tracemetrics-equations-in-dashboards')
-  );
+  return canUseMetricsAlertsUI(organization);
 };
 
 export const canUseMetricsPiiScrubbingUI = (organization: Organization) => {
@@ -58,8 +38,12 @@ export const canUseMetricsPiiScrubbingUI = (organization: Organization) => {
 };
 
 export const canUseMetricsHeatMap = (organization: Organization) => {
+  return canUseMetricsUI(organization);
+};
+
+export const canUseMetricsDashboardTable = (organization: Organization) => {
   return (
     canUseMetricsUI(organization) &&
-    organization.features.includes('data-browsing-heat-map-widget')
+    organization.features.includes('tracemetrics-dashboard-table')
   );
 };

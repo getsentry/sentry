@@ -44,3 +44,89 @@ describe('buildResult whitespace trimming', () => {
     expect(trimmedBody.length).toBeLessThan(naiveResult.length);
   });
 });
+
+describe('buildResult location header', () => {
+  it('falls back to the bare URL when no location is passed', () => {
+    const grid = createGridHelpers(2, 4);
+    grid.writeOverlay(0, 0, 'hi');
+
+    const result = buildResult(grid, [], []);
+
+    expect(result.split('\n')[0]).toBe(window.location.href);
+  });
+
+  it('leads with the full location so the reader need not parse the URL', () => {
+    const grid = createGridHelpers(2, 4);
+    grid.writeOverlay(0, 0, 'hi');
+
+    const result = buildResult(grid, [], [], {
+      url: 'https://sentry.io/issues/123/?statsPeriod=14d',
+      name: '/issues/:groupId/',
+      params: {groupId: '123'},
+      query: {statsPeriod: '14d'},
+    });
+
+    expect(result).toContain('https://sentry.io/issues/123/?statsPeriod=14d');
+    expect(result).toContain('Route: /issues/:groupId/');
+    expect(result).toContain('Route params: {"groupId":"123"}');
+    expect(result).toContain('Query params: {"statsPeriod":"14d"}');
+    // Body still follows the header.
+    expect(result).toContain('hi');
+  });
+
+  it('omits empty location fields rather than emitting blank lines', () => {
+    const grid = createGridHelpers(2, 4);
+    grid.writeOverlay(0, 0, 'hi');
+
+    const result = buildResult(grid, [], [], {
+      url: 'https://sentry.io/insights/',
+      name: '',
+      params: {},
+      query: {},
+    });
+
+    expect(result.split('\n')[0]).toBe('https://sentry.io/insights/');
+    expect(result).not.toContain('Route:');
+    expect(result).not.toContain('Route params:');
+    expect(result).not.toContain('Query params:');
+  });
+});
+
+describe('buildResult selected projects footnotes', () => {
+  it('includes the explicit project-selection instruction', () => {
+    const grid = createGridHelpers(2, 4);
+    grid.writeOverlay(0, 0, 'hi');
+
+    const result = buildResult(grid, [], {
+      selectionMode: 'explicit',
+      isAllProjects: false,
+      projectIds: ['4509062593708032'],
+      projectSlugs: ['mcp-server'],
+      projects: [{id: '4509062593708032', slug: 'mcp-server'}],
+      instruction:
+        'Page filter pins these projects — scope queries to them unless the user asks otherwise: mcp-server (id: 4509062593708032).',
+    });
+
+    expect(result).toContain(
+      'Page filter pins these projects — scope queries to them unless the user asks otherwise: mcp-server (id: 4509062593708032).'
+    );
+  });
+
+  it('includes the My Projects instruction when no hard project filter is set', () => {
+    const grid = createGridHelpers(2, 4);
+    grid.writeOverlay(0, 0, 'hi');
+
+    const result = buildResult(grid, [], {
+      selectionMode: 'my-projects',
+      isAllProjects: false,
+      projectIds: [],
+      projectSlugs: [],
+      projects: [],
+      instruction:
+        'Page filter is My Projects: no hard single-project pin. Scope queries to projects the user is a member of (org default). Empty projectIds/projectSlugs is expected — not missing data. Do not invent a specific project slug unless the user names one.',
+    });
+
+    expect(result).toContain('Page filter is My Projects');
+    expect(result).toContain('Empty projectIds/projectSlugs is expected');
+  });
+});

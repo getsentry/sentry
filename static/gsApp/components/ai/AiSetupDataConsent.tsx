@@ -1,21 +1,22 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconRefresh} from '@sentry/icons/refresh';
+import {IconSeer} from '@sentry/icons/seer';
 
 import autofixSetupImg from 'sentry-images/features/autofix-setup.svg';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {AiPrivacyNotice} from 'sentry/components/aiPrivacyTooltip';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {useSeerAcknowledgeMutation} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import {IconRefresh, IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -77,7 +78,6 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
     shouldShowBilling &&
     !isTouchCustomer &&
     !hasSeerButNeedsPayg;
-  const hasGitLabSupport = organization.features.includes('seer-gitlab-support');
 
   const autofixAcknowledgeMutation = useSeerAcknowledgeMutation();
 
@@ -111,18 +111,18 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
       <SingleCard>
         <Flex align="center" gap="md">
           <MeetSeerHeader>MEET SEER</MeetSeerHeader>
-          <IconSeer animation="waiting" variant="muted" size="lg" />
+          <IconSeer animation="idle" variant="muted" size="lg" />
         </Flex>
         <Paragraph>
           {t(
             "Seer is Sentry's AI agent that helps you troubleshoot and fix problems with your applications, including bugs and performance issues. Seer includes:"
           )}
         </Paragraph>
-        <BulletList>
+        <Container as="ul" margin="0 0 md 0">
           <li>{t('Issue Triage')}</li>
           <li>{t('Root Cause Analysis')}</li>
           <li>{t('Solutions & Code Changes')}</li>
-        </BulletList>
+        </Container>
         {shouldShowBilling ? (
           isTouchCustomer || isSponsoredCustomer ? (
             <TouchCustomerMessage>
@@ -165,7 +165,7 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                     {t('Try Seer for Free')}
                   </StartTrialButton>
                 ) : hasSeerButNeedsPayg ? (
-                  <Flex gap="xl" direction="column">
+                  <Stack gap="xl">
                     <ErrorText>
                       {tct(
                         "You've run out of [budgetTerm] budget. Please add more to keep using Seer.",
@@ -210,14 +210,14 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                         icon={<IconRefresh size="xs" />}
                         onClick={async () => {
                           await refetch();
-                          addSuccessMessage(t('Refreshed Seer quota'));
+                          toast.success(t('Refreshed Seer quota'));
                         }}
                         size="md"
                         variant="secondary"
                         aria-label={t('Refresh')}
                       />
                     </Flex>
-                  </Flex>
+                  </Stack>
                 ) : (
                   <Button
                     variant="primary"
@@ -284,13 +284,9 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
       </SingleCard>
       {warnAboutSCMIntegration && (
         <Alert variant="warning" showIcon={false}>
-          {hasGitLabSupport
-            ? t(
-                'Seer currently works best with GitHub or GitLab repositories, but support for other providers is coming soon. Either way, you can still use Seer to triage and dive into issues.'
-              )
-            : t(
-                'Seer currently works best with GitHub repositories, but support for other providers is coming soon. Either way, you can still use Seer to triage and dive into issues.'
-              )}
+          {t(
+            'Seer currently works best with GitHub or GitLab repositories, but support for other providers is coming soon. Either way, you can still use Seer to triage and dive into issues.'
+          )}
         </Alert>
       )}
     </Stack>
@@ -317,10 +313,6 @@ const MeetSeerHeader = styled('div')`
   font-size: ${p => p.theme.font.size.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const BulletList = styled('ul')`
-  margin: 0 0 ${p => p.theme.space.md} 0;
 `;
 
 const Paragraph = styled('p')`

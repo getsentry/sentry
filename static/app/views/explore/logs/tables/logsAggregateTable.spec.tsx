@@ -1,9 +1,13 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {EventView} from 'sentry/utils/discover/eventView';
+import {FieldValueType} from 'sentry/utils/fields';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {
   LOGS_AGGREGATE_CURSOR_KEY,
@@ -15,7 +19,12 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_AGGREGATE_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {type LogsAggregatesTableResult} from 'sentry/views/explore/logs/useLogsAggregatesTable';
+import {type OurLogsAggregateResponseItem} from 'sentry/views/explore/logs/types';
+import {
+  LOGS_AGGREGATES_TIMESTAMP_FIELD,
+  LOGS_AGGREGATES_TRACE_FIELD,
+  type LogsAggregatesTableResult,
+} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 
 import {LogsAggregateTable} from './logsAggregateTable';
 
@@ -40,15 +49,20 @@ describe('LogsAggregateTable', () => {
   });
   function LogsAggregateTableWithParamsProvider({
     aggregatesTableResult,
+    validatedFieldTypes = {},
   }: {
     aggregatesTableResult: LogsAggregatesTableResult;
+    validatedFieldTypes?: Partial<Record<string, FieldValueType>>;
   }) {
     return (
       <LogsQueryParamsProvider
         analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
         source="location"
       >
-        <LogsAggregateTable aggregatesTableResult={aggregatesTableResult} />
+        <LogsAggregateTable
+          aggregatesTableResult={aggregatesTableResult}
+          validatedFieldTypes={validatedFieldTypes}
+        />
       </LogsQueryParamsProvider>
     );
   }
@@ -109,7 +123,34 @@ describe('LogsAggregateTable', () => {
       />,
       {initialRouterConfig}
     );
-    expect(screen.getByTestId('error-indicator')).toBeInTheDocument();
+    expect(screen.getByTestId('loading-error')).toBeInTheDocument();
+  });
+
+  it('renders a rate limit message and retry button when rate limited', async () => {
+    const rateLimitError = new RequestError('GET', '/', new Error('rate limited'));
+    rateLimitError.status = 429;
+    const refetch = jest.fn();
+
+    render(
+      <LogsAggregateTableWithParamsProvider
+        aggregatesTableResult={createAggregatesTableResult({
+          error: rateLimitError,
+          refetch,
+        })}
+      />,
+      {initialRouterConfig}
+    );
+
+    expect(
+      screen.getByText(
+        'Your organization has had a lot of activity. Wait a few seconds and then try again.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText('Aggregates')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
+
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 
   it('renders data rows', () => {
@@ -150,6 +191,98 @@ describe('LogsAggregateTable', () => {
       expect(cells[1]).toHaveTextContent(expected[i]![0]!);
       expect(cells[2]).toHaveTextContent(expected[i]![1]!);
     });
+  });
+
+  it('opens a view samples menu that can link to a random trace', async () => {
+    render(
+      <LogsAggregateTableWithParamsProvider
+        aggregatesTableResult={createAggregatesTableResult({
+          data: {
+            data: [
+              {
+                'message.template': 'Fetching the latest item id failed.',
+                'count(message)': 10,
+                [LOGS_AGGREGATES_TRACE_FIELD]: 'trace-123',
+                [LOGS_AGGREGATES_TIMESTAMP_FIELD]: 1712002518,
+              } as OurLogsAggregateResponseItem,
+            ],
+          },
+        })}
+      />,
+      {initialRouterConfig, organization}
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'View Samples'}));
+
+    const viewSamplesItem = await screen.findByRole('menuitemradio', {
+      name: 'View Samples',
+    });
+    expect(viewSamplesItem).toHaveAttribute(
+      'href',
+      expect.stringContaining('mode=samples')
+    );
+    expect(viewSamplesItem).toHaveAttribute(
+      'href',
+      expect.stringContaining('logsQuery=test')
+    );
+
+    const viewRandomTraceItem = screen.getByRole('menuitemradio', {
+      name: 'View Random Trace',
+    });
+    expect(viewRandomTraceItem).toHaveAttribute(
+      'href',
+      expect.stringContaining(
+        `/organizations/${organization.slug}/explore/logs/trace/trace-123/`
+      )
+    );
+    expect(viewRandomTraceItem).toHaveAttribute(
+      'href',
+      expect.stringContaining('timestamp=1712002518')
+    );
+    expect(viewRandomTraceItem).toHaveAttribute(
+      'href',
+      expect.stringContaining('source=logs')
+    );
+  });
+
+  it('renders an empty boolean group-by as "(no value)" rather than a second false', () => {
+    const booleanRouterConfig = {
+      ...initialRouterConfig,
+      location: {
+        ...initialRouterConfig.location,
+        query: {
+          ...initialRouterConfig.location.query,
+          [LOGS_GROUP_BY_KEY]: 'is_equal',
+          [LOGS_AGGREGATE_SORT_BYS_KEY]: '-count(message)',
+          [LOGS_AGGREGATE_FN_KEY]: 'count',
+          [LOGS_AGGREGATE_PARAM_KEY]: 'message',
+        },
+      },
+    };
+
+    render(
+      <LogsAggregateTableWithParamsProvider
+        aggregatesTableResult={createAggregatesTableResult({
+          data: {
+            // Boolean fields come back as real booleans; the empty bucket as ''.
+            data: [
+              {is_equal: false, 'count(message)': 40_000_000},
+              {is_equal: true, 'count(message)': 1_000_000},
+              {is_equal: '', 'count(message)': 168_000},
+            ] as unknown as OurLogsAggregateResponseItem[],
+            meta: {
+              fields: {is_equal: 'boolean', 'count(message)': 'integer'},
+              units: {},
+            },
+          },
+        })}
+      />,
+      {initialRouterConfig: booleanRouterConfig}
+    );
+
+    expect(screen.getByText('true')).toBeInTheDocument();
+    expect(screen.getByText('(no value)')).toBeInTheDocument();
+    expect(screen.getAllByText('false')).toHaveLength(1);
   });
 
   it('renders top result colors when the page is the first one', () => {
@@ -247,5 +380,110 @@ describe('LogsAggregateTable', () => {
     );
 
     expect(screen.queryByTestId('top-results-indicator')).not.toBeInTheDocument();
+  });
+
+  it('uses validated field types when aggregate metadata is missing', async () => {
+    const eventView = EventView.fromLocation(
+      LocationFixture({
+        query: {
+          field: ['custom.duration', 'count()'],
+        },
+      })
+    );
+
+    render(
+      <LogsAggregateTableWithParamsProvider
+        validatedFieldTypes={{'custom.duration': FieldValueType.NUMBER}}
+        aggregatesTableResult={createAggregatesTableResult({
+          eventView,
+          data: {
+            data: [
+              {
+                'custom.duration': 123,
+                'count()': 10,
+              },
+            ],
+            meta: {
+              fields: {
+                'count()': FieldValueType.INTEGER,
+              },
+              units: {},
+            },
+          },
+        })}
+      />,
+      {
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              [LOGS_GROUP_BY_KEY]: 'custom.duration',
+              [LOGS_AGGREGATE_FN_KEY]: 'count',
+              [LOGS_AGGREGATE_PARAM_KEY]: '',
+            },
+          },
+        },
+        organization,
+      }
+    );
+
+    await userEvent.click(
+      within(screen.getByRole('cell', {name: '123'})).getByRole('button', {
+        name: 'Actions',
+      })
+    );
+
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Show values greater than'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Add to filter'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('preserves compact count rendering and the user-facing aggregate label', () => {
+    const aggregate = 'count(message)';
+    const eventView = EventView.fromLocation(
+      LocationFixture({query: {field: ['message.template', aggregate]}})
+    );
+
+    render(
+      <LogsAggregateTableWithParamsProvider
+        validatedFieldTypes={{[aggregate]: FieldValueType.NUMBER}}
+        aggregatesTableResult={createAggregatesTableResult({
+          eventView,
+          data: {
+            data: [{'message.template': 'message', [aggregate]: 7_800_800}],
+            meta: {
+              fields: {
+                'message.template': FieldValueType.STRING,
+                [aggregate]: FieldValueType.INTEGER,
+              },
+              units: {},
+            },
+          },
+        })}
+      />,
+      {
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              [LOGS_AGGREGATE_FN_KEY]: 'count',
+              [LOGS_AGGREGATE_PARAM_KEY]: '',
+            },
+          },
+        },
+        organization,
+      }
+    );
+
+    expect(screen.getByText('count(logs)')).toBeInTheDocument();
+    expect(screen.queryByText(aggregate)).not.toBeInTheDocument();
+    expect(screen.getByText('7.8M')).toBeInTheDocument();
   });
 });

@@ -4,8 +4,10 @@ import {
   type UseMutationOptions,
 } from '@tanstack/react-query';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -29,7 +31,10 @@ export const useDeleteGroupSearchView = (
     ...options,
     mutationFn: ({id}: DeleteGroupSearchViewVariables) =>
       fetchMutation<GroupSearchView>({
-        url: `/organizations/${organization.slug}/group-search-views/${id}/`,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/group-search-views/$viewId/',
+          {path: {organizationIdOrSlug: organization.slug, viewId: id}}
+        ),
         method: 'DELETE',
       }),
     onSuccess: (data, parameters, onMutateResult, context) => {
@@ -56,7 +61,7 @@ export const useDeleteGroupSearchView = (
       options.onSuccess?.(data, parameters, onMutateResult, context);
     },
     onError: (error, variables, onMutateResult, context) => {
-      addErrorMessage(t('Failed to delete view'));
+      toast.error(t('Failed to delete view'));
       options.onError?.(error, variables, onMutateResult, context);
     },
   });

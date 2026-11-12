@@ -6,8 +6,9 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Access} from 'sentry/components/acl/access';
 import {ConfigStore} from 'sentry/stores/configStore';
+
+import {Access} from './access';
 
 describe('Access', () => {
   const organization = OrganizationFixture({
@@ -149,14 +150,9 @@ describe('Access', () => {
         })
       );
 
-      render(
-        <Access access={[]} isSuperuser>
-          {childrenMock}
-        </Access>,
-        {
-          organization,
-        }
-      );
+      render(<Access access={[]}>{childrenMock}</Access>, {
+        organization,
+      });
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasAccess: true,
@@ -171,14 +167,9 @@ describe('Access', () => {
         })
       );
 
-      render(
-        <Access access={[]} isSuperuser>
-          {childrenMock}
-        </Access>,
-        {
-          organization,
-        }
-      );
+      render(<Access access={[]}>{childrenMock}</Access>, {
+        organization,
+      });
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasAccess: true,
@@ -208,39 +199,6 @@ describe('Access', () => {
       );
 
       expect(screen.queryByText('The Child')).not.toBeInTheDocument();
-    });
-
-    it('has superuser', () => {
-      ConfigStore.loadInitialData(
-        ConfigFixture({
-          user: UserFixture({isSuperuser: true}),
-        })
-      );
-
-      render(
-        <Access access={[]} isSuperuser>
-          <p>The Child</p>
-        </Access>,
-        {organization}
-      );
-
-      expect(screen.getByText('The Child')).toBeInTheDocument();
-    });
-
-    it('has no superuser', () => {
-      ConfigStore.loadInitialData(
-        ConfigFixture({
-          user: UserFixture({isSuperuser: false}),
-        })
-      );
-
-      render(
-        <Access access={[]} isSuperuser>
-          <p>The Child</p>
-        </Access>,
-        {organization}
-      );
-      expect(screen.queryByRole('The Child')).not.toBeInTheDocument();
     });
   });
 });

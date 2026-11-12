@@ -5,7 +5,7 @@ import {
   EventStacktraceThreadsFixture,
 } from 'sentry-fixture/eventStacktraceException';
 
-import {getStacktraceBody} from 'sentry/utils/getStacktraceBody';
+import {getStacktraceBody} from './getStacktraceBody';
 
 describe('getStacktraceBody', () => {
   const eventException = EventStacktraceExceptionFixture({platform: 'python'});
@@ -24,6 +24,17 @@ Error: an error occurred`,
 
   it('formats with a message', () => {
     const result = getStacktraceBody({event: eventMessage});
+    expect(result).toEqual(['Something is broken']);
+  });
+
+  it('strips ANSI codes when the message contains them', () => {
+    const result = getStacktraceBody({
+      event: EventFixture({
+        entries: [
+          {type: 'message', data: {formatted: '\x1B[31mSomething\x1B[0m is broken'}},
+        ],
+      }),
+    });
     expect(result).toEqual(['Something is broken']);
   });
 

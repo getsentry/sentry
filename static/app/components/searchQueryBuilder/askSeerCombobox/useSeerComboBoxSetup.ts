@@ -1,14 +1,15 @@
 import {useMemo} from 'react';
 
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
+  useSearchQueryBuilderAI,
   useSearchQueryBuilderLayout,
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
-import type {DateString} from 'sentry/types/core';
-import type {PageFilters} from 'sentry/types/core';
+import type {DateString, PageFilterDatetime} from 'sentry/types/core';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {useProjects} from 'sentry/utils/useProjects';
 import {parseTraceMetricFromQuery} from 'sentry/views/explore/metrics/utils';
@@ -22,25 +23,38 @@ import type {
   SeerRawResponse,
   SeerRawResponseItem,
 } from './types';
-import {getExpandedProjectIds} from './utils';
+import {getExpandedProjectIds, normalizeSeerDateTimeParams} from './utils';
 
 export function useInitialSeerQuery(): string {
   const {query, committedQuery, parseQuery} = useSearchQueryBuilderState();
+  const {autoSubmitFromCurrentQuery, autoSubmitSeer, displayAskSeer} =
+    useSearchQueryBuilderAI();
   const {currentInputValueRef} = useSearchQueryBuilderLayout();
+  const isAutoSubmittingCurrentQuery =
+    autoSubmitFromCurrentQuery && autoSubmitSeer && displayAskSeer;
 
   const queryDetails = useMemo(() => {
-    const queryToUse = committedQuery.length > 0 ? committedQuery : query;
+    let queryToUse = query;
+    if (!isAutoSubmittingCurrentQuery && committedQuery.length > 0) {
+      queryToUse = committedQuery;
+    }
+
     const parsedQuery = parseQuery(queryToUse);
     return {parsedQuery, queryToUse};
-  }, [committedQuery, query, parseQuery]);
+  }, [committedQuery, isAutoSubmittingCurrentQuery, parseQuery, query]);
 
+  // oxlint-disable-next-line react/refs
   const inputValue = currentInputValueRef.current.trim();
 
   // Only filter out FREE_TEXT tokens if there's actual input value to filter by
   const filteredCommittedQuery = queryDetails?.parsedQuery
     ?.filter(
       token =>
-        !(token.type === Token.FREE_TEXT && inputValue && token.text.includes(inputValue))
+        !(
+          token.type === Token.FREE_TEXT &&
+          inputValue &&
+          (isAutoSubmittingCurrentQuery || token.text.includes(inputValue))
+        )
     )
     ?.map(token => stringifyToken(token))
     ?.join(' ')
@@ -76,7 +90,12 @@ export function useSelectedProjectIds(): number[] {
     ) {
       return pageFilters.selection.projects;
     }
-    return projects.filter(p => p.isMember).map(p => parseInt(p.id, 10));
+    const memberProjectIds = projects
+      .filter(p => p.isMember)
+      .map(p => parseInt(p.id, 10));
+    // Users on no project team can still browse every project in open-membership
+    // orgs, and the search agent rejects an empty project list.
+    return memberProjectIds.length > 0 ? memberProjectIds : [ALL_ACCESS_PROJECTS];
   }, [pageFilters.selection.projects, projects]);
 }
 
@@ -91,7 +110,8 @@ export function useSelectedProjectIdsForMutation(): Array<number | string> {
     ) {
       return pageFilters.selection.projects;
     }
-    return projects.filter(p => p.isMember).map(p => p.id);
+    const memberProjectIds = projects.filter(p => p.isMember).map(p => p.id);
+    return memberProjectIds.length > 0 ? memberProjectIds : [ALL_ACCESS_PROJECTS];
   }, [pageFilters.selection.projects, projects]);
 }
 
@@ -196,6 +216,7 @@ export function mapSeerResponseItem(
     mode: item.mode || defaultMode,
     ...(interval ? {interval} : {}),
     ...(crossEvents.length ? {crossEvents} : {}),
+    ...(item.extra_fields?.length ? {extraFields: item.extra_fields} : {}),
   };
 }
 
@@ -222,25 +243,33 @@ export function buildSeerDateTimeSelection(
   resultStart: string | null,
   resultEnd: string | null,
   statsPeriod: string,
-  pageFiltersDatetime: PageFilters['datetime']
+  pageFiltersDatetime: PageFilterDatetime
 ): SeerDateTimeSelection {
-  let start: DateString = null;
-  let end: DateString = null;
+  const normalized = normalizeSeerDateTimeParams({
+    start: resultStart,
+    end: resultEnd,
+    statsPeriod,
+  });
 
-  if (resultStart && resultEnd) {
-    start = getUtcDateString(resultStart);
-    end = getUtcDateString(resultEnd);
-  } else {
-    start = pageFiltersDatetime.start;
-    end = pageFiltersDatetime.end;
+  if (normalized.statsPeriod) {
+    return {
+      start: null,
+      end: null,
+      period: normalized.statsPeriod,
+      utc: null,
+    };
   }
 
-  return {
-    start,
-    end,
-    // Seer returns absolute ranges as UTC, so display them in UTC to match the
-    // suggestion preview the user accepted.
-    utc: resultStart && resultEnd ? true : pageFiltersDatetime.utc,
-    period: resultStart && resultEnd ? null : statsPeriod || pageFiltersDatetime.period,
-  };
+  if (normalized.start && normalized.end) {
+    return {
+      start: getUtcDateString(normalized.start),
+      end: getUtcDateString(normalized.end),
+      period: null,
+      // Seer returns absolute ranges as UTC, so display them in UTC to match
+      // the suggestion preview the user accepted.
+      utc: true,
+    };
+  }
+
+  return {...pageFiltersDatetime};
 }

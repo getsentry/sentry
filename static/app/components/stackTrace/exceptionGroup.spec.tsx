@@ -137,4 +137,34 @@ describe('exceptionGroup', () => {
     expect(screen.getByTestId('exc-3')).toBeInTheDocument();
     expect(screen.getByTestId('exc-4')).toBeInTheDocument();
   });
+
+  it('renders colored text without escape codes when given ANSI exception values', () => {
+    const values = makeValues().map(exception => {
+      if (exception.type === 'ValueError') {
+        return {...exception, value: '\x1B[31mbad\x1B[0m value'};
+      }
+      if (exception.mechanism?.exception_id === 0) {
+        return {...exception, value: '\x1B[32mroot\x1B[0m group'};
+      }
+      return exception;
+    });
+
+    render(
+      <RelatedExceptionsTree
+        exception={values[0]!}
+        allExceptions={values}
+        newestFirst={false}
+        onExceptionClick={jest.fn()}
+      />
+    );
+
+    expect(
+      screen.getByRole('button', {name: 'ValueError: bad value'})
+    ).toBeInTheDocument();
+    expect(screen.getByText('bad').style.color).toContain('color-mix(in srgb,');
+    expect(screen.getByText('root').closest('div')).toHaveTextContent(
+      /^ExceptionGroup: root group$/
+    );
+    expect(screen.getByText('root').style.color).toContain('color-mix(in srgb,');
+  });
 });

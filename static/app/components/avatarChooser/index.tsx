@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
+import {IconUpload} from '@sentry/icons/upload';
 
 import {
   DocIntegrationAvatar,
@@ -12,15 +13,14 @@ import type {AvatarProps} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {Hovercard} from 'sentry/components/hovercard';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelFooter} from 'sentry/components/panels/panelFooter';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
-import {IconUpload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Avatar} from 'sentry/types/core';
 import type {
@@ -209,15 +209,15 @@ export function AvatarChooser({
       });
       setModel(resp);
       onSave?.(resp);
-      addSuccessMessage(t('Successfully saved avatar preferences'));
+      toast.success(t('Successfully saved avatar preferences'));
     } catch (error) {
       const requestError = error as RequestError;
       const avatarPhotoErrors = (requestError?.responseJSON?.avatar_photo ||
         []) as string[];
       if (avatarPhotoErrors.length) {
-        avatarPhotoErrors.forEach(msg => addErrorMessage(msg));
+        avatarPhotoErrors.forEach(msg => toast.error(msg));
       } else {
-        addErrorMessage(t('There was an error saving your preferences.'));
+        toast.error(t('There was an error saving your preferences.'));
       }
     }
   };

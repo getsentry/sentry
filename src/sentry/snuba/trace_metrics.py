@@ -1,7 +1,7 @@
 import logging
 
-import sentry_sdk
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
+from sentry_sdk import traces
 
 from sentry.api.serializers.models.project import get_has_trace_metrics
 from sentry.models.project import Project
@@ -23,7 +23,7 @@ class TraceMetrics(rpc_dataset_common.RPCBase):
         return get_has_trace_metrics(project)
 
     @classmethod
-    @sentry_sdk.trace
+    @traces.trace
     def run_table_query(
         cls,
         *,

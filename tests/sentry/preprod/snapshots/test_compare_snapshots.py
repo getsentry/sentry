@@ -1,13 +1,21 @@
 from __future__ import annotations
 
-from unittest.mock import ANY, MagicMock, patch
+from typing import Any, cast
+from unittest.mock import ANY, MagicMock, call, patch
 
 import orjson
 import pytest
 from objectstore_client import RequestError
 
+from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.snapshots.image_diff.types import DiffResult, ImageSize
+from sentry.preprod.snapshots.manifest import (
+    ChunkResult,
+    ComparisonPlan,
+    SnapshotManifest,
+)
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison
-from sentry.preprod.snapshots.tasks import _retry_objectstore
+from sentry.preprod.snapshots.tasks import _put_json, _retry_objectstore
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
 
@@ -25,11 +33,11 @@ class ChunksDoneIndicesTest(TestCase):
             state=PreprodSnapshotComparison.State.PROCESSING,
         )
 
-    def test_chunks_total_nullable_default(self):
+    def test_chunks_total_nullable_default(self) -> None:
         comparison = self._comparison()
         assert comparison.chunks_total is None
 
-    def test_mark_chunk_done_accumulates_distinct_indices(self):
+    def test_mark_chunk_done_accumulates_distinct_indices(self) -> None:
         from sentry.preprod.snapshots.tasks import _mark_chunk_done
 
         comparison = self._comparison()
@@ -39,7 +47,7 @@ class ChunksDoneIndicesTest(TestCase):
         comparison.refresh_from_db()
         assert sorted(comparison.chunks_done_indices) == [0, 2]
 
-    def test_mark_chunk_done_bumps_date_updated(self):
+    def test_mark_chunk_done_bumps_date_updated(self) -> None:
         from datetime import timedelta
 
         from django.utils import timezone
@@ -54,10 +62,31 @@ class ChunksDoneIndicesTest(TestCase):
         assert (timezone.now() - comparison.date_updated).total_seconds() < 5
 
 
-def test_retry_objectstore_retries_once_on_429():
+@patch("sentry.preprod.snapshots.tasks.time.sleep")
+def test_put_json_serializes_once_across_retries(mock_sleep: MagicMock) -> None:
+    session = MagicMock()
+    session.put.side_effect = [RequestError("unavailable", 503, "unavailable"), None]
+    model = MagicMock()
+    model.dict.return_value = {"images": {}}
+
+    with patch("sentry.preprod.snapshots.tasks.orjson.dumps", wraps=orjson.dumps) as dumps:
+        _put_json(session, "chunk.json", model)
+
+    model.dict.assert_called_once_with()
+    dumps.assert_called_once_with({"images": {}})
+    assert session.put.call_args_list == [
+        call(b'{"images":{}}', key="chunk.json", content_type="application/json"),
+        call(b'{"images":{}}', key="chunk.json", content_type="application/json"),
+    ]
+    assert session.put.call_args_list[0].args[0] is session.put.call_args_list[1].args[0]
+    mock_sleep.assert_called_once_with(0.5)
+
+
+@patch("sentry.preprod.snapshots.tasks.time.sleep")
+def test_retry_objectstore_retries_once_on_429(mock_sleep: MagicMock) -> None:
     calls = {"n": 0}
 
-    def op():
+    def op() -> str:
         calls["n"] += 1
         if calls["n"] == 1:
             raise RequestError("rate limited", 429, "rate limited")
@@ -65,30 +94,34 @@ def test_retry_objectstore_retries_once_on_429():
 
     assert _retry_objectstore(op) == "ok"
     assert calls["n"] == 2
+    mock_sleep.assert_called_once_with(0.5)
 
 
-def test_retry_objectstore_fails_fast_on_404():
-    def op():
+def test_retry_objectstore_fails_fast_on_404() -> None:
+    def op() -> None:
         raise RequestError("missing", 404, "missing")
 
     with pytest.raises(RequestError):
         _retry_objectstore(op)
 
 
-def test_retry_objectstore_gives_up_after_max_attempts():
-    def op():
-        raise RequestError("unavailable", 503, "unavailable")
+@patch("sentry.preprod.snapshots.tasks.time.sleep")
+def test_retry_objectstore_gives_up_after_max_attempts(mock_sleep: MagicMock) -> None:
+    operation = MagicMock(side_effect=RequestError("unavailable", 503, "unavailable"))
 
     with pytest.raises(RequestError):
-        _retry_objectstore(op)
+        _retry_objectstore(operation)
+
+    assert operation.call_count == 2
+    mock_sleep.assert_called_once_with(0.5)
 
 
 def _mock_session_with_manifests(manifests_by_key: dict[str, bytes]) -> MagicMock:
     session = MagicMock()
 
-    def _get(key):
+    def _get(key: str) -> MagicMock | None:
         if key not in manifests_by_key:
-            raise RequestError(f"Key not found: {key}", 404, "not found")
+            return None
         result = MagicMock()
         result.payload.read.return_value = manifests_by_key[key]
         return result
@@ -100,14 +133,14 @@ def _mock_session_with_manifests(manifests_by_key: dict[str, bytes]) -> MagicMoc
 def _dict_backed_session(stored: dict[str, bytes]) -> MagicMock:
     session = MagicMock()
 
-    def _get(key):
+    def _get(key: str) -> MagicMock | None:
         if key not in stored:
-            raise RequestError(f"Key not found: {key}", 404, "not found")
+            return None
         result = MagicMock()
         result.payload.read.return_value = stored[key]
         return result
 
-    def _put(contents, key, content_type):
+    def _put(contents: bytes, key: str, content_type: str) -> None:
         stored[key] = contents
 
     session.get.side_effect = _get
@@ -117,7 +150,7 @@ def _dict_backed_session(stored: dict[str, bytes]) -> MagicMock:
 
 @cell_silo_test
 class ProcessChunkTest(TestCase):
-    def test_comparison_defaults_images_errored_to_zero(self):
+    def test_comparison_defaults_images_errored_to_zero(self) -> None:
         head_artifact = self.create_preprod_artifact(project=self.project)
         base_artifact = self.create_preprod_artifact(project=self.project)
         head = self.create_preprod_snapshot_metrics(head_artifact)
@@ -128,7 +161,7 @@ class ProcessChunkTest(TestCase):
         )
         assert comparison.images_errored == 0
 
-    def test_chunk_processes_slice_and_records_done_index(self):
+    def test_chunk_processes_slice_and_records_done_index(self) -> None:
         from sentry.preprod.snapshots.image_diff.types import DiffResult
         from sentry.preprod.snapshots.manifest import (
             ChunkAssignment,
@@ -185,11 +218,12 @@ class ProcessChunkTest(TestCase):
         )
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch(
                 "sentry.preprod.snapshots.tasks._fetch_batch_images",
                 return_value=({"h": b"img", "b": b"img"}, set()),
             ),
+            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
             patch("sentry.preprod.snapshots.tasks.compare_images_batch", return_value=[diff]),
         ):
             process_snapshot_comparison_chunk(
@@ -217,7 +251,16 @@ class ProcessChunkTest(TestCase):
             comparison.refresh_from_db()
             assert comparison.chunks_done_indices == [0]
 
-    def _comparison(self, chunks_total, done_indices=None):
+    def test_chunk_writes_sibling_results_separately(self) -> None:
+        from sentry.preprod.snapshots.image_diff.types import DiffResult
+        from sentry.preprod.snapshots.manifest import (
+            ChunkAssignment,
+            ChunkCandidate,
+            ChunkResult,
+            ComparisonPlan,
+        )
+        from sentry.preprod.snapshots.tasks import process_snapshot_comparison_chunk
+
         head_artifact = self.create_preprod_artifact(project=self.project)
         base_artifact = self.create_preprod_artifact(project=self.project)
         head = self.create_preprod_snapshot_metrics(head_artifact)
@@ -227,13 +270,87 @@ class ProcessChunkTest(TestCase):
             base_snapshot_metrics=base,
             state=PreprodSnapshotComparison.State.PROCESSING,
         )
-        comparison.chunks_total = chunks_total
+
+        plan = ComparisonPlan(
+            head_artifact_id=head_artifact.id,
+            base_artifact_id=base_artifact.id,
+            chunks=[
+                ChunkAssignment(
+                    chunk_index=0,
+                    candidates=[
+                        ChunkCandidate(
+                            name="a.png",
+                            head_hash="h",
+                            base_hash="b",
+                            pixel_count=10,
+                            diff_threshold=0.0,
+                            kind="sibling",
+                        )
+                    ],
+                )
+            ],
+            non_diff_images={},
+        )
+        prefix = f"{self.organization.id}/{self.project.id}/{head_artifact.id}/{base_artifact.id}"
+        stored = {f"{prefix}/plan.json": orjson.dumps(plan.dict())}
+        session = _dict_backed_session(stored)
+
+        diff = DiffResult(
+            diff_mask_png=b"png",
+            changed_pixels=5,
+            total_pixels=100,
+            aligned_height=10,
+            before_width=10,
+            before_height=10,
+            after_width=10,
+            after_height=10,
+        )
+
+        with (
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.OdiffServer"),
+            patch(
+                "sentry.preprod.snapshots.tasks._fetch_batch_images",
+                return_value=({"h": b"img", "b": b"img"}, set()),
+            ),
+            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
+            patch("sentry.preprod.snapshots.tasks.compare_images_batch", return_value=[diff]),
+        ):
+            process_snapshot_comparison_chunk(
+                comparison_id=comparison.id,
+                chunk_index=0,
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                head_artifact_id=head_artifact.id,
+                base_artifact_id=base_artifact.id,
+            )
+
+        result_key = f"{prefix}/chunks/0.json"
+        stored_result = ChunkResult(**orjson.loads(stored[result_key]))
+        assert stored_result.images == {}
+        assert set(stored_result.sibling_images) == {"a.png"}
+
+    def _comparison(
+        self, chunks_total: int | None, done_indices: list[int] | None = None
+    ) -> tuple[PreprodSnapshotComparison, PreprodArtifact, PreprodArtifact]:
+        head_artifact = self.create_preprod_artifact(project=self.project)
+        base_artifact = self.create_preprod_artifact(project=self.project)
+        head = self.create_preprod_snapshot_metrics(head_artifact)
+        base = self.create_preprod_snapshot_metrics(base_artifact)
+        comparison = self.create_preprod_snapshot_comparison(
+            head_snapshot_metrics=head,
+            base_snapshot_metrics=base,
+            state=PreprodSnapshotComparison.State.PROCESSING,
+        )
+        comparison.chunks_total = cast("int", chunks_total)
         if done_indices is not None:
             comparison.chunks_done_indices = done_indices
         comparison.save()
         return comparison, head_artifact, base_artifact
 
-    def _single_chunk_plan(self, head_artifact, base_artifact):
+    def _single_chunk_plan(
+        self, head_artifact: PreprodArtifact, base_artifact: PreprodArtifact
+    ) -> ComparisonPlan:
         from sentry.preprod.snapshots.manifest import (
             ChunkAssignment,
             ChunkCandidate,
@@ -260,7 +377,7 @@ class ProcessChunkTest(TestCase):
             non_diff_images={},
         )
 
-    def _diff_result(self):
+    def _diff_result(self) -> DiffResult:
         from sentry.preprod.snapshots.image_diff.types import DiffResult
 
         return DiffResult(
@@ -274,7 +391,7 @@ class ProcessChunkTest(TestCase):
             after_height=10,
         )
 
-    def test_chunk_triggers_finalize_when_last(self):
+    def test_chunk_triggers_finalize_when_last(self) -> None:
         from sentry.preprod.snapshots.tasks import process_snapshot_comparison_chunk
 
         comparison, head_artifact, base_artifact = self._comparison(1)
@@ -287,11 +404,12 @@ class ProcessChunkTest(TestCase):
         )
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch(
                 "sentry.preprod.snapshots.tasks._fetch_batch_images",
                 return_value=({"h": b"img", "b": b"img"}, set()),
             ),
+            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
             patch(
                 "sentry.preprod.snapshots.tasks.compare_images_batch",
                 return_value=[self._diff_result()],
@@ -313,7 +431,7 @@ class ProcessChunkTest(TestCase):
         assert 0 in comparison.chunks_done_indices
         assert finalize.call_count == 1
 
-    def test_chunk_does_not_trigger_finalize_when_not_last(self):
+    def test_chunk_does_not_trigger_finalize_when_not_last(self) -> None:
         from sentry.preprod.snapshots.tasks import process_snapshot_comparison_chunk
 
         comparison, head_artifact, base_artifact = self._comparison(2)
@@ -326,11 +444,12 @@ class ProcessChunkTest(TestCase):
         )
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch(
                 "sentry.preprod.snapshots.tasks._fetch_batch_images",
                 return_value=({"h": b"img", "b": b"img"}, set()),
             ),
+            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
             patch(
                 "sentry.preprod.snapshots.tasks.compare_images_batch",
                 return_value=[self._diff_result()],
@@ -352,7 +471,7 @@ class ProcessChunkTest(TestCase):
         assert comparison.chunks_done_indices == [0]
         assert not finalize.called
 
-    def test_chunk_with_unchanged_diff_hash_writes_result(self):
+    def test_chunk_with_unchanged_diff_hash_writes_result(self) -> None:
         from sentry.preprod.snapshots.image_diff.types import DiffResult
         from sentry.preprod.snapshots.tasks import process_snapshot_comparison_chunk
 
@@ -377,11 +496,12 @@ class ProcessChunkTest(TestCase):
         )
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch(
                 "sentry.preprod.snapshots.tasks._fetch_batch_images",
                 return_value=({"h": b"img", "b": b"img"}, set()),
             ),
+            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
             patch(
                 "sentry.preprod.snapshots.tasks.compare_images_batch",
                 return_value=[unchanged_diff],
@@ -402,7 +522,7 @@ class ProcessChunkTest(TestCase):
         result = orjson.loads(stored[chunk_key])
         assert result["images"]["a.png"]["status"] == "unchanged"
 
-    def test_chunk_hard_failure_still_recorded_and_triggers_finalize(self):
+    def test_chunk_hard_failure_still_recorded_and_triggers_finalize(self) -> None:
         from sentry.preprod.snapshots.tasks import process_snapshot_comparison_chunk
 
         comparison, head_artifact, base_artifact = self._comparison(1)
@@ -415,7 +535,7 @@ class ProcessChunkTest(TestCase):
         )
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch(
                 "sentry.preprod.snapshots.tasks._process_chunk",
                 side_effect=Exception("boom"),
@@ -438,7 +558,7 @@ class ProcessChunkTest(TestCase):
         assert f"{prefix}/chunks/0.json" not in stored
         assert finalize.call_count == 1
 
-    def test_chunk_failure_logs_exception_details(self):
+    def test_chunk_failure_logs_exception_details(self) -> None:
         from sentry.preprod.snapshots.tasks import process_snapshot_comparison_chunk
 
         comparison, head_artifact, base_artifact = self._comparison(1)
@@ -451,7 +571,7 @@ class ProcessChunkTest(TestCase):
         )
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch(
                 "sentry.preprod.snapshots.tasks._process_chunk",
                 side_effect=ValueError("odiff exploded"),
@@ -479,8 +599,11 @@ class ProcessChunkTest(TestCase):
 @cell_silo_test
 class FinalizeSnapshotComparisonTest(TestCase):
     def _comparison(
-        self, chunks_total, state=PreprodSnapshotComparison.State.PROCESSING, done_indices=None
-    ):
+        self,
+        chunks_total: int | None,
+        state: int = PreprodSnapshotComparison.State.PROCESSING,
+        done_indices: list[int] | None = None,
+    ) -> tuple[PreprodSnapshotComparison, PreprodArtifact, PreprodArtifact]:
         head_artifact = self.create_preprod_artifact(project=self.project)
         base_artifact = self.create_preprod_artifact(project=self.project)
         head = self.create_preprod_snapshot_metrics(head_artifact)
@@ -488,13 +611,18 @@ class FinalizeSnapshotComparisonTest(TestCase):
         comparison = self.create_preprod_snapshot_comparison(
             head_snapshot_metrics=head, base_snapshot_metrics=base, state=state
         )
-        comparison.chunks_total = chunks_total
+        comparison.chunks_total = cast("int", chunks_total)
         if done_indices is not None:
             comparison.chunks_done_indices = done_indices
         comparison.save()
         return comparison, head_artifact, base_artifact
 
-    def _kwargs(self, comparison, head_artifact, base_artifact):
+    def _kwargs(
+        self,
+        comparison: PreprodSnapshotComparison,
+        head_artifact: PreprodArtifact,
+        base_artifact: PreprodArtifact,
+    ) -> dict[str, int]:
         return dict(
             comparison_id=comparison.id,
             org_id=self.organization.id,
@@ -503,7 +631,7 @@ class FinalizeSnapshotComparisonTest(TestCase):
             base_artifact_id=base_artifact.id,
         )
 
-    def _single_chunk_plan(self, h, b):
+    def _single_chunk_plan(self, h: PreprodArtifact, b: PreprodArtifact) -> ComparisonPlan:
         from sentry.preprod.snapshots.manifest import (
             ChunkAssignment,
             ChunkCandidate,
@@ -530,12 +658,14 @@ class FinalizeSnapshotComparisonTest(TestCase):
             non_diff_images={},
         )
 
-    def _changed_chunk_result(self):
+    def _changed_chunk_result(self) -> ChunkResult:
         from sentry.preprod.snapshots.manifest import ChunkResult, ComparisonImageResult
 
         return ChunkResult(chunk_index=0, images={"a.png": ComparisonImageResult(status="changed")})
 
-    def _finalize_with_extras(self, extras):
+    def _finalize_with_extras(
+        self, extras: dict[str, object] | None
+    ) -> tuple[PreprodSnapshotComparison, list[object]]:
         from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
 
         comparison, h, b = self._comparison(1, done_indices=[0])
@@ -548,7 +678,7 @@ class FinalizeSnapshotComparisonTest(TestCase):
         }
         session = _dict_backed_session(stored)
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch("sentry.preprod.snapshots.tasks._try_auto_approve_snapshot"),
             patch("sentry.preprod.snapshots.tasks.metrics") as mock_metrics,
         ):
@@ -561,7 +691,7 @@ class FinalizeSnapshotComparisonTest(TestCase):
         ]
         return comparison, diff_calls
 
-    def test_finalize_skips_diff_duration_metric_on_missing_or_invalid_timestamp(self):
+    def test_finalize_skips_diff_duration_metric_on_missing_or_invalid_timestamp(self) -> None:
         missing, missing_calls = self._finalize_with_extras({})
         assert missing.state == PreprodSnapshotComparison.State.SUCCESS
         assert missing_calls == []
@@ -572,15 +702,15 @@ class FinalizeSnapshotComparisonTest(TestCase):
         assert invalid.state == PreprodSnapshotComparison.State.SUCCESS
         assert invalid_calls == []
 
-    def test_terminal_state_skips_finalize(self):
+    def test_terminal_state_skips_finalize(self) -> None:
         from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
 
         comparison, h, b = self._comparison(1, state=PreprodSnapshotComparison.State.SUCCESS)
-        with patch("sentry.preprod.snapshots.tasks.get_preprod_session") as session:
+        with patch("sentry.preprod.snapshots.tasks.get_snapshot_storage") as session:
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
         assert not session.called
 
-    def test_all_done_finalizes(self):
+    def test_all_done_finalizes(self) -> None:
         from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
 
         comparison, h, b = self._comparison(1, done_indices=[0])
@@ -591,7 +721,7 @@ class FinalizeSnapshotComparisonTest(TestCase):
         }
         session = _dict_backed_session(stored)
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch("sentry.preprod.snapshots.tasks._try_auto_approve_snapshot") as mock_auto_approve,
         ):
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
@@ -600,25 +730,90 @@ class FinalizeSnapshotComparisonTest(TestCase):
         assert comparison.images_changed == 1
         assert f"{prefix}/comparison.json" in stored
         assert mock_auto_approve.call_count == 1
-        called_head_artifact, called_manifest, called_session = mock_auto_approve.call_args.args
+        (
+            called_head_artifact,
+            called_manifest,
+            called_plan,
+            called_sibling_images,
+            called_session,
+        ) = mock_auto_approve.call_args.args
         assert called_head_artifact.id == h.id
         assert called_manifest.head_artifact_id == h.id
         assert called_session is session
 
-    def test_finalize_writes_images_errored_column(self):
+    def test_finalize_passes_sibling_results_to_auto_approve(self) -> None:
+        from sentry.preprod.snapshots.manifest import (
+            ChunkAssignment,
+            ChunkCandidate,
+            ChunkResult,
+            ComparisonImageResult,
+            ComparisonPlan,
+        )
+        from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
+
+        comparison, h, b = self._comparison(1, done_indices=[0])
+        plan = ComparisonPlan(
+            head_artifact_id=h.id,
+            base_artifact_id=b.id,
+            chunks=[
+                ChunkAssignment(
+                    chunk_index=0,
+                    candidates=[
+                        ChunkCandidate(
+                            name="a.png",
+                            head_hash="a-head",
+                            base_hash="a-sib",
+                            pixel_count=10,
+                            diff_threshold=0.0,
+                            kind="sibling",
+                        )
+                    ],
+                )
+            ],
+            non_diff_images={},
+            sibling_artifact_id=77,
+            sibling_comparison_key="sib/comparison.json",
+        )
+        sibling_images = {
+            "a.png": ComparisonImageResult(
+                status="unchanged", head_hash="a-head", base_hash="a-sib"
+            )
+        }
+        result = ChunkResult(chunk_index=0, images={}, sibling_images=sibling_images)
+        prefix = f"{self.organization.id}/{self.project.id}/{h.id}/{b.id}"
+        stored = {
+            f"{prefix}/plan.json": orjson.dumps(plan.dict()),
+            f"{prefix}/chunks/0.json": orjson.dumps(result.dict()),
+        }
+        session = _dict_backed_session(stored)
+        with (
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
+            patch("sentry.preprod.snapshots.tasks._try_auto_approve_snapshot") as mock_auto_approve,
+        ):
+            finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
+        assert mock_auto_approve.call_count == 1
+        (_head, _manifest, called_plan, called_sibling_images, _session) = (
+            mock_auto_approve.call_args.args
+        )
+        assert called_sibling_images == sibling_images
+        assert called_plan.sibling_artifact_id == 77
+
+    def test_finalize_writes_images_errored_column(self) -> None:
         from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
 
         comparison, h, b = self._comparison(1, done_indices=[1])
         prefix = f"{self.organization.id}/{self.project.id}/{h.id}/{b.id}"
         stored = {f"{prefix}/plan.json": orjson.dumps(self._single_chunk_plan(h, b).dict())}
         session = _dict_backed_session(stored)
-        with patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session):
+        with patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session):
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
         comparison.refresh_from_db()
         assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
         assert comparison.images_errored == 1
 
-    def test_finalize_is_exactly_once(self):
+    def test_finalize_is_exactly_once(self) -> None:
         from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
 
         comparison, h, b = self._comparison(1, done_indices=[0])
@@ -629,7 +824,7 @@ class FinalizeSnapshotComparisonTest(TestCase):
         }
         session = _dict_backed_session(stored)
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch("sentry.preprod.snapshots.tasks._try_auto_approve_snapshot") as mock_auto_approve,
         ):
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
@@ -638,27 +833,27 @@ class FinalizeSnapshotComparisonTest(TestCase):
         assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
         assert mock_auto_approve.call_count == 1
 
-    def test_chunks_total_none_skips_finalize(self):
+    def test_chunks_total_none_skips_finalize(self) -> None:
         from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
 
         comparison, h, b = self._comparison(None)
-        with patch("sentry.preprod.snapshots.tasks.get_preprod_session") as session:
+        with patch("sentry.preprod.snapshots.tasks.get_snapshot_storage") as session:
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
         assert not session.called
         comparison.refresh_from_db()
         assert comparison.state == PreprodSnapshotComparison.State.PROCESSING
 
-    def test_not_all_done_skips_finalize(self):
+    def test_not_all_done_skips_finalize(self) -> None:
         from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
 
         comparison, h, b = self._comparison(3, done_indices=[0])
-        with patch("sentry.preprod.snapshots.tasks.get_preprod_session") as session:
+        with patch("sentry.preprod.snapshots.tasks.get_snapshot_storage") as session:
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
         assert not session.called
         comparison.refresh_from_db()
         assert comparison.state == PreprodSnapshotComparison.State.PROCESSING
 
-    def test_finalize_heartbeats_before_assembly(self):
+    def test_finalize_heartbeats_before_assembly(self) -> None:
         from datetime import timedelta
 
         from django.utils import timezone
@@ -678,14 +873,14 @@ class FinalizeSnapshotComparisonTest(TestCase):
 
         date_updated_at_finalize = {}
 
-        def _capture(*args, **kwargs):
+        def _capture(*args: Any, **kwargs: Any) -> MagicMock:
             date_updated_at_finalize["value"] = PreprodSnapshotComparison.objects.values_list(
                 "date_updated", flat=True
             ).get(id=comparison.id)
             return session
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", side_effect=_capture),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", side_effect=_capture),
             patch("sentry.preprod.snapshots.tasks._try_auto_approve_snapshot"),
         ):
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
@@ -693,14 +888,14 @@ class FinalizeSnapshotComparisonTest(TestCase):
         comparison.refresh_from_db()
         assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
 
-    def test_finalize_marks_missing_chunk_images_errored(self):
+    def test_finalize_marks_missing_chunk_images_errored(self) -> None:
         from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
 
         comparison, h, b = self._comparison(1, done_indices=[1])
         prefix = f"{self.organization.id}/{self.project.id}/{h.id}/{b.id}"
         stored = {f"{prefix}/plan.json": orjson.dumps(self._single_chunk_plan(h, b).dict())}
         session = _dict_backed_session(stored)
-        with patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session):
+        with patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session):
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
         comparison.refresh_from_db()
         assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
@@ -708,14 +903,14 @@ class FinalizeSnapshotComparisonTest(TestCase):
         assert comparison_manifest["summary"]["errored"] == 1
         assert comparison_manifest["images"]["a.png"]["status"] == "errored"
 
-    def test_finalize_degrades_when_done_chunk_result_unreadable(self):
+    def test_finalize_degrades_when_done_chunk_result_unreadable(self) -> None:
         from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
 
         comparison, h, b = self._comparison(1, done_indices=[0])
         prefix = f"{self.organization.id}/{self.project.id}/{h.id}/{b.id}"
         stored = {f"{prefix}/plan.json": orjson.dumps(self._single_chunk_plan(h, b).dict())}
         session = _dict_backed_session(stored)
-        with patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session):
+        with patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session):
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
         comparison.refresh_from_db()
         assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
@@ -723,13 +918,13 @@ class FinalizeSnapshotComparisonTest(TestCase):
         assert comparison_manifest["summary"]["errored"] == 1
         assert comparison_manifest["images"]["a.png"]["status"] == "errored"
 
-    def test_finalize_fails_when_plan_unreadable(self):
+    def test_finalize_fails_when_plan_unreadable(self) -> None:
         from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
 
         comparison, h, b = self._comparison(1, done_indices=[0])
         session = _dict_backed_session({})
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs") as vcs,
         ):
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
@@ -741,7 +936,7 @@ class FinalizeSnapshotComparisonTest(TestCase):
 
 @cell_silo_test
 class CompareSnapshotsOrchestratorTest(TestCase):
-    def _setup(self):
+    def _setup(self) -> tuple[PreprodArtifact, PreprodArtifact]:
         head_artifact = self.create_preprod_artifact(project=self.project)
         base_artifact = self.create_preprod_artifact(project=self.project)
         head = self.create_preprod_snapshot_metrics(head_artifact)
@@ -752,7 +947,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         base.save()
         return head_artifact, base_artifact
 
-    def test_orchestrator_dispatches_and_sets_total(self):
+    def test_orchestrator_dispatches_and_sets_total(self) -> None:
         import orjson
 
         from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
@@ -776,7 +971,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch(
                 "sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"
             ) as dispatch,
@@ -798,7 +993,97 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         )  # finalizer sets SUCCESS, not orchestrator
         assert dispatch.call_count == 1
 
-    def test_orchestrator_finalizes_when_no_diff_chunks(self):
+    def test_orchestrator_records_sibling_in_plan(self) -> None:
+        import orjson
+
+        from sentry.preprod.snapshots.manifest import (
+            ComparisonImageResult,
+            ComparisonManifest,
+            ComparisonPlan,
+            ComparisonSummary,
+            ImageMetadata,
+            SnapshotManifest,
+        )
+        from sentry.preprod.snapshots.tasks import (
+            SiblingComparison,
+            _plan_key,
+            compare_snapshots,
+        )
+
+        head_artifact, base_artifact = self._setup()
+        head_manifest = SnapshotManifest(
+            images={"changed.png": ImageMetadata(content_hash="h1", width=100, height=100)},
+            diff_threshold=None,
+        )
+        base_manifest = SnapshotManifest(
+            images={"changed.png": ImageMetadata(content_hash="h0", width=100, height=100)},
+            diff_threshold=None,
+        )
+        stored = {
+            "head_manifest": orjson.dumps(head_manifest.dict()),
+            "base_manifest": orjson.dumps(base_manifest.dict()),
+        }
+        session = _dict_backed_session(stored)
+
+        sibling_manifest = ComparisonManifest(
+            head_artifact_id=77,
+            base_artifact_id=0,
+            summary=ComparisonSummary(
+                total=1,
+                changed=1,
+                unchanged=0,
+                added=0,
+                removed=0,
+                errored=0,
+                renamed=0,
+                skipped=0,
+            ),
+            images={
+                "changed.png": ComparisonImageResult(
+                    status="changed", head_hash="hsib", base_hash="hsib_base"
+                )
+            },
+        )
+        sibling_snapshot_manifest = SnapshotManifest(
+            images={"changed.png": ImageMetadata(content_hash="hsib", width=100, height=100)},
+            diff_threshold=None,
+        )
+        sibling = SiblingComparison(
+            77, "sib/comparison.json", sibling_manifest, sibling_snapshot_manifest
+        )
+
+        with (
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
+            patch(
+                "sentry.preprod.snapshots.tasks._find_approved_sibling", return_value=sibling
+            ) as mock_find_sibling,
+            patch("sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"),
+            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
+        ):
+            compare_snapshots(
+                project_id=self.project.id,
+                org_id=self.organization.id,
+                head_artifact_id=head_artifact.id,
+                base_artifact_id=base_artifact.id,
+            )
+
+        plan_key = _plan_key(
+            self.organization.id, self.project.id, head_artifact.id, base_artifact.id
+        )
+        plan = ComparisonPlan(**orjson.loads(stored[plan_key]))
+        assert plan.sibling_artifact_id == 77
+        assert plan.sibling_comparison_key == "sib/comparison.json"
+        sibling_candidates = [
+            c for chunk in plan.chunks for c in chunk.candidates if c.kind == "sibling"
+        ]
+        assert len(sibling_candidates) == 1
+
+        mock_find_sibling.assert_called_once()
+        called_head, called_session = mock_find_sibling.call_args.args
+        assert called_head.id == head_artifact.id
+        assert called_session is session
+
+    def test_orchestrator_finalizes_when_no_diff_chunks(self) -> None:
         import orjson
 
         from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
@@ -822,7 +1107,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch(
                 "sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"
             ) as dispatch,
@@ -845,7 +1130,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         assert not dispatch.called
         assert finalize.called
 
-    def test_orchestrator_resumes_stuck_processing_row(self):
+    def test_orchestrator_resumes_stuck_processing_row(self) -> None:
         import orjson
 
         from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
@@ -863,7 +1148,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
             base_snapshot_metrics=base_metrics,
             state=PreprodSnapshotComparison.State.PROCESSING,
         )
-        assert comparison.chunks_total is None
+        assert cast("object", comparison.chunks_total) is None
 
         head_manifest = SnapshotManifest(
             images={"changed.png": ImageMetadata(content_hash="h1", width=100, height=100)},
@@ -882,7 +1167,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch(
                 "sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"
             ) as dispatch,
@@ -901,7 +1186,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         assert comparison.chunks_total == 1
         assert dispatch.call_count == 1
 
-    def test_orchestrator_finalizes_when_chunks_already_done(self):
+    def test_orchestrator_finalizes_when_chunks_already_done(self) -> None:
         import orjson
 
         from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
@@ -940,7 +1225,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch("sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"),
             patch(
                 "sentry.preprod.snapshots.tasks.finalize_snapshot_comparison.apply_async"
@@ -958,7 +1243,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         assert comparison.chunks_total == 1
         assert finalize.called
 
-    def test_resume_of_failed_row_preserves_completed_chunks(self):
+    def test_resume_of_failed_row_preserves_completed_chunks(self) -> None:
         import orjson
 
         from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
@@ -997,7 +1282,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch("sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"),
             patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
         ):
@@ -1013,7 +1298,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         assert comparison.chunks_total == 1
         assert comparison.chunks_done_indices == [0]
 
-    def test_manifest_failure_does_not_clobber_advanced_row(self):
+    def test_manifest_failure_does_not_clobber_advanced_row(self) -> None:
         from sentry.preprod.snapshots.models import (
             PreprodSnapshotComparison,
             PreprodSnapshotMetrics,
@@ -1029,17 +1314,17 @@ class CompareSnapshotsOrchestratorTest(TestCase):
             state=PreprodSnapshotComparison.State.PROCESSING,
         )
 
-        def _get(key):
+        def _get(key: str) -> None:
             PreprodSnapshotComparison.objects.filter(id=comparison.id).update(
                 state=PreprodSnapshotComparison.State.SUCCESS
             )
-            raise RequestError(f"Key not found: {key}", 404, "not found")
+            return None
 
         session = MagicMock()
         session.get.side_effect = _get
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs") as vcs,
         ):
             compare_snapshots(
@@ -1056,7 +1341,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         ]
         assert failure_calls == []
 
-    def test_manifest_failure_on_processing_row_flips_to_failed(self):
+    def test_manifest_failure_on_processing_row_flips_to_failed(self) -> None:
         from sentry.preprod.snapshots.models import (
             PreprodSnapshotComparison,
             PreprodSnapshotMetrics,
@@ -1072,14 +1357,11 @@ class CompareSnapshotsOrchestratorTest(TestCase):
             state=PreprodSnapshotComparison.State.PROCESSING,
         )
 
-        def _get(key):
-            raise RequestError(f"Key not found: {key}", 404, "not found")
-
         session = MagicMock()
-        session.get.side_effect = _get
+        session.get.return_value = None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs") as vcs,
         ):
             compare_snapshots(
@@ -1097,7 +1379,49 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         ]
         assert len(failure_calls) == 1
 
-    def test_orchestrator_skips_processing_row_with_chunks_total(self):
+    def test_missing_base_manifest_fails_with_base_manifest_missing(self) -> None:
+        from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
+        from sentry.preprod.snapshots.tasks import compare_snapshots
+
+        head_artifact, base_artifact = self._setup()
+        commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            base_sha="abcdef1234567890abcdef1234567890abcdef12",
+        )
+        head_artifact.commit_comparison = commit_comparison
+        head_artifact.save(update_fields=["commit_comparison"])
+
+        head_manifest = SnapshotManifest(
+            images={"a.png": ImageMetadata(content_hash="h1", width=10, height=10)}
+        )
+        session = _mock_session_with_manifests(
+            {"head_manifest": orjson.dumps(head_manifest.dict())}
+        )
+
+        with (
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs") as vcs,
+        ):
+            compare_snapshots(
+                project_id=self.project.id,
+                org_id=self.organization.id,
+                head_artifact_id=head_artifact.id,
+                base_artifact_id=base_artifact.id,
+            )
+
+        comparison = PreprodSnapshotComparison.objects.get(
+            head_snapshot_metrics__preprod_artifact=head_artifact
+        )
+        assert comparison.state == PreprodSnapshotComparison.State.FAILED
+        assert comparison.error_code == PreprodSnapshotComparison.ErrorCode.BASE_MANIFEST_MISSING
+        assert comparison.error_message == "Base snapshot for commit abcdef1 not found."
+        failure_calls = [
+            c for c in vcs.call_args_list if c.kwargs.get("caller") == "compare_failure"
+        ]
+        assert len(failure_calls) == 1
+        assert failure_calls[0].kwargs["preprod_artifact_id"] == head_artifact.id
+
+    def test_orchestrator_skips_processing_row_with_chunks_total(self) -> None:
         from sentry.preprod.snapshots.models import (
             PreprodSnapshotComparison,
             PreprodSnapshotMetrics,
@@ -1116,7 +1440,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         comparison.save()
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session") as session_factory,
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage") as session_factory,
             patch(
                 "sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"
             ) as dispatch,
@@ -1134,7 +1458,9 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         comparison.refresh_from_db()
         assert comparison.chunks_total == 2
 
-    def _setup_selective_chain(self):
+    def _setup_selective_chain(
+        self,
+    ) -> tuple[PreprodArtifact, PreprodArtifact, PreprodArtifact]:
         # main(full) -> PR1(selective, base=main); head (PR2) compares against PR1.
         from sentry.models.commitcomparison import CommitComparison
 
@@ -1174,7 +1500,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         m_pr2.save()
         return a_pr2, a_pr1, a_main
 
-    def test_compare_against_selective_base_reconstructs_and_processes(self):
+    def test_compare_against_selective_base_reconstructs_and_processes(self) -> None:
         import orjson
 
         from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
@@ -1203,7 +1529,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch("sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"),
             patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
         ):
@@ -1223,7 +1549,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         # base lacks "a", so "a" would be an add with zero diff chunks.
         assert comparison.chunks_total == 1
 
-    def test_reconstruction_gated_on_manifest_not_db_flag(self):
+    def test_reconstruction_gated_on_manifest_not_db_flag(self) -> None:
         import orjson
 
         from sentry.preprod.models import PreprodSnapshotMetrics
@@ -1260,7 +1586,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch("sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"),
             patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
         ):
@@ -1280,7 +1606,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         # treat "a" as an add (zero chunks).
         assert comparison.chunks_total == 1
 
-    def _complete_chain_manifests(self):
+    def _complete_chain_manifests(self) -> dict[str, bytes]:
         import orjson
 
         from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
@@ -1304,7 +1630,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
             ),
         }
 
-    def test_resume_from_pending_skips_compare_start_vcs(self):
+    def test_resume_from_pending_skips_compare_start_vcs(self) -> None:
         from sentry.preprod.snapshots.tasks import compare_snapshots
 
         head_artifact, base_artifact, main_artifact = self._setup_selective_chain()
@@ -1320,7 +1646,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch("sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"),
             patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs") as vcs,
         ):
@@ -1338,7 +1664,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         start_calls = [c for c in vcs.call_args_list if c.kwargs.get("caller") == "compare_start"]
         assert start_calls == []
 
-    def test_fresh_start_posts_compare_start_vcs(self):
+    def test_fresh_start_posts_compare_start_vcs(self) -> None:
         from sentry.preprod.snapshots.tasks import compare_snapshots
 
         head_artifact, base_artifact, main_artifact = self._setup_selective_chain()
@@ -1346,7 +1672,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch("sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"),
             patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs") as vcs,
         ):
@@ -1360,7 +1686,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         start_calls = [c for c in vcs.call_args_list if c.kwargs.get("caller") == "compare_start"]
         assert len(start_calls) == 1
 
-    def test_incomplete_chain_within_window_defers_to_pending(self):
+    def test_incomplete_chain_within_window_defers_to_pending(self) -> None:
         import orjson
 
         from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
@@ -1385,7 +1711,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch("sentry.preprod.snapshots.tasks.compare_snapshots.apply_async") as reschedule,
             patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
         ):
@@ -1406,7 +1732,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         assert reschedule_kwargs["head_artifact_id"] == head_artifact.id
         assert reschedule_kwargs["base_artifact_id"] == base_artifact.id
 
-    def test_old_head_with_fresh_comparison_within_window_defers(self):
+    def test_old_head_with_fresh_comparison_within_window_defers(self) -> None:
         from datetime import timedelta
 
         import orjson
@@ -1442,7 +1768,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch("sentry.preprod.snapshots.tasks.compare_snapshots.apply_async") as reschedule,
             patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
         ):
@@ -1459,7 +1785,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         assert comparison.state == PreprodSnapshotComparison.State.PENDING
         assert reschedule.call_count == 1
 
-    def test_incomplete_chain_past_window_fails(self):
+    def test_incomplete_chain_past_window_fails(self) -> None:
         from datetime import timedelta
 
         import orjson
@@ -1497,7 +1823,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch("sentry.preprod.snapshots.tasks.compare_snapshots.apply_async") as reschedule,
             patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs") as vcs,
         ):
@@ -1519,7 +1845,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         ]
         assert len(failure_calls) == 1  # failure posted
 
-    def test_corrupt_ancestor_fails_immediately_not_deferred(self):
+    def test_corrupt_ancestor_fails_immediately_not_deferred(self) -> None:
         import orjson
 
         from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
@@ -1546,7 +1872,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch("sentry.preprod.snapshots.tasks.compare_snapshots.apply_async") as reschedule,
             patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
         ):
@@ -1570,7 +1896,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
 
 @cell_silo_test
 class EndToEndFanoutTest(TestCase):
-    def _setup_artifacts(self):
+    def _setup_artifacts(self) -> tuple[PreprodArtifact, PreprodArtifact]:
         head_artifact = self.create_preprod_artifact(project=self.project)
         base_artifact = self.create_preprod_artifact(project=self.project)
         head = self.create_preprod_snapshot_metrics(head_artifact)
@@ -1581,7 +1907,7 @@ class EndToEndFanoutTest(TestCase):
         base.save()
         return head_artifact, base_artifact
 
-    def _build_manifests(self):
+    def _build_manifests(self) -> tuple[SnapshotManifest, SnapshotManifest]:
         from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
 
         head_manifest = SnapshotManifest(
@@ -1605,7 +1931,7 @@ class EndToEndFanoutTest(TestCase):
         )
         return head_manifest, base_manifest
 
-    def _diff_result(self):
+    def _diff_result(self) -> DiffResult:
         from sentry.preprod.snapshots.image_diff.types import DiffResult
 
         return DiffResult(
@@ -1619,10 +1945,12 @@ class EndToEndFanoutTest(TestCase):
             after_height=10,
         )
 
-    def _fake_fetch(self, session, key_prefix, hashes):
+    def _fake_fetch(
+        self, session: MagicMock, key_prefix: str, hashes: list[str]
+    ) -> tuple[dict[str, bytes], set[str]]:
         return {h: b"img" for h in hashes}, set()
 
-    def test_full_flow_reaches_success(self):
+    def test_full_flow_reaches_success(self) -> None:
         from datetime import datetime
 
         from sentry.preprod.snapshots.tasks import (
@@ -1639,7 +1967,7 @@ class EndToEndFanoutTest(TestCase):
         }
         session = _dict_backed_session(stored)
 
-        dispatched: list[dict] = []
+        dispatched: list[dict[str, int]] = []
 
         kwargs = dict(
             project_id=self.project.id,
@@ -1649,11 +1977,12 @@ class EndToEndFanoutTest(TestCase):
         )
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch("sentry.preprod.snapshots.tasks.MAX_PIXELS_PER_BATCH", 1),
             patch(
                 "sentry.preprod.snapshots.tasks._fetch_batch_images", side_effect=self._fake_fetch
             ),
+            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
             patch(
                 "sentry.preprod.snapshots.tasks.compare_images_batch",
                 side_effect=lambda pairs, server: [self._diff_result() for _ in pairs],
@@ -1716,3 +2045,283 @@ class EndToEndFanoutTest(TestCase):
             sample_rate=1.0,
             tags={"app_id_temp": head_artifact.app_id or ""},
         )
+
+    def test_full_flow_auto_approves_via_sibling_results(self) -> None:
+        from sentry.preprod.models import PreprodComparisonApproval
+        from sentry.preprod.snapshots.image_diff.types import DiffResult
+        from sentry.preprod.snapshots.manifest import (
+            ComparisonImageResult,
+            ComparisonManifest,
+            ComparisonSummary,
+            ImageMetadata,
+            SnapshotManifest,
+        )
+        from sentry.preprod.snapshots.tasks import (
+            SiblingComparison,
+            compare_snapshots,
+            finalize_snapshot_comparison,
+            process_snapshot_comparison_chunk,
+        )
+
+        commit_comparison = self.create_commit_comparison(
+            organization=self.organization, pr_number=42, head_repo_name="owner/repo"
+        )
+        head_artifact = self.create_preprod_artifact(
+            project=self.project, commit_comparison=commit_comparison
+        )
+        base_artifact = self.create_preprod_artifact(project=self.project)
+        head = self.create_preprod_snapshot_metrics(head_artifact)
+        head.extras = {"manifest_key": "head_manifest"}
+        head.save()
+        base = self.create_preprod_snapshot_metrics(base_artifact)
+        base.extras = {"manifest_key": "base_manifest"}
+        base.save()
+
+        head_manifest = SnapshotManifest(
+            images={
+                "added.png": ImageMetadata(content_hash="ha1", width=10, height=10),
+                "unchanged.png": ImageMetadata(content_hash="hsame", width=10, height=10),
+            },
+            diff_threshold=None,
+        )
+        base_manifest = SnapshotManifest(
+            images={"unchanged.png": ImageMetadata(content_hash="hsame", width=10, height=10)},
+            diff_threshold=None,
+        )
+        sibling_comparison_key = "sib/comparison.json"
+        sibling_manifest = ComparisonManifest(
+            head_artifact_id=777,
+            base_artifact_id=0,
+            summary=ComparisonSummary(
+                total=1,
+                changed=0,
+                unchanged=0,
+                added=1,
+                removed=0,
+                errored=0,
+                renamed=0,
+                skipped=0,
+            ),
+            images={"added.png": ComparisonImageResult(status="added", head_hash="sib1")},
+        )
+        sibling_snapshot_manifest = SnapshotManifest(
+            images={"added.png": ImageMetadata(content_hash="sib1", width=10, height=10)},
+            diff_threshold=None,
+        )
+        sibling = SiblingComparison(
+            777, sibling_comparison_key, sibling_manifest, sibling_snapshot_manifest
+        )
+
+        stored = {
+            "head_manifest": orjson.dumps(head_manifest.dict()),
+            "base_manifest": orjson.dumps(base_manifest.dict()),
+            sibling_comparison_key: orjson.dumps(sibling_manifest.dict()),
+        }
+        session = _dict_backed_session(stored)
+        dispatched: list[dict[str, int]] = []
+
+        kwargs = dict(
+            project_id=self.project.id,
+            org_id=self.organization.id,
+            head_artifact_id=head_artifact.id,
+            base_artifact_id=base_artifact.id,
+        )
+
+        unchanged_diff = DiffResult(
+            diff_mask_png=b"png",
+            changed_pixels=0,
+            total_pixels=100,
+            aligned_height=10,
+            before_width=10,
+            before_height=10,
+            after_width=10,
+            after_height=10,
+        )
+
+        with (
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
+            patch("sentry.preprod.snapshots.tasks._find_approved_sibling", return_value=sibling),
+            patch(
+                "sentry.preprod.snapshots.tasks._fetch_batch_images", side_effect=self._fake_fetch
+            ),
+            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
+            patch(
+                "sentry.preprod.snapshots.tasks.compare_images_batch",
+                side_effect=lambda pairs, server: [unchanged_diff for _ in pairs],
+            ),
+            patch("sentry.preprod.snapshots.tasks.OdiffServer"),
+            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
+            patch("sentry.analytics.record"),
+            patch(
+                "sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async",
+                side_effect=lambda kwargs, **_: dispatched.append(kwargs),
+            ),
+            patch("sentry.preprod.snapshots.tasks.finalize_snapshot_comparison.apply_async"),
+        ):
+            compare_snapshots(**kwargs)
+
+            comparison = PreprodSnapshotComparison.objects.get(
+                head_snapshot_metrics__preprod_artifact=head_artifact
+            )
+            for chunk_kwargs in dispatched:
+                process_snapshot_comparison_chunk(**chunk_kwargs)
+
+            finalize_snapshot_comparison(
+                comparison_id=comparison.id,
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                head_artifact_id=head_artifact.id,
+                base_artifact_id=base_artifact.id,
+            )
+
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
+
+        approval = PreprodComparisonApproval.objects.get(
+            preprod_artifact=head_artifact,
+            preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        )
+        assert approval.extras is not None
+        assert approval.extras["prev_approved_artifact_id"] == 777
+        assert approval.extras["threshold_matched_image_count"] == 1
+
+    def test_full_flow_auto_approves_exact_match(self) -> None:
+        from sentry.preprod.models import PreprodComparisonApproval
+        from sentry.preprod.snapshots.image_diff.types import DiffResult
+        from sentry.preprod.snapshots.manifest import (
+            ComparisonImageResult,
+            ComparisonManifest,
+            ComparisonSummary,
+            ImageMetadata,
+            SnapshotManifest,
+        )
+        from sentry.preprod.snapshots.tasks import (
+            SiblingComparison,
+            compare_snapshots,
+            finalize_snapshot_comparison,
+            process_snapshot_comparison_chunk,
+        )
+
+        commit_comparison = self.create_commit_comparison(
+            organization=self.organization, pr_number=42, head_repo_name="owner/repo"
+        )
+        head_artifact = self.create_preprod_artifact(
+            project=self.project, commit_comparison=commit_comparison
+        )
+        base_artifact = self.create_preprod_artifact(project=self.project)
+        head = self.create_preprod_snapshot_metrics(head_artifact)
+        head.extras = {"manifest_key": "head_manifest"}
+        head.save()
+        base = self.create_preprod_snapshot_metrics(base_artifact)
+        base.extras = {"manifest_key": "base_manifest"}
+        base.save()
+
+        head_manifest = SnapshotManifest(
+            images={
+                "added.png": ImageMetadata(content_hash="ha1", width=10, height=10),
+                "unchanged.png": ImageMetadata(content_hash="hsame", width=10, height=10),
+            },
+            diff_threshold=None,
+        )
+        base_manifest = SnapshotManifest(
+            images={"unchanged.png": ImageMetadata(content_hash="hsame", width=10, height=10)},
+            diff_threshold=None,
+        )
+        sibling_comparison_key = "sib/comparison.json"
+        sibling_manifest = ComparisonManifest(
+            head_artifact_id=777,
+            base_artifact_id=0,
+            summary=ComparisonSummary(
+                total=1,
+                changed=0,
+                unchanged=0,
+                added=1,
+                removed=0,
+                errored=0,
+                renamed=0,
+                skipped=0,
+            ),
+            images={"added.png": ComparisonImageResult(status="added", head_hash="ha1")},
+        )
+        sibling_snapshot_manifest = SnapshotManifest(
+            images={"added.png": ImageMetadata(content_hash="ha1", width=10, height=10)},
+            diff_threshold=None,
+        )
+        sibling = SiblingComparison(
+            777, sibling_comparison_key, sibling_manifest, sibling_snapshot_manifest
+        )
+
+        stored = {
+            "head_manifest": orjson.dumps(head_manifest.dict()),
+            "base_manifest": orjson.dumps(base_manifest.dict()),
+            sibling_comparison_key: orjson.dumps(sibling_manifest.dict()),
+        }
+        session = _dict_backed_session(stored)
+        dispatched: list[dict[str, int]] = []
+
+        kwargs = dict(
+            project_id=self.project.id,
+            org_id=self.organization.id,
+            head_artifact_id=head_artifact.id,
+            base_artifact_id=base_artifact.id,
+        )
+
+        unchanged_diff = DiffResult(
+            diff_mask_png=b"png",
+            changed_pixels=0,
+            total_pixels=100,
+            aligned_height=10,
+            before_width=10,
+            before_height=10,
+            after_width=10,
+            after_height=10,
+        )
+
+        with (
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
+            patch("sentry.preprod.snapshots.tasks._find_approved_sibling", return_value=sibling),
+            patch(
+                "sentry.preprod.snapshots.tasks._fetch_batch_images", side_effect=self._fake_fetch
+            ),
+            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
+            patch(
+                "sentry.preprod.snapshots.tasks.compare_images_batch",
+                side_effect=lambda pairs, server: [unchanged_diff for _ in pairs],
+            ),
+            patch("sentry.preprod.snapshots.tasks.OdiffServer"),
+            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
+            patch("sentry.analytics.record"),
+            patch(
+                "sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async",
+                side_effect=lambda kwargs, **_: dispatched.append(kwargs),
+            ),
+            patch("sentry.preprod.snapshots.tasks.finalize_snapshot_comparison.apply_async"),
+        ):
+            compare_snapshots(**kwargs)
+
+            comparison = PreprodSnapshotComparison.objects.get(
+                head_snapshot_metrics__preprod_artifact=head_artifact
+            )
+            for chunk_kwargs in dispatched:
+                process_snapshot_comparison_chunk(**chunk_kwargs)
+
+            finalize_snapshot_comparison(
+                comparison_id=comparison.id,
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                head_artifact_id=head_artifact.id,
+                base_artifact_id=base_artifact.id,
+            )
+
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
+
+        approval = PreprodComparisonApproval.objects.get(
+            preprod_artifact=head_artifact,
+            preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        )
+        assert approval.extras is not None
+        assert approval.extras["prev_approved_artifact_id"] == 777
+        assert approval.extras["threshold_matched_image_count"] == 0

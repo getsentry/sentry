@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from collections.abc import Mapping
+from typing import Any, cast
 
 import orjson
 
@@ -16,6 +17,7 @@ from sentry.identity.oauth2 import (
 )
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.services.identity.model import RpcIdentity
+from sentry.integrations.gcp.utils import GCP_MCP_URLS
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.pipeline.views.base import PipelineView
 from sentry.users.models.identity import Identity
@@ -27,7 +29,7 @@ logger = logging.getLogger(__name__)
 class GCPOAuth2LoginView(OAuth2LoginView):
     """OAuth2 login for the GCP MCP with offline access for refresh tokens."""
 
-    def get_authorize_params(self, state: str, redirect_uri: str) -> dict[str, str | None]:
+    def get_authorize_params(self, state: str, redirect_uri: str) -> dict[str, str | int | None]:
         params = super().get_authorize_params(state, redirect_uri)
         params["access_type"] = "offline"  # Required for Google to return a refresh token
         params["prompt"] = (
@@ -36,16 +38,10 @@ class GCPOAuth2LoginView(OAuth2LoginView):
         return params
 
 
-GCP_MCP_URLS: tuple[str, ...] = (
-    "https://logging.googleapis.com/mcp",
-    "https://monitoring.googleapis.com/mcp",
-    "https://cloudtrace.googleapis.com/mcp",
-)
-
-
 class GCPIdentityProvider(McpIdentityProvider, OAuth2Provider):
     key = IntegrationProviderSlug.GCP
     name = "Google Cloud Platform"
+    monitoring_family = IntegrationProviderSlug.GCP.value
     create_organization_identity = True
 
     oauth_access_token_url = "https://oauth2.googleapis.com/token"
@@ -60,10 +56,12 @@ class GCPIdentityProvider(McpIdentityProvider, OAuth2Provider):
     )
 
     def get_oauth_client_id(self) -> str:
-        return options.get("gcp.client-id")
+        client_id = options.get("gcp.client-id")
+        return client_id
 
     def get_oauth_client_secret(self) -> str:
-        return options.get("gcp.client-secret")
+        client_secret = options.get("gcp.client-secret")
+        return client_secret
 
     def get_pipeline_views(self) -> list[PipelineView[IdentityPipeline]]:
         return [
@@ -85,11 +83,11 @@ class GCPIdentityProvider(McpIdentityProvider, OAuth2Provider):
             **kwargs,
         )
 
-    def build_identity(self, state: dict[str, Any]) -> dict[str, Any]:
-        data = state.get("data", {})
+    def build_identity(self, state: Mapping[str, object]) -> dict[str, Any]:
+        data = cast(Mapping[str, object], state.get("data", {}))
 
         try:
-            id_token = data["id_token"]
+            id_token = cast(str, data["id_token"])
         except KeyError:
             raise IdentityNotValid("Missing id_token in OAuth response")
 

@@ -17,9 +17,10 @@ import {
   DataConditionGroupLogicType,
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
-import {ActionNodeList} from 'sentry/views/automations/components/actionNodeList';
-import {AutomationFormProvider} from 'sentry/views/automations/components/forms/context';
-import {AutomationBuilderTestProvider} from 'sentry/views/automations/components/testUtils';
+
+import {AutomationFormProvider} from './forms/context';
+import {ActionNodeList} from './actionNodeList';
+import {AutomationBuilderTestProvider} from './testUtils';
 
 const slackActionHandler = ActionHandlerFixture();
 const actionHandlers: ActionHandler[] = [
@@ -53,7 +54,7 @@ const actionHandlers: ActionHandler[] = [
 ];
 
 describe('ActionNodeList', () => {
-  const organization = OrganizationFixture({features: ['workflow-engine-ui']});
+  const organization = OrganizationFixture();
 
   const mockOnAddRow = jest.fn();
   const mockOnDeleteRow = jest.fn();
@@ -184,7 +185,29 @@ describe('ActionNodeList', () => {
 
     expect(
       await screen.findByText(
-        'The Slack action is no longer available. Please remove and reconfigure this action.'
+        'This action is no longer available. Remove it to save changes.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Delete row'})).toBeInTheDocument();
+  });
+
+  it('flags actions the plan does not include', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/available-actions/`,
+      body: [ActionHandlerFixture({disabledReason: 'plan'})],
+    });
+
+    const slackAction = ActionFixture();
+    render(
+      <AutomationBuilderTestProvider>
+        <ActionNodeList {...defaultProps} actions={[slackAction]} />
+      </AutomationBuilderTestProvider>,
+      {organization}
+    );
+
+    expect(
+      await screen.findByText(
+        'This action is no longer available. Remove it to save changes.'
       )
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Delete row'})).toBeInTheDocument();
@@ -209,7 +232,7 @@ describe('ActionNodeList', () => {
               {
                 id: 'condition-1',
                 type: DataConditionType.SEER_ACTIVITY_TRIGGER,
-                comparison: ['rca_started'],
+                comparison: ['pr_ready_for_review'],
                 conditionResult: true,
               },
             ],

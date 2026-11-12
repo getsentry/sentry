@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 
-import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
@@ -21,7 +21,8 @@ import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
-import {ReportUri} from 'sentry/views/settings/projectSecurityHeaders/reportUri';
+
+import {ReportUri} from './reportUri';
 
 function ProjectSecurityHeaders() {
   const organization = useOrganization();
@@ -41,14 +42,6 @@ function ProjectSecurityHeaders() {
       {
         name: 'Content Security Policy (CSP)',
         url: recreateRoute('csp/', {routes, params}),
-      },
-      {
-        name: 'Certificate Transparency (Expect-CT)',
-        url: recreateRoute('expect-ct/', {routes, params}),
-      },
-      {
-        name: 'HTTP Public Key Pinning (HPKP)',
-        url: recreateRoute('hpkp/', {routes, params}),
       },
     ],
     [routes, params]
@@ -82,16 +75,16 @@ function ProjectSecurityHeaders() {
               }
             )}
           </TextBlock>
-          <KeyValueTable>
-            <KeyValueTableRow
-              keyName="sentry_environment"
-              value={t('The environment name (e.g. production).')}
-            />
-            <KeyValueTableRow
-              keyName="sentry_release"
-              value={t('The version of the application.')}
-            />
-          </KeyValueTable>
+          <DescriptionList striped>
+            <DescriptionList.Term>sentry_environment</DescriptionList.Term>
+            <DescriptionList.Details>
+              {t('The environment name (e.g. production).')}
+            </DescriptionList.Details>
+            <DescriptionList.Term>sentry_release</DescriptionList.Term>
+            <DescriptionList.Details>
+              {t('The version of the application.')}
+            </DescriptionList.Details>
+          </DescriptionList>
         </PanelBody>
       </Panel>
 

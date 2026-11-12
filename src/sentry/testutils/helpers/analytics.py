@@ -14,6 +14,12 @@ def get_all_analytics_events(mock_record: MagicMock) -> list[Event]:
     return [call.args[0] for call in mock_record.call_args_list]
 
 
+def get_matching_analytics_events[T: Event](mock_record: MagicMock, event_type: type[T]) -> list[T]:
+    return [
+        call.args[0] for call in mock_record.call_args_list if isinstance(call.args[0], event_type)
+    ]
+
+
 def assert_event_equal(
     expected_event: Event,
     recorded_event: Event,

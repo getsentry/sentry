@@ -9,12 +9,13 @@ import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProje
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {Content as StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
-import {NativeContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/nativeContent';
 import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EventOrGroupType} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
+
+import {Content as StackTraceContent} from './content';
+import {NativeContent} from './nativeContent';
 
 const organization = OrganizationFixture();
 const project = ProjectFixture();
@@ -51,6 +52,10 @@ function renderedComponent(
 describe('Native StackTrace', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sentry-app-components/',
+      body: [],
+    });
     const promptResponse = {
       dismissed_ts: undefined,
       snoozed_ts: undefined,
@@ -160,13 +165,7 @@ describe('Native StackTrace', () => {
     };
 
     render(
-      <NativeContent
-        data={newData}
-        platform="cocoa"
-        event={event}
-        includeSystemFrames
-        newestFirst={false}
-      />
+      <NativeContent data={newData} platform="cocoa" event={event} newestFirst={false} />
     );
 
     const frames = screen.getAllByTestId('stack-trace-frame');
@@ -202,15 +201,7 @@ describe('Native StackTrace', () => {
       ],
     };
 
-    render(
-      <NativeContent
-        data={newData}
-        platform="cocoa"
-        event={event}
-        includeSystemFrames
-        newestFirst
-      />
-    );
+    render(<NativeContent data={newData} platform="cocoa" event={event} newestFirst />);
 
     expect(screen.getByRole('button', {name: 'Collapse Context'})).toBeInTheDocument();
     const collapsed = screen.getAllByRole('button', {name: 'Expand Context'});

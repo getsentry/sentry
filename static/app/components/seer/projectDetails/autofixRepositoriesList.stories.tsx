@@ -1,11 +1,12 @@
 import {parseAsString, useQueryState} from 'nuqs';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {AutofixRepositoriesList} from 'sentry/components/seer/projectDetails/autofixRepositoriesList';
 import * as Storybook from 'sentry/stories';
 import {useProjects} from 'sentry/utils/useProjects';
+
+import {AutofixRepositoriesList} from './autofixRepositoriesList';
 
 export default Storybook.story('AutofixRepositoriesList', story => {
   story('No Instructions', () => {
@@ -14,7 +15,7 @@ export default Storybook.story('AutofixRepositoriesList', story => {
     const project = projects.find(p => p.slug === projectSlug);
 
     return (
-      <Flex direction="column" gap="lg">
+      <Stack gap="lg">
         <Storybook.SelectProject
           projectSlug={projectSlug}
           setProjectSlug={setProjectSlug}
@@ -30,7 +31,7 @@ export default Storybook.story('AutofixRepositoriesList', story => {
             <Text variant="muted">Select a project to view the story</Text>
           </Flex>
         )}
-      </Flex>
+      </Stack>
     );
   });
 
@@ -40,7 +41,7 @@ export default Storybook.story('AutofixRepositoriesList', story => {
     const project = projects.find(p => p.slug === projectSlug);
 
     return (
-      <Flex direction="column" gap="lg">
+      <Stack gap="lg">
         <Storybook.SelectProject
           projectSlug={projectSlug}
           setProjectSlug={setProjectSlug}
@@ -52,7 +53,7 @@ export default Storybook.story('AutofixRepositoriesList', story => {
             <Text variant="muted">Select a project to view the story</Text>
           </Flex>
         )}
-      </Flex>
+      </Stack>
     );
   });
 });

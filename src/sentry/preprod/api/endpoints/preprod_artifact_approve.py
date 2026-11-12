@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
+from typing import assert_never
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -14,6 +15,7 @@ from sentry.api.bases.organization import (
     OrganizationEndpoint,
     OrganizationReleasePermission,
 )
+from sentry.auth.principal import acting_user_id, is_owned_by_acting_user
 from sentry.auth.staff import is_active_staff
 from sentry.models.organization import Organization
 from sentry.preprod.analytics import PreprodStatusCheckApprovalCreatedEvent
@@ -27,6 +29,19 @@ FEATURE_TYPE_MAP = {
     "snapshots": PreprodComparisonApproval.FeatureType.SNAPSHOTS,
     "size": PreprodComparisonApproval.FeatureType.SIZE,
 }
+
+
+def _sync_vcs(
+    feature_type: PreprodComparisonApproval.FeatureType, artifact: PreprodArtifact
+) -> None:
+    if feature_type == PreprodComparisonApproval.FeatureType.SNAPSHOTS:
+        update_preprod_snapshot_vcs(preprod_artifact_id=artifact.id, caller="approval_endpoint")
+    elif feature_type == PreprodComparisonApproval.FeatureType.SIZE:
+        create_preprod_status_check_task(
+            preprod_artifact_id=artifact.id, caller="approval_endpoint"
+        )
+    else:
+        assert_never(feature_type)
 
 
 @cell_silo_endpoint
@@ -61,19 +76,20 @@ class OrganizationPreprodArtifactApproveEndpoint(OrganizationEndpoint):
         # exists()+create() instead of get_or_create — no unique constraint on this model
         # (see snapshots/tasks.py for rationale)
         already_approved = PreprodComparisonApproval.objects.filter(
+            is_owned_by_acting_user(request.user, "approved_by_id"),
             preprod_artifact=artifact,
             preprod_feature_type=feature_type,
-            approved_by_id=request.user.id,
             approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
         ).exists()
 
         if already_approved:
+            _sync_vcs(feature_type, artifact)
             return Response({"detail": "Already approved"}, status=200)
 
         PreprodComparisonApproval.objects.create(
             preprod_artifact=artifact,
             preprod_feature_type=feature_type,
-            approved_by_id=request.user.id,
+            approved_by_id=acting_user_id(request.user),
             approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
             approved_at=datetime.now(timezone.utc),
         )
@@ -94,11 +110,6 @@ class OrganizationPreprodArtifactApproveEndpoint(OrganizationEndpoint):
             approval_status=PreprodComparisonApproval.ApprovalStatus.NEEDS_APPROVAL,
         ).delete()
 
-        if feature_type == PreprodComparisonApproval.FeatureType.SNAPSHOTS:
-            update_preprod_snapshot_vcs(preprod_artifact_id=artifact.id, caller="approval_endpoint")
-        elif feature_type == PreprodComparisonApproval.FeatureType.SIZE:
-            create_preprod_status_check_task(
-                preprod_artifact_id=artifact.id, caller="approval_endpoint"
-            )
+        _sync_vcs(feature_type, artifact)
 
         return Response({"detail": "Approved"}, status=201)

@@ -1,20 +1,14 @@
 import styled from '@emotion/styled';
+import {IconInfo} from '@sentry/icons/info';
+import {SvgIcon, type SVGIconProps} from '@sentry/icons/svgIcon';
 
 import type {TooltipProps} from '@sentry/scraps/tooltip';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconInfo, IconQuestion} from 'sentry/icons';
-import {SvgIcon, type SVGIconProps} from 'sentry/icons/svgIcon';
-
 interface QuestionProps extends Partial<
   Pick<
     TooltipProps,
-    | 'containerDisplayMode'
-    | 'isHoverable'
-    | 'overlayStyle'
-    | 'position'
-    | 'skipWrapper'
-    | 'delay'
+    'containerDisplayMode' | 'maxWidth' | 'position' | 'skipWrapper' | 'delay'
   >
 > {
   /**
@@ -28,7 +22,6 @@ interface QuestionProps extends Partial<
    */
   title: React.ReactNode;
   className?: string;
-  icon?: 'question' | 'info';
 }
 
 /**
@@ -38,17 +31,12 @@ export function QuestionTooltip({
   title,
   size,
   className,
-  icon = 'question',
   ...tooltipProps
 }: QuestionProps) {
   return (
     <QuestionIconContainer size={size} className={className}>
       <Tooltip skipWrapper title={title} {...tooltipProps}>
-        {icon === 'info' ? (
-          <IconInfo size={size} variant="muted" data-test-id="more-information" />
-        ) : (
-          <IconQuestion size={size} variant="muted" data-test-id="more-information" />
-        )}
+        <IconInfo size={size} variant="muted" data-test-id="more-information" />
       </Tooltip>
     </QuestionIconContainer>
   );

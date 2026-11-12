@@ -51,16 +51,13 @@ ENTITY_TIME_COLUMNS: Mapping[EntityKey, str] = {
     EntityKey.Sessions: "started",
     EntityKey.Transactions: "finish_ts",
     EntityKey.GenericMetricsCounters: "timestamp",
-    EntityKey.GenericMetricsDistributions: "timestamp",
-    EntityKey.GenericMetricsSets: "timestamp",
-    EntityKey.GenericMetricsGauges: "timestamp",
     EntityKey.MetricsCounters: "timestamp",
     EntityKey.MetricsSets: "timestamp",
     EntityKey.EAPItemsSpan: "timestamp",
     EntityKey.EAPItems: "timestamp",
 }
 CRASH_RATE_ALERT_AGGREGATE_RE = (
-    r"^percentage\([ ]*(sessions_crashed|users_crashed)[ ]*\,[ ]*(sessions|users)[ ]*\)"
+    r"^percentage\([ ]*(sessions_crashed|users_crashed)[ ]*,[ ]*(sessions|users)[ ]*\)"
 )
 ALERT_BLOCKED_FIELDS = {
     "start",

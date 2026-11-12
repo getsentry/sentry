@@ -5,10 +5,11 @@ import type {LinkProps} from '@sentry/scraps/link';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/navigation/constants';
-import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
-import {useMouseMovement} from 'sentry/views/navigation/primary/useMouseMovement';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
+
+import {isPrimaryNavigationLinkActive} from './components';
+import {useMouseMovement} from './useMouseMovement';
 
 /**
  * Hovering over a primary nav item will change the contents of the sidebar.
@@ -31,7 +32,7 @@ interface UseActivateNavigationGroupOnHoverProps {
 export function useActivateNavigationGroupOnHover({
   ref,
 }: UseActivateNavigationGroupOnHoverProps) {
-  const {layout, setActiveGroup, activeGroup} = usePrimaryNavigation();
+  const {layout, features, setActiveGroup, activeGroup} = usePrimaryNavigation();
   const {view} = useSecondaryNavigation();
   const location = useLocation();
 
@@ -45,11 +46,11 @@ export function useActivateNavigationGroupOnHover({
   return function makeNavigationItemProps(
     group: ReturnType<typeof usePrimaryNavigation>['activeGroup'],
     to: string,
-    activeTo?: string
+    activeTo?: string | string[]
   ): Omit<Partial<LinkProps>, 'to'> {
-    const isActive = isPrimaryNavigationLinkActive(
-      normalizeUrl(activeTo ?? to, location),
-      location.pathname
+    const activePaths = Array.isArray(activeTo) ? activeTo : [activeTo ?? to];
+    const isActive = activePaths.some(path =>
+      isPrimaryNavigationLinkActive(normalizeUrl(path), location.pathname)
     );
 
     const onMouseEnter = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -117,7 +118,11 @@ export function useActivateNavigationGroupOnHover({
       }
     };
 
-    const onClick = () => {
+    const onClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+      // On touch mobile devices, activate the group without navigating.
+      if (layout === 'mobile' && !features.hover) {
+        e.preventDefault();
+      }
       setActiveGroup(group);
     };
 

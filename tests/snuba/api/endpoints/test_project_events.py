@@ -1,5 +1,6 @@
 from django.urls import reverse
 
+from sentry.api.serializers.models.event import FULL_PAYLOAD_MAX_PER_PAGE
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -258,6 +259,57 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, {"full": "false"}, format="json")
         assert response.status_code == 200, response.content
         assert "entries" not in response.data[0]
+
+    def test_full_clamps_per_page(self) -> None:
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        for i in range(FULL_PAYLOAD_MAX_PER_PAGE + 5):
+            self.store_event(
+                data={"event_id": f"{i:032x}", "timestamp": before_now(minutes=1).isoformat()},
+                project_id=project.id,
+            )
+
+        url = reverse(
+            "sentry-api-0-project-events",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
+        )
+
+        response = self.client.get(url, {"full": "true", "per_page": "100"}, format="json")
+        assert response.status_code == 200, response.content
+        assert len(response.data) == FULL_PAYLOAD_MAX_PER_PAGE
+        assert "entries" in response.data[0]
+
+        # a large per_page is clamped, not rejected
+        assert (
+            self.client.get(url, {"full": "1", "per_page": "100"}, format="json").status_code == 200
+        )
+
+    def test_per_page_not_clamped_without_full(self) -> None:
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        total = FULL_PAYLOAD_MAX_PER_PAGE + 5
+        for i in range(total):
+            self.store_event(
+                data={"event_id": f"{i:032x}", "timestamp": before_now(minutes=1).isoformat()},
+                project_id=project.id,
+            )
+
+        url = reverse(
+            "sentry-api-0-project-events",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
+        )
+
+        response = self.client.get(url, {"per_page": "100"}, format="json")
+        assert response.status_code == 200, response.content
+        assert len(response.data) == total
 
     def test_sample(self) -> None:
         self.login_as(user=self.user)

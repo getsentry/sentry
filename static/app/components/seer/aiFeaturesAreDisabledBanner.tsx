@@ -6,15 +6,12 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -25,18 +22,20 @@ export function AiFeaturesAreDisabledBanner() {
 
   const {mutate} = useMutation({
     mutationFn: () => {
-      addLoadingMessage(t('Saving changes...'));
+      toast.loading(t('Saving changes...'));
       return fetchMutation<Organization>({
         method: 'PUT',
-        url: `/organizations/${organization.slug}/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         data: {hideAiFeatures: false}, // Hard-coded so we only go in the 'enable AI' direction
       });
     },
     onSuccess: updated => {
-      addSuccessMessage(t('Generative AI features enabled'));
+      toast.success(t('Generative AI features enabled'));
       updateOrganization(updated);
     },
-    onError: () => addErrorMessage(t('Unable to save change')),
+    onError: () => toast.error(t('Unable to save change')),
   });
 
   return (
@@ -50,7 +49,7 @@ export function AiFeaturesAreDisabledBanner() {
             <Fragment>
               <Text>
                 {tct(
-                  'Seer is part of your plan, but you need to enable generative AI features in your organization in order to use it. Seer includes Autofix and Code Review. Read more about [seer:Seer] and other [ai:generative AI features] in the docs.',
+                  'Seer is part of your plan, but you need to enable generative AI features in your organization in order to use it. Read more about [seer:Seer] and other [ai:generative AI features] in the docs.',
                   {
                     seer: (
                       <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/" />
@@ -68,7 +67,7 @@ export function AiFeaturesAreDisabledBanner() {
           ) : (
             <Text>
               {tct(
-                'Seer is part of your plan, but you need an admin to enable generative AI features in your organization in order to use it. Seer includes Autofix and Code Review. Read more about [seer:Seer] and other [ai:generative AI features] in the docs.',
+                'Seer is part of your plan, but you need an admin to enable generative AI features in your organization in order to use it. Read more about [seer:Seer] and other [ai:generative AI features] in the docs.',
                 {
                   seer: (
                     <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/" />

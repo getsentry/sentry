@@ -1,20 +1,21 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQueryState} from 'nuqs';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {
-  OnboardingCopyMarkdownButton,
-  useCopySetupInstructionsEnabled,
-} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -30,34 +31,22 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {
   OnboardingDrawerKey,
   OnboardingDrawerStore,
+  useIsOnboardingDrawerOpen,
 } from 'sentry/stores/onboardingDrawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Project} from 'sentry/types/project';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useApi} from 'sentry/utils/useApi';
 import {useEventWaiter} from 'sentry/utils/useEventWaiter';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
 import {filterProjects} from './utils';
 
-function decodeProjectIds(projectIds: unknown): string[] | null {
-  if (Array.isArray(projectIds)) {
-    return projectIds;
-  }
-
-  if (typeof projectIds === 'string') {
-    return [projectIds];
-  }
-
-  return null;
-}
-
 export function usePerformanceOnboardingDrawer() {
   const organization = useOrganization();
-  const currentPanel = useLegacyStore(OnboardingDrawerStore);
-  const isActive = currentPanel === OnboardingDrawerKey.PERFORMANCE_ONBOARDING;
+  const isActive = useIsOnboardingDrawerOpen(OnboardingDrawerKey.PERFORMANCE_ONBOARDING);
   const hasProjectAccess = organization.access.includes('project:read');
   const initialPathname = useRef<string | null>(null);
 
@@ -88,7 +77,7 @@ function DrawerContent() {
 }
 
 function SidebarContent() {
-  const location = useLocation<{project: string[] | null}>();
+  const [projectIds] = useQueryState('project', pageFilterParsers.project);
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
   const [currentProject, setCurrentProject] = useState<Project | undefined>(undefined);
@@ -98,10 +87,7 @@ function SidebarContent() {
   const {projectsWithoutFirstTransactionEvent, projectsForOnboarding} =
     filterProjects(projects);
 
-  const priorityProjectIds = useMemo(() => {
-    const decodedProjectIds = decodeProjectIds(location.query.project);
-    return decodedProjectIds === null ? null : new Set(decodedProjectIds);
-  }, [location.query.project]);
+  const priorityProjectIds = useMemo(() => new Set(projectIds), [projectIds]);
 
   useEffect(() => {
     if (
@@ -113,7 +99,7 @@ function SidebarContent() {
     }
 
     // Establish current project
-    if (priorityProjectIds) {
+    if (priorityProjectIds.size > 0) {
       const projectMap: Record<string, Project> = projects.reduce((acc, project) => {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         acc[project.id] = project;
@@ -131,6 +117,7 @@ function SidebarContent() {
         projectsForOnboarding.includes(project)
       );
       if (maybeProject) {
+        // oxlint-disable-next-line react/set-state-in-effect
         setCurrentProject(maybeProject);
         return;
       }
@@ -155,6 +142,7 @@ function SidebarContent() {
     // Otherwise, pick a first project that has not sent a first transaction event.
     setCurrentProject(projectsWithoutFirstTransactionEvent[0]);
   }, [
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     selection.projects,
     projects,
     projectsForOnboarding,
@@ -193,7 +181,7 @@ function SidebarContent() {
         },
       };
 
-      if (priorityProjectIds?.has(String(project.id))) {
+      if (priorityProjectIds.has(String(project.id))) {
         acc.unshift(itemProps);
       } else {
         acc.push(itemProps);
@@ -211,15 +199,16 @@ function SidebarContent() {
         <Heading>{t('Boost Performance')}</Heading>
         <DropdownMenu
           items={items}
-          triggerLabel={
-            <StyledIdBadge
-              project={currentProject}
-              avatarSize={16}
-              hideOverflow
-              disableLink
-            />
-          }
-          triggerProps={{'aria-label': currentProject.slug}}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} aria-label={currentProject.slug}>
+              <StyledIdBadge
+                project={currentProject}
+                avatarSize={16}
+                hideOverflow
+                disableLink
+              />
+            </OverlayTrigger.Button>
+          )}
           position="bottom-end"
         />
         <OnboardingContent currentProject={currentProject} />
@@ -231,8 +220,10 @@ function SidebarContent() {
 function OnboardingContent({currentProject}: {currentProject: Project}) {
   const api = useApi();
   const organization = useOrganization();
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
-  const copyEnabled = useCopySetupInstructionsEnabled();
+  const {isSelfHosted, urlPrefix} = useStore(
+    ConfigStore,
+    useShallow(state => ({isSelfHosted: state.isSelfHosted, urlPrefix: state.urlPrefix}))
+  );
   const firstIssue = useEventWaiter({
     eventType: 'transaction',
     organization,
@@ -322,7 +313,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       data: registryData,
     },
     platformOptions: [ProductSolution.PERFORMANCE_MONITORING],
-    newOrg: false,
     feedbackOptions: {},
     urlPrefix,
     isSelfHosted,
@@ -347,7 +337,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
               stepIndex={index}
               {...step}
               trailingItems={
-                index === 0 && copyEnabled ? (
+                index === 0 ? (
                   <OnboardingCopyMarkdownButton
                     borderless
                     steps={steps}

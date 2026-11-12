@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -15,9 +16,9 @@ from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.grouptype import PerformanceUncompressedAssetsGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.options.project_option import ProjectOption
+from sentry.spans.grouping.strategy.base import Span
 from sentry.testutils.cases import TestCase
 from sentry.testutils.issue_detection.event_generators import PROJECT_ID, create_span, get_event
-from sentry.testutils.issue_detection.span_builder import SpanBuilder
 
 
 def create_asset_span(
@@ -25,11 +26,11 @@ def create_asset_span(
     desc: str = "https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
     duration: float = 1000.0,
     data: dict[str, Any] | None = None,
-) -> SpanBuilder:
+) -> Span:
     return create_span("resource.script", desc=desc, duration=duration, data=data)
 
 
-def create_compressed_asset_span() -> SpanBuilder:
+def create_compressed_asset_span() -> Span:
     return create_asset_span(
         desc="https://someothersite.example.com/app.js",
         duration=1.0,
@@ -444,3 +445,95 @@ class UncompressedAssetsDetectorTest(TestCase):
         )
 
         assert not detector.is_creation_allowed()
+
+    def test_handles_valid_string_values(self) -> None:
+        event = {
+            "event_id": "a" * 16,
+            "project": PROJECT_ID,
+            "tags": [["browser.name", "chrome"]],
+            "spans": [
+                create_asset_span(
+                    duration=1000.0,
+                    data={
+                        # These should really be ints
+                        "http.response_transfer_size": "1_000_000",
+                        "http.response_content_length": "1_000_000",
+                        "http.decoded_response_content_length": "1_000_000",
+                    },
+                ),
+                create_compressed_asset_span(),
+            ],
+        }
+
+        assert self.find_problems(event) == [
+            PerformanceProblem(
+                fingerprint="1-1012-6893fb5a8a875d692da96590f40dc6bddd6fcabc",
+                op="resource.script",
+                desc="https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
+                type=PerformanceUncompressedAssetsGroupType,
+                parent_span_ids=[],
+                cause_span_ids=[],
+                offender_span_ids=["bbbbbbbbbbbbbbbb"],
+                evidence_data={
+                    "op": "resource.script",
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": ["bbbbbbbbbbbbbbbb"],
+                },
+                evidence_display=[],
+            )
+        ]
+
+    @patch("sentry.issue_detection.detectors.utils.logger.warning")
+    def test_handles_invalid_encoded_body_size_values(self, mock_logger_warning: MagicMock) -> None:
+        valid_data = {
+            "http.response_transfer_size": 1_000_000,
+            "http.response_content_length": 1_000_000,
+            "http.decoded_response_content_length": 1_000_000,
+        }
+        event: dict[str, Any] = {
+            "event_id": "a" * 16,
+            "project": PROJECT_ID,
+            "tags": [["browser.name", "chrome"]],
+            "spans": [
+                create_asset_span(duration=1000.0, data=valid_data),
+                create_compressed_asset_span(),
+            ],
+        }
+
+        span = event["spans"][0]
+        span["project_id"] = self.project.id
+        span["organization_id"] = self.project.organization.id
+
+        for invalid_value, expected_description in [
+            (12.31, "non_integer_float"),
+            ("NaN", "non_number_float"),
+            ("[Filtered]", "non_number_string"),
+            ("dogs are great", "non_number_string"),
+        ]:
+            for key in [
+                "http.response_transfer_size",
+                "http.response_content_length",
+                "http.decoded_response_content_length",
+            ]:
+                # Only check one invalid value per loop iteration
+                span["data"] = {**valid_data, key: invalid_value}
+
+                assert self.find_problems(event) == []  # No problem found, but also no crash
+
+                mock_logger_warning.assert_called_with(
+                    "issue_detectors.invalid_data",
+                    extra={
+                        "detector": "uncompressed_asset",
+                        "span_id": span["span_id"],
+                        "trace_id": span["trace_id"],
+                        "project_id": span["project_id"],
+                        "org_id": span["organization_id"],
+                        "key": key,
+                        "value": invalid_value,
+                        "error": (
+                            f"ValueError(\"Couldn't convert <{expected_description}> to <int>. "
+                            + f'Invalid value: {invalid_value}")'
+                        ),
+                    },
+                )

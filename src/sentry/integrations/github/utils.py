@@ -3,12 +3,33 @@ from __future__ import annotations
 import calendar
 import datetime
 import time
-from urllib.parse import urlparse
-
-from rest_framework.response import Response
+from collections.abc import Mapping
+from typing import Protocol
+from urllib.parse import parse_qs, urlparse
 
 from sentry import options
 from sentry.utils import jwt
+
+
+class HeaderResponse(Protocol):
+    @property
+    def headers(self) -> Mapping[str, str] | None: ...
+
+
+# Copilot acts as a bot but has no ``[bot]`` suffix or ``Bot`` user type.
+GITHUB_COPILOT_LOGIN = "Copilot"
+
+
+def is_github_bot_login(login: str | None) -> bool:
+    """Whether a GitHub login belongs to a bot, inferred from the login alone.
+
+    Use this when the webhook ``user.type`` field is unavailable or unreliable:
+    it is only ``"Bot"`` for GitHub App identities, so Copilot and user-typed
+    automation slip through.
+    """
+    if not login:
+        return False
+    return login.endswith("[bot]") or login == GITHUB_COPILOT_LOGIN
 
 
 def get_jwt(github_id: str | None = None, github_private_key: str | None = None) -> str:
@@ -30,14 +51,14 @@ def get_jwt(github_id: str | None = None, github_private_key: str | None = None)
     return jwt.encode(payload, github_private_key, algorithm="RS256")
 
 
-def get_next_link(response: Response) -> str | None:
+def get_next_link(response: HeaderResponse) -> str | None:
     """Github uses a `link` header to inform pagination.
     The relation parameter can be prev, next, first or last
 
     Read more here:
     https://docs.github.com/en/rest/guides/using-pagination-in-the-rest-api?apiVersion=2022-11-28#using-link-headers
     """
-    link_option: str | None = response.headers.get("link")
+    link_option = (response.headers or {}).get("link")
     if link_option is None:
         return None
 
@@ -50,6 +71,36 @@ def get_next_link(response: Response) -> str | None:
             start = link.find("<") + 1
             end = link.find(">")
             return link[start:end]
+
+    return None
+
+
+def get_last_page_number(response: HeaderResponse) -> int | None:
+    """Return the page number advertised by Github's `rel="last"` link.
+
+    For offset-paginated endpoints Github includes a `rel="last"` relation in
+    the `link` header, so the total number of pages is known from the first
+    response. This lets us fetch the remaining pages in parallel instead of
+    walking the `next` links one round-trip at a time.
+
+    Returns None when the header is absent (a single page) or does not
+    advertise a last page (for example, cursor-based pagination), in which
+    case the caller should fall back to following the `next` links serially.
+    """
+    link_option = (response.headers or {}).get("link")
+    if link_option is None:
+        return None
+
+    for link in link_option.split(","):
+        if 'rel="last"' in link:
+            start = link.find("<") + 1
+            end = link.find(">")
+            page = parse_qs(urlparse(link[start:end]).query).get("page")
+            if page:
+                try:
+                    return int(page[0])
+                except ValueError:
+                    return None
 
     return None
 

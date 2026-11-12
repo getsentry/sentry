@@ -1,32 +1,29 @@
 import type React from 'react';
 import {useMemo} from 'react';
+import {IconAdd} from '@sentry/icons/add';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconClose} from '@sentry/icons/close';
+import {IconLightning} from '@sentry/icons/lightning';
+import {IconWarning} from '@sentry/icons/warning';
 
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {
-  IconAdd,
-  IconCheckmark,
-  IconClose,
-  IconLightning,
-  IconWarning,
-} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 
 import {UNLIMITED_RESERVED} from 'getsentry/constants';
 import type {Plan} from 'getsentry/types';
-import {formatReservedWithUnits} from 'getsentry/utils/billing';
+import {displayUnitPrice, formatReservedWithUnits} from 'getsentry/utils/billing';
 import {
   getPlanCategoryName,
   getSingularCategoryName,
   isByteCategory,
   listDisplayNames,
 } from 'getsentry/utils/dataCategory';
-import {displayUnitPrice} from 'getsentry/views/amCheckout/utils';
 
 // TODO(isabella): Clean up repetitive code in this component
 
@@ -287,7 +284,7 @@ function MonitoringAndDataFeatures({
   const activePlanType = activePlan.name.toLowerCase() as PlanType;
 
   return (
-    <Flex direction="column" gap="md">
+    <Stack gap="md">
       <Flex paddingBottom="md">
         <Heading as="h4" size="xs" variant="muted">
           {t('MONITORING & DATA')}
@@ -308,7 +305,7 @@ function MonitoringAndDataFeatures({
               Object.keys(info.displayStringMap)[0] === 'business'
             }
           >
-            <Flex direction="column" gap="xs">
+            <Stack gap="xs">
               {Object.entries(info.displayStringMap).map(([planType, displayString]) => {
                 const isActivePlanType = planType === activePlanType;
                 const planTypeIndex = ORDERED_PLAN_TYPES.indexOf(planType);
@@ -372,11 +369,11 @@ function MonitoringAndDataFeatures({
                   </Text>
                 );
               })}
-            </Flex>
+            </Stack>
           </FeatureItem>
         );
       })}
-    </Flex>
+    </Stack>
   );
 }
 
@@ -387,7 +384,7 @@ function ExpansionPackFeatures({activePlan}: {activePlan: Plan}) {
   );
 
   return (
-    <Flex direction="column" gap="md">
+    <Stack gap="md">
       <Flex paddingBottom="md">
         <Heading as="h4" size="xs" variant="muted">
           {t('EXPANSION PACK')}
@@ -409,7 +406,7 @@ function ExpansionPackFeatures({activePlan}: {activePlan: Plan}) {
             isOnlyOnBusiness={isOnlyOnBusiness}
             isIncluded={hasFeature}
           >
-            <Flex direction="column" gap="xs">
+            <Stack gap="xs">
               {Object.entries(info.displayStringMap).map(([planType, displayString]) => {
                 const hasFeatureVersion = checkHasFeatureVersion({
                   activePlanTypeIndex,
@@ -449,11 +446,11 @@ function ExpansionPackFeatures({activePlan}: {activePlan: Plan}) {
                   </Text>
                 );
               })}
-            </Flex>
+            </Stack>
           </FeatureItem>
         );
       })}
-    </Flex>
+    </Stack>
   );
 }
 
@@ -518,16 +515,9 @@ export function PlanFeatures({
   });
 
   return (
-    <Flex direction="column">
-      <Flex
-        background="secondary"
-        padding="xl"
-        radius="lg"
-        border="primary"
-        gap="xl"
-        direction="column"
-      >
-        <Grid columns={{'screen:xs': '1fr', 'screen:sm': 'repeat(2, 1fr)'}} gap="xl">
+    <Stack>
+      <Stack background="secondary" padding="xl" radius="lg" border="primary" gap="xl">
+        <Grid columns={{zero: '1fr', '4xl': 'repeat(2, 1fr)'}} gap="xl">
           <MonitoringAndDataFeatures planOptions={planOptions} activePlan={activePlan} />
           <ExpansionPackFeatures activePlan={activePlan} />
         </Grid>
@@ -541,7 +531,7 @@ export function PlanFeatures({
             </ExternalLink>
           </Flex>
         )}
-      </Flex>
+      </Stack>
       {Object.entries(perPlanPriceDiffs).map(([planId, info]) => {
         const {plan, ...priceDiffs} = info;
         const planName = plan.name;
@@ -581,6 +571,6 @@ export function PlanFeatures({
           </Container>
         );
       })}
-    </Flex>
+    </Stack>
   );
 }

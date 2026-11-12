@@ -13,6 +13,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
 )
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
+from sentry_sdk import traces
 
 from sentry import options
 from sentry.models.project import Project
@@ -42,7 +43,7 @@ class Spans(rpc_dataset_common.RPCBase):
         return project.flags.has_transactions
 
     @classmethod
-    @sentry_sdk.trace
+    @traces.trace
     def run_table_query(
         cls,
         *,
@@ -60,6 +61,7 @@ class Spans(rpc_dataset_common.RPCBase):
         page_token: PageToken | None = None,
         additional_queries: AdditionalQueries | None = None,
         max_string_length: int | None = None,
+        limit_by: rpc_dataset_common.LimitBy | None = None,
     ) -> EAPResponse:
         return cls._run_table_query(
             rpc_dataset_common.TableQuery(
@@ -75,12 +77,13 @@ class Spans(rpc_dataset_common.RPCBase):
                 resolver=search_resolver or cls.get_resolver(params, config),
                 additional_queries=additional_queries,
                 max_string_length=max_string_length,
+                limit_by=limit_by,
             ),
             params.debug,
         )
 
     @classmethod
-    @sentry_sdk.trace
+    @traces.trace
     def run_trace_query(
         cls,
         *,
@@ -160,7 +163,7 @@ class Spans(rpc_dataset_common.RPCBase):
         MAX_ITERATIONS = options.get("performance.traces.pagination.max-iterations")
         MAX_TIMEOUT = options.get("performance.traces.pagination.max-timeout")
 
-        @sentry_sdk.tracing.trace
+        @traces.trace
         def process_item_groups(item_groups: Any) -> None:
             for item_group in item_groups:
                 for span_item in item_group.items:
@@ -229,7 +232,7 @@ class Spans(rpc_dataset_common.RPCBase):
         return spans
 
     @classmethod
-    @sentry_sdk.trace
+    @traces.trace
     def run_stats_query(
         cls,
         *,
@@ -295,6 +298,6 @@ class Spans(rpc_dataset_common.RPCBase):
                             attrs[public_alias].append(
                                 {"label": bucket.label, "value": bucket.value}
                             )
-                stats.append({"attribute_distributions": {"data": attrs}})
+                stats.append({"attributeDistributions": {"data": attrs}})
 
         return stats

@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import WaitingForEvents from 'sentry/components/waitingForEvents';
+import WaitingForEvents from './waitingForEvents';
 
 describe('WaitingForEvents', () => {
   let getIssues: jest.Func;
@@ -53,7 +53,7 @@ describe('WaitingForEvents', () => {
     it('Renders a disabled create event button', () => {
       render(<WaitingForEvents {...props} />);
       const button = screen.getByRole('button', {name: 'Create a sample event'});
-      expect(button).toBeDisabled();
+      expect(button).toHaveAttribute('aria-disabled', 'true');
       expect(getIssues).toHaveBeenCalledTimes(0);
     });
 

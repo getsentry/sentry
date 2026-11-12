@@ -1,8 +1,13 @@
 import logging
+from collections.abc import Mapping, Sequence
 from datetime import timedelta
-from typing import Any
+from typing import Any, cast
+
+from sentry_sdk import traces
+from snuba_sdk import Condition
 
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models.organization import Organization
 from sentry.search.events.builder.profile_functions import (
     ProfileFunctionsQueryBuilder,
     ProfileFunctionsTimeseriesQueryBuilder,
@@ -14,7 +19,6 @@ from sentry.snuba.discover import transform_tips, zerofill
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.query_sources import QuerySource
 from sentry.utils.snuba import SnubaTSResult
-from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -31,14 +35,14 @@ def query(
     auto_fields: bool = False,
     auto_aggregations: bool = False,
     use_aggregate_conditions: bool = False,
-    conditions=None,
+    conditions: list[Condition] | None = None,
     allow_metric_aggregates: bool = False,
     transform_alias_to_input_format: bool = False,
     has_metrics: bool = False,
     functions_acl: list[str] | None = None,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
-    fallback_to_transactions=False,
+    fallback_to_transactions: bool = False,
     query_source: QuerySource | None = None,
     *,
     referrer: str,
@@ -131,21 +135,21 @@ def timeseries_query(
 
 
 def top_events_timeseries(
-    timeseries_columns,
-    selected_columns,
-    user_query,
-    snuba_params,
-    orderby,
-    rollup,
-    limit,
-    organization,
-    equations=None,
-    top_events=None,
-    allow_empty=True,
-    zerofill_results=True,
-    include_other=False,
-    functions_acl=None,
-    result_key_order=None,
+    timeseries_columns: list[str],
+    selected_columns: list[str],
+    user_query: str,
+    snuba_params: SnubaParams,
+    orderby: list[str] | None,
+    rollup: int,
+    limit: int,
+    organization: Organization | None,
+    equations: list[str] | None = None,
+    top_events: dict[str, list[dict[str, object]]] | None = None,
+    allow_empty: bool = True,
+    zerofill_results: bool = True,
+    include_other: bool = False,
+    functions_acl: list[str] | None = None,
+    result_key_order: list[str] | None = None,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
@@ -153,11 +157,13 @@ def top_events_timeseries(
     transform_alias_to_input_format: bool = False,
     *,
     referrer: str,
-):
+) -> dict[str, SnubaTSResult] | SnubaTSResult:
     assert not include_other, "Other is not supported"  # TODO: support other
 
     if top_events is None:
-        with start_span(op="discover.discover", name="top_events.fetch_events"):
+        with traces.start_span(
+            name="top_events.fetch_events", attributes={"sentry.op": "discover.discover"}
+        ):
             top_events = query(
                 selected_columns,
                 query=user_query,
@@ -207,19 +213,19 @@ def top_events_timeseries(
 
 
 def format_top_events_timeseries_results(
-    result,
-    query_builder,
-    snuba_params,
-    rollup,
-    top_events=None,
-    allow_empty=True,
-    zerofill_results=True,
-    result_key_order=None,
-):
+    result: Mapping[str, object],
+    query_builder: ProfileTopFunctionsTimeseriesQueryBuilder,
+    snuba_params: SnubaParams,
+    rollup: int,
+    top_events: dict[str, list[dict[str, object]]] | None = None,
+    allow_empty: bool = True,
+    zerofill_results: bool = True,
+    result_key_order: list[str] | None = None,
+) -> dict[str, SnubaTSResult] | SnubaTSResult:
     if top_events is None:
         assert top_events, "Need to provide top events"  # TODO: support this use case
 
-    if not allow_empty and not len(result.get("data", [])):
+    if not allow_empty and not len(cast(Sequence[object], result.get("data", []))):
         return SnubaTSResult(
             {
                 "data": (
@@ -233,10 +239,15 @@ def format_top_events_timeseries_results(
             rollup,
         )
 
-    with start_span(op="discover.discover", name="top_events.transform_results") as span:
-        result = query_builder.strip_alias_prefix(result)
+    with traces.start_span(
+        name="top_events.transform_results", attributes={"sentry.op": "discover.discover"}
+    ) as span:
+        result = query_builder.strip_alias_prefix(cast(dict[str, object], result))
 
-        set_span_data(span, "result_count", len(result.get("data", [])))
+        span.set_attribute(
+            "result_count",
+            len(cast(Sequence[object], result.get("data", []))),
+        )
         processed_result = query_builder.process_results(result)
 
         if result_key_order is None:
@@ -283,7 +294,7 @@ def format_top_events_timeseries_results(
         }
 
 
-def create_result_key(result_row, fields) -> str:
+def create_result_key(result_row: Mapping[str, object], fields: Sequence[str]) -> str:
     values = []
     for field in fields:
         value = result_row.get(field)

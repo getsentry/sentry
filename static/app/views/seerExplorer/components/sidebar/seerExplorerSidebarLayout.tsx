@@ -1,17 +1,24 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {useDrawer, useDrawerPlacement} from '@sentry/scraps/drawer';
+import {Stack} from '@sentry/scraps/layout';
 import {SplitPanel, type SplitPanelHandle} from '@sentry/scraps/splitPanel';
 
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useIsSeerExplorerSidebarEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import {SeerExplorerPanel} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerPanel';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {
+  getSeerExplorerAnalyticsBrowserSize,
+  roundSeerExplorerAnalyticsPixels,
   SEER_EXPLORER_SIDEBAR_SEER_SIZE_KEY,
-  useIsSeerExplorerSidebarEnabled,
   useSeerExplorerSidebarOrientation,
 } from 'sentry/views/seerExplorer/utils';
+
+import {SeerExplorerPanel} from './seerExplorerPanel';
 
 // Minimum widths/heights so neither the app content nor Seer collapses to nothing.
 const MIN_CONTENT_WIDTH = 480;
@@ -21,11 +28,17 @@ const MIN_CONTENT_HEIGHT = 200;
 const MIN_SEER_HEIGHT = 240;
 const DEFAULT_SEER_HEIGHT = 360;
 
-export function SeerExplorerSidebarLayout({children}: {children: React.ReactNode}) {
+export function SeerExplorerSidebarLayout({
+  children,
+  pageBannerHeight = 0,
+}: {
+  children: React.ReactNode;
+  pageBannerHeight?: number;
+}) {
   const isSidebarMode = useIsSeerExplorerSidebarEnabled();
 
   return isSidebarMode ? (
-    <SeerExplorerSidebarLayoutInSidebarMode>
+    <SeerExplorerSidebarLayoutInSidebarMode pageBannerHeight={pageBannerHeight}>
       {children}
     </SeerExplorerSidebarLayoutInSidebarMode>
   ) : (
@@ -35,8 +48,8 @@ export function SeerExplorerSidebarLayout({children}: {children: React.ReactNode
 
 /**
  * Wraps the main app content so Seer Explorer can render as a resizable split
- * panel beside it (right on wide screens, bottom otherwise) when the persistent
- * sidebar flag is on. When off, the content is returned untouched (drawer mode).
+ * panel beside it (right when both panes fit side by side, bottom otherwise)
+ * when Seer Explorer is enabled. Otherwise the content is returned untouched (drawer mode).
  *
  * The app content is `SplitPanel`'s `sized` pane and Seer is the optional `fill`
  * pane: when Seer is closed there's no `fill`, so `SplitPanel` collapses to the
@@ -55,10 +68,21 @@ export function SeerExplorerSidebarLayout({children}: {children: React.ReactNode
  * and is written only on a real drag via `onResizeEnd` — programmatic/measure
  * resizes don't persist, so a saved size is never clobbered.
  */
-function SeerExplorerSidebarLayoutInSidebarMode({children}: {children: React.ReactNode}) {
+function SeerExplorerSidebarLayoutInSidebarMode({
+  children,
+  pageBannerHeight,
+}: {
+  children: React.ReactNode;
+  pageBannerHeight: number;
+}) {
+  const organization = useOrganization({allowNull: true});
   const {isOpen, sidebarPosition, sidebarContainerRef} = useSeerExplorerContext();
+  const {isAnyDrawerOpen} = useDrawer();
   const {width, height} = useDimensions({elementRef: sidebarContainerRef});
-  const orientation = useSeerExplorerSidebarOrientation(sidebarPosition);
+  const orientation = useSeerExplorerSidebarOrientation(
+    sidebarPosition,
+    width >= MIN_CONTENT_WIDTH + MIN_SEER_WIDTH
+  );
 
   const isRight = orientation === 'right';
   const available = isRight ? width : height;
@@ -67,8 +91,9 @@ function SeerExplorerSidebarLayoutInSidebarMode({children}: {children: React.Rea
   const defaultSeerSize = isRight ? DEFAULT_SEER_WIDTH : DEFAULT_SEER_HEIGHT;
   const seerSizeKey = SEER_EXPLORER_SIDEBAR_SEER_SIZE_KEY[orientation];
 
-  const storedSeerSize = parseInt(localStorage.getItem(seerSizeKey) ?? '', 10);
-  const seerSize = storedSeerSize > 0 ? storedSeerSize : defaultSeerSize;
+  const [seerSize, setSeerSize] = useLocalStorageState<number>(seerSizeKey, value =>
+    typeof value === 'number' && value > 0 ? value : defaultSeerSize
+  );
 
   // The app (sized) pane size = available − Seer's size, floored at `minContent`
   // (so a persisted Seer size larger than the viewport can't make it negative).
@@ -88,6 +113,14 @@ function SeerExplorerSidebarLayoutInSidebarMode({children}: {children: React.Rea
     [contentSize]
   );
 
+  // Drawers open against the viewport's right edge, on top of Seer docked
+  // right. Have them cover the whole pane (and the divider) rather than part of
+  // it. Derived from Seer's persisted size, so it updates when a drag ends.
+  useDrawerPlacement({
+    minWidth: isOpen && isRight && available > 0 ? available - contentSize : 0,
+    topOffset: pageBannerHeight,
+  });
+
   // Persist Seer's size from a drag (the app pane shrinks → Seer grows). Fires
   // only on drag end, never on programmatic/measure resizes, so a saved size is
   // never overwritten by a clamped one.
@@ -95,8 +128,16 @@ function SeerExplorerSidebarLayoutInSidebarMode({children}: {children: React.Rea
     if (available <= 0) {
       return;
     }
-    const seer = Math.max(minSeer, available - contentEndSize);
-    localStorage.setItem(seerSizeKey, String(Math.round(seer)));
+    const exactSeerSize = Math.round(Math.max(minSeer, available - contentEndSize));
+    setSeerSize(exactSeerSize);
+    trackAnalytics('seer.explorer.sidebar.resized', {
+      organization,
+      orientation,
+      // Persist exact size; analytics use coarse buckets for distribution cardinality.
+      seer_size: roundSeerExplorerAnalyticsPixels(exactSeerSize),
+      seer_size_percent: Math.round((exactSeerSize / available) * 100),
+      ...getSeerExplorerAnalyticsBrowserSize(),
+    });
   };
 
   // Let the routed app content scroll within its own pane instead of growing the
@@ -112,9 +153,8 @@ function SeerExplorerSidebarLayoutInSidebarMode({children}: {children: React.Rea
   // space instead of letting the tall page content grow it — giving Seer's pane
   // a viewport-bounded height.
   return (
-    <Flex
+    <Stack
       ref={sidebarContainerRef}
-      direction="column"
       flex="1"
       minWidth="0"
       minHeight="0"
@@ -130,10 +170,14 @@ function SeerExplorerSidebarLayoutInSidebarMode({children}: {children: React.Rea
         minSize={minContent}
         fillMinSize={minSeer}
         onResizeEnd={({endSize}) => persistSeerSize(endSize)}
+        // An open drawer covers Seer docked right, but the divider's hit area
+        // extends past the drawer's left edge, where it would resize the covered
+        // pane instead of the drawer.
+        resizable={!(isRight && isAnyDrawerOpen)}
         sized={contentPane}
         fill={isOpen ? <SeerExplorerPanel /> : undefined}
       />
-    </Flex>
+    </Stack>
   );
 }
 

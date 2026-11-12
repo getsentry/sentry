@@ -17,9 +17,7 @@ class BranchOverride(BaseModel):
 class SummarizeIssueScores(BaseModel):
     possible_cause_confidence: float | None = None
     possible_cause_novelty: float | None = None
-    is_fixable: bool | None = None
     fixability_score: float | None = None
-    fixability_score_version: int | None = None
 
 
 class SummarizeIssueResponse(BaseModel):
@@ -29,6 +27,15 @@ class SummarizeIssueResponse(BaseModel):
     trace: str | None = None
     possible_cause: str | None = None
     scores: SummarizeIssueScores | None = None
+
+
+class IssueSummary(SummarizeIssueResponse):
+    event_id: str
+
+
+class SeerCodeMapping(BaseModel):
+    stack_root: str
+    source_root: str
 
 
 class SeerRepoDefinition(BaseModel):
@@ -54,6 +61,14 @@ class SeerRepoDefinition(BaseModel):
     )
     base_commit_sha: str | None = None
     provider_raw: str | None = None
+    project_repository_source: str | None = Field(
+        default=None,
+        description="How the repo was linked to the project, such as 'manual' or 'auto_name_match'.",
+    )
+    code_mappings: list[SeerCodeMapping] = Field(
+        default_factory=list,
+        description="The project's code mappings for this repo.",
+    )
 
 
 class SpanInsight(BaseModel):
@@ -116,15 +131,19 @@ class SeerApiError(Exception):
         self.message = message
         self.status = status
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Seer API error: {self.message} (status: {self.status})"
+
+
+class SeerUnavailableError(SeerApiError):
+    """Seer kept answering with a server error (5xx) after retrying."""
 
 
 class SeerApiResponseValidationError(Exception):
     def __init__(self, message: str):
         self.message = message
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Seer API response validation error: {self.message}"
 
 
@@ -132,5 +151,8 @@ class SeerPermissionError(Exception):
     def __init__(self, message: str):
         self.message = message
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Seer permission error: {self.message}"
+
+
+UNKNOWN_RUN_ID_FOR_GROUP = "Unknown run id for group"

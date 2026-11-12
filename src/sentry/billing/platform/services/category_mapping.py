@@ -36,6 +36,7 @@ SENTRY_TO_PROTO_CATEGORY: dict[int, int] = {
     int(DataCategory.PROFILE_BACKEND): ProtoDataCategory.DATA_CATEGORY_PROFILE_BACKEND,
     int(DataCategory.PROFILE_UI): ProtoDataCategory.DATA_CATEGORY_PROFILE_UI,
     int(DataCategory.TRACE_METRIC_BYTE): ProtoDataCategory.DATA_CATEGORY_TRACE_METRIC_BYTE,
+    int(DataCategory.SNAPSHOT_IMAGE): ProtoDataCategory.DATA_CATEGORY_SNAPSHOT_IMAGE,
 }
 
 
@@ -46,8 +47,9 @@ def proto_to_sentry_category(proto_category: int) -> int:
     """Convert a proto DataCategory to its Sentry equivalent.
 
     For categories with a known mapping, returns the sentry int value.
-    For unmapped categories, passes through the original int value and
-    emits a metric so we can track how often this happens.
+    For unmapped categories, returns -1 and emits a metric. Proto and
+    Sentry category integers can refer to different categories, so passing
+    an unmapped integer through could silently select the wrong category.
     """
     result = PROTO_TO_SENTRY_CATEGORY.get(proto_category)
     if result is None:
@@ -55,7 +57,7 @@ def proto_to_sentry_category(proto_category: int) -> int:
             "billing.proto_category_mapping.unmapped_reverse",
             tags={"proto_category": str(proto_category)},
         )
-        return proto_category
+        return -1
     return result
 
 

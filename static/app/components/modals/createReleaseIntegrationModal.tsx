@@ -4,14 +4,16 @@ import {z} from 'zod';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
 export type CreateReleaseIntegrationModalOptions = {
   onCancel: () => void;
@@ -43,7 +45,7 @@ function CreateReleaseIntegrationModal({
   const mutation = useMutation({
     mutationFn: (data: FormValues) =>
       fetchMutation({
-        url: '/sentry-apps/',
+        url: getApiUrl('/sentry-apps/'),
         method: 'POST',
         data: {
           ...data,
@@ -78,14 +80,19 @@ function CreateReleaseIntegrationModal({
         .mutateAsync(value)
         .then(integration => {
           onCreateSuccess(integration);
-          addSuccessMessage(t('Created Release Integration'));
+          toast.success(t('Created Release Integration'));
           closeModal();
         })
         .catch(error => {
           const handled =
-            error instanceof RequestError ? setFieldErrors(formApi, error) : false;
+            error instanceof RequestError
+              ? setFieldErrors(
+                  formApi,
+                  requestErrorToFieldErrors(error, formApi.state.values)
+                )
+              : false;
           if (!handled) {
-            addErrorMessage(t('Something went wrong!'));
+            toast.error(t('Something went wrong!'));
           }
         }),
   });

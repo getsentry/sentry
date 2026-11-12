@@ -16,6 +16,7 @@ from arroyo.processing.strategies.batching import ValuesBatch
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partition
+from sentry_sdk import traces
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.locks import locks
@@ -24,7 +25,6 @@ from sentry.utils import metrics
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.retries import TimedRetryPolicy
-from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ class ResultProcessor(abc.ABC, Generic[T, U]):
     def subscription_model(self) -> type[U]:
         pass
 
-    def __call__(self, identifier: str, result: T):
+    def __call__(self, identifier: str, result: T) -> None:
         with metrics.timer(
             "remote_subscriptions.result_consumer.call_timing",
             tags={"identifier": identifier},
@@ -51,10 +51,11 @@ class ResultProcessor(abc.ABC, Generic[T, U]):
             try:
                 # TODO: Handle subscription not existing - we should remove the subscription from
                 # the remote system in that case.
-                with start_span(
+                traces.new_trace()
+                with traces.start_span(
                     name=f"monitors.{identifier}.result_consumer.ResultProcessor",
-                    op="result_processor.handle_result",
-                    transaction=True,
+                    attributes={"sentry.op": "result_processor.handle_result"},
+                    parent_span=None,
                 ):
                     subscription = self.get_subscription(result)
                     if self.use_subscription_lock and subscription:
@@ -91,7 +92,7 @@ class ResultProcessor(abc.ABC, Generic[T, U]):
         pass
 
     @abc.abstractmethod
-    def handle_result(self, subscription: U | None, result: T):
+    def handle_result(self, subscription: U | None, result: T) -> None:
         pass
 
 
@@ -274,7 +275,7 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
 
         return list(batch_mapping.values())
 
-    def process_batch(self, message: Message[ValuesBatch[KafkaPayload]]):
+    def process_batch(self, message: Message[ValuesBatch[KafkaPayload]]) -> None:
         """
         Receives batches of messages. This function will take the batch and group them together
         using `build_payload_grouping_key`, which ensures order is preserved. Each group is then
@@ -287,8 +288,11 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         partitioned_values = self.partition_message_batch(message)
 
         # Submit groups for processing
-        with start_span(
-            op="process_batch", name=f"monitors.{self.identifier}.result_consumer", transaction=True
+        traces.new_trace()
+        with traces.start_span(
+            name=f"monitors.{self.identifier}.result_consumer",
+            attributes={"sentry.op": "process_batch"},
+            parent_span=None,
         ):
             futures = [
                 self.parallel_executor.submit(self.process_group, group)
@@ -296,7 +300,7 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
             ]
             wait(futures)
 
-    def process_group(self, items: list[T]):
+    def process_group(self, items: list[T]) -> None:
         """
         Process a group of related messages serially.
         """

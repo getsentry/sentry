@@ -4,8 +4,10 @@ import {
   type UseMutationOptions,
 } from '@tanstack/react-query';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -31,12 +33,15 @@ export const useUpdateGroupSearchViewStarred = (
     ...options,
     mutationFn: ({id, starred}: UpdateGroupSearchViewStarredVariables) =>
       fetchMutation<null>({
-        url: `/organizations/${organization.slug}/group-search-views/${id}/starred/`,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/group-search-views/$viewId/starred/',
+          {path: {organizationIdOrSlug: organization.slug, viewId: id}}
+        ),
         method: 'POST',
         data: {starred},
       }),
     onError: (error, variables, onMutateResult, context) => {
-      addErrorMessage(
+      toast.error(
         variables.starred ? t('Failed to star view') : t('Failed to unstar view')
       );
       options.onError?.(error, variables, onMutateResult, context);

@@ -1,4 +1,5 @@
 import re
+from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock, Mock, patch
 
@@ -17,6 +18,8 @@ from sentry.models.team import Team
 from sentry.signals import project_created
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.workflow_engine.defaults.workflows import DEFAULT_WORKFLOW_LABEL
+from sentry.workflow_engine.models import Workflow
 
 
 class OrganizationProjectsCreateTest(APITestCase):
@@ -31,7 +34,7 @@ class OrganizationProjectsCreateTest(APITestCase):
         self.email_username = fetch_slugifed_email_username(self.user.email)
         self.t1 = f"team-{self.email_username}"
 
-    def validate_team_with_suffix(self, team: Team):
+    def validate_team_with_suffix(self, team: Team) -> bool:
         pattern = rf"^{self.t1}-[a-z]{{3}}$"
         return bool(re.match(pattern, team.slug)) and bool(re.match(pattern, team.name))
 
@@ -42,14 +45,10 @@ class OrganizationProjectsCreateTest(APITestCase):
 
         self.get_error_response(self.organization.slug, status_code=403)
 
-    @with_feature(["organizations:team-roles"])
-    def test_org_member_can_create_project(self) -> None:
-        # Members have project:read scope, which is sufficient for POST /organizations/{org}/projects/.
-        # This verifies the intentionally-lowered scope in OrganizationProjectsPermission.
-        # Orgs default to disable_member_project_creation=True; explicitly enable it here.
+    @with_feature({"organizations:team-roles": False})
+    def test_org_member_can_create_project_when_team_roles_disabled(self) -> None:
         self.organization.flags.disable_member_project_creation = False
         self.organization.save()
-
         member_user = self.create_user(is_superuser=False)
         self.create_member(
             user=member_user, organization=self.organization, role="member", teams=[]
@@ -91,11 +90,17 @@ class OrganizationProjectsCreateTest(APITestCase):
         mock_add_creator.assert_called_once()
 
     @with_feature({"organizations:team-roles": False})
-    def test_missing_team_roles_flag(self) -> None:
-        response = self.get_error_response(self.organization.slug, name=self.p1, status_code=404)
-        assert response.data == {
-            "detail": "You do not have permission to join a new team as a Team Admin."
-        }
+    def test_org_owner_can_create_project_when_team_roles_disabled(self) -> None:
+        self.organization.flags.disable_member_project_creation = False
+        self.organization.save()
+        owner_user = self.create_user(is_superuser=False)
+        self.create_member(user=owner_user, organization=self.organization, role="owner", teams=[])
+        self.login_as(user=owner_user)
+
+        response = self.get_success_response(self.organization.slug, name=self.p1, status_code=201)
+
+        project = Project.objects.get(id=response.data["id"])
+        assert project.name == project.slug == self.p1
 
     @with_feature(["organizations:team-roles"])
     @patch("sentry.models.team.Team.objects.filter")
@@ -154,8 +159,6 @@ class OrganizationProjectsCreateTest(APITestCase):
 
     @with_feature(["organizations:team-roles"])
     def test_team_slug_is_slugified(self) -> None:
-        self.organization.flags.disable_member_project_creation = False
-        self.organization.save()
         special_email = "test.bad$email@foo.com"
         t1 = "team-testbademail"
         user = self.create_user(email=special_email)
@@ -188,7 +191,10 @@ class OrganizationProjectsCreateTest(APITestCase):
         assert project.name == project.slug == self.p1
         assert project.slug
 
-        assert Rule.objects.filter(project=project).exists()
+        assert not Rule.objects.filter(project=project).exists()
+        assert Workflow.objects.filter(
+            organization=project.organization, name=DEFAULT_WORKFLOW_LABEL
+        ).exists()
 
     @with_feature(["organizations:team-roles"])
     def test_without_default_rules(self) -> None:
@@ -258,7 +264,7 @@ class OrganizationProjectsCreateTest(APITestCase):
         create_reference = Team.objects.create
         # Call create team with the same slug as the above request
 
-        def create_copy(*args, **kwargs):
+        def create_copy(*args: Any, **kwargs: Any) -> Any:
             kwargs["slug"] = self.t1
             return create_reference(*args, **kwargs)
 
@@ -281,7 +287,7 @@ class OrganizationProjectsCreateTest(APITestCase):
         # function then call the reference unless the organization matches the test case
         get_reference = OrganizationMember.objects.get
 
-        def get_callthrough(*args, **kwargs):
+        def get_callthrough(*args: Any, **kwargs: Any) -> Any:
             if self.organization in kwargs.values():
                 raise OrganizationMember.DoesNotExist
             return get_reference(*args, **kwargs)

@@ -1,27 +1,23 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
-import {Panel} from 'sentry/components/panels/panel';
-import {
-  GridBodyCell,
-  GridHead,
-  GridHeadCell,
-  GridResizer,
-  GridRow,
-} from 'sentry/components/tables/gridEditable/styles';
-import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {parseCursor} from 'sentry/utils/cursor';
 import {defined} from 'sentry/utils/defined';
 import type {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useLocation} from 'sentry/utils/useLocation';
+import {applyQueryParamsUpdates} from 'sentry/views/explore/queryParams/parsers';
+
+export const CURSOR_PARSERS = {cursor: parseAsString};
 
 interface EventListTableProps {
   /**
-   * Should contain a <GridEditable /> to apply the issue details styles
+   * Should contain a <DataGrid /> to apply the issue details styles
    */
   children: React.ReactNode;
   pagination?: {
@@ -102,13 +98,9 @@ export function EventListTable({children, pagination, title}: EventListTableProp
                     variant="transparent"
                     size="xs"
                     icon={<IconChevron direction="left" />}
-                    to={{
-                      ...location,
-                      query: {
-                        ...location.query,
-                        cursor: links?.previous?.cursor,
-                      },
-                    }}
+                    to={applyQueryParamsUpdates(CURSOR_PARSERS, location, {
+                      cursor: links?.previous?.cursor ?? null,
+                    })}
                     disabled={previousDisabled}
                   />
                   <PaginationButton
@@ -116,13 +108,9 @@ export function EventListTable({children, pagination, title}: EventListTableProp
                     variant="transparent"
                     size="xs"
                     icon={<IconChevron direction="right" />}
-                    to={{
-                      ...location,
-                      query: {
-                        ...location.query,
-                        cursor: links?.next?.cursor,
-                      },
-                    }}
+                    to={applyQueryParamsUpdates(CURSOR_PARSERS, location, {
+                      cursor: links?.next?.cursor ?? null,
+                    })}
                     disabled={nextDisabled}
                   />
                 </Grid>
@@ -167,67 +155,22 @@ const StyledGridEditable = styled('div')`
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 
-  ${Panel} {
+  table {
     border: 0;
     margin-bottom: 0;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
   }
 
-  ${GridHead} {
-    min-height: unset;
-    font-size: ${p => p.theme.font.size.md};
-    ${GridResizer} {
-      height: 36px;
-    }
+  thead > tr {
+    border-radius: 0;
   }
 
-  ${GridHeadCell} {
-    height: 36px;
-    padding: 0 ${p => p.theme.space.lg};
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    text-transform: none;
-    border-width: 0 1px 0 0;
-    border-style: solid;
-    border-image: linear-gradient(
-        to bottom,
-        transparent,
-        transparent 30%,
-        ${p => p.theme.tokens.border.primary} 30%,
-        ${p => p.theme.tokens.border.primary} 70%,
-        transparent 70%,
-        transparent
-      )
-      1;
-    &:last-child {
-      border: 0;
-    }
-    &:first-child {
-      padding-left: ${p => p.theme.space.lg};
-    }
-  }
-
-  ${GridBodyCell} {
-    min-height: unset;
-    padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
-    font-size: ${p => p.theme.font.size.md};
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  ${GridRow} {
-    td:nth-child(2) {
-      padding-left: ${p => p.theme.space.lg};
-    }
-
-    td:not(:nth-child(2)) {
-      a {
-        color: ${p => p.theme.tokens.content.primary};
-        text-decoration: underline;
-        /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-        text-decoration-color: ${p => p.theme.tokens.border.primary};
-      }
-    }
+  td:nth-child(n + 3) a {
+    color: ${p => p.theme.tokens.content.primary};
+    text-decoration: underline;
+    /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
+    text-decoration-color: ${p => p.theme.tokens.border.primary};
   }
 `;
 
@@ -247,8 +190,8 @@ export function PaginationText({
   tableUnits: Required<EventListTableProps>['pagination']['tableUnits'];
   totalCount: Required<EventListTableProps>['pagination']['totalCount'];
 }) {
-  const location = useLocation();
-  const currentCursor = parseCursor(location.query?.cursor);
+  const [cursor] = useQueryState('cursor', parseAsString);
+  const currentCursor = parseCursor(cursor);
 
   if (pageCount === 0) {
     return null;

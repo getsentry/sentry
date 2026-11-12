@@ -1,23 +1,25 @@
 import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
+import {IconUpload} from '@sentry/icons/upload';
 import type {Location} from 'history';
 
 import {Button} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
 import {createDashboard} from 'sentry/actionCreators/dashboards';
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   assignDefaultLayout,
+  assignTempId,
   getInitialColumnDepths,
 } from 'sentry/views/dashboards/layoutUtils';
+import {enforceLayoutMinHeight} from 'sentry/views/dashboards/utils/enforceLayoutMinHeight';
 import {Wrapper} from 'sentry/views/discover/table/quickContext/styles';
 
 export interface ImportDashboardFromFileModalProps {
@@ -41,7 +43,7 @@ function ImportDashboardFromFileModal({
 
   function validateFile(fileToUpload: File) {
     if (!fileToUpload || !(fileToUpload.type === 'application/json')) {
-      addErrorMessage('You must upload a JSON file');
+      toast.error('You must upload a JSON file');
       setValidated(false);
       setDashboardData('');
       return false;
@@ -73,13 +75,18 @@ function ImportDashboardFromFileModal({
     try {
       const newDashboard = await createDashboard(api, organization.slug, {
         ...dashboard,
-        widgets: assignDefaultLayout(dashboard.widgets, getInitialColumnDepths()),
+        widgets: enforceLayoutMinHeight(
+          assignDefaultLayout(
+            dashboard.widgets.map(assignTempId),
+            getInitialColumnDepths()
+          )
+        ),
       });
 
-      addSuccessMessage(`${dashboard.title} dashboard template successfully added`);
+      toast.success(`${dashboard.title} dashboard template successfully added`);
       loadDashboard(newDashboard.id);
     } catch (error) {
-      addErrorMessage('Could not upload dashboard, JSON may be invalid');
+      toast.error('Could not upload dashboard, JSON may be invalid');
     }
   };
 

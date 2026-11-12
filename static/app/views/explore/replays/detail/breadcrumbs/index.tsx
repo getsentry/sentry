@@ -1,8 +1,7 @@
 import {useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {useVirtualizer} from '@tanstack/react-virtual';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import {JumpButtons} from 'sentry/components/replays/jumpButtons';
@@ -11,15 +10,17 @@ import {
   useJumpButtons,
   type VisibleRange,
 } from 'sentry/components/replays/useJumpButtons';
+import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {t} from 'sentry/locale';
 import {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import {BreadcrumbFilters} from 'sentry/views/explore/replays/detail/breadcrumbs/breadcrumbFilters';
-import {BreadcrumbRow} from 'sentry/views/explore/replays/detail/breadcrumbs/breadcrumbRow';
-import {useBreadcrumbFilters} from 'sentry/views/explore/replays/detail/breadcrumbs/useBreadcrumbFilters';
-import {useScrollToCurrentItem} from 'sentry/views/explore/replays/detail/breadcrumbs/useScrollToCurrentItem';
 import {NoRowRenderer} from 'sentry/views/explore/replays/detail/noRowRenderer';
 import {TabItemContainer} from 'sentry/views/explore/replays/detail/tabItemContainer';
+
+import {BreadcrumbFilters} from './breadcrumbFilters';
+import {BreadcrumbRow} from './breadcrumbRow';
+import {useBreadcrumbFilters} from './useBreadcrumbFilters';
+import {useScrollToCurrentItem} from './useScrollToCurrentItem';
 
 // Estimated row height - matches previous minHeight from cellMeasurer config
 const ESTIMATED_ROW_HEIGHT = 50;
@@ -39,14 +40,12 @@ export function Breadcrumbs() {
   const clearSearchTerm = () => setSearchTerm('');
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
-  const virtualizer = useVirtualizer({
+  const {totalSize, virtualItems, virtualizer} = useVirtualRows({
     count: items.length,
     getScrollElement: () => scrollContainerRef.current,
     estimateSize: () => ESTIMATED_ROW_HEIGHT,
     overscan: 30,
   });
-
-  const virtualItems = virtualizer.getVirtualItems();
 
   // Derive visible range from virtual items for jump buttons
   // Filter to only items actually visible in the viewport (not overscan items)
@@ -115,7 +114,7 @@ export function Breadcrumbs() {
     autoScrollEnabled,
     currentTime,
     frames: items,
-    virtualizer: scrollContainerRef.current ? virtualizer : null,
+    virtualizer,
   });
 
   const handleShowSnipppet = useCallback((index: number) => {
@@ -132,7 +131,7 @@ export function Breadcrumbs() {
   }, [virtualizer]);
 
   return (
-    <Flex direction="column" wrap="nowrap">
+    <Stack wrap="nowrap">
       <BreadcrumbFilters frames={frames} {...filterProps} />
       <TabItemContainer data-test-id="replay-details-breadcrumbs-tab">
         {frames ? (
@@ -146,8 +145,9 @@ export function Breadcrumbs() {
                 {t('No breadcrumbs recorded')}
               </NoRowRenderer>
             ) : (
-              <VirtualizedContent style={{height: virtualizer.getTotalSize()}}>
+              <VirtualizedContent style={{height: totalSize}}>
                 <VirtualOffset offset={virtualItems[0]?.start ?? 0}>
+                  {/* oxlint-disable-next-line react/refs */}
                   {virtualItems.map(virtualItem => {
                     const item = items[virtualItem.index]!;
                     return (
@@ -186,7 +186,7 @@ export function Breadcrumbs() {
           />
         ) : null}
       </TabItemContainer>
-    </Flex>
+    </Stack>
   );
 }
 

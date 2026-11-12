@@ -13,10 +13,11 @@ import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUserFromId} from 'sentry/utils/useUserFromId';
-import {TargetType} from 'sentry/views/automations/components/actionFilters/constants';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
-import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
+import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
+
+import {TargetType} from './constants';
 
 const TARGET_TYPE_CHOICES = [
   {value: TargetType.UNASSIGNED, label: 'No One'},

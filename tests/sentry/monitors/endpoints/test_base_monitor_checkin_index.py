@@ -1,12 +1,21 @@
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta
+from typing import Any
 
 from django.utils import timezone
 
 from sentry.models.environment import Environment
 from sentry.models.group import Group
-from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorStatus, ScheduleType
+from sentry.monitors.models import (
+    CheckInStatus,
+    Monitor,
+    MonitorCheckIn,
+    MonitorStatus,
+    ScheduleType,
+)
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import MonitorTestCase
+from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
@@ -22,7 +31,9 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-    def create_error(self, platform, trace_id, project_id, timestamp):
+    def create_error(
+        self, platform: str, trace_id: str, project_id: int, timestamp: datetime
+    ) -> Event:
         data = load_data(platform, timestamp=timestamp)
         if "contexts" not in data:
             data["contexts"] = {}
@@ -38,9 +49,7 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         monitor_environment = self._create_monitor_environment(monitor)
 
         MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
         )
@@ -60,24 +69,18 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         monitor_environment = self._create_monitor_environment(monitor)
 
         checkin1 = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
         )
         checkin2 = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             date_added=monitor.date_added - timedelta(minutes=1),
             status=CheckInStatus.OK,
         )
 
         checkin3 = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             date_added=monitor.date_added,
             status=CheckInStatus.OK,
         )
@@ -94,13 +97,72 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         assert resp.data[1]["id"] == str(checkin2.guid)
         assert resp.data[2]["id"] == str(checkin1.guid)
 
+    def _walk_pages(
+        self, monitor: Monitor, **params: str
+    ) -> tuple[list[list[str]], list[list[str]]]:
+        """Follow next links to the end, then prev links back to the start."""
+        pages = []
+        cursor = ""
+        while True:
+            resp = self.get_success_response(
+                self.organization.slug, monitor.slug, statsPeriod="1d", cursor=cursor, **params
+            )
+            pages.append([c["id"] for c in resp.data])
+            links = {link["rel"]: link for link in parse_link_header(resp["Link"]).values()}
+            if links["next"]["results"] != "true":
+                break
+            cursor = links["next"]["cursor"] or ""
+
+        back = [pages[-1]]
+        while links["previous"]["results"] == "true":
+            resp = self.get_success_response(
+                self.organization.slug,
+                monitor.slug,
+                statsPeriod="1d",
+                cursor=links["previous"]["cursor"],
+                **params,
+            )
+            back.insert(0, [c["id"] for c in resp.data])
+            links = {link["rel"]: link for link in parse_link_header(resp["Link"]).values()}
+        return pages, back
+
+    def test_pagination(self) -> None:
+        monitor = self._create_monitor()
+        jungle = self._create_monitor_environment(monitor, name="jungle")
+        volcano = self._create_monitor_environment(monitor, name="volcano")
+        desert = self._create_monitor_environment(monitor, name="desert")
+
+        base = (monitor.date_added - timedelta(minutes=30)).replace(microsecond=0)
+        for i in range(7):
+            # Missed check-ins in different environments share a timestamp.
+            for seconds, monitor_environment in ((0, jungle), (0, desert), (20, volcano)):
+                MonitorCheckIn.objects.create(
+                    monitor_environment=monitor_environment,
+                    date_added=base + timedelta(minutes=i, seconds=seconds),
+                    status=CheckInStatus.OK,
+                )
+
+        for env_params, envs in (
+            ({}, (jungle, volcano, desert)),
+            ({"environment": "jungle"}, (jungle,)),
+        ):
+            expected = [
+                str(guid)
+                for guid in MonitorCheckIn.objects.filter(monitor_environment__in=envs)
+                .order_by("-date_added", "-id")
+                .values_list("guid", flat=True)
+            ]
+            for per_page in (1, 2, 3, 5):
+                pages, back = self._walk_pages(monitor, per_page=str(per_page), **env_params)
+                assert [guid for page in pages for guid in page] == expected
+                assert all(len(page) == per_page for page in pages[:-1])
+                assert back == pages
+
     def test_statsperiod_constraints(self) -> None:
         monitor = self._create_monitor()
         monitor_environment = self._create_monitor_environment(monitor)
 
         checkin = MonitorCheckIn.objects.create(
-            project_id=self.project.id,
-            monitor_id=monitor.id,
             monitor_environment_id=monitor_environment.id,
             status=MonitorStatus.OK,
             date_added=timezone.now() - timedelta(hours=12),
@@ -136,16 +198,12 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         monitor_environment_2 = self._create_monitor_environment(monitor, name="volcano")
 
         checkin1 = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
         )
         MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment_2,
-            project_id=self.project.id,
             date_added=monitor.date_added - timedelta(minutes=1),
             status=CheckInStatus.OK,
         )
@@ -157,6 +215,28 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         assert resp.data[0]["id"] == str(checkin1.guid)
         assert resp.data[0]["environment"] == checkin1.monitor_environment.get_environment().name
 
+    def test_excludes_other_monitors(self) -> None:
+        monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor)
+        other_monitor = self._create_monitor(slug="other-monitor")
+        other_monitor_environment = self._create_monitor_environment(other_monitor)
+
+        checkin = MonitorCheckIn.objects.create(
+            monitor_environment=monitor_environment,
+            date_added=monitor.date_added - timedelta(minutes=2),
+            status=CheckInStatus.OK,
+        )
+        MonitorCheckIn.objects.create(
+            monitor_environment=other_monitor_environment,
+            date_added=monitor.date_added - timedelta(minutes=1),
+            status=CheckInStatus.OK,
+        )
+
+        resp = self.get_success_response(
+            self.organization.slug, monitor.slug, **{"statsPeriod": "1d"}
+        )
+        assert [c["id"] for c in resp.data] == [str(checkin.guid)]
+
     def test_bad_monitorenvironment(self) -> None:
         self.login_as(self.user)
 
@@ -164,16 +244,12 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         monitor_environment = self._create_monitor_environment(monitor, name="jungle")
         Environment.objects.create(name="volcano", organization_id=self.organization.id)
         MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
         )
         MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             date_added=monitor.date_added - timedelta(minutes=1),
             status=CheckInStatus.OK,
         )
@@ -195,20 +271,17 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
             project_id=self.project.id,
             timestamp=monitor.date_added,
         )
+        assert error.group_id is not None
         group = Group.objects.get(id=error.group_id)
 
         checkin1 = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
             trace_id=trace_id,
         )
         checkin2 = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             date_added=monitor.date_added - timedelta(minutes=1),
             status=CheckInStatus.OK,
         )
@@ -228,7 +301,7 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
 
     def test_serializes_monitor_config_correctly(self) -> None:
         monitor = self.create_monitor(project=self.project)
-        config = {
+        config: dict[str, Any] = {
             "schedule": "0 0 * * *",
             "schedule_type": ScheduleType.CRONTAB,
             "timezone": "US/Arizona",
@@ -237,9 +310,7 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         }
         monitor_environment = self._create_monitor_environment(monitor)
         self.create_monitor_checkin(
-            monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
             monitor_config=config,

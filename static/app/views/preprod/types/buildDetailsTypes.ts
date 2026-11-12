@@ -1,6 +1,5 @@
-/* eslint-disable typescript-sort-keys/interface */
-import {MetricsArtifactType} from 'sentry/views/preprod/types/appSizeTypes';
-
+/* eslint-disable @sentry/sort-interface-keys */
+import {MetricsArtifactType} from './appSizeTypes';
 import type {Platform} from './sharedTypes';
 
 export interface BuildDetailsApiResponse {
@@ -22,6 +21,7 @@ interface BuildDetailsDistributionInfo {
   is_installable: boolean;
   download_count: number;
   release_notes: string | null;
+  install_groups: string[] | null;
   error_code?: string | null;
   error_message?: string | null;
 }
@@ -34,6 +34,7 @@ export interface BuildDetailsAppInfo {
   artifact_type?: BuildDetailsArtifactType | null;
   build_configuration?: string | null;
   build_number?: string | null;
+  build_number_raw?: string | null;
   date_added?: string;
   date_built?: string | null;
   name?: string | null;
@@ -47,6 +48,13 @@ interface AppleAppInfo {
 
 interface AndroidAppInfo {
   has_proguard_mapping?: boolean;
+}
+
+export function getBuildNumber(
+  appInfo: BuildDetailsAppInfo | null | undefined
+): string | null | undefined {
+  // || not ?? since build_number_raw can be an empty string
+  return appInfo?.build_number_raw || appInfo?.build_number;
 }
 
 export interface BuildDetailsVcsInfo {
@@ -202,6 +210,18 @@ export type SnapshotComparisonState =
   | 'waiting_for_base'
   | 'no_base_build';
 export type SnapshotApprovalStatus = 'approved' | 'auto_approved' | 'requires_approval';
+
+export function isSnapshotApproved(
+  status: SnapshotApprovalStatus | null | undefined
+): boolean {
+  return status === 'approved' || status === 'auto_approved';
+}
+
+export function isForceApprovableSnapshotState(
+  state: SnapshotComparisonState | null | undefined
+): boolean {
+  return state === 'failed' || state === 'no_base_build';
+}
 
 interface SnapshotComparisonInfo {
   image_count: number;

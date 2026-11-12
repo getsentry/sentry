@@ -1,12 +1,10 @@
 import * as Sentry from '@sentry/react';
-import type {LegendComponentOption} from 'echarts';
-import type {Location} from 'history';
 import orderBy from 'lodash/orderBy';
 import moment from 'moment-timezone';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import type {PageFilters} from 'sentry/types/core';
-import type {ECharts, ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {PageFilterDatetime} from 'sentry/types/core';
+import type {ECharts, ReactEchartsRef} from 'sentry/types/echarts';
 import type {
   EventsStats,
   GroupedMultiSeriesEventsStats,
@@ -17,7 +15,6 @@ import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
-import {decodeList} from 'sentry/utils/queryString';
 
 const DEFAULT_TRUNCATE_LENGTH = 80;
 
@@ -43,7 +40,7 @@ export const FIVE_MINUTES = 5;
  */
 export const RELEASE_LINES_THRESHOLD = 50;
 
-export type DateTimeObject = Partial<PageFilters['datetime']>;
+export type DateTimeObject = Partial<PageFilterDatetime>;
 
 export function truncationFormatter(
   value: string,
@@ -268,27 +265,11 @@ export function canIncludePreviousPeriod(
 }
 
 export function shouldFetchPreviousPeriod({
-  includePrevious = true,
   period,
   start,
   end,
-}: {
-  includePrevious?: boolean;
-} & Pick<DateTimeObject, 'start' | 'end' | 'period'>) {
-  return !start && !end && canIncludePreviousPeriod(includePrevious, period);
-}
-
-/**
- * Generates a series selection based on the query parameters defined by the location.
- */
-export function getSeriesSelection(
-  location: Location
-): LegendComponentOption['selected'] {
-  const unselectedSeries = decodeList(location?.query.unselectedSeries);
-  return unselectedSeries.reduce<Record<string, boolean>>((selection, series) => {
-    selection[series] = false;
-    return selection;
-  }, {});
+}: Pick<DateTimeObject, 'start' | 'end' | 'period'>) {
+  return !start && !end && canIncludePreviousPeriod(true, period);
 }
 
 /**
@@ -449,10 +430,6 @@ export function computeEchartsAriaLabels(
   };
 }
 
-export function isEmptySeries(series: Series) {
-  return series.data.every(dataPoint => dataPoint.value === 0);
-}
-
 /**
  * Used to determine which chart in a group is currently hovered.
  */
@@ -468,11 +445,17 @@ export function isChartHovered(chartRef: ReactEchartsRef | null) {
  * without first clicking the (hidden) toolbox icon.
  */
 export function activateZoomAreaSelect(chart: ECharts) {
-  const toolboxView = (chart as any)._componentsViews?.find((view: any) =>
-    view._features?.get?.('dataZoom')
-  );
-  const dataZoomFeature = toolboxView?._features.get('dataZoom');
-  if (dataZoomFeature && !dataZoomFeature._isZoomActive) {
+  // ECharts can expose more than one toolbox dataZoom feature after option
+  // updates. Only re-arm the hidden selector when none are active, otherwise
+  // duplicate brush controllers can stack during drag selection.
+  const dataZoomFeatures = ((chart as any)._componentsViews ?? [])
+    .map((view: any) => view._features?.get?.('dataZoom'))
+    .filter(Boolean);
+
+  if (
+    dataZoomFeatures.length > 0 &&
+    dataZoomFeatures.every((feature: any) => !feature._isZoomActive)
+  ) {
     // Calling dispatchAction will re-trigger handleChartFinished
     chart.dispatchAction({
       type: 'takeGlobalCursor',

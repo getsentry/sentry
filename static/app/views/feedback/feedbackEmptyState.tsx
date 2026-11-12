@@ -1,19 +1,19 @@
-import {useCallback, useEffect} from 'react';
-import styled from '@emotion/styled';
+import {Fragment, useCallback, useEffect} from 'react';
 import * as Sentry from '@sentry/react';
+import {useQueryState} from 'nuqs';
 
 import emptyStateImg from 'sentry-images/spot/feedback-empty-state.svg';
 
 import {Button} from '@sentry/scraps/button';
-import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {EmptyState} from '@sentry/scraps/emptyState';
+import {Image} from '@sentry/scraps/image';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {useFeedbackOnboardingSidebarPanel} from 'sentry/components/feedback/useFeedbackOnboarding';
-import {OnboardingPanel} from 'sentry/components/onboardingPanel';
+import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -26,7 +26,6 @@ export function FeedbackEmptyState({projectIds, issueTab = false}: Props) {
   const {projects, initiallyLoaded} = useProjects();
   const loadingProjects = !initiallyLoaded;
   const organization = useOrganization();
-  const location = useLocation();
 
   const selectedProjects = projectIds?.length
     ? projects.filter(({id}) => projectIds.includes(id))
@@ -35,14 +34,10 @@ export function FeedbackEmptyState({projectIds, issueTab = false}: Props) {
   const hasAnyFeedback = selectedProjects.some(({hasUserReports}) => hasUserReports);
   const {activateSidebarIssueDetails} = useFeedbackOnboardingSidebarPanel();
 
-  const navigate = useNavigate();
+  const [, setProject] = useQueryState('project', pageFilterParsers.project);
   const setProjId = useCallback(() => {
-    navigate({
-      pathname: location.pathname,
-      query: {...location.query, project: projectIds?.[0]},
-      hash: location.hash,
-    });
-  }, [location.hash, location.query, location.pathname, projectIds, navigate]);
+    setProject(projectIds?.[0] ? [projectIds[0]] : null, {history: 'push'});
+  }, [projectIds, setProject]);
 
   useEffect(() => {
     if (issueTab) {
@@ -94,43 +89,49 @@ export function FeedbackEmptyState({projectIds, issueTab = false}: Props) {
 
   // Show landing page after projects have loaded and it is confirmed no projects have feedback
   return (
-    <OnboardingPanel
-      data-test-id="user-feedback-empty"
-      image={<img src={emptyStateImg} alt="" />}
-    >
-      <h3>{t('What do users think?')}</h3>
-      <p>
-        {t(
+    <Panel>
+      <EmptyState
+        padding="3xl"
+        align="center"
+        justify="center"
+        illustration={
+          <Image
+            height="150px"
+            width="auto"
+            src={emptyStateImg}
+            alt={t(
+              'Illustration of a feedback form with thumbs-up and thumbs-down options in a browser window'
+            )}
+          />
+        }
+        title={t('What do users think?')}
+        description={t(
           "You can't read minds. At least we hope not. Ask users for feedback on the impact of their crashes or bugs and you shall receive."
         )}
-      </p>
-      <ButtonList>
-        <Button
-          variant="primary"
-          onClick={activateSidebarIssueDetails}
-          analyticsEventName="Clicked Feedback Onboarding Setup - Issue Details"
-          analyticsEventKey="feedback.issue-details-click-onboarding-setup"
-        >
-          {t('Set up now')}
-        </Button>
-        <Button
-          onClick={() => {
-            Sentry.showReportDialog({
-              // should never make it to the Sentry API, but just in case, use throwaway id
-              eventId: '00000000000000000000000000000000',
-            });
-            trackAnalyticsInternal('user_feedback.dialog_opened');
-          }}
-        >
-          {t('See an example')}
-        </Button>
-      </ButtonList>
-    </OnboardingPanel>
+        action={
+          <Fragment>
+            <Button
+              variant="primary"
+              onClick={activateSidebarIssueDetails}
+              analyticsEventName="Clicked Feedback Onboarding Setup - Issue Details"
+              analyticsEventKey="feedback.issue-details-click-onboarding-setup"
+            >
+              {t('Set up now')}
+            </Button>
+            <Button
+              onClick={() => {
+                Sentry.showReportDialog({
+                  // should never make it to the Sentry API, but just in case, use throwaway id
+                  eventId: '00000000000000000000000000000000',
+                });
+                trackAnalyticsInternal('user_feedback.dialog_opened');
+              }}
+            >
+              {t('See an example')}
+            </Button>
+          </Fragment>
+        }
+      />
+    </Panel>
   );
 }
-
-const ButtonList = styled((props: GridProps) => (
-  <Grid flow="column" align="center" gap="md" {...props} />
-))`
-  grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
-`;

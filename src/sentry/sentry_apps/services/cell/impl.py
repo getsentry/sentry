@@ -1,15 +1,14 @@
-from datetime import datetime, timezone
 from typing import Any
 
 from django.db import router, transaction
 
-from sentry import deletions, tsdb
+from sentry import deletions
 from sentry.auth.access import Access, OrganizationGlobalMembership, from_user
 from sentry.auth.services.auth.model import AuthenticationContext
 from sentry.issues.action_log import (
-    SYSTEM_ACTOR,
     ActionSource,
     GroupActionActor,
+    action_context_scope,
     publish_action,
 )
 from sentry.issues.action_log.types import (
@@ -17,6 +16,7 @@ from sentry.issues.action_log.types import (
     LinkPlatformExternalIssueAction,
     UnlinkPlatformExternalIssueAction,
 )
+from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -26,26 +26,33 @@ from sentry.sentry_apps.external_requests.select_requester import SelectRequeste
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
-from sentry.sentry_apps.services.app.model import RpcSentryApp
 from sentry.sentry_apps.services.cell.model import (
     RpcEmptyResult,
-    RpcInteractionStatsResult,
     RpcPlatformExternalIssueResult,
     RpcSelectRequesterResult,
     RpcSentryAppError,
     RpcServiceHookProjectsResult,
-    RpcTimeSeriesPoint,
 )
 from sentry.sentry_apps.services.cell.serial import (
     serialize_platform_external_issue,
     serialize_service_hook_project,
 )
 from sentry.sentry_apps.services.cell.service import SentryAppCellService
-from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
-from sentry.tsdb.base import TSDBModel
+from sentry.sentry_apps.utils.errors import (
+    SentryAppError,
+    SentryAppIntegratorError,
+    SentryAppSentryError,
+)
 from sentry.users.services.user import RpcUser
+from sentry.utils.locking import UnableToAcquireLock
 
-COMPONENT_TYPES = ["stacktrace-link", "issue-link"]
+
+def _get_external_issue_action_actor(
+    installation: RpcSentryAppInstallation, user: RpcUser
+) -> GroupActionActor:
+    if user.is_sentry_app:
+        return GroupActionActor.sentry_app(installation.sentry_app.id)
+    return GroupActionActor.user(user.id)
 
 
 class DatabaseBackedSentryAppCellService(SentryAppCellService):
@@ -55,7 +62,7 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
         organization_id: int,
         installation: RpcSentryAppInstallation,
         uri: str,
-        user: RpcUser | None = None,
+        user: RpcUser,
         project_id: int | None = None,
         query: str | None = None,
         dependent_data: str | None = None,
@@ -78,19 +85,18 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
                         status_code=404,
                     )
                 )
-            if user is not None:
-                access = self._access_for_installation_user(
-                    organization=project.organization,
-                    installation=installation,
-                    user=user,
-                )
-                if not access.has_project_access(project):
-                    return RpcSelectRequesterResult(
-                        error=RpcSentryAppError(
-                            message="You do not have permission to access this project.",
-                            status_code=403,
-                        )
+            access = self._access_for_installation_user(
+                organization=project.organization,
+                installation=installation,
+                user=user,
+            )
+            if not access.has_project_access(project):
+                return RpcSelectRequesterResult(
+                    error=RpcSentryAppError(
+                        message="You do not have permission to access this project.",
+                        status_code=403,
                     )
+                )
             project_slug = project.slug
 
         try:
@@ -119,6 +125,7 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
         fields: dict[str, Any],
         uri: str,
         user: RpcUser,
+        expected_external_issue_url: str | None = None,
     ) -> RpcPlatformExternalIssueResult:
         """
         Matches: src/sentry/sentry_apps/api/endpoints/installation_external_issue_actions.py @ POST
@@ -159,16 +166,20 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
                 )
             )
 
+        actor = _get_external_issue_action_actor(installation, user)
         try:
-            external_issue = IssueLinkCreator(
-                install=installation,
-                group=group,
-                action=action,
-                fields=fields,
-                uri=uri,
-                user=user,
-            ).run()
-        except (SentryAppIntegratorError, SentryAppSentryError) as e:
+            with action_context_scope(source=ActionSource.API, actor=actor):
+                creator = IssueLinkCreator(
+                    install=installation,
+                    group=group,
+                    action=action,
+                    fields=fields,
+                    uri=uri,
+                    user=user,
+                    expected_external_issue_url=expected_external_issue_url,
+                )
+                external_issue = creator.run()
+        except (SentryAppError, SentryAppIntegratorError, SentryAppSentryError) as e:
             return RpcPlatformExternalIssueResult(error=RpcSentryAppError.from_exc(e))
 
         action_cls = (
@@ -176,20 +187,22 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
             if action == "create"
             else LinkPlatformExternalIssueAction
         )
-        publish_action(
-            action_cls(
-                service_type=external_issue.service_type,
-                display_name=external_issue.display_name,
-                web_url=external_issue.web_url,
-            ),
-            source=ActionSource.API,
-            group_id=group.id,
-            project=group.project,
-            actor=GroupActionActor.user(user.id),
-        )
+        if creator.changed:
+            publish_action(
+                action_cls(
+                    service_type=external_issue.service_type,
+                    display_name=external_issue.display_name,
+                    web_url=external_issue.web_url,
+                ),
+                source=ActionSource.API,
+                group_id=group.id,
+                project=group.project,
+                actor=actor,
+            )
 
         return RpcPlatformExternalIssueResult(
-            external_issue=serialize_platform_external_issue(external_issue)
+            external_issue=serialize_platform_external_issue(external_issue),
+            changed=creator.changed if expected_external_issue_url is not None else None,
         )
 
     def create_external_issue(
@@ -201,7 +214,7 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
         web_url: str,
         project: str,
         identifier: str,
-        user: RpcUser | None = None,
+        user: RpcUser,
     ) -> RpcPlatformExternalIssueResult:
         """
         Matches: src/sentry/sentry_apps/api/endpoints/installation_external_issues.py @ POST
@@ -227,20 +240,20 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
                 )
             )
 
-        if user is not None:
-            access = self._access_for_installation_user(
-                organization=group.project.organization,
-                installation=installation,
-                user=user,
-            )
-            if not access.has_project_access(group.project):
-                return RpcPlatformExternalIssueResult(
-                    error=RpcSentryAppError(
-                        message="You do not have permission to create an external issue for this issue.",
-                        status_code=403,
-                    )
+        access = self._access_for_installation_user(
+            organization=group.project.organization,
+            installation=installation,
+            user=user,
+        )
+        if not access.has_project_access(group.project):
+            return RpcPlatformExternalIssueResult(
+                error=RpcSentryAppError(
+                    message="You do not have permission to create an external issue for this issue.",
+                    status_code=403,
                 )
+            )
 
+        actor = _get_external_issue_action_actor(installation, user)
         try:
             external_issue_creator = ExternalIssueCreator(
                 install=installation,
@@ -248,14 +261,15 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
                 web_url=web_url,
                 project=project,
                 identifier=identifier,
-                user_id=user.id if user is not None else None,
+                user_id=user.id,
             )
             external_issue, created = external_issue_creator.run()
         except SentryAppSentryError as e:
             return RpcPlatformExternalIssueResult(error=RpcSentryAppError.from_exc(e))
 
         if created:
-            external_issue_creator.create_issue_activity(external_issue)
+            with action_context_scope(source=ActionSource.API, actor=actor):
+                external_issue_creator.create_issue_activity(external_issue)
 
         publish_action(
             CreatePlatformExternalIssueAction(
@@ -266,7 +280,7 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
             source=ActionSource.API,
             group_id=group.id,
             project=group.project,
-            actor=GroupActionActor.user(user.id) if user is not None else SYSTEM_ACTOR,
+            actor=actor,
         )
 
         return RpcPlatformExternalIssueResult(
@@ -279,23 +293,24 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
         organization_id: int,
         installation: RpcSentryAppInstallation,
         external_issue_id: int,
-        user: RpcUser | None = None,
+        user: RpcUser,
     ) -> RpcEmptyResult:
         """
         Matches: src/sentry/sentry_apps/api/endpoints/installation_external_issue_details.py @ DELETE
         """
+        external_issues = PlatformExternalIssue.objects.select_related(
+            "group",
+            "group__project",
+            "group__project__organization",
+            "project",
+            "project__organization",
+        ).filter(
+            id=external_issue_id,
+            group__project__organization_id=organization_id,
+            service_type=installation.sentry_app.slug,
+        )
         try:
-            platform_external_issue = PlatformExternalIssue.objects.select_related(
-                "group",
-                "group__project",
-                "group__project__organization",
-                "project",
-                "project__organization",
-            ).get(
-                id=external_issue_id,
-                group__project__organization_id=organization_id,
-                service_type=installation.sentry_app.slug,
-            )
+            platform_external_issue = external_issues.get()
         except PlatformExternalIssue.DoesNotExist:
             return RpcEmptyResult(
                 success=False,
@@ -316,34 +331,54 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
             )
         organization = issue_project.organization
 
-        if user is not None:
-            access = self._access_for_installation_user(
-                organization=organization,
-                installation=installation,
-                user=user,
-            )
-            if not access.has_project_access(issue_project):
-                return RpcEmptyResult(
-                    success=False,
-                    error=RpcSentryAppError(
-                        message="You do not have permission to delete this external issue.",
-                        status_code=403,
-                    ),
-                )
-
-        publish_action(
-            UnlinkPlatformExternalIssueAction(
-                service_type=platform_external_issue.service_type,
-                display_name=platform_external_issue.display_name,
-                web_url=platform_external_issue.web_url,
-            ),
-            source=ActionSource.API,
-            group_id=platform_external_issue.group_id,
-            project=issue_project,
-            actor=GroupActionActor.user(user.id) if user is not None else SYSTEM_ACTOR,
+        access = self._access_for_installation_user(
+            organization=organization,
+            installation=installation,
+            user=user,
         )
+        if not access.has_project_access(issue_project):
+            return RpcEmptyResult(
+                success=False,
+                error=RpcSentryAppError(
+                    message="You do not have permission to delete this external issue.",
+                    status_code=403,
+                ),
+            )
 
-        deletions.exec_sync(platform_external_issue)
+        try:
+            lock = locks.get(
+                f"platform-external-issue-link:{platform_external_issue.group_id}:{platform_external_issue.service_type}",
+                duration=300,
+                name="platform_external_issue_link",
+            ).acquire()
+        except UnableToAcquireLock:
+            return RpcEmptyResult(
+                success=False,
+                error=RpcSentryAppError(
+                    message="This issue link is being updated. Try again.", status_code=409
+                ),
+            )
+
+        with lock:
+            try:
+                platform_external_issue = external_issues.get()
+            except PlatformExternalIssue.DoesNotExist:
+                # Another request completed the unlink after we authorized it.
+                return RpcEmptyResult()
+
+            publish_action(
+                UnlinkPlatformExternalIssueAction(
+                    service_type=platform_external_issue.service_type,
+                    display_name=platform_external_issue.display_name,
+                    web_url=platform_external_issue.web_url,
+                ),
+                source=ActionSource.API,
+                group_id=platform_external_issue.group_id,
+                project=issue_project,
+                actor=_get_external_issue_action_actor(installation, user),
+            )
+
+            deletions.exec_sync(platform_external_issue)
 
         return RpcEmptyResult()
 
@@ -589,90 +624,5 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
                     ),
                 )
             deletions.exec_sync_many(list(hook_projects))
-
-        return RpcEmptyResult()
-
-    def get_interaction_stats(
-        self,
-        *,
-        sentry_app: RpcSentryApp,
-        component_types: list[str],
-        since: float,
-        until: float,
-        resolution: int | None = None,
-    ) -> RpcInteractionStatsResult:
-        """
-        Matches: src/sentry/sentry_apps/api/endpoints/sentry_app_interaction.py @ GET
-        """
-
-        start_dt = datetime.fromtimestamp(since, tz=timezone.utc)
-        end_dt = datetime.fromtimestamp(until, tz=timezone.utc)
-
-        tsdb_kwargs: dict[str, Any] = {
-            "start": start_dt,
-            "end": end_dt,
-            "tenant_ids": {"organization_id": sentry_app.owner_id},
-        }
-        if resolution is not None:
-            tsdb_kwargs["rollup"] = resolution
-
-        views_data = tsdb.backend.get_range(
-            model=TSDBModel.sentry_app_viewed,
-            keys=[sentry_app.id],
-            **tsdb_kwargs,
-        ).get(sentry_app.id, [])
-        views = [RpcTimeSeriesPoint(time=t, count=c) for t, c in views_data]
-
-        component_keys = [
-            self.get_component_interaction_key(sentry_app.slug, ct) for ct in component_types
-        ]
-        component_data = tsdb.backend.get_range(
-            model=TSDBModel.sentry_app_component_interacted,
-            keys=component_keys,
-            **tsdb_kwargs,
-        )
-        component_interactions = {
-            key.split(":")[1]: [RpcTimeSeriesPoint(time=t, count=c) for t, c in value]
-            for key, value in component_data.items()
-        }
-
-        return RpcInteractionStatsResult(
-            views=views,
-            component_interactions=component_interactions,
-        )
-
-    def record_interaction(
-        self,
-        *,
-        sentry_app: RpcSentryApp,
-        tsdb_field: str,
-        component_type: str | None = None,
-    ) -> RpcEmptyResult:
-        """
-        Matches: src/sentry/sentry_apps/api/endpoints/sentry_app_interaction.py @ POST
-        """
-        model = getattr(TSDBModel, tsdb_field, None)
-
-        if model == TSDBModel.sentry_app_component_interacted:
-            if component_type is None or component_type not in COMPONENT_TYPES:
-                return RpcEmptyResult(
-                    success=False,
-                    error=RpcSentryAppError(
-                        message=f"The field componentType is required and must be one of {COMPONENT_TYPES}",
-                        status_code=400,
-                    ),
-                )
-            key = self.get_component_interaction_key(sentry_app.slug, component_type)
-            tsdb.backend.incr(model, key)
-        elif model == TSDBModel.sentry_app_viewed:
-            tsdb.backend.incr(model, sentry_app.id)
-        else:
-            return RpcEmptyResult(
-                success=False,
-                error=RpcSentryAppError(
-                    message="The tsdbField must be one of: sentry_app_viewed, sentry_app_component_interacted",
-                    status_code=400,
-                ),
-            )
 
         return RpcEmptyResult()

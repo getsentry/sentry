@@ -1,4 +1,5 @@
-from typing import Any
+from collections.abc import Sequence
+from typing import Any, cast
 from unittest import mock
 
 from django.conf import settings
@@ -13,10 +14,16 @@ from sentry.features.base import (
     ProjectFeature,
     SystemFeature,
 )
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
+
+FeatureEntity = Organization | RpcOrganization | User | RpcUser | AnonymousUser | None
+FeatureActor = User | RpcUser | AnonymousUser | None
 
 
 class MockBatchHandler(features.BatchFeatureHandler):
@@ -31,8 +38,15 @@ class MockBatchHandler(features.BatchFeatureHandler):
     ) -> bool:
         return True
 
-    def batch_has(self, feature_names, *args: Any, projects=None, organization=None, **kwargs: Any):
-        feature_results = {
+    def batch_has(
+        self,
+        feature_names: Sequence[str],
+        *args: Any,
+        projects: Sequence[Project] | None = None,
+        organization: Organization | RpcOrganization | None = None,
+        **kwargs: Any,
+    ) -> dict[str, dict[str, bool | None]] | None:
+        feature_results: dict[str, bool | None] = {
             feature_name: True for feature_name in feature_names if feature_name in self.features
         }
 
@@ -44,10 +58,14 @@ class MockBatchHandler(features.BatchFeatureHandler):
 
         return {"unscoped": feature_results}
 
-    def _check_for_batch(self, feature_name, organization, actor):
+    def _check_for_batch(
+        self, feature_name: str, organization: FeatureEntity, actor: FeatureActor
+    ) -> bool | None:
         raise NotImplementedError
 
-    def batch_has_for_organizations(self, feature_name, organizations) -> dict[str, bool]:
+    def batch_has_for_organizations(
+        self, feature_name: str, organizations: Sequence[Organization | RpcOrganization]
+    ) -> dict[str, bool]:
         results: dict[str, bool] = {}
         for org in organizations:
             entity_key = f"organization:{org.id}"
@@ -58,10 +76,40 @@ class MockBatchHandler(features.BatchFeatureHandler):
 class MockUserBatchHandler(features.BatchFeatureHandler):
     features = {"users:feature"}
 
-    def _check_for_batch(self, feature_name, user, actor):
-        return user.name == "steve"
+    def _check_for_batch(
+        self, feature_name: str, user: FeatureEntity, actor: FeatureActor
+    ) -> bool | None:
+        return cast("User | RpcUser", user).name == "steve"
 
-    def batch_has(self, *a, **k):
+    def batch_has(self, *a: Any, **k: Any) -> dict[str, dict[str, bool | None]] | None:
+        raise NotImplementedError("unreachable")
+
+
+class OrganizationBatchHandler(features.BatchFeatureHandler):
+    def __init__(
+        self,
+        flags: Sequence[str],
+        result: bool | None,
+        expected_org: Organization,
+        expected_actor: User,
+    ) -> None:
+        self.features = set(flags)
+        self.result = result
+        self.expected_org = expected_org
+        self.expected_actor = expected_actor
+        self.hit_counter = 0
+
+    def _check_for_batch(
+        self, feature_name: str, organization: FeatureEntity, actor: FeatureActor
+    ) -> bool | None:
+        assert feature_name in self.features
+        assert organization == self.expected_org
+        assert actor == self.expected_actor
+
+        self.hit_counter += 1
+        return self.result
+
+    def batch_has(self, *a: Any, **k: Any) -> dict[str, dict[str, bool | None]] | None:
         raise NotImplementedError("unreachable")
 
 
@@ -121,26 +169,27 @@ class FeatureManagerTest(TestCase):
         class TestProjectHandler(features.FeatureHandler):
             features = {project_flag}
 
-            def __init__(self, true_set, false_set):
+            def __init__(self, true_set: Sequence[Project], false_set: Sequence[Project]) -> None:
                 self.true_set = frozenset(true_set)
                 self.false_set = frozenset(false_set)
 
             def has(
                 self,
-                feature,
-                actor,
+                feature: Feature,
+                actor: FeatureActor,
                 skip_entity: bool | None = False,
                 skip_experiment_exposure: bool = False,
-            ):
+            ) -> bool | None:
                 assert actor == test_user
 
-                if feature.project in self.true_set:
+                project = cast(ProjectFeature, feature).project
+                if project in self.true_set:
                     return True
-                if feature.project in self.false_set:
+                if project in self.false_set:
                     return False
                 return None
 
-            def batch_has(self, *a, **k):
+            def batch_has(self, *a: Any, **k: Any) -> dict[str, dict[str, bool | None]] | None:
                 raise NotImplementedError("unreachable")
 
         p1 = self.create_project()
@@ -204,7 +253,8 @@ class FeatureManagerTest(TestCase):
         # The entity_handler doesn't have a response for this feature either, so settings should be checked instead
         entity_handler.has.return_value = None
         with mock.patch.dict(settings.SENTRY_FEATURES, {"organizations:settings-feature": "test"}):
-            assert manager.has("organizations:settings-feature", test_org) == "test"
+            settings_result: object = manager.has("organizations:settings-feature", test_org)
+            assert settings_result == "test"
             assert len(entity_handler.mock_calls) == 2
 
     def test_entity_handler_has_capture_error(self) -> None:
@@ -231,25 +281,8 @@ class FeatureManagerTest(TestCase):
 
         projects = [self.create_project(organization=test_org) for i in range(5)]
 
-        def create_handler(flags, result):
-            class OrganizationTestHandler(features.BatchFeatureHandler):
-                features = set(flags)
-
-                def __init__(self):
-                    self.hit_counter = 0
-
-                def _check_for_batch(self, feature_name, organization, actor):
-                    assert feature_name in self.features
-                    assert organization == test_org
-                    assert actor == test_user
-
-                    self.hit_counter += 1
-                    return result
-
-                def batch_has(self, *a, **k):
-                    raise NotImplementedError("unreachable")
-
-            return OrganizationTestHandler()
+        def create_handler(flags: Sequence[str], result: bool | None) -> OrganizationBatchHandler:
+            return OrganizationBatchHandler(flags, result, test_org, test_user)
 
         yes_flag = "organizations:yes"
         no_flag = "organizations:no"
@@ -290,7 +323,7 @@ class FeatureManagerTest(TestCase):
         handler.has_for_batch.side_effect = ValueError("invalid thing")
 
         manager = features.FeatureManager()
-        manager.add("oragnizations:faulty", OrganizationFeature)
+        manager.add("organizations:faulty", OrganizationFeature)
         manager.add_handler(handler)
 
         with (
@@ -298,8 +331,94 @@ class FeatureManagerTest(TestCase):
             override_options({"features.error.capture_rate": 1.0}),
         ):
             res = manager.has_for_batch("organizations:faulty", org, [project])
-            assert res == {}
+            assert res == {project: False}
             assert mock_capture.call_count == 1
+
+    def test_has_for_batch_respects_handler_entity_and_default_precedence(self) -> None:
+        feature_name = "projects:feature"
+        entity_project = self.create_project(organization=self.organization)
+        default_project = self.create_project(organization=self.organization)
+
+        feature_handler = mock.Mock(spec=features.FeatureHandler)
+        feature_handler.features = {feature_name}
+        feature_handler.has_for_batch.return_value = {
+            self.project: True,
+            entity_project: None,
+            default_project: None,
+        }
+
+        entity_handler = mock.Mock(spec=features.FeatureHandler)
+        entity_handler.batch_has.return_value = {
+            f"project:{entity_project.id}": {feature_name: False},
+            f"project:{default_project.id}": {feature_name: None},
+        }
+
+        manager = features.FeatureManager()
+        manager.add(feature_name, ProjectFeature)
+        manager.add_handler(feature_handler)
+        manager.add_entity_handler(entity_handler)
+
+        projects = [self.project, entity_project, default_project]
+        with override_settings(SENTRY_FEATURES={feature_name: True}):
+            result = manager.has_for_batch(
+                feature_name, self.organization, projects, actor=self.user
+            )
+
+        assert result == {
+            self.project: True,
+            entity_project: False,
+            default_project: True,
+        }
+        entity_handler.batch_has.assert_called_once_with(
+            [feature_name],
+            self.user,
+            projects=[entity_project, default_project],
+            organization=self.organization,
+            skip_experiment_exposure=False,
+        )
+
+    def test_has_for_batch_uses_organization_entity_result(self) -> None:
+        feature_name = "organizations:feature"
+        other_project = self.create_project(organization=self.organization)
+        projects = [self.project, other_project]
+
+        entity_handler = mock.Mock(spec=features.FeatureHandler)
+        entity_handler.batch_has.return_value = {
+            f"organization:{self.organization.id}": {feature_name: True}
+        }
+
+        manager = features.FeatureManager()
+        manager.add(feature_name, OrganizationFeature)
+        manager.add_entity_handler(entity_handler)
+
+        result = manager.has_for_batch(feature_name, self.organization, projects, actor=self.user)
+
+        assert result == {project: True for project in projects}
+        entity_handler.batch_has.assert_called_once_with(
+            [feature_name],
+            self.user,
+            projects=None,
+            organization=self.organization,
+            skip_experiment_exposure=False,
+        )
+
+    def test_has_for_batch_passes_skip_experiment_exposure_to_entity_handler(self) -> None:
+        feature_name = "organizations:feature"
+        entity_handler = mock.Mock(spec=features.FeatureHandler)
+        entity_handler.batch_has.return_value = {}
+
+        manager = features.FeatureManager()
+        manager.add(feature_name, OrganizationFeature)
+        manager.add_entity_handler(entity_handler)
+
+        manager.has_for_batch(
+            feature_name,
+            self.organization,
+            [self.project],
+            skip_experiment_exposure=True,
+        )
+
+        assert entity_handler.batch_has.call_args.kwargs["skip_experiment_exposure"] is True
 
     def test_batch_has(self) -> None:
         manager = features.FeatureManager()
@@ -319,6 +438,123 @@ class FeatureManagerTest(TestCase):
         ret = manager.batch_has(["projects:feature"], actor=self.user, projects=[self.project])
         assert ret is not None
         assert ret[f"project:{self.project.id}"]["projects:feature"]
+
+    def test_batch_has_uses_feature_handler_precedence(self) -> None:
+        feature_name = "organizations:handled"
+
+        manager = features.FeatureManager()
+        manager.add(feature_name, OrganizationFeature)
+
+        feature_handler = mock.Mock(spec=features.FeatureHandler)
+        feature_handler.features = {feature_name}
+        feature_handler.return_value = False
+        manager.add_handler(feature_handler)
+
+        entity_handler = mock.Mock(spec=features.FeatureHandler)
+        manager.add_entity_handler(entity_handler)
+
+        result = manager.batch_has([feature_name], actor=self.user, organization=self.organization)
+
+        assert result == {f"organization:{self.organization.id}": {feature_name: False}}
+        entity_handler.batch_has.assert_not_called()
+
+    def test_batch_has_completes_partial_project_handler_results(self) -> None:
+        feature_name = "feature-without-scope-prefix"
+        other_project = self.create_project(organization=self.organization)
+
+        manager = features.FeatureManager()
+        manager.add(feature_name, ProjectFeature, default=True)
+
+        feature_handler = mock.Mock(spec=features.FeatureHandler)
+        feature_handler.features = {feature_name}
+        feature_handler.has_for_batch.return_value = {
+            self.project: True,
+            other_project: None,
+        }
+        manager.add_handler(feature_handler)
+
+        entity_handler = mock.Mock(spec=features.FeatureHandler)
+        entity_handler.batch_has.return_value = {
+            f"project:{self.project.id}": {feature_name: False},
+        }
+        manager.add_entity_handler(entity_handler)
+
+        result = manager.batch_has(
+            [feature_name], actor=self.user, projects=[self.project, other_project]
+        )
+
+        assert result == {
+            f"project:{self.project.id}": {feature_name: True},
+            f"project:{other_project.id}": {feature_name: True},
+        }
+        feature_handler.has_for_batch.assert_called_once()
+        entity_handler.batch_has.assert_called_once()
+
+    def test_batch_has_isolates_feature_handler_error(self) -> None:
+        failed_feature = "organizations:failed"
+        entity_feature = "organizations:feature"
+
+        manager = features.FeatureManager()
+        manager.add(failed_feature, OrganizationFeature)
+        manager.add(entity_feature, OrganizationFeature)
+
+        feature_handler = mock.Mock(spec=features.FeatureHandler)
+        feature_handler.features = {failed_feature}
+        feature_handler.side_effect = Exception("something bad")
+        manager.add_handler(feature_handler)
+        manager.add_entity_handler(MockBatchHandler())
+
+        result = manager.batch_has(
+            [failed_feature, entity_feature],
+            actor=self.user,
+            organization=self.organization,
+        )
+
+        assert result == {
+            f"organization:{self.organization.id}": {
+                failed_feature: False,
+                entity_feature: True,
+            }
+        }
+
+    def test_batch_has_isolates_project_feature_handler_error(self) -> None:
+        failed_feature = "projects:failed"
+        entity_feature = "projects:feature"
+        other_project = self.create_project(organization=self.organization)
+        projects = [self.project, other_project]
+
+        manager = features.FeatureManager()
+        manager.add(failed_feature, ProjectFeature)
+        manager.add(entity_feature, ProjectFeature)
+
+        partial_handler = mock.Mock(spec=features.FeatureHandler)
+        partial_handler.features = {failed_feature}
+        partial_handler.has_for_batch.return_value = {
+            self.project: True,
+            other_project: None,
+        }
+        manager.add_handler(partial_handler)
+
+        failing_handler = mock.Mock(spec=features.FeatureHandler)
+        failing_handler.features = {failed_feature}
+        failing_handler.has_for_batch.side_effect = Exception("something bad")
+        manager.add_handler(failing_handler)
+        manager.add_entity_handler(MockBatchHandler())
+
+        result = manager.batch_has(
+            [failed_feature, entity_feature], actor=self.user, projects=projects
+        )
+
+        assert result == {
+            f"project:{self.project.id}": {
+                failed_feature: True,
+                entity_feature: True,
+            },
+            f"project:{other_project.id}": {
+                failed_feature: False,
+                entity_feature: True,
+            },
+        }
 
     def test_batch_has_error(self) -> None:
         manager = features.FeatureManager()
@@ -385,17 +621,22 @@ class FeatureManagerTest(TestCase):
 
             def has(
                 self,
-                feature,
-                actor,
+                feature: Feature,
+                actor: FeatureActor,
                 skip_entity: bool | None = False,
                 skip_experiment_exposure: bool = False,
-            ):
+            ) -> bool | None:
                 return feature.name in self.features
 
             def batch_has(
-                self, feature_names, *args: Any, projects=None, organization=None, **kwargs: Any
-            ):
-                feature_results = {
+                self,
+                feature_names: Sequence[str],
+                *args: Any,
+                projects: Sequence[Project] | None = None,
+                organization: Organization | RpcOrganization | None = None,
+                **kwargs: Any,
+            ) -> dict[str, dict[str, bool | None]] | None:
+                feature_results: dict[str, bool | None] = {
                     feature_name: True
                     for feature_name in feature_names
                     if feature_name in self.features
@@ -409,7 +650,9 @@ class FeatureManagerTest(TestCase):
 
                 return {"unscoped": feature_results}
 
-            def _check_for_batch(self, feature_name, organization, actor):
+            def _check_for_batch(
+                self, feature_name: str, organization: FeatureEntity, actor: FeatureActor
+            ) -> bool | None:
                 raise NotImplementedError
 
         manager = features.FeatureManager()
@@ -444,12 +687,12 @@ class FeatureManagerTest(TestCase):
         manager.add("feat:4", OrganizationFeature, True)
         manager.add("feat:5", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
 
-        assert "feat:1" not in manager.entity_features
-        assert "feat:2" not in manager.entity_features
-        assert "feat:3" not in manager.entity_features
+        assert "feat:1" not in manager.flagpole_features
+        assert "feat:2" not in manager.flagpole_features
+        assert "feat:3" not in manager.flagpole_features
 
-        assert "feat:4" in manager.entity_features
-        assert "feat:5" in manager.entity_features
+        assert "feat:4" in manager.flagpole_features
+        assert "feat:5" in manager.flagpole_features
 
     def test_all(self) -> None:
         manager = features.FeatureManager()

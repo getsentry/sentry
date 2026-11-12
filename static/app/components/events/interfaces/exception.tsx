@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {StacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {TraceEventDataSection} from 'sentry/components/events/traceEventDataSection';
 import {t} from 'sentry/locale';
@@ -13,6 +12,7 @@ import {SectionDivider} from 'sentry/views/issueDetails/foldSection';
 
 import {ExceptionContent} from './crashContent/exception';
 import {NoStackTraceMessage} from './noStackTraceMessage';
+import {StacktraceContext} from './stackTraceContext';
 import {isStacktraceNewestFirst} from './utils';
 
 type Props = {
@@ -21,10 +21,11 @@ type Props = {
   group: Group | undefined;
   projectSlug: Project['slug'];
   groupingCurrentLevel?: Group['metadata']['current_level'];
-  hideGuide?: boolean;
+  initialCollapse?: boolean;
 };
 
 export function Exception({
+  initialCollapse,
   event,
   data,
   projectSlug,
@@ -59,6 +60,7 @@ export function Exception({
       hasSystemFrames={data.hasSystemFrames}
     >
       <TraceEventDataSection
+        initialCollapse={initialCollapse}
         title={t('Stack Trace')}
         type={EntryType.EXCEPTION}
         projectSlug={projectSlug}

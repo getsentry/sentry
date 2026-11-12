@@ -1,41 +1,17 @@
 import {DashboardListItemFixture} from 'sentry-fixture/dashboard';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {localStorageWrapper} from 'sentry/utils/localStorage';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
-import ManageDashboards, {LAYOUT_KEY} from 'sentry/views/dashboards/manage';
+import ManageDashboards from 'sentry/views/dashboards/manage';
 import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
 
-jest.mock('sentry/utils/localStorage');
-
-const FEATURES = [
-  'dashboards-basic',
-  'dashboards-edit',
-  'discover-query',
-  'dashboards-prebuilt-insights-dashboards',
-];
-
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: jest.fn(),
-}));
-
-jest.mock('sentry/utils/useLocation');
-
-const mockUseNavigate = jest.mocked(useNavigate);
-const mockUseLocation = jest.mocked(useLocation);
+const FEATURES = ['discover-query', 'dashboards-prebuilt-insights-dashboards'];
 
 describe('Dashboards > Detail', () => {
-  const mockUnauthorizedOrg = OrganizationFixture({
-    features: ['dashboards-basic', 'discover-query'],
-  });
-
   const mockAuthorizedOrg = OrganizationFixture({
     features: FEATURES,
   });
@@ -58,12 +34,9 @@ describe('Dashboards > Detail', () => {
       url: '/organizations/org-slug/dashboards/starred/',
       body: [],
     });
-
-    mockUseLocation.mockReturnValue(LocationFixture());
   });
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    localStorageWrapper.clear();
   });
 
   it('renders', async () => {
@@ -76,7 +49,7 @@ describe('Dashboards > Detail', () => {
       organization: mockAuthorizedOrg,
     });
 
-    expect(await screen.findByText('Custom Dashboards')).toBeInTheDocument();
+    expect(await screen.findByText('All Dashboards')).toBeInTheDocument();
 
     expect(await screen.findByText('Test Dashboard')).toBeInTheDocument();
 
@@ -93,16 +66,6 @@ describe('Dashboards > Detail', () => {
     });
 
     expect(await screen.findByText('Oops! Something went wrong')).toBeInTheDocument();
-  });
-
-  it('denies access on missing feature', async () => {
-    render(<ManageDashboards />, {
-      organization: mockUnauthorizedOrg,
-    });
-
-    expect(
-      await screen.findByText("You don't have access to this feature")
-    ).toBeInTheDocument();
   });
 
   it('denies access on no projects', async () => {
@@ -137,25 +100,25 @@ describe('Dashboards > Detail', () => {
   });
 
   it('creates new dashboard', async () => {
-    const org = OrganizationFixture({features: FEATURES});
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
+    const org = OrganizationFixture({features: FEATURES, hideAiFeatures: true});
 
-    render(<ManageDashboards />, {
+    const {router} = render(<ManageDashboards />, {
       organization: org,
     });
 
     await userEvent.click(await screen.findByTestId('dashboard-create'));
 
-    expect(mockNavigate).toHaveBeenCalledWith('/organizations/org-slug/dashboards/new/');
+    expect(router.location.pathname).toBe('/organizations/org-slug/dashboards/new/');
   });
 
   it('can sort', async () => {
     const org = OrganizationFixture({features: FEATURES});
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
+    const dashboardsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [],
+    });
 
-    render(<ManageDashboards />, {
+    const {router} = render(<ManageDashboards />, {
       organization: org,
     });
 
@@ -164,17 +127,98 @@ describe('Dashboards > Detail', () => {
       'Dashboard Name (A-Z)'
     );
 
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({query: {sort: 'title'}})
+    await waitFor(() =>
+      expect(dashboardsRequest).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({query: expect.objectContaining({sort: 'title'})})
+      )
+    );
+    expect(router.location.query).toEqual({sort: 'title'});
+  });
+
+  it('defaults to recently viewed sort with dashboards-user-last-visited', async () => {
+    const org = OrganizationFixture({
+      features: [...FEATURES, 'dashboards-user-last-visited'],
+    });
+
+    const request = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [DashboardListItemFixture({title: 'Test Dashboard'})],
+    });
+
+    render(<ManageDashboards />, {
+      organization: org,
+    });
+
+    expect(await screen.findByText('Test Dashboard')).toBeInTheDocument();
+    expect(request).toHaveBeenCalledWith(
+      '/organizations/org-slug/dashboards/',
+      expect.objectContaining({
+        query: expect.objectContaining({sort: 'recentlyViewed'}),
+      })
+    );
+  });
+
+  it('requests only custom dashboards on the Custom Dashboards tab', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [DashboardListItemFixture({title: 'Test Dashboard'})],
+    });
+
+    render(<ManageDashboards />, {
+      organization: mockAuthorizedOrg,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/dashboards/',
+          query: {filter: 'excludePrebuilt'},
+        },
+      },
+    });
+
+    expect(await screen.findByText('Custom Dashboards')).toBeInTheDocument();
+    expect(request).toHaveBeenCalledWith(
+      '/organizations/org-slug/dashboards/',
+      expect.objectContaining({
+        query: expect.objectContaining({filter: 'excludePrebuilt'}),
+      })
+    );
+  });
+
+  it('ignores the custom filter without the prebuilt dashboards feature', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [DashboardListItemFixture({title: 'Test Dashboard'})],
+    });
+
+    render(<ManageDashboards />, {
+      organization: OrganizationFixture({
+        features: ['discover-query'],
+      }),
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/dashboards/',
+          query: {filter: 'excludePrebuilt'},
+        },
+      },
+    });
+
+    expect(await screen.findByText('All Dashboards')).toBeInTheDocument();
+    expect(request).toHaveBeenCalledWith(
+      '/organizations/org-slug/dashboards/',
+      expect.objectContaining({
+        query: expect.not.objectContaining({filter: expect.anything()}),
+      })
     );
   });
 
   it('can search', async () => {
     const org = OrganizationFixture({features: FEATURES});
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
+    const dashboardsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [],
+    });
 
-    render(<ManageDashboards />, {
+    const {router} = render(<ManageDashboards />, {
       organization: org,
     });
 
@@ -182,41 +226,98 @@ describe('Dashboards > Detail', () => {
     await userEvent.keyboard('dash');
     await userEvent.keyboard('[Enter]');
 
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({query: {query: 'dash'}})
+    await waitFor(() =>
+      expect(dashboardsRequest).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({query: expect.objectContaining({query: 'dash'})})
+      )
+    );
+    expect(router.location.query).toEqual({query: 'dash'});
+  });
+
+  it('pushes history and clears the cursor when searching', async () => {
+    const org = OrganizationFixture({features: FEATURES});
+    const onNuqsUrlUpdate = jest.fn();
+    const dashboardsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [],
+    });
+
+    const {router} = render(<ManageDashboards />, {
+      organization: org,
+      onNuqsUrlUpdate,
+      initialRouterConfig: {
+        location: {pathname: '/mock-pathname/', query: {cursor: '0:9:0', sort: 'title'}},
+      },
+    });
+
+    await userEvent.click(await screen.findByPlaceholderText('Search Dashboards'));
+    await userEvent.keyboard('dash');
+    await userEvent.keyboard('[Enter]');
+
+    await waitFor(() =>
+      expect(dashboardsRequest).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({query: expect.objectContaining({query: 'dash'})})
+      )
+    );
+    expect(router.location.query).toEqual({query: 'dash', sort: 'title'});
+    expect(onNuqsUrlUpdate).toHaveBeenLastCalledWith(
+      expect.objectContaining({options: expect.objectContaining({history: 'push'})})
+    );
+  });
+
+  it('writes the default sort when the URL sort is invalid', async () => {
+    const org = OrganizationFixture({features: FEATURES});
+    const dashboardsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [],
+    });
+
+    const {router} = render(<ManageDashboards />, {
+      organization: org,
+      initialRouterConfig: {
+        location: {pathname: '/mock-pathname/', query: {sort: 'not-a-sort'}},
+      },
+    });
+
+    await waitFor(() => expect(router.location.query).toEqual({sort: 'mydashboards'}));
+    await waitFor(() =>
+      expect(dashboardsRequest).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({query: expect.objectContaining({sort: 'mydashboards'})})
+      )
     );
   });
 
   it('uses pagination correctly', async () => {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
       body: [DashboardListItemFixture({title: 'Test Dashboard 1'})],
       headers: {Link: getPaginationPageLink({numRows: 15, pageSize: 9, offset: 0})},
     });
 
-    render(<ManageDashboards />, {
+    const {router} = render(<ManageDashboards />, {
       organization: mockAuthorizedOrg,
     });
 
     expect(await screen.findByText('Test Dashboard 1')).toBeInTheDocument();
+    const nextPageRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [],
+    });
     await userEvent.click(await screen.findByLabelText('Next'));
 
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: {
-          cursor: '0:9:0',
-        },
-      })
+    await waitFor(() =>
+      expect(nextPageRequest).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({query: expect.objectContaining({cursor: '0:9:0'})})
+      )
     );
+    expect(router.location.query).toEqual({cursor: '0:9:0'});
   });
 
   it('disables pagination correctly', async () => {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
       body: [DashboardListItemFixture({title: 'Test Dashboard 1'})],
@@ -228,40 +329,10 @@ describe('Dashboards > Detail', () => {
     });
 
     expect(await screen.findByText('Test Dashboard 1')).toBeInTheDocument();
-    await userEvent.click(await screen.findByLabelText('Previous'));
-
-    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(screen.getByLabelText('Previous')).toBeDisabled();
   });
 
-  it('toggles between grid and list view', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/dashboards/',
-      body: [DashboardListItemFixture({title: 'Test Dashboard 1'})],
-      headers: {Link: getPaginationPageLink({numRows: 15, pageSize: 9, offset: 0})},
-    });
-
-    render(<ManageDashboards />, {
-      organization: {
-        ...mockAuthorizedOrg,
-      },
-    });
-
-    expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
-
-    expect(await screen.findByTestId('grid')).toBeInTheDocument();
-    await userEvent.click(await screen.findByTestId('grid'));
-
-    expect(localStorageWrapper.setItem).toHaveBeenCalledWith(LAYOUT_KEY, '"grid"');
-    expect(await screen.findByTestId('dashboard-grid')).toBeInTheDocument();
-
-    expect(await screen.findByTestId('table')).toBeInTheDocument();
-    await userEvent.click(await screen.findByTestId('table'));
-
-    expect(localStorageWrapper.setItem).toHaveBeenCalledWith(LAYOUT_KEY, '"table"');
-    expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
-  });
-
-  it('defaults to table view when no layout preference is stored', async () => {
+  it('renders the table view', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
       body: [DashboardListItemFixture({title: 'Test Dashboard 1'})],
@@ -273,21 +344,5 @@ describe('Dashboards > Detail', () => {
     });
 
     expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
-  });
-
-  it('respects stored grid layout preference', async () => {
-    localStorageWrapper.setItem(LAYOUT_KEY, '"grid"');
-
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/dashboards/',
-      body: [DashboardListItemFixture({title: 'Test Dashboard 1'})],
-      headers: {Link: getPaginationPageLink({numRows: 15, pageSize: 9, offset: 0})},
-    });
-
-    render(<ManageDashboards />, {
-      organization: mockAuthorizedOrg,
-    });
-
-    expect(await screen.findByTestId('dashboard-grid')).toBeInTheDocument();
   });
 });

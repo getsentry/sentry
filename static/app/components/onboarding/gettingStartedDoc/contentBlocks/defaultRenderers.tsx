@@ -6,19 +6,14 @@ import {Alert} from '@sentry/scraps/alert';
 
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
-import {useRendererContext} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/rendererContext';
-import type {
-  BlockRenderers,
-  ContentBlock,
-} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
-import {
-  ContentBlockCssVariables,
-  renderBlocks,
-} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/utils';
 import {
   OnboardingCodeSnippet,
   TabbedCodeSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
+
+import {useRendererContext} from './rendererContext';
+import type {BlockRenderers, ContentBlock} from './types';
+import {ContentBlockCssVariables, renderBlocks} from './utils';
 
 // TODO(aknaus): Remove !important once we can remove style overrides from the onboarding layouts
 const baseBlockStyles = css`
@@ -60,7 +55,7 @@ function CodeBlock(block: Extract<ContentBlock, {type: 'code'}>) {
   if ('code' in block) {
     return (
       <div css={baseBlockStyles}>
-        <OnboardingCodeSnippet language={block.language}>
+        <OnboardingCodeSnippet language={block.language} filename={block.filename}>
           {block.code}
         </OnboardingCodeSnippet>
       </div>

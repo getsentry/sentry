@@ -6,13 +6,14 @@ import {Alert} from '@sentry/scraps/alert';
 import {defaultFormOptions, FieldGroup, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -55,7 +56,16 @@ export function KeyRateLimitsForm({
   project,
   updateData,
 }: KeyRateLimitsFormProps) {
-  const endpoint = `/projects/${organization.slug}/${projectId}/keys/${keyId}/`;
+  const endpoint = getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/',
+    {
+      path: {
+        organizationIdOrSlug: organization.slug,
+        projectIdOrSlug: projectId,
+        keyId,
+      },
+    }
+  );
 
   function getAllowedRateLimitValues(currentRateLimit?: number) {
     const {rateLimit} = data;
@@ -82,7 +92,7 @@ export function KeyRateLimitsForm({
         data: submitData,
       }),
     onSuccess: responseData => {
-      addSuccessMessage(t('Successfully saved rate limit.'));
+      toast.success(t('Successfully saved rate limit.'));
       updateData(responseData);
       form.reset();
     },
@@ -92,7 +102,7 @@ export function KeyRateLimitsForm({
         const detail = error.responseJSON?.detail;
         message = typeof detail === 'string' ? detail : detail?.message;
       }
-      addErrorMessage(message ?? t('Unable to save rate limit.'));
+      toast.error(message ?? t('Unable to save rate limit.'));
     },
   });
 

@@ -7,30 +7,31 @@ import {
   type RefCallback,
 } from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconClose} from '@sentry/icons/close';
 import isEqual from 'lodash/isEqual';
+import {createSerializer, useQueryStates} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {useHotkeys} from '@sentry/scraps/hotkey';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
+import {Heading} from '@sentry/scraps/text';
+import {useMedia} from '@sentry/scraps/useMedia';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconClose} from 'sentry/icons';
-import {t, tctCode} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useValidateWidgetQuery} from 'sentry/views/dashboards/hooks/useValidateWidget';
 import {
   DisplayType,
   WidgetType,
@@ -42,39 +43,37 @@ import {
   doesDisplayTypeSupportThresholds,
   usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
-import {AxisRangeSection} from 'sentry/views/dashboards/widgetBuilder/components/axisRangeSection';
-import {WidgetBuilderDatasetSelector} from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
-import {WidgetBuilderDescriptionField} from 'sentry/views/dashboards/widgetBuilder/components/descriptionField';
-import {WidgetBuilderFilterBar} from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
-import {WidgetBuilderGroupBySelector} from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
-import {LegendTypeSelector} from 'sentry/views/dashboards/widgetBuilder/components/legendTypeSelector';
-import {WidgetBuilderNameAndDescription} from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
-import {
-  WidgetPreviewContainer,
-  type ThresholdMetaState,
-} from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
-import {WidgetBuilderQueryFilterBuilder} from 'sentry/views/dashboards/widgetBuilder/components/queryFilterBuilder';
-import {SaveButtonGroup} from 'sentry/views/dashboards/widgetBuilder/components/saveButtonGroup';
-import {WidgetBuilderSortBySelector} from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
-import {ThresholdsSection} from 'sentry/views/dashboards/widgetBuilder/components/thresholds';
-import {WidgetBuilderTypeSelector} from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
-import {Visualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
-import {WidgetTemplatesList} from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
-import {WidgetBuilderXAxisSelector} from 'sentry/views/dashboards/widgetBuilder/components/xAxisSelector';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/useWidgetBuilderContext';
 import {useCacheBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useCacheBuilderState';
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {useSegmentSpanWidgetState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSegmentSpanWidgetState';
 import {useTraceMetricsVisualizeModeState} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
-import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import {readableConditions} from 'sentry/views/dashboards/widgetCard/widgetLLMContext';
 import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+
+import {AxisRangeSection} from './axisRangeSection';
+import {WidgetBuilderDatasetSelector} from './datasetSelector';
+import {WidgetBuilderDescriptionField} from './descriptionField';
+import {WidgetBuilderFilterBar} from './filtersBar';
+import {WidgetBuilderGroupBySelector} from './groupBySelector';
+import {LegendTypeSelector} from './legendTypeSelector';
+import {WidgetBuilderNameAndDescription} from './nameAndDescFields';
+import {type ThresholdMetaState} from './newWidgetBuilder';
+import {WidgetBuilderQueryFilterBuilder} from './queryFilterBuilder';
+import {SaveButtonGroup} from './saveButtonGroup';
+import {WidgetBuilderSortBySelector} from './sortBySelector';
+import {ThresholdsSection} from './thresholds';
+import {WidgetBuilderTypeSelector} from './typeSelector';
+import {Visualize} from './visualize';
+import {WidgetPreviewContainer} from './widgetPreviewContainer';
+import {WidgetTemplatesList} from './widgetTemplatesList';
+import {WidgetBuilderXAxisSelector} from './xAxisSelector';
 
 type WidgetBuilderSlideoutProps = {
   dashboard: DashboardDetails;
@@ -88,7 +87,10 @@ type WidgetBuilderSlideoutProps = {
   isQueryConditionInvalid?: boolean;
   onDataFetched?: (results: OnDataFetchedParams) => void;
   thresholdMetaState?: ThresholdMetaState;
+  widgetInterval?: string;
 };
+
+const serializePageFilters = createSerializer(pageFilterParsers);
 
 function WidgetBuilderSlideoutInner({
   onClose,
@@ -102,9 +104,11 @@ function WidgetBuilderSlideoutInner({
   setOpenWidgetTemplates,
   onDataFetched,
   thresholdMetaState,
+  widgetInterval,
 }: WidgetBuilderSlideoutProps) {
   const organization = useOrganization();
   const location = useLocation();
+  const [pageFilterQuery] = useQueryStates(pageFilterParsers);
   const {visible: isModalVisible} = useModal();
   const {state, dispatch} = useWidgetBuilderContext();
   const [initialState] = useState(state);
@@ -142,10 +146,6 @@ function WidgetBuilderSlideoutInner({
     useState(
       organization.features.includes('performance-transaction-deprecation-banner')
     );
-  const validatedWidgetResponse = useValidateWidgetQuery(
-    convertBuilderStateToWidget(state)
-  );
-
   const traceMetricsVisualizeMode = useTraceMetricsVisualizeModeState();
 
   // Tracks whether the user has entered the metrics equation mode since we
@@ -182,18 +182,27 @@ function WidgetBuilderSlideoutInner({
     !(state.dataset === WidgetType.TRACEMETRICS && isInEquationMode) &&
     !(state.dataset === WidgetType.ISSUE && usesTimeSeriesData(state.displayType));
 
-  // Group By is used by time-series chart widgets to break down data by a field.
+  // Group By is used by time-series chart widgets and Trace Metrics equations
+  // to break down data by a field.
   // - Time-series widgets: show Group By to allow breaking down by fields
   // - Issue widgets: don't support Group By (issues have their own grouping)
   // - Categorical Bar widgets: group by is not supported yet, but may be in the future
   // - Text widgets: don't support Group By (no data visualization)
+  // - Trace Metrics equations with tables: no other way for selecting columns to group by
+  const isTraceMetricsEquationTable =
+    state.dataset === WidgetType.TRACEMETRICS &&
+    isInEquationMode &&
+    state.displayType === DisplayType.TABLE;
   const showGroupBySelector =
-    isTimeSeriesWidget && !(state.dataset === WidgetType.ISSUE) && !isTextWidget;
+    (isTimeSeriesWidget && !(state.dataset === WidgetType.ISSUE) && !isTextWidget) ||
+    isTraceMetricsEquationTable;
 
   // X-Axis selector is only for Categorical Bar widgets, other chart widgets
   // always use time as the X-axis
   const showXAxisSelector = isCategoricalBarWidget;
 
+  // The slideout's mobile controls follow the viewport.
+  // oxlint-disable-next-line @sentry/scraps/prefer-container-responsive-props
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
   // Sort By controls the ordering of results.
@@ -242,24 +251,6 @@ function WidgetBuilderSlideoutInner({
     [observer]
   );
 
-  const widgetLibraryWidgets = getDefaultWidgets(organization);
-
-  const widgetLibraryElement = (
-    <SlideoutBreadcrumb
-      onClick={() => {
-        setCustomizeFromLibrary(false);
-        setOpenWidgetTemplates(true);
-        // clears the widget to start fresh on the library page
-        dispatch({
-          type: 'SET_STATE',
-          payload: convertWidgetToBuilderState(widgetLibraryWidgets[0] ?? ({} as Widget)),
-        });
-      }}
-    >
-      {t('Widget Library')}
-    </SlideoutBreadcrumb>
-  );
-
   const onCloseWithModal = useCallback(() => {
     openConfirmModal({
       bypass: isEqual(initialState, state),
@@ -271,8 +262,8 @@ function WidgetBuilderSlideoutInner({
 
   useHotkeys([
     {
-      match: 'Escape',
-      skipPreventDefault: true,
+      hotkey: 'Escape',
+      options: {preventDefault: false},
       callback: (evt: KeyboardEvent) => {
         if (!isModalVisible) {
           evt.preventDefault();
@@ -282,58 +273,69 @@ function WidgetBuilderSlideoutInner({
     },
   ]);
 
-  const breadcrumbs = customizeFromLibrary
-    ? [
-        {
-          label: widgetLibraryElement,
-          to: '',
-        },
-        {
-          label: title,
-          to: '',
-        },
-      ]
-    : [
-        {
-          label: title,
-          to: '',
-        },
-      ];
+  const returnToWidgetLibrary = () => {
+    setCustomizeFromLibrary(false);
+    setOpenWidgetTemplates(true);
+    // clears the widget to start fresh on the library page
+    dispatch({
+      type: 'SET_STATE',
+      payload: convertWidgetToBuilderState(
+        getDefaultWidgets(organization)[0] ?? ({} as Widget)
+      ),
+    });
+  };
 
   const header = (
     <Flex
       align="center"
       justify="between"
+      gap="md"
       borderBottom="primary"
       height="44px"
-      padding="0 2xl"
+      padding="0 lg"
     >
-      <Breadcrumbs as="nav" crumbs={breadcrumbs} />
-      <CloseButton
-        variant="link"
-        size="zero"
+      <Flex align="center" minWidth="0">
+        {customizeFromLibrary && (
+          <Button
+            variant="transparent"
+            size="sm"
+            icon={<IconArrow direction="left" />}
+            aria-label={t('Back to Widget Library')}
+            tooltipProps={{title: t('Back to Widget Library')}}
+            onClick={returnToWidgetLibrary}
+          />
+        )}
+        <Flex padding="0 lg">
+          <Heading as="h2" size="md" ellipsis>
+            {title}
+          </Heading>
+        </Flex>
+      </Flex>
+      <Button
+        variant="transparent"
+        size="sm"
         aria-label={t('Close Widget Builder')}
         icon={<IconClose size="sm" />}
         onClick={onCloseWithModal}
       >
         {t('Close')}
-      </CloseButton>
+      </Button>
     </Flex>
   );
 
   return (
-    <SlideOverPanel position="left" data-test-id="widget-slideout">
+    <SlideOverPanel position="left" ariaLabel={title} data-test-id="widget-slideout">
       {({isOpening}) => {
         if (isOpening) {
           return (
             <Fragment>
               {header}
-              <Flex direction="column" gap="2xl" padding="2xl">
+              <Stack gap="2xl" padding="2xl">
                 <Placeholder height="50px" />
                 <Placeholder height="50px" />
                 <Placeholder height="50px" />
                 <Placeholder height="200px" />
-              </Flex>
+              </Stack>
             </Fragment>
           );
         }
@@ -341,13 +343,13 @@ function WidgetBuilderSlideoutInner({
         return (
           <Fragment>
             {header}
-            <SlideoutBodyWrapper>
+            <Container padding="2xl">
               {isTransactionsWidget && showTransactionsDeprecationAlert && (
                 <Section>
                   <Alert
                     variant="warning"
                     trailingItems={
-                      <StyledCloseButton
+                      <Button
                         icon={<IconClose size="sm" />}
                         aria-label={t('Close')}
                         onClick={() => {
@@ -359,23 +361,17 @@ function WidgetBuilderSlideoutInner({
                     }
                   >
                     {disableTransactionWidget && isEditing
-                      ? tctCode(
+                      ? tct(
                           'Editing of transaction-based widgets is disabled, as we migrate to the span dataset. To expedite and re-enable edit functionality, switch to the [spans] dataset below with the [code:is_transaction:true] filter. Please read these [FAQLink:FAQs] for more information.',
                           {
+                            code: <code />,
                             spans: (
                               <Link
                                 // We need to do this otherwise the dashboard filters will change
-                                to={{
-                                  pathname: location.pathname,
-                                  query: {
-                                    project: location.query.project,
-                                    start: location.query.start,
-                                    end: location.query.end,
-                                    statsPeriod: location.query.statsPeriod,
-                                    environment: location.query.environment,
-                                    utc: location.query.utc,
-                                  },
-                                }}
+                                to={serializePageFilters(
+                                  location.pathname,
+                                  pageFilterQuery
+                                )}
                                 onClick={() => {
                                   cacheBuilderState(state.dataset ?? WidgetType.ERRORS);
                                   setSegmentSpanBuilderState();
@@ -389,9 +385,10 @@ function WidgetBuilderSlideoutInner({
                             ),
                           }
                         )
-                      : tctCode(
+                      : tct(
                           'The transactions dataset is being deprecated. Please use the Spans dataset with the [code:is_transaction:true] filter instead. Please read these [FAQLink:FAQs] for more information.',
                           {
+                            code: <code />,
                             FAQLink: (
                               <ExternalLink href="https://www.sentry.help/en/articles/13964151-faq-transactions-spans-migration" />
                             ),
@@ -408,6 +405,7 @@ function WidgetBuilderSlideoutInner({
                         <WidgetPreviewContainer
                           dashboard={dashboard}
                           dashboardFilters={dashboardFilters}
+                          widgetInterval={widgetInterval}
                           isQueryConditionInvalid={isQueryConditionInvalid}
                           onDataFetched={onDataFetched}
                           openWidgetTemplates={openWidgetTemplates}
@@ -465,6 +463,7 @@ function WidgetBuilderSlideoutInner({
                           <WidgetPreviewContainer
                             dashboard={dashboard}
                             dashboardFilters={dashboardFilters}
+                            widgetInterval={widgetInterval}
                             isQueryConditionInvalid={isQueryConditionInvalid}
                             onDataFetched={onDataFetched}
                             openWidgetTemplates={openWidgetTemplates}
@@ -497,7 +496,6 @@ function WidgetBuilderSlideoutInner({
                       <Section>
                         <WidgetBuilderQueryFilterBuilder
                           onQueryConditionChange={onQueryConditionChange}
-                          validatedWidgetResponse={validatedWidgetResponse}
                         />
                       </Section>
                     )}
@@ -514,7 +512,7 @@ function WidgetBuilderSlideoutInner({
                     {showGroupBySelector && (
                       <Section>
                         <WidgetBuilderGroupBySelector
-                          validatedWidgetResponse={validatedWidgetResponse}
+                          preserveAggregateFields={isTraceMetricsEquationTable}
                         />
                       </Section>
                     )}
@@ -532,7 +530,7 @@ function WidgetBuilderSlideoutInner({
                   />
                 </Fragment>
               )}
-            </SlideoutBodyWrapper>
+            </Container>
           </Fragment>
         );
       }}
@@ -547,9 +545,9 @@ export const WidgetBuilderSlideout = registerLLMContext(
 
 function Section({children}: {children: React.ReactNode}) {
   return (
-    <SectionWrapper>
+    <Container marginBottom="2xl">
       <ErrorBoundary mini>{children}</ErrorBoundary>
-    </SectionWrapper>
+    </Container>
   );
 }
 
@@ -582,35 +580,3 @@ function DisableTransactionWidget({children}: DisableModeProps) {
     </div>
   );
 }
-
-const CloseButton = styled(Button)`
-  color: ${p => p.theme.tokens.content.secondary};
-  height: fit-content;
-  &:hover {
-    color: ${p => p.theme.colors.gray500};
-  }
-  z-index: 100;
-`;
-
-const SlideoutBreadcrumb = styled('div')`
-  cursor: pointer;
-`;
-
-const SlideoutBodyWrapper = styled('div')`
-  padding: ${p => p.theme.space['2xl']};
-`;
-
-const SectionWrapper = styled('div')`
-  margin-bottom: 24px;
-`;
-
-const StyledCloseButton = styled(Button)`
-  background-color: transparent;
-  transition: opacity 0.1s linear;
-
-  &:hover,
-  &:focus {
-    background-color: transparent;
-    opacity: 1;
-  }
-`;

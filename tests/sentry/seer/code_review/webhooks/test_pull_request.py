@@ -248,7 +248,7 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
     def test_pull_request_opened_filtered_when_trigger_disabled_post_ga(self) -> None:
         triggers = [CodeReviewTrigger.ON_NEW_COMMIT]
-        features = {"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"}
+        features = {"organizations:seat-based-seer-enabled"}
         with (
             self.code_review_setup(triggers=triggers, features=features),
             self.tasks(),
@@ -263,7 +263,7 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
     def test_pull_request_synchronize_filtered_when_trigger_disabled_post_ga(self) -> None:
         triggers = [CodeReviewTrigger.ON_READY_FOR_REVIEW]
-        features = {"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"}
+        features = {"organizations:seat-based-seer-enabled"}
         with (
             self.code_review_setup(triggers=triggers, features=features),
             self.tasks(),
@@ -278,7 +278,7 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
     def test_pull_request_ready_for_review_filtered_when_trigger_disabled_post_ga(self) -> None:
         triggers = [CodeReviewTrigger.ON_NEW_COMMIT]
-        features = {"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"}
+        features = {"organizations:seat-based-seer-enabled"}
         with (
             self.code_review_setup(triggers=triggers, features=features),
             self.tasks(),
@@ -301,7 +301,7 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
         helper skips RepositorySettings creation when triggers=[], which would cause the preflight
         to deny the request before reaching the handler under test.
         """
-        features = {"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"}
+        features = {"organizations:seat-based-seer-enabled"}
         with self.feature(features), self.tasks():
             event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
             event["action"] = "closed"
@@ -320,7 +320,7 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
     def test_pull_request_closed_not_filtered_when_triggers_configured_post_ga(self) -> None:
         """Test that closed action reaches Seer when at least one trigger is configured."""
         triggers: list[CodeReviewTrigger] = [CodeReviewTrigger.ON_READY_FOR_REVIEW]
-        features = {"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"}
+        features = {"organizations:seat-based-seer-enabled"}
         with (
             self.code_review_setup(triggers=triggers, features=features),
             self.tasks(),
@@ -335,7 +335,7 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
     def test_pull_request_opened_works_when_trigger_enabled_post_ga(self) -> None:
         triggers = [CodeReviewTrigger.ON_READY_FOR_REVIEW]
-        features = {"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"}
+        features = {"organizations:seat-based-seer-enabled"}
         with (
             self.code_review_setup(triggers=triggers, features=features),
             self.tasks(),
@@ -350,7 +350,7 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
     def test_pull_request_ready_for_review_works_when_trigger_enabled_post_ga(self) -> None:
         triggers = [CodeReviewTrigger.ON_READY_FOR_REVIEW]
-        features = {"organizations:gen-ai-features", "organizations:seat-based-seer-enabled"}
+        features = {"organizations:seat-based-seer-enabled"}
         with (
             self.code_review_setup(triggers=triggers, features=features),
             self.tasks(),

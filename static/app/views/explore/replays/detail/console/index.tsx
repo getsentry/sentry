@@ -1,8 +1,7 @@
 import {useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
-import {useVirtualizer} from '@tanstack/react-virtual';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import {JumpButtons} from 'sentry/components/replays/jumpButtons';
@@ -11,17 +10,19 @@ import {
   useJumpButtons,
   type VisibleRange,
 } from 'sentry/components/replays/useJumpButtons';
+import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {t} from 'sentry/locale';
 import {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import type {BreadcrumbFrame} from 'sentry/utils/replays/types';
-import {Filters as ConsoleFilters} from 'sentry/views/explore/replays/detail/console/consoleFilters';
-import {ConsoleLogRow} from 'sentry/views/explore/replays/detail/console/consoleLogRow';
-import {useConsoleFilters} from 'sentry/views/explore/replays/detail/console/useConsoleFilters';
 import {NoRowRenderer} from 'sentry/views/explore/replays/detail/noRowRenderer';
 import {TabItemContainer} from 'sentry/views/explore/replays/detail/tabItemContainer';
 import {useVirtualizedInspector} from 'sentry/views/explore/replays/detail/useVirtualizedInspector';
+
+import {Filters as ConsoleFilters} from './consoleFilters';
+import {ConsoleLogRow} from './consoleLogRow';
+import {useConsoleFilters} from './useConsoleFilters';
 
 // Slightly above the old minHeight to reduce "compressed then expand" feel.
 const ESTIMATED_ROW_HEIGHT = 32;
@@ -49,17 +50,19 @@ export function Console() {
   const clearSearchTerm = () => setSearchTerm('');
 
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const getItemKey = useCallback(
+    (index: number) => getVirtualItemKey(items[index], index),
+    [items]
+  );
 
-  const virtualizer = useVirtualizer({
+  const {totalSize, virtualItems, virtualizer} = useVirtualRows({
     count: items.length,
     getScrollElement: () => scrollContainerRef.current,
     estimateSize: () => ESTIMATED_ROW_HEIGHT,
     overscan: 12,
-    getItemKey: index => getVirtualItemKey(items[index], index),
+    getItemKey,
     useAnimationFrameWithResizeObserver: true,
   });
-
-  const virtualItems = virtualizer.getVirtualItems();
 
   // Derive visible range from virtual items for jump buttons,
   // filtering out overscan items that are outside the viewport.
@@ -129,7 +132,7 @@ export function Console() {
   });
 
   return (
-    <Flex direction="column" wrap="nowrap">
+    <Stack wrap="nowrap">
       <ConsoleFilters frames={frames} {...filterProps} />
       <TabItemContainer data-test-id="replay-details-console-tab">
         {frames ? (
@@ -139,8 +142,9 @@ export function Console() {
                 {t('No console logs recorded')}
               </NoRowRenderer>
             ) : (
-              <VirtualizedContent style={{height: virtualizer.getTotalSize()}}>
+              <VirtualizedContent style={{height: totalSize}}>
                 <VirtualOffset offset={virtualItems[0]?.start ?? 0}>
+                  {/* oxlint-disable-next-line react/refs */}
                   {virtualItems.map(virtualItem => {
                     const item = items[virtualItem.index]!;
                     return (
@@ -178,7 +182,7 @@ export function Console() {
           />
         ) : null}
       </TabItemContainer>
-    </Flex>
+    </Stack>
   );
 }
 

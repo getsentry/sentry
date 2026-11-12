@@ -3,6 +3,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -12,7 +13,11 @@ type AttributeDistributionData = Record<string, Array<{label: string; value: num
 
 type AttributeBreakdowns = {
   data: Array<{
-    attribute_distributions: {
+    // Read both keys during the backend rename rollout (attribute_distributions -> attributeDistributions).
+    attributeDistributions?: {
+      data: AttributeDistributionData;
+    };
+    attribute_distributions?: {
       data: AttributeDistributionData;
     };
   }>;
@@ -30,6 +35,7 @@ export function useAttributeBreakdowns({
   const location = useLocation();
   const {selection: pageFilters, isReady: pageFiltersReady} = usePageFilters();
   const queryString = location.query.query?.toString() ?? '';
+  const [caseInsensitive] = useCaseInsensitivity();
 
   const queryParams = useMemo(() => {
     const params = {
@@ -37,6 +43,7 @@ export function useAttributeBreakdowns({
       query: queryString,
       statsType: 'attributeDistributions',
       limit: CHARTS_PER_PAGE,
+      caseInsensitive: caseInsensitive ? '1' : undefined,
     } as Record<string, any>;
 
     if (cursor !== undefined) {
@@ -48,7 +55,7 @@ export function useAttributeBreakdowns({
     }
 
     return params;
-  }, [pageFilters, queryString, cursor, substringMatch]);
+  }, [pageFilters, queryString, caseInsensitive, cursor, substringMatch]);
 
   const {
     data: response,
@@ -68,7 +75,9 @@ export function useAttributeBreakdowns({
   });
 
   return {
-    data: response?.json?.data[0]?.attribute_distributions?.data,
+    data:
+      response?.json?.data[0]?.attributeDistributions?.data ??
+      response?.json?.data[0]?.attribute_distributions?.data,
     isLoading,
     error,
     pageLinks: response?.headers.Link ?? null,

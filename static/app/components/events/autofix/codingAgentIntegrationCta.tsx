@@ -1,11 +1,10 @@
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import type {SeerAutomationHandoffConfiguration} from 'sentry/components/events/autofix/types';
 import {Placeholder} from 'sentry/components/placeholder';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t, tct} from 'sentry/locale';
@@ -21,6 +20,8 @@ import {
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
+import type {SeerAutomationHandoffConfiguration} from './types';
+
 interface CodingAgentIntegrationCtaProps {
   project: Project;
 }
@@ -31,8 +32,6 @@ interface AgentConfig {
   pluginId: string;
   provider: string;
   target: SeerAutomationHandoffConfiguration['target'];
-  // If unset, the CTA renders without a feature flag gate.
-  featureFlag?: string;
   headingName?: string;
 }
 
@@ -44,15 +43,10 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
     const user = useUser();
     const queryClient = useQueryClient();
 
-    const hasFeatureFlag =
-      !config.featureFlag || organization.features.includes(config.featureFlag);
-    const {data: projectDetails, isPending: isLoadingProject} = useDetailedProject(
-      {
-        orgSlug: organization.slug,
-        projectSlug: project.slug,
-      },
-      {enabled: hasFeatureFlag}
-    );
+    const {data: projectDetails, isPending: isLoadingProject} = useDetailedProject({
+      orgSlug: organization.slug,
+      projectSlug: project.slug,
+    });
     const {data: knownAgents, isLoading: isLoadingIntegrations} = useQuery(
       knownAgentIntegrationsQueryOptions({organization})
     );
@@ -123,10 +117,6 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
       });
     };
 
-    if (!hasFeatureFlag) {
-      return null;
-    }
-
     if (
       isLoadingProject ||
       isLoadingSettings ||
@@ -155,7 +145,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
           marginTop="2xl"
           marginBottom="2xl"
         >
-          <Flex direction="column" gap="lg">
+          <Stack gap="lg">
             <Heading as="h3">
               <Flex direction="row" gap="sm" align="center">
                 <PluginIcon pluginId={config.pluginId} />{' '}
@@ -181,7 +171,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
                 {t('Install %s Integration', config.displayName)}
               </LinkButton>
             </div>
-          </Flex>
+          </Stack>
         </Container>
       );
     }
@@ -195,7 +185,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
           marginTop="2xl"
           marginBottom="2xl"
         >
-          <Flex direction="column" gap="lg">
+          <Stack gap="lg">
             <Heading as="h3">
               <Flex direction="row" gap="sm" align="center">
                 <PluginIcon pluginId={config.pluginId} />{' '}
@@ -221,7 +211,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
                 {t('Set Seer to hand off to %s', config.displayName)}
               </Button>
             </div>
-          </Flex>
+          </Stack>
         </Container>
       );
     }
@@ -234,7 +224,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
         marginTop="2xl"
         marginBottom="2xl"
       >
-        <Flex direction="column" gap="lg">
+        <Stack gap="lg">
           <Heading as="h3">
             <Flex direction="row" gap="sm" align="center">
               <PluginIcon pluginId={config.pluginId} />{' '}
@@ -250,7 +240,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
               }
             )}
           </Text>
-        </Flex>
+        </Stack>
       </Container>
     );
   };

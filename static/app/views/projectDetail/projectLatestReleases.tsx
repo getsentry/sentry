@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconOpen} from '@sentry/icons/open';
 import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
@@ -15,14 +16,11 @@ import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {Version} from 'sentry/components/version';
-import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 
 import {MissingReleasesButtons} from './missingFeatureButtons/missingReleasesButtons';
@@ -66,21 +64,21 @@ function useHasOlderReleases({
     !project?.id ||
     !isProjectStabilized;
 
-  const {data: olderReleases, isPending} = useApiQuery<Release[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/releases/stats/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  const {data: olderReleases, isPending} = useQuery({
+    ...apiOptions.as<Release[]>()(
+      '/organizations/$organizationIdOrSlug/releases/stats/',
       {
+        path: {organizationIdOrSlug: organization.slug},
         query: {
           statsPeriod: '90d',
           project: project?.id,
           per_page: 1,
         },
-      },
-    ],
-    {staleTime: 0, enabled: !skipOldReleaseCheck}
-  );
+        staleTime: 0,
+      }
+    ),
+    enabled: !skipOldReleaseCheck,
+  });
 
   if (skipOldReleaseCheck) {
     return true;
@@ -140,10 +138,7 @@ function ReleasesBody({
     <ReleasesTable>
       {releases.map(release => (
         <Fragment key={release.version}>
-          <DateTime
-            date={release.lastDeploy?.dateFinished || release.dateCreated}
-            seconds={false}
-          />
+          <DateTime date={release.lastDeploy?.dateFinished || release.dateCreated} />
           <TextOverflow>
             <StyledVersion
               version={release.version}

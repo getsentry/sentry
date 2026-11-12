@@ -1,56 +1,37 @@
-import {IconLab} from 'sentry/icons';
-import type {
-  Frequency,
-  OutputId,
-  StrategyCategory,
-  StrategyVisibility,
-  WorkflowKind,
-} from 'sentry/views/seerWorkflows/types';
+import {t} from 'sentry/locale';
+
+import type {WorkflowStrategy} from './types';
 
 type StrategyMeta = {
-  Icon: React.ComponentType<{size?: 'xs' | 'sm' | 'md'}>;
-  category: StrategyCategory;
-  frequencies: Frequency[];
   label: string;
-  outputs: OutputId[];
-  summary: string;
-  visibility: StrategyVisibility;
+  description?: string;
 };
 
-export const STRATEGY_META: Record<WorkflowKind, StrategyMeta> = {
+export const STRATEGY_META: Record<WorkflowStrategy, StrategyMeta> = {
   agentic_triage: {
-    label: 'Agentic triage',
-    summary:
-      'Investigates new issues nightly and recommends autofix or assignment for each.',
-    Icon: IconLab,
-    frequencies: ['daily', 'weekly'],
-    visibility: 'configurable',
-    category: 'issues',
-    outputs: ['autofix_runs', 'issue_activity'],
+    label: t('Agentic triage'),
+    description: t('Automatically triage and fix the most fixable Issues.'),
+  },
+  agentic_triage_v2: {
+    label: t('Agentic triage'),
+    description: t('Automatically triage and fix the most fixable Issues.'),
+  },
+  breached_metric_investigation: {
+    label: t('Breached metrics'),
+    description: t(
+      'Monitors backend metrics and investigates why certain key metrics were breached.'
+    ),
+  },
+  duplicate_monitors: {
+    label: t('Duplicate monitors'),
   },
 };
 
-export const CATEGORY_LABELS: Record<StrategyCategory, string> = {
-  issues: 'Issues',
-  reliability: 'Reliability',
-  user_experience: 'User experience',
-};
-
-export const CATEGORY_ORDER: StrategyCategory[] = [
-  'issues',
-  'reliability',
-  'user_experience',
-];
-
-// Maps raw triage action enum values to human-readable labels for the
-// user-facing issue list. Falls back to the raw value for unknown verbs.
-const ACTION_LABELS: Record<string, string> = {
-  autofix: 'Autofix queued',
-  autofix_triggered: 'Autofix queued',
-  root_cause_only: 'Root cause analysis',
-  skip: 'Skipped',
-};
-
-export function getActionLabel(action: string): string {
-  return ACTION_LABELS[action] ?? action;
+/**
+ * Falls back to the raw strategy for strategies the frontend doesn't know yet
+ */
+export function getStrategyLabel(strategy: string): string {
+  return Object.hasOwn(STRATEGY_META, strategy)
+    ? STRATEGY_META[strategy as WorkflowStrategy].label
+    : strategy;
 }

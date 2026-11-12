@@ -1,8 +1,10 @@
-import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
+import {Separator} from '@sentry/scraps/separator';
+import {Text} from '@sentry/scraps/text';
 
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -10,17 +12,18 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {useLocation} from 'sentry/utils/useLocation';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {FeedbackEmptyState} from 'sentry/views/feedback/feedbackEmptyState';
-import {groupUserFeedbackApiOptions} from 'sentry/views/issueDetails/groupUserFeedbackApiOptions';
-import {useGroup} from 'sentry/views/issueDetails/useGroup';
+
+import {useGroupId} from './groupIdContext';
+import {groupUserFeedbackApiOptions} from './groupUserFeedbackApiOptions';
+import {useGroup} from './useGroup';
 
 function GroupUserFeedback() {
   const organization = useOrganization();
-  const location = useLocation();
-  const params = useParams<{groupId: string}>();
+  const [cursor] = useQueryState('cursor', parseAsString);
+  const groupId = useGroupId();
 
   const {
     data: group,
@@ -28,14 +31,14 @@ function GroupUserFeedback() {
     isError: isErrorGroup,
     refetch: refetchGroup,
   } = useGroup({
-    groupId: params.groupId,
+    groupId,
   });
 
   const {data, isPending, isError, refetch} = useQuery({
     ...groupUserFeedbackApiOptions(organization, {
-      groupId: params.groupId,
+      groupId,
       query: {
-        cursor: location.query.cursor,
+        cursor: cursor ?? undefined,
       },
     }),
     select: selectJsonWithHeaders,
@@ -54,11 +57,11 @@ function GroupUserFeedback() {
 
   if (isPending || isPendingGroup) {
     return (
-      <StyledLayoutBody>
+      <Layout.Body border="primary" radius="md" padding={{zero: 'lg 0', '3xs': 'lg'}}>
         <Layout.Main width="full">
           <LoadingIndicator />
         </Layout.Main>
-      </StyledLayoutBody>
+      </Layout.Body>
     );
   }
 
@@ -67,13 +70,13 @@ function GroupUserFeedback() {
   const hasUserFeedback = group.project.hasUserReports;
 
   return (
-    <StyledLayoutBody>
+    <Layout.Body border="primary" radius="md" padding={{zero: 'lg 0', '3xs': 'lg'}}>
       <Layout.Main width="full">
         {hasUserFeedback && (
-          <FilterMessage>
+          <Text as="div" variant="muted">
             {t('The feedback shown below is not subject to search filters.')}
-            <StyledBreak />
-          </FilterMessage>
+            <Separator orientation="horizontal" margin="md 0" />
+          </Text>
         )}
         {reportList.length === 0 ? (
           <FeedbackEmptyState projectIds={[group.project.id]} issueTab />
@@ -83,35 +86,15 @@ function GroupUserFeedback() {
               <EventUserFeedback
                 key={item.id}
                 report={item}
-                eventLink={`/organizations/${organization.slug}/issues/${params.groupId}/events/${item.eventID}/?referrer=user-feedback`}
+                eventLink={`/organizations/${organization.slug}/issues/${groupId}/events/${item.eventID}/?referrer=user-feedback`}
               />
             ))}
-            <Pagination pageLinks={pageLinks} />
+            <Pagination {...getPaginationProps(pageLinks)} />
           </Stack>
         )}
       </Layout.Main>
-    </StyledLayoutBody>
+    </Layout.Body>
   );
 }
-
-const StyledLayoutBody = styled(Layout.Body)`
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-  padding: ${p => p.theme.space.lg} 0;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${p => p.theme.space.lg};
-  }
-`;
-
-const FilterMessage = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const StyledBreak = styled('hr')`
-  margin-top: ${p => p.theme.space.md};
-  margin-bottom: ${p => p.theme.space.md};
-  border-color: ${p => p.theme.tokens.border.primary};
-`;
 
 export default GroupUserFeedback;

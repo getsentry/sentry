@@ -16,9 +16,9 @@ class _BaseJavaScriptDartFlutterEnhancerTest(TestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.enhancements = ENHANCEMENT_BASES["all-platforms:2023-01-11"]
+        self.enhancements = ENHANCEMENT_BASES["all-platforms:2026-01-20"]
 
-    def apply_rules(self, frame: dict[str, str]) -> dict[str, Any]:
+    def apply_rules(self, frame: dict[str, Any]) -> dict[str, Any]:
         frames = [frame]
         self.enhancements.apply_category_and_updated_in_app_to_frames(frames, self.PLATFORM, {})
         return frames[0]
@@ -58,6 +58,63 @@ class TestDartFlutterEnhancerJavaScript(_BaseJavaScriptDartFlutterEnhancerTest):
         frame = {"module": "packages/flutter/src/widgets/container.dart"}
         result = self.apply_rules(frame)
         assert result["in_app"] is False
+
+    # ------------------------------------------------------------------
+    # pub-cache packages (Flutter web / dart2js source maps)
+    # ------------------------------------------------------------------
+
+    def test_pub_cache_not_in_app(self) -> None:
+        """Third-party packages coming from the pub-cache are out-of-app on JS.
+
+        Flutter web (dart2js) source maps emit relative `.pub-cache` paths. The
+        SDK currently marks those frames in-app; the enhancer must override.
+        """
+        frame = {
+            "abs_path": (
+                "../../../../../../.pub-cache/hosted/pub.dev/"
+                "desktop_drop-0.5.0/lib/desktop_drop_web.dart"
+            ),
+            "function": "DesktopDropWeb._registerEvents.<anonymous function>.<anonymous function>",
+            "lineno": 92,
+            "in_app": True,
+        }
+        result = self.apply_rules(frame)
+        assert result["in_app"] is False
+
+        frame = {
+            "abs_path": (
+                "../../../../../../.pub-cache/hosted/pub.dev/"
+                "desktop_drop-0.5.0/lib/desktop_drop_web.dart"
+            ),
+            "function": "DesktopDropWeb._registerEvents.<anonymous function>",
+            "lineno": 90,
+            "in_app": True,
+        }
+        result = self.apply_rules(frame)
+        assert result["in_app"] is False
+
+        frame = {
+            "abs_path": "/Users/dev/.pub-cache/hosted/pub.dev/http-0.13.5/lib/http.dart",
+            "in_app": True,
+        }
+        result = self.apply_rules(frame)
+        assert result["in_app"] is False
+
+        frame = {
+            "abs_path": "/home/user/.pub-cache/git/some_package-abc123/lib/main.dart",
+        }
+        result = self.apply_rules(frame)
+        assert result["in_app"] is False
+
+    def test_user_javascript_frames_stay_in_app(self) -> None:
+        """App frames that are not from pub-cache must remain in-app."""
+        frame = {"abs_path": "/main.dart.js", "in_app": True}
+        result = self.apply_rules(frame)
+        assert result["in_app"] is True
+
+        frame = {"abs_path": "packages/myapp/lib/main.dart", "in_app": True}
+        result = self.apply_rules(frame)
+        assert result["in_app"] is True
 
     # ------------------------------------------------------------------
     # Ensure native-specific rules do not leak into JS

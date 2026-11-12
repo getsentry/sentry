@@ -1,31 +1,27 @@
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
+import {useQuery} from '@tanstack/react-query';
+
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
+import type {UptimeRule} from 'sentry/views/detectors/components/uptime/types';
 
 interface UseUptimeRuleOptions {
   detectorId: string;
   projectSlug: string;
 }
 
-export function useUptimeRule(
-  {projectSlug, detectorId}: UseUptimeRuleOptions,
-  options: Partial<UseApiQueryOptions<UptimeRule>> = {}
-) {
+export function useUptimeRule({projectSlug, detectorId}: UseUptimeRuleOptions) {
   const organization = useOrganization();
 
-  const queryKey: ApiQueryKey = [
-    getApiUrl(
-      '/projects/$organizationIdOrSlug/$projectIdOrSlug/uptime/$uptimeDetectorId/',
-      {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          projectIdOrSlug: projectSlug,
-          uptimeDetectorId: detectorId,
-        },
-      }
-    ),
-  ];
-  return useApiQuery<UptimeRule>(queryKey, {staleTime: 0, ...options});
+  const options = apiOptions.as<UptimeRule>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/uptime/$uptimeDetectorId/',
+    {
+      staleTime: 0,
+      path: {
+        organizationIdOrSlug: organization.slug,
+        projectIdOrSlug: projectSlug,
+        uptimeDetectorId: detectorId,
+      },
+    }
+  );
+  return useQuery(options);
 }

@@ -1,7 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
+import {SamplingWarning} from './samplingWarning';
 
 describe('SamplingWarning', () => {
   it('shows the partial-data warning with the aggregate name', async () => {
@@ -11,9 +11,7 @@ describe('SamplingWarning', () => {
 
     expect(
       await screen.findByText(
-        textWithMarkupMatcher(
-          'Due to the estimation being applied, count_unique is likely to return unreliable results. Treat count_unique for estimation purposes only.'
-        )
+        textWithMarkupMatcher('count_unique is unreliable due to sampling')
       )
     ).toBeInTheDocument();
   });

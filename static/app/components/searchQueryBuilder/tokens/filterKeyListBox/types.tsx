@@ -49,14 +49,13 @@ export interface RecentQueryItem extends SelectOptionWithKey<string> {
   value: string;
 }
 
-export interface AskSeerItem extends SelectOptionWithKey<string> {
+/**
+ * A suggestion that converts "humanized ESQ" the user typed (e.g. "is unresolved
+ * assigned is me") into real ESQ ("is:unresolved assigned:me").
+ */
+export interface ConvertHumanizedItem extends SelectOptionWithKey<string> {
   hideCheck: boolean;
-  type: 'ask-seer';
-  value: string;
-}
-
-interface AskSeerConsentItem extends SelectOptionWithKey<string> {
-  type: 'ask-seer-consent';
+  type: 'convert-humanized';
   value: string;
 }
 
@@ -71,8 +70,6 @@ export type SearchKeyItem =
   | RawSearchItem
   | FilterValueItem
   | RawSearchFilterIsValueItem
-  | AskSeerItem
-  | AskSeerConsentItem
   | LogicFilterItem;
 
 export type FilterKeyItem =
@@ -80,11 +77,10 @@ export type FilterKeyItem =
   | RecentFilterItem
   | KeySectionItem
   | RecentQueryItem
+  | ConvertHumanizedItem
   | RawSearchItem
   | FilterValueItem
   | RawSearchFilterIsValueItem
-  | AskSeerItem
-  | AskSeerConsentItem
   | LogicFilterItem;
 
 export type Section = {

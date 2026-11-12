@@ -111,15 +111,9 @@ class FileDeletionTaskTest(TestCase):
         assert orphaned_index in files_to_delete
 
     def test_get_query_filter_does_not_select_other_file_types(self) -> None:
-        """Test that non-release file types are NOT selected"""
+        """Test that unhandled file types are NOT selected"""
         old_timestamp = timezone.now() - timedelta(days=91)
 
-        # Create files with different types
-        artifact_bundle_file = File.objects.create(
-            name="bundle.zip",
-            type="artifact.bundle",
-            timestamp=old_timestamp,
-        )
         debug_file = File.objects.create(
             name="debug.sym",
             type="debug.file",
@@ -134,7 +128,6 @@ class FileDeletionTaskTest(TestCase):
         query_filter = task.get_query_filter()
         files_to_delete = File.objects.filter(query_filter)
 
-        assert artifact_bundle_file not in files_to_delete
         assert debug_file not in files_to_delete
 
     def test_get_child_relations(self) -> None:

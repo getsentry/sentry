@@ -1,27 +1,32 @@
 import {Fragment, useState} from 'react';
+import {IconLightning} from '@sentry/icons/lightning';
+import {IconLock} from '@sentry/icons/lock';
+import {IconOpen} from '@sentry/icons/open';
+import {IconSeer} from '@sentry/icons/seer';
+import {IconUpload} from '@sentry/icons/upload';
 
 import seerConfigMainImg from 'sentry-images/spot/seer-config-main.svg';
 import seerConfigSeerImg from 'sentry-images/spot/seer-config-seer.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
+import type {CSS} from '@sentry/scraps/cssTypes';
 import {Image} from '@sentry/scraps/image';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconLightning, IconLock, IconOpen, IconSeer, IconUpload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {StartTrialButton} from 'getsentry/components/startTrialButton';
+import {AddOnCategory, type ProductTrial, type Subscription} from 'getsentry/types';
 import {
-  AddOnCategory,
-  BillingType,
-  type ProductTrial,
-  type Subscription,
-} from 'getsentry/types';
-import {checkIsAddOn, getBilledCategory, hasBillingAccess} from 'getsentry/utils/billing';
+  checkIsAddOn,
+  getBilledCategory,
+  hasBillingAccess,
+  isSalesAccount,
+} from 'getsentry/utils/billing';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import {
   USAGE_OVERVIEW_PANEL_HEADER_HEIGHT,
@@ -42,7 +47,7 @@ function Cta({
   subtitle: React.ReactNode;
   title: React.ReactNode;
   buttons?: React.ReactNode;
-  heightOverride?: string;
+  heightOverride?: CSS['height'];
   icon?: React.ReactNode;
 } & ({image: string; imageAlt: string} | {image?: never; imageAlt?: never})) {
   return (
@@ -50,14 +55,14 @@ function Cta({
       background="secondary"
       padding="xl"
       direction={isBanner ? 'row' : 'column'}
-      gap={isBanner ? {'screen:2xs': 'xl', 'screen:xl': '3xl'} : 'xl'}
+      gap={isBanner ? {zero: 'xl', '5xl': '3xl'} : 'xl'}
       borderBottom={isBanner ? 'primary' : undefined}
       radius={isBanner ? '0 0 md md' : 'md'}
       align="center"
       justify={isBanner ? 'between' : 'center'}
       height={heightOverride ?? (isBanner ? undefined : '100%')}
     >
-      <Flex direction="column" gap="lg" align={isBanner ? 'start' : 'center'}>
+      <Stack gap="lg" align={isBanner ? 'start' : 'center'}>
         {icon && <Flex align="center">{icon}</Flex>}
         {image && (
           <Flex align="center">
@@ -69,9 +74,7 @@ function Cta({
         <Text bold align={isBanner ? 'left' : 'center'} size="lg" textWrap="balance">
           {title}
         </Text>
-        <Container
-          maxWidth={{'screen:2xs': '300px', 'screen:xl': isBanner ? 'unset' : '300px'}}
-        >
+        <Container maxWidth={{zero: '300px', '5xl': isBanner ? 'unset' : '300px'}}>
           <Text
             variant="muted"
             size="sm"
@@ -81,16 +84,15 @@ function Cta({
             {subtitle}
           </Text>
         </Container>
-      </Flex>
+      </Stack>
       {buttons && (
-        <Flex
-          direction="column"
+        <Stack
           gap={isBanner ? 'sm' : 'lg'}
           align="center"
           flexGrow={isBanner ? 1 : undefined}
         >
           {buttons}
-        </Flex>
+        </Stack>
       )}
     </Flex>
   );
@@ -98,18 +100,17 @@ function Cta({
 
 function FindOutMoreButton({
   href,
-  to,
   selectedProduct,
 }: {
+  href: string;
   selectedProduct: DataCategory | AddOnCategory;
-} & ({href: string; to?: never} | {to: string; href?: never})) {
+}) {
   return (
     <LinkButton
       icon={<IconOpen />}
       variant="link"
       size="sm"
       href={href}
-      to={to ?? ''}
       analyticsEventName="Subscription Settings: Find Out More Button Clicked"
       analyticsEventKey="subscription_settings.find_out_more_button_clicked"
       analyticsParams={{product: selectedProduct}}
@@ -127,18 +128,11 @@ function SeerCta({action, footerText}: {action: React.ReactNode; footerText?: st
   // add copy to BILLED_DATA_CATEGORY_INFO or serialize them in some endpoint
   return (
     <Container background="secondary" height="100%" radius="md" alignSelf="stretch">
-      <Flex
-        direction="column"
-        gap="xl"
-        align="center"
-        justify="center"
-        justifySelf="center"
-        height="100%"
-      >
+      <Stack gap="xl" align="center" justify="center" justifySelf="center" height="100%">
         <Container>
           <Image src={seerConfigMainImg} alt="" />
         </Container>
-        <Flex direction="column" gap="md">
+        <Stack gap="md">
           <Text align="center" size="xl" bold>
             {t('Find and fix issues anywhere with Seer AI debugger')}
           </Text>
@@ -147,14 +141,14 @@ function SeerCta({action, footerText}: {action: React.ReactNode; footerText?: st
             <Text>$40 </Text>
             <Text variant="muted">{t('per active contributor / month')}</Text>
           </Text>
-        </Flex>
+        </Stack>
         {action}
         {footerText && (
           <Text align="center" variant="muted" size="sm">
             {footerText}
           </Text>
         )}
-      </Flex>
+      </Stack>
     </Container>
   );
 }
@@ -275,11 +269,7 @@ function UpgradeCta({
   selectedProduct: DataCategory | AddOnCategory;
   subscription: Subscription;
 }) {
-  const isSalesAccount =
-    // Invoiced subscriptions are managed by sales
-    subscription.type === BillingType.INVOICED ||
-    // Custom-priced subscriptions (price > 0) are managed by sales
-    (subscription.customPrice !== null && subscription.customPrice > 0);
+  const isSales = isSalesAccount(subscription);
   const hasBillingPerms = hasBillingAccess(organization);
 
   if (selectedProduct === AddOnCategory.SEER) {
@@ -295,7 +285,7 @@ function UpgradeCta({
               >
                 {t('Add to plan')}
               </LinkButton>
-            ) : isSalesAccount ? (
+            ) : isSales ? (
               <Text variant="muted" size="sm">
                 {tct('Contact us at [mailto:sales@sentry.io] to upgrade.', {
                   mailto: <a href="mailto:sales@sentry.io" />,
@@ -326,7 +316,7 @@ function UpgradeCta({
         action: hasBillingPerms
           ? subscription.canSelfServe
             ? t('Upgrade your plan to enable it.')
-            : isSalesAccount
+            : isSales
               ? tct('Contact us at [mailto:sales@sentry.io] to upgrade.', {
                   mailto: <a href="mailto:sales@sentry.io" />,
                 })
@@ -367,23 +357,15 @@ function SetupCta({
     return null;
   }
 
-  const hasGitLabSupport = organization.features.includes('seer-gitlab-support');
-
   return (
     <Cta
       isBanner={false}
       image={seerConfigSeerImg}
       imageAlt=""
       title={t('Get started with Seer')}
-      subtitle={
-        hasGitLabSupport
-          ? t(
-              'Finish connecting to GitHub or GitLab, configure your repositories and projects, and start getting the most out of Seer.'
-            )
-          : t(
-              'Finish connecting to GitHub, configure your repositories and projects, and start getting the most out of Seer.'
-            )
-      }
+      subtitle={t(
+        'Finish connecting to GitHub or GitLab, configure your repositories and projects, and start getting the most out of Seer.'
+      )}
       heightOverride={`calc(100% - ${USAGE_OVERVIEW_PANEL_HEADER_HEIGHT})`}
       buttons={
         <LinkButton

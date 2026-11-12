@@ -4,15 +4,35 @@ import type {
   UptimeDetectorUpdatePayload,
 } from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils/defined';
-import {createEmptyAssertionRoot} from 'sentry/views/alerts/rules/uptime/assertions/field';
-import type {UptimeAssertion} from 'sentry/views/alerts/rules/uptime/types';
-import {UptimeMonitorMode} from 'sentry/views/alerts/rules/uptime/types';
+import {createEmptyAssertionRoot} from 'sentry/views/detectors/components/uptime/assertions/field';
+import type {UptimeAssertion} from 'sentry/views/detectors/components/uptime/types';
+import {UptimeMonitorMode} from 'sentry/views/detectors/components/uptime/types';
 import {getDetectorEnvironment} from 'sentry/views/detectors/utils/getDetectorEnvironment';
 
 export const UPTIME_DEFAULT_RECOVERY_THRESHOLD = 1;
 export const UPTIME_DEFAULT_DOWNTIME_THRESHOLD = 3;
 
-interface UptimeDetectorFormData {
+export const UPTIME_HTTP_METHOD_OPTIONS = [
+  'GET',
+  'POST',
+  'HEAD',
+  'PUT',
+  'DELETE',
+  'PATCH',
+  'OPTIONS',
+] as const;
+
+const MINUTE = 60;
+export const UPTIME_VALID_INTERVALS_SEC = [
+  MINUTE * 1,
+  MINUTE * 5,
+  MINUTE * 10,
+  MINUTE * 20,
+  MINUTE * 30,
+  MINUTE * 60,
+];
+
+export interface UptimeDetectorFormData {
   assertion: UptimeAssertion | null;
   body: string;
   description: string | null;

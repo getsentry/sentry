@@ -1,11 +1,12 @@
-import {CodeBlock} from '@sentry/scraps/code';
+import {IconFile} from '@sentry/icons/file';
+import {useQuery} from '@tanstack/react-query';
+
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconFile} from 'sentry/icons/iconFile';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getLocalities} from 'sentry/utils/cells';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useParams} from 'sentry/utils/useParams';
 
 import {DetailsPage} from 'admin/components/detailsPage';
@@ -23,18 +24,11 @@ export function RelocationArtifactDetails() {
   }>();
   const locality = getLocalities().find(l => l.name === regionName);
 
-  const {data, isPending, isError} = useApiQuery<RelocationData>(
-    [
-      getApiUrl('/relocations/$relocationUuid/artifacts/$artifactKind/$fileName', {
-        path: {relocationUuid, artifactKind, fileName},
-      }),
-      {
-        host: locality?.url,
-      },
-    ],
-    {
-      staleTime: 0,
-    }
+  const {data, isPending, isError} = useQuery(
+    apiOptions.as<RelocationData>()(
+      '/relocations/$relocationUuid/artifacts/$artifactKind/$fileName',
+      {path: {relocationUuid, artifactKind, fileName}, host: locality?.url, staleTime: 0}
+    )
   );
 
   if (isPending) {

@@ -4,9 +4,10 @@ import * as Sentry from '@sentry/react';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
-import {useProfileGroup} from 'sentry/views/explore/profiling/profileGroupProvider';
 
-const LOADING_OR_FALLBACK_FLAMEGRAPH = Flamegraph.Empty();
+import {useProfileGroup} from './profileGroupProvider';
+
+const LOADING_OR_FALLBACK_FLAMEGRAPH = Flamegraph.empty();
 
 const FlamegraphContext = createContext<Flamegraph | null>(null);
 

@@ -16,10 +16,18 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
+import {toast} from '@sentry/scraps/toast';
+
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {SpendAllocationsRoot} from 'getsentry/views/spendAllocations/index';
+
+function getAllocationRows() {
+  const table = screen.getByRole('table', {name: 'Project allocations'});
+  const rowGroups = within(table).getAllByRole('rowgroup');
+  return within(rowGroups[1]!).getAllByRole('row');
+}
 
 describe('SpendAllocations feature enable flow', () => {
   let organization: any, subscription: any, mockGet: any, dateTs: number;
@@ -181,12 +189,16 @@ describe('enabled Spend Allocations page', () => {
     // Waiting a tick for requests to finish
     await act(tick);
     expect(screen.queryByTestId('spend-allocation-form')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('subhead-actions')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Category Errors'})
+    ).not.toBeInTheDocument();
   });
 
   it('renders allocations table', async () => {
     render(<SpendAllocationsRoot subscription={subscription} />, {organization});
-    await waitFor(() => screen.findByTestId('allocations-table'));
+    expect(
+      await screen.findByRole('table', {name: 'Project allocations'})
+    ).toBeInTheDocument();
   });
 
   it('renders billing metric select dropdown', async () => {
@@ -205,8 +217,8 @@ describe('enabled Spend Allocations page', () => {
       await screen.findByRole('button', {name: 'Category Transactions'})
     ).toBeInTheDocument();
     await screen.findByText('Un-Allocated Transactions Pool');
-    await screen.findAllByTestId('allocation-row');
-    const tableRows = screen.getAllByTestId('allocation-row');
+    await screen.findByRole('table', {name: 'Project allocations'});
+    const tableRows = getAllocationRows();
     expect(tableRows).toHaveLength(1); // org allocations are no longer included in table rows
 
     await selectEvent.select(dropdown, 'Attachments');
@@ -214,7 +226,7 @@ describe('enabled Spend Allocations page', () => {
       await screen.findByRole('button', {name: 'Category Attachments'})
     ).toBeInTheDocument();
     await screen.findByText('Un-Allocated Attachments Pool');
-    expect(screen.getByTestId('no-allocations')).toBeInTheDocument();
+    expect(screen.getByText('No allocations set')).toBeInTheDocument();
 
     await selectEvent.openMenu(dropdown);
     // assert dropdown options are properly rendered
@@ -242,8 +254,8 @@ describe('enabled Spend Allocations page', () => {
   // eslint-disable-next-line jest/no-disabled-tests
   it.skip('refetches allocations on view period change', async () => {
     render(<SpendAllocationsRoot subscription={subscription} />, {organization});
-    await screen.findAllByTestId('allocation-row');
-    const tableRows = screen.getAllByTestId('allocation-row');
+    await screen.findByRole('table', {name: 'Project allocations'});
+    const tableRows = getAllocationRows();
     expect(tableRows).toHaveLength(2); // default metric is error with 2 project mocks
 
     const date = new Date(dateTs * 1000);
@@ -265,13 +277,13 @@ describe('enabled Spend Allocations page', () => {
       ],
     });
     await userEvent.click(screen.getByTestId('nextPeriod'));
-    expect(await screen.findByTestId('no-allocations')).toBeInTheDocument();
+    expect(await screen.findByText('No allocations set')).toBeInTheDocument();
     expect(mockGet_success).toHaveBeenCalledTimes(1);
   });
 
   it('deletes allocations on disable', async () => {
     render(<SpendAllocationsRoot subscription={subscription} />, {organization});
-    await waitFor(() => screen.findByTestId('allocations-table'));
+    await screen.findByRole('table', {name: 'Project allocations'});
     expect(
       screen.queryByRole('button', {
         name: 'Create Organization-Level Allocation',
@@ -377,6 +389,27 @@ describe('enabled Spend Allocations page without root', () => {
     await userEvent.click(enableSpendAllocation);
     expect(requestMock).toHaveBeenCalled();
     expect(mockGet_success).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows a fallback error when the create request fails without a response body', async () => {
+    render(<SpendAllocationsRoot subscription={subscription} />, {organization});
+
+    const enableSpendAllocation = await screen.findByRole('button', {
+      name: 'Create Organization-Level Allocation',
+    });
+
+    const requestMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/spend-allocations/`,
+      method: 'POST',
+      statusCode: 500,
+      body: undefined,
+    });
+
+    await userEvent.click(enableSpendAllocation);
+    expect(requestMock).toHaveBeenCalled();
+    expect(
+      await screen.findByText('Unable to create spend allocation. Please try again.')
+    ).toBeInTheDocument();
   });
 });
 
@@ -567,18 +600,22 @@ describe('DELETE spend allocation', () => {
   });
   it('renders delete button for project allocations', async () => {
     render(<SpendAllocationsRoot subscription={subscription} />, {organization});
-    await screen.findAllByTestId('allocation-row');
-    const tableRows = screen.getAllByTestId('allocation-row');
+    await screen.findByRole('table', {name: 'Project allocations'});
+    const tableRows = getAllocationRows();
     expect(tableRows).toHaveLength(2);
-    expect(within(tableRows[0]!).getByTestId('delete')).toBeInTheDocument();
-    expect(within(tableRows[1]!).getByTestId('delete')).toBeInTheDocument();
+    expect(
+      within(tableRows[0]!).getByRole('button', {name: 'Delete'})
+    ).toBeInTheDocument();
+    expect(
+      within(tableRows[1]!).getByRole('button', {name: 'Delete'})
+    ).toBeInTheDocument();
   });
   it('fires delete request on click', async () => {
     render(<SpendAllocationsRoot subscription={subscription} />, {organization});
     expect(mockGet.mock.calls).toHaveLength(1);
-    await screen.findAllByTestId('allocation-row');
-    const tableRows = screen.getAllByTestId('allocation-row');
-    await userEvent.click(within(tableRows[0]!).getByTestId('delete'));
+    await screen.findByRole('table', {name: 'Project allocations'});
+    const tableRows = getAllocationRows();
+    await userEvent.click(within(tableRows[0]!).getByRole('button', {name: 'Delete'}));
 
     expect(mockDelete.mock.calls).toHaveLength(1);
     // Assert that it refetches allocations on success
@@ -637,13 +674,13 @@ describe('PUT edit spend allocation', () => {
 
   it('opens, initializes form on edit, and submits PUT', async () => {
     render(<SpendAllocationsRoot subscription={subscription} />, {organization});
-    await screen.findAllByTestId('allocation-row');
-    const tableRows = screen.getAllByTestId('allocation-row');
+    await screen.findByRole('table', {name: 'Project allocations'});
+    const tableRows = getAllocationRows();
     expect(tableRows).toHaveLength(2);
-    expect(within(tableRows[0]!).getByTestId('edit')).toBeInTheDocument();
+    expect(within(tableRows[0]!).getByRole('button', {name: 'Edit'})).toBeInTheDocument();
 
     // Should be editing the first 'error' allocation (mockSpendAllocations[2])
-    await userEvent.click(within(tableRows[0]!).getByTestId('edit'));
+    await userEvent.click(within(tableRows[0]!).getByRole('button', {name: 'Edit'}));
     renderGlobalModal();
 
     expect(await screen.findByRole('button', {name: 'Cancel'})).toBeInTheDocument();
@@ -667,5 +704,56 @@ describe('PUT edit spend allocation', () => {
     await userEvent.click(screen.getByText('Save Changes'));
 
     expect(mockPut.mock.calls).toHaveLength(1);
+  });
+
+  it('shows a fallback error when the save request fails without a response body', async () => {
+    jest.spyOn(toast, 'error');
+    const failedPut = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/spend-allocations/`,
+      method: 'PUT',
+      statusCode: 500,
+      body: undefined,
+    });
+    render(<SpendAllocationsRoot subscription={subscription} />, {organization});
+    await screen.findByRole('table', {name: 'Project allocations'});
+
+    await userEvent.click(
+      within(getAllocationRows()[0]!).getByRole('button', {name: 'Edit'})
+    );
+    renderGlobalModal();
+    await screen.findByTestId('spend-allocation-form');
+    await userEvent.click(screen.getByText('Save Changes'));
+
+    expect(failedPut).toHaveBeenCalledTimes(1);
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        'Unable to save spend allocation. Please try again.'
+      )
+    );
+    // The form stays open so the allocation can be saved again.
+    expect(screen.getByTestId('spend-allocation-form')).toBeInTheDocument();
+  });
+
+  it('shows the server error detail when the save request is rejected', async () => {
+    jest.spyOn(toast, 'error');
+    const detail =
+      'The quantity specified is greater than the amount available. Contact sales@sentry.io to increase your limit.';
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/spend-allocations/`,
+      method: 'PUT',
+      statusCode: 409,
+      body: {detail},
+    });
+    render(<SpendAllocationsRoot subscription={subscription} />, {organization});
+    await screen.findByRole('table', {name: 'Project allocations'});
+
+    await userEvent.click(
+      within(getAllocationRows()[0]!).getByRole('button', {name: 'Edit'})
+    );
+    renderGlobalModal();
+    await screen.findByTestId('spend-allocation-form');
+    await userEvent.click(screen.getByText('Save Changes'));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(detail));
   });
 });

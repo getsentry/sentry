@@ -19,6 +19,7 @@ from sentry.api.endpoints.organization_monitoring_provider_index import (
     MonitoringProviderPermission,
 )
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.auth.principal import is_owned_by_acting_user
 from sentry.identity import default_manager as identity_manager
 from sentry.identity.base import Provider
 from sentry.identity.oauth2 import OAuth2Provider
@@ -49,7 +50,11 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         self, request: Request, organization: RpcOrganization, provider_key: str, **kwargs: object
     ) -> Response:
         """Connect a monitoring provider."""
-        if not features.has("organizations:seer-infra-telemetry", organization, actor=request.user):
+        if not features.has(
+            "organizations:seer-infra-telemetry", organization, actor=request.user
+        ) or not features.has(
+            "organizations:seer-infra-telemetry-user-level-auth", organization, actor=request.user
+        ):
             return Response(status=404)
 
         if provider_key not in MONITORING_PROVIDERS:
@@ -67,7 +72,11 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         self, request: Request, organization: RpcOrganization, provider_key: str, **kwargs: object
     ) -> Response:
         """Reauthenticate an existing monitoring provider connection."""
-        if not features.has("organizations:seer-infra-telemetry", organization, actor=request.user):
+        if not features.has(
+            "organizations:seer-infra-telemetry", organization, actor=request.user
+        ) or not features.has(
+            "organizations:seer-infra-telemetry-user-level-auth", organization, actor=request.user
+        ):
             return Response(status=404)
 
         if provider_key not in MONITORING_PROVIDERS:
@@ -78,8 +87,8 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         # Reuse the stored site from the existing connection.
         org_identity = (
             OrganizationIdentity.objects.filter(
+                is_owned_by_acting_user(request.user, "identity__user_id"),
                 organization_id=organization.id,
-                identity__user_id=request.user.id,  # type: ignore[misc]
                 identity__idp__type=provider_key,
             )
             .select_related("identity")
@@ -166,7 +175,11 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
     def delete(
         self, request: Request, organization: RpcOrganization, provider_key: str, **kwargs: object
     ) -> Response:
-        if not features.has("organizations:seer-infra-telemetry", organization, actor=request.user):
+        if not features.has(
+            "organizations:seer-infra-telemetry", organization, actor=request.user
+        ) or not features.has(
+            "organizations:seer-infra-telemetry-user-level-auth", organization, actor=request.user
+        ):
             return Response(status=404)
 
         if provider_key not in MONITORING_PROVIDERS:
@@ -174,8 +187,8 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
 
         org_identities: list[OrganizationIdentity] = list(
             OrganizationIdentity.objects.filter(
+                is_owned_by_acting_user(request.user, "identity__user_id"),
                 organization_id=organization.id,
-                identity__user_id=request.user.id,  # type: ignore[misc]
                 identity__idp__type=provider_key,
             ).select_related("identity")
         )

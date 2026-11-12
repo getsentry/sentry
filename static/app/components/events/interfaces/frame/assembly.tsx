@@ -6,7 +6,6 @@ import {t} from 'sentry/locale';
 
 type Props = {
   culture?: string;
-  filePath?: string | null;
   name?: string;
   publicKeyToken?: string;
   version?: string;

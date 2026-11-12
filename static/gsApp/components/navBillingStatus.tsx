@@ -1,31 +1,34 @@
 import type React from 'react';
 import {Fragment, useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/warning';
 import snakeCase from 'lodash/snakeCase';
 import moment from 'moment-timezone';
 
 import {Button, LinkButton, type ButtonProps} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import type {PromptData} from 'sentry/actionCreators/prompts';
 import {usePrompts} from 'sentry/actionCreators/prompts';
-import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {
   PrimaryNavigation,
   usePrimaryNavigationButtonOverlay,
 } from 'sentry/views/navigation/primary/components';
 
-import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
+import {AddEventsCTA, type EventType} from 'getsentry/components/addEventsCTA';
+import {useBillingMembers} from 'getsentry/hooks/useBillingMembers';
 import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {
   OnDemandBudgetMode,
   type BillingMetricHistory,
   type Subscription,
 } from 'getsentry/types';
+import {getBestActionToIncreaseEventLimits, UsageAction} from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   getSingularCategoryName,
@@ -85,6 +88,53 @@ function getPaygIneligibleBodyCopy(
   );
 }
 
+const MAX_LISTED_RECIPIENTS = 3;
+
+function QuotaRequestRecipients() {
+  const {data: billingMembers = [], isSuccess} = useBillingMembers();
+
+  if (billingMembers.length === 0) {
+    // The request is emailed to exactly these members, so a loaded empty list
+    // means it would reach nobody.
+    return (
+      <Description>
+        {isSuccess
+          ? tct(
+              'Your org has no active Owners or Billing members, so nobody will get this request. Contact us at [mailto:support@sentry.io] for help.',
+              {mailto: <a href="mailto:support@sentry.io" />}
+            )
+          : t(
+              "Your org's Owners and Billing members will get an email asking them to increase your quota."
+            )}
+      </Description>
+    );
+  }
+
+  const listedMembers = billingMembers.slice(0, MAX_LISTED_RECIPIENTS);
+  const unlistedCount = billingMembers.length - listedMembers.length;
+
+  return (
+    <Description>
+      {tct(
+        "Your org's Owners and Billing members ([recipients]) will get an email asking them to increase your quota.",
+        {
+          recipients: (
+            <Fragment>
+              {listedMembers.map((member, i) => (
+                <Fragment key={member.id}>
+                  {i > 0 && ', '}
+                  <a href={`mailto:${member.email}`}>{member.email}</a>
+                </Fragment>
+              ))}
+              {unlistedCount > 0 && `, ${t('and %s more', unlistedCount)}`}
+            </Fragment>
+          ),
+        }
+      )}
+    </Description>
+  );
+}
+
 function QuotaExceededContent({
   exceededCategories,
   subscription,
@@ -131,6 +181,10 @@ function QuotaExceededContent({
   });
 
   const allEventTypes = [...eventTypes, ...paygIneligibleEventTypes];
+  // Passed to AddEventsCTA too, so the recipient line always matches the button.
+  const action =
+    getBestActionToIncreaseEventLimits(organization, subscription) || undefined;
+  const isQuotaRequest = action === UsageAction.REQUEST_ADD_EVENTS;
 
   const usageCategoryList = listDisplayNames({
     plan: subscription.planDetails,
@@ -146,7 +200,7 @@ function QuotaExceededContent({
   // If ONLY PAYG-ineligible categories are exceeded, show Contact Sales content
   if (paygIneligibleCategories.length > 0 && otherCategories.length === 0) {
     return (
-      <Container>
+      <Container background="primary">
         <Header>
           <HeaderTitle>{t('Billing Status')}</HeaderTitle>
         </Header>
@@ -190,7 +244,7 @@ function QuotaExceededContent({
   // If BOTH PAYG-ineligible and other categories are exceeded, show both sections
   if (paygIneligibleCategories.length > 0 && otherCategories.length > 0) {
     return (
-      <Container>
+      <Container background="primary">
         <Header>
           <HeaderTitle>{t('Billing Status')}</HeaderTitle>
         </Header>
@@ -248,8 +302,10 @@ function QuotaExceededContent({
               )}
             </Description>
           )}
+          {isQuotaRequest && <QuotaRequestRecipients />}
           <Flex justify="between" align="center">
             <AddEventsCTA
+              action={action}
               organization={organization}
               subscription={subscription}
               buttonProps={COMMON_BUTTON_PROPS}
@@ -282,7 +338,7 @@ function QuotaExceededContent({
 
   // Standard content for PAYG-eligible categories only
   return (
-    <Container>
+    <Container background="primary">
       <Header>
         <HeaderTitle>{t('Billing Status')}</HeaderTitle>
       </Header>
@@ -321,8 +377,10 @@ function QuotaExceededContent({
             )}
           </Description>
         )}
+        {isQuotaRequest && <QuotaRequestRecipients />}
         <Flex justify="between" align="center">
           <AddEventsCTA
+            action={action}
             organization={organization}
             subscription={subscription}
             buttonProps={COMMON_BUTTON_PROPS}
@@ -437,18 +495,20 @@ export function PrimaryNavigationQuotaExceeded({
     return Object.values(isPromptDismissed).every(Boolean);
   }, [isPromptDismissed]);
 
+  const [lastShownCategories, setLastShownCategories] = useLocalStorageState<
+    string | null
+  >(`billing-status-last-shown-categories-${organization.id}`, null);
+  const [lastShownDate, setLastShownDate] = useLocalStorageState<string | null>(
+    `billing-status-last-shown-date-${organization.id}`,
+    null
+  );
+
   const hasAutoOpenedAlertRef = useRef(false);
   useEffect(() => {
     // auto open the alert if it hasn't been explicitly dismissed, and
     // either it has been more than a day since the last shown date,
     // the categories have changed, or
     // the last time it was shown was before the current usage cycle started
-    const lastShownCategories = localStorage.getItem(
-      `billing-status-last-shown-categories-${organization.id}`
-    );
-    const lastShownDate = localStorage.getItem(
-      `billing-status-last-shown-date-${organization.id}`
-    );
     const daysSinceLastShown = lastShownDate ? getDaysSinceDate(lastShownDate) : 0;
     const currentCategories = exceededCategories.join('-');
     const lastShownBeforeCurrentPeriod = moment(subscription?.onDemandPeriodStart)
@@ -463,21 +523,20 @@ export function PrimaryNavigationQuotaExceeded({
     ) {
       hasAutoOpenedAlertRef.current = true;
       overlayState.open();
-      localStorage.setItem(
-        `billing-status-last-shown-categories-${organization.id}`,
-        currentCategories
-      );
-      localStorage.setItem(
-        `billing-status-last-shown-date-${organization.id}`,
-        moment().utc().toISOString()
-      );
+      setLastShownCategories(currentCategories);
+      setLastShownDate(moment().utc().toISOString());
     }
   }, [
     exceededCategories,
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     organization.id,
     hasSnoozedAllPrompts,
     overlayState,
     subscription?.onDemandPeriodStart,
+    lastShownCategories,
+    lastShownDate,
+    setLastShownCategories,
+    setLastShownDate,
   ]);
 
   const shouldShow = exceededCategories.length > 0 && subscription?.canSelfServe;
@@ -541,10 +600,6 @@ export function PrimaryNavigationQuotaExceeded({
     </Fragment>
   );
 }
-
-const Container = styled('div')`
-  background: ${p => p.theme.tokens.background.primary};
-`;
 
 const Header = styled('div')`
   background: ${p => p.theme.tokens.background.primary};

@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import uniqBy from 'lodash/uniqBy';
+import {useStore} from 'zustand';
 
 import {fetchUserTeams} from 'sentry/actionCreators/teams';
 import type {Client} from 'sentry/api';
@@ -7,10 +8,12 @@ import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Team} from 'sentry/types/organization';
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
+
+import {getApiUrl} from './api/getApiUrl';
+import type {RequestError} from './requestError/requestError';
+import {isActiveSuperuser} from './isActiveSuperuser';
+import {parseLinkHeader} from './parseLinkHeader';
+import {useApi} from './useApi';
 
 type State = {
   /**
@@ -84,7 +87,6 @@ type Options = {
 
 type FetchTeamOptions = {
   cursor?: State['nextCursor'];
-  ids?: string[];
   lastSearch?: State['lastSearch'];
   limit?: Options['limit'];
   search?: State['lastSearch'];
@@ -98,7 +100,7 @@ type FetchTeamOptions = {
 async function fetchTeams(
   api: Client,
   orgId: string,
-  {slugs, ids, search, limit, lastSearch, cursor}: FetchTeamOptions = {}
+  {slugs, search, limit, lastSearch, cursor}: FetchTeamOptions = {}
 ) {
   const query: {
     cursor?: typeof cursor;
@@ -108,10 +110,6 @@ async function fetchTeams(
 
   if (slugs !== undefined && slugs.length > 0) {
     query.query = slugs.map(slug => `slug:${slug}`).join(' ');
-  }
-
-  if (ids !== undefined && ids.length > 0) {
-    query.query = ids.map(id => `id:${id}`).join(' ');
   }
 
   if (search) {
@@ -130,10 +128,15 @@ async function fetchTeams(
 
   let hasMore: null | boolean = false;
   let nextCursor: null | string = null;
-  const [data, , resp] = await api.requestPromise(`/organizations/${orgId}/teams/`, {
-    includeAllArgs: true,
-    query,
-  });
+  const [data, , resp] = await api.requestPromise(
+    getApiUrl('/organizations/$organizationIdOrSlug/teams/', {
+      path: {organizationIdOrSlug: orgId},
+    }),
+    {
+      includeAllArgs: true,
+      query,
+    }
+  );
 
   const pageLinks = resp?.getResponseHeader('Link');
   if (pageLinks) {
@@ -169,7 +172,7 @@ async function fetchTeams(
  */
 export function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
   const api = useApi();
-  const {organization} = useLegacyStore(OrganizationStore);
+  const organization = useStore(OrganizationStore, state => state.organization);
   const store = useLegacyStore(TeamStore);
 
   const orgId = organization?.slug;
@@ -345,12 +348,14 @@ export function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
   // Load specified team slugs
   useEffect(() => {
     if (shouldLoadByQuery) {
+      // oxlint-disable-next-line react/set-state-in-effect
       loadTeamsByQuery();
     }
   }, [shouldLoadByQuery, loadTeamsByQuery]);
 
   useEffect(() => {
     if (shouldLoadUserTeams) {
+      // oxlint-disable-next-line react/set-state-in-effect
       loadUserTeams();
     }
   }, [shouldLoadUserTeams, loadUserTeams]);

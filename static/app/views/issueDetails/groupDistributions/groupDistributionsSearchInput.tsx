@@ -1,25 +1,28 @@
 import type {Dispatch, SetStateAction} from 'react';
+import {IconSearch} from '@sentry/icons/search';
 
 import {InputGroup} from '@sentry/scraps/input';
 
-import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 interface Props {
   includeFeatureFlagsTab: boolean;
   onChange: Dispatch<SetStateAction<string>>;
+  placeholder: string;
   search: string;
 }
 
 export function GroupDistributionsSearchInput({
   includeFeatureFlagsTab,
+  placeholder,
   search,
   onChange,
 }: Props) {
   return (
     <InputGroup>
       <InputGroup.Input
-        size="xs"
+        size="sm"
+        placeholder={placeholder}
         value={search}
         onChange={e => {
           onChange?.(e.target.value);

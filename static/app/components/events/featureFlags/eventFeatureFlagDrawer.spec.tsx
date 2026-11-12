@@ -2,29 +2,19 @@ import {TagsFixture} from 'sentry-fixture/tags';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {EventFeatureFlagSection} from 'sentry/components/events/featureFlags/eventFeatureFlagSection';
+import {getShortEventId} from 'sentry/utils/events';
+import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
+import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
+
+import {EventFeatureFlagSection} from './eventFeatureFlagSection';
 import {
   MOCK_DATA_SECTION_PROPS,
   MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG,
   MOCK_FLAGS,
-} from 'sentry/components/events/featureFlags/testUtils';
-import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
+} from './testUtils';
 
-async function renderFlagDrawer() {
-  // Needed to mock useVirtualizer lists.
-  jest
-    .spyOn(window.Element.prototype, 'getBoundingClientRect')
-    .mockImplementation(() => ({
-      x: 0,
-      y: 0,
-      width: 0,
-      height: 30,
-      left: 0,
-      top: 0,
-      right: 0,
-      bottom: 0,
-      toJSON: jest.fn(),
-    }));
+async function openFlagDrawer() {
+  mockElementSize({width: 0, height: 30});
   render(
     <GroupDataContextProvider
       group={MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG.group}
@@ -53,23 +43,21 @@ describe('FeatureFlagDrawer', () => {
     });
   });
   it('renders the drawer as expected', async () => {
-    const drawerScreen = await renderFlagDrawer();
+    const drawerScreen = await openFlagDrawer();
     expect(
       within(drawerScreen).getByRole('button', {name: 'Close Drawer'})
     ).toBeInTheDocument();
 
     // Inner drawer flags
-    const {event, group} = MOCK_DATA_SECTION_PROPS;
-    expect(within(drawerScreen).getByText(group.shortId)).toBeInTheDocument();
-    expect(within(drawerScreen).getByText(event.id.slice(0, 8))).toBeInTheDocument();
+    const {event} = MOCK_DATA_SECTION_PROPS;
+    const currentCrumb = within(drawerScreen).getByText('Feature Flags');
+    expect(currentCrumb).toHaveAttribute('aria-current', 'location');
+    await userEvent.hover(currentCrumb);
     expect(
-      within(drawerScreen).getByText('Feature Flags', {selector: 'span'})
+      await screen.findByText(`Event ID: ${getShortEventId(event.id)}`)
     ).toBeInTheDocument();
 
-    // Header & Controls
-    expect(
-      within(drawerScreen).getByText('Feature Flags', {selector: 'h3'})
-    ).toBeInTheDocument();
+    // Controls
     expect(
       within(drawerScreen).getByRole('textbox', {name: 'Search Flags'})
     ).toBeInTheDocument();
@@ -85,7 +73,7 @@ describe('FeatureFlagDrawer', () => {
   });
 
   it('allows search to affect displayed flags', async () => {
-    const drawerScreen = await renderFlagDrawer();
+    const drawerScreen = await openFlagDrawer();
 
     const [webVitalsFlag, enableReplay] = MOCK_FLAGS.filter(f => f.result);
     expect(within(drawerScreen).getByText(webVitalsFlag!.flag)).toBeInTheDocument();
@@ -101,7 +89,7 @@ describe('FeatureFlagDrawer', () => {
   });
 
   it('allows sort dropdown to affect displayed flags', async () => {
-    const drawerScreen = await renderFlagDrawer();
+    const drawerScreen = await openFlagDrawer();
 
     const [webVitalsFlag, enableReplay] = MOCK_FLAGS.filter(f => f.result);
 

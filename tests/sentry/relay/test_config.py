@@ -1,5 +1,9 @@
 import time
+from collections.abc import Callable
+from contextlib import AbstractContextManager
+from copy import deepcopy
 from datetime import datetime, timedelta, timezone
+from typing import Any
 from unittest import mock
 from unittest.mock import ANY, MagicMock, patch
 
@@ -16,19 +20,24 @@ from sentry.dynamic_sampling import (
     RuleType,
     get_redis_client_for_ds,
 )
+from sentry.dynamic_sampling.per_org.cache import set_adjusted_factor
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
+from sentry.ingest.inbound_filters import CUSTOM_INBOUND_FILTER_ID_PREFIX
+from sentry.models.custominboundfilter import LegacyFilter
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.models.projectteam import ProjectTeam
-from sentry.models.transaction_threshold import TransactionMetric
+from sentry.models.team import Team
 from sentry.relay.config import ProjectConfig, TransactionNameRule, get_project_config
-from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
 from sentry.testutils.silo import cell_silo_test
 from sentry.utils.safe import get_path
+from tests.sentry.dynamic_sampling.per_org.test_helpers import (
+    store_per_org_project_sample_rate,
+)
 
 PII_CONFIG = """
 {
@@ -85,19 +94,31 @@ DEFAULT_IGNORE_HEALTHCHECKS_RULE = {
 }
 
 
-def _validate_project_config(config):
-    # Relay keeps BTreeSets for these, so sort here as well:
-    for rule in config.get("metricConditionalTagging", []):
-        rule["targetMetrics"] = sorted(rule["targetMetrics"])
+def _validate_project_config(config: dict[str, Any]) -> None:
     # Relay uses a BTreeSet for features:
     if features := config.get("features"):
         config["features"] = sorted(features)
-    assert normalize_project_config(config) == config
+    expected = deepcopy(config)
+    # Relay serializes case-insensitive glob patterns lowercased:
+    if generic_filters := expected.get("filterSettings", {}).get("generic"):
+        _lowercase_glob_values(generic_filters)
+    assert normalize_project_config(config) == expected
+
+
+def _lowercase_glob_values(node: object) -> None:
+    if isinstance(node, dict):
+        if node.get("op") == "glob":
+            node["value"] = [value.lower() for value in node["value"]]
+        for child in node.values():
+            _lowercase_glob_values(child)
+    elif isinstance(node, list):
+        for child in node:
+            _lowercase_glob_values(child)
 
 
 @django_db_all
 @cell_silo_test
-def test_get_project_config_non_visible(default_project) -> None:
+def test_get_project_config_non_visible(default_project: Project) -> None:
     keys = ProjectKey.objects.filter(project=default_project)
     default_project.update(status=ObjectStatus.PENDING_DELETION)
     cfg = get_project_config(default_project, project_keys=keys)
@@ -137,7 +158,9 @@ SOME_EXCEPTION = RuntimeError("foo")
 @cell_silo_test
 @mock.patch("sentry.relay.config.generate_rules", side_effect=SOME_EXCEPTION)
 @mock.patch("sentry.relay.config.experimental.logger")
-def test_get_experimental_config_dyn_sampling(mock_logger, _, default_project) -> None:
+def test_get_experimental_config_dyn_sampling(
+    mock_logger: MagicMock, _: MagicMock, default_project: Project
+) -> None:
     keys = ProjectKey.objects.filter(project=default_project)
     with Feature({"organizations:dynamic-sampling": True}):
         # Does not raise:
@@ -153,14 +176,20 @@ def test_get_experimental_config_dyn_sampling(mock_logger, _, default_project) -
 @cell_silo_test
 @pytest.mark.parametrize("has_custom_filters", [False, True])
 @pytest.mark.parametrize("has_blacklisted_ips", [False, True])
+@pytest.mark.parametrize("has_generic_ip_filter", [False, True])
 def test_project_config_uses_filter_features(
-    default_project, has_custom_filters, has_blacklisted_ips
-):
+    default_project: Project,
+    has_custom_filters: bool,
+    has_blacklisted_ips: bool,
+    has_generic_ip_filter: bool,
+) -> None:
     log_messages = ["some log"]
     trace_metric_names = ["some metric"]
     error_messages = ["some_error"]
     releases = ["1.2.3", "4.5.6"]
-    blacklisted_ips = ["112.69.248.54"]
+    # A range, because Relay normalizes a bare address to `/32` inside the generic
+    # filter, which the round-trip check below would flag.
+    blacklisted_ips = ["112.69.248.0/24"]
     default_project.update_option("sentry:log_messages", log_messages)
     default_project.update_option("sentry:trace_metric_names", trace_metric_names)
     default_project.update_option("sentry:error_messages", error_messages)
@@ -177,16 +206,23 @@ def test_project_config_uses_filter_features(
             "projects:custom-inbound-filters": has_custom_filters,
             "organizations:ourlogs-ingestion": True,
             "organizations:tracemetrics-ingestion": True,
+            "organizations:inbound-filters-generic-ip-filter": has_generic_ip_filter,
         }
     ):
         project_cfg = get_project_config(default_project)
 
     cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
-    cfg_generic = get_path(cfg, "config", "filterSettings", "generic", "filters")
+    cfg_generic = get_path(cfg, "config", "filterSettings", "generic", "filters") or []
     cfg_error_messages = get_path(cfg, "config", "filterSettings", "errorMessages")
     cfg_releases = get_path(cfg, "config", "filterSettings", "releases")
     cfg_client_ips = get_path(cfg, "config", "filterSettings", "clientIps")
+    # The generic IP filter keeps the native filter's outcome reason as its id.
+    ip_generic_filter = {
+        "id": "ip-address",
+        "isEnabled": True,
+        "condition": {"op": "cidr", "name": "envelope.client_ip", "value": blacklisted_ips},
+    }
 
     if has_custom_filters:
         assert {"patterns": error_messages} == cfg_error_messages
@@ -212,12 +248,79 @@ def test_project_config_uses_filter_features(
     else:
         assert cfg_releases is None
         assert cfg_error_messages is None
-        assert cfg_generic is None
+        assert [f for f in cfg_generic if f["id"] != "ip-address"] == []
 
-    if has_blacklisted_ips:
-        assert {"blacklistedIps": ["112.69.248.54"]} == cfg_client_ips
+    if has_blacklisted_ips and has_generic_ip_filter:
+        assert cfg_client_ips is None
+        assert cfg_generic[0] == ip_generic_filter
+    elif has_blacklisted_ips:
+        assert {"blacklistedIps": blacklisted_ips} == cfg_client_ips
+        assert ip_generic_filter not in cfg_generic
     else:
         assert cfg_client_ips is None
+        assert ip_generic_filter not in cfg_generic
+
+
+@django_db_all
+@cell_silo_test
+@pytest.mark.parametrize("has_custom_filters", [False, True])
+@pytest.mark.parametrize("has_inbound_filters_v2", [False, True])
+def test_project_config_custom_inbound_filters_v2(
+    default_project: Project,
+    factories: Factories,
+    has_custom_filters: bool,
+    has_inbound_filters_v2: bool,
+) -> None:
+    active_filter = factories.create_project_custom_inbound_filter(
+        default_project,
+        name="Block old releases",
+        conditions=[{"type": "release", "value": ["1.2.3"]}],
+    )
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        name="Disabled filter",
+        active=False,
+        conditions=[{"type": "release", "value": ["4.5.6"]}],
+    )
+
+    with Feature(
+        {
+            "projects:custom-inbound-filters": has_custom_filters,
+            "organizations:inbound-filters-v2": has_inbound_filters_v2,
+        }
+    ):
+        project_cfg = get_project_config(default_project)
+
+    cfg = project_cfg.to_dict()
+    _validate_project_config(cfg["config"])
+    cfg_generic = get_path(cfg, "config", "filterSettings", "generic", "filters") or []
+    custom_filters = [f for f in cfg_generic if f["id"].startswith(CUSTOM_INBOUND_FILTER_ID_PREFIX)]
+
+    if has_custom_filters and has_inbound_filters_v2:
+        assert custom_filters == [
+            {
+                "id": f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{active_filter.id}",
+                "isEnabled": True,
+                "condition": {"op": "glob", "name": "event.release", "value": ["1.2.3"]},
+            }
+        ]
+    else:
+        assert custom_filters == []
+
+
+@django_db_all
+@cell_silo_test
+@pytest.mark.parametrize("option_enabled", [True, False])
+def test_project_config_json_expansion(default_project: MagicMock, option_enabled: bool) -> None:
+    default_project.update_option("sentry:relay_automatic_json_expansion", option_enabled)
+
+    project_cfg = get_project_config(default_project)
+
+    cfg = project_cfg.to_dict()
+    _validate_project_config(cfg["config"])
+    exposed_features = get_path(cfg, "config", "features") or []
+
+    assert ("projects:relay-automatic-json-expansion" in exposed_features) == option_enabled
 
 
 @django_db_all
@@ -251,8 +354,8 @@ def test_project_config_exposed_features_raise_exc(default_project: MagicMock) -
 @patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.apply_dynamic_factor")
 @freeze_time("2022-10-21 18:50:25.000000+00:00")
 def test_project_config_with_all_biases_enabled(
-    eval_dynamic_factor_lr, default_project, default_team
-):
+    eval_dynamic_factor_lr: MagicMock, default_project: Project, default_team: Team
+) -> None:
     """
     Tests that dynamic sampling information return correct uniform rules
     """
@@ -276,6 +379,7 @@ def test_project_config_with_all_biases_enabled(
     old_date = datetime.now(tz=timezone.utc) - timedelta(minutes=NEW_MODEL_THRESHOLD_IN_MINUTES + 1)
     default_project.organization.date_added = old_date
     default_project.date_added = old_date
+    store_per_org_project_sample_rate(default_project, 0.1)
 
     # We create a team key transaction.
     TeamKeyTransaction.objects.create(
@@ -298,19 +402,16 @@ def test_project_config_with_all_biases_enabled(
     for release_id in release_ids[1:]:
         boosted_releases.append((release_id, ts))
 
-    for release, timestamp in boosted_releases:
+    for release_id, timestamp in boosted_releases:
         redis_client.hset(
             f"ds::p:{default_project.id}:boosted_releases",
-            f"ds::r:{release}:e:prod",
+            f"ds::r:{release_id}:e:prod",
             timestamp,
         )
 
     # Set factor
     default_factor = 0.5
-    redis_client.set(
-        f"ds::o:{default_project.organization.id}:rate_rebalance_factor2",
-        default_factor,
-    )
+    set_adjusted_factor(default_project.organization.id, default_factor)
 
     with Feature(
         {
@@ -436,8 +537,8 @@ def test_project_config_with_all_biases_enabled(
 @patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.apply_dynamic_factor")
 @freeze_time("2022-10-21 18:50:25.000000+00:00")
 def test_project_config_with_trace_health_checks_enabled(
-    eval_dynamic_factor_lr, default_project, default_team
-):
+    eval_dynamic_factor_lr: MagicMock, default_project: Project, default_team: Team
+) -> None:
     eval_dynamic_factor_lr.return_value = 1.5
 
     default_project.update_option(
@@ -455,6 +556,7 @@ def test_project_config_with_trace_health_checks_enabled(
     old_date = datetime.now(tz=timezone.utc) - timedelta(minutes=NEW_MODEL_THRESHOLD_IN_MINUTES + 1)
     default_project.organization.date_added = old_date
     default_project.date_added = old_date
+    store_per_org_project_sample_rate(default_project, 0.1)
 
     with Feature(
         {
@@ -499,34 +601,30 @@ def test_project_config_with_trace_health_checks_enabled(
 
 
 @django_db_all
-@pytest.mark.parametrize("transaction_metrics", ("with_metrics", "without_metrics"))
 @cell_silo_test
-def test_project_config_with_breakdown(
-    default_project: Project, insta_snapshot: InstaSnapshotter, transaction_metrics: str
-) -> None:
-    with Feature(
-        {
-            "organizations:transaction-metrics-extraction": transaction_metrics == "with_metrics",
+def test_project_config_with_breakdown(default_project: Project) -> None:
+    breakdowns = {
+        "span_ops": {
+            "type": "spanOperations",
+            "matches": ["http", "db", "browser", "resource", "ui"],
         }
-    ):
-        project_cfg = get_project_config(default_project)
+    }
+    default_project.update_option("sentry:breakdowns", breakdowns)
+    project_cfg = get_project_config(default_project)
 
     cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
-    insta_snapshot(
-        {
-            "breakdownsV2": cfg["config"]["breakdownsV2"],
-            "metricConditionalTagging": cfg["config"].get("metricConditionalTagging"),
-        }
-    )
+    assert cfg["config"]["breakdownsV2"] == breakdowns
 
 
 @django_db_all
 @cell_silo_test
 @pytest.mark.parametrize("abnormal_mechanism_rollout", (0, 1))
 def test_project_config_with_organizations_metrics_extraction(
-    default_project, set_sentry_option, abnormal_mechanism_rollout
-):
+    default_project: Project,
+    set_sentry_option: Callable[[str, object], AbstractContextManager[None]],
+    abnormal_mechanism_rollout: int,
+) -> None:
     with set_sentry_option(
         "sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate",
         abnormal_mechanism_rollout,
@@ -541,50 +639,9 @@ def test_project_config_with_organizations_metrics_extraction(
         }
 
 
-@django_db_all
-@pytest.mark.parametrize("has_project_transaction_threshold", (False, True))
-@pytest.mark.parametrize("has_project_transaction_threshold_overrides", (False, True))
-@cell_silo_test
-def test_project_config_satisfaction_thresholds(
-    default_project: Project,
-    insta_snapshot: InstaSnapshotter,
-    has_project_transaction_threshold_overrides: bool,
-    has_project_transaction_threshold: bool,
-) -> None:
-    if has_project_transaction_threshold:
-        default_project.projecttransactionthreshold_set.create(
-            organization=default_project.organization,
-            threshold=500,
-            metric=TransactionMetric.LCP.value,
-        )
-    if has_project_transaction_threshold_overrides:
-        default_project.projecttransactionthresholdoverride_set.create(
-            organization=default_project.organization,
-            transaction="foo",
-            threshold=400,
-            metric=TransactionMetric.DURATION.value,
-        )
-        default_project.projecttransactionthresholdoverride_set.create(
-            organization=default_project.organization,
-            transaction="bar",
-            threshold=600,
-            metric=TransactionMetric.LCP.value,
-        )
-    with Feature(
-        {
-            "organizations:transaction-metrics-extraction": True,
-        }
-    ):
-        project_cfg = get_project_config(default_project)
-
-    cfg = project_cfg.to_dict()
-    _validate_project_config(cfg["config"])
-    insta_snapshot(cfg["config"]["metricConditionalTagging"])
-
-
 @pytest.mark.parametrize("num_clusterer_runs", [9, 10])
 @django_db_all
-def test_txnames_ready(default_project, num_clusterer_runs) -> None:
+def test_txnames_ready(default_project: Project, num_clusterer_runs: int) -> None:
     with mock.patch(
         "sentry.relay.config.get_clusterer_meta",
         return_value={"runs": num_clusterer_runs},
@@ -599,7 +656,7 @@ def test_txnames_ready(default_project, num_clusterer_runs) -> None:
 
 @django_db_all
 @cell_silo_test
-def test_project_config_setattr(default_project) -> None:
+def test_project_config_setattr(default_project: Project) -> None:
     project_cfg = ProjectConfig(default_project)
     with pytest.raises(Exception) as exc_info:
         project_cfg.foo = "bar"
@@ -608,14 +665,14 @@ def test_project_config_setattr(default_project) -> None:
 
 @django_db_all
 @cell_silo_test
-def test_project_config_getattr(default_project) -> None:
+def test_project_config_getattr(default_project: Project) -> None:
     project_cfg = ProjectConfig(default_project, foo="bar")
     assert project_cfg.foo == "bar"
 
 
 @django_db_all
 @cell_silo_test
-def test_project_config_str(default_project) -> None:
+def test_project_config_str(default_project: Project) -> None:
     project_cfg = ProjectConfig(default_project, foo="bar")
     assert str(project_cfg) == '{"foo":"bar"}'
 
@@ -627,21 +684,21 @@ def test_project_config_str(default_project) -> None:
 
 @django_db_all
 @cell_silo_test
-def test_project_config_repr(default_project) -> None:
+def test_project_config_repr(default_project: Project) -> None:
     project_cfg = ProjectConfig(default_project, foo="bar")
     assert repr(project_cfg) == '(ProjectConfig){"foo":"bar"}'
 
 
 @django_db_all
 @cell_silo_test
-def test_project_config_to_json_string(default_project) -> None:
+def test_project_config_to_json_string(default_project: Project) -> None:
     project_cfg = ProjectConfig(default_project, foo="bar")
     assert project_cfg.to_json_string() == '{"foo":"bar"}'
 
 
 @django_db_all
 @cell_silo_test
-def test_project_config_get_at_path(default_project) -> None:
+def test_project_config_get_at_path(default_project: Project) -> None:
     project_cfg = ProjectConfig(default_project, a=1, b="The b", foo="bar")
     assert project_cfg.get_at_path("b") == "The b"
     assert project_cfg.get_at_path("bb") is None
@@ -655,7 +712,7 @@ def test_project_config_get_at_path(default_project) -> None:
     [True, False],
     ids=["healthcheck set", "healthcheck not set"],
 )
-def test_healthcheck_filter(default_project, health_check_set) -> None:
+def test_healthcheck_filter(default_project: Project, health_check_set: bool) -> None:
     """
     Tests that the project config properly returns healthcheck filters when the
     user has enabled healthcheck filters.
@@ -677,79 +734,14 @@ def test_healthcheck_filter(default_project, health_check_set) -> None:
 
 
 @django_db_all
-def test_alert_metric_extraction_rules_empty(default_project) -> None:
-    features = {
-        "organizations:transaction-metrics-extraction": True,
-        "organizations:on-demand-metrics-extraction": True,
-    }
-
-    with Feature(features):
-        config = get_project_config(default_project).to_dict()["config"]
-        _validate_project_config(config)
-        assert "metricExtraction" not in config
-
-
-@django_db_all
-def test_alert_metric_extraction_rules(default_project, factories) -> None:
-    # Alert compatible with out-of-the-box metrics. This should NOT be included
-    # in the config.
-    factories.create_alert_rule(
-        default_project.organization,
-        [default_project],
-        query="event.type:transaction environment:production",
-        dataset=Dataset.Transactions,
-    )
-
-    # Alert requiring an on-demand metric. This should be included in the config.
-    factories.create_alert_rule(
-        default_project.organization,
-        [default_project],
-        query="event.type:transaction transaction.duration:<10m",
-        dataset=Dataset.PerformanceMetrics,
-    )
-
-    features = {
-        "organizations:transaction-metrics-extraction": True,
-        "organizations:on-demand-metrics-extraction": True,
-    }
-
-    with Feature(features):
-        config = get_project_config(default_project).to_dict()["config"]
-
-        assert config["metricExtraction"] == {
-            "version": 4,
-            "metrics": [
-                {
-                    "category": "transaction",
-                    "mri": "c:transactions/on_demand@none",
-                    "field": None,
-                    "condition": {
-                        "name": "event.duration",
-                        "op": "lt",
-                        "value": 600000.0,
-                    },
-                    "tags": [{"key": "query_hash", "value": ANY}],
-                }
-            ],
-        }
-
-        normalized = normalize_project_config(config)
-        del normalized["metricExtraction"]["conditionalTagsExtended"]
-        del normalized["metricExtraction"]["spanMetricsExtended"]
-        del config["metricExtraction"]["metrics"][0]["field"]
-
-        assert normalized["metricExtraction"] == config["metricExtraction"]
-
-
-@django_db_all
-def test_desktop_performance_calculate_score(default_project) -> None:
+def test_desktop_performance_calculate_score(default_project: Project) -> None:
     config = get_project_config(default_project).to_dict()["config"]
 
     # Set a version field that is returned even though it's optional.
     for profile in config["performanceScore"]["profiles"]:
         profile["version"] = "1"
 
-    assert normalize_project_config(config) == config
+    _validate_project_config(config)
     performance_score = config["performanceScore"]["profiles"]
     assert performance_score[0] == {
         "name": "Chrome",
@@ -1096,14 +1088,14 @@ def test_desktop_performance_calculate_score(default_project) -> None:
 
 
 @django_db_all
-def test_mobile_performance_calculate_score(default_project) -> None:
+def test_mobile_performance_calculate_score(default_project: Project) -> None:
     config = get_project_config(default_project).to_dict()["config"]
 
     # Set a version field that is returned even though it's optional.
     for profile in config["performanceScore"]["profiles"]:
         profile["version"] = "1"
 
-    assert normalize_project_config(config) == config
+    _validate_project_config(config)
     performance_score = config["performanceScore"]["profiles"]
 
     assert performance_score[8] == {
@@ -1440,7 +1432,7 @@ def test_mobile_performance_calculate_score(default_project) -> None:
 
 @django_db_all
 @cell_silo_test
-def test_project_config_with_generic_filters(default_project) -> None:
+def test_project_config_with_generic_filters(default_project: Project) -> None:
     config = get_project_config(default_project).to_dict()
     _validate_project_config(config["config"])
 
@@ -1451,8 +1443,8 @@ def test_project_config_with_generic_filters(default_project) -> None:
 @cell_silo_test
 @mock.patch("sentry.relay.config.get_transaction_names_config")
 def test_project_config_with_transaction_name_clustering_disabled(
-    mock_get_transaction_name_config, default_project
-):
+    mock_get_transaction_name_config: MagicMock, default_project: Project
+) -> None:
     mock_get_transaction_name_config.return_value = [
         TransactionNameRule(
             pattern="dummy_rule",
@@ -1476,7 +1468,7 @@ def test_project_config_with_transaction_name_clustering_disabled(
 
 @django_db_all
 @cell_silo_test
-def test_project_config_trusted_relay_settings_enabled(default_project):
+def test_project_config_trusted_relay_settings_enabled(default_project: Project) -> None:
     default_project.organization.update_option(
         "sentry:ingest-through-trusted-relays-only", "enabled"
     )
@@ -1490,7 +1482,7 @@ def test_project_config_trusted_relay_settings_enabled(default_project):
 
 @django_db_all
 @cell_silo_test
-def test_project_config_trusted_relay_settings_disabled(default_project):
+def test_project_config_trusted_relay_settings_disabled(default_project: Project) -> None:
     default_project.organization.update_option(
         "sentry:ingest-through-trusted-relays-only", "disabled"
     )
@@ -1505,7 +1497,9 @@ def test_project_config_trusted_relay_settings_disabled(default_project):
 @django_db_all
 @cell_silo_test
 @pytest.mark.parametrize("trimming_configs", [{}, {"span": {"maxSize": 17}}])
-def test_project_config_trimming(default_project, trimming_configs):
+def test_project_config_trimming(
+    default_project: Project, trimming_configs: dict[str, object]
+) -> None:
     with patch.object(
         quotas.backend,
         "get_trimming_configs",
@@ -1521,3 +1515,107 @@ def test_project_config_trimming(default_project, trimming_configs):
             assert "trimming" not in cfg
 
         _validate_project_config(cfg)
+
+
+@django_db_all
+@cell_silo_test
+def test_project_config_skips_the_row_of_a_legacy_list(default_project: Project) -> None:
+    default_project.update_option("sentry:log_messages", ["*DEBUG*"])
+    Factories.create_project_custom_inbound_filter(
+        default_project,
+        data_type="log",
+        conditions=[{"type": "log_message", "value": ["*DEBUG*"]}],
+        legacy_filter=LegacyFilter.LOG_MESSAGE,
+    )
+    mine = Factories.create_project_custom_inbound_filter(
+        default_project,
+        data_type="all",
+        conditions=[{"type": "release", "value": ["2.*"]}],
+    )
+
+    with Feature(
+        {
+            "projects:custom-inbound-filters": True,
+            "organizations:ourlogs-ingestion": True,
+            "organizations:inbound-filters-v2": True,
+        }
+    ):
+        cfg = get_project_config(default_project).to_dict()
+
+    _validate_project_config(cfg["config"])
+    generic_ids = [f["id"] for f in get_path(cfg, "config", "filterSettings", "generic", "filters")]
+    assert generic_ids.count("log-message") == 1
+    assert [i for i in generic_ids if i.startswith(CUSTOM_INBOUND_FILTER_ID_PREFIX)] == [
+        f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{mine.id}"
+    ]
+
+
+@django_db_all
+@cell_silo_test
+def test_project_config_serves_release_comparisons(default_project: Project) -> None:
+    comparison = Factories.create_project_custom_inbound_filter(
+        default_project,
+        data_type="all",
+        conditions=[{"type": "release", "operator": "lt", "value": ["2.0.0"]}],
+    )
+    text = Factories.create_project_custom_inbound_filter(
+        default_project,
+        data_type="all",
+        conditions=[{"type": "release", "operator": "starts_with", "value": ["1."]}],
+    )
+
+    with Feature(
+        {
+            "projects:custom-inbound-filters": True,
+            "organizations:inbound-filters-v2": True,
+        }
+    ):
+        cfg = get_project_config(default_project).to_dict()
+
+    _validate_project_config(cfg["config"])
+    generic_ids = [f["id"] for f in get_path(cfg, "config", "filterSettings", "generic", "filters")]
+    custom_ids = [i for i in generic_ids if i.startswith(CUSTOM_INBOUND_FILTER_ID_PREFIX)]
+    assert custom_ids == [f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{f.id}" for f in (comparison, text)]
+
+
+@django_db_all
+@cell_silo_test
+def test_project_config_reads_a_legacy_list_at_v2_from_its_row(
+    default_project: Project, factories: Factories
+) -> None:
+    default_project.update_option("sentry:releases", ["stale"])
+    default_project.update_option("sentry:error_messages", ["stale"])
+    default_project.update_option("sentry:log_messages", ["stale"])
+    default_project.update_option("sentry:trace_metric_names", ["some metric"])
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        data_type="all",
+        conditions=[{"type": "release", "value": ["1.*"]}],
+        legacy_filter=LegacyFilter.RELEASE_VERSION,
+    )
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        active=False,
+        data_type="error",
+        conditions=[{"type": "error_message", "value": ["TypeError*"]}],
+        legacy_filter=LegacyFilter.ERROR_MESSAGE,
+    )
+
+    with Feature(
+        {
+            "projects:custom-inbound-filters": True,
+            "organizations:inbound-filters-v2": True,
+            "organizations:ourlogs-ingestion": True,
+            "organizations:tracemetrics-ingestion": True,
+        }
+    ):
+        cfg = get_project_config(default_project).to_dict()
+
+    filter_settings = cfg["config"]["filterSettings"]
+    assert filter_settings["releases"] == {"releases": ["1.*"]}
+    # A row the user switched off applies nothing, and a list without a row is empty
+    # whatever its option still holds.
+    assert "errorMessages" not in filter_settings
+    generic_ids = [f["id"] for f in filter_settings["generic"]["filters"]]
+    assert "log-message" not in generic_ids
+    assert "trace-metric-name" not in generic_ids

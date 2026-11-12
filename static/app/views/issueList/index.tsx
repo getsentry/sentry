@@ -16,10 +16,11 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {usePrevious} from 'sentry/utils/usePrevious';
-import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssueViewQueryParams';
-import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useSelectedGroupSeachView';
-import type {GroupSearchView} from 'sentry/views/issueList/types';
 import {useUpdateGroupSearchViewLastVisited} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useUpdateGroupSearchViewLastVisited';
+
+import {getIssueViewQueryParams} from './issueViews/getIssueViewQueryParams';
+import {useSelectedGroupSearchView} from './issueViews/useSelectedGroupSeachView';
+import type {GroupSearchView} from './types';
 
 type Props = {
   children: React.ReactNode;
@@ -65,6 +66,7 @@ function useHydrateIssueViewQueryParams({view}: {view: GroupSearchView | undefin
         {replace: true}
       );
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [view, previousViewData, navigate, organization.slug]);
 }
 
@@ -116,7 +118,7 @@ export function IssueListContainer({children, title = t('Issues')}: Props) {
   return (
     <SentryDocumentTitle title={title} orgSlug={organization.slug}>
       <AnalyticsArea name="issue_list">
-        <AiQueryProvider>
+        <AiQueryProvider strategy="Issues">
           <IssueViewWrapper>{children}</IssueViewWrapper>
         </AiQueryProvider>
       </AnalyticsArea>

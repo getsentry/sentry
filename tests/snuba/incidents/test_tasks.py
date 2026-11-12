@@ -4,7 +4,10 @@ from functools import cached_property
 from arroyo.utils import metrics
 
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
-from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+from sentry.incidents.utils.types import (
+    DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+    QuerySubscriptionUpdate,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.snuba.query_subscriptions.consumer import subscriber_registry
@@ -68,7 +71,6 @@ class HandleSnubaQueryUpdateTest(TestCase):
             created_by_id=self.user.id,
             config={
                 "detection_type": "static",  # Required for MetricIssue detectors
-                "comparison_delta": None,
             },
         )
 
@@ -130,32 +132,33 @@ class HandleSnubaQueryUpdateTest(TestCase):
         original_callback = subscriber_registry[INCIDENTS_SNUBA_SUBSCRIPTION_TYPE]
         callback_invoked = []
 
-        def shutdown_callback(*args, **kwargs):
+        def shutdown_callback(
+            update: QuerySubscriptionUpdate, subscription: QuerySubscription
+        ) -> None:
             # We want to just exit after the callback so that we can see the result of
             # processing.
             callback_invoked.append(True)
-            original_callback(*args, **kwargs)
+            original_callback(update, subscription)
 
         subscriber_registry[INCIDENTS_SNUBA_SUBSCRIPTION_TYPE] = shutdown_callback
 
-        with self.feature("organizations:incidents"):
-            with self.tasks(), self.capture_on_commit_callbacks(execute=True):
-                # Integration test: verify taskbroker raw mode successfully processes
-                # subscription updates through the workflow engine without error.
-                _process_subscription_message(json.dumps(message).encode(), Dataset.Metrics)
+        with self.tasks(), self.capture_on_commit_callbacks(execute=True):
+            # Integration test: verify taskbroker raw mode successfully processes
+            # subscription updates through the workflow engine without error.
+            _process_subscription_message(json.dumps(message).encode(), Dataset.Metrics)
 
-            # Verify the callback was invoked
-            assert callback_invoked, "Subscription processor callback should have been invoked"
+        # Verify the callback was invoked
+        assert callback_invoked, "Subscription processor callback should have been invoked"
 
-            # Verify workflow engine evaluated the detector correctly
-            detector_state = DetectorState.objects.filter(detector=self.detector).first()
-            assert detector_state is not None
-            assert detector_state.is_triggered
+        # Verify workflow engine evaluated the detector correctly
+        detector_state = DetectorState.objects.filter(detector=self.detector).first()
+        assert detector_state is not None
+        assert detector_state.is_triggered
 
-            # Note: This test verifies subscription processing through the workflow engine.
-            # IssueOccurrences are created but not persisted to Groups in this test since
-            # that would require the occurrence consumer to be running, which is outside
-            # the scope of this taskbroker raw-mode integration test.
+        # Note: This test verifies subscription processing through the workflow engine.
+        # IssueOccurrences are created but not persisted to Groups in this test since
+        # that would require the occurrence consumer to be running, which is outside
+        # the scope of this taskbroker raw-mode integration test.
 
     def test_raw_subscription_task(self) -> None:
         self.run_test()

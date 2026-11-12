@@ -1,10 +1,11 @@
+import sentry_sdk
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.helpers.actionable_items_helper import (
     ActionPriority,
@@ -30,12 +31,15 @@ class ActionableItemsEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
 
     def get(self, request: Request, project: Project, event_id: str) -> Response:
         # Retrieve information about actionable items (source maps, event errors, etc.) for a given event.
         event = eventstore.backend.get_event_by_id(project.id, event_id)
         if event is None:
             raise NotFound(detail="Event not found")
+
+        sentry_sdk.set_attribute("event.type", event.get_event_type())
 
         actions = []
         event_errors = event.data.get("errors", [])

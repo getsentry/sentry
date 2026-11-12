@@ -1,18 +1,18 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
-import {
-  OnboardingCopyMarkdownButton,
-  useCopySetupInstructionsEnabled,
-} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {
   StepIndexProvider,
   TabSelectionScope,
@@ -35,7 +35,6 @@ import {profiling as profilingPlatforms} from 'sentry/data/platformCategories';
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Project} from 'sentry/types/project';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
@@ -150,14 +149,14 @@ function OnboardingPanel({
         <AuthTokenGeneratorProvider projectSlug={project?.slug}>
           <TabSelectionScope>
             <div>
-              <HeaderWrapper>
-                <HeaderText>
+              <Flex justify="between" gap="2xl" radius="md" padding="3xl">
+                <Container flex={{zero: 1, xl: 0.65}}>
                   <Title>{t('Find Slow Code')}</Title>
-                  <SubTitle>
+                  <Container marginBottom="md">
                     {t(
                       'Use aggregated profiling data to find the slowest code paths in your app and to identify functions that have regressed in performance.'
                     )}
-                  </SubTitle>
+                  </Container>
                   <BulletList>
                     <li>
                       {t(
@@ -175,20 +174,22 @@ function OnboardingPanel({
                       )}
                     </li>
                   </BulletList>
-                </HeaderText>
-                <Image src={emptyTraceImg} />
-              </HeaderWrapper>
+                </Container>
+                <Container display={{zero: 'none', xl: 'block'}}>
+                  {imageProps => <Image {...imageProps} src={emptyTraceImg} />}
+                </Container>
+              </Flex>
               <Divider />
               <Body>
                 <Setup>{children}</Setup>
-                <Preview>
+                <Container padding="3xl">
                   <BodyTitle>{t('Preview a Sentry Profile')}</BodyTitle>
                   <Arcade
                     src="https://demo.arcade.software/BSKubAMPPaF4N5hujNbi?embed"
                     loading="lazy"
                     allowFullScreen
                   />
-                </Preview>
+                </Container>
               </Body>
             </div>
           </TabSelectionScope>
@@ -200,10 +201,12 @@ function OnboardingPanel({
 
 export function Onboarding() {
   const api = useApi();
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const {isSelfHosted, urlPrefix} = useStore(
+    ConfigStore,
+    useShallow(state => ({isSelfHosted: state.isSelfHosted, urlPrefix: state.urlPrefix}))
+  );
   const project = useOnboardingProject();
   const organization = useOrganization();
-  const copyEnabled = useCopySetupInstructionsEnabled();
 
   const currentPlatform = project?.platform
     ? platforms.find(p => p.id === project.platform)
@@ -292,7 +295,6 @@ export function Onboarding() {
         ? 'continuous'
         : 'transaction',
     },
-    newOrg: false,
     urlPrefix,
     isSelfHosted,
   };
@@ -321,7 +323,7 @@ export function Onboarding() {
             stepIndex={index}
             isLastStep={index === steps.length - 1}
             trailingItems={
-              index === 0 && copyEnabled ? (
+              index === 0 ? (
                 <OnboardingCopyMarkdownButton
                   borderless
                   steps={steps}
@@ -363,10 +365,6 @@ const PulsingIndicator = styled('div')`
   flex-shrink: 0;
 `;
 
-const SubTitle = styled('div')`
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
 const Title = styled('div')`
   font-size: 26px;
   font-weight: ${p => p.theme.font.weight.sans.medium};
@@ -379,22 +377,6 @@ const BulletList = styled('ul')`
 
   li {
     margin-bottom: ${p => p.theme.space.md};
-  }
-`;
-
-const HeaderWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  gap: ${p => p.theme.space['2xl']};
-  border-radius: ${p => p.theme.radius.md};
-  padding: ${p => p.theme.space['3xl']};
-`;
-
-const HeaderText = styled('div')`
-  flex: 0.65;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    flex: 1;
   }
 `;
 
@@ -411,10 +393,6 @@ const Setup = styled('div')`
   }
 `;
 
-const Preview = styled('div')`
-  padding: ${p => p.theme.space['3xl']};
-`;
-
 const Body = styled('div')`
   display: grid;
   position: relative;
@@ -427,20 +405,15 @@ const Body = styled('div')`
 `;
 
 const Image = styled('img')`
-  display: block;
   pointer-events: none;
   height: 120px;
   overflow: hidden;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
 `;
 
 const Divider = styled('hr')`
   height: 1px;
   width: 95%;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.primary};
   border: none;
   margin-top: 0;

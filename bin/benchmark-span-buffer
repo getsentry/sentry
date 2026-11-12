@@ -1,0 +1,354 @@
+#!/usr/bin/env python3
+"""Benchmark one or more versions of the span-buffer Lua script.
+
+Examples:
+
+  .venv/bin/python bin/benchmark-span-buffer \
+    --git-ref baseline=master \
+    --git-ref candidate=HEAD
+"""
+
+from __future__ import annotations
+
+import argparse
+import itertools
+import logging
+import math
+import random
+import statistics
+import subprocess
+import time
+from collections import defaultdict
+from collections.abc import Callable, Sequence
+from pathlib import Path
+
+import redis
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+LUA_SCRIPT_PATH = "src/sentry/scripts/spans/add-buffer.lua"
+TIMEOUT = 3600
+MAX_SEGMENT_BYTES = 10 * 1024 * 1024
+
+logger = logging.getLogger()
+
+type Call = tuple[str, list[str | int]]
+type Workload = Callable[[random.Random], list[Call]]
+
+
+def random_hex(rng: random.Random, length: int) -> str:
+    return f"{rng.getrandbits(length * 4):0{length}x}"
+
+
+def fresh_calls(rng: random.Random, count: int, num_spans: int) -> list[Call]:
+    """Generate isolated subsegment calls, each for a new trace.
+
+    This measures the base ingestion path and how its cost scales with the number of
+    spans in one call. Every call starts without redirect, counter, or member-key
+    state, and does not exercise segment merging, size detachment, or flush locks.
+    Results are relevant to first-seen subsegments and to comparing per-span overhead
+    across batch sizes.
+    """
+    calls: list[Call] = []
+    for _ in range(count):
+        trace = f"1:{random_hex(rng, 32)}"
+        parent = random_hex(rng, 16)
+        span_ids = [random_hex(rng, 16) for _ in range(num_spans)]
+        calls.append(
+            (
+                trace,
+                [
+                    num_spans,
+                    parent,
+                    "false",
+                    TIMEOUT,
+                    500 * num_spans,
+                    MAX_SEGMENT_BYTES,
+                    random_hex(rng, 32),
+                    "false",
+                ]
+                + span_ids,
+            )
+        )
+    return calls
+
+
+def trace_calls(rng: random.Random, num_traces: int, num_spans: int) -> list[Call]:
+    """Generate ten subsegment calls that accumulate into each trace's root segment.
+
+    The first call contains the root span and the following nine calls target that
+    same root, exercising repeated updates to existing redirect, counter, and
+    member-key state without merging independently buffered child segments. Results
+    are relevant when traces arrive in several small, ordered batches whose common
+    segment is already known.
+    """
+    calls: list[Call] = []
+    for _ in range(num_traces):
+        trace = f"1:{random_hex(rng, 32)}"
+        root = random_hex(rng, 16)
+        for index in range(10):
+            if index == 0:
+                span_ids = [root] + [random_hex(rng, 16) for _ in range(num_spans - 1)]
+                has_root = "true"
+            else:
+                span_ids = [random_hex(rng, 16) for _ in range(num_spans)]
+                has_root = "false"
+            calls.append(
+                (
+                    trace,
+                    [
+                        num_spans,
+                        root,
+                        has_root,
+                        TIMEOUT,
+                        500 * num_spans,
+                        MAX_SEGMENT_BYTES,
+                        random_hex(rng, 32),
+                        "false",
+                    ]
+                    + span_ids,
+                )
+            )
+    return calls
+
+
+def merge_calls(rng: random.Random, num_traces: int) -> list[Call]:
+    """Generate three buffered child segments and a call that merges them into a parent.
+
+    Each child is ingested as a separate two-span segment before a five-span parent
+    subsegment references all three child roots. This exercises child counter reads,
+    member-set merging, redirect updates, and cleanup of superseded child metadata.
+    Results are relevant to out-of-order traces where child subtrees arrive before
+    the subsegment that connects them.
+    """
+    calls: list[Call] = []
+    for _ in range(num_traces):
+        trace = f"1:{random_hex(rng, 32)}"
+        children = [random_hex(rng, 16) for _ in range(3)]
+        for child in children:
+            calls.append(
+                (
+                    trace,
+                    [
+                        2,
+                        child,
+                        "false",
+                        TIMEOUT,
+                        1000,
+                        MAX_SEGMENT_BYTES,
+                        random_hex(rng, 32),
+                        "false",
+                    ]
+                    + [random_hex(rng, 16), random_hex(rng, 16)],
+                )
+            )
+        calls.append(
+            (
+                trace,
+                [
+                    5,
+                    random_hex(rng, 16),
+                    "false",
+                    TIMEOUT,
+                    2500,
+                    MAX_SEGMENT_BYTES,
+                    random_hex(rng, 32),
+                    "false",
+                ]
+                + children
+                + [random_hex(rng, 16), random_hex(rng, 16)],
+            )
+        )
+    return calls
+
+
+WORKLOADS: dict[str, Workload] = {
+    "fresh_n1": lambda rng: fresh_calls(rng, 20_000, 1),
+    "fresh_n5": lambda rng: fresh_calls(rng, 20_000, 5),
+    "fresh_n20": lambda rng: fresh_calls(rng, 10_000, 20),
+    "fresh_n100": lambda rng: fresh_calls(rng, 3_000, 100),
+    "fresh_n200": lambda rng: fresh_calls(rng, 3_000, 200),
+    "trace10_n5": lambda rng: trace_calls(rng, 2_000, 5),
+    "trace10_n20": lambda rng: trace_calls(rng, 1_000, 20),
+    "trace10_n100": lambda rng: trace_calls(rng, 300, 100),
+    "trace10_n200": lambda rng: trace_calls(rng, 300, 200),
+    "merge3": lambda rng: merge_calls(rng, 5_000),
+}
+
+
+def parse_variant(value: str) -> tuple[str, str]:
+    name, separator, source = value.partition("=")
+    if not separator or not name or not source:
+        raise argparse.ArgumentTypeError("variants must be written as NAME=PATH_OR_REF")
+    return name, source
+
+
+def load_scripts(
+    client: redis.Redis[bytes],
+    script_variants: Sequence[tuple[str, str]],
+    git_ref_variants: Sequence[tuple[str, str]],
+) -> dict[str, str]:
+    scripts: dict[str, str] = {}
+    for name, path in script_variants:
+        scripts[name] = Path(path).read_text()
+    for name, ref in git_ref_variants:
+        result = subprocess.run(
+            ["git", "show", f"{ref}:{LUA_SCRIPT_PATH}"],
+            cwd=REPO_ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        scripts[name] = result.stdout
+
+    if len(scripts) < 2:
+        raise ValueError("supply at least two --script and/or --git-ref variants")
+    return {name: client.script_load(script) for name, script in scripts.items()}
+
+
+def evalsha_stats(client: redis.Redis[bytes]) -> tuple[int, int]:
+    commandstats = client.info("commandstats")
+    stats = commandstats.get("cmdstat_evalsha", {"calls": 0, "usec": 0})
+    return int(stats["calls"]), int(stats["usec"])
+
+
+def run_calls(
+    client: redis.Redis[bytes],
+    sha: str,
+    calls: Sequence[Call],
+    metrics_sample_rate: int,
+) -> tuple[float, float, list[int]]:
+    calls_before, usec_before = evalsha_stats(client)
+    wall_start = time.perf_counter()
+    latencies_us: list[int] = []
+    call_iter = iter(calls)
+    while block := list(itertools.islice(call_iter, 500)):
+        with client.pipeline(transaction=False) as pipeline:
+            for trace, args in block:
+                full_args = args[:8] + [metrics_sample_rate] + args[8:]
+                pipeline.execute_command("EVALSHA", sha, 1, trace, *full_args)
+            responses = pipeline.execute()
+        for response in responses:
+            if not isinstance(response, list) or len(response) < 3:
+                raise RuntimeError(f"unexpected EVALSHA response: {response!r}")
+            latency_us = response[2]
+            if not isinstance(latency_us, int):
+                raise RuntimeError(f"unexpected latency value: {latency_us!r}")
+            if latency_us >= 0:
+                latencies_us.append(latency_us)
+    wall_seconds = time.perf_counter() - wall_start
+    calls_after, usec_after = evalsha_stats(client)
+    if calls_after - calls_before != len(calls):
+        raise RuntimeError(f"expected {len(calls)} EVALSHA calls, got {calls_after - calls_before}")
+    return (usec_after - usec_before) / len(calls), wall_seconds, latencies_us
+
+
+def nearest_rank(sorted_values: Sequence[int], percentile: float) -> int:
+    """Return a percentile from non-empty sorted values using the nearest-rank method."""
+    return sorted_values[math.ceil(percentile * len(sorted_values)) - 1]
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--script",
+        action="append",
+        type=parse_variant,
+        default=[],
+        metavar="NAME=PATH",
+        help="load a Lua script from a filesystem path; repeat for each variant",
+    )
+    parser.add_argument(
+        "--git-ref",
+        action="append",
+        type=parse_variant,
+        default=[],
+        metavar="NAME=REVISION",
+        help=f"load {LUA_SCRIPT_PATH} from a Git revision; repeat for each variant",
+    )
+    parser.add_argument("--host", default="127.0.0.1")
+    parser.add_argument("--port", default=6379, type=int)
+    parser.add_argument("--db", default=13, type=int)
+    parser.add_argument("--trials", default=3, type=int)
+    parser.add_argument(
+        "--metrics-sample-rate",
+        default=1,
+        type=int,
+        help=(
+            "sample metrics and per-call latency on one call in N; default: 1 to measure every call"
+        ),
+    )
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+    if args.trials < 1:
+        raise ValueError("--trials must be at least 1")
+    if args.metrics_sample_rate < 1:
+        raise ValueError("--metrics-sample-rate must be at least 1")
+
+    client = redis.Redis(host=args.host, port=args.port, db=args.db)
+    client.ping()
+    if client.dbsize() != 0:
+        logger.critical(f"Redis database {args.db} is not empty; refusing to flush it.")
+        return 2
+
+    variants = load_scripts(client, args.script, args.git_ref)
+    batch_results: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
+    latency_results: dict[str, dict[str, list[int]]] = defaultdict(lambda: defaultdict(list))
+    names = list(variants)
+    try:
+        for trial in range(args.trials):
+            for workload_name, workload in WORKLOADS.items():
+                calls = workload(random.Random(f"{workload_name}:{trial}"))
+                order = names[trial % len(names) :] + names[: trial % len(names)]
+                for name in order:
+                    client.flushdb()
+                    usec, wall_seconds, latencies_us = run_calls(
+                        client,
+                        variants[name],
+                        calls,
+                        args.metrics_sample_rate,
+                    )
+                    batch_results[workload_name][name].append(usec)
+                    latency_results[workload_name][name].extend(latencies_us)
+                    logger.critical(
+                        f"trial={trial} workload={workload_name} variant={name} "
+                        f"server_usec_per_call={usec:.2f} wall_seconds={wall_seconds:.2f}"
+                    )
+    finally:
+        client.flushdb()
+
+    baseline = names[0]
+    logger.critical(f"\nBatch-average medians (server usec/call; delta versus {baseline})")
+    for workload_name in WORKLOADS:
+        baseline_value = statistics.median(batch_results[workload_name][baseline])
+        logger.critical(workload_name)
+        for name in names:
+            median = statistics.median(batch_results[workload_name][name])
+            delta = (median - baseline_value) / baseline_value * 100
+            logger.critical(f"  {name:24} {median:8.2f}  {delta:+6.1f}%")
+
+    logger.critical("\nPer-call Lua latency (usec; sampled calls across all trials)")
+    logger.critical(
+        f"{'workload':16} {'variant':24} {'avg':>10} {'p95':>10} "
+        f"{'p99':>10} {'max':>10} {'samples':>10}"
+    )
+    for workload_name in WORKLOADS:
+        for name in names:
+            latencies_us = sorted(latency_results[workload_name][name])
+            if not latencies_us:
+                logger.critical(f"{workload_name:16} {name:24} {'no samples':>54}")
+                continue
+            logger.critical(
+                f"{workload_name:16} {name:24} "
+                f"{statistics.fmean(latencies_us):10.2f} "
+                f"{nearest_rank(latencies_us, 0.95):10d} "
+                f"{nearest_rank(latencies_us, 0.99):10d} "
+                f"{latencies_us[-1]:10d} {len(latencies_us):10d}"
+            )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

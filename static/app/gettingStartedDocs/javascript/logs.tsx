@@ -25,7 +25,7 @@ export const logs = <PlatformOptions extends BasePlatformOptions = BasePlatformO
         {
           type: 'text',
           text: tct(
-            'Add the Sentry SDK as a dependency. The minimum version of [packageName] that supports logs is [code:9.41.0].',
+            'Add the Sentry SDK as a dependency. These instructions require [packageName] version [code:10.71.0] or later.',
             {
               code: <code />,
               packageName: <code>{packageName}</code>,
@@ -56,7 +56,7 @@ export const logs = <PlatformOptions extends BasePlatformOptions = BasePlatformO
         {
           type: 'text',
           text: tct(
-            'Enable Sentry logs by adding [code:enableLogs: true] to your [code:Sentry.init()] configuration.',
+            'Logs are enabled by default. To also capture your [code:console] logs, add the [code:consoleLoggingIntegration] to your [code:Sentry.init()] configuration.',
             {code: <code />}
           ),
         },
@@ -72,8 +72,6 @@ Sentry.init({
     // send console.log, console.warn, and console.error calls as logs to Sentry
     Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
   ],
-  // Enable logs to be sent to Sentry
-  enableLogs: true,
 });
 `,
         },
@@ -96,7 +94,9 @@ Sentry.init({
       content: [
         {
           type: 'text',
-          text: t('Send a test log from your app to verify logs are arriving in Sentry.'),
+          text: t(
+            'Send a test log from your app, then refresh this page to verify it arrived in Sentry.'
+          ),
         },
         {
           type: 'code',
@@ -104,6 +104,28 @@ Sentry.init({
           code: `import * as Sentry from "${packageName}";
 
 Sentry.logger.info('User triggered test log', { log_source: 'sentry_test' })`,
+        },
+        {
+          type: 'alert',
+          alertType: 'info',
+          text:
+            docsPlatform === 'nextjs'
+              ? tct(
+                  'Already using console.log, Pino, Winston, or Consola? See our [link:integrations].',
+                  {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/logs/#integrations" />
+                    ),
+                  }
+                )
+              : tct(
+                  'Already using console.log? Capture console calls as Sentry Logs with the [link:consoleLoggingIntegration].',
+                  {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/logs/#console-integration" />
+                    ),
+                  }
+                ),
         },
       ],
     },
@@ -126,7 +148,7 @@ export const logsFullStack = <
         {
           type: 'text',
           text: tct(
-            'To add logs make sure [packageName] is up-to-date. The minimum version of [packageName] that supports logs is [code:9.41.0].',
+            'These instructions require [packageName] version [code:10.71.0] or later.',
             {
               code: <code />,
               packageName: <code>{packageName}</code>,
@@ -180,7 +202,7 @@ export const logsFullStack = <
         {
           type: 'text',
           text: tct(
-            'Enable Sentry logs by adding [code:enableLogs: true] to your [code:Sentry.init()] configuration.',
+            'Logs are enabled by default. To also capture your [code:console] logs, add the [code:consoleLoggingIntegration] to your [code:Sentry.init()] configuration.',
             {code: <code />}
           ),
         },
@@ -196,8 +218,6 @@ Sentry.init({
     // send console.log, console.warn, and console.error calls as logs to Sentry
     Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
   ],
-  // Enable logs to be sent to Sentry
-  enableLogs: true,
 });
 `,
         },
@@ -221,7 +241,7 @@ Sentry.init({
         {
           type: 'text',
           text: t(
-            'To confirm that logs are working correctly, run your application and check the Sentry logs page for the collected logs.'
+            'Send a test log from your app, then refresh this page to verify it arrived in Sentry.'
           ),
         },
         {
@@ -230,6 +250,28 @@ Sentry.init({
           code: `import * as Sentry from "${packageName}";
 
 Sentry.logger.info('User triggered test log', { log_source: 'sentry_test' })`,
+        },
+        {
+          type: 'alert',
+          alertType: 'info',
+          text:
+            docsPlatform === 'nextjs'
+              ? tct(
+                  'Already using console.log, Pino, Winston, or Consola? See our [link:integrations].',
+                  {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/logs/#integrations" />
+                    ),
+                  }
+                )
+              : tct(
+                  'Already using console.log? Capture console calls as Sentry Logs with the [link:consoleLoggingIntegration].',
+                  {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/logs/#console-integration" />
+                    ),
+                  }
+                ),
         },
       ],
     },

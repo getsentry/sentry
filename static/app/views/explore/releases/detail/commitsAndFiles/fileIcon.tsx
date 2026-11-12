@@ -1,7 +1,7 @@
+import {IconFile} from '@sentry/icons/file';
+import {SvgIcon} from '@sentry/icons/svgIcon';
 import {PlatformIcon} from 'platformicons';
 
-import {IconFile} from 'sentry/icons';
-import {SvgIcon} from 'sentry/icons/svgIcon';
 import {fileExtensionToPlatform, getFileExtension} from 'sentry/utils/fileExtension';
 
 interface FileIconProps {

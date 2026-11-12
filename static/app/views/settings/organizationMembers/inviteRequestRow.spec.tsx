@@ -11,9 +11,11 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {OrgRole} from 'sentry/types/organization';
-import {InviteRequestRow} from 'sentry/views/settings/organizationMembers/inviteRequestRow';
+
+import {InviteRequestRow} from './inviteRequestRow';
 
 const roles: OrgRole[] = [
   {
@@ -73,7 +75,8 @@ describe('InviteRequestRow', () => {
         onDeny={() => {}}
         onUpdate={() => {}}
         allRoles={roles}
-      />
+      />,
+      {additionalWrapper: SimpleTable}
     );
 
     expect(screen.getByText(inviteRequest.email)).toBeInTheDocument();
@@ -92,7 +95,8 @@ describe('InviteRequestRow', () => {
         onDeny={() => {}}
         onUpdate={() => {}}
         allRoles={roles}
-      />
+      />,
+      {additionalWrapper: SimpleTable}
     );
 
     expect(screen.getByText(joinRequest.email)).toBeInTheDocument();
@@ -113,7 +117,8 @@ describe('InviteRequestRow', () => {
         onDeny={mockDeny}
         onUpdate={() => {}}
         allRoles={roles}
-      />
+      />,
+      {additionalWrapper: SimpleTable}
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Approve'}));
@@ -138,7 +143,8 @@ describe('InviteRequestRow', () => {
         onDeny={mockDeny}
         onUpdate={() => {}}
         allRoles={roles}
-      />
+      />,
+      {additionalWrapper: SimpleTable}
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Deny'}));
@@ -157,11 +163,18 @@ describe('InviteRequestRow', () => {
         onDeny={() => {}}
         onUpdate={() => {}}
         allRoles={roles}
-      />
+      />,
+      {additionalWrapper: SimpleTable}
     );
 
-    expect(screen.getByRole('button', {name: 'Approve'})).toBeDisabled();
-    expect(screen.getByRole('button', {name: 'Deny'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Approve'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('button', {name: 'Deny'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('admin can change role and teams', async () => {
@@ -177,6 +190,11 @@ describe('InviteRequestRow', () => {
       TeamFixture({id: '1', slug: 'one'}),
       TeamFixture({id: '2', slug: 'two'}),
     ]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${orgWithAdminAccess.slug}/teams/`,
+      match: [MockApiClient.matchQuery({query: 'slug:myteam'})],
+      body: [TeamFixture({id: '3', slug: 'myteam'})],
+    });
     const mockUpdate = jest.fn();
 
     render(
@@ -188,16 +206,22 @@ describe('InviteRequestRow', () => {
         onDeny={() => {}}
         onUpdate={mockUpdate}
         allRoles={roles}
-      />
+      />,
+      {additionalWrapper: SimpleTable}
     );
 
     // Select role from first select input
-    await selectEvent.select(screen.getAllByRole('textbox')[0]!, 'Member');
+    await selectEvent.select(screen.getAllByRole('textbox')[0]!, 'Member', {
+      container: document.body,
+    });
     expect(mockUpdate).toHaveBeenCalledWith({role: 'member'});
 
     // Select teams from first select input
-    await selectEvent.select(screen.getAllByRole('textbox')[1]!, ['#one']);
-    expect(mockUpdate).toHaveBeenCalledWith({teams: ['one']});
+    expect(await screen.findByText('#myteam')).toBeInTheDocument();
+    await selectEvent.select(screen.getAllByRole('textbox')[1]!, ['#one'], {
+      container: document.body,
+    });
+    expect(mockUpdate).toHaveBeenCalledWith({teams: ['myteam', 'one']});
 
     TeamStore.reset();
   });
@@ -222,9 +246,13 @@ describe('InviteRequestRow', () => {
         onDeny={() => {}}
         onUpdate={mockUpdate}
         allRoles={roles}
-      />
+      />,
+      {additionalWrapper: SimpleTable}
     );
 
-    expect(screen.getByRole('button', {name: 'Approve'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Approve'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 });

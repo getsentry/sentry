@@ -15,6 +15,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {GlobalModal} from '@sentry/scraps/modal';
+import * as modalActions from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
 import {
   CMDKCollection,
@@ -25,7 +27,6 @@ import type {CollectionTreeNode} from 'sentry/components/commandPalette/ui/colle
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {mockTour} from 'sentry/components/tours/testUtils';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {ModalStore} from 'sentry/stores/modalStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {GroupStatus, IssueCategory, PriorityLevel, type Group} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
@@ -92,16 +93,13 @@ describe('GroupActions', () => {
   const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
   beforeEach(() => {
+    toast.dismiss();
     ConfigStore.init();
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/users/`,
       body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/events//committers/`,
-      body: {committers: []},
     });
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/events//owners/`,
@@ -116,6 +114,14 @@ describe('GroupActions', () => {
       },
     });
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+      body: {autofix: null},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/onboarding-check/`,
+      body: {isSeerConfigured: false},
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/coding-agents/`,
       body: {integrations: []},
     });
@@ -127,12 +133,9 @@ describe('GroupActions', () => {
 
   describe('render()', () => {
     it('renders correctly', async () => {
-      render(
-        <GroupActions group={group} project={project} disabled={false} event={null} />,
-        {
-          organization,
-        }
-      );
+      render(<GroupActions group={group} project={project} event={null} />, {
+        organization,
+      });
       expect(await screen.findByRole('button', {name: 'Resolve'})).toBeInTheDocument();
     });
   });
@@ -148,12 +151,9 @@ describe('GroupActions', () => {
     });
 
     it('can subscribe', async () => {
-      render(
-        <GroupActions group={group} project={project} disabled={false} event={null} />,
-        {
-          organization,
-        }
-      );
+      render(<GroupActions group={group} project={project} event={null} />, {
+        organization,
+      });
       await userEvent.click(screen.getByRole('button', {name: 'Subscribe'}));
 
       expect(issuesApi).toHaveBeenCalledWith(
@@ -177,12 +177,9 @@ describe('GroupActions', () => {
     });
 
     it('can bookmark', async () => {
-      render(
-        <GroupActions group={group} project={project} disabled={false} event={null} />,
-        {
-          organization,
-        }
-      );
+      render(<GroupActions group={group} project={project} event={null} />, {
+        organization,
+      });
 
       await userEvent.click(screen.getByLabelText('More Actions'));
 
@@ -198,18 +195,71 @@ describe('GroupActions', () => {
     });
   });
 
+  describe('impact assessment', () => {
+    const organizationWithImpactAssessment = OrganizationFixture({
+      ...organization,
+      features: ['seer-impact-assessment'],
+    });
+
+    it('is hidden without the feature', async () => {
+      render(<GroupActions group={group} project={project} event={null} />, {
+        organization,
+      });
+
+      await userEvent.click(screen.getByLabelText('More Actions'));
+
+      expect(
+        screen.queryByRole('menuitemradio', {name: /Assess impact/})
+      ).not.toBeInTheDocument();
+    });
+
+    it('starts an impact assessment and shows the internal feature badge', async () => {
+      const request = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/impact/assess/`,
+        method: 'POST',
+        body: {runId: '8a8551a0-2ace-4b70-ae23-1cc670df5abc'},
+      });
+      render(<GroupActions group={group} project={project} event={null} />, {
+        organization: organizationWithImpactAssessment,
+      });
+
+      await userEvent.click(screen.getByLabelText('More Actions'));
+      expect(screen.getByLabelText('alpha')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('menuitemradio', {name: /Assess impact/}));
+
+      await waitFor(() => expect(request).toHaveBeenCalled());
+      expect(await screen.findByText('Impact assessment started')).toBeInTheDocument();
+    });
+
+    it('shows an error when the impact assessment cannot be started', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/impact/assess/`,
+        method: 'POST',
+        statusCode: 500,
+        body: {detail: 'Internal error'},
+      });
+      render(<GroupActions group={group} project={project} event={null} />, {
+        organization: organizationWithImpactAssessment,
+      });
+
+      await userEvent.click(screen.getByLabelText('More Actions'));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: /Assess impact/}));
+
+      expect(
+        await screen.findByText('Unable to start impact assessment')
+      ).toBeInTheDocument();
+    });
+  });
+
   describe('reprocessing', () => {
     it('renders ReprocessAction component if org has native exception event', async () => {
       const event = EventStacktraceExceptionFixture({
         platform: 'native',
       });
 
-      render(
-        <GroupActions group={group} project={project} event={event} disabled={false} />,
-        {
-          organization,
-        }
-      );
+      render(<GroupActions group={group} project={project} event={event} />, {
+        organization,
+      });
 
       await userEvent.click(screen.getByLabelText('More Actions'));
 
@@ -222,14 +272,11 @@ describe('GroupActions', () => {
         platform: 'native',
       });
 
-      render(
-        <GroupActions group={group} project={project} event={event} disabled={false} />,
-        {
-          organization,
-        }
-      );
+      render(<GroupActions group={group} project={project} event={event} />, {
+        organization,
+      });
 
-      const onReprocessEventFunc = jest.spyOn(ModalStore, 'openModal');
+      const onReprocessEventFunc = jest.spyOn(modalActions, 'openModal');
 
       await userEvent.click(screen.getByLabelText('More Actions'));
 
@@ -265,7 +312,7 @@ describe('GroupActions', () => {
       const {router} = render(
         <Fragment>
           <GlobalModal />
-          <GroupActions group={group} project={project} disabled={false} event={null} />
+          <GroupActions group={group} project={project} event={null} />
         </Fragment>,
         {
           organization: org,
@@ -290,6 +337,44 @@ describe('GroupActions', () => {
           query: {project: project.id},
         })
       );
+    });
+
+    it('does not report success or navigate when deletion fails', async () => {
+      const org = OrganizationFixture({
+        ...organization,
+        access: [...organization.access, 'event:admin'],
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/${project.slug}/issues/`,
+        method: 'DELETE',
+        statusCode: 500,
+      });
+      const initialPath = `/organizations/${org.slug}/issues/${group.id}/`;
+      const {router} = render(
+        <Fragment>
+          <GlobalModal />
+          <GroupActions group={group} project={project} event={null} />
+        </Fragment>,
+        {
+          organization: org,
+          initialRouterConfig: {
+            location: {pathname: initialPath},
+            route: '/organizations/:orgId/issues/:groupId/',
+          },
+        }
+      );
+
+      await userEvent.click(screen.getByLabelText('More Actions'));
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
+      await userEvent.click(
+        within(screen.getByRole('dialog')).getByRole('button', {name: 'Delete'})
+      );
+
+      expect(
+        await screen.findByText('Unable to delete events. Please try again.')
+      ).toBeInTheDocument();
+      expect(screen.queryByText('Issue deleted')).not.toBeInTheDocument();
+      expect(router.location.pathname).toBe(initialPath);
     });
 
     it('delete for issue platform', async () => {
@@ -319,7 +404,7 @@ describe('GroupActions', () => {
           <GroupActions
             group={issuePlatformGroup}
             project={project}
-            disabled={false}
+
             event={null}
           />
         </Fragment>,
@@ -357,7 +442,7 @@ describe('GroupActions', () => {
     });
 
     const {rerender} = render(
-      <GroupActions group={group} project={project} disabled={false} event={null} />,
+      <GroupActions group={group} project={project} event={null} />,
       {organization}
     );
 
@@ -380,7 +465,7 @@ describe('GroupActions', () => {
       <GroupActions
         group={{...group, status: GroupStatus.RESOLVED, statusDetails: {}}}
         project={project}
-        disabled={false}
+
         event={null}
       />
     );
@@ -395,6 +480,95 @@ describe('GroupActions', () => {
     );
   });
 
+  it('reports the alert params from the URL when resolving', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/project/issues/`,
+      method: 'PUT',
+      body: {...group, status: 'resolved'},
+    });
+
+    render(<GroupActions group={group} project={project} event={null} />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/issues/${group.id}/`,
+          query: {alert_date: '1700000000000', alert_rule_id: '123', alert_type: 'email'},
+        },
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+
+    expect(analyticsSpy).toHaveBeenCalledWith(
+      'issue_details.action_clicked',
+      expect.objectContaining({
+        action_type: 'resolved',
+        alert_date: '2023-11-14T22:13:20',
+        alert_rule_id: '123',
+        alert_type: 'email',
+      })
+    );
+  });
+
+  it('does not report success when resolving fails', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/project/issues/`,
+      method: 'PUT',
+      statusCode: 500,
+    });
+
+    render(
+      <Fragment>
+        <GroupActions group={group} project={project} event={null} />
+      </Fragment>,
+      {organization}
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+
+    expect(
+      await screen.findByText('Unable to update events. Please try again.')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Issue resolved')).not.toBeInTheDocument();
+  });
+
+  it('refetches group data when resolving fails', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/project/issues/`,
+      method: 'PUT',
+      statusCode: 500,
+    });
+    const groupFetchApi = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/`,
+      method: 'GET',
+      body: group,
+    });
+
+    function GroupActionsWrapper() {
+      const {data: groupData, isLoading} = useGroup({groupId: group.id});
+
+      if (isLoading || !groupData) {
+        return <div>Loading...</div>;
+      }
+
+      return <GroupActions group={groupData} project={project} event={null} />;
+    }
+
+    render(
+      <Fragment>
+        <GroupActionsWrapper />
+      </Fragment>,
+      {organization}
+    );
+
+    await waitFor(() => expect(groupFetchApi).toHaveBeenCalledTimes(1));
+    await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
+    expect(
+      await screen.findByText('Unable to update events. Please try again.')
+    ).toBeInTheDocument();
+    await waitFor(() => expect(groupFetchApi).toHaveBeenCalledTimes(2));
+  });
+
   it('can archive issue', async () => {
     const issuesApi = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/project/issues/`,
@@ -402,12 +576,9 @@ describe('GroupActions', () => {
       body: {...group, status: 'resolved'},
     });
 
-    render(
-      <GroupActions group={group} project={project} disabled={false} event={null} />,
-      {
-        organization,
-      }
-    );
+    render(<GroupActions group={group} project={project} event={null} />, {
+      organization,
+    });
 
     await userEvent.click(await screen.findByRole('button', {name: 'Archive'}));
 
@@ -451,9 +622,7 @@ describe('GroupActions', () => {
         return <div>Loading...</div>;
       }
 
-      return (
-        <GroupActions group={groupData} project={project} disabled={false} event={null} />
-      );
+      return <GroupActions group={groupData} project={project} event={null} />;
     }
 
     render(<GroupActionsWrapper />, {organization});
@@ -502,7 +671,7 @@ describe('GroupActions', () => {
           <GroupActions
             group={commandGroup}
             project={project}
-            disabled={false}
+
             event={null}
           />
           <SlotOutlets />

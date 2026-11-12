@@ -1,33 +1,37 @@
+import {BroadcastFixture} from 'sentry-fixture/broadcast';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
+import {setWindowLocation} from 'sentry-test/utils';
+
+import {closeModal} from '@sentry/scraps/modal';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import * as intercom from 'sentry/utils/intercom';
-import {PrimaryNavigationHelpMenu} from 'sentry/views/navigation/primary/helpMenu';
 
-jest.mock('sentry/views/navigation/navigationTour', () => ({
-  useNavigationTour: jest.fn(() => ({
-    startTour: jest.fn(),
-  })),
-  NavigationTourReminder: ({children}: {children: React.ReactNode}) => (
-    <div>{children}</div>
-  ),
-}));
+import {PrimaryNavigationHelpMenu, useWhatsNewHelpMenuItem} from './helpMenu';
+
+function HelpMenuWithWhatsNew() {
+  const whatsNewOptions = useWhatsNewHelpMenuItem();
+  return <PrimaryNavigationHelpMenu {...whatsNewOptions} />;
+}
 
 jest.mock('sentry/utils/intercom', () => ({
   showIntercom: jest.fn(),
 }));
-
-async function expandResourcesSubmenu() {
-  await userEvent.click(screen.getByRole('button', {name: 'Help'}));
-  await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Resources'}));
-}
+jest.mock('sentry/utils/analytics');
 
 describe('PrimaryNavigationHelpMenu', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    closeModal();
     ConfigStore.set('supportEmail', 'support@sentry.io');
+    setWindowLocation('https://example.test');
   });
 
   it('opens Intercom when contacting support', async () => {
@@ -35,9 +39,27 @@ describe('PrimaryNavigationHelpMenu', () => {
 
     render(<PrimaryNavigationHelpMenu />, {organization});
 
-    await expandResourcesSubmenu();
+    await userEvent.click(screen.getByRole('button', {name: 'Help'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Contact Support'}));
 
     expect(intercom.showIntercom).toHaveBeenCalledWith(organization.slug);
+  });
+
+  it("updates What's New when broadcasts finish loading", async () => {
+    const organization = OrganizationFixture();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/broadcasts/`,
+      match: [MockApiClient.matchQuery({show: 'latest', limit: '3'})],
+      asyncDelay: 100,
+      body: [BroadcastFixture({id: '1', title: 'New Broadcast', hasSeen: true})],
+    });
+
+    render(<HelpMenuWithWhatsNew />, {organization});
+    renderGlobalModal({organization});
+
+    await userEvent.click(screen.getByRole('button', {name: 'Help'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: "What's New"}));
+
+    expect(await screen.findByText('New Broadcast')).toBeInTheDocument();
   });
 });

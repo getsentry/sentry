@@ -1,11 +1,12 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Image} from '@sentry/scraps/image';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {DebugNotificationsPreview} from 'sentry/debug/notifications/components/debugNotificationsPreview';
@@ -24,7 +25,7 @@ export function SlackPreview({
   registration: NotificationTemplateRegistration;
 }) {
   const {body, actions, subject, chart, footer} = registration.example;
-  const previewTime = moment(new Date()).format('h:mm A');
+  const [previewTime] = useState(() => moment(new Date()).format('h:mm A'));
   const blocks = registration.previews[NotificationProviderKey.SLACK];
   const previewLink = `${SLACK_PREVIEW_BASE_URL}#${JSON.stringify(blocks)}`;
   return (
@@ -51,7 +52,7 @@ export function SlackPreview({
             <SlackAppBadge bold>APP</SlackAppBadge>
             <SlackTimeText>{previewTime}</SlackTimeText>
           </Flex>
-          <Flex direction="column" align="start" padding="sm 0" gap="md">
+          <Stack align="start" padding="sm 0" gap="md">
             <SlackBlackText size="xl" bold>
               {subject.map(block => block.text).join(' ')}
             </SlackBlackText>
@@ -70,7 +71,7 @@ export function SlackPreview({
               ))}
             </Flex>
             {chart && (
-              <Flex direction="column" gap="xs">
+              <Stack gap="xs">
                 <Flex align="center" gap="xs">
                   <Text size="xs" variant="muted">
                     (17 kB)
@@ -84,19 +85,19 @@ export function SlackPreview({
                   alt={chart.alt_text}
                   objectFit="contain"
                 />
-              </Flex>
+              </Stack>
             )}
             {footer && (
               <SlackBlackText size="xs" variant="muted">
                 {footer.map(block => block.text).join(' ')}
               </SlackBlackText>
             )}
-          </Flex>
+          </Stack>
         </SlackMessageContainer>
         <Disclosure>
           <Disclosure.Title>BlockKit Payload</Disclosure.Title>
           <Disclosure.Content>
-            <Flex direction="column" align="start" gap="xl">
+            <Stack align="start" gap="xl">
               <Text>
                 Below is the BlockKit JSON payload that will be sent to Slack. For a
                 dynamic preview, use the builder link above. The mock here is static, use
@@ -105,7 +106,7 @@ export function SlackPreview({
               <CodeBlock language="json">
                 {blocks ? JSON.stringify(blocks, null, 2) : ''}
               </CodeBlock>
-            </Flex>
+            </Stack>
           </Disclosure.Content>
         </Disclosure>
       </Container>

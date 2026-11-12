@@ -1,10 +1,11 @@
-import {connect} from 'echarts';
 import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 import trimStart from 'lodash/trimStart';
+import {parseAsJson} from 'nuqs';
 import * as qs from 'query-string';
+import {z} from 'zod';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
 import type {Fidelity} from 'sentry/components/charts/utils';
@@ -16,12 +17,11 @@ import {
 } from 'sentry/components/charts/utils';
 import {normalizeDateTimeString} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilters, PageFilterDatetime} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {EventView} from 'sentry/utils/discover/eventView';
-import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {
   ABYTE_UNITS,
   getAggregateAlias,
@@ -30,23 +30,28 @@ import {
   RateUnit,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
+import {DURATION_UNITS} from 'sentry/utils/discover/fieldUnits';
 import {DisplayModes, type SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
+import {FieldKind} from 'sentry/utils/fields';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {decodeList} from 'sentry/utils/queryString';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+
+import {DEFAULT_STATS_PERIOD} from './data';
 import type {
   DashboardDetails,
   DashboardFilters,
+  GlobalFilter,
   Widget,
   WidgetQuery,
-} from 'sentry/views/dashboards/types';
+} from './types';
 import {
   DashboardFilterKeys,
   DisplayType,
   WIDGET_TYPE_TO_SAVED_QUERY_DATASET,
   WidgetType,
-} from 'sentry/views/dashboards/types';
+} from './types';
 
 type ValidationError = {
   [key: string]: string | string[] | ValidationError[] | ValidationError;
@@ -120,7 +125,7 @@ export function getThresholdUnitSelectOptions(
 
 export function getWidgetInterval(
   widget: Widget,
-  datetimeObj: Partial<PageFilters['datetime']>,
+  datetimeObj: Partial<PageFilterDatetime>,
   widgetIntervalOverride?: string,
   fidelity?: Fidelity
 ): string {
@@ -191,10 +196,9 @@ export function getWidgetDiscoverUrl(
   widget: Widget,
   dashboardFilters: DashboardFilters | undefined,
   selection: PageFilters,
-  organization: Organization,
-  index = 0
+  organization: Organization
 ) {
-  const eventView = eventViewFromWidget(widget.title, widget.queries[index]!, selection);
+  const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
   const discoverLocation = eventView.getResultsViewUrlTarget(
     organization,
     false,
@@ -249,10 +253,10 @@ export function getWidgetDiscoverUrl(
     }
   });
   discoverLocation.query.field = fields;
-  discoverLocation.query.query = applyDashboardFilters(
-    query.conditions,
-    dashboardFilters
-  );
+  discoverLocation.query.query = applyDashboardFilters({
+    baseQuery: query.conditions,
+    dashboardFilters,
+  });
 
   // Pass empty string when projects is empty to preserve "My Projects" selection in URL
   const projectParam =
@@ -278,11 +282,12 @@ export function getWidgetIssueUrl(
       ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
       : {statsPeriod: period};
   const issuesLocation = `/organizations/${organization.slug}/issues/?${qs.stringify({
-    query: applyDashboardFilters(
-      widget.queries?.[0]?.conditions,
+    query: applyDashboardFilters({
+      baseQuery: widget.queries?.[0]?.conditions,
       dashboardFilters,
-      widget.widgetType
-    ),
+      widgetType: widget.widgetType,
+      skipParens: true, // Issue search does not support parens
+    }),
     sort: widget.queries?.[0]?.orderby,
     ...datetime,
     // Pass empty string when projects is empty to preserve "My Projects" selection in URL
@@ -305,7 +310,7 @@ export function getWidgetReleasesUrl(
       : {statsPeriod: period};
   const releasesLocation = `/organizations/${organization.slug}/releases/?${qs.stringify({
     ...datetime,
-    query: applyDashboardFilters('', dashboardFilters),
+    query: applyDashboardFilters({baseQuery: '', dashboardFilters}),
     // Pass empty string when projects is empty to preserve "My Projects" selection in URL
     project: selection.projects.length === 0 ? '' : selection.projects,
     environment: selection.environments,
@@ -358,7 +363,7 @@ export function hasSavedPageFilters(
 ) {
   return !(
     (dashboard.projects === undefined || dashboard.projects.length === 0) &&
-    (dashboard.environment === undefined || dashboard.environment.length === 0) &&
+    (!defined(dashboard.environment) || dashboard.environment.length === 0) &&
     dashboard.start === undefined &&
     dashboard.end === undefined &&
     dashboard.period === undefined
@@ -416,12 +421,14 @@ export function hasUnsavedFilterChanges(
 }
 
 export function getSavedFiltersAsPageFilters(dashboard: DashboardDetails): PageFilters {
+  const hasSavedDatetime = Boolean(dashboard.period || dashboard.start || dashboard.end);
+
   return {
     datetime: {
       end: dashboard.end || null,
-      period: dashboard.period || null,
+      period: dashboard.period || (hasSavedDatetime ? null : DEFAULT_STATS_PERIOD),
       start: dashboard.start || null,
-      utc: null,
+      utc: dashboard.utc ?? false,
     },
     environments: dashboard.environment || [],
     projects: dashboard.projects || [],
@@ -490,6 +497,23 @@ export function getMergedDashboardFilters(
   return {...savedFilters, ...getDashboardFiltersFromURL(location)};
 }
 
+const globalFilterSchema = z.looseObject({
+  dataset: z.enum(WidgetType),
+  tag: z.looseObject({
+    key: z.string(),
+    name: z.string(),
+    kind: z.enum(FieldKind).optional(),
+  }),
+  value: z.string(),
+  isTemporary: z.boolean().optional(),
+}) satisfies z.ZodType<GlobalFilter>;
+
+const parseAsUnknownJson = parseAsJson(z.unknown());
+
+function isGlobalFilter(value: unknown): value is GlobalFilter {
+  return globalFilterSchema.safeParse(value).success;
+}
+
 export function getDashboardFiltersFromURL(location: Location): DashboardFilters | null {
   const dashboardFilters: DashboardFilters = {};
   Object.values(DashboardFilterKeys).forEach(key => {
@@ -497,16 +521,9 @@ export function getDashboardFiltersFromURL(location: Location): DashboardFilters
       const queryFilters = decodeList(location.query?.[key]);
 
       if (key === DashboardFilterKeys.GLOBAL_FILTER) {
-        // Global filters are stored as JSON strings
         dashboardFilters[key] = queryFilters
-          .map(filter => {
-            try {
-              return JSON.parse(filter);
-            } catch (error) {
-              return null;
-            }
-          })
-          .filter(filter => filter !== null);
+          .map(filter => parseAsUnknownJson.parse(filter))
+          .filter(isGlobalFilter);
       } else {
         dashboardFilters[key] = queryFilters;
       }
@@ -548,10 +565,6 @@ export function dashboardFiltersToString(
   return dashboardFilterConditions;
 }
 
-export function connectDashboardCharts(groupName: string) {
-  connect?.(groupName);
-}
-
 export function hasDatasetSelector(_organization: Organization): boolean {
   return true;
 }
@@ -589,18 +602,26 @@ function _doesWidgetUsePerformanceScore(query: WidgetQuery) {
 
 export const performanceScoreTooltip = t('peformance_score is not supported in Discover');
 
-export function applyDashboardFilters(
-  baseQuery: string | undefined,
-  dashboardFilters: DashboardFilters | undefined,
-  widgetType?: WidgetType
-): string | undefined {
+export function applyDashboardFilters({
+  baseQuery,
+  dashboardFilters,
+  widgetType,
+  skipParens,
+}: {
+  baseQuery: string | undefined;
+  dashboardFilters: DashboardFilters | undefined;
+  skipParens?: boolean;
+  widgetType?: WidgetType;
+}): string | undefined {
   const dashboardFilterConditions = dashboardFiltersToString(
     dashboardFilters,
     widgetType
   );
   if (dashboardFilterConditions) {
     if (baseQuery) {
-      return `(${baseQuery}) ${dashboardFilterConditions}`;
+      return skipParens
+        ? `${baseQuery} ${dashboardFilterConditions}`
+        : `(${baseQuery}) ${dashboardFilterConditions}`;
     }
     return dashboardFilterConditions;
   }

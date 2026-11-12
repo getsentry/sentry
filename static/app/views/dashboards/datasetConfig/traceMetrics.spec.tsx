@@ -1,18 +1,18 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import type {Organization} from 'sentry/types/organization';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import {
-  formatTraceMetricsFunction,
-  TraceMetricsConfig,
-} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
 import {DisplayType, WidgetType, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
+
+import {formatTraceMetricsFunction, TraceMetricsConfig} from './traceMetrics';
 
 const mockUseTraceItemSearchQueryBuilderProps = jest.fn(() => ({
   filterKeys: {},
@@ -64,11 +64,7 @@ describe('TraceMetricsConfig', () => {
       );
     });
 
-    it('returns default value for unparseable string input', () => {
-      expect(formatTraceMetricsFunction('not-a-function', 'fallback')).toBe('fallback');
-    });
-
-    it('returns the raw value for unparseable string input when default is not provided', () => {
+    it('returns the raw value for unparseable string input', () => {
       expect(formatTraceMetricsFunction('not-a-function')).toBe('not-a-function');
     });
 
@@ -92,9 +88,15 @@ describe('TraceMetricsConfig', () => {
     });
   });
 
-  describe('transformSeries', () => {
+  describe('transformTimeSeries', () => {
     it('uniquely identifies series with single yAxis and no groupings', () => {
       const data: EventsTimeSeriesResponse = {
+        meta: {
+          dataset: DiscoverDatasets.TRACEMETRICS,
+          start: 0,
+          end: 2,
+          ingestion: {status: 'healthy', completeThrough: 1, delaySeconds: 1},
+        },
         timeSeries: [
           {
             yAxis: 'avg(value,test_metric,millisecond,none)',
@@ -119,7 +121,11 @@ describe('TraceMetricsConfig', () => {
         orderby: '',
       };
 
-      const result = TraceMetricsConfig.transformSeries!(data, widgetQuery, organization);
+      const result = TraceMetricsConfig.transformTimeSeries!(
+        data,
+        WidgetFixture({queries: [widgetQuery]}),
+        0
+      );
 
       expect(result).toHaveLength(1);
       expect(result[0]!.seriesName).toBe('avg(test_metric)');
@@ -163,7 +169,11 @@ describe('TraceMetricsConfig', () => {
         orderby: '',
       };
 
-      const result = TraceMetricsConfig.transformSeries!(data, widgetQuery, organization);
+      const result = TraceMetricsConfig.transformTimeSeries!(
+        data,
+        WidgetFixture({queries: [widgetQuery]}),
+        0
+      );
 
       expect(result).toHaveLength(2);
       expect(result[0]!.seriesName).toBe('avg(test_metric)');
@@ -206,7 +216,11 @@ describe('TraceMetricsConfig', () => {
         orderby: '',
       };
 
-      const result = TraceMetricsConfig.transformSeries!(data, widgetQuery, organization);
+      const result = TraceMetricsConfig.transformTimeSeries!(
+        data,
+        WidgetFixture({queries: [widgetQuery]}),
+        0
+      );
 
       expect(result).toHaveLength(2);
       // With single yAxis, grouping value is used as the series name
@@ -273,7 +287,11 @@ describe('TraceMetricsConfig', () => {
         orderby: '',
       };
 
-      const result = TraceMetricsConfig.transformSeries!(data, widgetQuery, organization);
+      const result = TraceMetricsConfig.transformTimeSeries!(
+        data,
+        WidgetFixture({queries: [widgetQuery]}),
+        0
+      );
 
       expect(result).toHaveLength(4);
       // With multiple yAxes and groupings, series names should include function name
@@ -355,7 +373,11 @@ describe('TraceMetricsConfig', () => {
         orderby: '',
       };
 
-      const result = TraceMetricsConfig.transformSeries!(data, widgetQuery, organization);
+      const result = TraceMetricsConfig.transformTimeSeries!(
+        data,
+        WidgetFixture({queries: [widgetQuery]}),
+        0
+      );
 
       expect(result).toHaveLength(4);
       // Multiple groupings should be comma-separated, with function name appended
@@ -404,7 +426,11 @@ describe('TraceMetricsConfig', () => {
         orderby: '',
       };
 
-      const result = TraceMetricsConfig.transformSeries!(data, widgetQuery, organization);
+      const result = TraceMetricsConfig.transformTimeSeries!(
+        data,
+        WidgetFixture({queries: [widgetQuery]}),
+        0
+      );
 
       expect(result).toHaveLength(2);
       // Null values should be labeled "(no value)" and include function name for uniqueness
@@ -438,7 +464,11 @@ describe('TraceMetricsConfig', () => {
         orderby: '',
       };
 
-      const result = TraceMetricsConfig.transformSeries!(data, widgetQuery, organization);
+      const result = TraceMetricsConfig.transformTimeSeries!(
+        data,
+        WidgetFixture({queries: [widgetQuery]}),
+        0
+      );
 
       expect(result).toHaveLength(1);
       expect(result[0]!.seriesName).toBe('My Query : avg(test_metric)');
@@ -483,7 +513,11 @@ describe('TraceMetricsConfig', () => {
         orderby: '',
       };
 
-      const result = TraceMetricsConfig.transformSeries!(data, widgetQuery, organization);
+      const result = TraceMetricsConfig.transformTimeSeries!(
+        data,
+        WidgetFixture({queries: [widgetQuery]}),
+        0
+      );
 
       expect(result).toHaveLength(2);
       expect(result[0]!.seriesName).toBe('My Query : avg(test_metric)');
@@ -526,7 +560,11 @@ describe('TraceMetricsConfig', () => {
         orderby: '',
       };
 
-      const result = TraceMetricsConfig.transformSeries!(data, widgetQuery, organization);
+      const result = TraceMetricsConfig.transformTimeSeries!(
+        data,
+        WidgetFixture({queries: [widgetQuery]}),
+        0
+      );
 
       expect(result).toHaveLength(2);
       expect(result[0]!.seriesName).toBe('My Query : frontend');
@@ -592,7 +630,11 @@ describe('TraceMetricsConfig', () => {
         orderby: '',
       };
 
-      const result = TraceMetricsConfig.transformSeries!(data, widgetQuery, organization);
+      const result = TraceMetricsConfig.transformTimeSeries!(
+        data,
+        WidgetFixture({queries: [widgetQuery]}),
+        0
+      );
 
       expect(result).toHaveLength(4);
       // With query name, multiple aggregates AND groupings, use > separator
@@ -675,15 +717,15 @@ describe('TraceMetricsConfig', () => {
         orderby: '',
       };
 
-      const result1 = TraceMetricsConfig.transformSeries!(
+      const result1 = TraceMetricsConfig.transformTimeSeries!(
         data1,
-        widgetQuery1,
-        organization
+        WidgetFixture({queries: [widgetQuery1]}),
+        0
       );
-      const result2 = TraceMetricsConfig.transformSeries!(
+      const result2 = TraceMetricsConfig.transformTimeSeries!(
         data2,
-        widgetQuery2,
-        organization
+        WidgetFixture({queries: [widgetQuery2]}),
+        0
       );
 
       // Verify first query produces labels with "Database Metrics"
@@ -779,9 +821,6 @@ describe('TraceMetricsConfig', () => {
           <SearchBar {...defaultSearchBarProps} />
         </WidgetBuilderProvider>,
         {
-          organization: OrganizationFixture({
-            features: ['tracemetrics-multi-metric-selection-in-dashboards'],
-          }),
           initialRouterConfig: {
             location: {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
@@ -809,9 +848,6 @@ describe('TraceMetricsConfig', () => {
           <SearchBar {...defaultSearchBarProps} />
         </WidgetBuilderProvider>,
         {
-          organization: OrganizationFixture({
-            features: ['tracemetrics-multi-metric-selection-in-dashboards'],
-          }),
           initialRouterConfig: {
             location: {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
@@ -836,9 +872,6 @@ describe('TraceMetricsConfig', () => {
           <SearchBar {...defaultSearchBarProps} />
         </WidgetBuilderProvider>,
         {
-          organization: OrganizationFixture({
-            features: ['tracemetrics-multi-metric-selection-in-dashboards'],
-          }),
           initialRouterConfig: {
             location: {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
@@ -890,9 +923,6 @@ describe('TraceMetricsConfig', () => {
           <SearchBarDataProviderProbe widgetQuery={defaultWidgetQuery} />
         </WidgetBuilderProvider>,
         {
-          organization: OrganizationFixture({
-            features: ['tracemetrics-multi-metric-selection-in-dashboards'],
-          }),
           initialRouterConfig: {
             location: {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
@@ -922,9 +952,6 @@ describe('TraceMetricsConfig', () => {
           <SearchBarDataProviderProbe widgetQuery={defaultWidgetQuery} />
         </WidgetBuilderProvider>,
         {
-          organization: OrganizationFixture({
-            features: ['tracemetrics-multi-metric-selection-in-dashboards'],
-          }),
           initialRouterConfig: {
             location: {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,

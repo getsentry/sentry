@@ -1,27 +1,26 @@
-import {useCallback} from 'react';
+import {useEffect} from 'react';
+import {useMutation} from '@tanstack/react-query';
 
-import {useApi} from 'sentry/utils/useApi';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export function useVisitQuery() {
-  const api = useApi();
+export function useVisitQuery(id?: string) {
   const organization = useOrganization();
 
-  const visitQuery = useCallback(
-    async (id: string) => {
-      try {
-        await api.requestPromise(
-          `/organizations/${organization.slug}/explore/saved/${id}/visit/`,
-          {
-            method: 'POST',
-          }
-        );
-      } catch (_err) {
-        // Don't do anything
-      }
-    },
-    [api, organization.slug]
-  );
+  const {mutate: visitQuery} = useMutation({
+    mutationFn: (path: {id: string; organizationIdOrSlug: string}) =>
+      fetchMutation({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/visit/', {
+          path,
+        }),
+        method: 'POST',
+      }),
+  });
 
-  return visitQuery;
+  useEffect(() => {
+    if (id) {
+      visitQuery({organizationIdOrSlug: organization.slug, id});
+    }
+  }, [id, organization.slug, visitQuery]);
 }

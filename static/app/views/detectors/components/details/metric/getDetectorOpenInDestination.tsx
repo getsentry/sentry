@@ -255,7 +255,7 @@ export function getDetectorOpenInDestination(
       };
     case DetectorDataset.ERRORS:
       return {
-        buttonText: t('Open in Discover'),
+        buttonText: t('Open in Explore'),
         to: getDetectorDiscoverUrl(options),
       };
     case DetectorDataset.RELEASES:

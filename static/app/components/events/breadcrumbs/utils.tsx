@@ -1,6 +1,20 @@
 import {useCallback, useMemo} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCode} from '@sentry/icons/code';
+import {IconCursorArrow} from '@sentry/icons/cursorArrow';
+import {IconFire} from '@sentry/icons/fire';
+import {IconFix} from '@sentry/icons/fix';
+import {IconInfo} from '@sentry/icons/info';
+import {IconLocation} from '@sentry/icons/location';
+import {IconMobile} from '@sentry/icons/mobile';
+import {IconRefresh} from '@sentry/icons/refresh';
+import {IconSort} from '@sentry/icons/sort';
+import {IconSpan} from '@sentry/icons/span';
+import {IconStack} from '@sentry/icons/stack';
+import {IconUser} from '@sentry/icons/user';
+import {IconWarning} from '@sentry/icons/warning';
+import {IconWifi} from '@sentry/icons/wifi';
 
 import type {SelectOption, SelectSection} from '@sentry/scraps/compactSelect';
 
@@ -11,22 +25,6 @@ import {
   getVirtualCrumb,
 } from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import type {TimelineItemProps} from 'sentry/components/timeline';
-import {
-  IconCode,
-  IconCursorArrow,
-  IconFire,
-  IconFix,
-  IconInfo,
-  IconLocation,
-  IconMobile,
-  IconRefresh,
-  IconSort,
-  IconSpan,
-  IconStack,
-  IconUser,
-  IconWarning,
-  IconWifi,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   BreadcrumbLevelType,
@@ -86,7 +84,7 @@ function getBreadcrumbTypeOptions(crumbs: EnhancedCrumb[], theme: Theme) {
     return crumbTypeSet;
   }, new Set<BreadcrumbType>());
 
-  const typeOptions = [...uniqueCrumbTypes].map<SelectOption<string>>(crumbType => {
+  const typeOptions = Array.from(uniqueCrumbTypes, crumbType => {
     const crumbFilter = getBreadcrumbFilter(crumbType);
     return {
       value: crumbFilter,
@@ -198,15 +196,38 @@ export interface EnhancedCrumb {
 export function getEnhancedBreadcrumbs(event: Event, theme: Theme): EnhancedCrumb[] {
   const breadcrumbEntryIndex =
     event.entries?.findIndex(entry => entry.type === EntryType.BREADCRUMBS) ?? -1;
-  const breadcrumbs: any[] = event.entries?.[breadcrumbEntryIndex]?.data?.values ?? [];
-
-  if (breadcrumbs.length === 0) {
-    return [];
-  }
+  const breadcrumbs: RawCrumb[] =
+    event.entries?.[breadcrumbEntryIndex]?.data?.values ?? [];
 
   // Mapping of breadcrumb index -> breadcrumb meta
   const meta: Record<number, any> =
     event._meta?.entries?.[breadcrumbEntryIndex]?.data?.values ?? {};
+
+  return getEnhancedBreadcrumbsFromValues({
+    breadcrumbs,
+    theme,
+    meta,
+    virtualCrumb: getVirtualCrumb(event),
+  });
+}
+
+/**
+ * Prefer `getEnhancedBreadcrumbs` when an `Event` is available.
+ */
+export function getEnhancedBreadcrumbsFromValues({
+  breadcrumbs,
+  theme,
+  meta = {},
+  virtualCrumb,
+}: {
+  breadcrumbs: RawCrumb[];
+  theme: Theme;
+  meta?: Record<number, any>;
+  virtualCrumb?: RawCrumb;
+}): EnhancedCrumb[] {
+  if (breadcrumbs.length === 0) {
+    return [];
+  }
 
   const enhancedCrumbs = breadcrumbs.map<
     Pick<EnhancedCrumb, 'raw' | 'meta' | 'breadcrumb'>
@@ -217,9 +238,6 @@ export function getEnhancedBreadcrumbs(event: Event, theme: Theme): EnhancedCrum
     breadcrumb: convertCrumbType(raw),
   }));
 
-  // The virtual crumb is a representation of this event, displayed alongside
-  // the rest of the breadcrumbs for more additional context.
-  const virtualCrumb = getVirtualCrumb(event);
   const allCrumbs = virtualCrumb
     ? [...enhancedCrumbs, {breadcrumb: virtualCrumb}]
     : enhancedCrumbs;

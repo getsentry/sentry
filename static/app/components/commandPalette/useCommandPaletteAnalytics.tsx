@@ -1,14 +1,15 @@
-import {useEffect, useMemo, useRef} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import uniqueId from 'lodash/uniqueId';
+
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {
   getActionPath,
   type CMDKNavStack,
   useCommandPaletteState,
-} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {useOrganization} from 'sentry/utils/useOrganization';
+} from './ui/commandPaletteStateContext';
 
 function getNavDepth(node: CMDKNavStack | null): number {
   let depth = 0;
@@ -38,12 +39,13 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
   recordAction: (action: ActionLike, resultIndex: number, group: string) => void;
   recordGroupAction: (action: ActionLike, resultIndex: number) => void;
 } {
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
   const state = useCommandPaletteState();
+
+  const [openedAt] = useState(() => Date.now());
 
   const analyticsState = useRef({
     sessionId: uniqueId('cmd-palette-'),
-    openedAt: Date.now(),
     actionsSelected: 0,
     queriesTyped: 0,
     completed: false,
@@ -120,7 +122,7 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
       trackAnalytics('command_palette.session', {
         organization,
         session_id: s.sessionId,
-        duration_ms: Date.now() - s.openedAt,
+        duration_ms: Date.now() - openedAt,
         actions_selected: s.actionsSelected,
         queries_typed: s.queriesTyped,
         completed: s.completed,

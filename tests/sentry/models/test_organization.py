@@ -95,9 +95,7 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
         org.flags.early_adopter = True
         org.flags.codecov_access = True
         org.flags.require_2fa = True
-        org.flags.disable_member_project_creation = (
-            False  # set to True by default for new orgs in save()
-        )
+        org.flags.disable_member_project_creation = True
         org.flags.prevent_superuser_access = True
         org.flags.disable_member_invite = True
         assert flag_has_changed(org, "allow_joinleave") is False
@@ -176,12 +174,14 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         self.org = self.create_organization(owner=self.owner)
         self.request = self.make_request(user=self.owner)
 
-    def _create_user(self, has_email=True):
+    def _create_user(self, has_email: bool = True) -> User:
         if not has_email:
             return self.create_user("")
         return self.create_user()
 
-    def _create_user_and_member(self, has_2fa=False, has_user_email=True):
+    def _create_user_and_member(
+        self, has_2fa: bool = False, has_user_email: bool = True
+    ) -> tuple[User, OrganizationMember]:
         user = self._create_user(has_email=has_user_email)
         if has_2fa:
             with assume_test_silo_mode(SiloMode.CONTROL):
@@ -189,7 +189,7 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         member = self.create_member(organization=self.org, user=user)
         return user, member
 
-    def is_organization_member(self, user_id, member_id):
+    def is_organization_member(self, user_id: int, member_id: int) -> None:
         member = OrganizationMember.objects.get(id=member_id)
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -198,7 +198,9 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         assert not member.email
         assert member.user_id == user.id
 
-    def is_pending_organization_member(self, user_id, member_id, was_booted=True):
+    def is_pending_organization_member(
+        self, user_id: int | None, member_id: int, was_booted: bool = True
+    ) -> None:
         member = OrganizationMember.objects.get(id=member_id)
         if user_id:
             with assume_test_silo_mode(SiloMode.CONTROL):
@@ -466,7 +468,7 @@ class Require2fa(TestCase, HybridCloudTestMixin):
 
 
 class OrganizationDeletionTest(TestCase):
-    def add_org_notification_settings(self, org: Organization, user: User):
+    def add_org_notification_settings(self, org: Organization, user: User) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             args = {
                 "scope_type": "organization",

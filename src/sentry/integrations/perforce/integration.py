@@ -240,7 +240,7 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
 
         return False
 
-    def check_file(self, repo: Repository, filepath: str, branch: str | None = None) -> str | None:
+    def _check_file(self, repo: Repository, filepath: str, branch: str | None = None) -> str | None:
         """
         Check if a file exists in the Perforce depot and return the URL.
 
@@ -428,6 +428,7 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
         accessible_only: bool = False,
         use_cache: bool = False,
         raise_on_page_limit: bool = False,
+        parallel: bool = False,
     ) -> list[RepositoryInfo]:
         """
         Get list of depots/streams from Perforce server.

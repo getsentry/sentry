@@ -1,4 +1,4 @@
-import type {KeyValueDataContentProps} from 'sentry/components/keyValueData';
+import {type KeyValueTableDataRowProps} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 
 export enum OrderBy {
@@ -46,8 +46,8 @@ export const enum FlagControlOptions {
   SORT = 'sort',
 }
 
-const handleSortAlphabetical = (flags: KeyValueDataContentProps[]) => {
-  return [...flags].sort((a, b) => {
+const handleSortAlphabetical = (flags: KeyValueTableDataRowProps[]) => {
+  return flags.toSorted((a, b) => {
     return a.item.key.localeCompare(b.item.key);
   });
 };
@@ -56,22 +56,22 @@ export const sortedFlags = ({
   flags,
   sort,
 }: {
-  flags: KeyValueDataContentProps[];
+  flags: KeyValueTableDataRowProps[];
   sort: OrderBy;
-}): KeyValueDataContentProps[] => {
+}): KeyValueTableDataRowProps[] => {
   switch (sort) {
     case OrderBy.A_TO_Z:
       return handleSortAlphabetical(flags);
     case OrderBy.Z_TO_A:
-      return [...handleSortAlphabetical(flags)].reverse();
+      return handleSortAlphabetical(flags).toReversed();
     case OrderBy.OLDEST:
-      return [...flags].reverse();
+      return flags.toReversed();
     default:
       return flags;
   }
 };
 
-// Supported Feature Flag Providers. Ordered by display order in FeatureFlagOnboardingDrawer. We prefer Generic to be last.
+// Supported Feature Flag Providers. Ordered by display order in the feature flag onboarding drawer. We prefer Generic to be last.
 export enum WebhookProviderEnum {
   LAUNCHDARKLY = 'LaunchDarkly',
   STATSIG = 'Statsig',
@@ -79,7 +79,7 @@ export enum WebhookProviderEnum {
   GENERIC = 'Generic',
 }
 
-// Supported Feature Flag SDKs. Ordered by display order in FeatureFlagOnboardingDrawer. We prefer Generic to be last.
+// Supported Feature Flag SDKs. Ordered by display order in the feature flag onboarding drawer. We prefer Generic to be last.
 export enum SdkProviderEnum {
   LAUNCHDARKLY = 'LaunchDarkly',
   OPENFEATURE = 'OpenFeature',

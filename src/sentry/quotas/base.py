@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
-from enum import IntEnum, unique
+from enum import IntEnum, StrEnum, unique
 from functools import total_ordering
 from typing import TYPE_CHECKING, Any, Literal, TypedDict
 
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from sentry.models.organizationmember import OrganizationMember
     from sentry.models.project import Project
     from sentry.models.projectkey import ProjectKey
-    from sentry.monitors.models import Monitor
+    from sentry.monitors.constants import PermitCheckInStatus
     from sentry.profiles.utils import Profile
     from sentry.quotas.types import SeatObject
 
@@ -30,7 +30,7 @@ class QuotaScope(IntEnum):
     PROJECT = 2
     KEY = 3
 
-    def api_name(self):
+    def api_name(self) -> str:
         return self.name.lower()
 
 
@@ -71,11 +71,14 @@ class RetentionSettings:
 
 # This mirrors the Retentions struct in relay
 # https://github.com/getsentry/relay/blob/641e7f20cd/relay-dynamic-config/src/project.rs#L34-L45
+# On wire-name collisions (TRANSACTION/SPAN, TRACE_METRIC/TRACE_METRIC_BYTE) the
+# last entry wins, so list categories from least to most preferred.
 RETENTIONS_CONFIG_MAPPING = {
     DataCategory.LOG_BYTE: "log",
     DataCategory.TRANSACTION: "span",
     DataCategory.SPAN: "span",
     DataCategory.TRACE_METRIC: "traceMetric",
+    DataCategory.TRACE_METRIC_BYTE: "traceMetric",
 }
 
 
@@ -121,6 +124,28 @@ def build_metric_abuse_quotas() -> list[AbuseQuota]:
     return quotas
 
 
+class QuotaDimension(StrEnum):
+    CHECK_IN_SLUG = "checkInSlug"
+    CHECK_IN_ENVIRONMENT = "checkInEnvironment"
+
+
+@dataclass(frozen=True)
+class QuotaGroupBy:
+    """
+    Counts a quota separately for each combination of dimension values.
+    ``max_cardinality`` caps the number of combinations per quota window.
+    """
+
+    max_cardinality: int
+    dimensions: tuple[QuotaDimension, ...]
+
+    def to_json(self) -> dict[str, object]:
+        return {
+            "maxCardinality": self.max_cardinality,
+            "dimensions": [d.value for d in self.dimensions],
+        }
+
+
 @total_ordering
 class QuotaConfig:
     """
@@ -158,6 +183,8 @@ class QuotaConfig:
     :param reason_code: A machine readable reason returned when this quota is
                         exceeded. Required in all cases except ``limit=None``,
                         since unlimited quotas can never be exceeded.
+    :param group_by:    Counts the quota separately for each combination of
+                        these dimensions. See ``QuotaGroupBy``.
     """
 
     __slots__ = [
@@ -169,19 +196,31 @@ class QuotaConfig:
         "window",
         "reason_code",
         "namespace",
+        "group_by",
     ]
+
+    id: str | None
+    categories: set[DataCategory]
+    scope: QuotaScope
+    scope_id: str | None
+    limit: int | None
+    window: int | None
+    reason_code: str | None
+    namespace: str | None
+    group_by: QuotaGroupBy | None
 
     def __init__(
         self,
-        id=None,
-        categories=None,
-        scope=None,
-        scope_id=None,
+        id: str | None = None,
+        categories: Iterable[DataCategory] | None = None,
+        scope: QuotaScope | None = None,
+        scope_id: str | int | None = None,
         limit: int | None = None,
-        window=None,
-        reason_code=None,
-        namespace=None,
-    ):
+        window: int | None = None,
+        reason_code: str | None = None,
+        namespace: str | None = None,
+        group_by: QuotaGroupBy | None = None,
+    ) -> None:
         if limit is not None:
             assert reason_code, "reason code required for fallible quotas"
             assert isinstance(limit, int), "limit must be an integer"
@@ -207,16 +246,17 @@ class QuotaConfig:
         self.window = window
         self.reason_code = reason_code
         self.namespace = namespace
+        self.group_by = group_by
 
     @property
-    def should_track(self):
+    def should_track(self) -> bool:
         """
         Whether the quotas service should track this quota.
         """
 
         return self.id is not None and self.window is not None
 
-    def to_json(self):
+    def to_json(self) -> dict[str, object]:
         categories = None
         if self.categories:
             categories = [c.api_name() for c in self.categories]
@@ -230,6 +270,7 @@ class QuotaConfig:
             "window": self.window,
             "namespace": self.namespace,
             "reasonCode": self.reason_code,
+            "groupBy": self.group_by.to_json() if self.group_by else None,
         }
 
         return prune_empty_keys(data)
@@ -265,6 +306,12 @@ class QuotaConfig:
             self.reason_code or "",
             self.namespace is not None,
             self.namespace or "",
+            self.group_by is not None,
+            (
+                (self.group_by.max_cardinality, self.group_by.dimensions)
+                if self.group_by
+                else (0, ())
+            ),
         )
 
     def __eq__(self, other: object) -> bool:
@@ -279,49 +326,6 @@ class QuotaConfig:
 
     def __hash__(self) -> int:
         return hash(self._comparison_key())
-
-
-class RateLimit:
-    """
-    Return value of ``quotas.is_rate_limited``.
-    """
-
-    __slots__ = ["is_limited", "retry_after", "reason", "reason_code"]
-
-    def __init__(self, is_limited, retry_after=None, reason=None, reason_code=None):
-        self.is_limited = is_limited
-        # delta of seconds in the future to retry
-        self.retry_after = retry_after
-        # human readable description
-        self.reason = reason
-        # machine readable description
-        self.reason_code = reason_code
-
-    def to_dict(self):
-        """
-        Converts the object into a plain dictionary
-        :return: a dict containing the non None elm of the RateLimit
-
-        >>> x = RateLimit(is_limited = False, retry_after = 33)
-        >>> x.to_dict() == {'is_limited': False, 'retry_after': 33}
-        True
-
-        """
-        return {
-            name: getattr(self, name, None)
-            for name in self.__slots__
-            if getattr(self, name, None) is not None
-        }
-
-
-class NotRateLimited(RateLimit):
-    def __init__(self, **kwargs):
-        super().__init__(False, **kwargs)
-
-
-class RateLimited(RateLimit):
-    def __init__(self, **kwargs):
-        super().__init__(True, **kwargs)
 
 
 def _limit_from_settings(x: Any) -> int | None:
@@ -349,7 +353,7 @@ class SeatAssignmentResult:
             raise ValueError("`reason` must be specified when not assignable")
 
 
-def index_data_category(event_type: str | None, organization) -> DataCategory:
+def index_data_category(event_type: str | None, organization: Organization | None) -> DataCategory:
     if event_type == "transaction" and features.has(
         "organizations:transaction-metrics-extraction", organization
     ):
@@ -372,13 +376,11 @@ class Quota(Service):
     to, for example error events or attachments. For more information on quota
     parameters, see ``QuotaConfig``.
 
-    To retrieve a list of active quotas, use ``quotas.get_quotas``. Also, to
-    check the current status of quota usage, call ``quotas.get_usage``.
+    To retrieve a list of active quotas, use ``quotas.get_quotas``.
     """
 
     __all__ = (
         "get_abuse_quotas",
-        "is_rate_limited",
         "validate",
         "refund",
         "get_event_retention",
@@ -389,7 +391,7 @@ class Quota(Service):
         "update_monitor_slug",
     )
 
-    def __init__(self, **options):
+    def __init__(self, **options: object) -> None:
         pass
 
     def get_quotas(
@@ -411,43 +413,17 @@ class Quota(Service):
         """
         return []
 
-    def is_rate_limited(self, project, key=None):
+    def refund(
+        self,
+        project: Project,
+        key: ProjectKey | None = None,
+        timestamp: float | None = None,
+        category: DataCategory | None = None,
+        quantity: int | None = None,
+    ) -> None:
         """
-        Checks whether any of the quotas in effect for the given project and
-        project key has been exceeded and records consumption of the quota.
-
-        By invoking this method, the caller signals that data is being ingested
-        and needs to be counted against the quota. This increment happens
-        atomically if none of the quotas have been exceeded. Otherwise, a rate
-        limit is returned and data is not counted against the quotas.
-
-        When an event or any other data is dropped after ``is_rate_limited`` has
-        been called, use ``quotas.refund``.
-
-        If no key is specified, then only organization-wide and project-wide
-        quotas are checked. If a key is specified, then key-quotas are also
-        checked.
-
-        The return value is a subclass of ``RateLimit``:
-
-         - ``RateLimited``, if at least one quota has been exceeded. The event
-           should not be ingested by the caller, and none of the quotas have
-           been counted.
-
-         - ``NotRateLimited``, if consumption is within all quotas. Data must be
-           ingested by the caller, and the counters for all counters have been
-           incremented.
-
-        :param project: The project instance that is used to determine quotas.
-        :param key:     A project key to obtain quotas for. If omitted, only
-                        project and organization quotas are used.
-        """
-        return NotRateLimited()
-
-    def refund(self, project, key=None, timestamp=None, category=None, quantity=None):
-        """
-        Signals event rejection after ``quotas.is_rate_limited`` has been called
-        successfully, and refunds the previously consumed quota.
+        Signals that data counted against quotas was dropped, and refunds the
+        previously consumed quota.
 
         :param project:   The project that the dropped data belonged to.
         :param key:       The project key that was used to ingest the data. If
@@ -465,7 +441,12 @@ class Quota(Service):
                           attachment in bytes.
         """
 
-    def get_event_retention(self, organization, category: DataCategory | None = None, **kwargs):
+    def get_event_retention(
+        self,
+        organization: Organization | None,
+        category: DataCategory | None = None,
+        **kwargs: object,
+    ) -> int | None:
         """
         Returns the retention for events in the given organization in days.
         Returns ``None`` if events are to be stored indefinitely.
@@ -477,8 +458,11 @@ class Quota(Service):
         return _limit_from_settings(options.get("system.event-retention-days"))
 
     def get_downsampled_event_retention(
-        self, organization, category: DataCategory | None = None, **kwargs
-    ):
+        self,
+        organization: Organization | None,
+        category: DataCategory | None = None,
+        **kwargs: object,
+    ) -> int:
         """
         Returns the retention for downsampled events in the given organization in days.
         Returning ``0`` means downsampled event retention will default to the value of ``get_event_retention``.
@@ -486,22 +470,24 @@ class Quota(Service):
         return 0
 
     def get_retentions(
-        self, organization: Organization, **kwargs
+        self, organization: Organization | None, **kwargs: object
     ) -> Mapping[DataCategory, RetentionSettings]:
         return {}
 
-    def get_trimming_configs(self, organization: Organization, **kwargs) -> TrimmingConfigs:
+    def get_trimming_configs(
+        self, organization: Organization | None, **kwargs: object
+    ) -> TrimmingConfigs:
         """
         Returns per-data-category trimming settings.
         """
         return {}
 
-    def validate(self):
+    def validate(self) -> None:
         """
         Validates that the quota service is operational.
         """
 
-    def get_key_quota(self, key):
+    def get_key_quota(self, key: ProjectKey) -> tuple[int | None, int | None]:
         from sentry import features
 
         # XXX(epurkhiser): Avoid excessive feature manager checks (which can be
@@ -520,7 +506,7 @@ class Quota(Service):
         limit, window = key.rate_limit
         return _limit_from_settings(limit), window
 
-    def get_abuse_quotas(self, org):
+    def get_abuse_quotas(self, org: Organization) -> Iterator[QuotaConfig]:
         # Per-project abuse quotas for errors, transactions, attachments, sessions.
         global_abuse_window = options.get("project-abuse-quota.window")
 
@@ -607,7 +593,7 @@ class Quota(Service):
                     namespace=quota.namespace,
                 )
 
-    def get_monitor_quota(self, project):
+    def get_monitor_quota(self, project: Project) -> tuple[int | None, int | None]:
         from sentry.monitors.rate_limit import get_project_monitor_quota
 
         return get_project_monitor_quota(project)
@@ -640,25 +626,11 @@ class Quota(Service):
         :param volume: The volume of transaction of the given project.
         """
 
-    def check_assign_monitor_seat(self, monitor: Monitor) -> SeatAssignmentResult:
-        """
-        Determines if a monitor can be assigned a seat. If it is not possible
-        to assign a monitor a seat, a reason will be included in the response
-        """
-        return SeatAssignmentResult(assignable=True)
-
     def check_assign_seat(self, seat_object: SeatObject) -> SeatAssignmentResult:
         """
         Determines if an assignable seat object can be assigned a seat.
         If it is not possible to assign a monitor a seat, a reason
         will be included in the response.
-        """
-        return SeatAssignmentResult(assignable=True)
-
-    def check_assign_monitor_seats(self, monitor: list[Monitor]) -> SeatAssignmentResult:
-        """
-        Determines if a list of monitor can be assigned seat. If it is not possible
-        to assign a seat to all given monitors, a reason will be included in the response
         """
         return SeatAssignmentResult(assignable=True)
 
@@ -673,16 +645,6 @@ class Quota(Service):
         """
         return SeatAssignmentResult(assignable=True)
 
-    def assign_monitor_seat(self, monitor: Monitor) -> int:
-        """
-        Assigns a monitor a seat if possible, resulting in a Outcome.ACCEPTED.
-        If the monitor cannot be assigned a seat it will be
-        Outcome.RATE_LIMITED.
-        """
-        from sentry.utils.outcomes import Outcome
-
-        return Outcome.ACCEPTED
-
     def assign_seat(self, seat_object: SeatObject) -> int:
         """
         Assigns a seat to an object if possible, resulting in Outcome.ACCEPTED.
@@ -692,11 +654,6 @@ class Quota(Service):
         from sentry.utils.outcomes import Outcome
 
         return Outcome.ACCEPTED
-
-    def disable_monitor_seat(self, monitor: Monitor) -> None:
-        """
-        Removes a monitor from it's assigned seat.
-        """
 
     def disable_seat(self, seat_object: SeatObject) -> None:
         """
@@ -708,7 +665,9 @@ class Quota(Service):
         Removes an assigned seat.
         """
 
-    def check_accept_monitor_checkin(self, project_id: int, monitor_slug: str):
+    def check_accept_monitor_checkin(
+        self, project_id: int, monitor_slug: str
+    ) -> PermitCheckInStatus:
         """
         Will return a `PermitCheckInStatus`.
         """
@@ -716,7 +675,7 @@ class Quota(Service):
 
         return PermitCheckInStatus.ACCEPT
 
-    def update_monitor_slug(self, previous_slug: str, new_slug: str, project_id: int):
+    def update_monitor_slug(self, previous_slug: str, new_slug: str, project_id: int) -> None:
         """
         Updates a monitor seat assignment's slug.
         """
@@ -748,20 +707,13 @@ class Quota(Service):
         """
         pass
 
-    def has_available_reserved_budget(self, org_id: int, data_category: DataCategory) -> bool:
-        """
-        Determines if the organization has enough reserved budget for the given data category operation.
-        """
-        return True
-
     def has_usage_quota(self, org_id: int, data_category: DataCategory) -> bool:
         """
         Check if organization has available quota for a usage-based category.
 
         This is for categories with TallyType.USAGE (not SEAT-based). Unlike
-        has_available_reserved_budget (which is for cost-based Reserved Budgets
-        where reserved=-2), this checks usage-based quotas where reserved=N
-        means N events are allocated.
+        cost-based Reserved Budgets (where reserved=-2), this checks usage-based
+        quotas where reserved=N means N events are allocated.
 
         Use for usage-based categories like SIZE_ANALYSIS, INSTALLABLE_BUILD, and
         similar categories that are not rate-limited in Relay.

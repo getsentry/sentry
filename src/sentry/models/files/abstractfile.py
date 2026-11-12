@@ -6,15 +6,16 @@ import logging
 import mmap
 import os
 import tempfile
-from collections.abc import Sequence
+from collections.abc import Callable, Iterable, Sequence
 from hashlib import sha1
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from types import TracebackType
+from typing import IO, TYPE_CHECKING, Any, Generic, Protocol, TypeVar, cast
 
-import sentry_sdk
 from django.core.files.base import ContentFile
 from django.core.files.base import File as FileObj
 from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
+from sentry_sdk import traces
 from taskbroker_client.task import Task
 
 from sentry.backup.scopes import RelocationScope
@@ -27,14 +28,33 @@ from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
+LoggerType = logging.Logger | type[nooplogger]
+
+
+class _Blob(Protocol):
+    size: int | None
+
+    def getfile(self) -> FileObj[bytes]: ...
+
+
+class _BlobIndex(Protocol):
+    offset: int
+    blob: _Blob
 
 
 class ChunkedFileBlobIndexWrapper:
-    def __init__(self, indexes, mode=None, prefetch=False, prefetch_to=None, delete=True):
+    def __init__(
+        self,
+        indexes: Iterable[AbstractFileBlobIndex],
+        mode: str | None = None,
+        prefetch: bool = False,
+        prefetch_to: str | None = None,
+        delete: bool = True,
+    ) -> None:
         # eager load from database incase its a queryset
-        self._indexes = list(indexes)
-        self._curfile = None
-        self._curidx = None
+        self._indexes: list[Any] = list(indexes)
+        self._curfile: FileObj[bytes] | tempfile._TemporaryFileWrapper[bytes] | None = None
+        self._curidx: _BlobIndex | None = None
         if prefetch:
             self.prefetched = True
             self._prefetch(prefetch_to, delete)
@@ -43,17 +63,22 @@ class ChunkedFileBlobIndexWrapper:
         self.mode = mode
         self.open()
 
-    def __enter__(self):
+    def __enter__(self) -> ChunkedFileBlobIndexWrapper:
         return self
 
-    def __exit__(self, exc_type, exc_value, tb) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
         self.close()
 
-    def detach_tempfile(self):
+    def detach_tempfile(self) -> tempfile._TemporaryFileWrapper[bytes]:
         if not self.prefetched:
             raise TypeError("Can only detech tempfiles in prefetch mode")
         assert self._curfile is not None
-        rv = self._curfile
+        rv = cast("tempfile._TemporaryFileWrapper[bytes]", self._curfile)
         self._curfile = None
         self.close()
         rv.seek(0)
@@ -74,14 +99,14 @@ class ChunkedFileBlobIndexWrapper:
                 old_file.close()
 
     @property
-    def size(self):
+    def size(self) -> int:
         return sum(i.blob.size for i in self._indexes)
 
     def open(self) -> None:
         self.closed = False
         self.seek(0)
 
-    def _prefetch(self, prefetch_to=None, delete=True):
+    def _prefetch(self, prefetch_to: str | None = None, delete: bool = True) -> None:
         size = self.size
         f = tempfile.NamedTemporaryFile(prefix="._prefetch-", dir=prefetch_to, delete=delete)
         if size == 0:
@@ -95,7 +120,7 @@ class ChunkedFileBlobIndexWrapper:
 
         mem = mmap.mmap(f.fileno(), size)
 
-        def fetch_file(offset, getfile) -> None:
+        def fetch_file(offset: int, getfile: Callable[[], IO[bytes]]) -> None:
             with getfile() as sf:
                 while True:
                     chunk = sf.read(65535)
@@ -118,7 +143,7 @@ class ChunkedFileBlobIndexWrapper:
         self._curidx = None
         self.closed = True
 
-    def _seek(self, pos):
+    def _seek(self, pos: int) -> int | None:
         if self.closed:
             raise ValueError("I/O operation on closed file")
 
@@ -130,7 +155,7 @@ class ChunkedFileBlobIndexWrapper:
             raise OSError("Invalid argument")
         if pos == 0 and not self._indexes:
             # Empty file, there's no seeking to be done.
-            return
+            return None
 
         for n, idx in enumerate(self._indexes[::-1]):
             if idx.offset <= pos:
@@ -143,8 +168,9 @@ class ChunkedFileBlobIndexWrapper:
         assert self._curfile is not None
         assert self._curidx is not None
         self._curfile.seek(pos - self._curidx.offset)
+        return None
 
-    def seek(self, pos, whence=io.SEEK_SET):
+    def seek(self, pos: int, whence: int = io.SEEK_SET) -> int | None:
         if whence == io.SEEK_SET:
             return self._seek(pos)
         if whence == io.SEEK_CUR:
@@ -154,7 +180,7 @@ class ChunkedFileBlobIndexWrapper:
 
         raise ValueError(f"Invalid value for whence: {whence}")
 
-    def tell(self):
+    def tell(self) -> int:
         if self.closed:
             raise ValueError("I/O operation on closed file")
         if self.prefetched:
@@ -166,7 +192,7 @@ class ChunkedFileBlobIndexWrapper:
         assert self._curfile is not None
         return self._curidx.offset + self._curfile.tell()
 
-    def read(self, n=-1):
+    def read(self, n: int = -1) -> bytes:
         if self.closed:
             raise ValueError("I/O operation on closed file")
 
@@ -199,7 +225,7 @@ class ChunkedFileBlobIndexWrapper:
 
 
 BlobIndexType = TypeVar("BlobIndexType", bound=AbstractFileBlobIndex)
-BlobType = TypeVar("BlobType", bound=AbstractFileBlob)
+BlobType = TypeVar("BlobType", bound="AbstractFileBlob[Any]")
 
 if TYPE_CHECKING:
     # Django doesn't permit models to have parent classes that are Generic
@@ -227,7 +253,7 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
     class Meta:
         abstract = True
 
-    blobs: models.ManyToManyField
+    blobs: models.ManyToManyField[Any, Any]
 
     @abc.abstractmethod
     def _blob_index_records(self) -> Sequence[BlobIndexType]: ...
@@ -236,7 +262,7 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
     def _create_blob_index(self, blob: BlobType, offset: int) -> BlobIndexType: ...
 
     @abc.abstractmethod
-    def _create_blob_from_file(self, contents: ContentFile, logger: Any) -> BlobType: ...
+    def _create_blob_from_file(self, contents: ContentFile[bytes], logger: Any) -> BlobType: ...
 
     @abc.abstractmethod
     def _get_blobs_by_id(self, blob_ids: Sequence[int]) -> models.QuerySet[BlobType]: ...
@@ -244,7 +270,13 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
     @abc.abstractmethod
     def _delete_unreferenced_blob_task(self) -> Task[Any, Any]: ...
 
-    def _get_chunked_blob(self, mode=None, prefetch=False, prefetch_to=None, delete=True):
+    def _get_chunked_blob(
+        self,
+        mode: str | None = None,
+        prefetch: bool = False,
+        prefetch_to: str | None = None,
+        delete: bool = True,
+    ) -> ChunkedFileBlobIndexWrapper:
         return ChunkedFileBlobIndexWrapper(
             self._blob_index_records(),
             mode=mode,
@@ -253,17 +285,17 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
             delete=delete,
         )
 
-    @sentry_sdk.tracing.trace
-    def getfile(self, mode=None, prefetch=False):
+    @traces.trace
+    def getfile(self, mode: str | None = None, prefetch: bool = False) -> Any:
         """Returns a file object.  By default the file is fetched on
         demand but if prefetch is enabled the file is fully prefetched
         into a tempfile before reading can happen.
         """
         impl = self._get_chunked_blob(mode, prefetch)
-        return FileObj(impl, self.name)
+        return FileObj(cast(IO[bytes], impl), self.name)
 
-    @sentry_sdk.tracing.trace
-    def save_to(self, path) -> None:
+    @traces.trace
+    def save_to(self, path: str) -> None:
         """Fetches the file and emplaces it at a certain location.  The
         write is done atomically to a tempfile first and then moved over.
         If the directory does not exist it is created.
@@ -298,8 +330,14 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
                 except Exception:
                     pass
 
-    @sentry_sdk.tracing.trace
-    def putfile(self, fileobj, blob_size=DEFAULT_BLOB_SIZE, commit=True, logger=nooplogger):
+    @traces.trace
+    def putfile(
+        self,
+        fileobj: IO[bytes],
+        blob_size: int = DEFAULT_BLOB_SIZE,
+        commit: bool = True,
+        logger: LoggerType = nooplogger,
+    ) -> list[BlobIndexType]:
         """
         Save a fileobj into a number of chunks.
 
@@ -328,8 +366,10 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
             self.save()
         return results
 
-    @sentry_sdk.tracing.trace
-    def assemble_from_file_blob_ids(self, file_blob_ids, checksum):
+    @traces.trace
+    def assemble_from_file_blob_ids(
+        self, file_blob_ids: Sequence[int], checksum: str | None
+    ) -> tempfile._TemporaryFileWrapper[bytes]:
         """
         This creates a file, from file blobs and returns a temp file with the
         contents.
@@ -382,18 +422,19 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
         tf.seek(0)
         return tf
 
-    @sentry_sdk.tracing.trace
-    def delete(self, *args, **kwargs):
+    @traces.trace
+    def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
         blob_ids = [blob.id for blob in self.blobs.all()]
         ret = super().delete(*args, **kwargs)
 
-        # Wait to delete blobs. This helps prevent
-        # races around frequently used blobs in debug images and release files.
-        transaction.on_commit(
-            lambda: self._delete_unreferenced_blob_task().apply_async(
-                kwargs={"blob_ids": blob_ids}, countdown=60 * 5
-            ),
-            using=router.db_for_write(type(self)),
-        )
+        if blob_ids:
+            # Wait to delete blobs. This helps prevent
+            # races around frequently used blobs in debug images and release files.
+            transaction.on_commit(
+                lambda: self._delete_unreferenced_blob_task().apply_async(
+                    kwargs={"blob_ids": blob_ids}, countdown=60 * 5
+                ),
+                using=router.db_for_write(type(self)),
+            )
 
         return ret

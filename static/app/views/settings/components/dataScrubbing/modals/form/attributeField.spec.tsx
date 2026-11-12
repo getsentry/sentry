@@ -1,4 +1,3 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {mockTraceItemAttributeKeysApi} from 'sentry-fixture/traceItemAttributeKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -7,9 +6,9 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import type {Tag} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
-import {useLocation} from 'sentry/utils/useLocation';
-import {AttributeField} from 'sentry/views/settings/components/dataScrubbing/modals/form/attributeField';
 import {AllowedDataScrubbingDatasets} from 'sentry/views/settings/components/dataScrubbing/types';
+
+import {AttributeField} from './attributeField';
 
 const defaultFieldProps = {
   'aria-describedby': 'source-hint',
@@ -19,9 +18,6 @@ const defaultFieldProps = {
   name: 'source',
   onBlur: jest.fn(),
 };
-
-jest.mock('sentry/utils/useLocation');
-const mockedUseLocation = jest.mocked(useLocation);
 
 describe('AttributeField', () => {
   const {organization} = initializeOrg();
@@ -56,7 +52,6 @@ describe('AttributeField', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
-    mockedUseLocation.mockReturnValue(LocationFixture());
 
     // Setup the PageFilters store with default values
     PageFiltersStore.init();

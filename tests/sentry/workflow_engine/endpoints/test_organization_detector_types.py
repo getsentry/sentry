@@ -1,31 +1,91 @@
+import importlib
+import runpy
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Never
 from unittest.mock import patch
 
-from sentry.incidents.grouptype import MetricIssue
-from sentry.issues.grouptype import (
-    GroupCategory,
-    GroupType,
-    GroupTypeRegistry,
-    PerformanceSlowDBQueryGroupType,
-)
-from sentry.monitors.grouptype import MonitorIncidentType
+import pytest
+
+from sentry.issues.grouptype import GroupCategory, GroupType, GroupTypeRegistry
+from sentry.models.organization import Organization
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import cell_silo_test
-from sentry.uptime.grouptype import UptimeDomainCheckFailure
+from sentry.workflow_engine.endpoints.utils.detector_filters import get_visible_detector_types
+from sentry.workflow_engine.endpoints.utils.filters import get_excluded_detector_types
+from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
+from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
 from sentry.workflow_engine.handlers.detector import (
-    BaseDetectorHandler,
+    DetectorEvaluations,
+    DetectorHandler,
     DetectorOccurrence,
-    GroupedDetectorEvaluationResult,
 )
 from sentry.workflow_engine.handlers.detector.base import EventData
 from sentry.workflow_engine.models import DataPacket
-from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
+from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
+from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
-    DetectorEvaluationResult,
+    APIGate,
+    DetectorAPIOperation,
+    DetectorGroupKey,
     DetectorPriorityLevel,
     DetectorSettings,
+    DetectorType,
+    FeatureGate,
 )
+from tests.sentry.workflow_engine.endpoints.test_helpers import GATE_FEATURE
+
+
+@pytest.mark.parametrize(
+    ("module_name", "detector_type"),
+    [
+        ("sentry.preprod.size_analysis.grouptype", DetectorType.PREPROD_SIZE_ANALYSIS),
+        ("sentry.processing_errors.grouptype", DetectorType.SOURCEMAP_CONFIGURATION),
+    ],
+)
+def test_released_issue_type_keeps_detector_discoverable(
+    module_name: str, detector_type: DetectorType
+) -> None:
+    source_path = importlib.import_module(module_name).__file__
+    assert source_path is not None
+    group_types = GroupTypeRegistry()
+
+    def register_released_type(cls: type[GroupType]) -> None:
+        cls.released = True
+        group_types.add(cls)
+
+    # Settings are evaluated when their class is defined. Execute a fresh copy with
+    # released issue types, which do not register visibility flags during startup.
+    with (
+        patch.object(GroupType, "__init_subclass__", classmethod(register_released_type)),
+        patch.dict(detector_settings_registry.registrations, clear=True),
+        patch(
+            "sentry.workflow_engine.endpoints.utils.detector_filters.features.has"
+        ) as has_feature,
+    ):
+        runpy.run_path(source_path)
+        assert get_visible_detector_types(Organization()) == [detector_type]
+        has_feature.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "detector_type",
+    [
+        DetectorType.ISSUE_STREAM,
+        DetectorType.PERFORMANCE_SLOW_DB_QUERY,
+        DetectorType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
+        DetectorType.QUERY_INJECTION_VULNERABILITY,
+    ],
+)
+def test_internal_types_opt_out_of_discovery(detector_type: DetectorType) -> None:
+    with patch(
+        "sentry.workflow_engine.endpoints.utils.detector_filters.features.has", return_value=False
+    ):
+        organization = Organization()
+        assert detector_type not in get_visible_detector_types(organization)
+        assert detector_type in get_excluded_detector_types(
+            DetectorAPIOperation.DISCOVER, organization
+        )
 
 
 @cell_silo_test
@@ -37,31 +97,44 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
         self.login_as(user=self.user)
 
         self.registry_patcher = patch(
-            "sentry.workflow_engine.endpoints.organization_detector_types.grouptype.registry",
+            "sentry.issues.grouptype.registry",
             new=GroupTypeRegistry(),
         )
         self.registry_patcher.start()
 
-        class MockDetectorHandler(BaseDetectorHandler[dict[Never, Never], bool]):
-            def evaluate_impl(
-                self, data_packet: DataPacket[dict[Never, Never]]
-            ) -> GroupedDetectorEvaluationResult:
-                return GroupedDetectorEvaluationResult(
-                    result={None: DetectorEvaluationResult(None, True, DetectorPriorityLevel.HIGH)},
+        self.detector_settings_patcher = patch.dict(
+            detector_settings_registry.registrations, clear=True
+        )
+        self.detector_settings_patcher.start()
+
+        class MockDetectorHandler(DetectorHandler[dict[Never, Never], bool]):
+            def evaluate(
+                self,
+                data_packet: DataPacket[dict[Never, Never]],
+                values: Mapping[DetectorGroupKey, bool],
+            ) -> DetectorEvaluations:
+                return DetectorEvaluations(
+                    evaluations={
+                        None: DetectorEvaluation.create_issue(
+                            None,
+                            DetectorPriorityLevel.HIGH,
+                            DataConditionGroupEvaluation(
+                                result=True,
+                                triggered=True,
+                                data={"condition_evaluations": [], "logic_type": "any"},
+                            ),
+                        )
+                    },
                     tainted=False,
                 )
 
             def extract_value(self, data_packet: DataPacket[dict[Never, Never]]) -> bool:
                 return True
 
-            def extract_dedupe_value(self, data_packet: DataPacket[dict[Never, Never]]) -> int:
-                return 1
-
             def create_occurrence(
                 self,
-                evaluation_result: ProcessedDataConditionGroup,
+                evaluation: DetectorEvaluation,
                 data_packet: DataPacket[dict[Never, Never]],
-                priority: DetectorPriorityLevel,
             ) -> tuple[DetectorOccurrence, EventData]:
                 return (
                     DetectorOccurrence(
@@ -73,7 +146,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
                         type=TestMetricGroupType,
                         level="",
                         culprit="",
-                        priority=priority,
+                        priority=evaluation.priority,
                         assignee=None,
                     ),
                     {},
@@ -83,47 +156,234 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
         @dataclass(frozen=True)
         class TestMetricGroupType(GroupType):
             type_id = 1
-            slug = MetricIssue.slug
+            slug = DetectorType.METRIC_ISSUE
             description = "Metric alert"
             category = GroupCategory.METRIC.value
-            detector_settings = DetectorSettings(handler=MockDetectorHandler)
             released = True
 
         @dataclass(frozen=True)
         class TestCronsGroupType(GroupType):
             type_id = 2
-            slug = MonitorIncidentType.slug
+            slug = DetectorType.MONITOR_CHECK_IN_FAILURE
             description = "Crons"
             category = GroupCategory.OUTAGE.value
-            detector_settings = DetectorSettings(handler=MockDetectorHandler)
             released = True
 
         @dataclass(frozen=True)
         class TestUptimeGroupType(GroupType):
             type_id = 3
-            slug = UptimeDomainCheckFailure.slug
+            slug = DetectorType.UPTIME_DOMAIN_FAILURE
             description = "Uptime"
             category = GroupCategory.OUTAGE.value
-            detector_settings = DetectorSettings(handler=MockDetectorHandler)
             released = True
 
-        # Should not be included in the response
+        # Should not be included in the response, it has no registered detector settings
         @dataclass(frozen=True)
         class TestPerformanceGroupType(GroupType):
             type_id = 4
-            slug = PerformanceSlowDBQueryGroupType.slug
+            slug = "test_performance_slow_db_query"
             description = "Performance"
             category = GroupCategory.DB_QUERY.value
             released = True
 
+        class MockDetectorSettings(DetectorSettings):
+            handler = MockDetectorHandler
+
+        for group_type in (TestMetricGroupType, TestCronsGroupType, TestUptimeGroupType):
+            detector_settings_registry.register(group_type.slug)(MockDetectorSettings)
+
+        self.expected_type_slugs = sorted(
+            [TestMetricGroupType.slug, TestCronsGroupType.slug, TestUptimeGroupType.slug]
+        )
+
     def tearDown(self) -> None:
         super().tearDown()
+        self.detector_settings_patcher.stop()
         self.registry_patcher.stop()
 
     def test_simple(self) -> None:
         response = self.get_success_response(self.organization.slug, status_code=200)
+        assert response.data == self.expected_type_slugs
+
+    def gate_first_type(self, availability: Mapping[DetectorAPIOperation, APIGate]) -> None:
+        # The fixture types share one settings class, so give the gated type its own subclass.
+        # setUp's patch.dict restores the registrations afterwards.
+        gated_slug = self.expected_type_slugs[0]
+
+        class GatedDetectorSettings(DetectorSettings):
+            handler = detector_settings_registry.get(gated_slug).handler
+            api_availability = availability
+
+        detector_settings_registry.registrations[gated_slug] = GatedDetectorSettings
+
+    def test_get_excluded_type_is_not_returned(self) -> None:
+        self.gate_first_type({DetectorAPIOperation.GET: False})
+        response = self.get_success_response(self.organization.slug)
+        assert response.data == self.expected_type_slugs[1:]
+
+    def test_list_exclusion_does_not_affect_type_discovery(self) -> None:
+        self.gate_first_type({DetectorAPIOperation.LIST: False})
+        response = self.get_success_response(self.organization.slug)
+        assert response.data == self.expected_type_slugs
+
+    def test_discovery_excluded_type_is_not_returned(self) -> None:
+        self.gate_first_type({DetectorAPIOperation.DISCOVER: False})
+        response = self.get_success_response(self.organization.slug)
+        assert response.data == self.expected_type_slugs[1:]
+
+    def test_get_feature_gate_is_scoped_to_each_organization_request(self) -> None:
+        other_org = self.create_organization(owner=self.user)
+        self.gate_first_type({DetectorAPIOperation.GET: FeatureGate(GATE_FEATURE)})
+        with self.feature({GATE_FEATURE: [self.organization.slug]}):
+            response = self.get_success_response(self.organization.slug)
+            assert response.data == self.expected_type_slugs
+            response = self.get_success_response(other_org.slug)
+            assert response.data == self.expected_type_slugs[1:]
+
+    def test_discovery_does_not_require_matching_issue_types(self) -> None:
+        with patch("sentry.issues.grouptype.registry", new=GroupTypeRegistry()):
+            response = self.get_success_response(self.organization.slug)
+        assert response.data == self.expected_type_slugs
+
+    def test_registered_handler_is_discoverable_by_default(self) -> None:
+        class VisibleSettings(DetectorSettings):
+            handler = detector_settings_registry.get(self.expected_type_slugs[0]).handler
+
+        with patch.dict(
+            detector_settings_registry.registrations,
+            {DetectorType.PERFORMANCE_SLOW_DB_QUERY: VisibleSettings},
+        ):
+            response = self.get_success_response(self.organization.slug)
+        assert response.data == sorted(
+            [*self.expected_type_slugs, DetectorType.PERFORMANCE_SLOW_DB_QUERY]
+        )
+
+    def test_registration_without_a_handler_is_not_discoverable(self) -> None:
+        with patch.dict(
+            detector_settings_registry.registrations,
+            {DetectorType.PERFORMANCE_SLOW_DB_QUERY: DetectorSettings},
+        ):
+            response = self.get_success_response(self.organization.slug)
+        assert response.data == self.expected_type_slugs
+
+    def test_discovery_feature_is_scoped_to_organization(self) -> None:
+        other_org = self.create_organization(owner=self.user)
+        detector_type = self.expected_type_slugs[0]
+        original_settings = detector_settings_registry.get(detector_type)
+
+        class GatedSettings(DetectorSettings):
+            handler = original_settings.handler
+            api_availability = {DetectorAPIOperation.DISCOVER: FeatureGate(GATE_FEATURE)}
+
+        with (
+            patch.dict(detector_settings_registry.registrations, {detector_type: GatedSettings}),
+            self.feature({GATE_FEATURE: [self.organization.slug]}),
+        ):
+            response = self.get_success_response(self.organization.slug)
+            assert response.data == self.expected_type_slugs
+            response = self.get_success_response(other_org.slug)
+            assert response.data == self.expected_type_slugs[1:]
+
+    def test_partial_availability_inherits_default_discovery(self) -> None:
+        class VisibleSettings(DetectorSettings):
+            handler = detector_settings_registry.get(self.expected_type_slugs[0]).handler
+            api_availability = {DetectorAPIOperation.GET: True, DetectorAPIOperation.LIST: True}
+
+        detector_type = DetectorType.PERFORMANCE_SLOW_DB_QUERY
+        with patch.dict(detector_settings_registry.registrations, {detector_type: VisibleSettings}):
+            response = self.get_success_response(self.organization.slug)
+            assert response.data == sorted([*self.expected_type_slugs, detector_type])
+            assert detector_type not in get_excluded_detector_types(
+                DetectorAPIOperation.LIST, self.organization
+            )
+
+    def test_validation_suggestions_include_validators_by_default(self) -> None:
+        class SuggestionSettings(DetectorSettings):
+            validator = BaseDetectorTypeValidator
+
+        detector_type = self.expected_type_slugs[0]
+        with patch.dict(
+            detector_settings_registry.registrations, {detector_type: SuggestionSettings}
+        ):
+            assert get_unknown_detector_type_error("unknown", self.organization) == (
+                f"Unknown detector type 'unknown'. Must be one of: {detector_type}"
+            )
+
+    def test_validation_suggestions_use_discovery_gate_and_validator(self) -> None:
+        other_org = self.create_organization(owner=self.user)
+        detector_type = self.expected_type_slugs[0]
+
+        class SuggestionSettings(DetectorSettings):
+            validator = BaseDetectorTypeValidator
+            api_availability = {
+                DetectorAPIOperation.DISCOVER: FeatureGate(GATE_FEATURE),
+                DetectorAPIOperation.GET: False,
+            }
+
+        with (
+            patch.dict(
+                detector_settings_registry.registrations, {detector_type: SuggestionSettings}
+            ),
+            self.feature({GATE_FEATURE: [self.organization.slug]}),
+        ):
+            assert get_unknown_detector_type_error("unknown", self.organization) == (
+                f"Unknown detector type 'unknown'. Must be one of: {detector_type}"
+            )
+            assert get_unknown_detector_type_error("unknown", other_org) == (
+                "Unknown detector type 'unknown'. No detector types are available."
+            )
+
+    def test_discovery_preserves_organization_visibility_and_get_actor(self) -> None:
+        self.gate_first_type(
+            {
+                DetectorAPIOperation.GET: FeatureGate(GATE_FEATURE),
+                DetectorAPIOperation.DISCOVER: FeatureGate(GATE_FEATURE),
+            }
+        )
+        with patch(
+            "sentry.workflow_engine.endpoints.utils.detector_filters.features.has",
+            return_value=True,
+        ) as has_feature:
+            assert (
+                get_excluded_detector_types(
+                    DetectorAPIOperation.DISCOVER, self.organization, actor=self.user
+                )
+                == []
+            )
+        has_feature.assert_any_call(GATE_FEATURE, self.organization, actor=self.user)
+        has_feature.assert_any_call(GATE_FEATURE, self.organization, actor=None)
+
+
+@cell_silo_test
+class RegisteredDetectorTypesCompatibilityTest(APITestCase):
+    endpoint = "sentry-api-0-organization-detector-type-index"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+
+    def test_existing_discovery_without_visibility_features(self) -> None:
+        with self.feature(
+            {
+                "organizations:issue-preprod-size-analysis-visible": False,
+                "organizations:issue-sourcemap-configuration-visible": False,
+            }
+        ):
+            response = self.get_success_response(self.organization.slug)
+        assert response.data == ["error", "metric_issue", "uptime_domain_failure"]
+
+    def test_existing_visibility_features_still_expose_the_same_types(self) -> None:
+        with self.feature(
+            {
+                "organizations:issue-preprod-size-analysis-visible": True,
+                "organizations:issue-sourcemap-configuration-visible": True,
+            }
+        ):
+            response = self.get_success_response(self.organization.slug)
         assert response.data == [
-            MetricIssue.slug,
-            MonitorIncidentType.slug,
-            UptimeDomainCheckFailure.slug,
+            "error",
+            "metric_issue",
+            "preprod_size_analysis",
+            "sourcemap_configuration",
+            "uptime_domain_failure",
         ]

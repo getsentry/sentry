@@ -10,7 +10,7 @@ describe('Redeem promo code', () => {
   const organization = OrganizationFixture({access: ['org:billing']});
 
   beforeEach(() => {
-    SubscriptionStore.set(organization.slug, {});
+    SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}));
   });
 
   it('renders redeem promo code page', () => {
@@ -28,7 +28,9 @@ describe('Redeem promo code', () => {
         route: '/settings/:orgId/subscription/redeem-code/',
       },
     });
-    expect(screen.getByText('Redeem Promotional Code')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {name: 'Redeem Promotional Code', level: 1})
+    ).toBeInTheDocument();
   });
 
   it('does not render redeem promo code page for YY partnership orgs', async () => {

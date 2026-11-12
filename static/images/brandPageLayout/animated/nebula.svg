@@ -1,0 +1,36 @@
+<svg width="2048" height="1152" viewBox="0 0 2048 1152" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="dens" cx="50%" cy="50%" r="56%">
+      <stop offset="0%"   stop-color="#000" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#000" stop-opacity="1"/>
+    </radialGradient>
+    <filter id="grainWhite" x="-5%" y="-5%" width="110%" height="110%"
+            color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.72" numOctaves="2"
+                    seed="11" stitchTiles="stitch" result="noise"/>
+      <feColorMatrix in="noise" type="matrix"
+                     values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1 0 0 0 0" result="N"/>
+      <feComponentTransfer in="SourceAlpha" result="T">
+        <feFuncA type="linear" slope="-0.62" intercept="1.03"/>
+      </feComponentTransfer>
+      <feComposite in="N" in2="T" operator="arithmetic" k1="0" k2="1" k3="-1" k4="0" result="diff"/>
+      <feComponentTransfer in="diff" result="mask">
+        <feFuncA type="linear" slope="900" intercept="0"/>
+      </feComponentTransfer>
+      <feFlood flood-color="#fff" flood-opacity="1" result="white"/>
+      <feComposite in="white" in2="mask" operator="in"/>
+    </filter>
+    <mask id="nebula" maskUnits="userSpaceOnUse" x="0" y="0" width="2048" height="1152">
+      <g filter="url(#grainWhite)">
+        <g transform="translate(-200,-150) scale(0.8)">
+          <path fill="url(#dens)" d="M1548.21 1790.5C1246 1889.5 1322.07 2059 1678 2059C2119 2059 2179 1568 1601 1568C1217.67 1568 917.415 1826.5 662.706 1826.5C532.706 1826.5 375.706 1731.5 731.558 1591C82.9739 1591 -23.9379 2122.5 361.207 2122.5C872.551 2122.5 883.824 1836.74 1548.21 1790.5Z"/>
+          <path fill="url(#dens)" d="M426.5 452.5C587.5 423.5 791.45 153.5 559.5 153.5C124.408 153.5 -114.5 762 287 762C426.5 762 470.5 633 614 633C717.999 633 614 804.5 463 834C929 834 1090.1 340.5 881 340.5C721.5 340.5 685 452.5 426.5 452.5Z"/>
+          <path fill="url(#dens)" d="M986 675C986 736 1014.34 808 1204.63 808C1464.2 808 1424.74 561.449 1221 565.5C1516.5 381 1536.82 651.5 1699 651.5C1908.97 651.5 1854 232.5 1992 232.5C2067.48 232.5 2153.93 302 2028 453.5C2259.5 282.5 2152 116 1997.99 116C1852.12 116 1853.98 292 1675.5 292C1497.02 292 1348 -58.5 1031.5 288C1187.5 207.5 1348 227 1348 288C1348 418.5 986 437.152 986 675Z"/>
+          <path fill="url(#dens)" d="M862 856C587.645 856 99 987.5 99 1215.96C99 1338.51 176.535 1489.76 534.389 1489.76C1037 1489.76 1163 1184.5 1544 1184.5C1762.56 1184.5 1740 1284.5 1305 1502C1761.56 1448.5 2147.5 1466.5 2147.5 1162.41C2147.5 948.776 2031.17 791.5 1778 791.5C1431.5 791.5 1314.5 1154 881 1154C1179 1076.5 1136.35 856 862 856Z"/>
+        </g>
+      </g>
+    </mask>
+  </defs>
+  <rect width="2048" height="1152" fill="#311A54"/>
+  <rect width="2048" height="1152" fill="#FF4BC1" mask="url(#nebula)" opacity="0.22"/>
+</svg>

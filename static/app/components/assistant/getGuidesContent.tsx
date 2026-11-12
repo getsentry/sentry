@@ -1,9 +1,10 @@
 import {ExternalLink} from '@sentry/scraps/link';
 
-import type {GuidesContent} from 'sentry/components/assistant/types';
 import {t, tct} from 'sentry/locale';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getDemoModeGuides} from 'sentry/utils/demoMode/guides';
+
+import type {GuidesContent} from './types';
 
 export function getGuidesContent(): GuidesContent {
   if (isDemoModeActive()) {
@@ -88,19 +89,6 @@ export function getGuidesContent(): GuidesContent {
           target: 'project_transaction_threshold',
           description: t(
             'Gauge performance using different metrics for each project. Set response time thresholds, per project, for the Apdex and User Misery Scores in each project’s Performance settings.'
-          ),
-        },
-      ],
-    },
-    {
-      guide: 'project_transaction_threshold_override',
-      requiredTargets: ['project_transaction_threshold_override'],
-      steps: [
-        {
-          title: t('Response Time Thresholds'),
-          target: 'project_transaction_threshold_override',
-          description: t(
-            'Use this menu to adjust each transaction’s satisfactory response time threshold, which can vary across transactions. These thresholds are used to calculate Apdex and User Misery, metrics that indicate how satisfied and miserable users are, respectively.'
           ),
         },
       ],

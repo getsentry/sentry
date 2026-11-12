@@ -11,6 +11,7 @@ from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.organization import Organization
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
@@ -23,7 +24,7 @@ class CommitFileChangeEndpoint(OrganizationReleasesBaseEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, organization, version) -> Response:
+    def get(self, request: Request, organization: Organization, version: str) -> Response:
         """
         Retrieve Files Changed in a Release's Commits
         `````````````````````````````````````````````
@@ -59,26 +60,29 @@ class CommitFileChangeEndpoint(OrganizationReleasesBaseEndpoint):
         repo_name = request.query_params.get("repo_name")
 
         if repo_id or repo_name:
-            try:
-                if repo_id:
-                    repo = Repository.objects.get(
-                        organization_id=organization.id,
-                        external_id=repo_id,
-                        status=ObjectStatus.ACTIVE,
-                    )
-                else:
-                    repo = Repository.objects.get(
-                        organization_id=organization.id, name=repo_name, status=ObjectStatus.ACTIVE
-                    )
-
-                commit_ids_for_repo = list(
-                    Commit.objects.filter(
-                        id__in=release_commit_ids, repository_id=repo.id
-                    ).values_list("id", flat=True)
-                )
-                queryset = queryset.filter(commit_id__in=commit_ids_for_repo)
-            except Repository.DoesNotExist:
+            # Neither parameter names a provider, and an external id is only unique per
+            # provider, so resolve against the repositories that actually have commits in
+            # this release. Re-linking leaves duplicates that differ in provider or config;
+            # every match contributes its commits rather than guessing which was meant.
+            release_repos = Repository.objects.filter(
+                organization_id=organization.id,
+                id__in=Commit.objects.filter(id__in=release_commit_ids).values("repository_id"),
+                status=ObjectStatus.ACTIVE,
+            )
+            if repo_id:
+                release_repos = release_repos.filter(external_id=repo_id)
+            else:
+                release_repos = release_repos.filter(name=repo_name)
+            repo_ids = list(release_repos.values_list("id", flat=True))
+            if not repo_ids:
                 raise ResourceDoesNotExist
+
+            commit_ids_for_repos = list(
+                Commit.objects.filter(
+                    id__in=release_commit_ids, repository_id__in=repo_ids
+                ).values_list("id", flat=True)
+            )
+            queryset = queryset.filter(commit_id__in=commit_ids_for_repos)
 
         return self.paginate(
             request=request,

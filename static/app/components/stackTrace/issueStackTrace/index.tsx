@@ -2,7 +2,7 @@ import {Fragment, useEffect, useMemo} from 'react';
 import type {Dispatch, SetStateAction} from 'react';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
@@ -46,6 +46,7 @@ import {IssueStackTraceFrameContext} from './issueStackTraceFrameContext';
 import {
   formatExceptionsAsText,
   getExceptionEntryMeta,
+  getFirstVisibleStacktraceIndex,
   getOrderedExceptions,
   resolveExceptionFields,
 } from './utils';
@@ -53,6 +54,8 @@ import {
 interface IssueStackTraceBaseProps {
   event: Event;
   group?: Group;
+  /** Use a local initial section state instead of saved collapse preferences. */
+  initialCollapse?: boolean;
   projectSlug?: Project['slug'];
 }
 
@@ -75,7 +78,7 @@ type PersistedDisplayOption = 'raw-stack-trace' | 'minified';
 const NO_PERSIST_KEY = '__no_persist_stacktrace_display__';
 
 export function IssueStackTrace(props: IssueStackTraceProps) {
-  const {event, group, projectSlug} = props;
+  const {event, group, projectSlug, initialCollapse} = props;
   const organization = useOrganization();
   const storageKey = projectSlug
     ? `issue-details-stracktrace-display-${organization.slug}-${projectSlug}`
@@ -125,6 +128,7 @@ export function IssueStackTrace(props: IssueStackTraceProps) {
     >
       {projectSlug && <PersistDisplayOptions setPersistedOptions={setPersistedOptions} />}
       <IssueStackTraceContent
+        initialCollapse={initialCollapse}
         // Reset internal state when switching events
         key={event.id}
         event={event}
@@ -162,6 +166,7 @@ function PersistDisplayOptions({
 }
 
 function IssueStackTraceContent({
+  initialCollapse,
   event,
   values,
   group,
@@ -188,6 +193,11 @@ function IssueStackTraceContent({
   const firstVisibleExceptionIndex = exceptions.findIndex(
     exc =>
       exc.mechanism?.parent_id === undefined || !hiddenExceptions[exc.mechanism.parent_id]
+  );
+  const firstStacktraceIndex = getFirstVisibleStacktraceIndex(
+    exceptions,
+    isMinified,
+    hiddenExceptions
   );
 
   if (exceptions.length === 0) {
@@ -217,8 +227,14 @@ function IssueStackTraceContent({
 
   if (view === 'raw') {
     return (
-      <FoldSection sectionKey={sectionKey} title="Stack Trace" actions={sectionActions}>
-        <Flex direction="column" gap="lg">
+      <FoldSection
+        sectionKey={sectionKey}
+        title="Stack Trace"
+        actions={sectionActions}
+        initialCollapse={initialCollapse}
+        disableCollapsePersistence={initialCollapse !== undefined}
+      >
+        <Stack gap="lg">
           <Panel>
             <RawStackTraceText>
               {formatExceptionsAsText({
@@ -234,7 +250,7 @@ function IssueStackTraceContent({
             group={group}
             projectSlug={projectSlug}
           />
-        </Flex>
+        </Stack>
       </FoldSection>
     );
   }
@@ -247,9 +263,15 @@ function IssueStackTraceContent({
     const excMeta = exceptionValuesMeta?.[exc.exceptionIndex];
 
     return (
-      <FoldSection sectionKey={sectionKey} title="Stack Trace" actions={sectionActions}>
-        <Flex direction="column" gap="lg">
-          <Flex direction="column" gap="sm">
+      <FoldSection
+        sectionKey={sectionKey}
+        title="Stack Trace"
+        actions={sectionActions}
+        initialCollapse={initialCollapse}
+        disableCollapsePersistence={initialCollapse !== undefined}
+      >
+        <Stack gap="lg">
+          <Stack gap="sm">
             {hasExceptionInfo && (
               <Fragment>
                 <div>
@@ -262,10 +284,12 @@ function IssueStackTraceContent({
                 />
               </Fragment>
             )}
-          </Flex>
-          <ErrorBoundary customComponent={null}>
-            <StacktraceBanners event={event} stacktrace={exc.stacktrace} />
-          </ErrorBoundary>
+          </Stack>
+          {exc.stacktrace && (
+            <ErrorBoundary customComponent={null}>
+              <StacktraceBanners event={event} stacktrace={exc.stacktrace} />
+            </ErrorBoundary>
+          )}
           <StackTraceProvider
             exceptionIndex={isStandalone ? undefined : exc.exceptionIndex}
             event={event}
@@ -284,14 +308,20 @@ function IssueStackTraceContent({
             group={group}
             projectSlug={projectSlug}
           />
-        </Flex>
+        </Stack>
       </FoldSection>
     );
   }
 
   return (
-    <FoldSection sectionKey={sectionKey} title="Stack Trace" actions={sectionActions}>
-      <Flex direction="column" gap="lg">
+    <FoldSection
+      sectionKey={sectionKey}
+      title="Stack Trace"
+      actions={sectionActions}
+      initialCollapse={initialCollapse}
+      disableCollapsePersistence={initialCollapse !== undefined}
+    >
+      <Stack gap="lg">
         <Text variant="muted">
           {tn(
             'There is %s chained exception in this event.',
@@ -318,7 +348,9 @@ function IssueStackTraceContent({
           return (
             <Disclosure
               key={exceptionId ?? idx}
-              defaultExpanded={idx === firstVisibleExceptionIndex}
+              defaultExpanded={
+                idx === firstVisibleExceptionIndex || idx === firstStacktraceIndex
+              }
               id={defined(exceptionId) ? `exception-${exceptionId}` : undefined}
             >
               <Disclosure.Title
@@ -334,7 +366,7 @@ function IssueStackTraceContent({
                 <ExceptionHeader type={excType} module={excModule} />
               </Disclosure.Title>
               <Disclosure.Content>
-                <Flex direction="column" gap="sm">
+                <Stack gap="sm">
                   <ExceptionDescription
                     value={excValue}
                     mechanism={exc.mechanism}
@@ -347,7 +379,7 @@ function IssueStackTraceContent({
                     newestFirst={isNewestFirst}
                     onExceptionClick={expandException}
                   />
-                  {idx === firstVisibleExceptionIndex ? (
+                  {exc.stacktrace && idx === firstVisibleExceptionIndex ? (
                     <ErrorBoundary customComponent={null}>
                       <StacktraceBanners event={event} stacktrace={exc.stacktrace} />
                     </ErrorBoundary>
@@ -365,7 +397,7 @@ function IssueStackTraceContent({
                       frameActionsComponent={IssueFrameActions}
                     />
                   </StackTraceProvider>
-                </Flex>
+                </Stack>
               </Disclosure.Content>
             </Disclosure>
           );
@@ -375,7 +407,7 @@ function IssueStackTraceContent({
           group={group}
           projectSlug={projectSlug}
         />
-      </Flex>
+      </Stack>
     </FoldSection>
   );
 }

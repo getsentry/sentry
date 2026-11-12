@@ -1,28 +1,16 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconGithub} from '@sentry/icons/github';
+import {IconRefresh} from '@sentry/icons/refresh';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Hovercard} from 'sentry/components/hovercard';
 import {Panel} from 'sentry/components/panels/panel';
-import {ChevronAction} from 'sentry/components/stackTrace/frame/actions/chevron';
-import {HiddenFramesToggleAction} from 'sentry/components/stackTrace/frame/actions/hiddenFramesToggle';
-import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
-import {StackTraceFrameRow} from 'sentry/components/stackTrace/frame/frameRow';
-import {IssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace';
-import {IssueStackTracePreview} from 'sentry/components/stackTrace/issueStackTrace/issueStackTracePreview';
-import {
-  StackTraceViewStateProvider,
-  useStackTraceContext,
-  useStackTraceFrameContext,
-} from 'sentry/components/stackTrace/stackTraceContext';
-import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
-import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
-import type {StackTraceViewStateProviderProps} from 'sentry/components/stackTrace/types';
-import {IconCopy, IconGithub, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
 import {
@@ -33,6 +21,21 @@ import {
   type Frame,
 } from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
+
+import {ChevronAction} from './frame/actions/chevron';
+import {HiddenFramesToggleAction} from './frame/actions/hiddenFramesToggle';
+import {FrameContent} from './frame/frameContent';
+import {StackTraceFrameRow} from './frame/frameRow';
+import {IssueStackTracePreview} from './issueStackTrace/issueStackTracePreview';
+import {IssueStackTrace} from './issueStackTrace';
+import {
+  StackTraceViewStateProvider,
+  useStackTraceContext,
+  useStackTraceFrameContext,
+} from './stackTraceContext';
+import {StackTraceFrames} from './stackTraceFrames';
+import {StackTraceProvider} from './stackTraceProvider';
+import type {StackTraceViewStateProviderProps} from './types';
 
 type StacktraceWithFrames = StacktraceType & {
   frames: NonNullable<StacktraceType['frames']>;
@@ -272,7 +275,7 @@ function makeCircularStackTraceData(): StackTraceStoryData {
         {...inAppRecursiveFrame},
         {...inAppRecursiveFrame},
       ],
-    } as StacktraceWithFrames,
+    },
   };
 }
 
@@ -294,7 +297,7 @@ function makeSourceMapTooltipStackTraceData(): StackTraceStoryData {
           inApp: true,
         },
       ],
-    } as StacktraceWithFrames,
+    },
   };
 }
 
@@ -315,7 +318,7 @@ function makeLongPathStackTraceData(): StackTraceStoryData {
           inApp: true,
         };
       }),
-    } as StacktraceWithFrames,
+    },
   };
 }
 
@@ -333,7 +336,7 @@ function makeLongPathAndFunctionStackTraceData(): StackTraceStoryData {
           '__with_additional_context_and_nested_handler_resolution_chain',
         inApp: true,
       })),
-    } as StacktraceWithFrames,
+    },
   };
 }
 
@@ -356,7 +359,7 @@ function makeRawFunctionAndPackageStackTraceData(): StackTraceStoryData {
             },
           ]
         : [],
-    } as StacktraceWithFrames,
+    },
   };
 }
 
@@ -398,7 +401,7 @@ function makeMixedExpandabilityStackTraceData(): StackTraceStoryData {
           package: null,
         }),
       ],
-    } as StacktraceWithFrames,
+    },
   };
 }
 
@@ -1063,14 +1066,14 @@ export default Storybook.story('StackTrace', story => {
     };
 
     return (
-      <Flex direction="column" gap="md">
+      <Stack gap="md">
         <StoryStackTraceProvider event={event} stacktrace={singleFrameStacktrace}>
           <StackTraceFrames
             frameContextComponent={FrameContent}
             frameActionsComponent={StoryFrameActions}
           />
         </StoryStackTraceProvider>
-      </Flex>
+      </Stack>
     );
   });
 
@@ -1323,7 +1326,7 @@ const WideHovercard = styled(WideHovercardBase)`
 
 const HoverActionsSlot = styled(Flex)<{visible: boolean}>`
   align-items: center;
-  gap: ${p => p.theme.space.sm};
+  gap: ${p => p.theme.space.xs};
   opacity: ${p => (p.visible ? 1 : 0)};
   pointer-events: ${p => (p.visible ? 'auto' : 'none')};
 `;

@@ -1,8 +1,9 @@
 import {useEffect} from 'react';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {parseAsString, useQueryStates} from 'nuqs';
 
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
@@ -20,41 +21,50 @@ import type {Project} from 'sentry/types/project';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useIssueDetails} from 'sentry/views/issueDetails/context';
-import {EventGraph} from 'sentry/views/issueDetails/eventGraph';
-import {EventSearch} from 'sentry/views/issueDetails/eventSearch';
-import {useEventQuery} from 'sentry/views/issueDetails/hooks/useEventQuery';
-import {IssueCronCheckTimeline} from 'sentry/views/issueDetails/issueCronCheckTimeline';
-import {
-  IssueDetailsTour,
-  IssueDetailsTourContext,
-} from 'sentry/views/issueDetails/issueDetailsTour';
-import {IssueTagsPreview} from 'sentry/views/issueDetails/issueTagsPreview';
-import {IssueUptimeCheckTimeline} from 'sentry/views/issueDetails/issueUptimeCheckTimeline';
-import {MetricIssueChart} from 'sentry/views/issueDetails/metricIssues/metricIssueChart';
-import {OccurrenceSummary} from 'sentry/views/issueDetails/occurrenceSummary';
-import {getDetectorDetails} from 'sentry/views/issueDetails/sidebar/detectorSection';
-import {ToggleSidebar} from 'sentry/views/issueDetails/sidebar/toggleSidebar';
-import {useGroupDefaultStatsPeriod} from 'sentry/views/issueDetails/useGroupDefaultStatsPeriod';
+
+import {useEventQuery} from './hooks/useEventQuery';
+import {MetricIssueChart} from './metricIssues/metricIssueChart';
+import {getDetectorDetails} from './sidebar/detectorSection';
+import {ToggleSidebar} from './sidebar/toggleSidebar';
+import {useIssueDetails} from './context';
+import {EventGraph} from './eventGraph';
+import {EventSearch} from './eventSearch';
+import {IssueCronCheckTimeline} from './issueCronCheckTimeline';
+import {IssueDetailsTour, IssueDetailsTourContext} from './issueDetailsTour';
+import {IssueTagsPreview} from './issueTagsPreview';
+import {IssueUptimeCheckTimeline} from './issueUptimeCheckTimeline';
+import {OccurrenceSummary} from './occurrenceSummary';
+import {useGroupDefaultStatsPeriod} from './useGroupDefaultStatsPeriod';
 import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
   useEnvironmentsFromUrl,
-} from 'sentry/views/issueDetails/utils';
+} from './utils';
 
 interface EventDetailsHeaderProps {
   group: Group;
   project: Project;
   event?: Event;
+  showSidebarToggle?: boolean;
 }
 
-export function EventDetailsHeader({group, event, project}: EventDetailsHeaderProps) {
+export function EventDetailsHeader({
+  group,
+  event,
+  project,
+  showSidebarToggle = true,
+}: EventDetailsHeaderProps) {
   const organization = useOrganization();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [{statsPeriod, start, end, utc}, setQueryParams] = useQueryStates({
+    cursor: parseAsString,
+    query: parseAsString,
+    statsPeriod: pageFilterParsers.statsPeriod,
+    start: pageFilterParsers.start,
+    end: pageFilterParsers.end,
+    utc: pageFilterParsers.utc,
+  });
   const theme = useTheme();
   const environments = useEnvironmentsFromUrl();
   const searchQuery = useEventQuery();
@@ -62,16 +72,11 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
   const {dispatch} = useIssueDetails();
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
 
-  const hasSetStatsPeriod =
-    location.query.statsPeriod || location.query.start || location.query.end;
+  const hasSetStatsPeriod = statsPeriod || start || end;
   const defaultStatsPeriod = useGroupDefaultStatsPeriod(group, project);
   const shouldShowSinceFirstSeenOption = issueTypeConfig.defaultTimePeriod.sinceFirstSeen;
   const period = hasSetStatsPeriod
-    ? getPeriod({
-        start: location.query.start as string,
-        end: location.query.end as string,
-        period: location.query.statsPeriod as string,
-      })
+    ? getPeriod({start, end, period: statsPeriod})
     : defaultStatsPeriod;
 
   useEffect(() => {
@@ -103,10 +108,16 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
 
   return (
     <PageErrorBoundary mini message={t('There was an error loading the event filters')}>
-      <DetailsContainer
+      <Stack
         role="group"
         aria-description={t('Event filtering controls')}
-        hasFilterBar={issueTypeConfig.header.filterBar.enabled}
+        position="relative"
+        gap="lg"
+        background="secondary"
+        paddingTop="lg"
+        style={{
+          paddingInline: `var(--issue-details-inset, ${theme.space['2xl']})`,
+        }}
       >
         {issueTypeConfig.header.filterBar.enabled && (
           <TourElement<IssueDetailsTour>
@@ -120,93 +131,94 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
           >
             {tp => (
               <div {...tp}>
-                <Flex direction={{'screen:xs': 'column', 'screen:md': 'row'}} gap="sm">
+                <Flex direction={{zero: 'column', sm: 'row'}} gap="sm">
                   <Grid
                     width="100%"
                     gap="sm"
                     columns={{
-                      'screen:xs': '1fr',
-                      'screen:md': 'auto minmax(100px, 1fr) auto',
+                      zero: '1fr',
+                      xl: 'auto minmax(100px, 1fr) auto',
                     }}
                     rows={`minmax(${theme.form.md.height}, auto)`}
                   >
-                    <PageFilterBar>
-                      <EnvironmentSelector
-                        group={group}
-                        event={event}
-                        project={project}
-                      />
-                      <TimeRangeSelector
-                        menuTitle={t('Filter Time Range')}
-                        menuWidth={
-                          shouldShowSinceFirstSeenOption ? 'fit-content' : undefined
-                        }
-                        start={period?.start}
-                        end={period?.end}
-                        utc={location.query.utc === 'true'}
-                        relative={period?.statsPeriod}
-                        relativeOptions={props => {
-                          return {
-                            ...props.arbitraryOptions,
-                            // Always display arbitrary issue open period
-                            ...(defaultStatsPeriod?.statsPeriod &&
-                            shouldShowSinceFirstSeenOption
-                              ? {
-                                  [defaultStatsPeriod.statsPeriod]: t(
-                                    'Last %s (since first seen)',
-                                    getRelativeDate(group.firstSeen)
+                    <Container justifySelf={{zero: 'stretch', sm: 'start'}}>
+                      <PageFilterBar>
+                        <EnvironmentSelector
+                          group={group}
+                          event={event}
+                          project={project}
+                        />
+                        <TimeRangeSelector
+                          menuTitle={t('Filter Time Range')}
+                          menuWidth={
+                            shouldShowSinceFirstSeenOption ? 'fit-content' : undefined
+                          }
+                          start={period?.start}
+                          end={period?.end}
+                          utc={utc === 'true'}
+                          relative={period?.statsPeriod}
+                          relativeOptions={props => {
+                            return {
+                              ...props.arbitraryOptions,
+                              // Always display arbitrary issue open period
+                              ...(defaultStatsPeriod?.statsPeriod &&
+                              shouldShowSinceFirstSeenOption
+                                ? {
+                                    [defaultStatsPeriod.statsPeriod]: t(
+                                      'Last %s (since first seen)',
+                                      getRelativeDate(group.firstSeen)
+                                        .replace(/^a (?=\w+$)/, '1 ')
+                                        .replace(/^an (?=\w+$)/, '1 ')
+                                    ),
+                                  }
+                                : {}),
+                              ...props.defaultOptions,
+                            };
+                          }}
+                          onChange={change => {
+                            setQueryParams(
+                              {
+                                cursor: null,
+                                // If selecting the issue open period, remove the stats period query param
+                                statsPeriod:
+                                  change.relative === defaultStatsPeriod?.statsPeriod
+                                    ? null
+                                    : change.relative,
+                                start: change.start
+                                  ? getUtcDateString(change.start)
+                                  : null,
+                                end: change.end ? getUtcDateString(change.end) : null,
+                                utc: change.utc ? 'true' : null,
+                              },
+                              {history: 'push'}
+                            );
+                          }}
+                          trigger={triggerProps => (
+                            <TimeRangeSelectTrigger
+                              {...triggerProps}
+                              style={{
+                                padding: `${theme.space.md} ${theme.space.lg}`,
+                              }}
+                            >
+                              {period === defaultStatsPeriod &&
+                              !defaultStatsPeriod.isMaxRetention &&
+                              shouldShowSinceFirstSeenOption
+                                ? tct('Since First Seen ([period])', {
+                                    period: getRelativeDate(group.firstSeen)
                                       .replace(/^a (?=\w+$)/, '1 ')
-                                      .replace(/^an (?=\w+$)/, '1 ')
-                                  ),
-                                }
-                              : {}),
-                            ...props.defaultOptions,
-                          };
-                        }}
-                        onChange={({relative, start, end, utc}) => {
-                          navigate({
-                            ...location,
-                            query: {
-                              ...location.query,
-                              // If selecting the issue open period, remove the stats period query param
-                              statsPeriod:
-                                relative === defaultStatsPeriod?.statsPeriod
-                                  ? undefined
-                                  : relative,
-                              start: start ? getUtcDateString(start) : undefined,
-                              end: end ? getUtcDateString(end) : undefined,
-                              utc: utc ? 'true' : undefined,
-                            },
-                          });
-                        }}
-                        trigger={triggerProps => (
-                          <TimeRangeSelectTrigger
-                            {...triggerProps}
-                            style={{
-                              padding: `${theme.space.md} ${theme.space.lg}`,
-                            }}
-                          >
-                            {period === defaultStatsPeriod &&
-                            !defaultStatsPeriod.isMaxRetention &&
-                            shouldShowSinceFirstSeenOption
-                              ? tct('Since First Seen ([period])', {
-                                  period: getRelativeDate(group.firstSeen)
-                                    .replace(/^a (?=\w+$)/, '1 ')
-                                    .replace(/^an (?=\w+$)/, '1 '),
-                                })
-                              : triggerProps.children}
-                          </TimeRangeSelectTrigger>
-                        )}
-                      />
-                    </PageFilterBar>
+                                      .replace(/^an (?=\w+$)/, '1 '),
+                                  })
+                                : triggerProps.children}
+                            </TimeRangeSelectTrigger>
+                          )}
+                        />
+                      </PageFilterBar>
+                    </Container>
                     {searchBarEnabled && (
                       <EventSearch
                         group={group}
                         handleSearch={query => {
-                          navigate(
-                            {...location, query: {...location.query, query}},
-                            {replace: true}
-                          );
+                          setQueryParams({query, cursor: null});
                         }}
                         environments={environments}
                         query={searchQuery}
@@ -218,14 +230,24 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                       />
                     )}
                   </Grid>
-                  <ToggleSidebar />
+                  {showSidebarToggle && <ToggleSidebar />}
                 </Flex>
               </div>
             )}
           </TourElement>
         )}
         {issueTypeConfig.header.graph.enabled && (
-          <GraphSection>
+          <Flex
+            direction={{zero: 'column', md: 'row'}}
+            gap={{zero: 'sm', md: 'lg'}}
+            css={cssTheme => css`
+              & > * {
+                background: ${cssTheme.tokens.background.primary};
+                border-radius: ${cssTheme.radius.md};
+                border: 1px solid ${cssTheme.tokens.border.primary};
+              }
+            `}
+          >
             {issueTypeConfig.header.graph.type === 'discover-events' && (
               <EventGraph
                 event={event}
@@ -250,12 +272,12 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                 project={project}
               />
             )}
-          </GraphSection>
+          </Flex>
         )}
         {issueTypeConfig.header.occurrenceSummary.enabled && (
           <OccurrenceSummarySection group={group} event={event} />
         )}
-      </DetailsContainer>
+      </Stack>
     </PageErrorBoundary>
   );
 }
@@ -288,36 +310,6 @@ function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
 
   return <EnvironmentPageFilter triggerProps={{style}} />;
 }
-
-const DetailsContainer = styled('div')<{hasFilterBar: boolean}>`
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.lg};
-  background: ${p => p.theme.tokens.background.secondary};
-  padding-left: var(--issue-details-inset, ${p => p.theme.space['2xl']});
-  padding-right: var(--issue-details-inset, ${p => p.theme.space['2xl']});
-  padding-top: ${p => p.theme.space.lg};
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    border-right: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-`;
-
-const GraphSection = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.sm};
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    gap: ${p => p.theme.space.lg};
-  }
-
-  & > * {
-    background: ${p => p.theme.tokens.background.primary};
-    border-radius: ${p => p.theme.radius.md};
-    border: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-`;
 
 const OccurrenceSummarySection = styled(OccurrenceSummary)`
   white-space: unset;

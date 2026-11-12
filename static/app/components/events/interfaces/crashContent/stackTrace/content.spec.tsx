@@ -8,10 +8,11 @@ import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProje
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Content as StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EventOrGroupType} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
+
+import {Content as StackTraceContent} from './content';
 
 const organization = OrganizationFixture();
 const project = ProjectFixture();
@@ -40,6 +41,10 @@ describe('StackTrace', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sentry-app-components/',
+      body: [],
+    });
 
     const promptResponse = {
       dismissed_ts: undefined,
@@ -88,6 +93,34 @@ describe('StackTrace', () => {
     expect(frameFunction[3]).toHaveTextContent('capture');
     expect(frameFunction[4]).toHaveTextContent('build_msg');
   });
+
+  it.each(['matching', 'missing'] as const)(
+    'shows the full filename when the absolute path is %s',
+    async absolutePath => {
+      const filename = `/source/${'long directory with spaces/'.repeat(10)}runner.py`;
+      render(
+        <StackTraceContent
+          {...defaultProps}
+          event={event}
+          data={{
+            ...data,
+            frames: [
+              {
+                ...data.frames[0]!,
+                filename,
+                absPath: absolutePath === 'matching' ? filename : null,
+              },
+            ],
+          }}
+        />
+      );
+
+      await userEvent.hover(screen.getByTestId('filename'));
+      expect(
+        await screen.findByText(filename, {selector: '[data-tooltip]'})
+      ).toBeVisible();
+    }
+  );
 
   it('collapse/expand frames by clicking anywhere in the frame element', async () => {
     render(<StackTraceContent {...defaultProps} data={data} event={event} />);

@@ -3,10 +3,10 @@ import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 
-const ALL_METRIC_TYPES = ['install_size', 'download_size'] as const;
+export const ALL_METRIC_TYPES = ['install_size', 'download_size'] as const;
 export type MetricType = (typeof ALL_METRIC_TYPES)[number];
 
-const ALL_MEASUREMENTS = ['absolute', 'absolute_diff', 'relative_diff'] as const;
+export const ALL_MEASUREMENTS = ['absolute', 'absolute_diff', 'relative_diff'] as const;
 
 export type MeasurementType = (typeof ALL_MEASUREMENTS)[number];
 
@@ -169,11 +169,8 @@ export function toMeasurementType(
   return getSafeValue(value, ALL_MEASUREMENTS, fallback);
 }
 
-export function toArtifactType(
-  value: unknown,
-  fallback: ArtifactType = DEFAULT_ARTIFACT_TYPE
-): ArtifactType {
-  return getSafeValue(value, ALL_ARTIFACT_TYPES, fallback);
+export function toArtifactType(value: unknown): ArtifactType {
+  return getSafeValue(value, ALL_ARTIFACT_TYPES, DEFAULT_ARTIFACT_TYPE);
 }
 
 export function getArtifactTypeLabel(artifactType: ArtifactType | undefined): string {

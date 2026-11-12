@@ -1,14 +1,15 @@
 import {useContext} from 'react';
+import {IconOpen} from '@sentry/icons/open';
 
 import {LinkButton} from '@sentry/scraps/button';
 
-import {IconOpen} from 'sentry/icons';
 import type {Integration} from 'sentry/types/integrations';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
-import {DirectEnableButton} from 'sentry/views/settings/organizationIntegrations/directEnableButton';
-import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
-import {RequestIntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
+
+import {RequestIntegrationButton} from './integrationRequest/RequestIntegrationButton';
+import {AddIntegrationButton} from './addIntegrationButton';
+import {DirectEnableButton} from './directEnableButton';
+import {IntegrationContext} from './integrationContext';
 
 type Props = {
   /**
@@ -17,7 +18,14 @@ type Props = {
    */
   buttonProps: Pick<
     React.ComponentProps<typeof AddIntegrationButton>,
-    'size' | 'variant' | 'disabled' | 'style' | 'data-test-id' | 'icon' | 'buttonText'
+    | 'size'
+    | 'variant'
+    | 'disabled'
+    | 'style'
+    | 'data-test-id'
+    | 'icon'
+    | 'buttonText'
+    | 'aria-label'
   >;
   onAddIntegration: (integration: Integration) => void;
   onExternalClick: () => void;

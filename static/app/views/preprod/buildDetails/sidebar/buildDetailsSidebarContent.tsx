@@ -1,42 +1,34 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {Placeholder} from 'sentry/components/placeholder';
-import {BuildDetailsSidebarAppInfo} from 'sentry/views/preprod/buildDetails/sidebar/buildDetailsSidebarAppInfo';
-import {BuildDetailsSidebarStatusCheck} from 'sentry/views/preprod/buildDetails/sidebar/buildDetailsSidebarStatusCheck';
 import {BuildVcsInfo} from 'sentry/views/preprod/components/buildVcsInfo';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {BuildDetailsState} from 'sentry/views/preprod/types/buildDetailsTypes';
 
+import {BuildDetailsSidebarStatusCheck} from './buildDetailsSidebarStatusCheck';
+
 interface BuildDetailsSidebarContentProps {
-  artifactId: string;
-  projectId: string | null;
   buildDetailsData?: BuildDetailsApiResponse | null;
   isBuildDetailsPending?: boolean;
 }
 
 export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProps) {
-  const {buildDetailsData, isBuildDetailsPending = false, artifactId, projectId} = props;
+  const {buildDetailsData, isBuildDetailsPending = false} = props;
 
   if (isBuildDetailsPending || !buildDetailsData) {
     return <SidebarLoadingSkeleton data-testid="sidebar-loading-skeleton" />;
   }
 
-  /* App info + status check info + VCS info - only show when artifact is processed */
+  /* Status check info + VCS info - only show when artifact is processed */
   if (buildDetailsData.state !== BuildDetailsState.PROCESSED) {
     return null;
   }
 
   return (
-    <Flex direction="column" gap="2xl">
-      <BuildDetailsSidebarAppInfo
-        appInfo={buildDetailsData.app_info}
-        projectId={projectId}
-        artifactId={artifactId}
-      />
-
+    <Stack gap="2xl">
       {/* Status check info */}
       {buildDetailsData.posted_status_checks?.size && (
         <BuildDetailsSidebarStatusCheck
@@ -46,46 +38,22 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
       )}
 
       <BuildVcsInfo buildDetailsData={buildDetailsData} />
-    </Flex>
+    </Stack>
   );
 }
 
 function SidebarLoadingSkeleton(props: {['data-testid']: string}) {
   const theme = useTheme();
   return (
-    <Flex direction="column" gap="2xl" {...props}>
-      {/* App info skeleton - matches BuildDetailsSidebarAppInfo structure */}
-      <Flex direction="column" gap="xl">
-        {/* App icon and name */}
-        <Flex align="center" gap="sm">
-          <Placeholder width="40px" height="40px" style={{borderRadius: '8px'}} />
-          <Placeholder width="120px" height="24px" />
-        </Flex>
-
-        {/* Additional info */}
-        <Flex direction="column" gap="xs">
-          <Flex align="center" gap="xs">
-            <Placeholder width="16px" height="16px" />
-            <Placeholder width="100px" height="16px" />
-          </Flex>
-          <Flex align="center" gap="xs">
-            <Placeholder width="16px" height="16px" />
-            <Placeholder width="120px" height="16px" />
-          </Flex>
-        </Flex>
-
-        {/* Install button */}
-        <Placeholder width="80px" height="32px" style={{borderRadius: '4px'}} />
-      </Flex>
-
-      {/* VCS info skeleton - matches KeyValueData.Card structure */}
+    <Stack gap="2xl" {...props}>
+      {/* VCS info skeleton - matches KeyValueTableCard structure */}
       <SkeletonCard>
         <Placeholder
           width="80px"
           height="18px"
           style={{marginBottom: theme.space['2xl']}}
         />
-        <Flex direction="column" gap="md">
+        <Stack gap="md">
           <Flex justify="between">
             <Placeholder width="40px" height="14px" />
             <Placeholder width="100px" height="14px" />
@@ -110,9 +78,9 @@ function SidebarLoadingSkeleton(props: {['data-testid']: string}) {
             <Placeholder width="80px" height="14px" />
             <Placeholder width="140px" height="14px" />
           </Flex>
-        </Flex>
+        </Stack>
       </SkeletonCard>
-    </Flex>
+    </Stack>
   );
 }
 

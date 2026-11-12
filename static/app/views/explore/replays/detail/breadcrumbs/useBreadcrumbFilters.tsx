@@ -117,6 +117,7 @@ export function useBreadcrumbFilters({frames}: Options): Return {
   // add custom breadcrumbs to filter
   frames.forEach(frame => {
     if (!(getFrameOpOrCategory(frame) in OPORCATEGORY_TO_TYPE)) {
+      // oxlint-disable-next-line react/immutability
       OPORCATEGORY_TO_TYPE[getFrameOpOrCategory(frame)] = 'custom';
     }
   });

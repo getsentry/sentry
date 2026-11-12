@@ -1,6 +1,8 @@
 import type {InstallWizardOptions} from 'sentry/views/admin/installWizard/index';
 
-export function InstallWizardFixture(params = {}): InstallWizardOptions {
+export function InstallWizardFixture(
+  params: Partial<InstallWizardOptions> = {}
+): InstallWizardOptions {
   return {
     'mail.use-tls': {
       field: {

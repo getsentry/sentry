@@ -7,15 +7,18 @@ import {
   SENTRY_TRACEMETRIC_NUMBER_TAGS,
   SENTRY_TRACEMETRIC_STRING_TAGS,
 } from 'sentry/views/explore/constants';
-import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+
+import type {TraceMetric} from './metricQuery';
 import {
   TraceMetricKnownFieldKey,
   VirtualTableSampleColumnKey,
   type SampleTableColumnKey,
   type TraceMetricFieldKey,
-} from 'sentry/views/explore/metrics/types';
+} from './types';
 
 export const NONE_UNIT = 'none';
+
+export const METRICS_CHART_GROUP = 'metrics-charts-group';
 
 const AlwaysHiddenTraceMetricFields: TraceMetricFieldKey[] = [
   TraceMetricKnownFieldKey.ID,
@@ -42,7 +45,6 @@ export const AlwaysPresentTraceMetricFields: TraceMetricFieldKey[] = [
  */
 export const HiddenTraceMetricDetailFields: TraceMetricFieldKey[] = [
   ...AlwaysHiddenTraceMetricFields,
-  TraceMetricKnownFieldKey.SPAN_ID,
 
   // deprecated/otel fields that clutter the UI
   TraceMetricKnownFieldKey.TIMESTAMP_NANOS,
@@ -59,6 +61,10 @@ export const HiddenTraceMetricSearchFields: TraceMetricFieldKey[] = [
   TraceMetricKnownFieldKey.METRIC_NAME,
   TraceMetricKnownFieldKey.METRIC_TYPE,
   TraceMetricKnownFieldKey.METRIC_UNIT,
+];
+
+export const HiddenTraceMetricTraceViewSearchFields: TraceMetricFieldKey[] = [
+  ...AlwaysHiddenTraceMetricFields,
 ];
 
 export const HiddenTraceMetricGroupByFields: TraceMetricFieldKey[] = [
@@ -198,6 +204,14 @@ export const OPTIONS_BY_TYPE: Record<string, Array<SelectOption<string>>> = {
       value: 'avg',
     },
     {
+      label: 'sum',
+      value: 'sum',
+    },
+    {
+      label: 'count',
+      value: 'count',
+    },
+    {
       label: 'per_second',
       value: 'per_second',
     },
@@ -267,6 +281,20 @@ export const GROUPED_OPTIONS_BY_TYPE: Record<string, Array<SelectSection<string>
           label: 'avg',
           value: 'avg',
           trailingItems: <Text size="xs">{t('Default')}</Text>,
+        },
+      ],
+    },
+    {
+      key: 'math',
+      label: t('Math'),
+      options: [
+        {
+          label: 'sum',
+          value: 'sum',
+        },
+        {
+          label: 'count',
+          value: 'count',
         },
       ],
     },
@@ -368,3 +396,6 @@ export const METRICS_DRAWER_QUERY_PARAM = 'metricsDrawer';
 // We do not support labels beyond Z yet, due to requiring single-character labels
 // for the arithmetic builder currently.
 export const MAX_METRIC_ALLOWED_LABEL_VALUE = 'Z';
+
+// The default starting label for equations in metrics.
+export const DEFAULT_EQUATION_LABEL = 'ƒ1';

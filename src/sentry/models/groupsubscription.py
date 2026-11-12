@@ -4,7 +4,7 @@ from collections.abc import Iterable
 from typing import TYPE_CHECKING, ClassVar
 
 from django.conf import settings
-from django.db import IntegrityError, models, router, transaction
+from django.db import IntegrityError, OperationalError, models, router, transaction
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -83,8 +83,12 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
             return self.subscribe(group, actor, reason)
         if isinstance(actor, Team):
             # subscribe the members of the team
-            team_users_ids = list(actor.member_set.values_list("user_id", flat=True))
-            return self.bulk_subscribe(group=group, user_ids=team_users_ids, reason=reason)
+            team_user_ids = actor.member_set.values_list("user_id", flat=True)
+            return self.bulk_subscribe(
+                group=group,
+                user_ids=[user_id for user_id in team_user_ids if user_id is not None],
+                reason=reason,
+            )
 
         raise NotImplementedError("Unknown actor type: %r" % type(actor))
 
@@ -128,9 +132,9 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
 
             try:
                 with transaction.atomic(router.db_for_write(GroupSubscription)):
-                    self.bulk_create(subscriptions)
+                    self.bulk_create(subscriptions, ignore_conflicts=True)
                     return True
-            except IntegrityError:
+            except (IntegrityError, OperationalError):
                 if i == 0:
                     raise
         return False

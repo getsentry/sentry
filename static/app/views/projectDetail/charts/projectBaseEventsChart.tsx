@@ -2,23 +2,23 @@ import {Component} from 'react';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
+import {InfoTip} from '@sentry/scraps/info';
+
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import type {EventsChartProps} from 'sentry/components/charts/eventsChart';
 import {EventsChart} from 'sentry/components/charts/eventsChart';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilters, PageFilterDatetime} from 'sentry/types/core';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
-import {withPageFilters} from 'sentry/utils/withPageFilters';
 
 type Props = Omit<
   EventsChartProps,
-  keyof Omit<PageFilters, 'datetime'> | keyof PageFilters['datetime']
+  keyof Omit<PageFilters, 'datetime'> | keyof PageFilterDatetime
 > & {
   onTotalValuesChange: (value: number | null) => void;
   selection: PageFilters;
@@ -27,7 +27,7 @@ type Props = Omit<
   help?: string;
 };
 
-class ProjectBaseEventsChart extends Component<Props> {
+export class ProjectBaseEventsChart extends Component<Props> {
   componentDidMount() {
     this.fetchTotalCount();
   }
@@ -45,7 +45,7 @@ class ProjectBaseEventsChart extends Component<Props> {
       selection,
       onTotalValuesChange,
       query,
-      dataset = DiscoverDatasets.METRICS_ENHANCED,
+      dataset = DiscoverDatasets.SPANS,
     } = this.props;
     const {projects, environments, datetime} = selection;
 
@@ -76,7 +76,7 @@ class ProjectBaseEventsChart extends Component<Props> {
       field,
       title,
       help,
-      dataset = DiscoverDatasets.METRICS_ENHANCED,
+      dataset = DiscoverDatasets.SPANS,
       ...eventsChartProps
     } = this.props;
     const {projects, environments, datetime} = selection;
@@ -106,7 +106,7 @@ class ProjectBaseEventsChart extends Component<Props> {
           chartHeader={
             <HeaderTitleLegend>
               {title}
-              {help && <QuestionTooltip size="sm" position="top" title={help} />}
+              {help && <InfoTip size="sm" position="top" title={help} />}
             </HeaderTitleLegend>
           }
           legendOptions={{right: 10, top: 0}}
@@ -154,5 +154,3 @@ function isSelectionEqual(selection: PageFilters, other: PageFilters): boolean {
 
   return true;
 }
-
-export default withPageFilters(ProjectBaseEventsChart);

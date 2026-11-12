@@ -1,13 +1,15 @@
 from datetime import timedelta
-from unittest.mock import MagicMock, patch
+from typing import Any
+from unittest.mock import MagicMock, call, patch
 
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group import SimpleGroupSerializer
-from sentry.grouping.grouptype import ErrorGroupType
+from sentry.api.serializers.models.group import GroupSerializer, SimpleGroupSerializer
 from sentry.integrations.types import ExternalProviderEnum
-from sentry.issues.grouptype import FeedbackGroup
+from sentry.issues.derived.processing import PIPELINE
+from sentry.issues.derived.serialization import get_bulk_group_derived_data
+from sentry.issues.progress_state import IssueProgressState
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupresolution import GroupResolution
@@ -20,10 +22,12 @@ from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
+from sentry.types.group import IssueAutofixStep, IssueBlocker
 from sentry.users.models.user_option import UserOption
 
 pytestmark = [requires_snuba]
@@ -79,38 +83,6 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         assert result["status"] == "ignored"
         assert result["statusDetails"]["actor"]["id"] == str(user.id)
 
-    def test_manually_unresolved_after_auto_resolve(self) -> None:
-        now = timezone.now()
-        self.project.update_option("sentry:resolve_age", 168)  # 7 days
-
-        user = self.create_user()
-        group = self.create_group(
-            status=GroupStatus.UNRESOLVED,
-            last_seen=now - timedelta(days=10),  # Last seen 10 days ago (past auto-resolve age)
-        )
-
-        group.resolved_at = now - timedelta(days=1)
-        group.save()
-
-        result = serialize(group, user)
-        assert result["status"] == "unresolved"
-        assert result["statusDetails"] == {}
-
-    def test_auto_resolve_not_yet_resolved(self) -> None:
-        now = timezone.now()
-        self.project.update_option("sentry:resolve_age", 168)  # 7 days
-
-        user = self.create_user()
-        group = self.create_group(
-            status=GroupStatus.UNRESOLVED,
-            last_seen=now - timedelta(days=10),  # Last seen 10 days ago (past auto-resolve age)
-        )
-        assert group.resolved_at is None
-
-        result = serialize(group, user)
-        assert result["status"] == "resolved"
-        assert result["statusDetails"]["autoResolved"] is True
-
     def test_resolved_in_next_release(self) -> None:
         release = self.create_release(project=self.project, version="a")
         user = self.create_user()
@@ -163,40 +135,6 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         result = serialize(group, user)
         assert result["status"] == "resolved"
         assert result["statusDetails"]["inCommit"]["id"] == commit.key
-
-    @patch("sentry.models.Group.is_over_resolve_age")
-    def test_auto_resolved(self, mock_is_over_resolve_age: MagicMock) -> None:
-        mock_is_over_resolve_age.return_value = True
-
-        user = self.create_user()
-        group = self.create_group(status=GroupStatus.UNRESOLVED)
-
-        result = serialize(group, user)
-        assert result["status"] == "resolved"
-        assert result["statusDetails"] == {"autoResolved": True}
-
-    @patch("sentry.models.Group.is_over_resolve_age")
-    def test_auto_resolved_respects_enable_auto_resolve_flag(
-        self, mock_is_over_resolve_age: MagicMock
-    ) -> None:
-        mock_is_over_resolve_age.return_value = True
-
-        user = self.create_user()
-
-        # Test with a group type that has auto-resolve enabled
-        error_type_id = ErrorGroupType.type_id
-        group_error = self.create_group(status=GroupStatus.UNRESOLVED, type=error_type_id)
-        result_error = serialize(group_error, user)
-        assert result_error["status"] == "resolved"
-        assert result_error["statusDetails"] == {"autoResolved": True}
-
-        # Test with a group type that has auto-resolve disabled (feedback)
-        feedback_type_id = FeedbackGroup.type_id
-        group_feedback = self.create_group(status=GroupStatus.UNRESOLVED, type=feedback_type_id)
-
-        result_feedback = serialize(group_feedback, user)
-        assert result_feedback["status"] == "unresolved"
-        assert "autoResolved" not in result_feedback.get("statusDetails", {})
 
     def test_subscribed(self) -> None:
         user = self.create_user()
@@ -397,7 +335,7 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSettingOption.objects.create_or_update(
+            NotificationSettingOption.objects.get_or_create(
                 scope_type=NotificationScopeEnum.USER.value,
                 scope_identifier=user.id,
                 type=NotificationSettingEnum.WORKFLOW.value,
@@ -418,7 +356,7 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSettingOption.objects.create_or_update(
+            NotificationSettingOption.objects.get_or_create(
                 scope_type=NotificationScopeEnum.PROJECT.value,
                 scope_identifier=group.project.id,
                 type=NotificationSettingEnum.WORKFLOW.value,
@@ -434,6 +372,16 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         group = self.create_group()
         result = serialize(group)
         assert not result["isSubscribed"]
+
+    def test_service_account(self) -> None:
+        group = self.create_group()
+        principal: Any = ServiceAccountPrincipal(
+            service_account_id=1, organization_id=group.project.organization_id, name="deploy-bot"
+        )
+        result = serialize(group, principal)
+        assert result["isBookmarked"] is False
+        assert result["hasSeen"] is False
+        assert result["isSubscribed"] is False
 
     def test_reprocessing(self) -> None:
         from sentry.reprocessing2 import start_group_reprocessing
@@ -486,6 +434,170 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         result = serialize(group, user)
         assert result["seerAutofixLastTriggered"] == old_time
         assert result["seerExplorerAutofixLastTriggered"] == new_time
+
+
+class GroupSerializerDerivedDataTest(TestCase):
+    @patch("sentry.issues.derived.serialization.metrics.incr")
+    def test_derived_data_served_metric(self, mock_metrics_incr: MagicMock) -> None:
+        fresh_group = self.create_group()
+        self.create_group_derived_data(
+            group=fresh_group,
+            pipeline_hash=PIPELINE.pipeline_hash,
+        )
+        stale_group = self.create_group(project=fresh_group.project)
+        self.create_group_derived_data(group=stale_group, pipeline_hash="stale")
+        invalidated_group = self.create_group(project=fresh_group.project)
+        self.create_group_derived_data(group=invalidated_group, pipeline_hash=None)
+
+        get_bulk_group_derived_data({fresh_group.id, stale_group.id, invalidated_group.id})
+
+        mock_metrics_incr.assert_has_calls(
+            [
+                call(
+                    "issues.derived.served",
+                    amount=1,
+                    sample_rate=1.0,
+                    tags={"status": "fresh"},
+                ),
+                call(
+                    "issues.derived.served",
+                    amount=1,
+                    sample_rate=1.0,
+                    tags={"status": "stale_hash"},
+                ),
+                call(
+                    "issues.derived.served",
+                    amount=1,
+                    sample_rate=1.0,
+                    tags={"status": "invalidated"},
+                ),
+            ],
+            any_order=True,
+        )
+
+    def test_derived_data_included(self) -> None:
+        group = self.create_group()
+        last_progressed_at = timezone.now()
+        self.create_group_derived_data(
+            group=group,
+            view_count=7,
+            progress=IssueProgressState.DIAGNOSED.value,
+            last_progressed_at=last_progressed_at,
+            data={
+                "status": "open",
+                "is_assigned": True,
+                "has_root_cause": True,
+                "has_open_fix_pr": False,
+                "blocker": IssueBlocker.APPROVE_PLAN.value,
+                "last_completed_autofix_step": IssueAutofixStep.SOLUTION.value,
+                "impact": {
+                    "score": 50,
+                    "level": "moderate",
+                    "description": "Users cannot view monitor details.",
+                    "citations": [
+                        {
+                            "reference": "trace:span-40",
+                            "claim": "The trace contains a user-generated frontend span showing a crash with a 500 status code",
+                            "source": "span",
+                        }
+                    ],
+                    "sourceEventId": "a" * 32,
+                },
+            },
+        )
+
+        with self.feature("organizations:seer-impact-assessment"):
+            result = serialize(group, self.user, GroupSerializer(expand=["derivedData"]))
+
+        assert result["derivedData"] == {
+            "blocker": IssueBlocker.APPROVE_PLAN.value,
+            "progress": "diagnosed",
+            "status": "open",
+            "viewCount": 7,
+            "hasOpenFixPr": False,
+            "isAssigned": True,
+            "hasRootCause": True,
+            "lastCompletedAutofixStep": IssueAutofixStep.SOLUTION.value,
+            "lastProgressedAt": last_progressed_at,
+            "impact": {
+                "score": 50,
+                "level": "moderate",
+                "description": "Users cannot view monitor details.",
+                "citations": [
+                    {
+                        "reference": "trace:span-40",
+                        "claim": "The trace contains a user-generated frontend span showing a crash with a 500 status code",
+                        "source": "span",
+                    }
+                ],
+                "sourceEventId": "a" * 32,
+            },
+        }
+
+        result = serialize(group, self.user, GroupSerializer(expand=["derivedData"]))
+
+        assert "impact" not in result["derivedData"]
+
+    def test_derived_data_fix_applied_progress_for_closed_issue(self) -> None:
+        group = self.create_group()
+        self.create_group_derived_data(
+            group=group,
+            progress=None,
+            data={"status": "closed"},
+        )
+
+        result = serialize(group, self.user, GroupSerializer(expand=["derivedData"]))
+
+        assert result["derivedData"]["progress"] == IssueProgressState.FIX_APPLIED.value
+        assert result["derivedData"]["status"] == "closed"
+
+    def test_derived_data_omitted_without_row(self) -> None:
+        group = self.create_group()
+
+        result = serialize(group, self.user, GroupSerializer(expand=["derivedData"]))
+
+        assert "derivedData" not in result
+
+    def test_derived_data_omitted_without_expand(self) -> None:
+        group = self.create_group()
+        self.create_group_derived_data(group=group, progress=IssueProgressState.DIAGNOSED.value)
+
+        result = serialize(group, self.user)
+
+        assert "derivedData" not in result
+
+    def test_malformed_derived_data_does_not_fail_bulk_serialization(self) -> None:
+        self._assert_corrupt_derived_data_is_omitted(progress="invalid")
+
+    def test_malformed_blob_does_not_fail_bulk_serialization(self) -> None:
+        self._assert_corrupt_derived_data_is_omitted(data=[])
+
+    def test_invalid_boolean_does_not_leak_into_bulk_serialization(self) -> None:
+        self._assert_corrupt_derived_data_is_omitted(data={"has_open_fix_pr": "false"})
+
+    def _assert_corrupt_derived_data_is_omitted(self, **values: Any) -> None:
+        malformed_group = self.create_group()
+        self.create_group_derived_data(
+            group=malformed_group, pipeline_hash=PIPELINE.pipeline_hash, **values
+        )
+        valid_group = self.create_group(project=malformed_group.project)
+        self.create_group_derived_data(
+            group=valid_group,
+            pipeline_hash=PIPELINE.pipeline_hash,
+            progress=IssueProgressState.DIAGNOSED.value,
+        )
+
+        with patch("sentry.issues.derived.serialization.metrics.incr") as incr:
+            malformed_result, valid_result = serialize(
+                [malformed_group, valid_group], self.user, GroupSerializer(expand=["derivedData"])
+            )
+        served = [call for call in incr.call_args_list if call.args[0] == "issues.derived.served"]
+        assert served == [
+            call("issues.derived.served", amount=1, sample_rate=1.0, tags={"status": "fresh"})
+        ]
+
+        assert "derivedData" not in malformed_result
+        assert valid_result["derivedData"]["progress"] == "diagnosed"
 
 
 class SimpleGroupSerializerTest(TestCase):

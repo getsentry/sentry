@@ -25,7 +25,14 @@ import {
   type ParseResultToken,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {getKeyName, stringifyToken} from 'sentry/components/searchSyntax/utils';
+import {
+  escapeRegexDelimiters,
+  getKeyName,
+  isRegexOperator,
+  quoteFilterKey,
+  stringifyToken,
+  unescapeRegexDelimiters,
+} from 'sentry/components/searchSyntax/utils';
 import {defined} from 'sentry/utils/defined';
 
 type QueryBuilderState = {
@@ -79,6 +86,14 @@ type DeleteTokensAction = {
   tokens: ParseResultToken[];
   type: 'DELETE_TOKENS';
   focusOverride?: FocusOverride;
+};
+
+type DeleteToCursorAction = {
+  cursorPosition: number;
+  direction: 'before' | 'after';
+  inputValue: string;
+  token: ParseResultToken;
+  type: 'DELETE_TO_CURSOR';
 };
 
 type UpdateFreeTextActionOnSelect = {
@@ -236,6 +251,7 @@ export type QueryBuilderActions =
   | ResetFocusOverrideAction
   | DeleteTokenAction
   | DeleteTokensAction
+  | DeleteToCursorAction
   | UpdateFreeTextActionOnSelect
   | UpdateFreeTextActionOnBlur
   | UpdateFreeTextActionOnCommit
@@ -286,6 +302,39 @@ function deleteQueryTokens(
   };
 }
 
+function deleteToCursor(
+  state: QueryBuilderState,
+  action: DeleteToCursorAction,
+  parseQuery: (query: string) => ParseResult | null
+): QueryBuilderState {
+  const {token, cursorPosition, inputValue, direction} = action;
+  const deleteBefore = direction === 'before';
+
+  const newQuery = deleteBefore
+    ? removeExcessWhitespaceFromParts(
+        inputValue.slice(cursorPosition),
+        state.query.substring(token.location.end.offset)
+      )
+    : removeExcessWhitespaceFromParts(
+        state.query.substring(0, token.location.start.offset),
+        inputValue.slice(0, cursorPosition)
+      );
+
+  const newParsedQuery = parseQuery(newQuery);
+  const focusedToken = deleteBefore
+    ? newParsedQuery?.find(t => t.type === Token.FREE_TEXT)
+    : newParsedQuery?.findLast(t => t.type === Token.FREE_TEXT);
+
+  return {
+    ...state,
+    query: newQuery,
+    committedQuery: newQuery,
+    focusOverride: focusedToken
+      ? {itemKey: makeTokenKey(focusedToken, newParsedQuery)}
+      : {itemKey: `${Token.FREE_TEXT}:0`},
+  };
+}
+
 function termOperatorToInternal(op: TermOperator): {
   internalOp: TermOperator;
   negated: boolean;
@@ -294,7 +343,8 @@ function termOperatorToInternal(op: TermOperator): {
     op === TermOperator.NOT_EQUAL ||
     op === TermOperator.DOES_NOT_CONTAIN ||
     op === TermOperator.DOES_NOT_START_WITH ||
-    op === TermOperator.DOES_NOT_END_WITH;
+    op === TermOperator.DOES_NOT_END_WITH ||
+    op === TermOperator.DOES_NOT_MATCH;
 
   let internalOp: TermOperator;
   if (op === TermOperator.DOES_NOT_CONTAIN) {
@@ -303,6 +353,8 @@ function termOperatorToInternal(op: TermOperator): {
     internalOp = TermOperator.STARTS_WITH;
   } else if (op === TermOperator.DOES_NOT_END_WITH) {
     internalOp = TermOperator.ENDS_WITH;
+  } else if (op === TermOperator.DOES_NOT_MATCH) {
+    internalOp = TermOperator.MATCHES;
   } else if (op === TermOperator.NOT_EQUAL) {
     internalOp = TermOperator.DEFAULT;
   } else {
@@ -325,6 +377,20 @@ export function modifyFilterOperatorQuery(
   const newToken: TokenResult<Token.FILTER> = {...token};
   newToken.negated = negated;
   newToken.operator = internalOp;
+
+  if (
+    isRegexOperator(token.operator) &&
+    !isRegexOperator(internalOp) &&
+    newToken.value.type === Token.VALUE_TEXT
+  ) {
+    const value = unescapeRegexDelimiters(newToken.value.value);
+    const quoted = !value.endsWith('\\');
+    newToken.value = {
+      ...newToken.value,
+      quoted,
+      value: quoted ? value.replaceAll('"', '\\"') : value,
+    };
+  }
 
   return replaceQueryToken(query, token, stringifyToken(newToken));
 }
@@ -631,20 +697,25 @@ export function modifyFilterValue(
     return modifyFilterValueDate(query, token, newValue);
   }
 
-  // stop the user from entering multiple wildcards by themselves
-  newValue = newValue.replace(/\*\*+/g, '*');
+  if (!isRegexOperator(newOp ?? token.operator)) {
+    // stop the user from entering multiple wildcards by themselves
+    newValue = newValue.replace(/\*\*+/g, '*');
+  }
 
-  // No operator change — just replace the value (existing behavior)
+  // No operator change — just replace the value.
   if (newOp === undefined) {
     return replaceQueryToken(query, token.value, newValue);
   }
 
-  // Operator change — replace the entire filter token atomically
+  // Operator change — replace the entire filter token atomically.
   const {negated, internalOp} = termOperatorToInternal(newOp);
 
   const prefix = negated ? '!' : '';
   const keyStr = stringifyToken(token.key);
-  const replacement = `${prefix}${keyStr}:${internalOp}${newValue}`;
+  const replacement =
+    internalOp === TermOperator.MATCHES
+      ? `${prefix}${keyStr}://${escapeRegexDelimiters(newValue)}//`
+      : `${prefix}${keyStr}:${internalOp}${newValue}`;
   return replaceQueryToken(query, token, replacement);
 }
 
@@ -844,7 +915,11 @@ function updateFilterKey(
   state: QueryBuilderState,
   action: UpdateFilterKeyAction
 ): QueryBuilderState {
-  const newQuery = replaceQueryToken(state.query, action.token.key, action.key);
+  const newQuery = replaceQueryToken(
+    state.query,
+    action.token.key,
+    quoteFilterKey(action.key)
+  );
 
   if (newQuery === state.query) {
     return state;
@@ -1146,6 +1221,12 @@ export function useQueryBuilderState({
         case 'DELETE_TOKENS': {
           return {
             ...deleteQueryTokens(state, action),
+            clearAskSeerFeedback: displayAskSeerFeedback ? true : false,
+          };
+        }
+        case 'DELETE_TO_CURSOR': {
+          return {
+            ...deleteToCursor(state, action, parseQuery),
             clearAskSeerFeedback: displayAskSeerFeedback ? true : false,
           };
         }

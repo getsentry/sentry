@@ -1,6 +1,7 @@
 import {isRepeatedFrame} from 'sentry/components/events/interfaces/utils';
-import type {FrameRow, OmittedFramesRow, Row} from 'sentry/components/stackTrace/types';
 import type {Frame} from 'sentry/types/event';
+
+import type {FrameRow, OmittedFramesRow, Row} from './types';
 
 function frameIsVisible(
   frame: Frame,
@@ -191,5 +192,5 @@ export function getRows({
     rows = rows.slice(-maxDepth);
   }
 
-  return newestFirst ? [...rows].reverse() : rows;
+  return newestFirst ? rows.toReversed() : rows;
 }

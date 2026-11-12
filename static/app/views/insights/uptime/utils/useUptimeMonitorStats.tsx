@@ -1,8 +1,9 @@
+import {useQuery} from '@tanstack/react-query';
+
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {CheckStatusBucket} from 'sentry/views/alerts/rules/uptime/types';
+import type {CheckStatusBucket} from 'sentry/views/detectors/components/uptime/types';
 
 interface Options {
   /**
@@ -21,10 +22,7 @@ type Result = Record<string, CheckStatusBucket[]>;
 /**
  * Fetches Uptime Monitor stats
  */
-export function useUptimeMonitorStats(
-  {detectorIds, timeWindowConfig}: Options,
-  options: Partial<UseApiQueryOptions<Result>> = {}
-) {
+export function useUptimeMonitorStats({detectorIds, timeWindowConfig}: Options) {
   const {start, end, rollupConfig} = timeWindowConfig;
 
   const selectionQuery = {
@@ -35,22 +33,15 @@ export function useUptimeMonitorStats(
 
   const organization = useOrganization();
 
-  return useApiQuery<Result>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/uptime-stats/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {
-          uptimeDetectorId: detectorIds,
-          ...selectionQuery,
-        },
+  return useQuery({
+    ...apiOptions.as<Result>()('/organizations/$organizationIdOrSlug/uptime-stats/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        uptimeDetectorId: detectorIds,
+        ...selectionQuery,
       },
-    ],
-    {
       staleTime: 0,
-      enabled: rollupConfig.totalBuckets > 0,
-      ...options,
-    }
-  );
+    }),
+    enabled: rollupConfig.totalBuckets > 0,
+  });
 }

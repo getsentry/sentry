@@ -1,6 +1,7 @@
 from collections.abc import Callable
-from typing import TypedDict, cast
+from typing import Annotated, TypedDict, cast
 
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -10,23 +11,26 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import NoProjects
 from sentry.api.event_search import parse_search_query
+from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import has_user
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.replays.endpoints.organization_replay_endpoint import OrganizationReplayEndpoint
 from sentry.replays.post_process import ReplayDetailsResponse, process_raw_response
 from sentry.replays.query import query_replays_collection_paginated, replay_url_parser_config
-from sentry.replays.usecases.errors import handled_snuba_exceptions
 from sentry.replays.usecases.query import PREFERRED_SOURCE, QueryResponse
 from sentry.replays.validators import ReplayValidator
+from sentry.types.actor import Actor
 from sentry.utils.cursors import Cursor, CursorResult
 
 
 class _ListReplaysResponse(TypedDict):
-    data: list[ReplayDetailsResponse]
+    data: Annotated[list[ReplayDetailsResponse], ApiDescription("Replays that match the query")]
 
 
 @cell_silo_endpoint
@@ -47,7 +51,6 @@ class OrganizationReplayIndexEndpoint(OrganizationReplayEndpoint):
         },
         examples=ReplayExamples.GET_REPLAYS,
     )
-    @handled_snuba_exceptions
     def get(self, request: Request, organization: Organization) -> Response[_ListReplaysResponse]:
         """
         Return a list of replays belonging to an organization.
@@ -58,6 +61,9 @@ class OrganizationReplayIndexEndpoint(OrganizationReplayEndpoint):
             filter_params = self.get_filter_params(request, organization)
         except NoProjects:
             return Response({"data": []}, status=200)
+
+        # Replays can't occur in the future, and far-future ends overflow when the query pads them.
+        filter_params["end"] = min(filter_params["end"], timezone.now())
 
         query_params = self.get_query_params_with_project_slug_precedence(request)
 
@@ -79,7 +85,7 @@ class OrganizationReplayIndexEndpoint(OrganizationReplayEndpoint):
 
         headers = {}
 
-        def data_fn(offset: int, limit: int):
+        def data_fn(offset: int, limit: int) -> QueryResponse:
             try:
                 search_filters = parse_search_query(
                     request.query_params.get("query", ""), config=replay_url_parser_config
@@ -96,6 +102,7 @@ class OrganizationReplayIndexEndpoint(OrganizationReplayEndpoint):
             if not isinstance(sort, str):
                 sort = None
 
+            actor = Actor.from_object(request.user) if has_user(request.user) else None
             response = query_replays_collection_paginated(
                 project_ids=filter_params["project_id"],
                 start=filter_params["start"],
@@ -108,7 +115,7 @@ class OrganizationReplayIndexEndpoint(OrganizationReplayEndpoint):
                 search_filters=search_filters,
                 preferred_source=preferred_source,
                 organization=organization,
-                actor=request.user,
+                actor=actor,
             )
 
             # We set the data-source header so we can figure out which query is giving
@@ -117,16 +124,17 @@ class OrganizationReplayIndexEndpoint(OrganizationReplayEndpoint):
 
             return response
 
-        response = self.paginate(
-            request=request,
-            paginator=ReplayPaginator(data_fn=data_fn),
-            on_results=lambda results: {
-                "data": process_raw_response(
-                    results,
-                    fields=request.query_params.getlist("field"),
-                )
-            },
-        )
+        with handle_query_errors():
+            response = self.paginate(
+                request=request,
+                paginator=ReplayPaginator(data_fn=data_fn),
+                on_results=lambda results: {
+                    "data": process_raw_response(
+                        results,
+                        fields=request.query_params.getlist("field"),
+                    )
+                },
+            )
 
         for header, value in headers.items():
             response[header] = value
@@ -140,7 +148,7 @@ class ReplayPaginator:
     def __init__(self, data_fn: Callable[[int, int], QueryResponse]) -> None:
         self.data_fn = data_fn
 
-    def get_result(self, limit: int, cursor=None):
+    def get_result(self, limit: int, cursor: Cursor | None = None) -> CursorResult[object]:
         assert limit > 0
         offset = int(cursor.offset) if cursor is not None else 0
         response = self.data_fn(offset, limit + 1)

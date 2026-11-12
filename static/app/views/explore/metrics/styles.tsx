@@ -1,7 +1,5 @@
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
-
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 
 export const FilterBarContainer = styled('div')`
@@ -12,9 +10,4 @@ export const FilterBarContainer = styled('div')`
 
 export const StyledPageFilterBar = styled(PageFilterBar)`
   width: auto;
-`;
-
-export const FilterBarWithSaveAsContainer = styled(Flex)`
-  justify-content: space-between;
-  align-items: center;
 `;

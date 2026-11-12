@@ -25,6 +25,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.group import PriorityLevel
 from sentry.users.models.user_option import UserOption
+from sentry.utils.cache import cache
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -250,17 +251,6 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result["status"] == "resolved"
         assert result["statusDetails"]["inCommit"]["id"] == commit.key
 
-    @mock.patch("sentry.models.Group.is_over_resolve_age")
-    def test_auto_resolved(self, mock_is_over_resolve_age: mock.MagicMock) -> None:
-        mock_is_over_resolve_age.return_value = True
-
-        user = self.create_user()
-        group = self.create_group(status=GroupStatus.UNRESOLVED)
-
-        result = serialize(group, user, serializer=GroupSerializerSnuba())
-        assert result["status"] == "resolved"
-        assert result["statusDetails"] == {"autoResolved": True}
-
     def test_subscribed(self) -> None:
         user = self.create_user()
         group = self.create_group()
@@ -475,7 +465,11 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
             )
 
         # Assert all events are in the same group
-        (group_id,) = {e.group.id for e in events}
+        event_group_ids = []
+        for event in events:
+            assert event.group is not None
+            event_group_ids.append(event.group.id)
+        (group_id,) = set(event_group_ids)
 
         group = Group.objects.get(id=group_id)
         group.times_seen = 3
@@ -572,6 +566,44 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         result = serialize(group, self.user, serializer=GroupSerializerSnuba())
 
         assert result["issueCategory"] == GroupCategory.DB_QUERY.name.lower()
+
+    def test_is_unhandled(self) -> None:
+        unhandled_group = self.store_event(
+            data={
+                "exception": {
+                    "values": [
+                        {"type": "ValueError", "mechanism": {"type": "generic", "handled": False}}
+                    ]
+                },
+                "fingerprint": ["unhandled"],
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        ).group
+        handled_group = self.store_event(
+            data={
+                "exception": {
+                    "values": [
+                        {"type": "ValueError", "mechanism": {"type": "generic", "handled": True}}
+                    ]
+                },
+                "fingerprint": ["handled"],
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        ).group
+        assert unhandled_group is not None
+        assert handled_group is not None
+
+        result = serialize(
+            [unhandled_group, handled_group], self.user, serializer=GroupSerializerSnuba()
+        )
+
+        assert result[0]["isUnhandled"] is True
+        assert result[1]["isUnhandled"] is False
+        # the flag is cached for both groups, including the handled one
+        assert cache.get(f"group-mechanism-handled:{unhandled_group.id}")
+        assert cache.get(f"group-mechanism-handled:{handled_group.id}") == 0
 
 
 class PerformanceGroupSerializerSnubaTest(

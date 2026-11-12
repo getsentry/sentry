@@ -12,7 +12,7 @@ from sentry.ratelimits.sliding_windows import (
     RequestedQuota,
     Timestamp,
 )
-from sentry.sentry_metrics.configuration import MetricsIngestConfiguration, UseCaseKey
+from sentry.sentry_metrics.configuration import MetricsIngestConfiguration
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
     FetchTypeExt,
@@ -26,41 +26,6 @@ from sentry.sentry_metrics.use_case_id_registry import (
 from sentry.utils import metrics
 
 OrgId = int
-
-
-def _build_quota_key(namespace: str, org_id: OrgId | None = None) -> str:
-    if org_id is not None:
-        return f"metrics-indexer-{namespace}-org-{org_id}"
-    else:
-        return f"metrics-indexer-{namespace}-global"
-
-
-@metrics.wraps("sentry_metrics.indexer.construct_quotas")
-def _construct_quotas(use_case_id: UseCaseKey, namespace: str) -> Sequence[Quota]:
-    """
-    Construct write limit's quotas based on current sentry options.
-
-    This value can potentially cached globally as long as it is invalidated
-    when sentry.options are.
-    """
-    if use_case_id == UseCaseKey.PERFORMANCE:
-        return [
-            Quota(prefix_override=_build_quota_key(namespace, None), **args)
-            for args in options.get("sentry-metrics.writes-limiter.limits.performance.global")
-        ] + [
-            Quota(prefix_override=None, **args)
-            for args in options.get("sentry-metrics.writes-limiter.limits.performance.per-org")
-        ]
-    elif use_case_id == UseCaseKey.RELEASE_HEALTH:
-        return [
-            Quota(prefix_override=_build_quota_key(namespace, None), **args)
-            for args in options.get("sentry-metrics.writes-limiter.limits.releasehealth.global")
-        ] + [
-            Quota(prefix_override=None, **args)
-            for args in options.get("sentry-metrics.writes-limiter.limits.releasehealth.per-org")
-        ]
-    else:
-        raise ValueError(use_case_id)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -115,7 +80,7 @@ class WritesLimiter:
         when sentry.options are.
         """
         option_name = USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS.get(
-            use_case_id, "sentry-metrics.writes-limiter.limits.generic-metrics"
+            use_case_id, "sentry-metrics.writes-limiter.limits.releasehealth"
         )
         return [
             Quota(prefix_override=self._build_quota_key(use_case_id), **args)

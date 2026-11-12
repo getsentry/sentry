@@ -1,44 +1,55 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {useMutation} from '@tanstack/react-query';
+import {parseAsBoolean, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Stack, Grid} from '@sentry/scraps/layout';
+import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
-import {PanelTable} from 'sentry/components/panels/panelTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
-import {AddCredentialsButton} from 'sentry/views/settings/project/tempest/addCredentialsButton';
-import {ConfigForm} from 'sentry/views/settings/project/tempest/configForm';
-import {useFetchTempestCredentials} from 'sentry/views/settings/project/tempest/hooks/useFetchTempestCredentials';
-import {MessageType} from 'sentry/views/settings/project/tempest/types';
-import {useHasTempestWriteAccess} from 'sentry/views/settings/project/tempest/utils/access';
 
+import {useFetchTempestCredentials} from './hooks/useFetchTempestCredentials';
+import {useHasTempestWriteAccess} from './utils/access';
+import {AddCredentialsButton} from './addCredentialsButton';
+import {ConfigForm} from './configForm';
 import {CredentialRow} from './CredentialRow';
 import {EmptyState} from './EmptyState';
+import {MessageType} from './types';
 
 interface Props {
   organization: Organization;
   project: DetailedProject;
 }
 
+const CREDENTIAL_COLUMNS: TableColumnConfig[] = [
+  {key: 'clientId', width: 'auto'},
+  {key: 'status', width: 'auto'},
+  {key: 'createdAt', width: 'auto'},
+  {key: 'createdBy', width: 'auto'},
+  {key: 'actions', width: 'auto'},
+];
+
 export function PlayStationSettings({organization, project}: Props) {
   const hasWriteAccess = useHasTempestWriteAccess(project);
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [setupInstructions, setSetupInstructions] = useQueryState(
+    'setupInstructions',
+    parseAsBoolean
+  );
 
   const {
     data: tempestCredentials,
@@ -54,10 +65,19 @@ export function PlayStationSettings({organization, project}: Props) {
     mutationFn: ({id}) =>
       fetchMutation({
         method: 'DELETE',
-        url: `/projects/${organization.slug}/${project.slug}/tempest-credentials/${id}/`,
+        url: getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/tempest-credentials/$tempestCredentialsId/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: project.slug,
+              tempestCredentialsId: id,
+            },
+          }
+        ),
       }),
     onSuccess: () => {
-      addSuccessMessage(t('Removed the credentials.'));
+      toast.success(t('Removed the credentials.'));
       trackAnalytics('tempest.credentials.removed', {
         organization,
         project_slug: project.slug,
@@ -67,7 +87,7 @@ export function PlayStationSettings({organization, project}: Props) {
     onError: error => {
       const message = t('Failed to remove the credentials.');
       handleXhrErrorResponse(message, error);
-      addErrorMessage(message);
+      toast.error(message);
     },
   });
 
@@ -88,7 +108,7 @@ export function PlayStationSettings({organization, project}: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [credentialErrors]);
 
-  const isSetupInstructionsOpen = location.query.setupInstructions === 'true';
+  const isSetupInstructionsOpen = setupInstructions ?? false;
   const hasCredentials = (tempestCredentials ?? []).length > 0;
   const showEmptyState = isSetupInstructionsOpen || !hasCredentials;
 
@@ -114,18 +134,13 @@ export function PlayStationSettings({organization, project}: Props) {
       {isLoading ? (
         <LoadingIndicator />
       ) : (
-        <Flex direction="column" gap="md" align="end">
+        <Stack gap="md" align="end">
           <Grid flow="column" align="center" gap="md">
             {hasCredentials && (
               <Button
                 size="sm"
                 onClick={() => {
-                  navigate({
-                    query: {
-                      ...location.query,
-                      setupInstructions: !isSetupInstructionsOpen,
-                    },
-                  });
+                  setSetupInstructions(!isSetupInstructionsOpen, {history: 'push'});
                 }}
               >
                 {isSetupInstructionsOpen
@@ -147,33 +162,39 @@ export function PlayStationSettings({organization, project}: Props) {
               />
             </FullWidthPanel>
           ) : (
-            <StyledPanelTable
-              headers={[
-                t('Client ID'),
-                t('Status'),
-                t('Created At'),
-                t('Created By'),
-                '',
-              ]}
-              isLoading={isLoading}
+            <StyledSimpleTable
+              columns={CREDENTIAL_COLUMNS}
+              header={
+                <SimpleTable.HeaderRow>
+                  <SimpleTable.HeaderCell>{t('Client ID')}</SimpleTable.HeaderCell>
+                  <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
+                  <SimpleTable.HeaderCell>{t('Created At')}</SimpleTable.HeaderCell>
+                  <SimpleTable.HeaderCell>{t('Created By')}</SimpleTable.HeaderCell>
+                  <SimpleTable.HeaderCell />
+                </SimpleTable.HeaderRow>
+              }
             >
-              {tempestCredentials?.map(credential => (
-                <CredentialRow
-                  key={credential.id}
-                  credential={credential}
-                  isRemoving={isRemoving && removingCredential?.id === credential.id}
-                  removeCredential={hasWriteAccess ? handleRemoveCredential : undefined}
-                />
-              ))}
-            </StyledPanelTable>
+              {isLoading ? (
+                <SimpleTable.Loading />
+              ) : (
+                tempestCredentials?.map(credential => (
+                  <CredentialRow
+                    key={credential.id}
+                    credential={credential}
+                    isRemoving={isRemoving && removingCredential?.id === credential.id}
+                    removeCredential={hasWriteAccess ? handleRemoveCredential : undefined}
+                  />
+                ))
+              )}
+            </StyledSimpleTable>
           )}
-        </Flex>
+        </Stack>
       )}
     </Fragment>
   );
 }
 
-const StyledPanelTable = styled(PanelTable)`
+const StyledSimpleTable = styled(SimpleTable)`
   width: 100%;
 `;
 

@@ -1,11 +1,13 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
+import {IconDelete} from '@sentry/icons/delete';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {Input} from '@sentry/scraps/input';
 import {Grid} from '@sentry/scraps/layout';
 
-import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {Panel} from 'sentry/components/panels/panel';
@@ -13,7 +15,6 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelFooter} from 'sentry/components/panels/panelFooter';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
-import {IconClose, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {AuthenticatorDevice} from 'sentry/types/auth';
 

@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {PerformanceScoreRingWithTooltips} from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
+import {PerformanceScoreRingWithTooltips} from './performanceScoreRingWithTooltips';
 
 describe('PerformanceScoreRingWithTooltips', () => {
   it('renders segment labels', async () => {
@@ -14,8 +14,6 @@ describe('PerformanceScoreRingWithTooltips', () => {
     };
     render(
       <PerformanceScoreRingWithTooltips
-        width={220}
-        height={200}
         projectScore={projectScore}
         ringBackgroundColors={['#444674', '#895289', '#d6567f', '#f38150', '#f2b712']}
         ringSegmentColors={['#444674', '#895289', '#d6567f', '#f38150', '#f2b712']}
@@ -40,8 +38,6 @@ describe('PerformanceScoreRingWithTooltips', () => {
     };
     render(
       <PerformanceScoreRingWithTooltips
-        width={220}
-        height={200}
         projectScore={projectScore}
         ringBackgroundColors={['#444674', '#895289', '#d6567f', '#f38150', '#f2b712']}
         ringSegmentColors={['#444674', '#895289', '#d6567f', '#f38150', '#f2b712']}

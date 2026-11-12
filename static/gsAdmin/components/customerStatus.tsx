@@ -2,8 +2,10 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {InfoText} from '@sentry/scraps/info';
+import {Text} from '@sentry/scraps/text';
 
 import type {Subscription} from 'getsentry/types';
+import {isTrial} from 'getsentry/utils/billing';
 import {formatCurrency} from 'getsentry/utils/formatCurrency';
 
 type Props = {
@@ -14,7 +16,7 @@ const getLabel = (item: Subscription) => {
   if (item.isEnterpriseTrial) {
     return `Trialing (${item.trialPlan} enterprise)`;
   }
-  if (item.isTrial) {
+  if (isTrial(item)) {
     return `Trialing (${item.trialPlan})`;
   }
   if (item.isFree) {
@@ -68,7 +70,7 @@ export function CustomerStatus({customer}: Props) {
       {typeof label !== 'object' && label}
       <br />
       <InfoText variant="inherit" title={getTooltip(customer)}>
-        <small>{`${customer.planDetails?.name} Plan (${customer.planDetails?.id})`}</small>
+        <Text size="xs">{`${customer.planDetails?.name} Plan (${customer.planDetails?.id})`}</Text>
       </InfoText>
     </Fragment>
   );

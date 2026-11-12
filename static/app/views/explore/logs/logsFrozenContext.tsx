@@ -3,7 +3,8 @@ import {createContext, useContext, useMemo} from 'react';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+
+import {OurLogKnownFieldKey} from './types';
 
 interface LogsFrozenContextValue {
   frozen: boolean;
@@ -14,6 +15,7 @@ interface LogsFrozenContextValue {
   search?: MutableSearch;
   spanId?: string;
   traceIds?: string[];
+  traceTimestamp?: number;
 }
 
 const LogsFrozenContext = createContext<LogsFrozenContextValue | undefined>(undefined);
@@ -24,6 +26,7 @@ interface LogsFrozenForTracesProviderProps {
 
 interface LogsFrozenForTraceProviderProps {
   traceId: string;
+  traceTimestamp?: number;
 }
 
 interface LogsFrozenForSpanProviderProps {
@@ -145,6 +148,7 @@ export function LogsFrozenContextProvider(
         frozen: true,
         search,
         traceIds: [props.traceId],
+        traceTimestamp: props.traceTimestamp,
         projectIds: [ALL_ACCESS_PROJECTS],
       };
     }
@@ -152,7 +156,13 @@ export function LogsFrozenContextProvider(
     if (isLogsFrozenForSpanProviderWithChildrenProps(props)) {
       const search = new MutableSearch('');
       search.addFilterValue(OurLogKnownFieldKey.TRACE_ID, props.span.traceId);
+      // SDKs before sentry-conventions 0.5.0 emit `trace.parent_span_id` attribute,
+      // newer ones set the log's `span_id` field.
+      search.addOp('(');
+      search.addFilterValue(OurLogKnownFieldKey.SPAN_ID, props.span.spanId);
+      search.addOp('OR');
       search.addFilterValue(OurLogKnownFieldKey.PARENT_SPAN_ID, props.span.spanId);
+      search.addOp(')');
       return {
         frozen: true,
         search,
@@ -182,6 +192,10 @@ export function useLogsFrozenProjectIds() {
 
 export function useLogsFrozenTraceIds() {
   return useLogsFrozenContext().traceIds;
+}
+
+export function useLogsFrozenTraceTimestamp() {
+  return useLogsFrozenContext().traceTimestamp;
 }
 
 export function useLogsFrozenReplayInfo() {

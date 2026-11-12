@@ -1,17 +1,17 @@
-import {generatePath} from 'react-router-dom';
+import {generatePath} from 'react-router';
 import trim from 'lodash/trim';
 import trimEnd from 'lodash/trimEnd';
 import trimStart from 'lodash/trimStart';
 
 import {Redirect} from 'sentry/components/redirect';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {recreateRoute} from 'sentry/utils/recreateRoute';
-import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useParams} from 'sentry/utils/useParams';
-import {useRoutes} from 'sentry/utils/useRoutes';
 
+import {normalizeUrl} from './url/normalizeUrl';
+import {recreateRoute} from './recreateRoute';
+import {testableWindowLocation} from './testableWindowLocation';
 import {useOrganization} from './useOrganization';
+import {useParams} from './useParams';
+import {useRoutes} from './useRoutes';
 
 /**
  * withDomainRedirect is a higher-order component (HOC) meant to be used with <Route /> components within

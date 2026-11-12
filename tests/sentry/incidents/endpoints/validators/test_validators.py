@@ -1,5 +1,6 @@
 from typing import Any
 from unittest import mock
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
@@ -9,6 +10,7 @@ from urllib3.exceptions import MaxRetryError, TimeoutError
 from urllib3.response import HTTPResponse
 
 from sentry import audit_log
+from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.constants import ObjectStatus
 from sentry.incidents.grouptype import MetricIssue
@@ -130,10 +132,8 @@ class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
         ]
 
 
-# on-demand-metrics-extraction excluded from base features: it also triggers
-# the "must use generic_metrics" check in SnubaQueryValidator, which would
-# break transaction-dataset deprecation tests. Tests that use the
-# PerformanceMetrics dataset add it explicitly via @with_feature.
+# on-demand-metrics-extraction excluded from base features so it does not
+# change transaction-dataset deprecation test behavior.
 _VALIDATOR_BASE_FEATURES = {
     k: v
     for k, v in METRIC_SUBSCRIPTION_FEATURE_FLAGS.items()
@@ -187,8 +187,30 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
                 ],
             },
             "config": {
-                "thresholdPeriod": 1,
                 "detectionType": AlertRuleDetectionType.STATIC.value,
+            },
+        }
+        self.valid_percent_detector_data = {
+            **self.valid_data,
+            "conditionGroup": {
+                "logicType": self.data_condition_group.logic_type,
+                "conditions": [
+                    {
+                        "type": Condition.GREATER,
+                        "comparison": 150,
+                        "conditionResult": DetectorPriorityLevel.HIGH,
+                    },
+                    {
+                        "type": Condition.LESS_OR_EQUAL,
+                        "comparison": 150,
+                        "conditionResult": DetectorPriorityLevel.OK,
+                        "conditionGroupId": self.data_condition_group.id,
+                    },
+                ],
+            },
+            "config": {
+                "detectionType": AlertRuleDetectionType.PERCENT.value,
+                "comparisonDelta": 3600,
             },
         }
         self.valid_anomaly_detection_data = {
@@ -208,10 +230,24 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
                 ],
             },
             "config": {
-                "thresholdPeriod": 1,
                 "detectionType": AlertRuleDetectionType.DYNAMIC.value,
             },
         }
+
+    def _assert_documented_create_request_is_valid(self, example_index: int) -> None:
+        example = WorkflowEngineExamples.CREATE_DETECTOR[example_index]
+        validator = MetricIssueDetectorValidator(data=example.value, context=self.context)
+
+        assert validator.is_valid(), validator.errors
+
+    def test_documented_static_create_request_is_valid(self, *mocks: Any) -> None:
+        self._assert_documented_create_request_is_valid(0)
+
+    def test_documented_percent_create_request_is_valid(self, *mocks: Any) -> None:
+        self._assert_documented_create_request_is_valid(1)
+
+    def test_documented_dynamic_create_request_is_valid(self, *mocks: Any) -> None:
+        self._assert_documented_create_request_is_valid(2)
 
     def create_static_detector(self) -> Detector:
         validator = MetricIssueDetectorValidator(
@@ -242,6 +278,39 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         assert condition.condition_result == DetectorPriorityLevel.HIGH
 
         return static_detector
+
+    def create_percent_detector(self) -> Detector:
+        validator = MetricIssueDetectorValidator(
+            data=self.valid_percent_detector_data,
+            context=self.context,
+        )
+        assert validator.is_valid(), validator.errors
+
+        with self.tasks():
+            percent_detector = validator.save()
+
+        # Verify detector in DB
+        self.assert_validated(percent_detector)
+        percent_detector.refresh_from_db()
+        assert percent_detector.config["detection_type"] == AlertRuleDetectionType.PERCENT.value
+        assert percent_detector.config["comparison_delta"] == 3600
+
+        # Verify condition group in DB
+        condition_group = DataConditionGroup.objects.get(
+            id=percent_detector.workflow_condition_group_id
+        )
+        assert condition_group.logic_type == DataConditionGroup.Type.ANY
+        assert condition_group.organization_id == self.project.organization_id
+
+        # Verify conditions in DB
+        conditions = list(DataCondition.objects.filter(condition_group=condition_group))
+        assert len(conditions) == 2
+        condition = conditions[0]
+        assert condition.type == Condition.GREATER
+        assert condition.comparison == 150
+        assert condition.condition_result == DetectorPriorityLevel.HIGH
+
+        return percent_detector
 
     def create_dynamic_detector(self) -> Detector:
         validator = MetricIssueDetectorValidator(
@@ -278,7 +347,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         query_sub = QuerySubscription.objects.get(id=data_source.source_id)
         return query_sub.snuba_query
 
-    def assert_validated(self, detector):
+    def assert_validated(self, detector: Detector) -> None:
         detector = Detector.objects.get(id=detector.id)
         assert detector.name == "Test Detector"
         assert detector.type == MetricIssue.slug
@@ -311,7 +380,9 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
     @mock.patch("sentry.incidents.metric_issue_detector.schedule_update_project_config")
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_create_with_valid_data(
-        self, mock_audit: mock.MagicMock, mock_schedule_update_project_config
+        self,
+        mock_audit: mock.MagicMock,
+        mock_schedule_update_project_config: mock.MagicMock,
     ) -> None:
         detector = self.create_static_detector()
 
@@ -370,7 +441,6 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
                 ],
             },
             "config": {
-                "threshold_period": 1,
                 "detection_type": AlertRuleDetectionType.DYNAMIC.value,
             },
         }
@@ -457,6 +527,42 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
         assert validator.errors.get("conditionGroup", {}).get("conditions") == [
             ErrorDetail(
                 string="Resolution condition required for metric issue detector.", code="invalid"
+            )
+        ]
+
+    def test_anomaly_detection_mixed_with_static_condition(self) -> None:
+        data = {
+            **self.valid_data,
+            "conditionGroup": {
+                "id": self.data_condition_group.id,
+                "organizationId": self.organization.id,
+                "logicType": self.data_condition_group.logic_type,
+                "conditions": [
+                    {
+                        "type": Condition.ANOMALY_DETECTION,
+                        "comparison": {
+                            "sensitivity": AnomalyDetectionSensitivity.HIGH,
+                            "seasonality": AnomalyDetectionSeasonality.AUTO,
+                            "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW,
+                        },
+                        "conditionResult": DetectorPriorityLevel.HIGH,
+                        "conditionGroupId": self.data_condition_group.id,
+                    },
+                    {
+                        "type": Condition.LESS_OR_EQUAL,
+                        "comparison": 0,
+                        "conditionResult": DetectorPriorityLevel.OK,
+                        "conditionGroupId": self.data_condition_group.id,
+                    },
+                ],
+            },
+        }
+        validator = MetricIssueDetectorValidator(data=data, context=self.context)
+        assert not validator.is_valid()
+        assert validator.errors.get("conditionGroup", {}).get("conditions") == [
+            ErrorDetail(
+                string="Cannot combine anomaly detection conditions with other condition types.",
+                code="invalid",
             )
         ]
 
@@ -583,35 +689,6 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
         ):
             validator.save()
 
-    @with_feature(
-        {
-            "organizations:discover-saved-queries-deprecation": True,
-            "organizations:on-demand-metrics-extraction": True,
-        }
-    )
-    def test_transaction_dataset_deprecation_generic_metrics(self) -> None:
-        data = {
-            **self.valid_data,
-            "dataSources": [
-                {
-                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
-                    "dataset": Dataset.PerformanceMetrics.value,
-                    "query": "test query",
-                    "aggregate": "count()",
-                    "timeWindow": 3600,
-                    "environment": self.environment.name,
-                    "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
-                }
-            ],
-        }
-        validator = MetricIssueDetectorValidator(data=data, context=self.context)
-        assert validator.is_valid(), validator.errors
-        with self.assertRaisesMessage(
-            ValidationError,
-            expected_message="Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead.",
-        ):
-            validator.save()
-
     @with_feature("organizations:discover-saved-queries-deprecation")
     def test_transaction_dataset_deprecation_multiple_data_sources(self) -> None:
         data = {
@@ -637,25 +714,88 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
         ):
             validator.save()
 
-    def test_am1_org_transactions_dataset_allowed(self) -> None:
-        """AM1 orgs (no dynamic-sampling or on-demand-metrics) can't create detectors with generic_metrics dataset."""
+    def test_validate_comparison_delta(self) -> None:
+        static_type = AlertRuleDetectionType.STATIC.value
+        percent_type = AlertRuleDetectionType.PERCENT.value
+        anomaly_detection_type = AlertRuleDetectionType.DYNAMIC.value
+        non_obj_config_error = "`config` must be an object."
+        missing_comparison_delta_error = (
+            "`comparisonDelta` is required when `detectionType` is 'percent'."
+        )
+        extraneous_comparison_delta_error = (
+            "`comparisonDelta` can only be set when `detectionType` is 'percent', not '%s'."
+        )
+
+        valid_configs = [
+            {"detectionType": static_type},
+            {"detectionType": anomaly_detection_type},
+            {"detectionType": percent_type, "comparisonDelta": 3600},
+        ]
+        for config in valid_configs:
+            data = {**self.valid_data, "config": config}
+            validator = MetricIssueDetectorValidator(data=data, context=self.context)
+            assert validator.is_valid(), (config, validator.errors)
+
+        invalid_configs = [
+            (
+                {"detectionType": percent_type},
+                missing_comparison_delta_error,
+            ),
+            (
+                {"detectionType": static_type, "comparisonDelta": 3600},
+                extraneous_comparison_delta_error % static_type,
+            ),
+            (
+                {"detectionType": anomaly_detection_type, "comparisonDelta": 3600},
+                extraneous_comparison_delta_error % anomaly_detection_type,
+            ),
+            ([], non_obj_config_error),
+            (static_type, non_obj_config_error),
+            (3600, non_obj_config_error),
+        ]
+        for config, error_message in invalid_configs:
+            data = {**self.valid_data, "config": config}
+            validator = MetricIssueDetectorValidator(data=data, context=self.context)
+            assert not validator.is_valid()
+            assert validator.errors == {
+                "config": [ErrorDetail(string=error_message, code="invalid")]
+            }
+
+    def test_null_comparison_delta_is_not_stored(self) -> None:
         data = {
             **self.valid_data,
-            "dataSources": [
-                {
-                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
-                    "dataset": Dataset.PerformanceMetrics.value,
-                    "query": "test query",
-                    "aggregate": "count()",
-                    "timeWindow": 3600,
-                    "environment": self.environment.name,
-                    "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
-                }
-            ],
+            "config": {
+                "detectionType": AlertRuleDetectionType.STATIC.value,
+                "comparisonDelta": None,
+            },
         }
         validator = MetricIssueDetectorValidator(data=data, context=self.context)
         assert validator.is_valid(), validator.errors
-        assert validator.validated_data["data_sources"][0]["dataset"] == Dataset.Transactions
+
+        with self.tasks():
+            detector = validator.save()
+
+        detector.refresh_from_db()
+        assert detector.config == {"detection_type": AlertRuleDetectionType.STATIC.value}
+
+    def test_unknown_config_keys_are_not_stored(self) -> None:
+        data = {
+            **self.valid_data,
+            "config": {
+                "detectionType": AlertRuleDetectionType.STATIC.value,
+                "thresholdPeriod": 1,
+                "sensitivity": "medium",
+            },
+        }
+        validator = MetricIssueDetectorValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+
+        with self.tasks():
+            detector = validator.save()
+
+        detector.refresh_from_db()
+        # Only the valid key is kept
+        assert detector.config == {"detection_type": AlertRuleDetectionType.STATIC.value}
 
 
 class TestMetricAlertsTraceMetricsValidator(TestMetricAlertsDetectorValidator):
@@ -691,7 +831,6 @@ class TestMetricAlertsTraceMetricsValidator(TestMetricAlertsDetectorValidator):
                 ],
             },
             "config": {
-                "thresholdPeriod": 1,
                 "detectionType": AlertRuleDetectionType.STATIC.value,
             },
         }
@@ -714,7 +853,6 @@ class TestMetricAlertsTraceMetricsValidator(TestMetricAlertsDetectorValidator):
 
     @with_feature(
         [
-            "organizations:incidents",
             "organizations:performance-view",
             "organizations:tracemetrics-enabled",
         ]
@@ -735,7 +873,6 @@ class TestMetricAlertsTraceMetricsValidator(TestMetricAlertsDetectorValidator):
 
     @with_feature(
         [
-            "organizations:incidents",
             "organizations:performance-view",
             "organizations:tracemetrics-enabled",
         ]
@@ -850,7 +987,6 @@ class TestMetricAlertsResolution(TestMetricAlertsDetectorValidator):
             **self.valid_data,
             "dataSources": [self._make_data_source(timeWindow=3600)],
             "config": {
-                "thresholdPeriod": 1,
                 "detectionType": AlertRuleDetectionType.PERCENT.value,
                 "comparisonDelta": 86400,
             },
@@ -893,7 +1029,6 @@ class TestMetricAlertsResolution(TestMetricAlertsDetectorValidator):
         update_data = {
             **self.valid_data,
             "config": {
-                "thresholdPeriod": 1,
                 "detectionType": AlertRuleDetectionType.STATIC.value,
             },
         }
@@ -1165,7 +1300,6 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
                 ],
             },
             "config": {
-                "thresholdPeriod": 1,
                 "detectionType": AlertRuleDetectionType.STATIC.value,
             },
         }
@@ -1530,7 +1664,7 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
             data_source,
             data_condition,
             snuba_query,
-            detector.project,
+            detector.linked_project,
             "update",
             [SnubaQueryEventType.EventType.TRANSACTION],
         )
@@ -1635,52 +1769,6 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         assert update_validator.is_valid(), update_validator.errors
         updated_detector = update_validator.save()
         assert updated_detector.name == "Updated Detector Name"
-
-    @with_feature("organizations:on-demand-metrics-extraction")
-    def test_transaction_dataset_deprecation_generic_metrics_update(self) -> None:
-        data = {
-            **self.valid_data,
-            "dataSources": [
-                {
-                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
-                    "dataset": Dataset.PerformanceMetrics.value,
-                    "query": "test query",
-                    "aggregate": "count()",
-                    "timeWindow": 3600,
-                    "environment": self.environment.name,
-                    "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
-                },
-            ],
-        }
-        validator = MetricIssueDetectorValidator(data=data, context=self.context)
-        assert validator.is_valid(), validator.errors
-        detector = validator.save()
-
-        update_data = {
-            "dataSources": [
-                {
-                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
-                    "dataset": Dataset.PerformanceMetrics.value,
-                    "query": "updated query",
-                    "aggregate": "count()",
-                    "timeWindow": 3600,
-                    "environment": self.environment.name,
-                    "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
-                }
-            ],
-        }
-        update_validator = MetricIssueDetectorValidator(
-            instance=detector, data=update_data, context=self.context, partial=True
-        )
-        assert update_validator.is_valid(), update_validator.errors
-        with (
-            self.assertRaisesMessage(
-                ValidationError,
-                expected_message="Updates to transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead.",
-            ),
-            with_feature("organizations:discover-saved-queries-deprecation"),
-        ):
-            update_validator.save()
 
     def test_transaction_dataset_deprecation_update_to_transactions(self) -> None:
         data = {
@@ -1867,3 +1955,137 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
             update_validator.errors["dataSources"]["nonFieldErrors"][0]
             == "Invalid extrapolation mode: blah"
         )
+
+    @patch(
+        "sentry.seer.anomaly_detection.store_data_workflow_engine.make_store_data_request",
+        return_value=HTTPResponse(b'{"success":true}', status=200),
+    )
+    def test_validate_comparison_delta(self, mock_seer_request: MagicMock) -> None:
+        static_type = AlertRuleDetectionType.STATIC.value
+        percent_type = AlertRuleDetectionType.PERCENT.value
+        anomaly_detection_type = AlertRuleDetectionType.DYNAMIC.value
+        non_obj_config_error = "`config` must be an object."
+        missing_comparison_delta_error = (
+            "`comparisonDelta` is required when `detectionType` is 'percent'."
+        )
+        extraneous_comparison_delta_error = (
+            "`comparisonDelta` can only be set when `detectionType` is 'percent', not '%s'."
+        )
+
+        valid_updates: list[dict[str, Any]] = [
+            {
+                "orig_type": percent_type,
+                "config": {"detectionType": static_type},
+            },
+            {
+                "orig_type": percent_type,
+                "config": {"detectionType": anomaly_detection_type},
+                "conditionGroup": self.valid_anomaly_detection_data["conditionGroup"],
+            },
+            {
+                "orig_type": static_type,
+                "config": {"detectionType": percent_type, "comparisonDelta": 3600},
+            },
+        ]
+        for update_data in valid_updates:
+            orig_type = update_data.pop("orig_type")
+            new_config = update_data["config"]
+            # Create a detector of a different type than the one we're going to update it to be
+            detector = (
+                self.create_percent_detector()
+                if orig_type == percent_type
+                else self.create_static_detector()
+            )
+            update_validator = MetricIssueDetectorValidator(
+                instance=detector, data=update_data, context=self.context, partial=True
+            )
+
+            assert update_validator.is_valid(), (update_data, update_validator.errors)
+
+            update_validator.save()
+            detector.refresh_from_db()
+            assert detector.config == {
+                "detection_type": new_config["detectionType"],
+                **(
+                    {"comparison_delta": new_config["comparisonDelta"]}
+                    if "comparisonDelta" in new_config
+                    else {}
+                ),
+            }
+
+        invalid_updates: list[dict[str, Any]] = [
+            {
+                "orig_type": static_type,
+                "config": {"detectionType": percent_type},
+                "error": missing_comparison_delta_error,
+            },
+            {
+                "orig_type": percent_type,
+                "config": {"detectionType": static_type, "comparisonDelta": 3600},
+                "error": extraneous_comparison_delta_error % static_type,
+            },
+            {
+                "orig_type": percent_type,
+                "config": {"detectionType": anomaly_detection_type, "comparisonDelta": 3600},
+                "error": extraneous_comparison_delta_error % anomaly_detection_type,
+            },
+            {"orig_type": percent_type, "config": [], "error": non_obj_config_error},
+            {"orig_type": percent_type, "config": static_type, "error": non_obj_config_error},
+            {"orig_type": percent_type, "config": 3600, "error": non_obj_config_error},
+        ]
+        for update_data in invalid_updates:
+            orig_type = update_data.pop("orig_type")
+            error_message = update_data.pop("error")
+            new_config = update_data["config"]
+            # Create a detector of a different type than the one we're going to update it to be
+            detector = (
+                self.create_percent_detector()
+                if orig_type == percent_type
+                else self.create_static_detector()
+            )
+            update_validator = MetricIssueDetectorValidator(
+                instance=detector, data=update_data, context=self.context, partial=True
+            )
+
+            assert not update_validator.is_valid()
+            assert update_validator.errors == {
+                "config": [ErrorDetail(string=error_message, code="invalid")]
+            }
+
+    def test_null_comparison_delta_is_not_stored(self) -> None:
+        detector = self.create_percent_detector()
+        update_data = {
+            "config": {
+                "detectionType": AlertRuleDetectionType.STATIC.value,
+                "comparisonDelta": None,
+            },
+        }
+        update_validator = MetricIssueDetectorValidator(
+            instance=detector, data=update_data, context=self.context, partial=True
+        )
+        assert update_validator.is_valid(), update_validator.errors
+
+        update_validator.save()
+
+        detector.refresh_from_db()
+        assert detector.config == {"detection_type": AlertRuleDetectionType.STATIC.value}
+
+    def test_unknown_config_keys_are_not_stored(self) -> None:
+        detector = self.create_percent_detector()
+        update_data = {
+            "config": {
+                "detectionType": AlertRuleDetectionType.STATIC.value,
+                "thresholdPeriod": 1,
+                "sensitivity": "medium",
+            },
+        }
+        update_validator = MetricIssueDetectorValidator(
+            instance=detector, data=update_data, context=self.context, partial=True
+        )
+        assert update_validator.is_valid(), update_validator.errors
+
+        update_validator.save()
+
+        detector.refresh_from_db()
+        # Only the valid key is kept
+        assert detector.config == {"detection_type": AlertRuleDetectionType.STATIC.value}

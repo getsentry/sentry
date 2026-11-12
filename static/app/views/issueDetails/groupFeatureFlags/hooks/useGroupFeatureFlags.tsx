@@ -1,12 +1,8 @@
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import type {UseQueryResult} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
+
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
-import {
-  useApiQuery,
-  type UseApiQueryOptions,
-  type UseApiQueryResult,
-} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
@@ -17,32 +13,30 @@ interface FetchGroupFlagsParams {
   limit?: number;
 }
 
-const makeGroupFlagsQueryKey = ({
+const groupFlagsOptions = ({
   groupId,
   orgSlug,
   environment,
   limit,
-}: FetchGroupFlagsParams): ApiQueryKey => [
-  getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/tags/', {
-    path: {organizationIdOrSlug: orgSlug, issueId: groupId},
-  }),
-  {query: {environment, limit, useFlagsBackend: '1'}},
-];
+}: FetchGroupFlagsParams) =>
+  apiOptions.as<GroupTag[]>()(
+    '/organizations/$organizationIdOrSlug/issues/$issueId/tags/',
+    {
+      path: {organizationIdOrSlug: orgSlug, issueId: groupId},
+      query: {environment, limit, useFlagsBackend: '1'},
+      staleTime: 30000,
+    }
+  );
 
 export function useGroupFeatureFlags(
-  parameters: Omit<FetchGroupFlagsParams, 'orgSlug'>,
-  {enabled = true, ...options}: Partial<UseApiQueryOptions<GroupTag[]>> = {}
-): UseApiQueryResult<GroupTag[], RequestError> {
+  parameters: Omit<FetchGroupFlagsParams, 'orgSlug'>
+): UseQueryResult<GroupTag[]> {
   const organization = useOrganization();
-  return useApiQuery<GroupTag[]>(
-    makeGroupFlagsQueryKey({
+  return useQuery({
+    ...groupFlagsOptions({
       orgSlug: organization.slug,
       ...parameters,
     }),
-    {
-      staleTime: 30000,
-      enabled: defined(parameters.groupId) && enabled,
-      ...options,
-    }
-  );
+    enabled: defined(parameters.groupId),
+  });
 }

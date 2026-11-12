@@ -6,21 +6,13 @@ interface Props extends React.HTMLAttributes<HTMLSpanElement> {
   abbreviation?: boolean;
   exact?: boolean;
   fixedDigits?: number;
-  precision?: 'seconds' | 'minutes' | 'hours' | 'days' | 'weeks' | 'years';
 }
 
-export function Duration({
-  seconds,
-  fixedDigits,
-  abbreviation,
-  exact,
-  precision,
-  ...props
-}: Props) {
+export function Duration({seconds, fixedDigits, abbreviation, exact, ...props}: Props) {
   return (
     <span {...props}>
       {exact
-        ? getExactDuration(seconds, abbreviation, precision)
+        ? getExactDuration(seconds, abbreviation)
         : getDuration(seconds, fixedDigits, abbreviation)}
     </span>
   );

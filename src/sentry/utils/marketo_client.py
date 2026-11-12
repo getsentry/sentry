@@ -1,4 +1,5 @@
-from typing import TypedDict
+from collections.abc import Mapping
+from typing import Any, TypedDict, cast
 
 from django.conf import settings
 
@@ -29,15 +30,24 @@ class MarketoClient:
     OAUTH_URL = "/identity/oauth/token"
     SUBMIT_FORM_URL = "/rest/v1/leads/submitForm.json"
 
-    def make_request(self, url: str, *args, method="GET", **kwargs):
+    def make_request(
+        self, url: str, *args: object, method: str = "GET", **kwargs: Any
+    ) -> dict[str, object]:
         base_url = settings.MARKETO_BASE_URL or ""
         full_url = base_url + url
         session = http.build_session()
         resp = getattr(session, method.lower())(full_url, *args, **kwargs)
         resp.raise_for_status()
-        return resp.json()
+        data = resp.json()
+        return data
 
-    def make_rest_request(self, url: str, *args, headers=None, **kwargs):
+    def make_rest_request(
+        self,
+        url: str,
+        *args: object,
+        headers: dict[str, str] | None = None,
+        **kwargs: Any,
+    ) -> dict[str, object]:
         if headers is None:
             headers = {}
         headers["Authorization"] = f"Bearer {self.token}"
@@ -45,19 +55,19 @@ class MarketoClient:
         data = self.make_request(url, *args, headers=headers, **kwargs)
 
         if not data.get("success"):
-            raise MarketoError(data)
+            raise MarketoError(cast(MarketoErrorResponse, data))
 
         # not handling field level errors where success=True
         return data
 
-    def retrieve_token(self):
+    def retrieve_token(self) -> dict[str, object]:
         client_id = settings.MARKETO_CLIENT_ID
         clint_secret = settings.MARKETO_CLIENT_SECRET
 
         url = f"{self.OAUTH_URL}?grant_type=client_credentials&client_id={client_id}&client_secret={clint_secret}"
         return self.make_request(url)
 
-    def submit_form(self, fields):
+    def submit_form(self, fields: Mapping[str, object]) -> dict[str, object]:
         body = {
             "formId": settings.MARKETO_FORM_ID,
             "input": [
@@ -70,6 +80,6 @@ class MarketoClient:
         return self.make_rest_request(self.SUBMIT_FORM_URL, method="POST", json=body)
 
     @property
-    def token(self):
+    def token(self) -> str:
         resp = self.retrieve_token()
-        return resp["access_token"]
+        return cast(str, resp["access_token"])

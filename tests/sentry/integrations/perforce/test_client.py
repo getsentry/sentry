@@ -1,6 +1,8 @@
 import os
 from datetime import datetime, timezone
+from typing import Any
 from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -49,7 +51,7 @@ class PerforceClientTest(TestCase):
         self.addCleanup(patcher.stop)
 
     @mock.patch("sentry.integrations.perforce.client.P4")
-    def test_get_blame_for_files_success(self, mock_p4_class):
+    def test_get_blame_for_files_success(self, mock_p4_class: MagicMock) -> None:
         """Test get_blame_for_files returns commit info for files"""
         # Mock P4 instance
         mock_p4 = mock.Mock()
@@ -119,7 +121,7 @@ class PerforceClientTest(TestCase):
         assert blames[1].commit.committedDate == datetime(2021, 1, 2, 0, 0, 0, tzinfo=timezone.utc)
 
     @mock.patch("sentry.integrations.perforce.client.P4")
-    def test_get_blame_for_files_no_changelist(self, mock_p4_class):
+    def test_get_blame_for_files_no_changelist(self, mock_p4_class: MagicMock) -> None:
         """Test get_blame_for_files handles files with no changelist"""
         mock_p4 = mock.Mock()
         mock_p4_class.return_value = mock_p4
@@ -141,7 +143,7 @@ class PerforceClientTest(TestCase):
         assert len(blames) == 0
 
     @mock.patch("sentry.integrations.perforce.client.P4")
-    def test_get_blame_for_files_with_stream(self, mock_p4_class):
+    def test_get_blame_for_files_with_stream(self, mock_p4_class: MagicMock) -> None:
         """Test get_blame_for_files handles files with stream (ref).
 
         Note: The stream name in ref is ignored because the path from SourceLineInfo
@@ -186,7 +188,9 @@ class PerforceClientTest(TestCase):
 
     @mock.patch("sentry.integrations.perforce.client.P4")
     @mock.patch("sentry.integrations.perforce.client.logger")
-    def test_get_blame_for_files_p4_exception(self, mock_logger, mock_p4_class):
+    def test_get_blame_for_files_p4_exception(
+        self, mock_logger: MagicMock, mock_p4_class: MagicMock
+    ) -> None:
         """Test get_blame_for_files handles P4 exceptions gracefully"""
         from sentry.integrations.perforce.p4protocol import P4Exception
 
@@ -236,7 +240,9 @@ class PerforceClientTest(TestCase):
 
     @mock.patch("sentry.integrations.perforce.client.P4")
     @mock.patch("sentry.integrations.perforce.client.logger")
-    def test_get_blame_for_files_invalid_time(self, mock_logger, mock_p4_class):
+    def test_get_blame_for_files_invalid_time(
+        self, mock_logger: MagicMock, mock_p4_class: MagicMock
+    ) -> None:
         """Test get_blame_for_files handles invalid time values gracefully"""
         mock_p4 = mock.Mock()
         mock_p4_class.return_value = mock_p4
@@ -276,7 +282,7 @@ class PerforceClientTest(TestCase):
         assert any("invalid_time_value" in call for call in warning_calls)
 
     @mock.patch("sentry.integrations.perforce.client.P4")
-    def test_get_depots(self, mock_p4_class):
+    def test_get_depots(self, mock_p4_class: MagicMock) -> None:
         """Test get_depots returns depot list"""
         mock_p4 = mock.Mock()
         mock_p4_class.return_value = mock_p4
@@ -303,7 +309,7 @@ class PerforceClientTest(TestCase):
         assert depots[1]["description"] == "Project stream depot"
 
     @mock.patch("sentry.integrations.perforce.client.P4")
-    def test_get_user_existing(self, mock_p4_class):
+    def test_get_user_existing(self, mock_p4_class: MagicMock) -> None:
         """Test get_user returns user info for existing user"""
         mock_p4 = mock.Mock()
         mock_p4_class.return_value = mock_p4
@@ -330,7 +336,7 @@ class PerforceClientTest(TestCase):
         assert user_info["full_name"] == "John Doe"
 
     @mock.patch("sentry.integrations.perforce.client.P4")
-    def test_get_user_nonexistent(self, mock_p4_class):
+    def test_get_user_nonexistent(self, mock_p4_class: MagicMock) -> None:
         """Test get_user returns None for non-existent user"""
         mock_p4 = mock.Mock()
         mock_p4_class.return_value = mock_p4
@@ -351,7 +357,7 @@ class PerforceClientTest(TestCase):
         assert user_info is None
 
     @mock.patch("sentry.integrations.perforce.client.P4")
-    def test_get_changes_without_range(self, mock_p4_class):
+    def test_get_changes_without_range(self, mock_p4_class: MagicMock) -> None:
         """Test get_changes returns changelists without start/end range"""
         mock_p4 = mock.Mock()
         mock_p4_class.return_value = mock_p4
@@ -387,8 +393,15 @@ class PerforceClientTest(TestCase):
         assert changes[1]["user"] == "johndoe"
 
     @mock.patch("sentry.integrations.perforce.client.P4")
-    def test_get_changes_with_end_cl(self, mock_p4_class):
-        """Test get_changes filters by end changelist"""
+    def test_get_changes_with_end_cl(self, mock_p4_class: MagicMock) -> None:
+        """Test an end-only request (initial release, no previous changelist).
+
+        The ``-e`` flag is deliberately NOT used: ``p4 changes -e N`` returns
+        changes >= N (a lower bound to HEAD), the opposite of an upper bound. A
+        bare ``@end_cl`` specifier already means "at or before end_cl", so with
+        -m it yields the most recent max_changes changes up to end_cl. No "@0"
+        floor is synthesized -- changelist 0 is not a real changelist.
+        """
         mock_p4 = mock.Mock()
         mock_p4_class.return_value = mock_p4
 
@@ -411,20 +424,21 @@ class PerforceClientTest(TestCase):
 
         changes = self.p4_client.get_changes("//depot/...", max_changes=20, end_cl=12346)
 
-        # Verify -e flag was used for end_cl
-        mock_p4.run.assert_called_once_with(
-            "changes", "-m", "20", "-l", "-e", "12346", "//depot/..."
-        )
+        # Bare inclusive upper-bound specifier on the path (not -e, not an "@0" floor).
+        mock_p4.run.assert_called_once_with("changes", "-m", "20", "-l", "//depot/...@12346")
 
         assert len(changes) == 2
 
     @mock.patch("sentry.integrations.perforce.client.P4")
-    def test_get_changes_with_start_cl(self, mock_p4_class):
-        """Test get_changes filters by start changelist (exclusive)"""
+    def test_get_changes_with_start_cl(self, mock_p4_class: MagicMock) -> None:
+        """Test get_changes bounds the lower end exclusively via the revision range.
+
+        An exclusive lower bound (changes strictly after start_cl) becomes an
+        inclusive ``start_cl + 1`` in Perforce range syntax, running to ``@now``.
+        """
         mock_p4 = mock.Mock()
         mock_p4_class.return_value = mock_p4
 
-        # Mock returns changes 12345, 12346, 12347
         mock_p4.run.return_value = [
             {
                 "change": "12347",
@@ -440,27 +454,25 @@ class PerforceClientTest(TestCase):
                 "time": "1609545600",
                 "desc": "Change 2",
             },
-            {
-                "change": "12345",
-                "user": "user1",
-                "client": "ws1",
-                "time": "1609459200",
-                "desc": "Change 1",
-            },
         ]
 
-        # Filter out changes <= 12345 (only want changes > 12345)
         changes = self.p4_client.get_changes("//depot/...", max_changes=20, start_cl=12345)
 
-        # Verify no -s flag (Perforce doesn't have one)
-        # Client-side filtering is done for start_cl
+        # start_cl=12345 is exclusive -> range begins at 12346, runs to @now.
+        mock_p4.run.assert_called_once_with("changes", "-m", "20", "-l", "//depot/...@12346,@now")
+
         assert len(changes) == 2
         assert changes[0]["change"] == "12347"
         assert changes[1]["change"] == "12346"
 
     @mock.patch("sentry.integrations.perforce.client.P4")
-    def test_get_changes_with_range(self, mock_p4_class):
-        """Test get_changes filters by start and end changelist range"""
+    def test_get_changes_with_range(self, mock_p4_class: MagicMock) -> None:
+        """Test get_changes bounds both ends via the revision range.
+
+        A request for (start_cl, end_cl] must query the inclusive Perforce range
+        ``@start_cl+1,@end_cl`` so the server returns exactly that window rather
+        than everything from end_cl to HEAD.
+        """
         mock_p4 = mock.Mock()
         mock_p4_class.return_value = mock_p4
 
@@ -478,13 +490,6 @@ class PerforceClientTest(TestCase):
                 "client": "ws2",
                 "time": "1609545600",
                 "desc": "Change 2",
-            },
-            {
-                "change": "12345",
-                "user": "user1",
-                "client": "ws1",
-                "time": "1609459200",
-                "desc": "Change 1",
             },
         ]
 
@@ -493,13 +498,78 @@ class PerforceClientTest(TestCase):
             "//depot/...", max_changes=20, start_cl=12345, end_cl=12348
         )
 
-        # Should filter out 12345 (exclusive lower bound)
+        # Exclusive lower bound -> @12346; inclusive upper bound -> @12348.
+        mock_p4.run.assert_called_once_with("changes", "-m", "20", "-l", "//depot/...@12346,@12348")
+
         assert len(changes) == 2
         assert changes[0]["change"] == "12347"
         assert changes[1]["change"] == "12346"
 
     @mock.patch("sentry.integrations.perforce.client.P4")
-    def test_get_changes_type_validation(self, mock_p4_class):
+    def test_get_changes_single_changelist(self, mock_p4_class: MagicMock) -> None:
+        """A one-CL window (start_cl == end_cl - 1... i.e. pin one CL) resolves
+        to an inclusive single-value range like ``@N,@N``."""
+        mock_p4 = mock.Mock()
+        mock_p4_class.return_value = mock_p4
+
+        mock_p4.run.return_value = [
+            {
+                "change": "13000",
+                "user": "user1",
+                "client": "ws1",
+                "time": "1609459200",
+                "desc": "Single change",
+            },
+        ]
+
+        # Associate exactly changelist 13000: previousCommit=12999, commit=13000.
+        changes = self.p4_client.get_changes(
+            "//depot/...", max_changes=20, start_cl=12999, end_cl=13000
+        )
+
+        mock_p4.run.assert_called_once_with("changes", "-m", "20", "-l", "//depot/...@13000,@13000")
+
+        assert len(changes) == 1
+        assert changes[0]["change"] == "13000"
+
+    @mock.patch("sentry.integrations.perforce.client.P4")
+    def test_get_changes_wide_range_not_truncated(self, mock_p4_class: MagicMock) -> None:
+        """A window wider than max_changes must not be capped to max_changes.
+
+        ``p4 changes -m N`` returns only the N highest-numbered changes, so a
+        fixed ``-m 20`` would silently drop the older end of a large release.
+        -m must be sized to cover the whole interval instead.
+        """
+        mock_p4 = mock.Mock()
+        mock_p4_class.return_value = mock_p4
+        mock_p4.run.return_value = []
+
+        # previousCommit=1000, commit=1100 -> range [1001, 1100], 100 CLs wide,
+        # well above the default max_changes=20.
+        self.p4_client.get_changes("//depot/...", max_changes=20, start_cl=1000, end_cl=1100)
+
+        # -m must cover the full window (1100 - 1001 + 1 = 100), not the cap of 20.
+        mock_p4.run.assert_called_once_with("changes", "-m", "100", "-l", "//depot/...@1001,@1100")
+
+    @mock.patch("sentry.integrations.perforce.client.P4")
+    def test_get_changes_empty_window_returns_early(self, mock_p4_class: MagicMock) -> None:
+        """An empty window (previousCommit == commit) returns [] without querying.
+
+        start_cl is exclusive, so start_cl == end_cl selects no changes; it must
+        not form an inverted "@hi,@lo" range.
+        """
+        mock_p4 = mock.Mock()
+        mock_p4_class.return_value = mock_p4
+
+        changes = self.p4_client.get_changes(
+            "//depot/...", max_changes=20, start_cl=1234, end_cl=1234
+        )
+
+        assert changes == []
+        mock_p4.run.assert_not_called()
+
+    @mock.patch("sentry.integrations.perforce.client.P4")
+    def test_get_changes_type_validation(self, mock_p4_class: MagicMock) -> None:
         """Test get_changes validates that start_cl and end_cl are integers"""
         mock_p4 = mock.Mock()
         mock_p4_class.return_value = mock_p4
@@ -513,7 +583,7 @@ class PerforceClientTest(TestCase):
             self.p4_client.get_changes("//depot/...", end_cl="12346")  # type: ignore[arg-type]
 
     @mock.patch("sentry.integrations.perforce.client.P4")
-    def test_check_file_exists(self, mock_p4_class):
+    def test_check_file_exists(self, mock_p4_class: MagicMock) -> None:
         """Test check_file returns file info when file exists"""
         mock_p4 = mock.Mock()
         mock_p4_class.return_value = mock_p4
@@ -540,7 +610,7 @@ class PerforceClientTest(TestCase):
         assert result["rev"] == "5"
 
     @mock.patch("sentry.integrations.perforce.client.P4")
-    def test_check_file_not_exists(self, mock_p4_class):
+    def test_check_file_not_exists(self, mock_p4_class: MagicMock) -> None:
         """Test check_file returns None when file doesn't exist"""
         mock_p4 = mock.Mock()
         mock_p4_class.return_value = mock_p4
@@ -556,7 +626,7 @@ class PerforceClientTest(TestCase):
         assert result is None
 
     @mock.patch("sentry.integrations.perforce.client.P4")
-    def test_check_file_empty_result(self, mock_p4_class):
+    def test_check_file_empty_result(self, mock_p4_class: MagicMock) -> None:
         """Test check_file returns None when result has no depotFile"""
         mock_p4 = mock.Mock()
         mock_p4_class.return_value = mock_p4
@@ -620,7 +690,7 @@ class PerforceClientTest(TestCase):
         assert path == "//depot/game/project/src/main.cpp"
 
     @mock.patch("sentry.integrations.perforce.client.P4")
-    def test_connect_writes_p4config_file(self, mock_p4_class):
+    def test_connect_writes_p4config_file(self, mock_p4_class: MagicMock) -> None:
         """_connect() must write a config file named by P4CONFIG with P4TRUST and P4TICKETS."""
         mock_p4 = mock.Mock()
         mock_p4_class.return_value = mock_p4
@@ -628,7 +698,7 @@ class PerforceClientTest(TestCase):
         captured_cwd = None
         captured_config = None
 
-        def capture_state():
+        def capture_state() -> None:
             nonlocal captured_cwd, captured_config
             captured_cwd = mock_p4.cwd
             config_filename = os.environ.get("P4CONFIG", ".p4config")
@@ -657,7 +727,7 @@ class PerforceClientTest(TestCase):
         assert ticket_path.endswith("/.p4tickets")
 
     @mock.patch("sentry.integrations.perforce.client.P4")
-    def test_connect_respects_custom_p4config_filename(self, mock_p4_class):
+    def test_connect_respects_custom_p4config_filename(self, mock_p4_class: MagicMock) -> None:
         """_connect() must use the actual P4CONFIG env value as the config filename."""
         mock_p4 = mock.Mock()
         mock_p4_class.return_value = mock_p4
@@ -665,7 +735,7 @@ class PerforceClientTest(TestCase):
         captured_cwd = None
         captured_config = None
 
-        def capture_state():
+        def capture_state() -> None:
             nonlocal captured_cwd, captured_config
             captured_cwd = mock_p4.cwd
             config_path = f"{captured_cwd}/custom-p4.conf"
@@ -684,7 +754,7 @@ class PerforceClientTest(TestCase):
         assert "P4TICKETS=" in captured_config
 
     @mock.patch("sentry.integrations.perforce.client.P4")
-    def test_connect_does_not_use_set_env(self, mock_p4_class):
+    def test_connect_does_not_use_set_env(self, mock_p4_class: MagicMock) -> None:
         """_connect() must NOT use set_env (it only works on Windows/macOS, not Linux)."""
         mock_p4 = mock.Mock()
         mock_p4_class.return_value = mock_p4
@@ -727,7 +797,18 @@ class PerforceClientTest(TestCase):
         assert os.environ.get("P4CONFIG") == ".p4config"
 
     @mock.patch("sentry.integrations.perforce.client.P4")
-    def test_connect_sets_charset_for_unicode_server(self, mock_p4_class):
+    def test_connect_sets_timeout(self, mock_p4_class: MagicMock) -> None:
+        p4_stub = _P4AttributeRecorder()
+        mock_p4_class.return_value = p4_stub
+
+        with self.p4_client._connect():
+            pass
+
+        assert p4_stub.timeout == 10
+        assert "timeout" in p4_stub.attrs_set_before_connect
+
+    @mock.patch("sentry.integrations.perforce.client.P4")
+    def test_connect_sets_charset_for_unicode_server(self, mock_p4_class: MagicMock) -> None:
         """_connect() must set p4.charset before connect() when configured for a Unicode server."""
         p4_stub = _P4AttributeRecorder()
         mock_p4_class.return_value = p4_stub
@@ -759,7 +840,9 @@ class PerforceClientTest(TestCase):
         assert "charset" in p4_stub.attrs_set_before_connect
 
     @mock.patch("sentry.integrations.perforce.client.P4")
-    def test_connect_does_not_set_charset_for_non_unicode_server(self, mock_p4_class):
+    def test_connect_does_not_set_charset_for_non_unicode_server(
+        self, mock_p4_class: MagicMock
+    ) -> None:
         """_connect() must NOT touch p4.charset when configured for a non-Unicode server."""
         p4_stub = _P4AttributeRecorder()
         mock_p4_class.return_value = p4_stub
@@ -771,7 +854,9 @@ class PerforceClientTest(TestCase):
         assert "charset" not in p4_stub.attrs_set
 
     @mock.patch("sentry.integrations.perforce.client.P4")
-    def test_connect_does_not_set_charset_when_explicitly_none(self, mock_p4_class):
+    def test_connect_does_not_set_charset_when_explicitly_none(
+        self, mock_p4_class: MagicMock
+    ) -> None:
         """The 'none' sentinel must behave the same as not setting charset at all."""
         p4_stub = _P4AttributeRecorder()
         mock_p4_class.return_value = p4_stub
@@ -798,7 +883,7 @@ class PerforceClientTest(TestCase):
         assert "charset" not in p4_stub.attrs_set
 
     @mock.patch("sentry.integrations.perforce.client.P4")
-    def test_connect_translates_unicode_server_error(self, mock_p4_class):
+    def test_connect_translates_unicode_server_error(self, mock_p4_class: MagicMock) -> None:
         """Connecting to a Unicode server without a charset must surface an actionable error."""
         from sentry.integrations.perforce.p4protocol import P4Exception
         from sentry.shared_integrations.exceptions import ApiError
@@ -819,7 +904,7 @@ class PerforceClientTest(TestCase):
         assert "Server Encoding" in message
 
     @mock.patch("sentry.integrations.perforce.client.P4")
-    def test_unicode_error_at_login_is_translated(self, mock_p4_class):
+    def test_unicode_error_at_login_is_translated(self, mock_p4_class: MagicMock) -> None:
         """The pure-Python client surfaces the Unicode error at run_login(), not
         connect(); it must still yield the Server Encoding guidance rather than a
         misleading password/ticket error."""
@@ -842,7 +927,7 @@ class PerforceClientTest(TestCase):
         assert "password" not in message.lower()
 
     @mock.patch("sentry.integrations.perforce.client.P4")
-    def test_get_file_binary_returns_empty(self, mock_p4_class):
+    def test_get_file_binary_returns_empty(self, mock_p4_class: MagicMock) -> None:
         """Binary depot files return empty rather than 500-ing or yielding mojibake."""
         mock_p4 = mock.Mock()
         mock_p4_class.return_value = mock_p4
@@ -854,7 +939,7 @@ class PerforceClientTest(TestCase):
         assert self.p4_client.get_file(self.repo, "logo.bin", None) == ""
 
     @mock.patch("sentry.integrations.perforce.client.P4")
-    def test_get_file_binary_variants_return_empty(self, mock_p4_class):
+    def test_get_file_binary_variants_return_empty(self, mock_p4_class: MagicMock) -> None:
         """Legacy/modified binary file types must also be treated as binary."""
         mock_p4 = mock.Mock()
         mock_p4_class.return_value = mock_p4
@@ -957,6 +1042,43 @@ class PerforceClientTest(TestCase):
             with pytest.raises(P4Exception):
                 p4._dispatch()
 
+    def test_dispatch_flush2_puts_func_last(self) -> None:
+        """The flush2 duplex-ack must place `func` LAST, after the echoed
+        flow-control vars. The Perforce RPC dispatcher reads vars until it hits
+        `func`, then invokes the handler; a P4 Broker's forwarder enforces this
+        strictly, so a flush2 that leads with `func` desyncs the forwarder and it
+        never relays the command's response -> the client hangs (issue #120783).
+        A directly-connected p4d is lenient, which is why broker-less setups
+        worked. Verified live against a p4broker -> p4d testbed."""
+        from sentry.integrations.perforce.p4protocol.protocol import P4
+
+        p4 = P4()
+        written: list[bytes] = []
+        with (
+            mock.patch.object(p4, "_write", side_effect=written.append),
+            mock.patch.object(
+                p4,
+                "_read_message",
+                side_effect=[
+                    {b"func": b"flush1", b"himark": b"0", b"flushHard": b"", b"fseq": b"188"},
+                    {b"func": b"release"},
+                ],
+            ),
+        ):
+            p4._dispatch()
+
+        assert len(written) == 1
+        payload = written[0][5:]  # strip the 1-byte checksum + 4-byte length header
+        # `func` must come after the echoed flow-control fields, not before them.
+        func_pos = payload.rfind(b"func\x00")
+        assert func_pos > payload.find(b"himark\x00")
+        assert func_pos > payload.find(b"fseq\x00")
+        # and it must still echo the server's flow-control vars back
+        fields = P4._parse_fields(payload)
+        assert fields[b"func"] == b"flush2"
+        assert fields[b"himark"] == b"0"
+        assert fields[b"fseq"] == b"188"
+
 
 class _P4AttributeRecorder:
     """
@@ -978,6 +1100,7 @@ class _P4AttributeRecorder:
     # Unicode server. Declared so tests can read `p4_stub.charset` without
     # tripping mypy's attr-defined check.
     charset: str
+    timeout: int
 
     def __init__(self) -> None:
         object.__setattr__(self, "attrs_set", set())
@@ -999,7 +1122,7 @@ class _P4AttributeRecorder:
     def connected(self) -> bool:
         return True
 
-    def run(self, *args: object, **kwargs: object) -> list:
+    def run(self, *args: object, **kwargs: object) -> list[Any]:
         return []
 
     def run_login(self) -> None:

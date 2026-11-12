@@ -1,26 +1,36 @@
 import datetime
 import unittest
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 from django.db import OperationalError
 from django.utils import timezone
-from rest_framework.exceptions import APIException, Throttled, ValidationError
+from rest_framework.exceptions import APIException, ParseError, Throttled, ValidationError
 from sentry_sdk import Scope
 from snuba_sdk.column import InvalidColumnError
 
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.utils import (
     MAX_STATS_PERIOD,
+    ServiceUnavailable,
     clamp_date_range,
     get_date_range_from_params,
     handle_query_errors,
+    is_member_disabled_from_limit,
     print_and_capture_handler_exception,
     to_valid_int_id,
     to_valid_int_id_list,
 )
 from sentry.db.models.fields.bounded import BoundedBigAutoField
-from sentry.exceptions import IncompatibleMetricsQuery, InvalidParams, InvalidSearchQuery
+from sentry.exceptions import (
+    IncompatibleMetricsQuery,
+    InvalidFunctionArgumentQuery,
+    InvalidParams,
+    InvalidSearchQuery,
+    SearchQueryParseError,
+)
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.snuba import (
@@ -38,7 +48,13 @@ from sentry.utils.snuba import (
     SnubaError,
     UnqualifiedQueryError,
 )
-from sentry.utils.snuba_rpc import SnubaRPCTooManySimultaneous
+from sentry.utils.snuba_rpc import (
+    SnubaRPCBadRequest,
+    SnubaRPCError,
+    SnubaRPCInvalidRegex,
+    SnubaRPCTooManySimultaneous,
+    SnubaRPCUnavailable,
+)
 
 
 class GetDateRangeFromParamsTest(unittest.TestCase):
@@ -203,6 +219,45 @@ class HandleQueryErrorsTest(APITestCase):
             except Exception as e:
                 assert isinstance(e, (FooBarError, APIException))
 
+    def test_handle_invalid_function_argument(self) -> None:
+        with pytest.raises(ParseError) as excinfo:
+            with handle_query_errors():
+                raise InvalidFunctionArgumentQuery(
+                    "foo is invalid for parameter 1 in p75.", function="p75", argument="foo"
+                )
+        assert excinfo.value.detail == {
+            "detail": "foo is invalid for parameter 1 in p75.",
+            "code": "invalid_function_argument",
+            "function": "p75",
+            "argument": "foo",
+        }
+
+    def test_handle_invalid_function_argument_with_hint(self) -> None:
+        with pytest.raises(ParseError) as excinfo:
+            with handle_query_errors():
+                raise InvalidFunctionArgumentQuery(
+                    "foo is invalid for parameter 1 in p75.",
+                    function="p75",
+                    argument="foo",
+                    hint="Use bar instead of foo.",
+                )
+        assert excinfo.value.detail == {
+            "detail": "foo is invalid for parameter 1 in p75.",
+            "code": "invalid_function_argument",
+            "function": "p75",
+            "argument": "foo",
+            "hint": "Use bar instead of foo.",
+        }
+
+    def test_handle_search_query_parse_error(self) -> None:
+        with pytest.raises(ParseError) as excinfo:
+            with handle_query_errors():
+                raise SearchQueryParseError("Empty string after 'user.email:'")
+        assert excinfo.value.detail == {
+            "detail": "Empty string after 'user.email:'",
+            "code": "invalid_search_query",
+        }
+
     def test_handle_postgres_timeout(self) -> None:
         class TimeoutError(OperationalError):
             def __str__(self) -> str:
@@ -253,6 +308,91 @@ class HandleQueryErrorsTest(APITestCase):
                 raise SnubaRPCTooManySimultaneous(error_proto)
         except Exception as e:
             assert isinstance(e, Throttled)
+
+    @patch("sentry.api.utils.sentry_sdk.capture_exception")
+    @patch("sentry.api.utils.logger.warning")
+    @patch("sentry.api.utils.sentry_sdk.set_attribute")
+    @patch("sentry.api.utils.sentry_sdk.set_tag")
+    def test_handle_snuba_rpc_unavailable(
+        self,
+        mock_set_tag: MagicMock,
+        mock_set_attribute: MagicMock,
+        mock_warning: MagicMock,
+        mock_capture_exception: MagicMock,
+    ) -> None:
+        with pytest.raises(ServiceUnavailable) as raised:
+            with handle_query_errors():
+                raise SnubaRPCUnavailable("no healthy upstream")
+
+        assert raised.value.status_code == 503
+        assert raised.value.wait == 5
+        mock_set_tag.assert_called_once_with("query.error_reason", "SnubaUnavailable")
+        mock_set_attribute.assert_called_once_with("query.error_reason", "SnubaUnavailable")
+        mock_warning.assert_called_once_with("snuba_rpc.unavailable")
+        mock_capture_exception.assert_not_called()
+
+    @patch("sentry.api.utils.sentry_sdk.capture_exception")
+    @patch("sentry.api.utils.sentry_sdk.set_attribute")
+    @patch("sentry.api.utils.sentry_sdk.set_tag")
+    def test_handle_snuba_rpc_query_timeout(
+        self,
+        mock_set_tag: MagicMock,
+        mock_set_attribute: MagicMock,
+        mock_capture_exception: MagicMock,
+    ) -> None:
+        from sentry_protos.snuba.v1.error_pb2 import Error as ErrorProto
+
+        error_proto = ErrorProto(
+            code=408,
+            message="Query timed out, this violates the EAP SLO",
+        )
+        with pytest.raises(ParseError) as raised:
+            with handle_query_errors():
+                raise SnubaRPCError(error_proto)
+
+        assert raised.value.status_code == 400
+        mock_set_tag.assert_called_once_with("query.error_reason", "Timeout")
+        mock_set_attribute.assert_called_once_with("query.error_reason", "Timeout")
+        mock_capture_exception.assert_not_called()
+
+    @patch("sentry.api.utils.sentry_sdk.capture_exception")
+    @patch("sentry.api.utils.sentry_sdk.set_attribute")
+    @patch("sentry.api.utils.sentry_sdk.set_tag")
+    def test_handle_snuba_rpc_invalid_regex(
+        self,
+        mock_set_tag: MagicMock,
+        mock_set_attribute: MagicMock,
+        mock_capture_exception: MagicMock,
+    ) -> None:
+        with pytest.raises(ParseError) as raised:
+            with handle_query_errors():
+                raise SnubaRPCInvalidRegex("cannot compile re2 (CANNOT_COMPILE_REGEXP)")
+
+        assert raised.value.status_code == 400
+        mock_set_tag.assert_called_once_with("query.error_reason", "InvalidRegex")
+        mock_set_attribute.assert_called_once_with("query.error_reason", "InvalidRegex")
+        mock_capture_exception.assert_not_called()
+
+    @patch("sentry.api.utils.sentry_sdk.capture_exception")
+    def test_handle_snuba_rpc_bad_request(self, mock_capture_exception: MagicMock) -> None:
+        error = SnubaRPCBadRequest("invalid routing_hint")
+        with pytest.raises(APIException) as raised:
+            with handle_query_errors():
+                raise error
+
+        assert raised.value.status_code == 500
+        mock_capture_exception.assert_called_once_with(error)
+
+
+class IsMemberDisabledFromLimitTest(APITestCase):
+    def test_service_account_is_not_a_limited_member(self) -> None:
+        request = self.make_request()
+        principal: Any = ServiceAccountPrincipal(
+            service_account_id=1, organization_id=self.organization.id, name="sa"
+        )
+        request.user = principal
+
+        assert is_member_disabled_from_limit(request, self.organization) is False
 
 
 class ClampDateRangeTest(unittest.TestCase):

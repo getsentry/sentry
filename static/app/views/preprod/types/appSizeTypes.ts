@@ -2,7 +2,7 @@
  * API response types
  */
 
-import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import type {BuildDetailsApiResponse} from './buildDetailsTypes';
 
 export interface AppSizeApiResponse {
   generated_at: string;
@@ -138,11 +138,11 @@ export interface FileSavingsResultGroup {
   total_savings: number;
 }
 
-export interface FilesInsightResult extends BaseInsightResult {
+interface FilesInsightResult extends BaseInsightResult {
   files: FileSavingsResult[];
 }
 
-export interface GroupsInsightResult extends BaseInsightResult {
+interface GroupsInsightResult extends BaseInsightResult {
   groups: FileSavingsResultGroup[];
 }
 

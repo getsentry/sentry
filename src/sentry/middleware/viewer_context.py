@@ -7,9 +7,13 @@ from django.conf import settings
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 
+from sentry.auth.principal import resolve_actor
+from sentry.utils.auth import is_user_from_viewer_context
 from sentry.viewer_context import (
+    Actor,
     ActorType,
     ViewerContext,
+    get_acting_user_id,
     viewer_context_from_header,
     viewer_context_scope,
 )
@@ -44,8 +48,10 @@ def ViewerContextMiddleware(
         request_ctx = _viewer_context_from_request(request)
         jwt_ctx = _viewer_context_from_jwt_header(request)
 
-        if jwt_ctx is not None and request_ctx.user_id is not None:
-            # Authenticated user takes precedence.
+        if jwt_ctx is not None and is_user_from_viewer_context(request):
+            ctx = jwt_ctx
+        elif jwt_ctx is not None and get_acting_user_id(request_ctx) is not None:
+            # Direct user or agent authentication is authoritative when both are present.
             if (
                 jwt_ctx.organization_id is not None
                 and request_ctx.organization_id is not None
@@ -78,20 +84,11 @@ def _viewer_context_from_jwt_header(request: HttpRequest) -> ViewerContext | Non
 
 
 def _viewer_context_from_request(request: HttpRequest) -> ViewerContext:
-    user = request.user
     auth = getattr(request, "auth", None)
-
-    user_id: int | None = None
-    if user.is_authenticated:
-        user_id = user.id
 
     organization_id: int | None = None
     if auth is not None and hasattr(auth, "organization_id"):
         organization_id = auth.organization_id
 
-    return ViewerContext(
-        user_id=user_id,
-        organization_id=organization_id,
-        actor_type=ActorType.USER,
-        token=auth,
-    )
+    actor = resolve_actor(request.user, auth) or Actor(type=ActorType.UNKNOWN)
+    return ViewerContext(actor=actor, organization_id=organization_id)

@@ -1,3 +1,4 @@
+import {getRepoPullRequestLink} from 'sentry/components/events/autofix/pullRequests';
 import {getCodingAgentName} from 'sentry/components/events/autofix/types';
 import {
   isCodeChangesArtifact,
@@ -57,6 +58,11 @@ function rootCauseArtifactToMarkdown(
   const h2 = '#'.repeat(headingLevel + 1);
 
   const parts: string[] = [`${h1} Root Cause`, '', rootCause.one_line_description];
+
+  // For single_run Autofix runs
+  if (rootCause.cause) {
+    parts.push('', rootCause.cause);
+  }
 
   if (rootCause.five_whys.length) {
     parts.push(
@@ -150,13 +156,9 @@ function repoPRStatesToMarkdown(
 
   parts.push(
     ...artifact
-      .map(pullRequest => {
-        if (!pullRequest.pr_url || !pullRequest.pr_number) {
-          return null;
-        }
-        return `[${pullRequest.repo_name}#${pullRequest.pr_number}](${pullRequest.pr_url})`;
-      })
+      .map(getRepoPullRequestLink)
       .filter(defined)
+      .map(link => `[${link.repoName}#${link.prNumber}](${link.url})`)
   );
 
   return parts.join('\n');

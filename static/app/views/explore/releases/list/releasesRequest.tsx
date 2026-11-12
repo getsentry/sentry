@@ -5,7 +5,8 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {Client} from 'sentry/api';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {
@@ -86,8 +87,6 @@ type Props = {
   organization: Organization;
   releases: string[];
   selection: PageFilters;
-  defaultStatsPeriod?: string;
-  disable?: boolean;
   healthStatsPeriod?: HealthStatsPeriodOption;
   releasesReloading?: boolean;
 };
@@ -136,7 +135,7 @@ class ReleasesRequest extends Component<Props, State> {
   }
 
   get baseQueryParams() {
-    const {location, selection, defaultStatsPeriod, releases} = this.props;
+    const {location, selection, releases} = this.props;
 
     return {
       query: new MutableSearch(
@@ -150,18 +149,12 @@ class ReleasesRequest extends Component<Props, State> {
         }, [])
       ).formatString(),
       interval: getInterval(selection.datetime),
-      ...normalizeDateTimeParams(pick(location.query, Object.values(URL_PARAM)), {
-        defaultStatsPeriod,
-      }),
+      ...normalizeDateTimeParams(pick(location.query, Object.values(URL_PARAM))),
     };
   }
 
   fetchData = async () => {
-    const {api, healthStatsPeriod, disable} = this.props;
-
-    if (disable) {
-      return;
-    }
+    const {api, healthStatsPeriod} = this.props;
 
     api.clear();
     this.setState({
@@ -206,7 +199,8 @@ class ReleasesRequest extends Component<Props, State> {
         totalCountByProjectInPeriod: totalCountByProjectInPeriod!,
       });
     } catch (error: any) {
-      addErrorMessage(error.responseJSON?.detail ?? t('Error loading health data'));
+      const detail: unknown = error.responseJSON?.detail;
+      toast.error(typeof detail === 'string' ? detail : t('Error loading health data'));
       this.setState({
         loading: false,
         errored: true,

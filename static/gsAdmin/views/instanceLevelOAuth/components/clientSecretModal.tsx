@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button';
-
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {Heading, Text} from '@sentry/scraps/text';
 
 interface ClientDetails {
   clientID: string;
@@ -11,22 +12,31 @@ interface ClientDetails {
 
 export function ClientSecretModal({
   Body,
+  Footer,
   Header,
   clientSecret,
   clientID,
 }: ModalRenderProps & ClientDetails) {
   return (
     <Fragment>
-      <Header closeButton>Client Secret Details (ONE-TIME ONLY)</Header>
+      <Header closeButton>
+        <Heading as="h3">Client Secret Details (ONE-TIME ONLY)</Heading>
+      </Header>
       <Body>
-        <p>
-          Your client secret is <b>{clientSecret}</b>
-        </p>
-        <p>Make sure you save this now! You will not be able to see it again later.</p>
+        <Stack gap="lg">
+          <Text as="p">
+            Your client secret is <Text bold>{clientSecret}</Text>
+          </Text>
+          <Text as="p">
+            Make sure you save this now! You will not be able to see it again later.
+          </Text>
+        </Stack>
+      </Body>
+      <Footer>
         <LinkButton variant="danger" to={`/_admin/instance-level-oauth/${clientID}/`}>
           I understand, take me to the rest of my client details.
         </LinkButton>
-      </Body>
+      </Footer>
     </Fragment>
   );
 }

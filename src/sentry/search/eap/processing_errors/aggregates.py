@@ -34,6 +34,7 @@ PROCESSING_ERROR_AGGREGATE_DEFINITIONS = {
         attribute_resolver=count_argument_resolver_optimized(
             PROCESSING_ERRORS_ALWAYS_PRESENT_ATTRIBUTES
         ),
+        valid_arithmetic=True,
     ),
     "count_unique": count_unique_aggregate_definition(default_arg="event_id"),
 }

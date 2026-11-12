@@ -27,24 +27,26 @@ class TypesClass:
     TYPES: list[tuple[int, str]]
 
     @classmethod
-    def as_choices(cls):
+    def as_choices(cls) -> list[tuple[int, str]]:
         return [(k, str(v)) for k, v in cls.TYPES]
 
     @classmethod
-    def as_text_choices(cls):
+    def as_text_choices(cls) -> list[tuple[str, str]]:
         return [(str(v), str(v)) for _, v in cls.TYPES]
 
     @classmethod
-    def get_type_name(cls, num):
+    def get_type_name(cls, num: int) -> str | None:
         for id, name in cls.TYPES:
             if id == num:
                 return name
+        return None
 
     @classmethod
-    def get_id_for_type_name(cls, type_name):
+    def get_id_for_type_name(cls, type_name: str) -> int | None:
         for id, name in cls.TYPES:
             if type_name == name:
                 return id
+        return None
 
 
 class DashboardWidgetTypes(TypesClass):
@@ -99,7 +101,7 @@ class DashboardWidgetLegendType(str, Enum):
     BREAKDOWN = "breakdown"
 
     @classmethod
-    def as_text_choices(cls):
+    def as_text_choices(cls) -> list[tuple[str, str]]:
         return [(member.value, member.value) for member in cls]
 
 
@@ -156,11 +158,11 @@ class DatasetSourcesTypes(Enum):
     SPAN_MIGRATION_VERSION_5 = 11
 
     @classmethod
-    def as_choices(cls):
+    def as_choices(cls) -> tuple[tuple[int, str], ...]:
         return tuple((source.value, source.name.lower()) for source in cls)
 
     @classmethod
-    def as_text_choices(cls):
+    def as_text_choices(cls) -> tuple[tuple[str, int], ...]:
         return tuple((source.name.lower(), source.value) for source in cls)
 
 
@@ -206,6 +208,20 @@ class DashboardWidgetDisplayTypes(TypesClass):
     TYPE_NAMES = [t[1] for t in TYPES]
 
 
+SHORT_WIDGET_DISPLAY_TYPES = frozenset(
+    {
+        DashboardWidgetDisplayTypes.BIG_NUMBER,
+        DashboardWidgetDisplayTypes.DETAILS,
+        DashboardWidgetDisplayTypes.TEXT,
+    }
+)
+DEFAULT_WIDGET_MIN_HEIGHT = 2
+
+
+def get_min_widget_height(display_type_id: int) -> int:
+    return 1 if display_type_id in SHORT_WIDGET_DISPLAY_TYPES else DEFAULT_WIDGET_MIN_HEIGHT
+
+
 DEFAULT_MAX_WIDGET_LIMIT = 10
 MAX_WIDGET_LIMIT_BY_DISPLAY_TYPE: dict[int, int] = {
     DashboardWidgetDisplayTypes.CATEGORICAL_BAR_CHART: 25,
@@ -234,6 +250,9 @@ class DashboardWidgetQuery(Model):
     # from sentry/db/model/fields.py adds a default value to the
     # database migration.
     aggregates = ArrayField(models.TextField(), null=True)
+    transformations: models.Field[dict[str, list[str]] | None, dict[str, list[str]] | None] = (
+        JSONField(null=True)
+    )
     columns = ArrayField(models.TextField(), null=True)
     # Currently only used for tabular widgets.
     # If an alias is defined it will be shown in place of the field description in the table header
@@ -314,7 +333,7 @@ class DashboardWidgetQueryOnDemand(Model):
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now, db_default=Now())
 
-    def can_extraction_be_auto_overridden(self):
+    def can_extraction_be_auto_overridden(self) -> bool:
         """Determines whether tasks can override extraction state"""
         if self.extraction_state == self.OnDemandExtractionState.DISABLED_MANUAL:
             # Manually disabling a widget will cause it to stay off until manually re-enabled.
@@ -330,7 +349,7 @@ class DashboardWidgetQueryOnDemand(Model):
 
         return True
 
-    def extraction_enabled(self):
+    def extraction_enabled(self) -> bool:
         """Whether on-demand is enabled or disabled for this widget.
         If this is enabled, Relay should be extracting metrics from events matching the associated widget_query upon ingest.
         """

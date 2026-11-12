@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 from django.utils import timezone
@@ -49,7 +49,7 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
             build_number=42,
         )
 
-    def _get_url(self, artifact_id=None):
+    def _get_url(self, artifact_id: int | None = None) -> str:
         artifact_id = artifact_id or self.preprod_artifact.id
         return reverse(
             "sentry-api-0-organization-preprod-artifact-build-details",
@@ -69,10 +69,27 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
         assert resp_data["app_info"]["name"] == self.mobile_app_info.app_name
         assert resp_data["app_info"]["version"] == self.mobile_app_info.build_version
         assert resp_data["app_info"]["build_number"] == self.mobile_app_info.build_number
+        assert resp_data["app_info"]["build_number_raw"] is None
         assert resp_data["app_info"]["artifact_type"] == self.preprod_artifact.artifact_type
 
+    def test_get_build_details_build_number_raw(self) -> None:
+        self.mobile_app_info.extras = {"build_number_raw": "1.2.3"}
+        self.mobile_app_info.save()
+
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["app_info"]["build_number_raw"] == "1.2.3"
+
     def test_get_build_details_distribution_info(self) -> None:
-        self.preprod_artifact.extras = {"release_notes": "Build notes"}
+        self.preprod_artifact.extras = {
+            "release_notes": "Build notes",
+            "install_groups": ["qa", "beta"],
+        }
         self.preprod_artifact.save()
         self.create_installable_preprod_artifact(
             preprod_artifact=self.preprod_artifact, download_count=2
@@ -92,6 +109,7 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
         assert distribution_info["is_installable"] is True
         assert distribution_info["download_count"] == 5
         assert distribution_info["release_notes"] == "Build notes"
+        assert distribution_info["install_groups"] == ["qa", "beta"]
 
     def test_get_build_details_distribution_error_fields(self) -> None:
         self.preprod_artifact.installable_app_error_code = (
@@ -534,7 +552,7 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
         assert resp_data["base_build_info"] is None
 
     @patch("sentry.preprod.api.endpoints.project_preprod_build_details.get_size_retention_cutoff")
-    def test_returns_404_for_expired_artifact(self, mock_cutoff) -> None:
+    def test_returns_404_for_expired_artifact(self, mock_cutoff: MagicMock) -> None:
         mock_cutoff.return_value = timezone.now() - timedelta(days=30)
         self.preprod_artifact.date_added = timezone.now() - timedelta(days=60)
         self.preprod_artifact.save()

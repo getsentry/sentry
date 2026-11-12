@@ -1,13 +1,12 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import {Stack} from '@sentry/scraps/layout';
 
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {
-  OnboardingCopyMarkdownButton,
-  useCopySetupInstructionsEnabled,
-} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
 import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
@@ -15,18 +14,18 @@ import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/ty
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
-import {ReplayConfigToggle} from 'sentry/components/replaysOnboarding/replayConfigToggle';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {ReplayConfigToggle} from './replayConfigToggle';
 
 export function ReplayOnboardingLayout({
   docsConfig,
   dsn,
   platformKey,
   project,
-  newOrg,
+  docsFlow,
   projectKeyId,
   configType = 'onboarding',
   hideMaskBlockToggles,
@@ -38,8 +37,10 @@ export function ReplayOnboardingLayout({
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
   const [mask, setMask] = useState(true);
   const [block, setBlock] = useState(true);
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
-  const copyEnabled = useCopySetupInstructionsEnabled();
+  const {isSelfHosted, urlPrefix} = useStore(
+    ConfigStore,
+    useShallow(state => ({isSelfHosted: state.isSelfHosted, urlPrefix: state.urlPrefix}))
+  );
 
   const {introduction, steps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
@@ -62,7 +63,7 @@ export function ReplayOnboardingLayout({
         data: registryData,
       },
       platformOptions: selectedOptions,
-      newOrg,
+      docsFlow,
       replayOptions: {
         mask,
         block,
@@ -84,7 +85,7 @@ export function ReplayOnboardingLayout({
     docsConfig,
     dsn,
     isLoadingRegistry,
-    newOrg,
+    docsFlow,
     organization,
     platformKey,
     project,
@@ -152,7 +153,7 @@ export function ReplayOnboardingLayout({
                 stepIndex={index}
                 {...step}
                 trailingItems={
-                  index === 0 && copyEnabled ? (
+                  index === 0 ? (
                     <OnboardingCopyMarkdownButton
                       borderless
                       steps={transformedSteps}

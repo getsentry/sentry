@@ -1,4 +1,5 @@
 from collections import defaultdict
+from collections.abc import Sequence
 
 from django.db import models
 from django.utils import timezone
@@ -6,6 +7,7 @@ from django.utils import timezone
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, cell_silo_model, sane_repr
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
+from sentry.models.group import Group
 
 
 @cell_silo_model
@@ -29,11 +31,13 @@ class PlatformExternalIssue(Model):
     __repr__ = sane_repr("group_id", "service_type", "display_name", "web_url")
 
     @classmethod
-    def get_annotations_for_group_list(cls, group_list):
+    def get_annotations_for_group_list(
+        cls, group_list: Sequence[Group]
+    ) -> dict[int, list[dict[str, str]]]:
         external_issues = cls.objects.filter(group_id__in=[group.id for group in group_list])
 
         # group annotations by group id
-        annotations_by_group_id = defaultdict(list)
+        annotations_by_group_id: dict[int, list[dict[str, str]]] = defaultdict(list)
         for ei in external_issues:
             annotation = {"url": ei.web_url, "displayName": ei.display_name}
             annotations_by_group_id[ei.group_id].append(annotation)

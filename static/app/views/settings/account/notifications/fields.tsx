@@ -1,15 +1,16 @@
 import {Fragment} from 'react';
 import upperFirst from 'lodash/upperFirst';
 
+import {InfoTip} from '@sentry/scraps/info';
 import {ExternalLink} from '@sentry/scraps/link';
 import type {SelectValue} from '@sentry/scraps/select';
 
 import type {Field} from 'sentry/components/forms/types';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {DataCategoryExact} from 'sentry/types/core';
-import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
+
+import {getPricingDocsLinkForEventType} from './utils';
 
 interface FineTuneField {
   description: string;
@@ -24,7 +25,7 @@ export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
   alerts: {
     title: t('Issue Alert Notifications'),
     description: t(
-      "Notifications from Alert Rules that your team has setup. You'll always receive notifications from Alerts configured to be sent directly to you."
+      'Notifications from Issue Alert rules, including rules set up to notify you directly. Metric alerts sent directly to you are always delivered.'
     ),
     type: 'select',
     options: [
@@ -212,7 +213,7 @@ export const NOTIFICATION_SETTING_FIELDS = {
   spikeProtection: {
     name: 'spikeProtection',
     type: 'select',
-    label: t('Spike Protection'),
+    label: t('Spike Protection Notifications'),
     choices: [
       ['always', t('On')],
       ['never', t('Off')],
@@ -318,7 +319,7 @@ export const QUOTA_FIELDS = [
     label: (
       <Fragment>
         {t('Spend Allocations')}{' '}
-        <QuestionTooltip
+        <InfoTip
           position="top"
           title="Notification settings only apply to data categories and features included in your plan. Check your subscription overview for details."
           size="xs"

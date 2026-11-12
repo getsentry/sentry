@@ -3,7 +3,6 @@ import type {UseQueryResult} from '@tanstack/react-query';
 import {useQueries, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
-import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {batchedQueryOptions} from 'sentry/utils/api/batching/batchedQueryOptions';
@@ -14,8 +13,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
-import {logItemIdToTimestamp} from 'sentry/views/explore/logs/pinning/logItemId';
-import type {LogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
 import {
   OurLogKnownFieldKey,
   type EventsLogsResult,
@@ -23,6 +20,9 @@ import {
 } from 'sentry/views/explore/logs/types';
 import type {LogTableRowItem} from 'sentry/views/explore/logs/utils';
 import {useQueryParamsFields} from 'sentry/views/explore/queryParams/context';
+
+import {logItemIdToTimestamp} from './logItemId';
+import type {LogsPinning} from './useLogsPinning';
 
 interface PinnedLogsOptions {
   allRows: LogTableRowItem[];
@@ -34,9 +34,9 @@ const PINNED_LOG_ROW_QUERY_KEY = 'pinned-log-row';
 type BatchedQueryStatus = 'error' | 'pending' | 'success';
 
 /**
- * Practically-infinite period so the wide step finds any log still in retention,
- * regardless of the selected range. The backend clamps it to the org's retention.
- * Only used as a fallback when a pin's timestamp can't be derived from its id.
+ * Practically-infinite period so we find any pin still in retention, regardless of
+ * the selected range. The backend clamps it to the org's retention. Only used as a
+ * fallback when a pin's timestamp can't be derived from its id.
  */
 const WIDE_STATS_PERIOD = '9999d';
 
@@ -48,65 +48,46 @@ const WINDOW_BUFFER_MS = 5 * 60 * 1000;
 
 interface PinnedLogsQueryContext {
   baseQuery: Record<string, unknown>;
-  dateParams: Record<string, unknown>;
   organizationSlug: string;
 }
 
-const pinnedLogBatcher = createBatcher<OurLogsResponseItem, PinnedLogsQueryContext>(
-  async (client, {organizationSlug, baseQuery, dateParams}, ids: string[]) => {
+interface PinnedLogResult {
+  row: OurLogsResponseItem;
+  routingHint?: string;
+}
+
+const pinnedLogBatcher = createBatcher<PinnedLogResult, PinnedLogsQueryContext>(
+  async (_client, {organizationSlug, baseQuery}, ids: string[]) => {
     const url = getApiUrl('/organizations/$organizationIdOrSlug/events/', {
       path: {organizationIdOrSlug: organizationSlug},
     });
 
-    const fetchByIds = (idsForFetch: string[], dp: Record<string, unknown>) =>
-      apiFetch<EventsLogsResult>({
-        client,
+    const rowsById = new Map<string, PinnedLogResult | Error>();
+    try {
+      const {json} = await apiFetch<EventsLogsResult>({
         queryKey: [
           url,
           {
             query: {
               ...baseQuery,
-              ...dp,
-              query: `id:[${idsForFetch.join(',')}]`,
-              per_page: idsForFetch.length,
+              ...dateParamsFromIds(ids),
+              query: `id:[${ids.join(',')}]`,
+              per_page: ids.length,
             },
           },
           {infinite: false},
         ],
-        signal: new AbortController().signal,
-        meta: undefined,
       });
-
-    const rowsById = new Map<string, OurLogsResponseItem | Error>();
-    const collect = (result: EventsLogsResult) => {
-      for (const row of result.data) {
-        rowsById.set(row[OurLogKnownFieldKey.ID], row);
+      for (const row of json.data) {
+        rowsById.set(row[OurLogKnownFieldKey.ID], {
+          row,
+          routingHint: json.meta?.routingHint,
+        });
       }
-    };
-
-    // Step 1: Search in the parent selected range for pins that are not loaded yet.
-    // Start with this smaller range so we don't have to scan the org's full retention period.
-    let foundInRange = new Set<string>();
-    try {
-      const inRange = (await fetchByIds(ids, dateParams)).json;
-      collect(inRange);
-      foundInRange = new Set(inRange.data.map(row => row[OurLogKnownFieldKey.ID]));
-    } catch {
-      // The selected range failed; let the wide window resolve everything instead.
-    }
-
-    // Step 2: Any IDs not found in the parent selected range escalate to a wider window.
-    // Anything still unfound stays pinned and surfaces as an unavailable row in the UI.
-    const stillMissing = ids.filter(id => !foundInRange.has(id));
-    if (stillMissing.length > 0) {
-      try {
-        const wide = await fetchByIds(stillMissing, wideDateParams(stillMissing));
-        collect(wide.json);
-      } catch (error) {
-        const failure = error instanceof Error ? error : new Error(String(error));
-        for (const id of stillMissing) {
-          rowsById.set(id, failure);
-        }
+    } catch (error) {
+      const failure = error instanceof Error ? error : new Error(String(error));
+      for (const id of ids) {
+        rowsById.set(id, failure);
       }
     }
 
@@ -140,21 +121,14 @@ export function usePinnedLogsQuery({allRows, logsPinning}: PinnedLogsOptions) {
         sampling: SAMPLING_MODE.HIGH_ACCURACY,
         referrer: 'api.explore.logs-pinned',
       },
-      dateParams: normalizeDateTimeParams(selection.datetime),
     }),
-    [
-      fields,
-      organization.slug,
-      selection.datetime,
-      selection.environments,
-      selection.projects,
-    ]
+    [fields, organization.slug, selection.environments, selection.projects]
   );
 
   const enabled = pageFiltersReady && !!logsPinning;
   const queryClient = useQueryClient();
 
-  const {fetchedRows, isError, isPending, statusById} = useQueries({
+  const {fetchedRows, routingHintsById, isError, isPending, statusById} = useQueries({
     queries: batchedQueryOptions({
       batcher: pinnedLogBatcher,
       context: queryContext,
@@ -168,14 +142,17 @@ export function usePinnedLogsQuery({allRows, logsPinning}: PinnedLogsOptions) {
     queryClient.refetchQueries({queryKey: [PINNED_LOG_ROW_QUERY_KEY], type: 'active'});
   }, [queryClient]);
 
-  return {fetchedRows, isError, isPending, statusById, refetch};
+  return {fetchedRows, routingHintsById, isError, isPending, statusById, refetch};
 }
 
 function combinePinnedRows(
-  results: Array<UseQueryResult<OurLogsResponseItem | null>>,
+  results: Array<UseQueryResult<PinnedLogResult | null>>,
   ids: string[]
 ) {
   const fetchedRows: OurLogsResponseItem[] = [];
+  // The combined query result can structurally share rows across cached queries.
+  // Key by ID so preserving an older row object does not lose its current hint.
+  const routingHintsById = new Map<string, string | undefined>();
   const statusById = new Map<string, BatchedQueryStatus>();
   let isPending = false;
   let isError = false;
@@ -197,21 +174,26 @@ function combinePinnedRows(
         statusById.set(id, 'success');
       }
       if (result.data) {
-        fetchedRows.push(result.data);
+        fetchedRows.push(result.data.row);
+        routingHintsById.set(
+          result.data.row[OurLogKnownFieldKey.ID],
+          result.data.routingHint
+        );
       }
     }
   });
 
-  return {fetchedRows, isPending, isError, statusById};
+  return {fetchedRows, routingHintsById, isPending, isError, statusById};
 }
 
 /**
- * Pin ids are UUIDv7, so we can derive a tight window from their timestamps and
- * avoid scanning the org's full retention (which gets downsampled to a partial
- * scan for high-volume orgs, missing the pinned log). Falls back to the wide
- * period if any id isn't a decodable timestamp.
+ * Pin ids are UUIDv7, so we derive a tight window from their timestamps to keep
+ * the scan small instead of covering the org's full retention. HIGHEST_ACCURACY
+ * already guarantees no rows are dropped regardless of window width, so this is
+ * purely to avoid a slow, timeout-prone wide scan. Fall back to the wide period
+ * if any id isn't a decodable timestamp.
  */
-function wideDateParams(ids: string[]): Record<string, unknown> {
+function dateParamsFromIds(ids: string[]): Record<string, unknown> {
   const timestamps = ids.map(logItemIdToTimestamp);
   if (timestamps.length === 0 || timestamps.includes(null)) {
     return {statsPeriod: WIDE_STATS_PERIOD};

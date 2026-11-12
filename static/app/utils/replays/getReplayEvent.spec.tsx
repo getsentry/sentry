@@ -1,11 +1,8 @@
 import {ReplayClickFrameFixture} from 'sentry-fixture/replay/replayBreadcrumbFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {
-  getNextReplayFrame,
-  getPrevReplayFrame,
-} from 'sentry/utils/replays/getReplayEvent';
-import {hydrateBreadcrumbs} from 'sentry/utils/replays/hydrateBreadcrumbs';
+import {getNextReplayFrame, getPrevReplayFrame} from './getReplayEvent';
+import {hydrateBreadcrumbs} from './hydrateBreadcrumbs';
 
 const frames = hydrateBreadcrumbs(
   ReplayRecordFixture({
@@ -89,7 +86,6 @@ describe('getNextReplayFrame', () => {
     const result = getNextReplayFrame({
       frames,
       targetOffsetMs: exactTime,
-      allowExact: false,
     });
 
     expect(result).toEqual(frames[2]);
@@ -159,20 +155,8 @@ describe('getPrevReplayFrame', () => {
     const result = getPrevReplayFrame({
       frames,
       targetOffsetMs: exactTime,
-      allowExact: false,
     });
 
     expect(result).toEqual(frames[0]);
-  });
-
-  it('should return the same frame if timestamps exactly match and allowExact is enabled', () => {
-    const exactTime = frames[1]!.offsetMs;
-    const result = getPrevReplayFrame({
-      frames,
-      targetOffsetMs: exactTime,
-      allowExact: true,
-    });
-
-    expect(result).toEqual(frames[1]);
   });
 });

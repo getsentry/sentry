@@ -1,23 +1,22 @@
 import * as Sentry from '@sentry/react';
-import {
-  useQueryClient,
-  useMutation,
-  type UseMutationOptions,
-} from '@tanstack/react-query';
+import {useQueryClient, useMutation} from '@tanstack/react-query';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Actor} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import {buildTeamId, buildUserId} from 'sentry/utils';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {uniqueId} from 'sentry/utils/guid';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
-import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
-export type AssignedBy = 'suggested_assignee' | 'assignee_selector';
+import {groupQueryKey} from './useGroup';
+
+type AssignedBy = 'suggested_assignee' | 'assignee_selector';
 
 type AssignIssueVariables = {
   actor: Pick<Actor, 'id' | 'type'> | null;
@@ -57,59 +56,54 @@ function makeActorId(actor: Pick<Actor, 'id' | 'type'>) {
   }
 }
 
-export function useAssignIssueMutation(
-  options: Omit<
-    UseMutationOptions<Group, RequestError, AssignIssueVariables, AssignIssueContext>,
-    'mutationFn'
-  > = {}
-) {
+export function useAssignIssueMutation() {
   const queryClient = useQueryClient();
-  const environments = useEnvironmentsFromUrl();
 
   return useMutation<Group, RequestError, AssignIssueVariables, AssignIssueContext>({
-    ...options,
     mutationFn: variables => {
       const actorId = variables.actor ? makeActorId(variables.actor) : '';
       return fetchMutation<Group>({
         method: 'PUT',
-        url: `/organizations/${variables.orgSlug}/issues/${variables.groupId}/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/', {
+          path: {
+            organizationIdOrSlug: variables.orgSlug,
+            issueId: variables.groupId,
+          },
+        }),
         data: {
           assignedTo: actorId,
           assignedBy: variables.assignedBy,
         },
       });
     },
-    onMutate: async (variables, context) => {
+    onMutate: variables => {
       const changeId = uniqueId();
       // TODO: Remove this when we no longer rely on GroupStore for updates
       GroupStore.onAssignTo(changeId, variables.groupId, {email: ''});
-      await options.onMutate?.(variables, context);
       return {changeId};
     },
-    onSuccess: (response, variables, onMutateResult, context) => {
-      // Update react query cache so that useGroup() reflects the new assignee
-      queryClient.setQueryData(
-        groupApiOptions({
-          organizationSlug: variables.orgSlug,
-          groupId: variables.groupId,
-          environments,
-        }).queryKey,
-        prev =>
-          prev ? {...prev, json: {...prev.json, assignedTo: response.assignedTo}} : prev
+    onSuccess: (response, variables, onMutateResult) => {
+      const queryKey = groupQueryKey({
+        organizationSlug: variables.orgSlug,
+        groupId: variables.groupId,
+      });
+
+      // Update react query cache so that useGroup() reflects the new assignee.
+      queryClient.setQueriesData<ApiResponse<Group>>({queryKey}, prev =>
+        prev ? {...prev, json: {...prev.json, assignedTo: response.assignedTo}} : prev
       );
       // Dual-write to GroupStore
       // TODO: Remove this when we no longer rely on GroupStore for updates
       GroupStore.onAssignToSuccess(onMutateResult.changeId, variables.groupId, response);
-      addSuccessMessage(getAssignIssueSuccessMessage(response.assignedTo));
-      options.onSuccess?.(response, variables, onMutateResult, context);
+      queryClient.invalidateQueries({queryKey});
+      toast.success(getAssignIssueSuccessMessage(response.assignedTo));
     },
-    onError: (error, variables, onMutateResult, context) => {
+    onError: (error, variables, onMutateResult) => {
       // TODO: Remove this when we no longer rely on GroupStore for updates
       // This will show an alert to the user, remember to replace that functionality
       if (onMutateResult) {
         GroupStore.onAssignToError(onMutateResult.changeId, variables.groupId, error);
       }
-      options.onError?.(error, variables, onMutateResult, context);
     },
   });
 }

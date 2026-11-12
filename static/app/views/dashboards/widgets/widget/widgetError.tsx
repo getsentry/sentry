@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/warning';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DEEMPHASIS_VARIANT} from 'sentry/views/dashboards/widgets/bigNumberWidget/settings';
 import type {
@@ -23,16 +24,16 @@ export function WidgetError({error, action}: WidgetErrorProps) {
   return (
     <Panel>
       <NonShrinkingWarningIcon variant={DEEMPHASIS_VARIANT} size="md" />
-      <Flex direction="column" align="start" gap="md">
-        <ErrorText>
+      <Stack align="start" gap="md">
+        <Text as="span" size={{zero: 'sm', '2xs': 'md'}}>
           {typeof error === 'string'
             ? error
             : ((error as ErrorPropWithResponseJSON)?.responseJSON?.detail?.toString() ??
               error?.message ??
               t('Error loading data.'))}
-        </ErrorText>
+        </Text>
         {action}
-      </Flex>
+      </Stack>
     </Panel>
   );
 }
@@ -53,12 +54,4 @@ const Panel = styled('div')`
 
 const NonShrinkingWarningIcon = styled(IconWarning)`
   flex-shrink: 0;
-`;
-
-const ErrorText = styled('span')`
-  font-size: ${p => p.theme.font.size.sm};
-
-  @container error-panel (min-width: 360px) {
-    font-size: ${p => p.theme.font.size.md};
-  }
 `;

@@ -23,11 +23,6 @@ from sentry.sentry_metrics.configuration import (
 from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, IndexerOutputMessageBatch
 from sentry.sentry_metrics.consumers.indexer.multiprocess import SimpleProduceStep
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
-from sentry.sentry_metrics.consumers.indexer.routing_producer import (
-    RoutingPayload,
-    RoutingProducerStep,
-)
-from sentry.sentry_metrics.consumers.indexer.slicing_router import SlicingRouter
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 
 logger = logging.getLogger(__name__)
@@ -36,11 +31,11 @@ logger = logging.getLogger(__name__)
 class Unbatcher(ProcessingStep[Union[FilteredPayload, IndexerOutputMessageBatch]]):
     def __init__(
         self,
-        next_step: ProcessingStep[KafkaPayload | RoutingPayload | InvalidMessage | FilteredPayload],
+        next_step: ProcessingStep[KafkaPayload | InvalidMessage | FilteredPayload],
     ) -> None:
         self.__next_step = next_step
         self.__closed = False
-        self.__messages: deque[Message[KafkaPayload | RoutingPayload | InvalidMessage]] = deque()
+        self.__messages: deque[Message[KafkaPayload | InvalidMessage]] = deque()
 
     def poll(self) -> None:
         self.__next_step.poll()
@@ -117,13 +112,11 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             get_ingest_config,
             initialize_main_process_state,
         )
-        from sentry.sentry_metrics.consumers.indexer.slicing_router import get_slicing_router
 
         use_case = UseCaseKey(ingest_profile)
         db_backend = IndexerStorage(indexer_db)
         ingest_config = get_ingest_config(use_case, db_backend)
         initialize_main_process_state(ingest_config)
-        slicing_router = get_slicing_router(ingest_config)
 
         self.config = ingest_config
 
@@ -138,7 +131,6 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
         self.__input_block_size = input_block_size
         self.__output_block_size = output_block_size
-        self.__slicing_router = slicing_router
         self.__pool = MultiprocessingPool(
             num_processes=processes,
             # It is absolutely crucial that we pass a function reference here
@@ -159,7 +151,6 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         producer = get_metrics_producer_strategy(
             config=self.config,
             commit=commit,
-            slicing_router=self.__slicing_router,
         )
 
         parallel_strategy = run_task_with_multiprocessing(
@@ -186,17 +177,8 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 def get_metrics_producer_strategy(
     config: MetricsIngestConfiguration,
     commit: Commit,
-    slicing_router: SlicingRouter | None,
 ) -> Any:
-    if config.is_output_sliced:
-        if slicing_router is None:
-            raise ValueError("Slicing router is required for sliced output")
-        return RoutingProducerStep(
-            commit_function=commit,
-            message_router=slicing_router,
-        )
-    else:
-        return SimpleProduceStep(
-            commit_function=commit,
-            output_topic=config.output_topic,
-        )
+    return SimpleProduceStep(
+        commit_function=commit,
+        output_topic=config.output_topic,
+    )

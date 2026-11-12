@@ -1,9 +1,10 @@
 import {skipToken, useInfiniteQuery} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {useFetchAllPages} from './api/apiFetch';
+import {apiOptions} from './api/apiOptions';
+import {useOrganization} from './useOrganization';
 
 interface ReleaseMetaBasic {
   date: string;
@@ -14,12 +15,6 @@ interface UseReleaseStatsParams {
   datetime: Parameters<typeof normalizeDateTimeParams>[0];
   environments: readonly string[];
   projects: readonly number[];
-
-  /**
-   * Max number of pages to fetch. Default is 10 pages, which should be
-   * sufficient to fetch "all" releases.
-   */
-  maxPages?: number;
 }
 
 /**
@@ -27,7 +22,7 @@ interface UseReleaseStatsParams {
  * 10 pages (of 1000 results) to be slightly cautious.
  */
 export function useReleaseStats(
-  {datetime, environments, projects, maxPages = 10}: UseReleaseStatsParams,
+  {datetime, environments, projects}: UseReleaseStatsParams,
   queryOptions?: {enabled?: boolean; staleTime?: number}
 ) {
   const organization = useOrganization();
@@ -54,7 +49,7 @@ export function useReleaseStats(
   const currentNumberPages = data?.pages.length ?? 0;
 
   // Auto-fetch each page, one at a time
-  useFetchAllPages({result, enabled: currentNumberPages + 1 < maxPages});
+  useFetchAllPages({result, enabled: currentNumberPages + 1 < 10});
 
   return {
     isLoading,

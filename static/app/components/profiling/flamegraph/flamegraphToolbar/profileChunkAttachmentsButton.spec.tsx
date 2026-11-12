@@ -1,8 +1,9 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {ProfileChunkAttachmentsButton} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/profileChunkAttachmentsButton';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+
+import {ProfileChunkAttachmentsButton} from './profileChunkAttachmentsButton';
 
 const PROFILER_ID = 'abfecec9b81a401fa26705dc595814ba';
 
@@ -118,6 +119,9 @@ describe('ProfileChunkAttachmentsButton', () => {
       initialRouterConfig: routerConfig,
     });
 
-    expect(await screen.findByRole('button', {name: 'Download'})).toBeDisabled();
+    expect(await screen.findByRole('button', {name: 'Download'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 });

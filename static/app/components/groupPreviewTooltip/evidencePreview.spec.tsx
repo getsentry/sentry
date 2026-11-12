@@ -53,15 +53,13 @@ describe('EvidencePreview', () => {
     // Fetches after hover
     expect(mockApi).toHaveBeenCalled();
 
-    expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
-    expect(
-      screen.getByRole('cell', {name: '/api/0/transaction-test-endpoint/'})
-    ).toBeInTheDocument();
+    expect(screen.getByText('Transaction')).toBeInTheDocument();
+    expect(screen.getByText('/api/0/transaction-test-endpoint/')).toBeInTheDocument();
 
-    expect(screen.getByRole('cell', {name: 'Parent Span'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'db - connect'})).toBeInTheDocument();
+    expect(screen.getByText('Parent Span')).toBeInTheDocument();
+    expect(screen.getByText('db - connect')).toBeInTheDocument();
 
-    expect(screen.getByRole('cell', {name: 'Repeating Span'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'db - group me'})).toBeInTheDocument();
+    expect(screen.getByText('Repeating Span')).toBeInTheDocument();
+    expect(screen.getByText('db - group me')).toBeInTheDocument();
   });
 });

@@ -1,0 +1,386 @@
+import type {ReactNode} from 'react';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconClock} from '@sentry/icons/clock';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconLink} from '@sentry/icons/link';
+import {IconPanel} from '@sentry/icons/panel';
+import {IconWindow} from '@sentry/icons/window';
+
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Text} from '@sentry/scraps/text';
+
+import {t} from 'sentry/locale';
+import type {
+  SeerExplorerRunId,
+  SeerExplorerSidebarPosition,
+} from 'sentry/views/seerExplorer/types';
+
+const POSITION_ICON_DIRECTION = {
+  auto: undefined,
+  right: 'right',
+  bottom: 'down',
+} as const satisfies Record<SeerExplorerSidebarPosition, string | undefined>;
+
+interface SessionOption {
+  details: ReactNode;
+  label: string;
+  value: SeerExplorerRunId;
+}
+
+/**
+ * The "middle" cluster of header actions (copy, dock/pop-out, chat history).
+ * Rendered in two shapes — {@link SeerExplorerHeaderActions} lays them out as
+ * inline buttons, {@link SeerExplorerHeaderActionsMenu} folds them into a single
+ * overflow menu.
+ */
+export interface SeerExplorerHeaderActionsProps {
+  hasNoChats: boolean;
+  isPipSupported: boolean;
+  isPoppedOut: boolean;
+  onChangeSession: (runId: SeerExplorerRunId) => void;
+  onCopyLinkClick: (() => void) | undefined;
+  onCopySessionClick: (() => void) | undefined;
+  onHistoryOpenChange: (isOpen: boolean) => void;
+  onSearchChange: (search: string) => void;
+  onTogglePictureInPicture: () => void;
+  sessionOptions: SessionOption[];
+  sessionsError: boolean;
+  sessionsLoading: boolean;
+  onSidebarPositionChange?: (position: SeerExplorerSidebarPosition) => void;
+  sidebarPosition?: SeerExplorerSidebarPosition;
+}
+
+function getChatHistoryEmptyMessage({
+  sessionsError,
+  sessionsLoading,
+}: Pick<SeerExplorerHeaderActionsProps, 'sessionsError' | 'sessionsLoading'>) {
+  if (sessionsError) {
+    return t('Error loading session history.');
+  }
+  // Options are cleared while a fetch is in flight, so keep the list blank
+  // rather than flashing an empty state before results arrive.
+  if (sessionsLoading) {
+    return ' ';
+  }
+  return t('No chats match your search.');
+}
+
+function ChatHistoryEmptyState() {
+  return (
+    <Stack align="center" gap="xs" padding="xl lg">
+      <Text bold>{t('No chats yet')}</Text>
+      <Text size="sm" variant="muted" align="center">
+        {t('Your past conversations with Seer will show up here.')}
+      </Text>
+    </Stack>
+  );
+}
+
+function ChatHistorySelect({
+  hasNoChats,
+  sessionOptions,
+  sessionsLoading,
+  sessionsError,
+  onChangeSession,
+  onHistoryOpenChange,
+  onSearchChange,
+}: Pick<
+  SeerExplorerHeaderActionsProps,
+  | 'hasNoChats'
+  | 'sessionOptions'
+  | 'sessionsLoading'
+  | 'sessionsError'
+  | 'onChangeSession'
+  | 'onHistoryOpenChange'
+  | 'onSearchChange'
+>) {
+  return (
+    <CompactSelect
+      options={sessionOptions}
+      value={undefined}
+      disabled={false}
+      onChange={option => onChangeSession(option.value)}
+      onOpenChange={onHistoryOpenChange}
+      loading={sessionsLoading}
+      emptyMessage={getChatHistoryEmptyMessage({
+        sessionsError,
+        sessionsLoading,
+      })}
+      search={
+        hasNoChats
+          ? undefined
+          : {
+              filter: false,
+              onChange: onSearchChange,
+              placeholder: t('Search chats\u2026'),
+            }
+      }
+      hideOptions={hasNoChats}
+      menuBody={hasNoChats ? <ChatHistoryEmptyState /> : undefined}
+      menuTitle={t('Chat history')}
+      // Seer's panel is a right-docked pane with `overflow: hidden` ancestors,
+      // and CompactSelect renders its overlay inline (no portal), so `strategy:
+      // 'fixed'` is needed to escape that clip. To pin the menu flush against
+      // the panel's right edge, over-push it right and let `preventOverflow` clamp
+      // its right edge.
+      strategy="fixed"
+      position="bottom-end"
+      offset={[100, 8]}
+      preventOverflowOptions={{
+        boundary: document.body,
+      }}
+      size="xs"
+      menuWidth={320}
+      trigger={triggerProps => (
+        <OverlayTrigger.IconButton
+          {...triggerProps}
+          aria-label={t('Chat history')}
+          tooltipProps={{title: t('Chat history')}}
+          icon={<IconClock />}
+          variant="transparent"
+          size="xs"
+        />
+      )}
+    />
+  );
+}
+
+export function SeerExplorerHeaderActions({
+  onCopySessionClick,
+  onCopyLinkClick,
+  isPipSupported,
+  isPoppedOut,
+  onTogglePictureInPicture,
+  sidebarPosition = 'auto',
+  onSidebarPositionChange,
+  hasNoChats,
+  sessionOptions,
+  sessionsLoading,
+  sessionsError,
+  onChangeSession,
+  onHistoryOpenChange,
+  onSearchChange,
+}: SeerExplorerHeaderActionsProps) {
+  const positionMenuItems: MenuItemProps[] = [
+    {
+      key: 'auto',
+      label: t('Auto'),
+      leadingItems: <IconPanel />,
+      trailingItems: sidebarPosition === 'auto' ? <IconCheckmark size="sm" /> : null,
+      onAction: () => onSidebarPositionChange?.('auto'),
+    },
+    {
+      key: 'right',
+      label: t('Right'),
+      leadingItems: <IconPanel direction="right" />,
+      trailingItems: sidebarPosition === 'right' ? <IconCheckmark size="sm" /> : null,
+      onAction: () => onSidebarPositionChange?.('right'),
+    },
+    {
+      key: 'bottom',
+      label: t('Bottom'),
+      leadingItems: <IconPanel direction="down" />,
+      trailingItems: sidebarPosition === 'bottom' ? <IconCheckmark size="sm" /> : null,
+      onAction: () => onSidebarPositionChange?.('bottom'),
+    },
+    ...(isPipSupported
+      ? [
+          {
+            key: 'windowed',
+            label: t('Windowed'),
+            leadingItems: <IconWindow />,
+            onAction: onTogglePictureInPicture,
+          },
+        ]
+      : []),
+  ];
+
+  return (
+    <Flex align="center">
+      <Button
+        icon={<IconCopy />}
+        onClick={onCopySessionClick}
+        disabled={!onCopySessionClick}
+        variant="transparent"
+        size="xs"
+        aria-label={t('Copy conversation to clipboard')}
+        tooltipProps={{title: t('Copy conversation to clipboard')}}
+      />
+      <Button
+        icon={<IconLink />}
+        onClick={onCopyLinkClick}
+        disabled={!onCopyLinkClick}
+        variant="transparent"
+        size="xs"
+        aria-label={t('Copy link to current chat and web page')}
+        tooltipProps={{title: t('Copy link to current chat and web page')}}
+      />
+      {/* Drawer-only pop-out button (in sidebar mode the toggle lives in the
+          dock-position menu as the `Windowed` item). Hidden once popped out —
+          the floating window is dismissed via its close button or Escape. */}
+      {isPipSupported && !onSidebarPositionChange && !isPoppedOut && (
+        <Button
+          icon={<IconWindow />}
+          onClick={onTogglePictureInPicture}
+          variant="transparent"
+          size="xs"
+          aria-label={t('Open in a separate window')}
+          tooltipProps={{title: t('Open in a separate window')}}
+        />
+      )}
+      {!isPoppedOut && onSidebarPositionChange && (
+        <DropdownMenu
+          items={positionMenuItems}
+          size="xs"
+          position="bottom-end"
+          menuTitle={t('Dock position')}
+          trigger={triggerProps => (
+            <OverlayTrigger.IconButton
+              {...triggerProps}
+              tooltipProps={{title: t('Dock position')}}
+              aria-label={t('Dock position')}
+              icon={<IconPanel direction={POSITION_ICON_DIRECTION[sidebarPosition]} />}
+              variant="transparent"
+            />
+          )}
+        />
+      )}
+      <ChatHistorySelect
+        hasNoChats={hasNoChats}
+        sessionOptions={sessionOptions}
+        sessionsLoading={sessionsLoading}
+        sessionsError={sessionsError}
+        onChangeSession={onChangeSession}
+        onHistoryOpenChange={onHistoryOpenChange}
+        onSearchChange={onSearchChange}
+      />
+    </Flex>
+  );
+}
+
+export function SeerExplorerHeaderActionsMenu({
+  onCopySessionClick,
+  onCopyLinkClick,
+  isPipSupported,
+  isPoppedOut,
+  onTogglePictureInPicture,
+  sidebarPosition = 'auto',
+  onSidebarPositionChange,
+  hasNoChats,
+  sessionOptions,
+  sessionsLoading,
+  sessionsError,
+  onChangeSession,
+  onHistoryOpenChange,
+  onSearchChange,
+}: SeerExplorerHeaderActionsProps) {
+  const dockItem: MenuItemProps | null =
+    !isPoppedOut && onSidebarPositionChange
+      ? {
+          key: 'dock-position',
+          label: t('Dock position'),
+          leadingItems: (
+            <IconPanel direction={POSITION_ICON_DIRECTION[sidebarPosition]} />
+          ),
+          submenu: {position: 'left-start'},
+          children: [
+            {
+              key: 'auto',
+              label: t('Auto'),
+              leadingItems: <IconPanel />,
+              trailingItems:
+                sidebarPosition === 'auto' ? <IconCheckmark size="sm" /> : null,
+              onAction: () => onSidebarPositionChange('auto'),
+            },
+            {
+              key: 'right',
+              label: t('Right'),
+              leadingItems: <IconPanel direction="right" />,
+              trailingItems:
+                sidebarPosition === 'right' ? <IconCheckmark size="sm" /> : null,
+              onAction: () => onSidebarPositionChange('right'),
+            },
+            {
+              key: 'bottom',
+              label: t('Bottom'),
+              leadingItems: <IconPanel direction="down" />,
+              trailingItems:
+                sidebarPosition === 'bottom' ? <IconCheckmark size="sm" /> : null,
+              onAction: () => onSidebarPositionChange('bottom'),
+            },
+            ...(isPipSupported
+              ? [
+                  {
+                    key: 'windowed',
+                    label: t('Windowed'),
+                    leadingItems: <IconWindow />,
+                    onAction: onTogglePictureInPicture,
+                  },
+                ]
+              : []),
+          ],
+        }
+      : isPipSupported && !isPoppedOut
+        ? {
+            key: 'windowed',
+            label: t('Open in a separate window'),
+            leadingItems: <IconWindow />,
+            onAction: onTogglePictureInPicture,
+          }
+        : null;
+
+  const items: MenuItemProps[] = [
+    {
+      key: 'copy-link',
+      label: t('Link to chat'),
+      leadingItems: <IconLink />,
+      onAction: onCopyLinkClick ?? undefined,
+      disabled: !onCopyLinkClick,
+    },
+    {
+      key: 'copy-session',
+      label: t('Copy conversation to clipboard'),
+      leadingItems: <IconCopy />,
+      onAction: onCopySessionClick ?? undefined,
+      disabled: !onCopySessionClick,
+    },
+    ...(dockItem ? [dockItem] : []),
+  ];
+
+  return (
+    <Flex align="center">
+      <DropdownMenu
+        items={items}
+        size="xs"
+        position="bottom-end"
+        // Let submenus extend beyond the Seer panel's overflow boundary.
+        strategy="fixed"
+        trigger={triggerProps => (
+          <OverlayTrigger.IconButton
+            {...triggerProps}
+            aria-label={t('More actions')}
+            icon={<IconEllipsis />}
+            variant="transparent"
+          />
+        )}
+      />
+      {/* Chat history keeps its own searchable dropdown here rather than
+          collapsing into the overflow menu — the DropdownMenu has no search,
+          so a submenu couldn't offer the same filtering the inline actions do. */}
+      <ChatHistorySelect
+        hasNoChats={hasNoChats}
+        sessionOptions={sessionOptions}
+        sessionsLoading={sessionsLoading}
+        sessionsError={sessionsError}
+        onChangeSession={onChangeSession}
+        onHistoryOpenChange={onHistoryOpenChange}
+        onSearchChange={onSearchChange}
+      />
+    </Flex>
+  );
+}

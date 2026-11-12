@@ -1,6 +1,8 @@
 from unittest.mock import MagicMock, patch
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.services.integration.serial import serialize_integration
+from sentry.integrations.utils.hostname import InstanceHostnameError
 from sentry.models.organizationcontributors import (
     ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD,
     OrganizationContributorAction,
@@ -88,9 +90,9 @@ class ShouldIncrementContributorSeatTest(TestCase):
             provider="integrations:github",
             integration_id=self.integration.id,
         )
-        self.contributor = OrganizationContributors.objects.create(
+        self.contributor = self.create_organization_contributor(
             organization=self.organization,
-            integration_id=self.integration.id,
+            integration=self.integration,
             external_identifier="12345",
             alias="testuser",
         )
@@ -162,6 +164,22 @@ class ShouldIncrementContributorSeatTest(TestCase):
         "sentry.seer.code_review.contributor_seats.quotas.backend.check_seer_quota",
         return_value=True,
     )
+    def test_returns_false_for_free_cohort_organization(self, mock_quota: MagicMock) -> None:
+        self.create_seer_project_repository(project=self.project, repository=self.repo)
+        self.organization.update_option("agentic-triage-free-cohort", True)
+
+        with self.feature("organizations:seat-based-seer-enabled"):
+            result = should_increment_contributor_seat(
+                self.organization, self.repo, self.contributor
+            )
+
+        assert result is False
+        mock_quota.assert_not_called()
+
+    @patch(
+        "sentry.seer.code_review.contributor_seats.quotas.backend.check_seer_quota",
+        return_value=True,
+    )
     def test_returns_true_when_code_review_enabled_and_quota_available(
         self, mock_quota: MagicMock
     ) -> None:
@@ -189,6 +207,27 @@ class ShouldIncrementContributorSeatTest(TestCase):
             )
             assert result is True
             mock_quota.assert_called_once()
+
+    @patch(
+        "sentry.seer.code_review.contributor_seats.quotas.backend.check_seer_quota",
+        return_value=True,
+    )
+    def test_returns_false_for_token_billed_organization(self, mock_quota: MagicMock) -> None:
+        self.create_repository_settings(repository=self.repo, enabled_code_review=True)
+        self.create_seer_project_repository(project=self.project, repository=self.repo)
+
+        with self.feature(
+            [
+                "organizations:seat-based-seer-enabled",
+                "organizations:token-billed-seer-enabled",
+            ]
+        ):
+            result = should_increment_contributor_seat(
+                self.organization, self.repo, self.contributor
+            )
+
+        assert result is False
+        mock_quota.assert_not_called()
 
     @patch(
         "sentry.seer.code_review.contributor_seats.quotas.backend.check_seer_quota",
@@ -222,10 +261,9 @@ class TrackContributorSeatTest(TestCase):
         track_contributor_seat(
             organization=self.organization,
             repo=self.repo,
-            integration_id=self.integration.id,
+            integration=serialize_integration(self.integration),
             user_id=user_id,
             user_username=user_username,
-            provider="github",
         )
 
     @patch("sentry.seer.code_review.contributor_seats.logger")
@@ -240,10 +278,11 @@ class TrackContributorSeatTest(TestCase):
 
         contributor = OrganizationContributors.objects.get(
             organization_id=self.organization.id,
-            integration_id=self.integration.id,
             external_identifier="999",
         )
         assert contributor.alias == "newuser"
+        assert contributor.provider == "github"
+        assert contributor.hostname == "github.com"
         assert contributor.num_actions == 0
         mock_logger.info.assert_not_called()
 
@@ -259,9 +298,9 @@ class TrackContributorSeatTest(TestCase):
         mock_logger: MagicMock,
         mock_assign_seat: MagicMock,
     ) -> None:
-        OrganizationContributors.objects.create(
+        self.create_organization_contributor(
             organization=self.organization,
-            integration_id=self.integration.id,
+            integration=self.integration,
             external_identifier="12345",
             alias="testuser",
             num_actions=5,
@@ -282,6 +321,22 @@ class TrackContributorSeatTest(TestCase):
             == "scm.webhook.organization_contributor.num_actions_should_increment"
         )
 
+    @patch("sentry.seer.code_review.contributor_seats.sentry_sdk.capture_exception")
+    @patch(
+        "sentry.seer.code_review.contributor_seats.instance_hostname",
+        side_effect=InstanceHostnameError("missing"),
+    )
+    def test_missing_hostname_captures_and_skips_seeding(
+        self, mock_hostname: MagicMock, mock_capture: MagicMock
+    ) -> None:
+        self._call(user_id="999")
+
+        assert not OrganizationContributors.objects.filter(
+            organization_id=self.organization.id,
+            external_identifier="999",
+        ).exists()
+        mock_capture.assert_called_once()
+
 
 class RecordContributorActionTest(TestCase):
     def setUp(self) -> None:
@@ -300,7 +355,6 @@ class RecordContributorActionTest(TestCase):
     def _contributor(self) -> OrganizationContributors:
         return OrganizationContributors.objects.get(
             organization_id=self.organization.id,
-            integration_id=self.integration.id,
             external_identifier="123",
         )
 
@@ -313,10 +367,9 @@ class RecordContributorActionTest(TestCase):
         record_contributor_action(
             organization=self.organization,
             repo=self.repo,
-            integration_id=self.integration.id,
+            integration=serialize_integration(self.integration),
             user_id="123",
             user_username="alice",
-            provider="github",
             pr_number=pr_number,
             is_opened=is_opened,
         )
@@ -330,6 +383,8 @@ class RecordContributorActionTest(TestCase):
 
         contributor = self._contributor()
         assert contributor.alias == "alice"
+        assert contributor.provider == "github"
+        assert contributor.hostname == "github.com"
         assert contributor.num_actions == 0
         assert self._action_count() == 0
 
@@ -391,9 +446,9 @@ class RecordContributorActionTest(TestCase):
     def test_increments_and_assigns_at_threshold(
         self, mock_should: MagicMock, mock_assign: MagicMock
     ) -> None:
-        OrganizationContributors.objects.create(
+        self.create_organization_contributor(
             organization=self.organization,
-            integration_id=self.integration.id,
+            integration=self.integration,
             external_identifier="123",
             alias="alice",
             num_actions=ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD - 1,
@@ -413,9 +468,9 @@ class RecordContributorActionTest(TestCase):
     def test_increments_and_assigns_above_threshold(
         self, mock_should: MagicMock, mock_assign: MagicMock
     ) -> None:
-        OrganizationContributors.objects.create(
+        self.create_organization_contributor(
             organization=self.organization,
-            integration_id=self.integration.id,
+            integration=self.integration,
             external_identifier="123",
             alias="alice",
             num_actions=ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD,
@@ -426,3 +481,74 @@ class RecordContributorActionTest(TestCase):
         contributor = self._contributor()
         assert contributor.num_actions == ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD + 1
         mock_assign.delay.assert_called_once_with(contributor.id)
+
+    @patch("sentry.seer.code_review.contributor_seats.assign_seat_to_organization_contributor")
+    @patch(
+        "sentry.seer.code_review.contributor_seats.quotas.backend.check_seer_quota",
+        return_value=True,
+    )
+    def test_token_billed_org_does_not_record_action_or_assign_seat(
+        self, mock_quota: MagicMock, mock_assign: MagicMock
+    ) -> None:
+        self.create_repository_settings(repository=self.repo, enabled_code_review=True)
+        self.create_organization_contributor(
+            organization=self.organization,
+            integration=self.integration,
+            external_identifier="123",
+            alias="alice",
+            num_actions=ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD - 1,
+        )
+
+        with self.feature(
+            [
+                "organizations:seat-based-seer-enabled",
+                "organizations:token-billed-seer-enabled",
+            ]
+        ):
+            self._call()
+
+        assert self._contributor().num_actions == ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD - 1
+        assert self._action_count() == 0
+        mock_assign.delay.assert_not_called()
+
+    @patch("sentry.seer.code_review.contributor_seats.assign_seat_to_organization_contributor")
+    @patch(
+        "sentry.seer.code_review.contributor_seats.quotas.backend.check_seer_quota",
+        return_value=True,
+    )
+    def test_seat_based_org_records_action_and_assigns_seat(
+        self, mock_quota: MagicMock, mock_assign: MagicMock
+    ) -> None:
+        self.create_repository_settings(repository=self.repo, enabled_code_review=True)
+        self.create_organization_contributor(
+            organization=self.organization,
+            integration=self.integration,
+            external_identifier="123",
+            alias="alice",
+            num_actions=ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD - 1,
+        )
+
+        with self.feature("organizations:seat-based-seer-enabled"):
+            self._call()
+
+        contributor = self._contributor()
+        assert contributor.num_actions == ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD
+        assert self._action_count() == 1
+        mock_assign.delay.assert_called_once_with(contributor.id)
+
+    @patch("sentry.seer.code_review.contributor_seats.sentry_sdk.capture_exception")
+    @patch(
+        "sentry.seer.code_review.contributor_seats.instance_hostname",
+        side_effect=InstanceHostnameError("missing"),
+    )
+    def test_missing_hostname_captures_and_skips_seeding(
+        self, mock_hostname: MagicMock, mock_capture: MagicMock
+    ) -> None:
+        self._call()
+
+        assert not OrganizationContributors.objects.filter(
+            organization_id=self.organization.id,
+            external_identifier="123",
+        ).exists()
+        assert self._action_count() == 0
+        mock_capture.assert_called_once()

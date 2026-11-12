@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterable
+from typing import cast
 
 import sentry_sdk
 from django.db import models
@@ -119,7 +120,9 @@ class ProjectCodeOwners(Model):
             logger.warning({"raw": f"Raw needs to be <= {MAX_RAW_LENGTH} characters in length"})
             return
 
-        associations, _ = build_codeowners_associations(self.raw, self.project)
+        associations, _ = build_codeowners_associations(
+            self.raw, self.project, self.repository_project_path_config
+        )
 
         issue_owner_rules = convert_codeowners_syntax(
             codeowners=self.raw,
@@ -143,13 +146,13 @@ class ProjectCodeOwners(Model):
             return
 
 
-def modify_date_updated(instance, **kwargs):
-    if instance.id is None:
+def modify_date_updated(instance: ProjectCodeOwners, **kwargs: object) -> None:
+    if cast("int | None", instance.id) is None:
         return
     instance.date_updated = timezone.now()
 
 
-def process_resource_change(instance, change, **kwargs):
+def process_resource_change(instance: ProjectCodeOwners, change: str, **kwargs: object) -> None:
     from sentry.models.groupowner import GroupOwner
 
     cache.set(

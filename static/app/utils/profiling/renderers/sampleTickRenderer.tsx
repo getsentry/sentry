@@ -48,11 +48,7 @@ class SampleTickRenderer {
     this.context = getContext(canvas, '2d');
   }
 
-  draw(
-    configViewToPhysicalSpace: mat3,
-    configView: Rect,
-    context: CanvasRenderingContext2D = this.context
-  ): void {
+  draw(configViewToPhysicalSpace: mat3, configView: Rect): void {
     if (this.intervals.length === 0) {
       return;
     }
@@ -62,8 +58,8 @@ class SampleTickRenderer {
       this.theme.SIZES.LABEL_FONT_PADDING * window.devicePixelRatio * 2 -
       this.theme.SIZES.LABEL_FONT_PADDING;
 
-    context.strokeStyle = `rgba(${this.theme.COLORS.SAMPLE_TICK_COLOR.join(',')})`;
-    context.lineWidth = this.theme.SIZES.INTERNAL_SAMPLE_TICK_LINE_WIDTH;
+    this.context.strokeStyle = `rgba(${this.theme.COLORS.SAMPLE_TICK_COLOR.join(',')})`;
+    this.context.lineWidth = this.theme.SIZES.INTERNAL_SAMPLE_TICK_LINE_WIDTH;
 
     for (const interval of this.intervals) {
       if (interval < configView.left) {
@@ -79,7 +75,7 @@ class SampleTickRenderer {
         interval * configViewToPhysicalSpace[0] + configViewToPhysicalSpace[6]
       );
 
-      context.strokeRect(physicalIntervalPosition, 0, 0, height);
+      this.context.strokeRect(physicalIntervalPosition, 0, 0, height);
     }
   }
 }

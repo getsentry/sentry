@@ -1,11 +1,6 @@
-import {type ReactNode} from 'react';
-
 import {parseFunction} from 'sentry/utils/discover/fields';
 
-export function formatTraceMetricsFunction(
-  valueToParse: string | string[],
-  defaultValue?: string | ReactNode
-) {
+export function formatTraceMetricsFunction(valueToParse: string | string[]) {
   if (Array.isArray(valueToParse)) {
     const parsedFunctions = valueToParse.map(v => parseFunction(v));
     const functionNames = parsedFunctions.map(f => f?.name).join(', ');
@@ -17,5 +12,5 @@ export function formatTraceMetricsFunction(
   if (parsedFunction) {
     return `${parsedFunction.name}(${parsedFunction.arguments[1] ?? '…'})`;
   }
-  return defaultValue ?? valueToParse;
+  return valueToParse;
 }

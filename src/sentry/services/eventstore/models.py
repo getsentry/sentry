@@ -14,6 +14,7 @@ from dateutil.parser import parse as parse_date
 from django.conf import settings
 from django.utils.encoding import force_str
 from django.utils.functional import cached_property
+from sentry_sdk import traces
 
 from sentry import eventtypes
 from sentry.db.models import NodeData
@@ -27,7 +28,6 @@ from sentry.snuba.events import Columns
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils.safe import get_path, trim
 from sentry.utils.strings import truncatechars
-from sentry.utils.tracing import set_span_tag, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +92,11 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @property
     def trace_id(self) -> str | None:
-        return get_path(self.data, "contexts", "trace", "trace_id")
+        # Reuse the Snuba column to avoid loading the full event body from nodestore.
+        if "trace_id" in self._snuba_data:
+            return cast(str | None, self._snuba_data["trace_id"])
+        trace_id = get_path(self.data, "contexts", "trace", "trace_id")
+        return trace_id
 
     @property
     def platform(self) -> str | None:
@@ -213,13 +217,15 @@ class BaseEvent(metaclass=abc.ABCMeta):
             username = self._snuba_data[user_username_column]
             ip_address = self._snuba_data[user_ip_address_column]
 
-            return User.to_python(
+            user = User.to_python(
                 {"id": user_id, "email": email, "username": username, "ip_address": ip_address}
             )
+            assert user is not None
+            return user
 
         return self.get_interface("user")
 
-    def get_event_type(self) -> str:
+    def get_event_type(self) -> eventtypes.EventTypeStr:
         """
         Return the type of this event.
 
@@ -227,8 +233,8 @@ class BaseEvent(metaclass=abc.ABCMeta):
         """
         column = self._get_column_name(Columns.TYPE)
         if column in self._snuba_data:
-            return cast(str, self._snuba_data[column])
-        return cast(str, self.data.get("type", "default"))
+            return cast(eventtypes.EventTypeStr, self._snuba_data[column])
+        return cast(eventtypes.EventTypeStr, self.data.get("type", "default"))
 
     @property
     def ip_address(self) -> str | None:
@@ -439,20 +445,24 @@ class BaseEvent(metaclass=abc.ABCMeta):
             loaded_grouping_config = load_grouping_config(grouping_config)
 
         if normalize_stacktraces:
-            with start_span(
-                op="grouping.normalize_stacktraces_for_grouping",
+            with traces.start_span(
                 name="grouping.normalize_stacktraces_for_grouping",
-            ) as span:
-                set_span_tag(span, "project", self.project_id)
-                set_span_tag(span, "event_id", self.event_id)
+                attributes={
+                    "sentry.op": "grouping.normalize_stacktraces_for_grouping",
+                    "project": self.project_id,
+                    "event_id": self.event_id,
+                },
+            ):
                 self.normalize_stacktraces_for_grouping(loaded_grouping_config)
 
-        with start_span(
-            op="grouping.get_grouping_variants", name="grouping.get_grouping_variants"
-        ) as span:
-            set_span_tag(span, "project", self.project_id)
-            set_span_tag(span, "event_id", self.event_id)
-
+        with traces.start_span(
+            name="grouping.get_grouping_variants",
+            attributes={
+                "sentry.op": "grouping.get_grouping_variants",
+                "project": self.project_id,
+                "event_id": self.event_id,
+            },
+        ):
             return get_grouping_variants_for_event(self, loaded_grouping_config)
 
     def get_primary_hash(self) -> str:
@@ -664,25 +674,27 @@ class Event(BaseEvent):
     _groups_cache: Sequence[Group] | None
 
     @property
+    def group_ids(self) -> list[int]:
+        if self._group_ids is not None:
+            return list(self._group_ids)
+
+        group_id = self.group_id
+        snuba_group_ids = self._snuba_data.get(self._get_column_name(Columns.GROUP_IDS))
+        group_ids = []
+        if group_id:
+            group_ids.append(group_id)
+        if snuba_group_ids:
+            group_ids.extend(snuba_group_ids)
+        return group_ids
+
+    @property
     def groups(self) -> Sequence[Group]:
         from sentry.models.group import Group
 
         if getattr(self, "_groups_cache"):
             return self._groups_cache
 
-        if self._group_ids is not None:
-            group_ids = self._group_ids
-        else:
-            snuba_group_id = self.group_id
-            # TODO: Replace `snuba_group_id` with this once we deprecate `group_id`.
-            # snuba_group_id = self._snuba_data.get(self._get_column_name(Columns.GROUP_ID))
-            snuba_group_ids = self._snuba_data.get(self._get_column_name(Columns.GROUP_IDS))
-            group_ids = []
-            if snuba_group_id:
-                group_ids.append(snuba_group_id)
-            if snuba_group_ids:
-                group_ids.extend(snuba_group_ids)
-
+        group_ids = self.group_ids
         if group_ids:
             groups = list(Group.objects.filter(id__in=group_ids))
         else:
@@ -830,9 +842,9 @@ class EventSubjectTemplateData(dict[str, str]):
                 raise KeyError
             return str(value)
         elif name == "project":
-            return cast(str, self.event.project.get_full_name())
+            return self.event.project.get_full_name()
         elif name == "projectID":
-            return cast(str, self.event.project.slug)
+            return self.event.project.slug
         elif name == "shortID" and self.event.group_id and self.event.group:
             return cast(str, self.event.group.qualified_short_id)
         elif name == "orgID":

@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from django.contrib.auth.models import AnonymousUser
-from django.db.models import Q, Subquery
+from django.db.models import Subquery
 
 from sentry.api.serializers import Serializer, serialize
 
@@ -22,14 +22,10 @@ from sentry.incidents.endpoints.serializers.utils import (
 from sentry.incidents.endpoints.serializers.workflow_engine_data_condition import (
     WorkflowEngineDataConditionSerializer,
 )
-from sentry.incidents.endpoints.serializers.workflow_engine_incident import (
-    WorkflowEngineIncidentSerializer,
-)
 from sentry.incidents.models.alert_rule import (
     AlertRuleStatus,
     AlertRuleThresholdType,
 )
-from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_component
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
@@ -48,7 +44,6 @@ from sentry.workflow_engine.models import (
     DetectorWorkflow,
 )
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.models.workflow_action_group_status import WorkflowActionGroupStatus
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
@@ -107,7 +102,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
                 if action is None:
                     continue
 
-                # Prepare AlertRuleTriggerActions that are SentryApp components
+                # Prepare actions that are SentryApp components
                 install_context = None
                 sentry_app_id = str(action.get("sentryAppId"))
                 if sentry_app_id:
@@ -145,7 +140,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
     ) -> None:
         detector_projects = set()
         for detector in detectors.values():
-            detector_projects.add((detector.id, detector.project.slug))
+            detector_projects.add((detector.id, detector.linked_project.slug))
 
         for detector_id, project_slug in detector_projects:
             rule_result = result[detectors[detector_id]].setdefault(
@@ -188,45 +183,6 @@ class WorkflowEngineDetectorSerializer(Serializer):
                 if actor:
                     result[detector]["owner"] = actor.identifier
 
-    def add_latest_incident(
-        self,
-        result: defaultdict[Detector, dict[str, Any]],
-        user: User | RpcUser | AnonymousUser,
-        detectors: dict[int, Detector],
-        detector_to_action_ids: defaultdict[Detector, list[int]],
-    ) -> None:
-        all_action_ids = []
-        for action_ids in detector_to_action_ids.values():
-            all_action_ids.extend(action_ids)
-
-        wf_action_group_statuses = WorkflowActionGroupStatus.objects.filter(
-            action_id__in=all_action_ids
-        )
-
-        detector_to_group_ids = defaultdict(set)
-        for wf_action_group_status in wf_action_group_statuses:
-            for detector, action_ids in detector_to_action_ids.items():
-                if wf_action_group_status.action_id in action_ids:
-                    detector_to_group_ids[detector].add(wf_action_group_status.group_id)
-
-        open_periods = None
-        group_ids = {
-            wf_action_group_status.group_id for wf_action_group_status in wf_action_group_statuses
-        }
-        if group_ids:
-            open_periods = GroupOpenPeriod.objects.filter(group__in=group_ids)
-
-        for detector in detectors.values():
-            # TODO: this serializer is half baked
-            if open_periods:
-                latest_open_periods = open_periods.filter(
-                    Q(group__in=detector_to_group_ids[detector])
-                ).order_by("-date_started")
-                serialized_group_open_period = serialize(
-                    latest_open_periods.first(), user, WorkflowEngineIncidentSerializer()
-                )
-                result[detector]["latestIncident"] = serialized_group_open_period
-
     def get_attrs(
         self, item_list: Sequence[Detector], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> defaultdict[Detector, dict[str, Any]]:
@@ -268,7 +224,9 @@ class WorkflowEngineDetectorSerializer(Serializer):
         actions = [dcga.action for dcga in dcgas]
 
         # add sentry app data
-        organization_id = [detector.project.organization_id for detector in detectors.values()][0]
+        organization_id = [
+            detector.linked_project.organization_id for detector in detectors.values()
+        ][0]
         sentry_app_installations_by_sentry_app_id = (
             self.add_sentry_app_installations_by_sentry_app_id(actions, organization_id)
         )
@@ -331,35 +289,6 @@ class WorkflowEngineDetectorSerializer(Serializer):
         for detector in detectors.values():
             result[detector]["alert_rule_id"] = alert_rule_ids_by_detector_id.get(detector.id)
 
-        # Note: originalAlertRuleId comes from AlertRuleActivity snapshots, which were not
-        # migrated to the workflow engine. This field will always be None for detectors.
-
-        if "latestIncident" in self.expand:
-            # to get the actions for a detector, we need to go from detector -> workflow -> action filters for that workflow -> actions
-            detector_workflow_values = DetectorWorkflow.objects.filter(
-                detector__in=detector_ids
-            ).values_list("detector_id", "workflow_id")
-            detector_id_to_workflow_ids = defaultdict(list)
-            for detector_id, workflow_id in detector_workflow_values:
-                detector_id_to_workflow_ids[detector_id].append(workflow_id)
-
-            workflow_action_values = dcgas.values_list(
-                "condition_group__workflowdataconditiongroup__workflow_id", "action_id"
-            )
-
-            workflow_id_to_action_ids = defaultdict(list)
-            for workflow_id, action_id in workflow_action_values:
-                workflow_id_to_action_ids[workflow_id].append(action_id)
-
-            detector_to_action_ids = defaultdict(list)
-            for detector_id in detectors:
-                for workflow_id in detector_id_to_workflow_ids.get(detector_id, []):
-                    detector_to_action_ids[detectors[detector_id]].extend(
-                        workflow_id_to_action_ids.get(workflow_id, [])
-                    )
-
-            self.add_latest_incident(result, user, detectors, detector_to_action_ids)
-
         # add information from snubaquery
         data_source_detectors = DataSourceDetector.objects.filter(
             detector_id__in=detectors.keys()
@@ -416,7 +345,13 @@ class WorkflowEngineDetectorSerializer(Serializer):
 
         return result
 
-    def serialize(self, obj: Detector, attrs, user, **kwargs) -> AlertRuleSerializerResponse:
+    def serialize(
+        self,
+        obj: Detector,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> AlertRuleSerializerResponse:
         triggers = attrs.get("triggers", [])
         alert_rule_id = None
 
@@ -430,17 +365,17 @@ class WorkflowEngineDetectorSerializer(Serializer):
         data: AlertRuleSerializerResponse = {
             "id": str(alert_rule_id),
             "name": obj.name,
-            "organizationId": str(obj.project.organization_id),
+            "organizationId": str(obj.linked_project.organization_id),
             "status": AlertRuleStatus.PENDING.value,
             "queryType": attrs.get("queryType"),
             "dataset": attrs.get("dataset"),
-            "query": attrs.get("query"),
-            "aggregate": attrs.get("aggregate"),
+            "query": attrs["query"],
+            "aggregate": attrs["aggregate"],
             "thresholdType": attrs.get("thresholdType"),
             "resolveThreshold": triggers[0].get("resolveThreshold") if triggers else None,
-            "timeWindow": attrs.get("timeWindow"),
+            "timeWindow": attrs["timeWindow"],
             "environment": attrs.get("environment"),
-            "resolution": attrs.get("resolution"),
+            "resolution": attrs["resolution"],
             "thresholdPeriod": 1,  # unset on detectors
             "triggers": triggers,
             "projects": sorted(attrs.get("projects", [])),
@@ -449,7 +384,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             "comparisonDelta": comparison_delta / 60 if comparison_delta else None,
             "dateModified": obj.date_updated,
             "dateCreated": obj.date_added,
-            "createdBy": attrs.get("created_by"),
+            "createdBy": attrs["created_by"],
             "description": obj.description if obj.description else "",
             "sensitivity": attrs.get("sensitivity"),
             "seasonality": attrs.get("seasonality"),
@@ -458,9 +393,6 @@ class WorkflowEngineDetectorSerializer(Serializer):
 
         if not obj.enabled:
             data["snooze"] = True
-
-        if "latestIncident" in self.expand:
-            data["latestIncident"] = attrs.get("latestIncident", None)
 
         extrapolation_mode = attrs.get("extrapolationMode")
         if extrapolation_mode is not None:
@@ -500,13 +432,20 @@ class DetailedWorkflowEngineDetectorSerializer(Serializer):
         return self.base_serializer.get_attrs(item_list, user, **kwargs)
 
     def serialize(
-        self, obj: Detector, attrs, user, **kwargs
+        self,
+        obj: Detector,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> DetailedAlertRuleSerializerResponse:
         base_data = self.base_serializer.serialize(obj, attrs, user, **kwargs)
-        data: DetailedAlertRuleSerializerResponse = {
-            **base_data,
-            "snooze": not obj.enabled,
-        }
+        data = cast(
+            "DetailedAlertRuleSerializerResponse",
+            {
+                **base_data,
+                "snooze": not obj.enabled,
+            },
+        )
         if not obj.enabled:
             data["snoozeForEveryone"] = True
         return data

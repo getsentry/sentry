@@ -5,12 +5,10 @@ import styled from '@emotion/styled';
 
 import heroImg from 'sentry-images/debug/notifications/hero.png';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
-
 // Mimicking useStoriesDarkMode -> Don't use these elsewhere please 🙏
-// eslint-disable-next-line no-restricted-imports
-import {darkTheme} from 'sentry/utils/theme/theme';
+import {darkTheme} from '@sentry/scraps/theme';
 
 function DarkModeProvider(props: PropsWithChildren) {
   return <ThemeProvider theme={darkTheme}>{props.children}</ThemeProvider>;
@@ -21,7 +19,7 @@ export function DebugNotificationsLanding() {
     <Fragment>
       <DarkModeProvider>
         <Hero>
-          <Flex direction="column" gap="md">
+          <Stack gap="md">
             <Squiggle />
             <HeroHeading as="h1">
               Welcome to the <em>Notification Debugger</em>
@@ -30,7 +28,7 @@ export function DebugNotificationsLanding() {
               This tool is in development! Keep an eye out for internal comms for when
               this is ready for you to use.
             </Text>
-          </Flex>
+          </Stack>
           <img
             alt="A branching integration tree with developers admiring the leaves"
             width={680}

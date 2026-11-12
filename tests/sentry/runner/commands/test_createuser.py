@@ -7,7 +7,6 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import CliTestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.user import User
-from sentry.users.models.userrole import manage_default_super_admin_role
 from sentry.users.services.user.service import user_service
 
 
@@ -20,7 +19,6 @@ class CreateUserTest(CliTestCase):
         super().setUp()
         with assume_test_silo_mode(SiloMode.CELL):
             create_default_projects()
-        manage_default_super_admin_role()
 
     def test_superuser(self) -> None:
         rv = self.invoke("--email=you@somewhereawesome.com", "--password=awesome", "--superuser")

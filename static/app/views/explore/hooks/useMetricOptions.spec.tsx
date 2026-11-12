@@ -7,7 +7,8 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
+
+import {useMetricOptions} from './useMetricOptions';
 
 describe('useMetricOptions', () => {
   const project = ProjectFixture();
@@ -50,9 +51,9 @@ describe('useMetricOptions', () => {
   it('fetches metric options from tracemetrics dataset', async () => {
     const mockData = {
       data: [
-        {['metric.name']: 'metric.c', ['metric.type']: 'counter'},
-        {['metric.name']: 'metric.a', ['metric.type']: 'distribution'},
-        {['metric.name']: 'metric.b', ['metric.type']: 'distribution'},
+        {'metric.name': 'metric.c', 'metric.type': 'counter'},
+        {'metric.name': 'metric.a', 'metric.type': 'distribution'},
+        {'metric.name': 'metric.b', 'metric.type': 'distribution'},
       ],
     };
 
@@ -68,6 +69,7 @@ describe('useMetricOptions', () => {
             'metric.type',
             'count(metric.name)',
             'max(timestamp_precise)',
+            'metric.unit',
           ],
           referrer: 'api.explore.metric-options',
         }),
@@ -80,9 +82,9 @@ describe('useMetricOptions', () => {
 
     await waitFor(() =>
       expect(result.current.data?.data).toEqual([
-        {['metric.name']: 'metric.a', ['metric.type']: 'distribution'},
-        {['metric.name']: 'metric.b', ['metric.type']: 'distribution'},
-        {['metric.name']: 'metric.c', ['metric.type']: 'counter'},
+        {'metric.name': 'metric.a', 'metric.type': 'distribution'},
+        {'metric.name': 'metric.b', 'metric.type': 'distribution'},
+        {'metric.name': 'metric.c', 'metric.type': 'counter'},
       ])
     );
   });
@@ -90,9 +92,9 @@ describe('useMetricOptions', () => {
   it('sorts metrics alphabetically by name', async () => {
     const mockData = {
       data: [
-        {['metric.name']: 'metric.z', ['metric.type']: 'counter'},
-        {['metric.name']: 'metric.a', ['metric.type']: 'distribution'},
-        {['metric.name']: 'metric.m', ['metric.type']: 'gauge'},
+        {'metric.name': 'metric.z', 'metric.type': 'counter'},
+        {'metric.name': 'metric.a', 'metric.type': 'distribution'},
+        {'metric.name': 'metric.m', 'metric.type': 'gauge'},
       ],
     };
 
@@ -117,6 +119,7 @@ describe('useMetricOptions', () => {
               'metric.type',
               'count(metric.name)',
               'max(timestamp_precise)',
+              'metric.unit',
             ],
             referrer: 'api.explore.metric-options',
             statsPeriod: '3d',
@@ -126,9 +129,9 @@ describe('useMetricOptions', () => {
     );
     await waitFor(() =>
       expect(result.current.data?.data).toEqual([
-        {['metric.name']: 'metric.a', ['metric.type']: 'distribution'},
-        {['metric.name']: 'metric.m', ['metric.type']: 'gauge'},
-        {['metric.name']: 'metric.z', ['metric.type']: 'counter'},
+        {'metric.name': 'metric.a', 'metric.type': 'distribution'},
+        {'metric.name': 'metric.m', 'metric.type': 'gauge'},
+        {'metric.name': 'metric.z', 'metric.type': 'counter'},
       ])
     );
   });

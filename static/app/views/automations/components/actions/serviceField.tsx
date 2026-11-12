@@ -2,7 +2,7 @@ import type {SelectValue} from '@sentry/scraps/select';
 
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {t} from 'sentry/locale';
-import {useActionNodeContext} from 'sentry/views/automations/components/actionNodes';
+import {useActionNodeContext} from 'sentry/views/automations/components/actionNodeContext';
 
 export function ServiceField() {
   const {action, actionId, onUpdate, handler} = useActionNodeContext();
@@ -18,7 +18,7 @@ export function ServiceField() {
       name={`${actionId}.config.targetIdentifier`}
       aria-label={t('Service')}
       value={action.config.targetIdentifier}
-      options={integration.services?.map(service => ({
+      options={(integration.services ?? []).map(service => ({
         label: service.name,
         value: service.id,
       }))}

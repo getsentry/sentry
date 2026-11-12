@@ -40,5 +40,5 @@ class TeamAvatarPhotoTest(TestCase):
         assert response.status_code == 200
         assert response["Cache-Control"] == FOREVER_CACHE
         assert response["Access-Control-Allow-Origin"] == "http://localhost"
-        assert response.get("Vary") is None
+        assert response.get("Vary") == "Origin"
         assert response.get("Set-Cookie") is None

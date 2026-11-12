@@ -1,6 +1,10 @@
 import {useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconClock} from '@sentry/icons/clock';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconSearch} from '@sentry/icons/search';
+import {IconTimer} from '@sentry/icons/timer';
 
 import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
@@ -8,46 +12,33 @@ import {Grid} from '@sentry/scraps/layout';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
-  BreadcrumbControlOptions,
-  BreadcrumbsDrawer,
-} from 'sentry/components/events/breadcrumbs/breadcrumbsDrawer';
-import {BreadcrumbsTimeline} from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
-import {CopyBreadcrumbsDropdown} from 'sentry/components/events/breadcrumbs/copyBreadcrumbs';
-import {
-  BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
-  BREADCRUMB_TIME_DISPLAY_OPTIONS,
-  BreadcrumbTimeDisplay,
-  getEnhancedBreadcrumbs,
-  getSummaryBreadcrumbs,
-} from 'sentry/components/events/breadcrumbs/utils';
-import {
   BREADCRUMB_SORT_LOCALSTORAGE_KEY,
   BreadcrumbSort,
 } from 'sentry/components/events/interfaces/breadcrumbs';
-import {IconClock, IconEllipsis, IconSearch, IconTimer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
+import {BreadcrumbControlOptions, BreadcrumbsDrawer} from './breadcrumbsDrawer';
+import {BreadcrumbsTimeline} from './breadcrumbsTimeline';
+import {CopyBreadcrumbsDropdown} from './copyBreadcrumbs';
+import {
+  BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
+  BREADCRUMB_TIME_DISPLAY_OPTIONS,
+  BreadcrumbTimeDisplay,
+  getEnhancedBreadcrumbs,
+  getSummaryBreadcrumbs,
+} from './utils';
+
 interface BreadcrumbsDataSectionProps {
   event: Event;
-  group: Group;
-  project: Project;
-  initialCollapse?: boolean;
 }
 
-export function BreadcrumbsDataSection({
-  event,
-  group,
-  project,
-  initialCollapse,
-}: BreadcrumbsDataSectionProps) {
+export function BreadcrumbsDataSection({event}: BreadcrumbsDataSectionProps) {
   const theme = useTheme();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
@@ -89,9 +80,8 @@ export function BreadcrumbsDataSection({
         <BreadcrumbsDrawer
           breadcrumbs={enhancedCrumbs}
           focusControl={focusControl}
-          project={project}
+
           event={event}
-          group={group}
         />
       ),
       {
@@ -167,7 +157,6 @@ export function BreadcrumbsDataSection({
       sectionKey={SectionKey.BREADCRUMBS}
       title={t('Breadcrumbs')}
       actions={actions}
-      initialCollapse={initialCollapse}
     >
       <ErrorBoundary mini message={t('There was an error loading the event breadcrumbs')}>
         <div ref={setContainer}>
@@ -211,7 +200,7 @@ const ViewAllContainer = styled('div')`
     width: 1px;
     top: -${p => p.theme.space.md};
     height: ${p => p.theme.space.md};
-    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 `;

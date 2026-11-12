@@ -1,27 +1,34 @@
-import {useLayoutEffect} from 'react';
+import {createContext, useContext, useLayoutEffect, type ReactNode} from 'react';
 import type {Location} from 'history';
 
 import type {Sort} from 'sentry/utils/discover/fields';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
-import {logsTimestampDescendingSortBy} from 'sentry/views/explore/contexts/logs/sortBys';
+
+import {LOGS_CURSOR_KEY} from './constants';
+import {defaultLogFields} from './fields';
+import {logsTimestampDescendingSortBy} from './sortBys';
 
 const LOGS_PARAMS_VERSION = 2;
 export const LOGS_QUERY_KEY = 'logsQuery'; // Logs may exist on other pages.
-export const LOGS_CURSOR_KEY = 'logsCursor';
 export const LOGS_AGGREGATE_CURSOR_KEY = 'logsAggregateCursor';
 export const LOGS_FIELDS_KEY = 'logsFields';
 export const LOGS_AGGREGATE_FN_KEY = 'logsAggregate'; // e.g., p99
 export const LOGS_AGGREGATE_PARAM_KEY = 'logsAggregateParam'; // e.g., message.parameters.0
 export const LOGS_GROUP_BY_KEY = 'logsGroupBy'; // e.g., message.template
+export const LOGS_ROW_ID_KEY = 'logsRowId'; // Deep-links to a log row to highlight + expand it.
+export const LOGS_ANCHOR_TIMESTAMP_KEY = 'logsAnchorTimestamp';
 
 export interface PersistedLogsPageParams {
   fields: string[];
   sortBys: Sort[];
 }
 
-export function usePersistedLogsPageParams() {
+const PersistedLogsPageParamsContext = createContext<
+  ReturnType<typeof useLocalStorageState<PersistedLogsPageParams>> | undefined
+>(undefined);
+
+export function PersistedLogsPageParamsProvider({children}: {children: ReactNode}) {
   useLayoutEffect(() => {
     const pastParams = localStorageWrapper.getItem(
       getPastLogsParamsStorageKey(LOGS_PARAMS_VERSION)
@@ -31,10 +38,26 @@ export function usePersistedLogsPageParams() {
     }
   });
 
-  return useLocalStorageState(getLogsParamsStorageKey(LOGS_PARAMS_VERSION), {
+  const state = useLocalStorageState(getLogsParamsStorageKey(LOGS_PARAMS_VERSION), {
     fields: defaultLogFields() as string[],
     sortBys: [logsTimestampDescendingSortBy],
   });
+
+  return (
+    <PersistedLogsPageParamsContext value={state}>
+      {children}
+    </PersistedLogsPageParamsContext>
+  );
+}
+
+export function usePersistedLogsPageParams() {
+  const context = useContext(PersistedLogsPageParamsContext);
+  if (context === undefined) {
+    throw new Error(
+      'usePersistedLogsPageParams requires PersistedLogsPageParamsProvider'
+    );
+  }
+  return context;
 }
 
 export function stripLogParamsFromLocation(location: Location): Location {

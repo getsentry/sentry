@@ -1,22 +1,19 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconRefresh} from '@sentry/icons/refresh';
 import * as Sentry from '@sentry/react';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Confirm} from '@sentry/scraps/confirm';
+import {Flex, Grid, useResponsivePropValue} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {removeAuthenticator} from 'sentry/actionCreators/account';
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {resendMemberInvite, updateMember} from 'sentry/actionCreators/members';
-import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
@@ -28,13 +25,10 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Member} from 'sentry/types/organization';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {isMemberDisabledFromLimit} from 'sentry/utils/isMemberDisabledFromLimit';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {Teams} from 'sentry/utils/teams';
 import {useApi} from 'sentry/utils/useApi';
@@ -81,11 +75,11 @@ function MemberStatus({
   return t('Active');
 }
 
-const getMemberQueryKey = (orgSlug: string, memberId: string): ApiQueryKey => [
-  getApiUrl('/organizations/$organizationIdOrSlug/members/$memberId/', {
+const memberOptions = (orgSlug: string, memberId: string) =>
+  apiOptions.as<Member>()('/organizations/$organizationIdOrSlug/members/$memberId/', {
     path: {organizationIdOrSlug: orgSlug, memberId},
-  }),
-];
+    staleTime: 0,
+  });
 
 function OrganizationMemberDetailContent({member}: {member: Member}) {
   const api = useApi();
@@ -95,6 +89,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
   const [orgRole, setOrgRole] = useState(member.orgRole);
   const [teamRoles, setTeamRoles] = useState(member.teamRoles);
   const hasTeamRoles = organization.features.includes('team-roles');
+  const isLarge = useResponsivePropValue({zero: false, lg: true});
 
   const {mutate: updatedMember, isPending: isSaving} = useMutation<Member, RequestError>({
     mutationFn: () => {
@@ -105,22 +100,18 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
       });
     },
     onMutate: () => {
-      addLoadingMessage(t('Saving\u2026'));
+      toast.loading(t('Saving\u2026'));
     },
     onSuccess: data => {
-      addSuccessMessage(t('Saved'));
-      // Will be fixed soon when we get rid of setApiQueryData.
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
-      setApiQueryData<Member>(
-        queryClient,
-        getMemberQueryKey(organization.slug, member.id),
-        data
+      toast.success(t('Saved'));
+      queryClient.setQueryData(
+        memberOptions(organization.slug, member.id).queryKey,
+        oldData => ({...oldData, json: data, headers: oldData?.headers ?? {}})
       );
     },
     onError: error => {
-      addErrorMessage(
-        (error?.responseJSON?.detail as string) ?? t('Failed to update member')
-      );
+      const detail = error?.responseJSON?.detail;
+      toast.error(typeof detail === 'string' ? detail : t('Failed to update member'));
     },
   });
 
@@ -134,18 +125,15 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
         });
       },
       onSuccess: data => {
-        addSuccessMessage(t('Sent invite!'));
+        toast.success(t('Sent invite!'));
 
-        // Will be fixed soon when we get rid of setApiQueryData.
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
-        setApiQueryData<Member>(
-          queryClient,
-          getMemberQueryKey(organization.slug, member.id),
-          data
+        queryClient.setQueryData(
+          memberOptions(organization.slug, member.id).queryKey,
+          oldData => ({...oldData, json: data, headers: oldData?.headers ?? {}})
         );
       },
       onError: () => {
-        addErrorMessage(t('Could not send invite'));
+        toast.error(t('Could not send invite'));
       },
     }
   );
@@ -159,11 +147,11 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
       return Promise.all(promises);
     },
     onSuccess: () => {
-      addSuccessMessage(t('All authenticators have been removed'));
+      toast.success(t('All authenticators have been removed'));
       navigate(`/settings/${organization.slug}/members/`);
     },
     onError: error => {
-      addErrorMessage(t('Error removing authenticators'));
+      toast.error(t('Error removing authenticators'));
       Sentry.captureException(error);
     },
   });
@@ -282,12 +270,10 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
 
         <PanelBody>
           <PanelItem>
-            <Details>
+            <Grid columns={{zero: '1fr', xl: '2fr 1fr 1fr'}} gap="xl" width="100%">
               <div>
                 <DetailLabel>{t('Email')}</DetailLabel>
-                <div>
-                  <ExternalLink href={`mailto:${email}`}>{email}</ExternalLink>
-                </div>
+                <ExternalLink href={`mailto:${email}`}>{email}</ExternalLink>
               </div>
               <div>
                 <DetailLabel>{t('Status')}</DetailLabel>
@@ -297,11 +283,9 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
               </div>
               <div>
                 <DetailLabel>{t('Added')}</DetailLabel>
-                <div>
-                  <DateTime dateOnly date={member.dateCreated} />
-                </div>
+                <DateTime dateOnly date={member.dateCreated} />
               </div>
-            </Details>
+            </Grid>
           </PanelItem>
         </PanelBody>
       </Panel>
@@ -311,8 +295,9 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
           <PanelHeader>{t('Authentication')}</PanelHeader>
           <PanelBody>
             <FieldGroup
-              alignRight
+              alignRight={isLarge}
               flexibleControlStateSize
+              inline={isLarge}
               label={t('Reset two-factor authentication')}
               help={t(
                 'Resetting two-factor authentication will remove all two-factor authentication methods for this member.'
@@ -369,7 +354,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
         )}
       </Teams>
 
-      <Flex justify="end">
+      <Flex justify="end" paddingTop="xl">
         <Button
           variant="primary"
           busy={isSaving}
@@ -392,9 +377,7 @@ function OrganizationMemberDetail() {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<Member>(getMemberQueryKey(organization.slug, params.memberId), {
-    staleTime: 0,
-  });
+  } = useQuery(memberOptions(organization.slug, params.memberId));
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -412,19 +395,6 @@ function OrganizationMemberDetail() {
 }
 
 export default OrganizationMemberDetail;
-
-const Details = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-template-columns: 2fr 1fr 1fr;
-  gap: ${p => p.theme.space.xl};
-  width: 100%;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-auto-flow: row;
-    grid-template-columns: auto;
-  }
-`;
 
 const DetailLabel = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};

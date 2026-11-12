@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol
 
-from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
+from sentry.auth.principal import RequestPrincipal
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.email import MessageBuilder
 
@@ -14,10 +14,25 @@ if TYPE_CHECKING:
     from sentry.users.models.user import User
 
 
+class SecurityEmailAccount(Protocol):
+    """The minimal account shape a security email needs.
+
+    Hard deletion removes the User row before the email is sent, so that flow has
+    no User or RpcUser left to pass. It supplies a stand-in instead. Only `id`
+    (logging) and `email` (recipient and template body) are ever read.
+    """
+
+    @property
+    def id(self) -> int: ...
+
+    @property
+    def email(self) -> str: ...
+
+
 def generate_security_email(
-    account: User | RpcUser,
+    account: User | RpcUser | SecurityEmailAccount,
     type: str,
-    actor: AnonymousUser | User | RpcUser,
+    actor: RequestPrincipal,
     ip_address: str,
     context: Mapping[str, Any] | None = None,
     current_datetime: datetime | None = None,

@@ -1,107 +1,69 @@
-import {RevealOnHover} from '@sentry/scraps/revealOnHover';
-import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
-
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
-import type {AvatarProject} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  CONVERSATIONS_LANDING_SUB_PATH,
+  EXPLORE_AGENTS_SUB_PATH,
   CONVERSATIONS_SIDEBAR_LABEL,
 } from 'sentry/views/explore/conversations/settings';
+import {getConversationDisplayId} from 'sentry/views/explore/conversations/utils/conversationDisplayId';
+import {TopBar} from 'sentry/views/navigation/topBar';
+
+const COPY_ID_LABEL = t('Copy conversation ID');
 
 interface ConversationsBreadcrumbsProps {
   conversationId: string;
-  project?: AvatarProject;
 }
 
 export function ConversationsBreadcrumbs({
   conversationId,
-  project,
 }: ConversationsBreadcrumbsProps) {
   const organization = useOrganization();
+  const location = useLocation();
   const conversationsBaseUrl = normalizeUrl(
-    `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/`
+    `/organizations/${organization.slug}/explore/${EXPLORE_AGENTS_SUB_PATH}/`
   );
 
+  // Carry project/environment filters back to the landing page, then force the
+  // default 24h period. BreadcrumbList link items build their own query, so this
+  // replaces the legacy `preservePageFilters` flag.
+  const query = {
+    ...extractSelectionParameters(location.query),
+    statsPeriod: '24h',
+    start: undefined,
+    end: undefined,
+    referrer: 'conversations-breadcrumb',
+  };
+
   return (
-    <Breadcrumbs
-      crumbs={[
-        {
-          label: CONVERSATIONS_SIDEBAR_LABEL,
-          to: {
-            pathname: conversationsBaseUrl,
-            query: {
-              statsPeriod: '24h',
-              start: undefined,
-              end: undefined,
-              referrer: 'conversations-breadcrumb',
-            },
-          },
-          preservePageFilters: true,
+    <TopBar.Slot
+      name="breadcrumbs"
+      title={{
+        type: 'page-title',
+        label: t('Conversation %s', getConversationDisplayId(conversationId)),
+        // UUIDs are shown truncated, so the full value needs a tooltip to stay readable.
+        labelTooltip: isUUID(conversationId) ? conversationId : undefined,
+        trailingActions: {
+          type: 'copy',
+          text: conversationId,
+          label: COPY_ID_LABEL,
+          tooltip: COPY_ID_LABEL,
+          onCopy: () =>
+            trackAnalytics('conversations.detail.copy-conversation-id', {
+              organization,
+            }),
         },
+      }}
+      items={[
         {
-          label: (
-            <ConversationCrumb
-              conversationId={conversationId}
-              project={project}
-              organization={organization}
-            />
-          ),
+          type: 'link',
+          label: CONVERSATIONS_SIDEBAR_LABEL,
+          to: {pathname: conversationsBaseUrl, query},
         },
       ]}
     />
-  );
-}
-
-function ConversationCrumb({
-  conversationId,
-  project,
-  organization,
-}: {
-  conversationId: string;
-  organization: Organization;
-  project?: AvatarProject;
-}) {
-  const displayId = isUUID(conversationId) ? conversationId.slice(0, 8) : conversationId;
-
-  return (
-    <RevealOnHover minWidth={0}>
-      {project && (
-        <ProjectBadge
-          project={project}
-          avatarSize={16}
-          disableLink
-          hideName
-          avatarProps={{hasTooltip: true, tooltip: project.slug}}
-        />
-      )}
-      <Tooltip
-        title={conversationId}
-        showOnlyOnOverflow={!isUUID(conversationId)}
-        skipWrapper
-      >
-        <Text>{displayId}</Text>
-      </Tooltip>
-      <RevealOnHover.Action>
-        <CopyToClipboardButton
-          size="zero"
-          variant="transparent"
-          aria-label={t('Copy conversation ID')}
-          tooltipProps={{title: t('Copy conversation ID')}}
-          text={conversationId}
-          onCopy={() =>
-            trackAnalytics('conversations.detail.copy-conversation-id', {organization})
-          }
-        />
-      </RevealOnHover.Action>
-    </RevealOnHover>
   );
 }

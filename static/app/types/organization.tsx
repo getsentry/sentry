@@ -113,12 +113,6 @@ export interface Organization extends OrganizationSummary {
   enableSeerCoding?: boolean;
   enabledConsolePlatforms?: string[];
   experiments?: Record<string, string>;
-  extraOptions?: {
-    traces: {
-      checkSpanExtractionDate: boolean;
-      spansExtractionDate: number;
-    };
-  };
   ingestThroughTrustedRelaysOnly?: 'enabled' | 'disabled';
   orgRole?: string;
   planSampleRate?: number | null;
@@ -166,7 +160,6 @@ export interface Member {
   };
   id: string;
   inviteStatus: 'approved' | 'requested_to_be_invited' | 'requested_to_join';
-  invite_link: string | null;
   inviterName: string | null;
   isOnlyOwner: boolean;
   name: string;

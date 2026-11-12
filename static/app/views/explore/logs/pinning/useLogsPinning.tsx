@@ -1,9 +1,8 @@
 import {useCallback, useMemo} from 'react';
 import {parseAsArrayOf, parseAsString, useQueryState} from 'nuqs';
 
-import {useOurLogsPinningEnabled} from 'sentry/views/explore/logs/pinning/useOurLogsPinning';
-
-const LOGS_PINNED_KEY = 'logsPinned';
+export const LOGS_PINNED_KEY = 'logsPinned';
+export const logsPinnedParser = parseAsArrayOf(parseAsString);
 
 export interface LogsPinning {
   clearPinnedRows: () => void;
@@ -14,10 +13,9 @@ export interface LogsPinning {
 }
 
 export function useLogsPinning(): LogsPinning | undefined {
-  const logsPinningEnabled = useOurLogsPinningEnabled();
   const [pinnedRowsList, setPinnedRowsList] = useQueryState(
     LOGS_PINNED_KEY,
-    parseAsArrayOf(parseAsString).withDefault([]).withOptions({history: 'replace'})
+    logsPinnedParser.withDefault([]).withOptions({history: 'replace'})
   );
 
   const pinnedRows = useMemo(() => new Set(pinnedRowsList), [pinnedRowsList]);
@@ -54,7 +52,7 @@ export function useLogsPinning(): LogsPinning | undefined {
     setPinnedRowsList([]);
   }, [setPinnedRowsList]);
 
-  const value = useMemo(
+  return useMemo(
     () => ({
       clearPinnedRows,
       getPinnedRowIds,
@@ -64,6 +62,4 @@ export function useLogsPinning(): LogsPinning | undefined {
     }),
     [clearPinnedRows, getPinnedRowIds, hasPinnedRow, removePinnedRows, togglePinnedRow]
   );
-
-  return logsPinningEnabled ? value : undefined;
 }

@@ -1,16 +1,17 @@
 import {Fragment} from 'react';
 
-import {AlertLink} from '@sentry/scraps/alert';
+import {Link} from '@sentry/scraps/link';
 
-import type {GroupIntegrationIssueResult} from 'sentry/components/group/externalIssuesList/hooks/types';
-import {useGroupExternalIssues} from 'sentry/components/group/externalIssuesList/hooks/useGroupExternalIssues';
-import {InlineIssueTrackerActions} from 'sentry/components/group/externalIssuesList/issueTrackerActions';
-import {LinkedIssueRows} from 'sentry/components/group/externalIssuesList/linkedIssueRows';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import type {GroupIntegrationIssueResult} from './hooks/types';
+import {useGroupExternalIssues} from './hooks/useGroupExternalIssues';
+import {InlineIssueTrackerActions} from './issueTrackerActions';
+import {LinkedIssueRows} from './linkedIssueRows';
 
 interface ExternalIssueListProps {
   event: Event;
@@ -52,12 +53,9 @@ export function ExternalIssueListContent({
   const hasLinkedIssuesOrIntegrations = integrations.length || linkedIssues.length;
   if (!hasLinkedIssuesOrIntegrations) {
     return (
-      <AlertLink
-        variant="muted"
-        to={`/settings/${organization.slug}/integrations/?category=issue%20tracking`}
-      >
+      <Link to={`/settings/${organization.slug}/integrations/?category=issue%20tracking`}>
         {t('Track this issue in Jira, GitHub, etc.')}
-      </AlertLink>
+      </Link>
     );
   }
 

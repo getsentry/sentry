@@ -5,12 +5,13 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import type {ExtrapolationMode} from 'sentry/views/insights/common/queries/types';
+import type {SpanProperty, SpanResponse} from 'sentry/views/insights/types';
+
+import type {ExtrapolationMode} from './types';
 import {
   useWrappedDiscoverQuery,
   useWrappedDiscoverQueryWithoutPageFilters,
-} from 'sentry/views/insights/common/queries/useSpansQuery';
-import type {SpanProperty, SpanResponse} from 'sentry/views/insights/types';
+} from './useSpansQuery';
 
 interface UseDiscoverQueryOptions {
   additonalQueryKey?: string[];
@@ -22,10 +23,8 @@ interface UseDiscoverOptions<Fields> {
   enabled?: boolean;
   extrapolationMode?: ExtrapolationMode;
   fields?: Fields;
-  keepPreviousData?: boolean;
   limit?: number;
   noPagination?: boolean;
-  orderby?: string | string[];
   pageFilters?: PageFilters;
   projectIds?: number[];
   /**
@@ -52,6 +51,19 @@ export const useSpans = <Fields extends SpanProperty[]>(
   return useDiscover<Fields, SpanResponse>(options, DiscoverDatasets.SPANS, referrer);
 };
 
+type TraceMetricsResponse = Record<string, string | number | null | undefined>;
+
+export const useTraceMetrics = <Fields extends string[]>(
+  options: UseDiscoverOptions<Fields> = {},
+  referrer: string
+) => {
+  return useDiscover<Fields, TraceMetricsResponse>(
+    options,
+    DiscoverDatasets.TRACEMETRICS,
+    referrer
+  );
+};
+
 const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, ResponseType>(
   options: UseDiscoverOptions<T> = {},
   dataset: DiscoverDatasets,
@@ -66,7 +78,6 @@ const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, Respo
     pageFilters: pageFiltersFromOptions,
     noPagination,
     projectIds,
-    orderby,
     samplingMode = DEFAULT_SAMPLING_MODE,
     extrapolationMode,
     useQueryOptions,
@@ -80,14 +91,17 @@ const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, Respo
     sorts,
     pageFiltersFromOptions ?? pageFilters.selection,
     dataset,
-    projectIds,
-    orderby
+    projectIds
   );
 
+  // oxlint-disable-next-line react/hooks -- queryWithoutPageFilters is a constant per call site, so the branch never flips.
   const queryFn = options.queryWithoutPageFilters
-    ? useWrappedDiscoverQueryWithoutPageFilters
-    : useWrappedDiscoverQuery;
+    ? // oxlint-disable-next-line react/hooks -- queryWithoutPageFilters is a constant per call site, so the branch never flips.
+      useWrappedDiscoverQueryWithoutPageFilters
+    : // oxlint-disable-next-line react/hooks -- queryWithoutPageFilters is a constant per call site, so the branch never flips.
+      useWrappedDiscoverQuery;
 
+  // oxlint-disable-next-line react/hooks -- queryWithoutPageFilters is a constant per call site, so the branch never flips.
   const result = queryFn({
     eventView,
     initialData: [],
@@ -100,7 +114,6 @@ const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, Respo
     extrapolationMode,
     additionalQueryKey: useQueryOptions?.additonalQueryKey,
     refetchInterval: useQueryOptions?.refetchInterval,
-    keepPreviousData: options.keepPreviousData,
   });
 
   // This type is a little awkward but it explicitly states that the response could be empty. This doesn't enable unchecked access errors, but it at least indicates that it's possible that there's no data
@@ -119,8 +132,7 @@ export function getEventView(
   sorts: Sort[] = [],
   pageFilters: PageFilters,
   dataset: DiscoverDatasets,
-  projectIds?: number[],
-  orderby?: string | string[]
+  projectIds?: number[]
 ) {
   const query = typeof search === 'string' ? search : (search?.formatString() ?? '');
 
@@ -131,7 +143,6 @@ export function getEventView(
       fields,
       dataset,
       version: 2,
-      orderby,
     },
     pageFilters
   );

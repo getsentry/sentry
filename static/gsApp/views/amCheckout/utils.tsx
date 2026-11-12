@@ -9,18 +9,22 @@ import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import {useApi} from 'sentry/utils/useApi';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import type {Reservations} from 'getsentry/components/upgradeNowModal/types';
-import {MONTHLY, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
+import {THREE_DS_REFERRER, MONTHLY, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {AddOnCategory, ReservedBudgetCategoryType} from 'getsentry/types';
 import type {
   BillingDetails,
   CheckoutAddOns,
   EventBucket,
+  Invoice,
   InvoiceItemType,
   OnDemandBudgets,
   Plan,
@@ -44,27 +48,11 @@ import type {
   CheckoutFormData,
   PlanContent,
 } from 'getsentry/views/amCheckout/types';
-import {bigNumFormatter} from 'getsentry/views/spendAllocations/utils';
 import {
   normalizeOnDemandBudget,
   parseOnDemandBudgetsFromSubscription,
   trackOnDemandBudgetAnalytics,
 } from 'getsentry/views/spendLimits/utils';
-
-const CURRENCY_LOCALE = 'en-US';
-
-/**
- * Includes $, and cents in the price when needed.
- *
- * 100.01 => $100.01
- * 100.00 => $100
- * 100.30 => $100.30
- * -100 => -$100
- */
-type DisplayPriceTypes = {
-  cents: number;
-  formatBigNum?: boolean;
-};
 
 // Intent details returned by CustomerSubscriptionEndpoint
 // when there is an error and customer card actions are
@@ -83,89 +71,6 @@ type APIDataProps = {
   referrer?: string;
   shouldUpdateOnDemand?: boolean;
 };
-
-export function displayPrice({cents, formatBigNum = false}: DisplayPriceTypes): string {
-  const dollars = cents / 100;
-  const prefix = dollars >= 0 ? '$' : '-$';
-
-  if (formatBigNum) {
-    return prefix + bigNumFormatter(Math.abs(dollars));
-  }
-  const hasCents = dollars % 1 !== 0;
-  if (hasCents) {
-    return displayPriceWithCents({cents});
-  }
-  return prefix + Math.abs(dollars).toLocaleString(CURRENCY_LOCALE);
-}
-
-/**
- * Always include $ and cents in the price.
- *
- * $100.01 => $100.01
- * $100.00 => $100.00
- * $100.30 => $100.30
- * -100 => -$100.00
- */
-export function displayPriceWithCents({
-  cents,
-  minimumFractionDigits,
-  maximumFractionDigits,
-}: {
-  cents: number;
-  maximumFractionDigits?: number;
-  minimumFractionDigits?: number;
-}): string {
-  const dollars = cents / 100;
-  const prefix = dollars >= 0 ? '$' : '-$';
-
-  return (
-    prefix +
-    Math.abs(dollars).toLocaleString(CURRENCY_LOCALE, {
-      minimumFractionDigits: minimumFractionDigits ?? 2,
-      maximumFractionDigits: maximumFractionDigits ?? 2,
-    })
-  );
-}
-
-type UnitPriceProps = {
-  cents: number;
-  maxDigits?: number;
-  minDigits?: number;
-};
-
-/**
- * Includes cents in the price when needed and excludes $ for separate formatting.
- * Note: Use `displayPrice` if prices can be negative (ex: credits)
- *
- * 100.01 => 100.01
- * 100.00 => 100
- * 100.30 => 100.30
- * -100 => -100
- */
-export function formatPrice({cents}: {cents: number}): string {
-  return displayPrice({cents}).replace('$', '');
-}
-
-/**
- * Format per unit price for events,
- * where errors and transactions default to 5 digits
- * and attachments should use 2 digits.
- */
-export function displayUnitPrice({
-  cents,
-  minDigits = 5,
-  maxDigits = 7,
-}: UnitPriceProps): string {
-  const dollars = cents / 100;
-
-  return (
-    '$' +
-    dollars.toLocaleString(CURRENCY_LOCALE, {
-      minimumFractionDigits: minDigits,
-      maximumFractionDigits: maxDigits,
-    })
-  );
-}
 
 export function getBucket({
   buckets,
@@ -191,10 +96,6 @@ type ReservedTotalProps = {
   plan: Plan;
   reserved: Partial<Record<DataCategory, number>>;
   addOns?: CheckoutAddOns;
-  amount?: number;
-  creditCategory?: InvoiceItemType;
-  discountType?: string;
-  maxDiscount?: number;
 };
 
 /**
@@ -226,22 +127,9 @@ function getReservedPriceForReservedBudgetCategory({
 export function getReservedPriceCents({
   plan,
   reserved,
-  amount,
-  discountType,
-  maxDiscount,
-  creditCategory,
   addOns,
 }: ReservedTotalProps): number {
   let reservedCents = plan.basePrice;
-
-  if (amount && discountType && creditCategory) {
-    reservedCents = getDiscountedPrice({
-      basePrice: reservedCents,
-      amount,
-      discountType,
-      creditCategory,
-    });
-  }
 
   Object.entries(reserved).forEach(
     ([category, quantity]) =>
@@ -260,38 +148,7 @@ export function getReservedPriceCents({
     }
   });
 
-  if (amount && maxDiscount) {
-    const discount = Math.min(maxDiscount, (reservedCents * amount) / 10000);
-    reservedCents -= discount;
-  }
-
   return reservedCents;
-}
-
-type DiscountedPriceProps = {
-  amount: number;
-  basePrice: number;
-  creditCategory: InvoiceItemType | null;
-  discountType: string;
-};
-
-/**
- * Gets the price in cents after the discount is applied.
- */
-export function getDiscountedPrice({
-  basePrice,
-  discountType,
-  amount,
-  creditCategory,
-}: DiscountedPriceProps): number {
-  let price = basePrice;
-  if (discountType === 'percentPoints' && creditCategory === 'subscription') {
-    const discount = (basePrice * amount) / 10000;
-    price = basePrice - discount;
-  } else if (discountType === 'amountCents') {
-    price = basePrice - amount;
-  }
-  return price;
 }
 
 /**
@@ -330,7 +187,7 @@ function recordAnalytics(
   data: CheckoutAPIData,
   isMigratingPartnerAccount: boolean
 ) {
-  trackMarketingEvent('Upgrade', {plan: data.plan});
+  trackMarketingEvent('Upgrade');
   const currentData: CheckoutData = {
     plan: data.plan,
   };
@@ -620,7 +477,7 @@ export function useSubmitCheckout({
   previewData?: PreviewData;
   referrer?: string;
 }) {
-  const api = useApi({});
+  const navigate = useNavigate();
 
   // this is necessary for recording partner billing migration-specific analytics after
   // the migration is successful (during which the flag is flipped off)
@@ -628,13 +485,18 @@ export function useSubmitCheckout({
 
   return useMutation({
     mutationFn: ({data}: {data: CheckoutAPIData}) => {
-      return api.requestPromise(
-        `/customers/${organization.slug}/subscription/?expand=invoice`,
-        {
-          method: 'PUT',
-          data,
-        }
-      );
+      return fetchMutation<{
+        invoice?: Invoice;
+        invoiceGuid?: string;
+        paymentRequiresAction?: boolean;
+      }>({
+        url: getApiUrl('/customers/$organizationIdOrSlug/subscription/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+        method: 'PUT',
+        data,
+        options: {query: {expand: 'invoice'}},
+      });
     },
     onSuccess: (response, _variables) => {
       recordAnalytics(
@@ -652,12 +514,25 @@ export function useSubmitCheckout({
         (_variables.data.addOnLegacySeer || _variables.data.addOnSeer) && !alreadyHasSeer;
 
       // refresh org and subscription state
-      // useApi cancels open requests on unmount by default, so we create a new Client to ensure this
-      // request doesn't get cancelled
       fetchOrganizationDetails(new Client(), organization.slug);
       SubscriptionStore.loadData(organization.slug);
 
       const {invoice} = response;
+
+      // The plan change went through, but the bank wants the cardholder to
+      // authenticate before releasing the money. Send them to the invoice,
+      // which opens the payment modal on arrival and resumes the same charge.
+      // Deliberately not the checkout success screen: nothing is paid yet, and
+      // showing a receipt would say otherwise.
+      if (response.paymentRequiresAction && response.invoiceGuid) {
+        navigate(
+          normalizeUrl(
+            `/settings/${organization.slug}/billing/receipts/${response.invoiceGuid}/?referrer=${THREE_DS_REFERRER}`
+          )
+        );
+        return;
+      }
+
       const nextQueryParams = [referrer];
       if (justBoughtSeer) {
         nextQueryParams.push('showSeerAutomationAlert=true');
@@ -666,6 +541,7 @@ export function useSubmitCheckout({
     },
     onError: (error: RequestError, _variables) => {
       const body = error.responseJSON;
+      onSubmitting?.(false);
 
       if (body?.previewToken) {
         onErrorMessage(
@@ -700,7 +576,6 @@ export function useSubmitCheckout({
               t('An unknown error occurred while saving your subscription')
           );
         }
-        onSubmitting?.(false);
 
         // TODO: add 402 ignoring once we've confirmed all valid error states
         Sentry.withScope(scope => {

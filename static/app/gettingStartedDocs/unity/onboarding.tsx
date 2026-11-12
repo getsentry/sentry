@@ -76,19 +76,6 @@ export const onboarding: OnboardingConfig = {
           ],
         },
         {
-          type: 'conditional',
-          condition: params.isMetricsSelected,
-          content: [
-            {
-              type: 'text',
-              text: tct(
-                'To enable metrics, navigate to [strong:Tools > Sentry > Advanced > Metrics] and check the [strong:Enable Metrics] option.',
-                {strong: <strong />}
-              ),
-            },
-          ],
-        },
-        {
           type: 'text',
           text: tct(
             'If you like additional contexts you could enable [link:Screenshots].',

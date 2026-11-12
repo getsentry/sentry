@@ -1,8 +1,10 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from sentry.api.event_search import ParenExpression, parse_search_query
+from sentry.models.project import Project
+from sentry.relay.types import RuleCondition
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     OnDemandMetricSpec,
@@ -20,7 +22,7 @@ from sentry.utils.glob import glob_match
 
 
 @django_db_all
-def test_equality_of_specs(default_project) -> None:
+def test_equality_of_specs(default_project: Project) -> None:
     spec_1 = OnDemandMetricSpec("count()", "issue:FOO", groupbys=["release", "country_code"])
     spec_2 = OnDemandMetricSpec("count()", "issue:FOO", groupbys=["country_code", "release"])
     assert are_specs_equal(
@@ -28,72 +30,9 @@ def test_equality_of_specs(default_project) -> None:
     )
 
 
-@pytest.mark.parametrize(
-    "agg, query, result",
-    [
-        ("count()", "release:a", False),  # supported by standard metrics
-        ("failure_rate()", "release:a", False),  # supported by standard metrics
-        # geo.city not supported by standard metrics
-        ("count_unique(geo.city)", "release:a", True),
-        # transaction.duration not supported by standard metrics
-        ("count()", "transaction.duration:>1", True),
-        ("epm()", "transaction.duration:>1", True),
-        ("eps()", "transaction.duration:>1", True),
-        ("epm()", "", False),  # supported by standard metrics
-        ("eps()", "", False),  # supported by standard metrics
-        # the endpoints introduce the field based on the interval
-        ("epm(900)", "", False),  # supported by standard metrics
-        ("eps(900)", "", False),  # supported by standard metrics
-        ("failure_count()", "transaction.duration:>1", True),  # supported by on demand
-        ("failure_rate()", "transaction.duration:>1", True),  # supported by on demand
-        ("apdex(10)", "", True),  # every apdex query is on-demand
-        ("apdex(10)", "transaction.duration:>10", True),  # supported by on demand
-        # count_if supported by standard metrics
-        ("count_if(transaction.duration,equals,0)", "release:a", False),
-        ("p75(transaction.duration)", "release:a", False),  # supported by standard metrics
-        # transaction.duration query is on-demand
-        ("p75(transaction.duration)", "transaction.duration:>1", True),
-        ("p90(transaction.duration)", "release:a", False),  # supported by standard metrics
-        # transaction.duration query is on-demand
-        ("p90(transaction.duration)", "transaction.duration:>1", True),
-        # supported by standard metrics
-        ("percentile(transaction.duration, 0.9)", "release:a", False),
-        # transaction.duration query is on-demand
-        ("percentile(transaction.duration, 0.9)", "transaction.duration:>1", True),
-        # supported by standard metrics
-        ("percentile(transaction.duration, 0.90)", "release:a", False),
-        ("percentile(transaction.duration, 0.90)", "transaction.duration:>1", True),
-        ("count()", "", False),  # Malformed aggregate should return false
-        # event.type:error not supported by metrics
-        ("count()", "event.type:error transaction.duration:>0", False),
-        # event.type:error not supported by metrics
-        ("count()", "event.type:default transaction.duration:>0", False),
-        # error.handled is an error search term
-        ("count()", "error.handled:true transaction.duration:>0", False),
-        ("user_misery(300)", "", True),
-        ("user_misery(300)", "transaction.duration:>0", True),
-    ],
-)
-@django_db_all
-def test_should_use_on_demand(agg: str, query: str, result: bool) -> None:
-    assert should_use_on_demand_metrics(Dataset.PerformanceMetrics, agg, query) is result
-
-
-@pytest.mark.parametrize(
-    "agg, query, result",
-    [
-        ("p75(d:transactions/measurements.fcp@millisecond)", "release:a", False),
-        ("p75(d:transactions/measurements.fcp@millisecond)", "transaction.duration:>0", False),
-        ("p95(d:spans/duration@millisecond)", "release:a", False),
-        ("p95(d:spans/duration@millisecond)", "transaction.duration:>0", False),
-    ],
-)
-@django_db_all
-def test_should_use_on_demand_with_mri(agg, query, result) -> None:
-    assert should_use_on_demand_metrics(Dataset.PerformanceMetrics, agg, query) is result
-
-
-def create_spec_if_needed(dataset, agg, query) -> OnDemandMetricSpec | None:
+def create_spec_if_needed(
+    dataset: str | Dataset | None, agg: str, query: str
+) -> OnDemandMetricSpec | None:
     return (
         OnDemandMetricSpec(agg, query)
         if should_use_on_demand_metrics(dataset, agg, query)
@@ -101,84 +40,11 @@ def create_spec_if_needed(dataset, agg, query) -> OnDemandMetricSpec | None:
     )
 
 
-class TestCreatesOndemandMetricSpec:
-    dataset = Dataset.PerformanceMetrics
-
-    @pytest.mark.parametrize(
-        "aggregate, query",
-        [
-            # transaction duration not supported by standard metrics
-            ("count()", "transaction.duration:>0"),
-            ("count()", "user.ip:192.168.0.1"),
-            ("count()", "user.username:foobar"),
-            ("count()", "transaction.duration:>0 event.type:transaction project:abc"),
-            ("count()", "(transaction.duration:>0) AND (event.type:transaction)"),
-            ("p75(measurements.fp)", "transaction.duration:>0"),
-            ("p75(transaction.duration)", "transaction.duration:>0"),
-            ("p100(transaction.duration)", "transaction.duration:>0"),
-            # we don't support custom percentiles that can be mapped to one of standard percentiles
-            ("percentile(transaction.duration, 0.5)", "transaction.duration>0"),
-            ("percentile(transaction.duration, 0.50)", "transaction.duration>0"),
-            ("percentile(transaction.duration, 0.9)", "transaction.duration>0"),
-            ("percentile(transaction.duration, 0.90)", "transaction.duration>0"),
-            ("percentile(transaction.duration, 0.95)", "transaction.duration>0"),
-            ("percentile(transaction.duration, 0.99)", "transaction.duration>0"),
-            ("percentile(transaction.duration, 1)", "transaction.duration>0"),
-            ("count_if(transaction.duration,equals,0)", "transaction.duration:>0"),
-            ("count_if(transaction.duration,notEquals,0)", "transaction.duration:>0"),
-            # custom tags not supported by standard metrics
-            ("count()", "project:a-1 route.action:CloseBatch"),
-            ("count()", "transaction.duration:[1,2,3]"),
-            ("count()", "project:a_1 or project:b-2 or transaction.duration:>0"),
-            ("count()", "foo:bar"),  # custom tags not supported by standard metrics
-            ("failure_count()", "transaction.duration:>100"),
-            ("failure_rate()", "transaction.duration:>100"),
-            ("apdex(10)", "transaction.duration:>100"),
-            # count_web_vitals supported by on demand
-            ("count_web_vitals(measurements.fcp,any)", "transaction.duration:>0"),
-            # apdex with specified threshold is on-demand metric even without query
-            ("apdex(10)", ""),
-            ("count()", "transaction.duration:>0 my-transaction"),
-            ("count()", "transaction.source:route"),
-        ],
-    )
-    @django_db_all
-    def test_creates_on_demand_spec(self, aggregate, query) -> None:
-        assert create_spec_if_needed(self.dataset, aggregate, query)
-
-    @pytest.mark.parametrize(
-        "aggregate, query",
-        [
-            ("count()", "release:a"),  # supported by standard metrics
-            ("last_seen()", "transaction.duration:>0"),  # last_seen not supported by on demand
-            ("any(user)", "transaction.duration:>0"),  # any not supported by on demand
-            ("p95(transaction.duration)", ""),  # p95 without query is supported by standard metrics
-            # we do not support custom percentiles that can not be mapped to one of standard percentiles
-            ("percentile(transaction.duration, 0.123)", "transaction.duration>0"),
-            # p75 without query is supported by standard metrics
-            ("count()", "p75(transaction.duration):>0"),
-            ("message", "transaction.duration:>0"),  # message not supported by on demand
-            # equation not supported by on demand
-            ("equation| count() / count()", "transaction.duration:>0"),
-            ("p75(measurements.lcp)", "!event.type:transaction"),  # supported by standard metrics
-            # supported by standard metrics
-            ("p95(measurements.lcp)", ""),
-            ("avg(spans.http)", ""),
-            ("failure_count()", ""),
-            ("failure_rate()", "release:bar"),
-            ("failure_rate()", ""),
-        ],
-    )
-    @django_db_all
-    def test_does_not_create_on_demand_spec(self, aggregate, query) -> None:
-        assert not create_spec_if_needed(self.dataset, aggregate, query)
-
-
 @pytest.mark.parametrize(
     "percentile",
     [0.5, 0.75, 0.9, 0.95, 0.99],
 )
-def test_spec_equivalence_with_percentiles(percentile) -> None:
+def test_spec_equivalence_with_percentiles(percentile: float) -> None:
     fixed_percentile = f"p{int(percentile * 100)}"
 
     spec_1 = OnDemandMetricSpec(f"{fixed_percentile}(measurements.fp)", "transaction.duration:>1s")
@@ -196,6 +62,7 @@ def test_spec_simple_query_count() -> None:
     spec = OnDemandMetricSpec("count()", "transaction.duration:>1s")
 
     assert spec._metric_type == "c"
+    assert spec.mri == "c:spans/on_demand@none"
     assert spec.field_to_extract is None
     assert spec.op == "sum"
     assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
@@ -205,6 +72,7 @@ def test_spec_simple_query_distribution() -> None:
     spec = OnDemandMetricSpec("p75(measurements.fp)", "transaction.duration:>1s")
 
     assert spec._metric_type == "d"
+    assert spec.mri == "d:spans/on_demand@none"
     assert spec.field_to_extract == "event.measurements.fp.value"
     assert spec.op == "p75"
     assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
@@ -445,7 +313,7 @@ def test_spec_wildcard() -> None:
         ("title:*?dispatch*", "backend ?dispatch", r"*\?dispatch*"),
     ],
 )
-def test_spec_wildcard_escaping(query, title, expected_pattern) -> None:
+def test_spec_wildcard_escaping(query: str, title: str, expected_pattern: str) -> None:
     spec = OnDemandMetricSpec("count()", query)
 
     assert spec._metric_type == "c"
@@ -602,7 +470,7 @@ def test_spec_ignore_timestamp() -> None:
 
 
 @django_db_all
-def test_spec_failure_count(default_project) -> None:
+def test_spec_failure_count(default_project: Project) -> None:
     spec = OnDemandMetricSpec("failure_count()", "transaction.duration:>1s")
 
     assert spec._metric_type == "c"
@@ -613,7 +481,7 @@ def test_spec_failure_count(default_project) -> None:
 
 
 @django_db_all
-def test_spec_failure_rate(default_project) -> None:
+def test_spec_failure_rate(default_project: Project) -> None:
     spec = OnDemandMetricSpec("failure_rate()", "transaction.duration:>1s")
 
     assert spec._metric_type == "c"
@@ -625,7 +493,7 @@ def test_spec_failure_rate(default_project) -> None:
 
 @django_db_all
 @patch("sentry.snuba.metrics.extraction._get_satisfactory_metric")
-def test_spec_apdex(_get_satisfactory_metric, default_project) -> None:
+def test_spec_apdex(_get_satisfactory_metric: MagicMock, default_project: Project) -> None:
     _get_satisfactory_metric.return_value = "transaction.duration"
 
     spec = OnDemandMetricSpec("apdex(10)", "release:a")
@@ -639,7 +507,7 @@ def test_spec_apdex(_get_satisfactory_metric, default_project) -> None:
 
 @django_db_all
 @patch("sentry.snuba.metrics.extraction._get_satisfactory_metric")
-def test_spec_apdex_decimal(_get_satisfactory_metric, default_project) -> None:
+def test_spec_apdex_decimal(_get_satisfactory_metric: MagicMock, default_project: Project) -> None:
     _get_satisfactory_metric.return_value = "transaction.duration"
 
     spec = OnDemandMetricSpec("apdex(0.8)", "release:a")
@@ -652,7 +520,7 @@ def test_spec_apdex_decimal(_get_satisfactory_metric, default_project) -> None:
 
 
 @django_db_all
-def test_spec_epm(default_project) -> None:
+def test_spec_epm(default_project: Project) -> None:
     spec = OnDemandMetricSpec("epm()", "transaction.duration:>1s")
 
     assert spec._metric_type == "c"
@@ -663,7 +531,7 @@ def test_spec_epm(default_project) -> None:
 
 
 @django_db_all
-def test_spec_eps(default_project) -> None:
+def test_spec_eps(default_project: Project) -> None:
     spec = OnDemandMetricSpec("eps()", "transaction.duration:>1s")
 
     assert spec._metric_type == "c"
@@ -701,7 +569,7 @@ def test_cleanup_equivalent_specs() -> None:
         "(isNightlyBuild:true OR environment:production)",
     ],
 )
-def test_cleanup_with_environment_injection(query) -> None:
+def test_cleanup_with_environment_injection(query: str) -> None:
     # We are simulating the transformation that the frontend performs in the query, since they add the
     # AND (`event.type:transaction`) at the end.
     field = "count()"
@@ -724,7 +592,9 @@ def test_cleanup_with_environment_injection(query) -> None:
 
 @django_db_all
 @patch("sentry.snuba.metrics.extraction._get_satisfactory_metric")
-def test_spec_apdex_without_condition(_get_satisfactory_metric, default_project) -> None:
+def test_spec_apdex_without_condition(
+    _get_satisfactory_metric: MagicMock, default_project: Project
+) -> None:
     _get_satisfactory_metric.return_value = "transaction.duration"
 
     spec = OnDemandMetricSpec("apdex(10)", "")
@@ -750,7 +620,7 @@ def test_spec_custom_tag() -> None:
         "(release:a OR (transaction.op:b and browser.version:1)) transaction.duration:>1s",
     ],
 )
-def test_query_tokens_to_string(query) -> None:
+def test_query_tokens_to_string(query: str) -> None:
     tokens = parse_search_query(query)
     new_query = query_tokens_to_string(tokens)
     new_tokens = parse_search_query(new_query)
@@ -771,7 +641,7 @@ def test_query_tokens_to_string(query) -> None:
         ),
     ],
 )
-def test_to_standard_metrics_query(dirty, clean) -> None:
+def test_to_standard_metrics_query(dirty: str, clean: str) -> None:
     cleaned_up_query = to_standard_metrics_query(dirty)
     cleaned_up_tokens = parse_search_query(cleaned_up_query)
     clean_tokens = parse_search_query(clean)
@@ -795,7 +665,7 @@ def test_to_standard_metrics_query(dirty, clean) -> None:
         ),
     ],
 )
-def test_search_query_converter(query, expected) -> None:
+def test_search_query_converter(query: str, expected: RuleCondition) -> None:
     tokens = parse_search_query(query)
     converter = SearchQueryConverter(tokens)
     condition = converter.convert()
@@ -820,7 +690,7 @@ def test_search_query_converter(query, expected) -> None:
         (" (AND) And (And) Or release:initial or (and) or", "release:initial"),
     ],
 )
-def test_cleanup_query(dirty, clean) -> None:
+def test_cleanup_query(dirty: str, clean: str) -> None:
     dirty_tokens = parse_search_query(dirty)
     clean_tokens = parse_search_query(clean)
     actual_clean = cleanup_search_query(dirty_tokens)

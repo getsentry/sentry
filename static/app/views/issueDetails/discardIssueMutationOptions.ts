@@ -1,9 +1,11 @@
 import {mutationOptions} from '@tanstack/react-query';
 
-import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {uniqueId} from 'sentry/utils/guid';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {useNavigate} from 'sentry/utils/useNavigate';
@@ -23,12 +25,17 @@ export function discardIssueMutationOptions({
     mutationFn: (variables: DiscardIssueVariables) =>
       fetchMutation({
         method: 'PUT',
-        url: `/issues/${variables.groupId}/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/', {
+          path: {
+            organizationIdOrSlug: variables.orgSlug,
+            issueId: String(variables.groupId),
+          },
+        }),
         data: {discard: true},
       }),
     onMutate: variables => {
       const changeId = uniqueId();
-      addLoadingMessage(t('Discarding event\u2026'));
+      toast.loading(t('Discarding event\u2026'));
       GroupStore.onDiscard(changeId, variables.groupId);
       IssueListCacheStore.reset();
       return {changeId};
@@ -46,7 +53,7 @@ export function discardIssueMutationOptions({
       }
     },
     onSettled: () => {
-      clearIndicators();
+      toast.dismiss();
     },
   });
 }

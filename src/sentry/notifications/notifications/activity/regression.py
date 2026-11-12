@@ -21,6 +21,7 @@ class RegressionActivityNotification(GroupActivityNotification):
         super().__init__(activity)
         self.version = self.activity.data.get("version", "")
         self.version_parsed = parse_release(self.version, json_loads=orjson.loads)["description"]
+        self.regression_event_id: str | None = self.activity.data.get("event_id")
         self._apply_event_metadata()
 
     def _apply_event_metadata(self) -> None:
@@ -41,6 +42,15 @@ class RegressionActivityNotification(GroupActivityNotification):
         if "event_type" in self.activity.data:
             group_data["type"] = self.activity.data["event_type"]
         self.group.data = group_data
+
+    def get_group_link(self) -> str:
+        referrer = self.get_referrer(ExternalProviders.EMAIL)
+        return str(
+            self.group.get_absolute_url(
+                params={"referrer": referrer, "notification_uuid": self.notification_uuid},
+                event_id=self.regression_event_id,
+            )
+        )
 
     def get_description(self) -> tuple[str, str | None, Mapping[str, Any]]:
         text_message, html_message, params = "{author} marked {an issue} as a regression", None, {}

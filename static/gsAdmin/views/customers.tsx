@@ -5,7 +5,7 @@ export function Customers() {
   return (
     <div>
       <PageHeader title="Customers" />
-      <CustomerGrid endpoint="/customers/" />
+      <CustomerGrid endpoint="/customers/" allowAllRegions />
     </div>
   );
 }

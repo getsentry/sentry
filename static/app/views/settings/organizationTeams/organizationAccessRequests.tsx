@@ -3,14 +3,15 @@ import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {t, tct} from 'sentry/locale';
 import type {AccessRequest} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
 type Props = {
@@ -61,18 +62,19 @@ function AccessRequestItem({
     mutationFn: ({isApproved}: {isApproved: boolean}) => {
       return fetchMutation({
         method: 'PUT',
-        url: `/organizations/${orgSlug}/access-requests/${id}/`,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/access-requests/$requestId/',
+          {path: {organizationIdOrSlug: orgSlug, requestId: id}}
+        ),
         data: {isApproved},
       });
     },
     onSuccess: (_data, {isApproved}) => {
       onRemoveAccessRequest(id, isApproved);
-      addSuccessMessage(
-        isApproved ? t('Team request approved') : t('Team request denied')
-      );
+      toast.success(isApproved ? t('Team request approved') : t('Team request denied'));
     },
     onError: (_error, {isApproved}) => {
-      addErrorMessage(
+      toast.error(
         isApproved ? t('Error approving team request') : t('Error denying team request')
       );
     },

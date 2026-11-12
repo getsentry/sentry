@@ -83,6 +83,7 @@ class MetricAlertNotificationDataTest(TestCase):
             title_link="https://sentry.io/alerts/99/",
             text="100 events in the last minute",
             chart_url="https://chart.example.com/1.png",
+            notes="Check the runbook",
         )
 
         as_dict = original.dict()
@@ -93,6 +94,7 @@ class MetricAlertNotificationDataTest(TestCase):
         assert restored.notification_uuid == original.notification_uuid
         assert restored.action_id == original.action_id
         assert restored.new_status == original.new_status
+        assert restored.notes == original.notes
         assert restored.title == original.title
         assert restored.title_link == original.title_link
         assert restored.text == original.text

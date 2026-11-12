@@ -1,5 +1,4 @@
-import type {ComponentProps, CSSProperties} from 'react';
-import {parseAsInteger, useQueryState} from 'nuqs';
+import type {CSSProperties} from 'react';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -25,16 +24,17 @@ const EMPTY_CELL = '--';
 interface Props extends ReturnType<typeof useCrumbHandlers> {
   columnIndex: number;
   frame: SpanFrame;
+  isSelected: boolean;
   onClickCell: (props: {dataIndex: number; rowIndex: number}) => void;
   rowIndex: number;
   startTimestampMs: number;
   style: CSSProperties;
-  ref?: React.Ref<HTMLDivElement>;
 }
 
 export function NetworkTableCell({
   columnIndex,
   frame,
+  isSelected,
   onMouseEnter,
   onMouseLeave,
   onClickCell,
@@ -42,13 +42,9 @@ export function NetworkTableCell({
   rowIndex,
   startTimestampMs,
   style,
-  ref,
 }: Props) {
   // Rows include the sortable header, the dataIndex does not
   const dataIndex = rowIndex - 1;
-
-  const [detailRow] = useQueryState('n_detail_row', parseAsInteger);
-  const isSelected = detailRow === dataIndex;
 
   const method = getFrameMethod(frame);
   const statusCode = getFrameStatus(frame);
@@ -67,9 +63,8 @@ export function NetworkTableCell({
     onClick: () => onClickCell({dataIndex, rowIndex}),
     onMouseEnter: () => onMouseEnter(frame),
     onMouseLeave: () => onMouseLeave(frame),
-    ref,
     style,
-  } as ComponentProps<typeof Cell>;
+  };
 
   const renderFns = [
     () => (
@@ -87,7 +82,6 @@ export function NetworkTableCell({
         <Tooltip
           title={frame.description}
           delay={750}
-          isHoverable
           maxWidth={10_000}
           showOnlyOnOverflow
         >
@@ -97,7 +91,7 @@ export function NetworkTableCell({
     ),
     () => (
       <Cell {...columnProps}>
-        <Tooltip title={operationName(frame.op)} isHoverable showOnlyOnOverflow>
+        <Tooltip title={operationName(frame.op)} showOnlyOnOverflow>
           <Text>{operationName(frame.op)}</Text>
         </Tooltip>
       </Cell>

@@ -3,10 +3,10 @@ import {useTheme} from '@emotion/react';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
+// eslint-disable-next-line @sentry/scraps/no-token-import -- temporary until theme.borderWidth is exposed
+import {size} from '@sentry/scraps/tokens';
 
 import * as Storybook from 'sentry/stories';
-// eslint-disable-next-line @sentry/scraps/no-token-import -- temporary until theme.borderWidth is exposed
-import {size} from 'sentry/utils/theme/scraps/tokens/size';
 
 interface ColorGroup {
   tokens: Record<string, string>;
@@ -84,7 +84,7 @@ export function Radius() {
             background: theme.tokens.background.transparent.accent.muted,
           }}
           border="accent"
-          radius={token as any}
+          radius={token}
         />
       )}
     />
@@ -100,7 +100,7 @@ export function FontSize() {
       renderToken={({token}) => {
         if (['3xl', '4xl'].includes(token)) {
           return (
-            <Heading as="h4" size={token as any} variant="accent">
+            <Heading as="h4" size={token} variant="accent">
               Aa
             </Heading>
           );
@@ -130,7 +130,7 @@ export function FontWeight() {
       renderToken={({token, value}) => (
         <Text
           size="lg"
-          style={{fontWeight: value as any}}
+          style={{fontWeight: value}}
           monospace={token.startsWith('mono')}
           variant="accent"
         >
@@ -178,7 +178,7 @@ export function LineHeight() {
           borderBottom="accent"
           style={{boxSizing: 'border-box'}}
         >
-          <Text size="md" density={token as any} variant="accent">
+          <Text size="md" density={token} variant="accent">
             Aa
           </Text>
         </Flex>
@@ -222,7 +222,7 @@ export function ShadowOffset() {
             width: '32px',
             height: '32px',
             background: theme.tokens.background.primary,
-            boxShadow: `${value}`,
+            boxShadow: value,
           }}
           border="accent"
           radius="xs"

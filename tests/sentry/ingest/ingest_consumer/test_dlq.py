@@ -13,10 +13,11 @@ from sentry.conf.types.kafka_definition import Topic as TopicNames
 from sentry.event_manager import EventManager
 from sentry.ingest.consumer.factory import IngestStrategyFactory
 from sentry.ingest.types import ConsumerType
+from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
-def make_message(payload: bytes, partition: Partition, offset: int) -> Message:
+def make_message(payload: bytes, partition: Partition, offset: int) -> Message[KafkaPayload]:
     return Message(
         BrokerValue(
             KafkaPayload(None, payload, []),
@@ -36,7 +37,9 @@ def make_message(payload: bytes, partition: Partition, offset: int) -> Message:
     ],
 )
 @django_db_all
-def test_dlq_invalid_messages(factories, topic_name: str, consumer_type: ConsumerType) -> None:
+def test_dlq_invalid_messages(
+    factories: Factories, topic_name: str, consumer_type: ConsumerType
+) -> None:
     # Test is for all consumers that share the IngestStrategyFactory
     # Feedback test is located in feedback/consumers
     organization = factories.create_organization()
@@ -71,6 +74,7 @@ def test_dlq_invalid_messages(factories, topic_name: str, consumer_type: Consume
     factory = IngestStrategyFactory(
         consumer_type,
         reprocess_only_stuck_events=False,
+        reprocess_only_events_not_in_nodestore=False,
         stop_at_timestamp=False,
         num_processes=1,
         max_batch_size=1,

@@ -10,10 +10,17 @@ import {
   DataConditionHandlerFixture,
 } from 'sentry-fixture/workflowEngine';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Action} from 'sentry/types/workflowEngine/actions';
@@ -24,12 +31,13 @@ import {
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import AutomationNewSettings from 'sentry/views/automations/new';
+
+import AutomationNewSettings from './new';
 
 jest.mock('sentry/utils/analytics');
 
 describe('AutomationNewSettings', () => {
-  const organization = OrganizationFixture({features: ['workflow-engine-ui']});
+  const organization = OrganizationFixture();
   const mockMember = MemberFixture({
     user: UserFixture({id: '1', name: 'Moo Deng', email: 'moo.deng@sentry.io'}),
   });
@@ -224,12 +232,16 @@ describe('AutomationNewSettings', () => {
       /tagged event/i
     );
     const tagInput = await screen.findByRole('textbox', {name: 'Tag'});
-    await userEvent.type(tagInput, 'env{enter}');
-    await userEvent.type(screen.getByRole('textbox', {name: 'Value'}), 'prod');
+    await userEvent.click(tagInput);
+    await userEvent.paste('env');
+    await userEvent.keyboard('{enter}');
+    await userEvent.click(screen.getByRole('textbox', {name: 'Value'}));
+    await userEvent.paste('prod');
 
     // Add an action to the block (Slack), also updates the automatic naming
     await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), 'Slack');
-    await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts');
+    await userEvent.click(screen.getByRole('textbox', {name: 'Target'}));
+    await userEvent.paste('#alerts');
 
     // Add an email action
     await selectEvent.select(
@@ -348,30 +360,25 @@ describe('AutomationNewSettings', () => {
     };
 
     await addAction('Slack');
-    await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts', {
-      delay: null,
-    });
+    await userEvent.click(screen.getByRole('textbox', {name: 'Target'}));
+    await userEvent.paste('#alerts');
 
     await addAction('Slack (Staging)');
     {
       const stagingTargets = screen.getAllByRole('textbox', {name: 'Target'});
       const stagingTarget = stagingTargets.at(-1);
       expect(stagingTarget).toBeDefined();
-      await userEvent.type(stagingTarget!, '#staging-alerts', {
-        delay: null,
-      });
+      await userEvent.click(stagingTarget!);
+      await userEvent.paste('#staging-alerts');
     }
 
     await addAction('Discord');
-    await userEvent.type(screen.getByPlaceholderText('channel ID or URL'), '123', {
-      delay: null,
-    });
+    await userEvent.click(screen.getByPlaceholderText('channel ID or URL'));
+    await userEvent.paste('123');
 
     await addAction('MS Teams');
-    const targets = screen.getAllByRole('textbox', {name: 'Target'});
-    const msTeamsTarget = targets.at(-1);
-    expect(msTeamsTarget).toBeDefined();
-    await userEvent.type(msTeamsTarget!, 'alerts-team', {delay: null});
+    await userEvent.click(screen.getByPlaceholderText('channel name'));
+    await userEvent.paste('alerts-team');
 
     await addAction('Pagerduty');
     await addAction('Opsgenie');
@@ -535,7 +542,7 @@ describe('AutomationNewSettings', () => {
   }, 30000);
 
   it('sends test notification with project slug from connected monitor', async () => {
-    jest.spyOn(indicators, 'addSuccessMessage');
+    jest.spyOn(toast, 'success');
 
     const project = ProjectFixture({id: '1', slug: 'my-project'});
     ProjectsStore.loadInitialData([project]);
@@ -592,7 +599,7 @@ describe('AutomationNewSettings', () => {
     });
 
     await waitFor(() => {
-      expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Notification fired!');
+      expect(toast.success).toHaveBeenCalledWith('Notification fired!');
     });
   });
 
@@ -638,6 +645,29 @@ describe('AutomationNewSettings', () => {
     expect(await screen.findByText('my-project')).toBeInTheDocument();
   });
 
+  it('pre-selects the project from the project query param over page filters', async () => {
+    const queryProject = ProjectFixture({id: '2', slug: 'query-project', isMember: true});
+    const filterProject = ProjectFixture({
+      id: '3',
+      slug: 'filter-project',
+      isMember: true,
+    });
+    ProjectsStore.loadInitialData([queryProject, filterProject]);
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({projects: [Number(filterProject.id)]})
+    );
+
+    render(<AutomationNewSettings />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/', query: {project: queryProject.id}},
+      },
+    });
+
+    expect(await screen.findByText('query-project')).toBeInTheDocument();
+    expect(screen.queryByText('filter-project')).not.toBeInTheDocument();
+  });
+
   it('pre-selects the first member project when "my projects" is selected', async () => {
     const memberProject = ProjectFixture({
       id: '3',
@@ -658,8 +688,34 @@ describe('AutomationNewSettings', () => {
     expect(await screen.findByText('member-project')).toBeInTheDocument();
   });
 
+  it('pre-selects a writable project for a team admin', async () => {
+    const readOnlyProject = ProjectFixture({
+      id: '3',
+      slug: 'read-only-project',
+      isMember: true,
+      access: ['project:read', 'alerts:read'],
+    });
+    const writableProject = ProjectFixture({
+      id: '4',
+      slug: 'writable-project',
+      isMember: false,
+      access: ['project:read', 'alerts:write'],
+    });
+    ProjectsStore.loadInitialData([readOnlyProject, writableProject]);
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({projects: [Number(readOnlyProject.id)]})
+    );
+
+    render(<AutomationNewSettings />, {
+      organization: OrganizationFixture({access: ['org:read', 'alerts:read']}),
+    });
+
+    expect(await screen.findByText('writable-project')).toBeInTheDocument();
+    expect(screen.queryByText('read-only-project')).not.toBeInTheDocument();
+  });
+
   it('surfaces API error message when automation creation fails', async () => {
-    jest.spyOn(indicators, 'addErrorMessage');
+    jest.spyOn(toast, 'error');
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/workflows/`,
@@ -682,14 +738,49 @@ describe('AutomationNewSettings', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
 
     await waitFor(() => {
-      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
-        'You may not exceed 1000 workflows per organization.'
+      expect(toast.error).toHaveBeenCalledWith(
+        'You may not exceed 1000 workflows per organization.',
+        {duration: 10000}
       );
     });
   });
 
+  it('shows one error toast when creation fails validation', async () => {
+    jest.spyOn(toast, 'error');
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/workflows/`,
+      method: 'POST',
+      statusCode: 400,
+      body: {
+        actionFilters: {type: ['Organization does not allow this action type: slack']},
+      },
+    });
+
+    render(<AutomationNewSettings />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/', query: {connectedIds: '123'}},
+      },
+    });
+
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), 'Slack');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        'Organization does not allow this action type: slack',
+        {duration: 10000}
+      );
+    });
+    expect(toast.error).toHaveBeenCalledTimes(1);
+    expect(toast.error).not.toHaveBeenCalledWith('Unknown error while saving');
+  });
+
   it('surfaces error details when test notification fails', async () => {
-    jest.spyOn(indicators, 'addErrorMessage');
+    jest.spyOn(toast, 'error');
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/test-fire-actions/`,
@@ -707,7 +798,40 @@ describe('AutomationNewSettings', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Send Test Notification'}));
 
     await waitFor(() => {
-      expect(indicators.addErrorMessage).toHaveBeenCalledWith('Repository is required');
+      expect(toast.error).toHaveBeenCalledWith('Repository is required');
+    });
+  });
+
+  describe('breadcrumbs', () => {
+    it('renders the parent crumb in the trail and the placeholder name as the page title', async () => {
+      render(<AutomationNewSettings />, {organization});
+
+      const alertsCrumb = await screen.findByRole('link', {name: 'Alerts'});
+      expect(alertsCrumb).toHaveAttribute(
+        'href',
+        `/organizations/${organization.slug}/monitors/alerts/`
+      );
+
+      expect(
+        screen.getByRole('heading', {name: 'New Alert', level: 1})
+      ).toBeInTheDocument();
+
+      const trail = alertsCrumb.closest('ol')!;
+      expect(within(trail).queryByText('New Alert')).not.toBeInTheDocument();
+    });
+
+    it('names the alert from the page title', async () => {
+      render(<AutomationNewSettings />, {organization});
+
+      await userEvent.click(await screen.findByText('New Alert'));
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Alert Name'}),
+        'My new alert{enter}'
+      );
+
+      expect(
+        screen.getByRole('heading', {name: 'My new alert', level: 1})
+      ).toBeInTheDocument();
     });
   });
 });

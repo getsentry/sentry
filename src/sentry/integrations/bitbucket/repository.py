@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any
+import logging
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import TYPE_CHECKING, Any, cast
 
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.services.repository.service import repository_service
@@ -9,6 +10,8 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.locks import locks
 from sentry.models.apitoken import generate_token
 from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organization import Organization
+from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.plugins.providers.integration_repository import RepositoryConfig
@@ -19,16 +22,22 @@ from sentry.utils.http import absolute_uri
 if TYPE_CHECKING:
     from sentry.integrations.bitbucket.integration import BitbucketIntegration  # NOQA
 
+logger = logging.getLogger(__name__)
+
 
 class BitbucketRepositoryProvider(IntegrationRepositoryProvider["BitbucketIntegration"]):
     name = "Bitbucket"
     repo_provider = IntegrationProviderSlug.BITBUCKET.value
 
-    def get_repository_data(self, organization, config):
-        installation = self.get_installation(config.get("installation"), organization.id)
+    def get_repository_data(
+        self, organization: Organization, config: MutableMapping[str, object]
+    ) -> MutableMapping[str, object]:
+        installation_id = cast(int | None, config.get("installation"))
+        installation = self.get_installation(installation_id, organization.id)
         client = installation.get_client()
+        identifier = cast(str, config["identifier"])
         try:
-            repo = client.get_repo(config["identifier"])
+            repo = client.get_repo(identifier)
         except Exception as e:
             installation.raise_error(e)
         else:
@@ -36,7 +45,7 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider["BitbucketIntegr
             config["name"] = repo["full_name"]
         return config
 
-    def get_webhook_secret(self, organization):
+    def get_webhook_secret(self, organization: Organization) -> str:
         # TODO(LB): Revisit whether Integrations V3 should be using OrganizationOption for storage
         lock = locks.get(
             f"bitbucket:webhook-secret:{organization.id}",
@@ -44,7 +53,7 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider["BitbucketIntegr
             name="bitbucket_webhook_secret",
         )
         with lock.acquire():
-            secret = OrganizationOption.objects.get_value(
+            secret: str | None = OrganizationOption.objects.get_value(
                 organization=organization, key="bitbucket:webhook_secret"
             )
             if secret is None:
@@ -86,10 +95,38 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider["BitbucketIntegr
             )
         except Exception as e:
             installation.raise_error(e)
-        repo.config["webhook_id"] = resp["uuid"]
-        repository_service.update_repository(organization_id=organization.id, update=repo)
+        webhook_id = resp["uuid"]
+        if repository_service.update_repository_config(
+            organization_id=organization.id,
+            id=repo.id,
+            config_updates={"webhook_id": webhook_id},
+            expected_integration_id=repo.integration_id,
+            expected_config={"webhook_id": None},
+        ):
+            repo.config["webhook_id"] = webhook_id
+            return
+        # The repository changed while we created the hook, so nothing would ever
+        # reference or delete it.
+        logger.info(
+            "repository.webhook_discarded",
+            extra={"repository_id": repo.id, "organization_id": organization.id},
+        )
+        # The repository itself was linked fine, so a failed cleanup only leaves the hook
+        # orphaned; raising would report the link as failed.
+        try:
+            client.delete_hook(repo.config["name"], webhook_id)
+        except ApiError as e:
+            if e.code != 404:
+                logger.warning(
+                    "repository.webhook_discard_failed",
+                    extra={
+                        "repository_id": repo.id,
+                        "organization_id": organization.id,
+                        "status_code": e.code,
+                    },
+                )
 
-    def on_delete_repository(self, repo):
+    def on_delete_repository(self, repo: Repository) -> None:
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
 
@@ -100,21 +137,29 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider["BitbucketIntegr
                 return
             raise
 
-    def _format_commits(self, repo, commit_list):
-        return [
-            {
-                "id": c["hash"],
-                "repository": repo.name,
-                "author_email": parse_email(c["author"]["raw"]),
-                "author_name": parse_user_name(c["author"]["raw"]),
-                "message": c["message"],
-                "timestamp": self.format_date(c["date"]),
-                "patch_set": c.get("patch_set"),
-            }
-            for c in commit_list
-        ]
+    def _format_commits(
+        self, repo: Repository, commit_list: Sequence[Mapping[str, object]]
+    ) -> list[dict[str, object]]:
+        commits: list[dict[str, object]] = []
+        for c in commit_list:
+            author = cast(Mapping[str, object], c["author"])
+            raw_author = cast(str, author["raw"])
+            commits.append(
+                {
+                    "id": c["hash"],
+                    "repository": repo.name,
+                    "author_email": parse_email(raw_author),
+                    "author_name": parse_user_name(raw_author),
+                    "message": c["message"],
+                    "timestamp": self.format_date(cast(str, c["date"])),
+                    "patch_set": c.get("patch_set"),
+                }
+            )
+        return commits
 
-    def compare_commits(self, repo, start_sha, end_sha):
+    def compare_commits(
+        self, repo: Repository, start_sha: str | None, end_sha: str
+    ) -> Sequence[Mapping[str, object]]:
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
         # use config name because that is kept in sync via webhooks
@@ -125,14 +170,16 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider["BitbucketIntegr
             except Exception as e:
                 installation.raise_error(e)
             else:
-                return self._format_commits(repo, res[:10])
+                formatted: Sequence[Mapping[str, object]] = self._format_commits(repo, res[:10])
+                return formatted
         else:
             try:
                 res = client.compare_commits(name, start_sha, end_sha)
             except Exception as e:
                 installation.raise_error(e)
             else:
-                return self._format_commits(repo, res)
+                formatted = self._format_commits(repo, res)
+                return formatted
 
-    def repository_external_slug(self, repo):
+    def repository_external_slug(self, repo: Repository) -> str | None:
         return repo.name

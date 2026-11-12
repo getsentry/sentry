@@ -1,7 +1,8 @@
 import {getFrameStatus, isRequestFrame} from 'sentry/utils/replays/resourceFrame';
-import {Output} from 'sentry/views/explore/replays/detail/network/details/output';
-import type {SectionProps} from 'sentry/views/explore/replays/detail/network/details/sections';
-import type {TabKey} from 'sentry/views/explore/replays/detail/network/details/tabs';
+
+import {Output} from './output';
+import type {SectionProps} from './sections';
+import type {TabKey} from './tabs';
 
 type Args = {
   isCaptureBodySetup: boolean;
@@ -24,8 +25,8 @@ export function getOutputType({
     return Output.SETUP;
   }
 
-  const request = item.data.request;
-  const response = item.data.response;
+  const request = item.data?.request;
+  const response = item.data?.response;
 
   const hasHeaders =
     Object.keys(request?.headers ?? {}).length ||

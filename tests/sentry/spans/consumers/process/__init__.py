@@ -1,15 +1,23 @@
+from collections.abc import Mapping
+from typing import Any, cast
+
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
+from sentry.spans.consumers.process_segments.types import Attributes
 
-def build_mock_span(project_id, *, span_op=None, is_segment=False, attributes=None, **kwargs):
-    span: SpanEvent = {
-        "is_segment": is_segment,
-        "parent_span_id": None,
-        "project_id": project_id,
-        "organization_id": 1,
-        "received": 1707953019.044972,
-        "retention_days": 90,
-        "attributes": {
+
+def build_mock_span(
+    project_id: int,
+    *,
+    span_op: str | None = None,
+    is_segment: bool = False,
+    attributes: Mapping[str, object] | None = None,
+    description: str | None = None,
+    **kwargs: Any,
+) -> SpanEvent:
+    span_attributes: Attributes = cast(
+        Attributes,
+        {
             "sentry.duration": {"value": 0.107, "type": "double"},
             "sentry.environment": {"value": "development", "type": "string"},
             "sentry.release": {
@@ -20,8 +28,21 @@ def build_mock_span(project_id, *, span_op=None, is_segment=False, attributes=No
             "sentry.op": {"value": span_op or "base.dispatch.sleep", "type": "string"},
             "sentry.segment.id": {"value": "a49b42af9fb69da0", "type": "string"},
             "sentry.profile_id": {"type": "string", "value": "dbae2b82559649a1a34a2878134a007b"},
-            **(attributes or {}),
+            **dict(attributes or {}),
         },
+    )
+
+    if description is not None:
+        span_attributes["sentry.description"] = {"type": "string", "value": description}
+
+    span: SpanEvent = {
+        "is_segment": is_segment,
+        "parent_span_id": None,
+        "project_id": project_id,
+        "organization_id": 1,
+        "received": 1707953019.044972,
+        "retention_days": 90,
+        "attributes": span_attributes,
         "span_id": "a49b42af9fb69da0",
         "start_timestamp": 1707953018.865,
         "end_timestamp": 1707953018.972,

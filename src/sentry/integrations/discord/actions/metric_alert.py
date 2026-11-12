@@ -20,7 +20,10 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
 )
+from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
+from sentry.notifications.platform.shadow.capture import record_legacy_render
+from sentry.notifications.platform.types import NotificationProviderKey
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
     DetectorSerializerResponse,
@@ -38,6 +41,17 @@ def send_incident_alert_notification(
     detector_serialized_response: DetectorSerializerResponse | None = None,
     notification_uuid: str | None = None,
 ) -> bool:
+    # The send uses the global bot client, so check the org's integration is still active.
+    if notification_context.integration_id is None:
+        return False
+    if (
+        integration_service.organization_context(
+            organization_id=organization.id, integration_id=notification_context.integration_id
+        ).active()
+        is None
+    ):
+        return False
+
     chart_url = None
     if features.has("organizations:metric-alert-chartcuterie", organization):
         try:
@@ -69,6 +83,7 @@ def send_incident_alert_notification(
         date_started=open_period_context.date_started,
         chart_url=chart_url,
     ).build(notification_uuid=notification_uuid)
+    record_legacy_render(NotificationProviderKey.DISCORD, message, chart_url=chart_url)
 
     client = DiscordClient()
     with MessagingInteractionEvent(

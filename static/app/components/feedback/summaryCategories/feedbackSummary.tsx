@@ -11,8 +11,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 export function FeedbackSummary() {
   const {isError, isPending, summary, tooFewFeedbacks} = useFeedbackSummary();
 
-  // if we are showing this component, gen-ai-features must be true
-  // and org.hideAiFeatures must be false,
+  // if we are showing this component, AI features are allowed for the org,
   // but we still need to check that their seer acknowledgement exists
   const {isPending: isOrgSeerSetupPending} = useOrganizationSeerSetup();
   const organization = useOrganization();

@@ -56,7 +56,7 @@ describe('FileInsightItemDiffTable', () => {
 
     // Check sizes
     expect(screen.getByText('+2.5 MB')).toBeInTheDocument();
-    expect(screen.getByText('-150 KB')).toBeInTheDocument();
+    expect(screen.getByText('-150 kB')).toBeInTheDocument();
     expect(screen.getByText('-1 MB')).toBeInTheDocument();
   });
 
@@ -64,7 +64,9 @@ describe('FileInsightItemDiffTable', () => {
     render(<FileInsightItemDiffTable fileDiffItems={mockFileDiffItems} />);
 
     // Click on Status header to sort by type
-    const statusHeader = screen.getByRole('columnheader', {name: 'Status'});
+    const statusHeader = within(
+      screen.getByRole('columnheader', {name: 'Status'})
+    ).getByRole('button');
     await userEvent.click(statusHeader);
 
     // After sorting by status ascending, "added" should come first
@@ -82,7 +84,9 @@ describe('FileInsightItemDiffTable', () => {
     render(<FileInsightItemDiffTable fileDiffItems={mockFileDiffItems} />);
 
     // Click on Affected Files header to sort by path
-    const pathHeader = screen.getByRole('columnheader', {name: 'Affected Files'});
+    const pathHeader = within(
+      screen.getByRole('columnheader', {name: 'Affected Files'})
+    ).getByRole('button');
     await userEvent.click(pathHeader);
 
     // Should sort alphabetically by path
@@ -140,7 +144,7 @@ describe('FileInsightItemDiffTable', () => {
 
     // Should render without crashing and show empty string for path
     expect(screen.getByText('Added')).toBeInTheDocument();
-    expect(screen.getByText('+1 KB')).toBeInTheDocument();
+    expect(screen.getByText('+1 kB')).toBeInTheDocument();
   });
 
   it('displays tooltips with copy functionality for paths', async () => {

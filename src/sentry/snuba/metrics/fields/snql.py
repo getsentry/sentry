@@ -1,32 +1,30 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
-from typing import Any
+from collections.abc import Callable, Sequence
+from typing import Any, TypeAlias
 
 from snuba_sdk import Column, Function
 
 from sentry.exceptions import InvalidParams
 from sentry.search.events import constants
-from sentry.search.events.datasets.function_aliases import resolve_project_threshold_config
-from sentry.search.events.types import SelectType
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
     resolve_tag_key,
     resolve_tag_value,
-    resolve_tag_values,
-    reverse_resolve_weak,
 )
 from sentry.snuba.metrics.fields.histogram import MAX_HISTOGRAM_BUCKET, zoom_histogram
-from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import (
     SpanTagsKey,
     TransactionSatisfactionTagValue,
-    TransactionStatusTagValue,
     TransactionTagsKey,
 )
 
+SnqlValue: TypeAlias = Function | Column | str | float | int
 
-def _aggregation_on_session_status_func_factory(aggregate) -> Function:
+
+def _aggregation_on_session_status_func_factory(
+    aggregate: str,
+) -> Callable[[int, str, Sequence[int], str | None], Function]:
     def _snql_on_session_status_factory(
         org_id: int, session_status: str, metric_ids: Sequence[int], alias: str | None = None
     ) -> Function:
@@ -124,115 +122,6 @@ def _set_uniq_aggregation_on_session_status_factory(
 ) -> Function:
     return _aggregation_on_session_status_func_factory(aggregate="uniqIf")(
         org_id, session_status, metric_ids, alias
-    )
-
-
-def _aggregation_on_tx_status_func_factory(aggregate: Function) -> Function:
-    def _get_snql_conditions(
-        org_id: int, metric_ids: Sequence[int], exclude_tx_statuses: list[str]
-    ) -> Function:
-        metric_match = Function("in", [Column("metric_id"), list(metric_ids)])
-        assert exclude_tx_statuses is not None
-        if len(exclude_tx_statuses) == 0:
-            return metric_match
-
-        tx_col = Column(
-            resolve_tag_key(
-                UseCaseID.TRANSACTIONS,
-                org_id,
-                TransactionTagsKey.TRANSACTION_STATUS.value,
-            )
-        )
-        excluded_statuses = resolve_tag_values(UseCaseID.TRANSACTIONS, org_id, exclude_tx_statuses)
-        exclude_tx_statuses = Function(
-            "notIn",
-            [
-                tx_col,
-                excluded_statuses,
-            ],
-        )
-
-        return Function(
-            "and",
-            [
-                metric_match,
-                exclude_tx_statuses,
-            ],
-        )
-
-    def _snql_on_tx_status_factory(
-        org_id: int,
-        exclude_tx_statuses: list[str],
-        metric_ids: Sequence[int],
-        alias: str | None = None,
-    ) -> Function:
-        return Function(
-            aggregate,
-            [
-                Column("value"),
-                _get_snql_conditions(org_id, metric_ids, exclude_tx_statuses),
-            ],
-            alias,
-        )
-
-    return _snql_on_tx_status_factory
-
-
-def _dist_count_aggregation_on_tx_status_factory(
-    org_id: int,
-    exclude_tx_statuses: list[str],
-    metric_ids: Sequence[int],
-    alias: str | None = None,
-) -> Function:
-    return _aggregation_on_tx_status_func_factory("countIf")(
-        org_id, exclude_tx_statuses, metric_ids, alias
-    )
-
-
-def _aggregation_on_tx_satisfaction_func_factory(aggregate: Function) -> Function:
-    def _snql_on_tx_satisfaction_factory(
-        org_id: int, satisfaction_value: str, metric_ids: Sequence[int], alias: str | None = None
-    ) -> Function:
-        return Function(
-            aggregate,
-            [
-                Column("value"),
-                Function(
-                    "and",
-                    [
-                        Function("in", [Column("metric_id"), list(metric_ids)]),
-                        Function(
-                            "equals",
-                            [
-                                Column(
-                                    resolve_tag_key(
-                                        UseCaseID.TRANSACTIONS,
-                                        org_id,
-                                        TransactionTagsKey.TRANSACTION_SATISFACTION.value,
-                                    )
-                                ),
-                                resolve_tag_value(
-                                    UseCaseID.TRANSACTIONS, org_id, satisfaction_value
-                                ),
-                            ],
-                        ),
-                    ],
-                ),
-            ],
-            alias,
-        )
-
-    return _snql_on_tx_satisfaction_factory
-
-
-def _set_count_aggregation_on_tx_satisfaction_factory(
-    org_id: int, satisfaction: str, metric_ids: Sequence[int], alias: str | None = None
-) -> Function:
-    return _aggregation_on_tx_satisfaction_func_factory("uniqIf")(
-        org_id=org_id,
-        satisfaction_value=satisfaction,
-        metric_ids=metric_ids,
-        alias=alias,
     )
 
 
@@ -335,59 +224,6 @@ def uniq_aggregation_on_metric(metric_ids: Sequence[int], alias: str | None = No
     )
 
 
-def failure_count_transaction(
-    org_id: int, metric_ids: Sequence[int], alias: str | None = None
-) -> Function:
-    return _dist_count_aggregation_on_tx_status_factory(
-        org_id,
-        exclude_tx_statuses=[
-            # See statuses in https://docs.sentry.io/product/performance/metrics/#failure-rate
-            TransactionStatusTagValue.OK.value,
-            TransactionStatusTagValue.CANCELLED.value,
-            TransactionStatusTagValue.UNKNOWN.value,
-        ],
-        metric_ids=metric_ids,
-        alias=alias,
-    )
-
-
-def http_error_count_transaction(
-    org_id: int, metric_ids: Sequence[int], alias: str | None = None
-) -> Function:
-    statuses = [
-        resolve_tag_value(UseCaseID.TRANSACTIONS, org_id, status)
-        for status in constants.HTTP_SERVER_ERROR_STATUS
-    ]
-    base_condition = Function(
-        "in",
-        [
-            Column(
-                name=resolve_tag_key(
-                    UseCaseID.TRANSACTIONS,
-                    org_id,
-                    TransactionTagsKey.TRANSACTION_HTTP_STATUS_CODE.value,
-                )
-            ),
-            list(status for status in statuses if status is not None),
-        ],
-    )
-
-    return Function(
-        "countIf",
-        [
-            Column("value"),
-            Function(
-                "and",
-                [
-                    base_condition,
-                    Function("in", [Column("metric_id"), list(metric_ids)]),
-                ],
-            ),
-        ],
-        alias,
-    )
-
-
 def all_spans(
     metric_ids: Sequence[int],
     alias: str | None = None,
@@ -439,171 +275,17 @@ def http_error_count_span(
     )
 
 
-def _project_threshold_multi_if_function(
-    project_ids: Sequence[int], org_id: int, metric_ids: Sequence[int]
-) -> Function:
-    metric_ids_dictionary = {
-        reverse_resolve_weak(UseCaseID.TRANSACTIONS, org_id, metric_id): metric_id
-        for metric_id in metric_ids
-    }
-
-    return Function(
-        "multiIf",
-        [
-            Function(
-                "equals",
-                [
-                    _resolve_project_threshold_config(
-                        project_ids,
-                        org_id,
-                    ),
-                    "lcp",
-                ],
-            ),
-            metric_ids_dictionary[TransactionMRI.MEASUREMENTS_LCP.value],
-            metric_ids_dictionary[TransactionMRI.DURATION.value],
-        ],
-    )
-
-
-def _satisfaction_equivalence(org_id: int, satisfaction_tag_value: str) -> Function:
-    return Function(
-        "equals",
-        [
-            Column(
-                name=resolve_tag_key(
-                    UseCaseID.TRANSACTIONS,
-                    org_id,
-                    TransactionTagsKey.TRANSACTION_SATISFACTION.value,
-                )
-            ),
-            resolve_tag_value(UseCaseID.TRANSACTIONS, org_id, satisfaction_tag_value),
-        ],
-    )
-
-
-def _metric_id_equivalence(metric_condition: Function | int) -> Function:
-    return Function(
-        "equals",
-        [
-            Column("metric_id"),
-            metric_condition,
-        ],
-    )
-
-
-def _count_if_with_conditions(
-    conditions: Sequence[Function],
-    alias: str | None = None,
-) -> Function:
-    def _generate_conditions(inner_conditions: Sequence[Function]) -> Function:
-        return (
-            Function(
-                "and",
-                conditions,
-            )
-            if len(inner_conditions) > 1
-            else inner_conditions[0]
-        )
-
-    return Function(
-        "countIf",
-        [
-            Column("value"),
-            _generate_conditions(conditions),
-        ],
-        alias,
-    )
-
-
-def satisfaction_count_transaction(
-    project_ids: Sequence[int],
-    org_id: int,
-    metric_ids: Sequence[int],
-    alias: str | None = None,
-) -> Function:
-    return _count_if_with_conditions(
-        [
-            _metric_id_equivalence(
-                _project_threshold_multi_if_function(project_ids, org_id, metric_ids)
-            ),
-            _satisfaction_equivalence(org_id, TransactionSatisfactionTagValue.SATISFIED.value),
-        ],
-        alias,
-    )
-
-
-def tolerated_count_transaction(
-    project_ids: Sequence[int],
-    org_id: int,
-    metric_ids: Sequence[int],
-    alias: str | None = None,
-) -> Function:
-    return _count_if_with_conditions(
-        [
-            _metric_id_equivalence(
-                _project_threshold_multi_if_function(project_ids, org_id, metric_ids)
-            ),
-            _satisfaction_equivalence(org_id, TransactionSatisfactionTagValue.TOLERATED.value),
-        ],
-        alias,
-    )
-
-
-def all_transactions(
-    project_ids: Sequence[int],
-    org_id: int,
-    metric_ids: Sequence[int],
-    alias: str | None = None,
-) -> Function:
-    return _count_if_with_conditions(
-        [
-            _metric_id_equivalence(
-                _project_threshold_multi_if_function(project_ids, org_id, metric_ids)
-            ),
-        ],
-        alias,
-    )
-
-
-def all_duration_transactions(
-    metric_ids: Sequence[int],
-    alias: str | None = None,
-) -> Function:
-    return _count_if_with_conditions(
-        [
-            _metric_id_equivalence(list(metric_ids)[0]),
-        ],
-        alias,
-    )
-
-
-def apdex(satisfactory_snql, tolerable_snql, total_snql, alias: str | None = None) -> Function:
-    return division_float(
-        arg1_snql=addition(satisfactory_snql, division_float(tolerable_snql, 2)),
-        arg2_snql=total_snql,
-        alias=alias,
-    )
-
-
-def miserable_users(org_id: int, metric_ids: Sequence[int], alias: str | None = None) -> Function:
-    return _set_count_aggregation_on_tx_satisfaction_factory(
-        org_id=org_id,
-        satisfaction=TransactionSatisfactionTagValue.FRUSTRATED.value,
-        metric_ids=metric_ids,
-        alias=alias,
-    )
-
-
-def subtraction(arg1_snql, arg2_snql, alias: str | None = None) -> Function:
+def subtraction(arg1_snql: SnqlValue, arg2_snql: SnqlValue, alias: str | None = None) -> Function:
     return Function("minus", [arg1_snql, arg2_snql], alias)
 
 
-def addition(arg1_snql, arg2_snql, alias: str | None = None) -> Function:
+def addition(arg1_snql: SnqlValue, arg2_snql: SnqlValue, alias: str | None = None) -> Function:
     return Function("plus", [arg1_snql, arg2_snql], alias)
 
 
-def division_float(arg1_snql, arg2_snql, alias: str | None = None) -> Function:
+def division_float(
+    arg1_snql: SnqlValue, arg2_snql: SnqlValue, alias: str | None = None
+) -> Function:
     return Function(
         "divide",
         # Clickhouse can manage divisions by 0, see:
@@ -613,12 +295,12 @@ def division_float(arg1_snql, arg2_snql, alias: str | None = None) -> Function:
     )
 
 
-def complement(arg1_snql, alias: str | None = None) -> Function:
+def complement(arg1_snql: SnqlValue, alias: str | None = None) -> Function:
     """(x) -> (1 - x)"""
     return Function("minus", [1.0, arg1_snql], alias=alias)
 
 
-def session_duration_filters(org_id) -> Function:
+def session_duration_filters(org_id: int) -> list[Function]:
     return [
         Function(
             "equals",
@@ -671,7 +353,7 @@ def rate_snql_factory(
 
 
 def count_web_vitals_snql_factory(
-    aggregate_filter: Function, org_id: int, measurement_rating, alias: str | None = None
+    aggregate_filter: Function, org_id: int, measurement_rating: str, alias: str | None = None
 ) -> Function:
     return Function(
         "countIf",
@@ -700,13 +382,15 @@ def count_web_vitals_snql_factory(
 
 
 def count_transaction_name_snql_factory(
-    aggregate_filter: Function, org_id: int, transaction_name, alias: str | None = None
+    aggregate_filter: Function, org_id: int, transaction_name: str, alias: str | None = None
 ) -> Function:
     is_unparameterized = "is_unparameterized"
     is_null = "is_null"
     has_value = "has_value"
 
-    def generate_transaction_name_filter(operation, transaction_name_identifier) -> Function:
+    def generate_transaction_name_filter(
+        operation: str, transaction_name_identifier: str
+    ) -> Function:
         if transaction_name_identifier == is_unparameterized:
             inner_tag_value = resolve_tag_value(
                 UseCaseID.TRANSACTIONS, org_id, "<< unparameterized >>"
@@ -760,7 +444,7 @@ def count_transaction_name_snql_factory(
 
 
 def team_key_transaction_snql(
-    org_id: int, team_key_condition_rhs, alias: str | None = None
+    org_id: int, team_key_condition_rhs: Sequence[tuple[int | str, str]], alias: str | None = None
 ) -> Function:
     team_key_conditions = set()
     for elem in team_key_condition_rhs:
@@ -785,16 +469,6 @@ def team_key_transaction_snql(
             list(team_key_conditions),
         ],
         alias=alias,
-    )
-
-
-def _resolve_project_threshold_config(project_ids: Sequence[int], org_id: int) -> SelectType:
-    use_case_id = UseCaseID.TRANSACTIONS
-    return resolve_project_threshold_config(
-        tag_value_resolver=lambda org_id, value: resolve_tag_value(use_case_id, org_id, value),
-        column_name_resolver=lambda org_id, value: resolve_tag_key(use_case_id, org_id, value),
-        project_ids=project_ids,
-        org_id=org_id,
     )
 
 

@@ -44,6 +44,7 @@ class IntegrationClassification(BaseClassification):
         from .parsers import (
             BitbucketRequestParser,
             BitbucketServerRequestParser,
+            CursorOriginRequestParser,
             DiscordRequestParser,
             GithubEnterpriseRequestParser,
             GithubRequestParser,
@@ -61,6 +62,7 @@ class IntegrationClassification(BaseClassification):
         active_parsers: list[type[BaseRequestParser]] = [
             BitbucketRequestParser,
             BitbucketServerRequestParser,
+            CursorOriginRequestParser,
             DiscordRequestParser,
             GoogleRequestParser,
             GithubEnterpriseRequestParser,

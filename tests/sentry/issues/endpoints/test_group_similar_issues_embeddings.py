@@ -3,6 +3,7 @@ from typing import Any
 from unittest import mock
 
 import orjson
+from django.test import override_settings
 from urllib3.response import HTTPResponse
 
 from sentry import options
@@ -20,6 +21,12 @@ from sentry.seer.similarity.utils import MAX_FRAME_COUNT
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.eventprocessing import save_new_event
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    decode_viewer_context,
+    get_viewer_context,
+)
 
 EXPECTED_STACKTRACE_STRING = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", function divide_by_zero\n    divide = 1/0'
 
@@ -48,6 +55,7 @@ EVENT_WITH_THREADS_STACKTRACE = {
 class GroupSimilarIssuesEmbeddingsTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
+        self.enterContext(override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret"))
         self.login_as(self.user)
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
@@ -77,8 +85,8 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             "platform": "python",
         }
         self.event = self.store_event(data=self.base_error_trace, project_id=self.project)
+        assert self.event.group is not None
         self.group = self.event.group
-        assert self.group
         self.path = f"/api/0/organizations/{self.org.slug}/issues/{self.group.id}/similar-issues-embeddings/"
         self.similar_event = self.store_event(
             data={"message": "Dogs are great!"}, project_id=self.project
@@ -105,6 +113,11 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 )
             )
         return response
+
+    def get_latest_event_id(self) -> str:
+        latest_event = self.group.get_latest_event()
+        assert latest_event is not None
+        return latest_event.event_id
 
     def test_get_formatted_results(self) -> None:
         event_from_second_similar_group = save_new_event(
@@ -214,6 +227,16 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             data={"k": "1", "threshold": "0.01"},
         )
 
+        viewer_context = decode_viewer_context(
+            mock_seer_request.call_args.kwargs["headers"]["X-Viewer-Context"],
+            key="viewer-context-test-secret",
+        )
+        assert isinstance(viewer_context, ViewerContext)
+        assert viewer_context.organization_id == self.org.id
+        assert viewer_context.project_id == self.project.id
+        assert viewer_context.actor.actor_id == self.user.id
+        assert viewer_context.actor.type == ActorType.USER
+
         assert self.similar_event.group_id is not None
         assert response.data == self.get_expected_response(
             [self.similar_event.group_id], [0.99], ["Yes"]
@@ -221,28 +244,26 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         expected_seer_request_params = {
             "threshold": 0.01,
-            "event_id": self.group.get_latest_event().event_id,
+            "event_id": self.get_latest_event_id(),
             "hash": self.event.get_primary_hash(),
             "project_id": self.project.id,
             "stacktrace": EXPECTED_STACKTRACE_STRING,
             "exception_type": "ZeroDivisionError",
             "read_only": True,
             "referrer": "similar_issues",
-            "model": "v1",
+            "model": "v2.1",
             "training_mode": False,
             "platform": "python",
-            "skip_fallback": False,
+            "skip_fallback": True,
             "k": 1,
         }
 
-        mock_seer_request.assert_called_with(
-            "POST",
-            SEER_SIMILAR_ISSUES_URL,
-            retries=options.get("seer.similarity.grouping-ingest-retries"),
-            timeout=options.get("seer.similarity.grouping-ingest-timeout"),
-            body=orjson.dumps(expected_seer_request_params),
-            headers={"content-type": "application/json;charset=utf-8"},
-        )
+        request = mock_seer_request.call_args
+        assert request.args == ("POST", SEER_SIMILAR_ISSUES_URL)
+        assert request.kwargs["retries"] == options.get("seer.similarity.grouping-ingest-retries")
+        assert request.kwargs["timeout"] == options.get("seer.similarity.grouping-ingest-timeout")
+        assert request.kwargs["body"] == orjson.dumps(expected_seer_request_params)
+        assert request.kwargs["headers"]["content-type"] == "application/json;charset=utf-8"
 
         mock_logger.info.assert_called_with(
             "Similar issues embeddings parameters", extra=expected_seer_request_params
@@ -395,17 +416,17 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             "Seer similar issues response entry missing key 'parent_hash'",
             extra={
                 "request_params": {
-                    "event_id": self.group.get_latest_event().event_id,
+                    "event_id": self.get_latest_event_id(),
                     "hash": self.event.get_primary_hash(),
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "exception_type": "ZeroDivisionError",
                     "read_only": True,
                     "referrer": "similar_issues",
-                    "model": "v1",
+                    "model": "v2.1",
                     "training_mode": False,
                     "platform": "python",
-                    "skip_fallback": False,
+                    "skip_fallback": True,
                 },
                 "raw_similar_issue_data": {
                     "should_group": True,
@@ -444,6 +465,17 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         The seer API can return grouphashes that do not exist if their groups have been deleted/merged.
         Test info about these groups is not returned.
         """
+
+        def assert_viewer_context(*_args: object, **_kwargs: object) -> None:
+            viewer_context = get_viewer_context()
+            assert isinstance(viewer_context, ViewerContext)
+            assert viewer_context.organization_id == self.project.organization_id
+            assert viewer_context.project_id == self.project.id
+            assert viewer_context.actor.actor_id == self.user.id
+            assert viewer_context.actor.type == ActorType.USER
+
+        mock_seer_deletion_request.delay.side_effect = assert_viewer_context
+
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             # Two suggested groups, one with valid data, one pointing to a group that doesn't exist.
             # We should log the second and return the first.
@@ -504,7 +536,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         Test that these groups are not returned.
         """
         existing_grouphash = GroupHash.objects.create(hash="dogs_are_great", project=self.project)
-        assert existing_grouphash.group_id is None
+        assert not existing_grouphash.group_id
 
         # Create metadata for the grouphash so it has a creation date
         GroupHashMetadata.objects.get_or_create(grouphash=existing_grouphash)
@@ -680,20 +712,24 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             body=orjson.dumps(
                 {
                     "threshold": 0.01,
-                    "event_id": self.group.get_latest_event().event_id,
+                    "event_id": self.get_latest_event_id(),
                     "hash": self.event.get_primary_hash(),
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "exception_type": "ZeroDivisionError",
                     "read_only": True,
                     "referrer": "similar_issues",
-                    "model": "v1",
+                    "model": "v2.1",
                     "training_mode": False,
                     "platform": "python",
-                    "skip_fallback": False,
+                    "skip_fallback": True,
                 },
             ),
-            headers={"content-type": "application/json;charset=utf-8"},
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                "Authorization": mock.ANY,
+                "X-Viewer-Context": mock.ANY,
+            },
         )
 
         # Include k
@@ -711,21 +747,25 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             body=orjson.dumps(
                 {
                     "threshold": 0.01,
-                    "event_id": self.group.get_latest_event().event_id,
+                    "event_id": self.get_latest_event_id(),
                     "hash": self.event.get_primary_hash(),
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "exception_type": "ZeroDivisionError",
                     "read_only": True,
                     "referrer": "similar_issues",
-                    "model": "v1",
+                    "model": "v2.1",
                     "training_mode": False,
                     "platform": "python",
-                    "skip_fallback": False,
+                    "skip_fallback": True,
                     "k": 1,
                 },
             ),
-            headers={"content-type": "application/json;charset=utf-8"},
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                "Authorization": mock.ANY,
+                "X-Viewer-Context": mock.ANY,
+            },
         )
 
         # Include threshold
@@ -745,20 +785,24 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             body=orjson.dumps(
                 {
                     "threshold": 0.01,
-                    "event_id": self.group.get_latest_event().event_id,
+                    "event_id": self.get_latest_event_id(),
                     "hash": self.event.get_primary_hash(),
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "exception_type": "ZeroDivisionError",
                     "read_only": True,
                     "referrer": "similar_issues",
-                    "model": "v1",
+                    "model": "v2.1",
                     "training_mode": False,
                     "platform": "python",
-                    "skip_fallback": False,
+                    "skip_fallback": True,
                 },
             ),
-            headers={"content-type": "application/json;charset=utf-8"},
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                "Authorization": mock.ANY,
+                "X-Viewer-Context": mock.ANY,
+            },
         )
 
     def test_too_many_frames(self) -> None:

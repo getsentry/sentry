@@ -7,6 +7,11 @@ from sentry.models.project import Project
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.url_utils import get_preprod_artifact_comparison_url, get_preprod_artifact_url
+from sentry.preprod.vcs.markdown_utils import (
+    escape_markdown,
+    escape_markdown_code,
+    format_commit_sha_markdown,
+)
 
 _HEADER = "## Sentry Snapshot Testing"
 PROCESSING_STATUS = "⏳ Processing"
@@ -34,13 +39,17 @@ def format_snapshot_pr_comment(
     snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
     comparisons_map: dict[int, PreprodSnapshotComparison],
     base_artifact_map: dict[int, PreprodArtifact],
-    changes_map: dict[int, bool],
-    approvals_map: dict[int, PreprodComparisonApproval] | None = None,
+    reportable_changes_by_artifact_id: dict[int, bool],
+    approvals_by_artifact_id: dict[int, PreprodComparisonApproval] | None = None,
     *,
+    approval_requirements_by_artifact_id: dict[int, bool] | None = None,
     project: Project,
 ) -> str:
     if not artifacts:
         raise ValueError("Cannot format PR comment for empty artifact list")
+
+    approval_requirements_by_artifact_id = approval_requirements_by_artifact_id or {}
+    approvals_by_artifact_id = approvals_by_artifact_id or {}
 
     table_rows = []
     total_errored = 0
@@ -83,14 +92,21 @@ def format_snapshot_pr_comment(
         ):
             table_rows.append(f"| {name_cell} | - | - | - | - | - | - | {PROCESSING_STATUS} |")
         elif comparison.state == PreprodSnapshotComparison.State.FAILED:
-            table_rows.append(f"| {name_cell} | - | - | - | - | - | - | ❌ Comparison failed |")
+            if artifact.id in approvals_by_artifact_id:
+                failure_status = "✅ Approved (comparison failed)"
+            elif comparison.error_code == PreprodSnapshotComparison.ErrorCode.BASE_MANIFEST_MISSING:
+                failure_status = "❌ No base snapshot found"
+            else:
+                failure_status = "❌ Comparison failed"
+            table_rows.append(f"| {name_cell} | - | - | - | - | - | - | {failure_status} |")
         else:
-            has_changes = changes_map.get(artifact.id, False)
-            is_approved = approvals_map is not None and artifact.id in approvals_map
-            if has_changes and is_approved:
-                status = "✅ Approved"
-            elif has_changes:
-                status = "⏳ Needs approval"
+            has_reportable_changes = reportable_changes_by_artifact_id.get(artifact.id, False)
+            requires_approval = approval_requirements_by_artifact_id.get(artifact.id, False)
+            is_approved = artifact.id in approvals_by_artifact_id
+            if requires_approval:
+                status = "✅ Approved" if is_approved else "⏳ Needs approval"
+            elif has_reportable_changes:
+                status = "⚠️ Changes detected"
             else:
                 status = "✅ Unchanged"
 
@@ -147,8 +163,10 @@ def _app_display_info(artifact: PreprodArtifact) -> tuple[str, str]:
 
 
 def _format_name_cell(app_display: str, app_id: str, url: str) -> str:
+    # app_display / app_id are untrusted artifact metadata; url is Sentry-generated.
+    app_display = escape_markdown(app_display)
     if app_id:
-        return f"[{app_display}]({url})<br>`{app_id}`"
+        return f"[{app_display}]({url})<br>`{escape_markdown_code(app_id)}`"
     return f"[{app_display}]({url})"
 
 
@@ -167,7 +185,7 @@ def _selected_types_query(comparison: PreprodSnapshotComparison) -> str:
 
 def _format_settings_link(project: Project) -> str:
     settings_url = project.organization.absolute_url(
-        f"/settings/projects/{project.slug}/mobile-builds/", query="tab=snapshots"
+        f"/settings/projects/{project.slug}/snapshots/"
     )
     return f"[⚙️ {project.name} Snapshot Settings]({settings_url})"
 
@@ -193,7 +211,6 @@ def _format_solo_table(
 
 _SOLO_MESSAGE = "Snapshot diffs will appear when we have a base upload to compare against. Make sure to upload snapshots from your main branch."
 _WAITING_MESSAGE = "Waiting for base snapshots to finish uploading. This comment will update automatically within ~10 minutes or fail."
-_MISSING_BASE_MESSAGE = "No base snapshots found to compare against. Make sure snapshots are uploaded from your main branch."
 
 
 def _format_solo_comment(
@@ -232,7 +249,51 @@ def format_missing_base_snapshot_pr_comment(
     snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
     *,
     project: Project,
+    base_sha: str,
+    base_repo_url: str | None = None,
 ) -> str:
-    return _format_solo_comment(
-        artifacts, snapshot_metrics_map, _MISSING_BASE_MESSAGE, project=project
+    return _format_missing_base_comment(
+        artifacts,
+        snapshot_metrics_map,
+        project=project,
+        base_sha=base_sha,
+        base_repo_url=base_repo_url,
+        followup=(
+            "Did its snapshot job fail? "
+            "Try rebasing this branch on a commit with a successful snapshot job."
+        ),
     )
+
+
+def format_approved_without_base_snapshot_pr_comment(
+    artifacts: list[PreprodArtifact],
+    snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
+    *,
+    project: Project,
+    base_sha: str,
+    base_repo_url: str | None = None,
+) -> str:
+    return _format_missing_base_comment(
+        artifacts,
+        snapshot_metrics_map,
+        project=project,
+        base_sha=base_sha,
+        base_repo_url=base_repo_url,
+        followup="These snapshots were approved without a comparison.",
+    )
+
+
+def _format_missing_base_comment(
+    artifacts: list[PreprodArtifact],
+    snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
+    *,
+    project: Project,
+    base_sha: str,
+    base_repo_url: str | None,
+    followup: str,
+) -> str:
+    base_sha_markdown = format_commit_sha_markdown(base_sha, repo_url=base_repo_url)
+    message = (
+        f"Base commit {base_sha_markdown} did not produce snapshots to compare against. {followup}"
+    )
+    return _format_solo_comment(artifacts, snapshot_metrics_map, message, project=project)

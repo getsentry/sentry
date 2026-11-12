@@ -1,10 +1,10 @@
 import logging
 import random
 import string
+from collections.abc import Sequence
 from email.headerregistry import Address
 from typing import Any, TypedDict, TypeIs
 
-from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.db.models.query import QuerySet
@@ -15,12 +15,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 
-from sentry import audit_log, features
+from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.api.exceptions import ConflictError, ResourceDoesNotExist
+from sentry.api.exceptions import ConflictError
 from sentry.api.helpers.environments import get_environment_id
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.permissions import StaffPermissionMixin
@@ -46,6 +46,7 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import RequestPrincipal, has_user, is_owned_by_acting_user, require_user
 from sentry.constants import ObjectStatus
 from sentry.core.endpoints.team_projects import (
     AuditData,
@@ -58,8 +59,10 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.search.utils import tokenize_query
+from sentry.seer.agent_token import is_agent_auth
+from sentry.service_accounts.auth import is_service_account_auth
 from sentry.signals import project_created, team_created
-from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
+from sentry.snuba import discover, metrics_enhanced_performance
 from sentry.users.models.user import User
 from sentry.utils.snowflake import MaxSnowflakeRetryError
 
@@ -82,15 +85,17 @@ class _OrganizationProjectCreateResponse(OrganizationProjectResponse):
     team_slug: str
 
 
+# Only applies to the error `stats`; `transactionStats` always queries spans. Kept for
+# now until we have the frontend stop sending it, though every option resolves to discover for the error query anyway since the
+# metrics datasets is not compatible with `!event.type:transaction`.
 DATASETS = {
     "": discover,  # in case they pass an empty query string fall back on default
     "discover": discover,
     "metricsEnhanced": metrics_enhanced_performance,
-    "metrics": metrics_performance,
+    "metrics": metrics_enhanced_performance,
 }
 
 CONFLICTING_TEAM_SLUG_ERROR = "A team with this slug already exists."
-MISSING_PERMISSION_ERROR_STRING = "You do not have permission to join a new team as a Team Admin."
 DISABLED_FEATURE_ERROR_STRING = "Your organization has disabled this feature for members."
 
 
@@ -125,6 +130,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (OrganizationProjectsPermission,)
     owner = ApiOwner.FOUNDATIONS
     logger = logging.getLogger("team-project.create")
@@ -174,7 +180,11 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
         dataset = get_dataset(datasetName)
 
         queryset: QuerySet[Project]
-        if request.auth and not request.user.is_authenticated:
+        if is_agent_auth(request.auth) or is_service_account_auth(request.auth):
+            queryset = Project.objects.filter(organization=organization)
+            if not request.access.has_global_access:
+                queryset = queryset.filter(id__in=request.access.accessible_project_ids)
+        elif request.auth and not has_user(request.user):
             # TODO: remove this, no longer supported probably
             if hasattr(request.auth, "project"):
                 queryset = Project.objects.filter(id=request.auth.project.id)
@@ -191,7 +201,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
 
         order_by = ["slug"]
 
-        if request.user.is_authenticated:
+        if has_user(request.user):
             queryset = queryset.extra(
                 select={
                     "is_bookmarked": """exists (
@@ -238,7 +248,9 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
                     team_list = list(Team.objects.filter(organization=organization, slug__in=value))
                     queryset = queryset.exclude(teams__in=team_list)
                 elif key == "is_member":
-                    queryset = queryset.filter(teams__organizationmember__user_id=request.user.id)
+                    queryset = queryset.filter(
+                        is_owned_by_acting_user(request.user, "teams__organizationmember__user_id")
+                    )
                 else:
                     queryset = queryset.none()
 
@@ -267,7 +279,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
             if expand_context:
                 expand.add("options")
 
-            def serialize_on_result(result):
+            def serialize_on_result(result: Sequence[Project]) -> list[object]:
                 environment_id = get_environment_id(request, organization.id)
                 serializer = ProjectSummarySerializer(
                     environment_id=environment_id,
@@ -277,7 +289,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
                     collapse=collapse,
                     dataset=dataset,
                 )
-                return serialize(result, request.user, serializer)
+                return list(serialize(result, request.user, serializer))
 
             return self.paginate(
                 request=request,
@@ -287,8 +299,8 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
                 paginator_cls=OffsetPaginator,
             )
 
-    def should_add_creator_to_team(self, user: User | AnonymousUser) -> TypeIs[User]:
-        return user.is_authenticated
+    def should_add_creator_to_team(self, user: RequestPrincipal) -> TypeIs[User]:
+        return has_user(user)
 
     @extend_schema(
         tags=["Projects"],
@@ -328,13 +340,13 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
 
         if not serializer.is_valid():
             raise ValidationError(serializer.errors)
+        # The new project's default team is the creator's own, which needs a person.
+        require_user(request)
         if not self.should_add_creator_to_team(request.user):
             raise NotAuthenticated("User is not authenticated")
 
         result = serializer.validated_data
 
-        if not features.has("organizations:team-roles", organization):
-            raise ResourceDoesNotExist(detail=MISSING_PERMISSION_ERROR_STRING)
         if organization.flags.disable_member_project_creation and not request.access.has_scope(
             "org:write"
         ):
@@ -470,6 +482,8 @@ class OrganizationProjectsCountEndpoint(OrganizationEndpoint):
         queryset = Project.objects.filter(organization=organization)
 
         all_projects = queryset.count()
-        my_projects = queryset.filter(teams__organizationmember__user_id=request.user.id).count()
+        my_projects = queryset.filter(
+            is_owned_by_acting_user(request.user, "teams__organizationmember__user_id")
+        ).count()
 
         return Response({"allProjects": all_projects, "myProjects": my_projects})

@@ -21,7 +21,7 @@ export function TeamAvatar({team, tooltip: tooltipProp, ...props}: TeamAvatarPro
   );
 }
 
-function getTeamAvatarProps(
+export function getTeamAvatarProps(
   team: Team
 ): LetterBaseAvatarProps | UploadBaseAvatarProps | GravatarBaseAvatarProps {
   const identifier = team.slug;

@@ -1,13 +1,15 @@
 import {useCallback} from 'react';
 import {useMutation, type MutateOptions} from '@tanstack/react-query';
 
-import {useFeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
-import {useFeedbackCache} from 'sentry/components/feedback/useFeedbackCache';
 import type {Actor} from 'sentry/types/core';
 import type {GroupStatus} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
+
+import {useFeedbackApiOptions} from './useFeedbackApiOptions';
+import {useFeedbackCache} from './useFeedbackCache';
 
 type TFeedbackIds = 'all' | string[];
 type TPayload =
@@ -35,8 +37,12 @@ export function useMutateFeedback({feedbackIds, organization, projectIds}: Props
     mutationFn: ([ids, payload]) => {
       const isSingleId = ids !== 'all' && ids.length === 1;
       const url = isSingleId
-        ? `/organizations/${organization.slug}/issues/${ids[0]}/`
-        : `/organizations/${organization.slug}/issues/`;
+        ? getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/', {
+            path: {organizationIdOrSlug: organization.slug, issueId: String(ids[0])},
+          })
+        : getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
+            path: {organizationIdOrSlug: organization.slug},
+          });
 
       // TODO: it would be excellent if `PUT /issues/` could return the same data
       // as `GET /issues/` when query params are set. IE: it should expand inbox & owners

@@ -132,8 +132,10 @@ describe('PlanFeature', () => {
     });
     SubscriptionStore.set(organization.slug, sub);
 
+    // discover-basic is available on Team, but a sponsored subscription is only
+    // ever upsold to Business.
     render(
-      <PlanFeature organization={organization} features={['monitor-seat-billing']}>
+      <PlanFeature organization={organization} features={['discover-basic']}>
         {mockFn}
       </PlanFeature>
     );

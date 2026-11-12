@@ -10,6 +10,7 @@ from typing import Any
 
 from sentry import options
 from sentry.conf.types.service_options import ServiceOptions
+from sentry.utils import metrics
 from sentry.utils.concurrent import Executor, FutureSet, ThreadedExecutor, TimedFuture
 
 # TODO: adjust modules to import from new location -- the weird `as` syntax is for mypy
@@ -198,6 +199,12 @@ class Delegator:
                     f"{selected_backend_names[0]!r} is not a registered backend."
                 )
 
+            metrics.gauge(
+                "servicedelegator.selected_backends",
+                len(selected_backend_names),
+                tags={"method": attribute_name},
+            )
+
             def call_backend_method(context: Context, backend: Service, is_primary: bool) -> Any:
                 # Update the thread local state in the executor to the provided
                 # context object. This allows the context to be propagated
@@ -210,6 +217,12 @@ class Delegator:
                 # active (or worse, some other backend is already active.)
                 base = self.base
                 assert base not in context.backends
+
+                metrics.incr(
+                    "servicedelegator.call_backend_method",
+                    1,
+                    tags={"method": attribute_name, "primary": is_primary},
+                )
 
                 # Mark the backend as active.
                 context.backends[base] = backend
@@ -273,9 +286,10 @@ class Delegator:
                 block=True,
             )
 
-            if self.callback is not None:
+            callback = self.callback
+            if callback is not None:
                 FutureSet([_f for _f in results if _f]).add_done_callback(
-                    lambda *a, **k: self.callback(
+                    lambda *a, **k: callback(
                         context, attribute_name, callargs, selected_backend_names, results
                     )
                 )
@@ -321,8 +335,8 @@ class ServiceDelegator(Delegator, Service):
     The backends are provided as mapping of backend name to configuration
     parameters:
 
-        'redis': {
-            'path': 'sentry.tsdb.redis.RedisTSDB',
+        'snuba': {
+            'path': 'sentry.tsdb.snuba.SnubaTSDB',
             'executor': {
                 'path': 'sentry.utils.services.ThreadedExecutor',
                 'options': {

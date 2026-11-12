@@ -1,29 +1,34 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
+import {IconMenu} from '@sentry/icons/menu';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, type FlexProps, Stack} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
+import {useOnClickOutside} from '@sentry/scraps/useOnClickOutside';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
-import {IconMenu} from 'sentry/icons';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
-import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
-import {
-  NAVIGATION_MOBILE_TOPBAR_HEIGHT,
-  NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
-} from 'sentry/views/navigation/constants';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {PrimaryNavigation} from './primary/components';
+import {PrimaryNavigationHelpMenu, useWhatsNewHelpMenuItem} from './primary/helpMenu';
+import {OrganizationDropdown} from './primary/organizationDropdown';
+import {SecondaryNavigation} from './secondary/components';
+import {SecondaryNavigationContent} from './secondary/content';
+import {NAVIGATION_MOBILE_TOPBAR_HEIGHT, PRIMARY_HEADER_HEIGHT} from './constants';
 import {
   PrimaryNavigationFooterItems,
   PrimaryNavigationFooterItemsUserDropdown,
   PrimaryNavigationItems,
-} from 'sentry/views/navigation/navigation';
-import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
-import {OrganizationDropdown} from 'sentry/views/navigation/primary/organizationDropdown';
-import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
-import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/content';
-import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
+  SettingsNavigationBackButton,
+  SettingsPrimaryNavigationItems,
+} from './navigation';
+import {SearchButton} from './searchButton';
+import {useSecondaryNavigation} from './secondaryNavigationContext';
+import {useSettingsNavigation} from './useSettingsNavigation';
 
 function MobileNavigationHeader(props: FlexProps<'header'>) {
   const theme = useTheme();
@@ -48,17 +53,37 @@ function MobileNavigationHeader(props: FlexProps<'header'>) {
   );
 }
 
+function MobileWhatsNewHelpMenu() {
+  const whatsNewHelpMenuOptions = useWhatsNewHelpMenuItem();
+  return <PrimaryNavigationHelpMenu {...whatsNewHelpMenuOptions} />;
+}
+
+function MobileHelpMenuFallback() {
+  return <PrimaryNavigationHelpMenu />;
+}
+
 function MobilePrimaryNavigation() {
+  const organization = useOrganization({allowNull: true});
+  const isSettingsNavigation = useSettingsNavigation();
   const {view} = useSecondaryNavigation();
 
   return (
     <SizeProvider size="sm">
       <PrimaryNavigation.Sidebar>
         <PrimaryNavigation.SidebarHeader>
-          <OrganizationDropdown />
+          {organization &&
+            (isSettingsNavigation ? (
+              <SettingsNavigationBackButton organizationSlug={organization.slug} />
+            ) : (
+              <OrganizationDropdown />
+            ))}
         </PrimaryNavigation.SidebarHeader>
         <PrimaryNavigation.List>
-          <PrimaryNavigationItems />
+          {isSettingsNavigation && organization ? (
+            <SettingsPrimaryNavigationItems organizationSlug={organization.slug} />
+          ) : (
+            <PrimaryNavigationItems />
+          )}
         </PrimaryNavigation.List>
       </PrimaryNavigation.Sidebar>
       {view === 'expanded' && (
@@ -71,12 +96,16 @@ function MobilePrimaryNavigation() {
 }
 
 export function MobileNavigation() {
+  const organization = useOrganization({allowNull: true});
   const theme = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const navPanelRef = useRef<HTMLDivElement>(null);
   const toggleButtonRef = useRef<HTMLButtonElement>(null);
   const {view, setView} = useSecondaryNavigation();
-  const scrollLock = useScrollLock(document.getElementById('main')!);
+  // Lock the document, not #main. `overflow: hidden` on #main drops its flex
+  // min-height to 0, so inside the Seer Explorer content pane it collapses to
+  // the pane height and squeezes the TopBar.
+  const scrollLock = useScrollLock(document.body);
 
   useEffect(() => {
     const main = document.getElementById('main');
@@ -100,6 +129,7 @@ export function MobileNavigation() {
   // which sets view to 'collapsed'.
   useEffect(() => {
     if (isOpen && view === 'collapsed') {
+      // oxlint-disable-next-line react/set-state-in-effect
       setIsOpen(false);
     }
   }, [isOpen, view]);
@@ -118,10 +148,7 @@ export function MobileNavigation() {
 
   return (
     <SizeProvider size="sm">
-      <MobileNavigationHeader
-        padding="sm"
-        height={`${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`}
-      >
+      <MobileNavigationHeader padding="sm" height={`${PRIMARY_HEADER_HEIGHT}px`}>
         <Flex align="center" gap="md" justify="between" width="100%">
           <Button
             ref={toggleButtonRef}
@@ -135,9 +162,18 @@ export function MobileNavigation() {
             aria-label={isOpen ? t('Close main menu') : t('Open main menu')}
           />
           <Stack gap="md" direction="row">
-            <PrimaryNavigation.ButtonBar orientation="horizontal">
-              <PrimaryNavigationFooterItems />
-            </PrimaryNavigation.ButtonBar>
+            {organization && (
+              <PrimaryNavigation.ButtonBar orientation="horizontal">
+                <PrimaryNavigationFooterItems>
+                  <PrimaryNavigation.ButtonContainer>
+                    {buttonProps => <SearchButton {...buttonProps} />}
+                  </PrimaryNavigation.ButtonContainer>
+                  <ErrorBoundary customComponent={MobileHelpMenuFallback}>
+                    <MobileWhatsNewHelpMenu />
+                  </ErrorBoundary>
+                </PrimaryNavigationFooterItems>
+              </PrimaryNavigation.ButtonBar>
+            )}
             <PrimaryNavigationFooterItemsUserDropdown />
           </Stack>
         </Flex>

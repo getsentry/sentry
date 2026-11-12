@@ -65,7 +65,6 @@ describe('AiConfigureSeerQuotaSidebar', () => {
       body: {
         hasSupportedScmIntegration: true,
         isAutofixEnabled: true,
-        isCodeReviewEnabled: true,
         isSeerConfigured: true,
       },
     });
@@ -115,7 +114,7 @@ describe('AiConfigureSeerQuotaSidebar', () => {
 
   it('renders upsell card with disabled button when user lacks billing permissions', () => {
     const organization = OrganizationFixture({
-      access: [] as any,
+      access: [],
     });
     const subscription = SubscriptionFixture({organization, canSelfServe: false});
     act(() => SubscriptionStore.set(organization.slug, subscription));

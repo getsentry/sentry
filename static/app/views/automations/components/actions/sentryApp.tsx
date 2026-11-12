@@ -1,14 +1,15 @@
 import {Fragment} from 'react';
+import {IconSettings} from '@sentry/icons/settings';
 
 import {Button} from '@sentry/scraps/button';
 import {useModal} from '@sentry/scraps/modal';
 
-import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {ActionHandler} from 'sentry/types/workflowEngine/actions';
-import {SentryAppRuleModal} from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
-import {useActionNodeContext} from 'sentry/views/automations/components/actionNodes';
+import {useActionNodeContext} from 'sentry/views/automations/components/actionNodeContext';
 import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
+
+import {SentryAppRuleModal} from './sentryAppRuleModal';
 
 export function SentryAppDetails({handler}: {handler: ActionHandler}) {
   const name = handler?.sentryApp?.name || t('unknown SentryApp');

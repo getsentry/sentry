@@ -1,32 +1,32 @@
 import {useContext} from 'react';
 
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {ProjectRouteContext} from 'sentry/views/projects/projectRouteContext';
 import {SettingsNavigation} from 'sentry/views/settings/components/settingsNavigation';
-import {getNavigationConfiguration} from 'sentry/views/settings/project/navigationConfiguration';
+import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
+
+import {getNavigationConfiguration} from './navigationConfiguration';
 
 interface ProjectSettingsNavigationProps {
   organization: Organization;
-  project?: Project;
 }
 
 export function ProjectSettingsNavigation({
   organization,
-  project: projectProp,
 }: ProjectSettingsNavigationProps) {
   const projectFromContext = useContext(ProjectRouteContext);
   const {projectId} = useParams<{projectId?: string}>();
+  const settingsV3 = useSettingsV3();
   const {projects} = useProjects({slugs: projectId ? [projectId] : []});
   const summaryProject = projects.find(({slug}) => slug === projectId);
   const {data: detailedProject} = useDetailedProject(
     {orgSlug: organization.slug, projectSlug: projectId ?? ''},
-    {enabled: !!projectId && !projectProp && !projectFromContext}
+    {enabled: !!projectId && !projectFromContext}
   );
-  const project = projectProp ?? projectFromContext ?? detailedProject ?? summaryProject;
+  const project = projectFromContext ?? detailedProject ?? summaryProject;
 
   return (
     <SettingsNavigation
@@ -34,11 +34,14 @@ export function ProjectSettingsNavigation({
         project,
         organization,
         debugFilesNeedsReview: false,
+        settingsV3,
       })}
       access={new Set(organization.access)}
       features={new Set(organization.features)}
       organization={organization}
       project={project}
+      hookConfigs={[]}
+      hooks={[]}
     />
   );
 }

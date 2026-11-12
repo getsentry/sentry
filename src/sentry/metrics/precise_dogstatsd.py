@@ -1,9 +1,11 @@
 import atexit
-from typing import Any
+from typing import Any, cast
 
 from datadog.dogstatsd.base import DogStatsd
+from datadog.util.hostname import get_hostname
 
 from .base import MetricsBackend, Tags
+from .datadog_stats import DatadogStats
 
 __all__ = ["PreciseDogStatsdMetricsBackend"]
 
@@ -11,6 +13,7 @@ __all__ = ["PreciseDogStatsdMetricsBackend"]
 class PreciseDogStatsdMetricsBackend(MetricsBackend):
     def __init__(self, prefix: str | None = None, **kwargs: Any) -> None:
         self.tags = kwargs.pop("tags", None)
+        self.host: str | None = kwargs.pop("host", None) or get_hostname(hostname_from_config=True)
 
         instance_kwargs: dict[str, Any] = {
             "disable_telemetry": True,
@@ -18,6 +21,11 @@ class PreciseDogStatsdMetricsBackend(MetricsBackend):
             # When enabled, a background thread will be used to send metric payloads to the Agent.
             "disable_background_sender": False,
         }
+        # Same option name as `datadog.initialize`, so this backend and DogStatsdMetricsBackend
+        # can be configured with the same tags. Unlike `tags`, these are appended alongside
+        # call-site tags instead of overriding them.
+        if constant_tags := kwargs.get("statsd_constant_tags"):
+            instance_kwargs["constant_tags"] = list(constant_tags)
         if socket_path := kwargs.get("statsd_socket_path"):
             instance_kwargs["socket_path"] = socket_path
         else:
@@ -26,7 +34,7 @@ class PreciseDogStatsdMetricsBackend(MetricsBackend):
             if port := kwargs.get("statsd_port"):
                 instance_kwargs["port"] = int(port)
 
-        self.statsd = DogStatsd(**instance_kwargs)
+        self.statsd: DatadogStats = cast("DatadogStats", DogStatsd(**instance_kwargs))
 
         # Origin detection is enabled after 0.45 by default.
         # Disable it since it silently fails.
@@ -116,6 +124,25 @@ class PreciseDogStatsdMetricsBackend(MetricsBackend):
 
         tags_list = [f"{k}:{v}" for k, v in tags.items()]
         self.statsd.distribution(self._get_key(key), value, sample_rate=sample_rate, tags=tags_list)
+
+    def set(
+        self,
+        key: str,
+        value: str | int,
+        instance: str | None = None,
+        tags: Tags | None = None,
+        sample_rate: float = 1,
+        stacklevel: int = 0,
+    ) -> None:
+        tags = dict(tags or ())
+
+        if self.tags:
+            tags.update(self.tags)
+        if instance:
+            tags["instance"] = instance
+
+        tags_list = [f"{k}:{v}" for k, v in tags.items()]
+        self.statsd.set(self._get_key(key), value, tags=tags_list, sample_rate=sample_rate)
 
     def event(
         self,

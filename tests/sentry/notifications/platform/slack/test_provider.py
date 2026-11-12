@@ -1,15 +1,29 @@
+from dataclasses import replace
+from datetime import datetime
 from unittest.mock import Mock, patch
 
 import pytest
-from slack_sdk.errors import SlackApiError
 from slack_sdk.models.blocks import (
+    ActionsBlock,
+    ButtonElement,
     HeaderBlock,
+    LinkButtonElement,
     MarkdownTextObject,
     PlainTextObject,
     SectionBlock,
 )
 from slack_sdk.web import SlackResponse
 
+from sentry.constants import ObjectStatus
+from sentry.incidents.models.incident import IncidentStatus
+from sentry.incidents.typings.metric_detector import OpenPeriodContext
+from sentry.integrations.slack.message_builder.routing import (
+    SlackActionTracking,
+    decode_action_id,
+    encode_action_id,
+)
+from sentry.integrations.slack.message_builder.types import SlackAction
+from sentry.integrations.slack.utils.errors import TypedSlackApiError
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.models.notificationthread import NotificationThread
 from sentry.notifications.platform.provider import (
@@ -21,20 +35,39 @@ from sentry.notifications.platform.provider import (
 from sentry.notifications.platform.slack.provider import (
     SlackNotificationProvider,
     SlackRenderable,
+    SlackRenderer,
+    SlackStagingNotificationProvider,
 )
+from sentry.notifications.platform.slack.renderers.metric_alert import SlackMetricAlertRenderer
 from sentry.notifications.platform.target import (
     GenericNotificationTarget,
     IntegrationNotificationTarget,
 )
+from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
 from sentry.notifications.platform.threading import ThreadContext, ThreadKey
+from sentry.notifications.platform.tracking import (
+    NotificationLinkDecorator,
+    NotificationTrackingContext,
+)
 from sentry.notifications.platform.types import (
+    BlockQuoteSection,
+    CodeSection,
     NotificationCategory,
     NotificationProviderKey,
+    NotificationRenderedAction,
+    NotificationRenderedTemplate,
     NotificationSource,
     NotificationTargetResourceType,
+    ParagraphSection,
+    PlainTextBlock,
 )
+from sentry.organizations.services.organization.serial import serialize_organization_summary
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.notifications.platform import MockNotification, MockNotificationTemplate
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class SlackRendererTest(TestCase):
@@ -42,11 +75,14 @@ class SlackRendererTest(TestCase):
         data = MockNotification(message="test")
         template = MockNotificationTemplate()
         rendered_template = template.render(data)
-        renderer = SlackNotificationProvider.get_renderer(
-            data=data, category=NotificationCategory.DEBUG
-        )
 
-        rendererable = renderer.render(data=data, rendered_template=rendered_template)
+        rendererable = SlackRenderer.render(
+            data=data,
+            rendered_template=rendered_template,
+            link_decorator=NotificationLinkDecorator(
+                data=data, provider=NotificationProviderKey.SLACK
+            ),
+        )
         rendererable_dict = [block.to_dict() for block in rendererable.get("blocks", [])]
 
         assert rendererable_dict == [
@@ -88,6 +124,62 @@ class SlackRendererTest(TestCase):
             },
         ]
 
+    def test_default_renderer_truncates_text_to_slack_limits(self) -> None:
+        data = MockNotification(message="test")
+        long_text = "x" * 5000
+        rendered_template = NotificationRenderedTemplate(
+            subject=[PlainTextBlock(text=long_text)],
+            body=[
+                ParagraphSection(blocks=[PlainTextBlock(text=long_text)]),
+                CodeSection(blocks=[PlainTextBlock(text=long_text)]),
+                BlockQuoteSection(blocks=[PlainTextBlock(text=long_text)]),
+            ],
+        )
+
+        renderable = SlackRenderer.render(
+            data=data,
+            rendered_template=rendered_template,
+            link_decorator=NotificationLinkDecorator(
+                data=data, provider=NotificationProviderKey.SLACK
+            ),
+        )
+        # to_dict() runs slack_sdk's validation, which raises on over-length text
+        header, paragraph, code, quote = [block.to_dict() for block in renderable["blocks"]]
+
+        assert len(header["text"]["text"]) == 150
+        assert len(paragraph["text"]["text"]) == 3000
+        assert len(code["text"]["text"]) == 3000
+        assert code["text"]["text"].startswith("```")
+        assert code["text"]["text"].endswith("...```")
+        assert len(quote["text"]["text"]) == 3000
+        assert quote["text"]["text"].startswith(">")
+
+    def test_default_renderer_caps_block_count(self) -> None:
+        data = MockNotification(message="test")
+        rendered_template = NotificationRenderedTemplate(
+            subject=[PlainTextBlock(text="Subject")],
+            body=[ParagraphSection(blocks=[PlainTextBlock(text=f"line {i}")]) for i in range(60)],
+            actions=[NotificationRenderedAction(label="Visit", link="https://sentry.io")],
+            footer=[PlainTextBlock(text="Footer")],
+        )
+
+        renderable = SlackRenderer.render(
+            data=data,
+            rendered_template=rendered_template,
+            link_decorator=NotificationLinkDecorator(
+                data=data, provider=NotificationProviderKey.SLACK
+            ),
+        )
+        blocks = renderable["blocks"]
+
+        assert len(blocks) == 50
+        assert isinstance(blocks[0], HeaderBlock)
+        # 47 body slots: 46 kept lines plus the omitted-count line for the other 14.
+        assert blocks[46].to_dict()["text"]["text"] == "line 45"
+        assert blocks[47].to_dict()["elements"][0]["text"] == "_…and 14 more_"
+        assert isinstance(blocks[-2], ActionsBlock)
+        assert blocks[-1].to_dict()["elements"][0]["text"] == "Footer"
+
 
 class SlackNotificationProviderTest(TestCase):
     def setUp(self) -> None:
@@ -111,7 +203,196 @@ class SlackNotificationProviderTest(TestCase):
 
     def test_is_available(self) -> None:
         assert SlackNotificationProvider.is_available() is False
-        assert SlackNotificationProvider.is_available(organization=self.organization) is False
+        assert (
+            SlackNotificationProvider.is_available(
+                organization=serialize_organization_summary(self.organization)
+            )
+            is False
+        )
+
+    def test_staging_resolves_slack_renderers(self) -> None:
+        data = MetricAlertNotificationData(
+            group_id=1,
+            organization_id=self.organization.id,
+            notification_uuid="test-uuid",
+            action_id=1,
+            open_period_context=OpenPeriodContext(id=1, date_started=datetime(2024, 1, 1)),
+            new_status=IncidentStatus.CRITICAL.value,
+            title="Critical: Example Alert",
+            title_link="https://sentry.io",
+            text="123 events in the last 5 minutes",
+        )
+        assert (
+            SlackStagingNotificationProvider.get_renderer(data=data)
+            is SlackNotificationProvider.get_renderer(data=data)
+            is SlackMetricAlertRenderer
+        )
+
+
+@override_options({"notifications.tracking.sources": [NotificationSource.SEER_AUTOFIX_UPDATE]})
+class SlackNotificationProviderTrackActionsTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.context = NotificationTrackingContext(
+            source=NotificationSource.SEER_AUTOFIX_UPDATE,
+            provider=NotificationProviderKey.SLACK,
+            category=NotificationCategory.SEER,
+            notification_uuid="6f3c9a52-1b9e-4b1f-9d8e-2a4c5e6f7a8b",
+            organization_id=self.organization.id,
+        )
+        self.tracking = SlackActionTracking(
+            notification_uuid="6f3c9a52-1b9e-4b1f-9d8e-2a4c5e6f7a8b",
+            source=NotificationSource.SEER_AUTOFIX_UPDATE,
+        )
+
+    def _action_id(self, action: SlackAction) -> str:
+        return encode_action_id(
+            action=action, organization_id=self.organization.id, project_id=self.project.id
+        )
+
+    def _view_pr_action_id(
+        self, pr_number: int, tracking: SlackActionTracking | None = None
+    ) -> str:
+        return encode_action_id(
+            action=SlackAction.SEER_AUTOFIX_VIEW_PR,
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            suffix=str(pr_number),
+            tracking=tracking,
+        )
+
+    def _button_action_ids(self, renderable: SlackRenderable) -> list[str | None]:
+        actions = renderable["blocks"][0]
+        assert isinstance(actions, ActionsBlock)
+        return [
+            element.action_id for element in actions.elements if isinstance(element, ButtonElement)
+        ]
+
+    def _renderable(self) -> SlackRenderable:
+        return SlackRenderable(
+            blocks=[
+                ActionsBlock(
+                    elements=[
+                        LinkButtonElement(
+                            text="View in Sentry",
+                            url=f"https://sentry.io/issues/1/?referrer=seer-autofix-update-slack&notification_uuid={self.context.notification_uuid}",
+                            action_id=self._action_id(SlackAction.SEER_AUTOFIX_VIEW_IN_SENTRY),
+                        ),
+                        LinkButtonElement(
+                            text="View PR (#123)",
+                            url="https://github.com/org/repo/pull/123",
+                            action_id=self._view_pr_action_id(123),
+                        ),
+                        LinkButtonElement(
+                            text="View PR (#456)",
+                            url="https://github.com/org/repo/pull/456",
+                            action_id=self._view_pr_action_id(456),
+                        ),
+                        ButtonElement(
+                            text="Fix with Seer",
+                            action_id=self._action_id(SlackAction.SEER_AUTOFIX_START),
+                        ),
+                        ButtonElement(text="Cancel", value="ignore"),
+                        ButtonElement(text="Unknown", action_id="not_a_slack_action::1"),
+                        ButtonElement(text="Unrouted", action_id=SlackAction.SEER_AUTOFIX_START),
+                    ]
+                )
+            ],
+            attachments=[
+                {
+                    "blocks": [
+                        {
+                            "type": "actions",
+                            "elements": [
+                                {
+                                    "type": "button",
+                                    "action_id": self._action_id(
+                                        SlackAction.SEER_INVESTIGATION_START
+                                    ),
+                                }
+                            ],
+                        }
+                    ]
+                }
+            ],
+            text="Seer",
+        )
+
+    def test_tracks_callback_buttons(self) -> None:
+        renderable = self._renderable()
+
+        tracked = SlackNotificationProvider.track_actions(
+            renderable=renderable, context=self.context
+        )
+
+        assert tracked == {
+            SlackAction.SEER_AUTOFIX_VIEW_PR,
+            SlackAction.SEER_AUTOFIX_START,
+            SlackAction.SEER_INVESTIGATION_START,
+        }
+        assert self._button_action_ids(renderable) == [
+            self._action_id(SlackAction.SEER_AUTOFIX_VIEW_IN_SENTRY),
+            self._view_pr_action_id(123, tracking=self.tracking),
+            self._view_pr_action_id(456, tracking=self.tracking),
+            encode_action_id(
+                action=SlackAction.SEER_AUTOFIX_START,
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                tracking=self.tracking,
+            ),
+            None,
+            "not_a_slack_action::1",
+            SlackAction.SEER_AUTOFIX_START,
+        ]
+        investigate = renderable["attachments"][0]["blocks"][0]["elements"][0]
+        assert decode_action_id(investigate["action_id"]).tracking == self.tracking
+
+    def test_tracks_nothing_when_tracking_is_disabled(self) -> None:
+        renderable = self._renderable()
+
+        with override_options({"notifications.tracking.sources": []}):
+            tracked = SlackNotificationProvider.track_actions(
+                renderable=renderable, context=self.context
+            )
+
+        assert tracked == set()
+        assert self._button_action_ids(renderable)[3] == self._action_id(
+            SlackAction.SEER_AUTOFIX_START
+        )
+
+    def test_tracks_nothing_without_a_notification_uuid(self) -> None:
+        renderable = self._renderable()
+        context = replace(self.context, notification_uuid=None)
+
+        tracked = SlackNotificationProvider.track_actions(renderable=renderable, context=context)
+
+        assert tracked == set()
+
+    def test_tracks_link_button_to_a_link_tracked_for_another_notification(self) -> None:
+        action_id = self._action_id(SlackAction.SEER_AUTOFIX_VIEW_IN_SENTRY)
+        renderable = SlackRenderable(
+            blocks=[
+                ActionsBlock(
+                    elements=[
+                        LinkButtonElement(
+                            text="View in Sentry",
+                            url="https://sentry.io/issues/1/?notification_uuid=other",
+                            action_id=action_id,
+                        )
+                    ]
+                )
+            ],
+            text="Seer",
+        )
+
+        tracked = SlackNotificationProvider.track_actions(
+            renderable=renderable, context=self.context
+        )
+
+        assert tracked == {SlackAction.SEER_AUTOFIX_VIEW_IN_SENTRY}
+        [tracked_action_id] = self._button_action_ids(renderable)
+        assert tracked_action_id is not None
+        assert decode_action_id(tracked_action_id).tracking == self.tracking
 
 
 class SlackNotificationProviderSendTest(TestCase):
@@ -148,7 +429,15 @@ class SlackNotificationProviderSendTest(TestCase):
     def test_send_success(self, mock_slack_client: Mock) -> None:
         """Test successful message sending returns SendResult"""
         mock_client_instance = mock_slack_client.return_value
-        mock_client_instance.chat_postMessage.return_value = {"ok": True, "ts": "1234567890.123456"}
+        mock_client_instance.chat_postMessage.return_value = SlackResponse(
+            client=mock_client_instance,
+            http_verb="POST",
+            api_url="https://slack.com/api/chat.postMessage",
+            req_args={},
+            data={"ok": True, "ts": "1234567890.123456"},
+            headers={},
+            status_code=200,
+        )
 
         target = self._create_target()
         renderable = self._create_renderable()
@@ -156,7 +445,8 @@ class SlackNotificationProviderSendTest(TestCase):
         result = SlackNotificationProvider.send(target=target, renderable=renderable)
 
         assert isinstance(result, SendSuccessResult)
-        assert result.provider_message_id is None
+        assert result.provider_message_id == "1234567890.123456"
+        assert result.is_threaded is False
         mock_client_instance.chat_postMessage.assert_called_once_with(
             channel="C1234567890",
             blocks=renderable["blocks"],
@@ -165,6 +455,20 @@ class SlackNotificationProviderSendTest(TestCase):
             unfurl_links=False,
             unfurl_media=False,
         )
+
+    @patch("sentry.integrations.slack.integration.SlackSdkClient")
+    def test_send_halts_when_org_integration_disabled(self, mock_slack_client: Mock) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.org_integration.update(status=ObjectStatus.DISABLED)
+
+        result = SlackNotificationProvider.send(
+            target=self._create_target(), renderable=self._create_renderable()
+        )
+
+        assert isinstance(result, SendFailure)
+        assert result.status == SendFailureStatus.HALT
+        assert isinstance(result.exception, IntegrationConfigurationError)
+        mock_slack_client.return_value.chat_postMessage.assert_not_called()
 
     def test_send_invalid_target_class(self) -> None:
         """Test send fails with invalid target class"""
@@ -182,11 +486,33 @@ class SlackNotificationProviderSendTest(TestCase):
         ):
             SlackNotificationProvider.send(target=target, renderable=renderable)
 
+    def test_send_halts_when_integration_is_gone(self) -> None:
+        target = IntegrationNotificationTarget(
+            provider_key=NotificationProviderKey.SLACK,
+            resource_id="C1234567890",
+            resource_type=NotificationTargetResourceType.CHANNEL,
+            integration_id=99999,
+            organization_id=self.organization.id,
+        )
+
+        result = SlackNotificationProvider.send(target=target, renderable=self._create_renderable())
+
+        assert isinstance(result, SendFailure)
+        assert result.status == SendFailureStatus.HALT
+
     @patch("sentry.integrations.slack.integration.SlackSdkClient")
     def test_send_to_direct_message(self, mock_slack_client: Mock) -> None:
         """Test sending message to direct message (user)"""
         mock_client_instance = mock_slack_client.return_value
-        mock_client_instance.chat_postMessage.return_value = {"ok": True, "ts": "1234567890.123456"}
+        mock_client_instance.chat_postMessage.return_value = SlackResponse(
+            client=mock_client_instance,
+            http_verb="POST",
+            api_url="https://slack.com/api/chat.postMessage",
+            req_args={},
+            data={"ok": True, "ts": "1234567890.123456"},
+            headers={},
+            status_code=200,
+        )
 
         target = IntegrationNotificationTarget(
             provider_key=NotificationProviderKey.SLACK,
@@ -393,7 +719,7 @@ class SlackNotificationProviderThreadingTest(TestCase):
             headers={},
             status_code=400,
         )
-        mock_client_instance.chat_postMessage.side_effect = SlackApiError(
+        mock_client_instance.chat_postMessage.side_effect = TypedSlackApiError(
             message="channel_not_found", response=error_response
         )
 

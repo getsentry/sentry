@@ -1,6 +1,7 @@
 import {useCallback} from 'react';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowEngine/getWorkflowEngineResponseErrorMessage';
 import {t} from 'sentry/locale';
@@ -22,8 +23,6 @@ interface UseEditDetectorFormSubmitOptions<TDetector, TFormData> {
    * Function to transform form data to API payload
    */
   formDataToEndpointPayload: (formData: TFormData) => BaseDetectorUpdatePayload;
-  onError?: (error: unknown) => void;
-  onSuccess?: (detector: TDetector) => void;
 }
 
 export function useEditDetectorFormSubmit<
@@ -32,8 +31,6 @@ export function useEditDetectorFormSubmit<
 >({
   detector,
   formDataToEndpointPayload,
-  onSuccess,
-  onError,
 }: UseEditDetectorFormSubmitOptions<TDetector, TFormData>): OnSubmitCallback {
   const organization = useOrganization();
   const navigate = useNavigate();
@@ -67,37 +64,21 @@ export function useEditDetectorFormSubmit<
           ...getDetectorAnalyticsPayload(resultDetector),
         });
 
-        addSuccessMessage(t('Monitor updated'));
+        toast.success(t('Monitor updated'));
 
-        if (onSuccess) {
-          onSuccess(resultDetector as TDetector);
-        } else {
-          navigate(makeMonitorDetailsPathname(organization.slug, resultDetector.id));
-        }
+        navigate(makeMonitorDetailsPathname(organization.slug, resultDetector.id));
 
         onSubmitSuccess?.(resultDetector);
       } catch (error) {
-        addErrorMessage(
+        toast.error(
           (error instanceof RequestError
             ? getWorkflowEngineResponseErrorMessage(error.responseJSON)
             : null) ?? t('Unable to update monitor')
         );
 
-        if (onError) {
-          onError(error);
-        }
-
         onSubmitError?.(error);
       }
     },
-    [
-      detector,
-      formDataToEndpointPayload,
-      updateDetector,
-      organization,
-      navigate,
-      onSuccess,
-      onError,
-    ]
+    [detector, formDataToEndpointPayload, updateDetector, organization, navigate]
   );
 }

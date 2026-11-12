@@ -65,6 +65,15 @@ class TestDeriveSnapshotStatusComparisonState(TestCase):
         assert result.comparison_state == "failed"
         assert result.comparison_error_message == "Something went wrong"
 
+    def test_failed_with_base_manifest_missing_maps_to_no_base_build(self) -> None:
+        comparison = self._create_comparison(state=PreprodSnapshotComparison.State.FAILED)
+        comparison.error_code = PreprodSnapshotComparison.ErrorCode.BASE_MANIFEST_MISSING
+        comparison.error_message = "Base snapshot for commit abcdef1 has expired."
+        comparison.save(update_fields=["error_code", "error_message"])
+        result = derive_snapshot_status(_make_input(latest_comparison=comparison))
+        assert result.comparison_state == "no_base_build"
+        assert result.comparison_error_message == "Base snapshot for commit abcdef1 has expired."
+
     def test_no_comparison_no_base_sha(self) -> None:
         result = derive_snapshot_status(_make_input())
         assert result.comparison_state is None
@@ -99,7 +108,7 @@ class TestDeriveSnapshotStatusApprovalStatus(TestCase):
     def _create_approval(
         self,
         approval_status: int = PreprodComparisonApproval.ApprovalStatus.APPROVED,
-        extras: dict | None = None,
+        extras: dict[str, object] | None = None,
     ) -> PreprodComparisonApproval:
         artifact = self.create_preprod_artifact(project=self.project)
         return self.create_preprod_comparison_approval(

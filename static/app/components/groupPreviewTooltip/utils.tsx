@@ -1,5 +1,5 @@
 import {useCallback, useState} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {useQuery, type UseQueryResult} from '@tanstack/react-query';
 
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils/defined';
@@ -45,7 +45,7 @@ export function usePreviewEvent<T = Event>({
 }: {
   groupId: string;
   query?: string;
-}) {
+}): UseQueryResult<T> {
   const organization = useOrganization();
   const defaultIssueEvent = useDefaultIssueEvent();
   const sanitizedQuery = getEventSearchFromIssueQuery(query ?? '');

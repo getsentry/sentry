@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 
 import * as Storybook from 'sentry/stories';
 import {sampleDurationTimeSeries} from 'sentry/views/dashboards/widgets/timeSeriesWidget/fixtures/sampleDurationTimeSeries';
@@ -147,9 +147,8 @@ import {Widget} from './widget';
         <p>There are a few UI behaviors you should be aware of:</p>
         <ul>
           <li>
-            You can remove the padding within areas of the widget by passing the props{' '}
-            <code>noFooterPadding</code>, <code>noHeaderPadding</code>, and{' '}
-            <code>noVisualizationPadding</code>
+            You can remove the padding within the visualization area of the widget by
+            passing the <code>noVisualizationPadding</code> prop
           </li>
           <li>
             Avoid the <code>height</code> prop if you can. It's much easier and more

@@ -1,10 +1,24 @@
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
+import {IntegrationProviderFixture} from 'sentry-fixture/integrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
+import {selectEvent} from 'sentry-test/selectEvent';
 
-import ConfigureIntegration from 'sentry/views/settings/organizationIntegrations/configureIntegration';
+import type {
+  IntegrationProvider,
+  OrganizationIntegration,
+} from 'sentry/types/integrations';
+
+import ConfigureIntegration from './configureIntegration';
 
 describe('ConfigureIntegration settings tab', () => {
   const org = OrganizationFixture({
@@ -12,33 +26,30 @@ describe('ConfigureIntegration settings tab', () => {
   });
   const integrationId = '1';
 
-  function mockRequests(integration: ReturnType<typeof OrganizationIntegrationsFixture>) {
+  function mockRequests(
+    integration: OrganizationIntegration,
+    provider: IntegrationProvider = GitHubIntegrationProviderFixture({
+      features: ['stacktrace-link'],
+    })
+  ) {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/`,
       body: {
-        providers: [GitHubIntegrationProviderFixture({features: ['stacktrace-link']})],
+        providers: [provider],
       },
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/integrations/${integrationId}/`,
       body: integration,
     });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/code-mappings/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/repos/`,
-      body: [],
-    });
   }
 
-  function renderConfigure() {
+  function renderConfigure(providerKey = 'github', organization = org) {
     return render(<ConfigureIntegration />, {
-      organization: org,
+      organization,
       initialRouterConfig: {
         location: {
-          pathname: `/settings/${org.slug}/integrations/github/${integrationId}/`,
+          pathname: `/settings/${org.slug}/integrations/${providerKey}/${integrationId}/`,
           query: {},
         },
         route: '/settings/:orgId/integrations/:providerKey/:integrationId/',
@@ -48,18 +59,223 @@ describe('ConfigureIntegration settings tab', () => {
 
   const githubProvider = OrganizationIntegrationsFixture().provider;
 
+  const codeownersProvider = GitHubIntegrationProviderFixture({
+    features: ['codeowners'],
+  });
+  const codeownersOrg = OrganizationFixture({
+    access: ['org:integrations', 'org:write'],
+    features: ['integrations-codeowners'],
+  });
+
+  it('shows the external domain as a settings row without a tab list for a stacktrace-link-only provider', async () => {
+    const integration = OrganizationIntegrationsFixture({
+      name: 'sentry-demos',
+      domainName: 'github.com/sentry-demos',
+      provider: {...githubProvider, key: 'github'},
+      configOrganization: [],
+    });
+    mockRequests(integration);
+
+    renderConfigure();
+
+    const heading = await screen.findByRole('heading', {name: 'sentry-demos'});
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', {name: 'Code Mappings'})).not.toBeInTheDocument();
+    expect(screen.getByText('Organization Integration Settings')).toBeInTheDocument();
+    expect(screen.getByText('Integration URL')).toBeInTheDocument();
+    const link = screen.getByRole('link', {name: 'github.com/sentry-demos'});
+    expect(link).toHaveAttribute('href', 'https://github.com/sentry-demos');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(heading).not.toContainElement(link);
+    expect(screen.queryByRole('link', {name: 'sentry-demos'})).not.toBeInTheDocument();
+  });
+
+  it('pushes the new tab and drops the cursor when switching tabs', async () => {
+    const integration = OrganizationIntegrationsFixture({
+      name: 'sentry-demos',
+      domainName: 'github.com/sentry-demos',
+      provider: {...githubProvider, key: 'github'},
+      configOrganization: [],
+    });
+    mockRequests(integration, codeownersProvider);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${codeownersOrg.slug}/members/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${codeownersOrg.slug}/codeowners-associations/`,
+      body: {},
+    });
+
+    const {router} = render(<ConfigureIntegration />, {
+      organization: codeownersOrg,
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${codeownersOrg.slug}/integrations/github/${integrationId}/`,
+          query: {cursor: '0:100:0', other: 'kept'},
+        },
+        route: '/settings/:orgId/integrations/:providerKey/:integrationId/',
+      },
+    });
+
+    await userEvent.click(await screen.findByRole('tab', {name: 'User Mappings'}));
+
+    await waitFor(() =>
+      expect(router.location.query).toEqual({tab: 'userMappings', other: 'kept'})
+    );
+    expect(router.historyAction).toBe('PUSH');
+  });
+
+  it('links the configurations crumb to the provider configurations tab', async () => {
+    const integration = OrganizationIntegrationsFixture({
+      name: 'sentry-demos',
+      domainName: 'github.com/sentry-demos',
+      provider: {...githubProvider, key: 'github'},
+      configOrganization: [],
+    });
+    mockRequests(integration);
+
+    renderConfigure();
+
+    expect(await screen.findByRole('link', {name: 'Configurations'})).toHaveAttribute(
+      'href',
+      `/settings/${org.slug}/integrations/github/?tab=configurations`
+    );
+  });
+
+  it('keeps the protocol when the external domain is a full URL', async () => {
+    const integration = OrganizationIntegrationsFixture({
+      name: 'Azure DevOps',
+      domainName: 'https://example.visualstudio.com/',
+      provider: {...githubProvider, key: 'vsts'},
+      configOrganization: [],
+    });
+    mockRequests(
+      integration,
+      GitHubIntegrationProviderFixture({key: 'vsts', slug: 'vsts'})
+    );
+
+    renderConfigure('vsts');
+
+    expect(await screen.findByText('Azure DevOps')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {name: 'https://example.visualstudio.com/'})
+    ).toHaveAttribute('href', 'https://example.visualstudio.com/');
+    expect(screen.queryByRole('link', {name: 'Azure DevOps'})).not.toBeInTheDocument();
+  });
+
+  it('shows the PagerDuty integration name without a link for a subdomain', async () => {
+    const integration = OrganizationIntegrationsFixture({
+      name: 'PagerDuty',
+      domainName: 'example-account',
+      provider: {...githubProvider, key: 'pagerduty'},
+      configOrganization: [],
+    });
+    mockRequests(
+      integration,
+      GitHubIntegrationProviderFixture({key: 'pagerduty', slug: 'pagerduty'})
+    );
+
+    renderConfigure('pagerduty');
+
+    expect(await screen.findByText('PagerDuty')).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'example-account'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'PagerDuty'})).not.toBeInTheDocument();
+  });
+
+  it('shows the integration name without a link when there is no domain', async () => {
+    const integration = OrganizationIntegrationsFixture({
+      name: 'Slack',
+      domainName: null,
+      provider: {...githubProvider, key: 'slack'},
+      configOrganization: [],
+    });
+    mockRequests(
+      integration,
+      GitHubIntegrationProviderFixture({key: 'slack', slug: 'slack'})
+    );
+
+    renderConfigure('slack');
+
+    expect(await screen.findByText('Slack')).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'Slack'})).not.toBeInTheDocument();
+  });
+
+  it('reconnects Linear through app authorization instead of editing credentials', async () => {
+    const provider = IntegrationProviderFixture({
+      key: 'linear',
+      slug: 'linear',
+      name: 'Linear for Seer',
+      features: ['seer-context'],
+      canAdd: false,
+    });
+    mockRequests(
+      OrganizationIntegrationsFixture({
+        name: 'Linear (Example)',
+        domainName: null,
+        provider: {...provider, aspects: {}},
+        configOrganization: [],
+        configData: {},
+      }),
+      provider
+    );
+    const initialize = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/pipeline/integration_pipeline/`,
+      method: 'POST',
+      body: {
+        step: 'oauth_login',
+        stepIndex: 0,
+        totalSteps: 1,
+        provider: 'linear',
+        data: {oauthUrl: 'https://linear.app/oauth/authorize?actor=app'},
+      },
+    });
+    renderGlobalModal({organization: org});
+    render(<ConfigureIntegration />, {
+      organization: org,
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${org.slug}/integrations/linear/${integrationId}/`,
+        },
+        route: '/settings/:orgId/integrations/:providerKey/:integrationId/',
+      },
+    });
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Reconnect Linear'}));
+
+    expect(await screen.findByRole('button', {name: 'Authorize Linear'})).toBeEnabled();
+    expect(initialize).toHaveBeenCalledWith(
+      `/organizations/${org.slug}/pipeline/integration_pipeline/`,
+      expect.objectContaining({data: {action: 'initialize', provider: 'linear'}})
+    );
+    expect(screen.queryByRole('textbox', {name: 'Client ID'})).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Client secret')).not.toBeInTheDocument();
+  });
+
   it('hides the Settings tab when there is no settings content', async () => {
     mockRequests(
       OrganizationIntegrationsFixture({
         provider: {...githubProvider, key: 'github'},
         configOrganization: [],
-      })
+        domainName: null,
+      }),
+      codeownersProvider
     );
+    MockApiClient.addMockResponse({
+      url: `/organizations/${codeownersOrg.slug}/members/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${codeownersOrg.slug}/codeowners-associations/`,
+      body: {},
+    });
 
-    renderConfigure();
+    renderConfigure('github', codeownersOrg);
 
-    expect(await screen.findByRole('tab', {name: 'Code Mappings'})).toBeInTheDocument();
+    expect(await screen.findByRole('tab', {name: 'User Mappings'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Team Mappings'})).toBeInTheDocument();
     expect(screen.queryByRole('tab', {name: 'Settings'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', {name: 'Code Mappings'})).not.toBeInTheDocument();
   });
 
   it('shows the Settings tab when there is organization config', async () => {
@@ -73,12 +289,637 @@ describe('ConfigureIntegration settings tab', () => {
             label: 'Toggle',
           },
         ],
-      })
+      }),
+      codeownersProvider
     );
 
-    renderConfigure();
+    renderConfigure('github', codeownersOrg);
 
     expect(await screen.findByRole('tab', {name: 'Settings'})).toBeInTheDocument();
-    expect(screen.getByRole('tab', {name: 'Code Mappings'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'User Mappings'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Team Mappings'})).toBeInTheDocument();
+    expect(screen.queryByRole('tab', {name: 'Code Mappings'})).not.toBeInTheDocument();
+  });
+});
+
+describe('ConfigureIntegration Grafana settings', () => {
+  const organization = OrganizationFixture({
+    access: ['org:integrations', 'org:write'],
+  });
+  const grafanaUrl = 'https://example-stack.grafana.net';
+  const newGrafanaUrl = 'https://other-stack.grafana.net';
+  const integrationUrl = `/organizations/${organization.slug}/integrations/1/`;
+  const initialRouterConfig = {
+    location: {pathname: `/settings/${organization.slug}/integrations/grafana/1/`},
+    route: '/settings/:orgId/integrations/:providerKey/:integrationId/',
+  };
+
+  function mockGrafanaRequests(savedUrl = grafanaUrl) {
+    const provider = IntegrationProviderFixture({
+      key: 'grafana',
+      slug: 'grafana',
+      name: 'Grafana for Seer',
+      features: ['seer-context'],
+    });
+    const integration = OrganizationIntegrationsFixture({
+      id: '1',
+      name: 'Grafana (example-stack.grafana.net)',
+      domainName: null,
+      provider: {...provider, aspects: {}},
+      configOrganization: [
+        {name: 'url', type: 'string', label: 'Grafana URL', required: true},
+        {name: 'token', type: 'secret', label: 'Service Account Token'},
+      ],
+    });
+    let storedUrl = grafanaUrl;
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/config/integrations/`,
+      body: {providers: [provider]},
+    });
+    const getRequest = MockApiClient.addMockResponse({
+      url: integrationUrl,
+      body: () => ({...integration, configData: {url: storedUrl}}),
+    });
+    const saveRequest = MockApiClient.addMockResponse({
+      url: integrationUrl,
+      method: 'POST',
+      body: () => {
+        storedUrl = savedUrl;
+        return {};
+      },
+    });
+    return {getRequest, saveRequest};
+  }
+
+  it('saves a new stack URL and token together instead of on blur', async () => {
+    const {getRequest, saveRequest} = mockGrafanaRequests(newGrafanaUrl);
+    render(<ConfigureIntegration />, {organization, initialRouterConfig});
+
+    const url = await screen.findByRole('textbox', {name: 'Grafana URL'});
+    expect(url).toHaveValue(grafanaUrl);
+    const token = screen.getByLabelText('Service account token');
+    expect(token).toHaveValue('');
+    await userEvent.clear(url);
+    await userEvent.type(url, '  https://Other-Stack.grafana.net/  ');
+    await userEvent.tab();
+    expect(saveRequest).not.toHaveBeenCalled();
+    await userEvent.type(token, '  glsa_new  ');
+    await userEvent.tab();
+    expect(saveRequest).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save and test'}));
+
+    await waitFor(() => expect(saveRequest).toHaveBeenCalledTimes(1));
+    expect(saveRequest).toHaveBeenCalledWith(
+      integrationUrl,
+      expect.objectContaining({
+        data: {url: 'https://Other-Stack.grafana.net/', token: 'glsa_new'},
+      })
+    );
+    await waitFor(() => expect(token).toHaveValue(''));
+    expect(url).toHaveValue(newGrafanaUrl);
+    expect(getRequest).toHaveBeenCalledTimes(2);
+  });
+
+  it('re-tests the saved connection with a blank token', async () => {
+    const {saveRequest} = mockGrafanaRequests();
+    render(<ConfigureIntegration />, {organization, initialRouterConfig});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Save and test'}));
+
+    await waitFor(() =>
+      expect(saveRequest).toHaveBeenCalledWith(
+        integrationUrl,
+        expect.objectContaining({data: {url: grafanaUrl, token: ''}})
+      )
+    );
+  });
+
+  it('preserves edits after a rejected token and allows a corrected save', async () => {
+    mockGrafanaRequests(newGrafanaUrl);
+    const message =
+      'Grafana rejected the token. Check that it is an active service account token.';
+    MockApiClient.addMockResponse({
+      url: integrationUrl,
+      method: 'POST',
+      statusCode: 400,
+      body: {detail: message},
+    });
+    render(<ConfigureIntegration />, {organization, initialRouterConfig});
+
+    const url = await screen.findByRole('textbox', {name: 'Grafana URL'});
+    await userEvent.clear(url);
+    await userEvent.type(url, newGrafanaUrl);
+    const token = screen.getByLabelText('Service account token');
+    await userEvent.type(token, 'glsa_bad');
+    await userEvent.click(screen.getByRole('button', {name: 'Save and test'}));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(message);
+    expect(url).toHaveValue(newGrafanaUrl);
+    expect(token).toHaveValue('glsa_bad');
+
+    const {saveRequest} = mockGrafanaRequests(newGrafanaUrl);
+    await userEvent.clear(token);
+    await userEvent.type(token, 'glsa_corrected');
+    await userEvent.click(screen.getByRole('button', {name: 'Save and test'}));
+
+    await waitFor(() => expect(token).toHaveValue(''));
+    expect(saveRequest).toHaveBeenCalledWith(
+      integrationUrl,
+      expect.objectContaining({data: {url: newGrafanaUrl, token: 'glsa_corrected'}})
+    );
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('blocks duplicate submissions while checking the connection', async () => {
+    mockGrafanaRequests();
+    const save = Promise.withResolvers<void>();
+    const saveRequest = MockApiClient.addMockResponse({
+      url: integrationUrl,
+      method: 'POST',
+      asyncDelay: save.promise,
+      body: {},
+    });
+    render(<ConfigureIntegration />, {organization, initialRouterConfig});
+
+    const button = await screen.findByRole('button', {name: 'Save and test'});
+    await userEvent.click(button);
+
+    expect(button).toBeDisabled();
+    expect(screen.getByRole('textbox', {name: 'Grafana URL'})).toBeDisabled();
+    expect(screen.getByLabelText('Service account token')).toBeDisabled();
+    await userEvent.click(button);
+    expect(saveRequest).toHaveBeenCalledTimes(1);
+
+    save.resolve();
+    await waitFor(() => expect(button).toBeEnabled());
+  });
+});
+
+describe('ConfigureIntegration mapping removals', () => {
+  const integrationId = '1';
+  const mappings = {
+    '10000': {on_resolve: '1', on_unresolve: '2'},
+    '10001': {on_resolve: '3', on_unresolve: '4'},
+  };
+  const choiceMapper = {
+    name: 'sync_status_forward',
+    type: 'choice_mapper' as const,
+    label: 'Status Mapping',
+    addButtonText: 'Add Project',
+    addDropdown: {
+      items: [
+        {value: '10000', label: 'Project A'},
+        {value: '10001', label: 'Project B'},
+      ],
+    },
+    columnLabels: {
+      on_resolve: 'When Resolved',
+      on_unresolve: 'When Unresolved',
+    },
+    mappedColumnLabel: 'Project',
+    mappedSelectors: {
+      on_resolve: {
+        choices: [
+          ['1', 'Open'],
+          ['3', 'To Do'],
+        ] as Array<[string, string]>,
+        placeholder: 'Select resolved status',
+      },
+      on_unresolve: {
+        choices: [
+          ['2', 'Closed'],
+          ['4', 'Done'],
+        ] as Array<[string, string]>,
+        placeholder: 'Select unresolved status',
+      },
+    },
+  };
+
+  function setup({
+    providerKey = 'jira',
+    features = [],
+    configData = {sync_status_forward: mappings},
+  }: {
+    configData?: Record<string, unknown>;
+    features?: string[];
+    providerKey?: string;
+  } = {}) {
+    const organization = OrganizationFixture({
+      access: ['org:integrations', 'org:write'],
+      features,
+    });
+    const provider = GitHubIntegrationProviderFixture({
+      key: providerKey,
+      slug: providerKey,
+      name: providerKey === 'jira' ? 'Jira' : 'GitHub',
+      features: [],
+    });
+    const integration = OrganizationIntegrationsFixture({
+      id: integrationId,
+      provider: {
+        ...OrganizationIntegrationsFixture().provider,
+        key: providerKey,
+        slug: providerKey,
+        name: provider.name,
+        features: [],
+      },
+      configOrganization: [choiceMapper],
+      configData,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/config/integrations/`,
+      body: {providers: [provider]},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${integrationId}/`,
+      body: integration,
+    });
+    const postRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${integrationId}/`,
+      method: 'POST',
+      body: {},
+    });
+
+    render(<ConfigureIntegration />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${organization.slug}/integrations/${providerKey}/${integrationId}/`,
+          query: {},
+        },
+        route: '/settings/:orgId/integrations/:providerKey/:integrationId/',
+      },
+    });
+
+    return postRequest;
+  }
+
+  async function deleteSecondMapping() {
+    const deleteButtons = await screen.findAllByRole('button', {name: 'Delete'});
+    await userEvent.click(deleteButtons[1]!);
+  }
+
+  it('uses the legacy full replacement payload when the feature is disabled', async () => {
+    const postRequest = setup();
+
+    await deleteSecondMapping();
+
+    await waitFor(() =>
+      expect(postRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {sync_status_forward: {'10000': mappings['10000']}},
+        })
+      )
+    );
+  });
+
+  it('appends a removal entry for a removed mapping', async () => {
+    const postRequest = setup({features: ['jira-explicit-mapping-removals']});
+
+    await deleteSecondMapping();
+
+    await waitFor(() =>
+      expect(postRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            sync_status_forward: {
+              '10000': mappings['10000'],
+              '10001': null,
+            },
+          },
+        })
+      )
+    );
+  });
+
+  it('does not have explicit removals for a non-Jira provider', async () => {
+    const postRequest = setup({
+      providerKey: 'github',
+      features: ['jira-explicit-mapping-removals'],
+    });
+
+    await deleteSecondMapping();
+
+    await waitFor(() =>
+      expect(postRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {sync_status_forward: {'10000': mappings['10000']}},
+        })
+      )
+    );
+  });
+
+  it('sends all current mappings as objects when updating a mapping', async () => {
+    const postRequest = setup({features: ['jira-explicit-mapping-removals']});
+
+    await selectEvent.select(await screen.findByText('Open'), 'To Do');
+
+    await waitFor(() =>
+      expect(postRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            sync_status_forward: {
+              '10000': {on_resolve: '3', on_unresolve: '2'},
+              '10001': mappings['10001'],
+            },
+          },
+        })
+      )
+    );
+  });
+
+  it('does not add removals when previous mapping data is missing', async () => {
+    const postRequest = setup({
+      features: ['jira-explicit-mapping-removals'],
+      configData: {},
+    });
+
+    await userEvent.click(await screen.findByText('Add Project'));
+    await userEvent.click(await screen.findByRole('option', {name: 'Project A'}));
+    const form = screen.getByTestId(/sync_status_forward.*auto-save/);
+    await selectEvent.select(within(form).getByText('Select resolved status'), 'Open');
+    await selectEvent.select(
+      within(form).getByText('Select unresolved status'),
+      'Closed'
+    );
+
+    await waitFor(() =>
+      expect(postRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            sync_status_forward: {
+              '10000': {on_resolve: '1', on_unresolve: '2'},
+            },
+          },
+        })
+      )
+    );
+  });
+});
+
+describe('ConfigureIntegration GCP re-verification', () => {
+  const integrationId = '1';
+  const CUSTOMER_SA = 'gcp-sentry@my-project.iam.gserviceaccount.com';
+
+  function setup({
+    providerKey = 'gcp',
+    connectionStatus = 'connected',
+    verifyDelay,
+  }: {
+    connectionStatus?: string;
+    providerKey?: string;
+    verifyDelay?: number | Promise<void>;
+  } = {}) {
+    const organization = OrganizationFixture({
+      access: ['org:integrations', 'org:write'],
+    });
+    const provider = GitHubIntegrationProviderFixture({
+      key: providerKey,
+      slug: providerKey,
+      name: 'Google Cloud Platform for Seer',
+      features: [],
+    });
+    const integration = OrganizationIntegrationsFixture({
+      id: integrationId,
+      provider: {
+        ...OrganizationIntegrationsFixture().provider,
+        key: providerKey,
+        slug: providerKey,
+        name: provider.name,
+        features: [],
+      },
+      configOrganization: [
+        {
+          name: 'customer_sa_email',
+          type: 'string' as const,
+          label: 'Customer Service Account',
+          required: true,
+        },
+      ],
+      configData: {
+        customer_sa_email: CUSTOMER_SA,
+        projects: ['project-prod', 'project-staging'],
+        connection_status: connectionStatus,
+        project_statuses: [],
+        last_verified_at: '2026-08-30T00:00:00+00:00',
+      },
+    });
+
+    // Stand in for the stored config, so a save is visible to the refetch that
+    // follows it — which is what the verification payload is built from.
+    let storedConfig: Record<string, unknown> = {...integration.configData};
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/config/integrations/`,
+      body: {providers: [provider]},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${integrationId}/`,
+      body: () => ({...integration, configData: storedConfig}),
+    });
+    const saveRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${integrationId}/`,
+      method: 'POST',
+      body: (_url: string, options: {data?: Record<string, unknown>}) => {
+        storedConfig = {...storedConfig, ...options.data};
+        return {};
+      },
+    });
+    const verifyRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/monitoring-providers/gcp/verify-connection/`,
+      method: 'POST',
+      asyncDelay: verifyDelay,
+      body: () => {
+        // The endpoint records its result on the integration.
+        storedConfig = {
+          ...storedConfig,
+          connection_status: 'connected',
+          project_statuses: [],
+          last_verified_at: '2026-08-31T00:00:00+00:00',
+        };
+        return {connectionStatus: 'connected', projects: []};
+      },
+    });
+
+    render(<ConfigureIntegration />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${organization.slug}/integrations/${providerKey}/${integrationId}/`,
+          query: {},
+        },
+        route: '/settings/:orgId/integrations/:providerKey/:integrationId/',
+      },
+    });
+
+    return {
+      saveRequest,
+      verifyRequest,
+      setStoredConfig: (next: Record<string, unknown>) => {
+        storedConfig = {...storedConfig, ...next};
+      },
+    };
+  }
+
+  async function saveNewSaEmail(value: string) {
+    const field = await screen.findByRole('textbox', {name: 'Customer Service Account'});
+    await userEvent.clear(field);
+    await userEvent.type(field, value);
+    await userEvent.tab();
+  }
+
+  it('shows the connection status for a GCP integration', async () => {
+    setup();
+
+    expect(await screen.findByText('Connection Status')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Re-test'})).toBeInTheDocument();
+  });
+
+  it('does not show the connection status for other providers', async () => {
+    setup({providerKey: 'github'});
+
+    expect(
+      await screen.findByRole('textbox', {name: 'Customer Service Account'})
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Connection Status')).not.toBeInTheDocument();
+  });
+
+  it('re-runs verification with the saved settings', async () => {
+    const {verifyRequest} = setup();
+
+    await saveNewSaEmail('new-sa@my-project.iam.gserviceaccount.com');
+
+    await waitFor(() =>
+      expect(verifyRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            customerSaEmail: 'new-sa@my-project.iam.gserviceaccount.com',
+            gcpProjectIds: ['project-prod', 'project-staging'],
+          },
+        })
+      )
+    );
+  });
+
+  it('builds the payload from the refetched config, not the local one', async () => {
+    const {verifyRequest, setStoredConfig} = setup();
+
+    // A sibling field was saved elsewhere, so what this render closed over is stale.
+    setStoredConfig({projects: ['project-prod', 'project-staging', 'project-new']});
+
+    await saveNewSaEmail('new-sa@my-project.iam.gserviceaccount.com');
+
+    await waitFor(() =>
+      expect(verifyRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            customerSaEmail: 'new-sa@my-project.iam.gserviceaccount.com',
+            gcpProjectIds: ['project-prod', 'project-staging', 'project-new'],
+          },
+        })
+      )
+    );
+  });
+
+  it('shows the newly recorded status after a save', async () => {
+    setup({connectionStatus: 'unverified'});
+
+    expect(await screen.findByText('Not verified')).toBeInTheDocument();
+
+    await saveNewSaEmail('new-sa@my-project.iam.gserviceaccount.com');
+
+    // The check runs after the save, so the page has to refresh again to show it.
+    expect(await screen.findByText('Connected')).toBeInTheDocument();
+  });
+
+  it('reports the check as running instead of the interim unverified status', async () => {
+    const verification = Promise.withResolvers<void>();
+    setup({connectionStatus: 'unverified', verifyDelay: verification.promise});
+
+    expect(await screen.findByText('Not verified')).toBeInTheDocument();
+
+    await saveNewSaEmail('new-sa@my-project.iam.gserviceaccount.com');
+
+    expect(await screen.findByText('Checking connection...')).toBeInTheDocument();
+    expect(screen.queryByText('Not verified')).not.toBeInTheDocument();
+
+    verification.resolve();
+    expect(await screen.findByText('Connected')).toBeInTheDocument();
+  });
+
+  it('does not re-run verification for other providers', async () => {
+    const {saveRequest, verifyRequest} = setup({providerKey: 'github'});
+
+    await saveNewSaEmail('someone@example.com');
+
+    await waitFor(() => expect(saveRequest).toHaveBeenCalled());
+    expect(verifyRequest).not.toHaveBeenCalled();
+  });
+
+  it('shows an automatic verification failure and clears it after a successful re-test', async () => {
+    const {saveRequest} = setup();
+    const url = '/organizations/org-slug/monitoring-providers/gcp/verify-connection/';
+    MockApiClient.addMockResponse({url, method: 'POST', statusCode: 502});
+
+    await saveNewSaEmail('new-sa@my-project.iam.gserviceaccount.com');
+
+    expect(
+      await screen.findByText("The connection check couldn't be completed. Try again.")
+    ).toBeInTheDocument();
+    expect(saveRequest).toHaveBeenCalled();
+    MockApiClient.addMockResponse({
+      url,
+      method: 'POST',
+      body: {connectionStatus: 'connected', projects: []},
+    });
+    await userEvent.click(screen.getByRole('button', {name: 'Re-test'}));
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Re-test'})).toBeEnabled()
+    );
+    expect(
+      screen.queryByText("The connection check couldn't be completed. Try again.")
+    ).not.toBeInTheDocument();
+  });
+
+  it('clears a failed manual check when saved settings trigger a new check', async () => {
+    const {setStoredConfig} = setup();
+    const url = '/organizations/org-slug/monitoring-providers/gcp/verify-connection/';
+    MockApiClient.addMockResponse({url, method: 'POST', statusCode: 502});
+    await userEvent.click(await screen.findByRole('button', {name: 'Re-test'}));
+    expect(await screen.findByText('Previous verification result')).toBeInTheDocument();
+
+    const verification = Promise.withResolvers<void>();
+    MockApiClient.addMockResponse({
+      url,
+      method: 'POST',
+      asyncDelay: verification.promise,
+      body: () => {
+        setStoredConfig({connection_status: 'connected', project_statuses: []});
+        return {connectionStatus: 'connected', projects: []};
+      },
+    });
+    await saveNewSaEmail('new-sa@my-project.iam.gserviceaccount.com');
+    expect(await screen.findByText('Checking connection...')).toBeInTheDocument();
+    expect(
+      screen.queryByText("The connection check couldn't be completed. Try again.")
+    ).not.toBeInTheDocument();
+    verification.resolve();
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Re-test'})).toBeEnabled()
+    );
+    expect(screen.getByText('Connected')).toBeInTheDocument();
+    expect(screen.queryByText('Previous verification result')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("The connection check couldn't be completed. Try again.")
+    ).not.toBeInTheDocument();
   });
 });

@@ -115,6 +115,7 @@ class PreprodArtifactEndpoint(OrganizationEndpoint):
         kwargs["head_artifact"] = head_artifact
         kwargs["project"] = project
         sentry_sdk.get_isolation_scope().set_tag("project", project.id)
+        sentry_sdk.get_isolation_scope().set_attribute("project", project.id)
 
         base_artifact_id = kwargs.get("base_artifact_id")
         if base_artifact_id is None:

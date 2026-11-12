@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
 type Data = {
   extensions: Array<[key: string, value: string]>;
@@ -12,11 +13,17 @@ type Data = {
 };
 
 export default function AdminPackages() {
-  const {data, isPending, isError} = useApiQuery<Data>(
-    [getApiUrl('/internal/packages/')],
-    {
-      staleTime: 0,
-    }
+  return (
+    <Fragment>
+      <BreadcrumbTitle title={t('Packages')} />
+      <AdminPackagesContent />
+    </Fragment>
+  );
+}
+
+function AdminPackagesContent() {
+  const {data, isPending, isError} = useQuery(
+    apiOptions.as<Data>()('/internal/packages/', {staleTime: 0})
   );
 
   if (isError) {

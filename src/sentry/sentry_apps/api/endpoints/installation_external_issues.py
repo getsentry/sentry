@@ -30,8 +30,10 @@ from sentry.sentry_apps.api.serializers.platform_external_issue import (
 from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializerResponse,
 )
+from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
 from sentry.sentry_apps.services.cell import sentry_app_cell_service
 from sentry.sentry_apps.utils.errors import SentryAppPublicErrorBody
+from sentry.users.services.user.serial import serialize_generic_user
 
 
 class PlatformExternalIssueSerializer(serializers.Serializer):
@@ -67,7 +69,7 @@ class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
         },
     )
     def post(
-        self, request: Request, installation
+        self, request: Request, installation: RpcSentryAppInstallation
     ) -> (
         Response[PlatformExternalIssueSerializerResponse]
         | Response[DetailResponse]
@@ -89,10 +91,10 @@ class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
         except Exception:
             return Response({"detail": "issueId is required, and must be an integer"}, status=400)
 
-        if not request.user.is_authenticated:
+        rpc_user = serialize_generic_user(request.user)
+        if rpc_user is None:
             return Response({"detail": "Authentication credentials were not provided."}, status=401)
 
-        # Do not pass `user` until cells accept the new RPC arg everywhere (deploy phase 2).
         result = sentry_app_cell_service.create_external_issue(
             organization_id=installation.organization_id,
             installation=installation,
@@ -100,6 +102,7 @@ class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
             web_url=data["webUrl"],
             project=data["project"],
             identifier=data["identifier"],
+            user=rpc_user,
         )
 
         if result.error:

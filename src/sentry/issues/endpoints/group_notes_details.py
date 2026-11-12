@@ -5,33 +5,36 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.deprecation import deprecated
-from sentry.api.serializers import serialize
-from sentry.api.serializers.models.activity import ActivitySerializerResponse
+from sentry.api.serializers.models.activity import (
+    GroupNoteSerializerResponse,
+    serialize_group_notes,
+)
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
 from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import RESPONSE_NO_CONTENT
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import is_owned_by_acting_user, require_user
 from sentry.constants import CELL_API_DEPRECATION_DATE
-from sentry.issues.action_log import (
-    GroupActionActor,
-    publish_action,
-    resolve_action_source,
+from sentry.issues.action_log.read_metrics import (
+    ActivityReadResult,
+    activity_read_endpoint,
+    record_activity_read,
 )
-from sentry.issues.action_log.types import CommentDeleteAction, CommentEditAction
+from sentry.issues.action_log.request import resolve_action_source
+from sentry.issues.comments import delete_comment, update_comment
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.activity import Activity
 from sentry.models.group import Group
-from sentry.models.groupsubscription import GroupSubscription
-from sentry.notifications.types import GroupSubscriptionReason
-from sentry.signals import comment_deleted, comment_updated
 from sentry.types.activity import ActivityType
 
 
 @cell_silo_endpoint
 class GroupNotesDetailsEndpoint(GroupEndpoint):
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
+
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,
@@ -53,56 +56,31 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
 
         note_id_int = to_valid_int_id("note_id", note_id, raise_404=True)
 
-        notes_by_user = Activity.objects.filter(
-            group=group, type=ActivityType.NOTE.value, user_id=request.user.id
-        )
-        if not len(notes_by_user):
-            raise ResourceDoesNotExist
-
-        user_note = [n for n in notes_by_user if n.id == note_id_int]
-        if not user_note or len(user_note) > 1:
-            raise ResourceDoesNotExist
-        note = user_note[0]
-
-        webhook_data = {
-            "comment_id": note.id,
-            "timestamp": note.datetime,
-            "comment": note.data.get("text"),
-            "project_slug": note.project.slug,
-        }
-
-        note.delete()
-
-        publish_action(
-            CommentDeleteAction(comment_id=note_id_int),
-            source=resolve_action_source(request),
-            group_id=group.id,
-            project=group.project,
-            actor=GroupActionActor.user(request.user.id),
-        )
-
-        comment_deleted.send_robust(
-            project=group.project,
-            user=request.user,
-            group=group,
-            data=webhook_data,
-            sender="delete",
-        )
-        # if the user left more than one comment, we want to keep the subscription
-        if len(notes_by_user) == 1:
-            GroupSubscription.objects.filter(
-                user_id=request.user.id,
+        try:
+            note = Activity.objects.get(
+                is_owned_by_acting_user(request.user),
                 group=group,
-                project=group.project,
-                reason=GroupSubscriptionReason.comment,
-            ).delete()
+                type=ActivityType.NOTE.value,
+                id=note_id_int,
+            )
+        except Activity.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        try:
+            delete_comment(
+                note,
+                user=require_user(request),
+                source=resolve_action_source(request),
+            )
+        except Activity.DoesNotExist:
+            raise ResourceDoesNotExist
 
         return Response(status=204)
 
     @extend_schema(
         request=NoteSerializer,
         responses={
-            200: inline_sentry_response_serializer("UpdateGroupNote", ActivitySerializerResponse)
+            200: inline_sentry_response_serializer("UpdateGroupNote", GroupNoteSerializerResponse)
         },
     )
     @deprecated(
@@ -118,7 +96,10 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
 
         try:
             note = Activity.objects.get(
-                group=group, type=ActivityType.NOTE.value, user_id=request.user.id, id=note_id_int
+                is_owned_by_acting_user(request.user),
+                group=group,
+                type=ActivityType.NOTE.value,
+                id=note_id_int,
             )
         except Activity.DoesNotExist:
             raise ResourceDoesNotExist
@@ -129,37 +110,19 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             payload = serializer.validated_data
             # TODO: adding mentions to a note doesn't send notifications. Should it?
             # Remove mentions as they shouldn't go into the database
-            payload.pop("mentions", [])
+            payload.pop("mentions", None)
 
-            # Would be nice to have a last_modified timestamp we could bump here
-            note.data.update(dict(payload))
-            note.save()
+            try:
+                note = update_comment(
+                    note,
+                    user=require_user(request),
+                    data=dict(payload),
+                    source=resolve_action_source(request),
+                )
+            except Activity.DoesNotExist:
+                raise ResourceDoesNotExist
 
-            publish_action(
-                CommentEditAction(comment_id=note.id),
-                source=resolve_action_source(request),
-                group_id=group.id,
-                project=group.project,
-                actor=GroupActionActor.user(request.user.id),
-            )
-
-            if note.data.get("external_id"):
-                self.update_external_comment(request, group, note)
-
-            webhook_data = {
-                "comment_id": note.id,
-                "timestamp": note.datetime,
-                "comment": note.data.get("text"),
-                "project_slug": note.project.slug,
-            }
-
-            comment_updated.send_robust(
-                project=group.project,
-                user=request.user,
-                group=group,
-                data=webhook_data,
-                sender="put",
-            )
-            return Response(serialize(note, request.user), status=200)
+            record_activity_read(activity_read_endpoint(request), ActivityReadResult.ACTIVITY)
+            return Response(serialize_group_notes(group, [note], request.user)[0], status=200)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

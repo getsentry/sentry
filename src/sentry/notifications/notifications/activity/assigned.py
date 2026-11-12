@@ -26,14 +26,14 @@ def _get_team_option(assignee_id: int | None, organization: Organization) -> Tea
 
 
 def is_team_assignee(activity: Activity) -> bool:
-    return activity.data.get("assigneeType") == "team"
+    return bool(activity.data) and activity.data.get("assigneeType") == "team"
 
 
 def get_assignee_str(activity: Activity, organization: Organization) -> str:
     """Get a human-readable version of the assignment's target."""
 
-    assignee_id = activity.data.get("assignee")
-    assignee_email: str | None = activity.data.get("assigneeEmail")
+    assignee_id = activity.data.get("assignee") if activity.data else None
+    assignee_email: str | None = activity.data.get("assigneeEmail") if activity.data else None
 
     if is_team_assignee(activity):
         assignee_team = _get_team_option(assignee_id, organization)

@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.billing.v1.date_pb2 import Date
+from sentry_protos.billing.v1.services.usage.v1.endpoint_usage_by_project_pb2 import (
+    GetUsageByProjectRequest,
+    GetUsageByProjectResponse,
+)
 from sentry_protos.billing.v1.services.usage.v1.endpoint_usage_pb2 import (
     GetUsageRequest,
     GetUsageResponse,
@@ -16,9 +20,16 @@ from sentry.billing.platform.services.usage._outcomes_query import (
     _BILLABLE_OUTCOMES,
     _build_query,
     _build_response,
+    _OutcomeRow,
     _over_quota_condition,
     _total_function,
     query_outcomes_usage,
+)
+from sentry.billing.platform.services.usage._project_outcomes_query import (
+    _build_project_query,
+    _build_project_response,
+    _ProjectOutcomeRow,
+    query_project_outcomes_usage,
 )
 from sentry.utils.outcomes import Outcome
 
@@ -32,6 +43,7 @@ def _make_timestamp(dt: datetime) -> Timestamp:
 def _make_row(
     *,
     time: str = "2025-03-15T00:00:00+00:00",
+    max_ts: str = "2025-03-15T11:00:00+00:00",
     category: int = 1,
     total: int = 0,
     accepted: int = 0,
@@ -40,9 +52,10 @@ def _make_row(
     over_quota: int = 0,
     spike_protection: int = 0,
     dynamic_sampling: int = 0,
-) -> dict:
+) -> _OutcomeRow:
     return {
         "time": time,
+        "max_ts": max_ts,
         "category": category,
         "total": total,
         "accepted": accepted,
@@ -55,12 +68,12 @@ def _make_row(
 
 
 class TestOverQuotaCondition:
-    def test_returns_and_function(self):
+    def test_returns_and_function(self) -> None:
         cond = _over_quota_condition()
         assert isinstance(cond, Function)
         assert cond.function == "and"
 
-    def test_outer_condition_checks_rate_limited(self):
+    def test_outer_condition_checks_rate_limited(self) -> None:
         cond = _over_quota_condition()
         outcome_check = cond.parameters[0]
         assert outcome_check.function == "equals"
@@ -68,7 +81,7 @@ class TestOverQuotaCondition:
         assert outcome_check.parameters[0].name == "outcome"
         assert outcome_check.parameters[1] == Outcome.RATE_LIMITED
 
-    def test_inner_or_includes_ends_with(self):
+    def test_inner_or_includes_ends_with(self) -> None:
         cond = _over_quota_condition()
         or_clause = cond.parameters[1]
         assert or_clause.function == "or"
@@ -76,7 +89,7 @@ class TestOverQuotaCondition:
         assert ends_with.function == "endsWith"
         assert ends_with.parameters[1] == "_usage_exceeded"
 
-    def test_inner_or_includes_usage_exceeded_and_grace_period(self):
+    def test_inner_or_includes_usage_exceeded_and_grace_period(self) -> None:
         cond = _over_quota_condition()
         inner_or = cond.parameters[1].parameters[1]
         assert inner_or.function == "or"
@@ -86,13 +99,13 @@ class TestOverQuotaCondition:
 
 
 class TestBuildResponse:
-    def test_build_response_empty(self):
+    def test_build_response_empty(self) -> None:
         response = _build_response([], None)
 
         assert isinstance(response, GetUsageResponse)
         assert list(response.days) == []
 
-    def test_build_response_multi_day(self):
+    def test_build_response_multi_day(self) -> None:
         rows = [
             _make_row(time="2025-03-17T00:00:00+00:00", accepted=50, total=50),
             _make_row(time="2025-03-15T00:00:00+00:00", accepted=100, total=100),
@@ -105,7 +118,7 @@ class TestBuildResponse:
         assert response.days[1].date == Date(year=2025, month=3, day=16)
         assert response.days[2].date == Date(year=2025, month=3, day=17)
 
-    def test_build_response_multi_category(self):
+    def test_build_response_multi_category(self) -> None:
         rows = [
             _make_row(time="2025-03-15T00:00:00+00:00", category=2, accepted=50, total=50),
             _make_row(time="2025-03-15T00:00:00+00:00", category=1, accepted=100, total=100),
@@ -122,7 +135,7 @@ class TestBuildResponse:
         assert usage_by_cat[sentry_to_proto_category(2)] == 50
         assert usage_by_cat[sentry_to_proto_category(9)] == 25
 
-    def test_build_response_skips_unmapped_sentry_category(self):
+    def test_build_response_skips_unmapped_sentry_category(self) -> None:
         # Sentry SESSION=5 has no proto mapping; passing the int through would
         # collide with proto REPLAY=5 and clobber real replay data via the
         # response builder's overwrite.
@@ -138,7 +151,7 @@ class TestBuildResponse:
         assert day.usage[0].category == sentry_to_proto_category(7)
         assert day.usage[0].data.accepted == 42
 
-    def test_build_response_preserves_overlapping_semantics(self):
+    def test_build_response_preserves_overlapping_semantics(self) -> None:
         """dropped >= over_quota + spike_protection — all values preserved as-is from query."""
         rows = [
             _make_row(
@@ -159,7 +172,7 @@ class TestBuildResponse:
         assert data.spike_protection == 50
         assert data.dropped >= data.over_quota + data.spike_protection
 
-    def test_build_response_all_fields(self):
+    def test_build_response_all_fields(self) -> None:
         rows = [
             _make_row(
                 time="2025-03-15T00:00:00+00:00",
@@ -187,7 +200,7 @@ class TestBuildResponse:
 
 
 class TestBuildQuery:
-    def test_build_query_with_categories(self):
+    def test_build_query_with_categories(self) -> None:
         start = datetime(2025, 3, 1, tzinfo=timezone.utc)
         end = datetime(2025, 3, 31, tzinfo=timezone.utc)
 
@@ -201,7 +214,7 @@ class TestBuildQuery:
         assert category_conditions[0].op == Op.IN
         assert category_conditions[0].rhs == [1, 2]
 
-    def test_build_query_no_categories(self):
+    def test_build_query_no_categories(self) -> None:
         start = datetime(2025, 3, 1, tzinfo=timezone.utc)
         end = datetime(2025, 3, 31, tzinfo=timezone.utc)
 
@@ -213,7 +226,7 @@ class TestBuildQuery:
         ]
         assert len(category_conditions) == 0
 
-    def test_build_query_basic_structure(self):
+    def test_build_query_basic_structure(self) -> None:
         start = datetime(2025, 3, 1, tzinfo=timezone.utc)
         end = datetime(2025, 3, 31, tzinfo=timezone.utc)
 
@@ -228,7 +241,7 @@ class TestBuildQuery:
         assert len(org_conditions) == 1
         assert org_conditions[0].rhs == 42
 
-    def test_build_query_groups_by_category_and_time_only(self):
+    def test_build_query_groups_by_category_and_time_only(self) -> None:
         start = datetime(2025, 3, 1, tzinfo=timezone.utc)
         end = datetime(2025, 3, 31, tzinfo=timezone.utc)
 
@@ -237,7 +250,7 @@ class TestBuildQuery:
         groupby_names = [col.name for col in snuba_request.query.groupby]
         assert groupby_names == ["category", "time"]
 
-    def test_build_query_total_filters_billable_outcomes(self):
+    def test_build_query_total_filters_billable_outcomes(self) -> None:
         start = datetime(2025, 3, 1, tzinfo=timezone.utc)
         end = datetime(2025, 3, 31, tzinfo=timezone.utc)
 
@@ -263,7 +276,14 @@ class TestBuildQuery:
             Outcome.RATE_LIMITED,
         }
 
-    def test_build_query_total_all_outcomes_when_none(self):
+        outcome_conditions = [
+            c for c in snuba_request.query.where if hasattr(c, "lhs") and c.lhs.name == "outcome"
+        ]
+        assert len(outcome_conditions) == 1
+        assert outcome_conditions[0].op == Op.IN
+        assert set(outcome_conditions[0].rhs) == set(_BILLABLE_OUTCOMES)
+
+    def test_build_query_total_all_outcomes_when_none(self) -> None:
         start = datetime(2025, 3, 1, tzinfo=timezone.utc)
         end = datetime(2025, 3, 31, tzinfo=timezone.utc)
 
@@ -275,18 +295,21 @@ class TestBuildQuery:
         total_fn = next(f for f in select if isinstance(f, Function) and f.alias == "total")
         # No outcome filter — bare sum(quantity) for all outcomes
         assert total_fn.function == "sum"
+        assert not [
+            c for c in snuba_request.query.where if hasattr(c, "lhs") and c.lhs.name == "outcome"
+        ]
 
-    def test_total_function_with_outcomes(self):
+    def test_total_function_with_outcomes(self) -> None:
         fn = _total_function(_BILLABLE_OUTCOMES)
         assert fn.function == "sumIf"
         assert fn.alias == "total"
 
-    def test_total_function_without_outcomes(self):
+    def test_total_function_without_outcomes(self) -> None:
         fn = _total_function(None)
         assert fn.function == "sum"
         assert fn.alias == "total"
 
-    def test_build_query_select_has_sumif_columns(self):
+    def test_build_query_select_has_sumif_columns(self) -> None:
         start = datetime(2025, 3, 1, tzinfo=timezone.utc)
         end = datetime(2025, 3, 31, tzinfo=timezone.utc)
 
@@ -315,7 +338,7 @@ class TestBuildQuery:
 
 class TestQueryOutcomesUsage:
     @patch("sentry.billing.platform.services.usage._outcomes_query.raw_snql_query")
-    def test_query_uses_billing_referrer(self, mock_query):
+    def test_query_uses_billing_referrer(self, mock_query: MagicMock) -> None:
         mock_query.return_value = {"data": []}
 
         start = _make_timestamp(datetime(2025, 3, 1, tzinfo=timezone.utc))
@@ -329,7 +352,7 @@ class TestQueryOutcomesUsage:
         assert kwargs["referrer"] == "billing.usage_service.clickhouse"
 
     @patch("sentry.billing.platform.services.usage._outcomes_query.raw_snql_query")
-    def test_end_date_shifted_plus_one_day(self, mock_query):
+    def test_end_date_shifted_plus_one_day(self, mock_query: MagicMock) -> None:
         """Proto end is inclusive (last included day). The query shifts +1 day for half-open."""
         mock_query.return_value = {"data": []}
 
@@ -352,7 +375,7 @@ class TestQueryOutcomesUsage:
         ) + timedelta(days=1)
 
     @patch("sentry.billing.platform.services.usage._outcomes_query.raw_snql_query")
-    def test_query_returns_response(self, mock_query):
+    def test_query_returns_response(self, mock_query: MagicMock) -> None:
         mock_query.return_value = {
             "data": [
                 {
@@ -380,3 +403,175 @@ class TestQueryOutcomesUsage:
         assert len(response.days) == 1
         assert response.days[0].date == Date(year=2025, month=3, day=15)
         assert response.days[0].usage[0].data.accepted == 200
+
+
+def _make_project_row(
+    *,
+    project_id: int = 10,
+    time: str = "2025-03-15T00:00:00+00:00",
+    category: int = 1,
+    accepted: int = 100,
+    max_ts: str = "2025-03-15T11:00:00+00:00",
+) -> _ProjectOutcomeRow:
+    return {
+        "project_id": project_id,
+        "time": time,
+        "category": category,
+        "max_ts": max_ts,
+        "total": accepted,
+        "accepted": accepted,
+        "dropped": 0,
+        "filtered": 0,
+        "over_quota": 0,
+        "spike_protection": 0,
+        "dynamic_sampling": 0,
+    }
+
+
+class TestBuildProjectResponse:
+    def test_groups_usage_by_project_day_and_category(self) -> None:
+        response = _build_project_response(
+            [
+                _make_project_row(project_id=20, category=2, accepted=25),
+                _make_project_row(project_id=10, category=1, accepted=100),
+                _make_project_row(
+                    project_id=10,
+                    time="2025-03-16T00:00:00+00:00",
+                    category=1,
+                    accepted=50,
+                ),
+            ],
+            None,
+        )
+
+        assert isinstance(response, GetUsageByProjectResponse)
+        assert [project.project_id for project in response.projects] == [10, 20]
+        assert list(response.projects[0].seat_days) == []
+        assert [day.date for day in response.projects[0].days] == [
+            Date(year=2025, month=3, day=15),
+            Date(year=2025, month=3, day=16),
+        ]
+        assert response.projects[0].days[0].usage[0].data.accepted == 100
+
+    def test_skips_unmapped_category(self) -> None:
+        response = _build_project_response([_make_project_row(category=5)], None)
+
+        assert list(response.projects) == []
+
+    def test_sets_last_usage_timestamp(self) -> None:
+        last_usage_ts = datetime(2025, 3, 15, 11, tzinfo=timezone.utc)
+
+        response = _build_project_response([], last_usage_ts)
+
+        assert response.last_usage_ts.ToDatetime(tzinfo=timezone.utc) == last_usage_ts
+
+
+class TestBuildProjectQuery:
+    def test_adds_project_id_to_shared_query(self) -> None:
+        start = datetime(2025, 3, 15, 6, tzinfo=timezone.utc)
+        end = datetime(2025, 3, 16, 6, tzinfo=timezone.utc)
+        request = _build_project_query(42, start, end, [1, 2])
+        organization_request = _build_query(
+            42,
+            start,
+            end,
+            [1, 2],
+            total_outcomes=_BILLABLE_OUTCOMES,
+        )
+
+        assert request.dataset == organization_request.dataset
+        assert request.app_id == organization_request.app_id
+        assert request.tenant_ids == organization_request.tenant_ids
+        assert request.query.match == organization_request.query.match
+        assert request.query.where == organization_request.query.where
+        assert request.query.select[1:] == organization_request.query.select
+        assert request.query.groupby[1:] == organization_request.query.groupby
+        assert request.query.orderby[1:] == organization_request.query.orderby
+        assert request.query.granularity == organization_request.query.granularity
+        assert request.query.limit == organization_request.query.limit
+
+        assert request.query.select[0] == Column("project_id")
+        assert request.query.groupby[0] == Column("project_id")
+        assert request.query.orderby[0].exp == Column("project_id")
+
+
+class TestQueryProjectOutcomesUsage:
+    @patch("sentry.billing.platform.services.usage._project_outcomes_query.raw_snql_query")
+    def test_end_date_shifted_plus_one_day(self, mock_query: MagicMock) -> None:
+        mock_query.return_value = {"data": []}
+        start_dt = datetime(2025, 3, 15, tzinfo=timezone.utc)
+        end_dt = datetime(2025, 3, 15, tzinfo=timezone.utc)
+        request = GetUsageByProjectRequest(
+            organization_id=1,
+            start=_make_timestamp(start_dt),
+            end=_make_timestamp(end_dt),
+        )
+
+        query_project_outcomes_usage(request)
+
+        snuba_request = mock_query.call_args.args[0]
+        timestamp_conditions = {
+            condition.op: condition.rhs
+            for condition in snuba_request.query.where
+            if hasattr(condition, "lhs") and condition.lhs.name == "timestamp"
+        }
+        assert timestamp_conditions[Op.GTE] == start_dt
+        assert timestamp_conditions[Op.LT] == end_dt + timedelta(days=1)
+
+    @patch("sentry.billing.platform.services.usage._project_outcomes_query.logger")
+    @patch("sentry.billing.platform.services.usage._project_outcomes_query.metrics")
+    @patch("sentry.billing.platform.services.usage._project_outcomes_query.raw_snql_query")
+    def test_warns_and_returns_response_when_query_reaches_row_limit(
+        self, mock_query: MagicMock, mock_metrics: MagicMock, mock_logger: MagicMock
+    ) -> None:
+        mock_query.return_value = {"data": [_make_project_row()] * 10000}
+        request = GetUsageByProjectRequest(
+            organization_id=1,
+            start=_make_timestamp(datetime(2025, 3, 1, tzinfo=timezone.utc)),
+            end=_make_timestamp(datetime(2025, 3, 2, tzinfo=timezone.utc)),
+        )
+
+        response = query_project_outcomes_usage(request)
+
+        assert [project.project_id for project in response.projects] == [10]
+        mock_logger.warning.assert_called_once_with(
+            "billing.project_usage_query.truncated",
+            extra={"org_id": 1, "row_count": 10000},
+        )
+        mock_metrics.incr.assert_called_once_with(
+            "billing.project_usage_query.truncated", sample_rate=1.0
+        )
+
+    @patch("sentry.billing.platform.services.usage._project_outcomes_query.raw_snql_query")
+    def test_request_queries_all_projects(self, mock_query: MagicMock) -> None:
+        mock_query.return_value = {"data": []}
+        request = GetUsageByProjectRequest(
+            organization_id=1,
+            start=_make_timestamp(datetime(2025, 3, 1, tzinfo=timezone.utc)),
+            end=_make_timestamp(datetime(2025, 3, 2, tzinfo=timezone.utc)),
+        )
+
+        response = query_project_outcomes_usage(request)
+
+        assert list(response.projects) == []
+        mock_query.assert_called_once()
+
+    @patch("sentry.billing.platform.services.usage._project_outcomes_query.raw_snql_query")
+    def test_returns_latest_usage_timestamp(self, mock_query: MagicMock) -> None:
+        mock_query.return_value = {
+            "data": [
+                _make_project_row(max_ts="2025-03-15T10:00:00+00:00"),
+                _make_project_row(project_id=20, max_ts="2025-03-15T12:00:00+00:00"),
+            ]
+        }
+        request = GetUsageByProjectRequest(
+            organization_id=1,
+            start=_make_timestamp(datetime(2025, 3, 15, tzinfo=timezone.utc)),
+            end=_make_timestamp(datetime(2025, 3, 16, tzinfo=timezone.utc)),
+        )
+
+        response = query_project_outcomes_usage(request)
+
+        assert response.last_usage_ts.ToDatetime(tzinfo=timezone.utc) == datetime(
+            2025, 3, 15, 12, tzinfo=timezone.utc
+        )

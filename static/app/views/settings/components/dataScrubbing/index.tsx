@@ -1,17 +1,17 @@
 import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
-import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -60,7 +60,7 @@ export function DataScrubbing({
   const successfullySaved = useCallback(
     (response: {relayPiiConfig: string}, successMessage: string) => {
       setRules(convertRelayPiiConfig(response.relayPiiConfig));
-      addSuccessMessage(successMessage);
+      toast.success(successMessage);
       onSubmitSuccess?.(response);
     },
     [onSubmitSuccess]
@@ -72,7 +72,7 @@ export function DataScrubbing({
       : `/settings/${organization.slug}/security-and-privacy/`;
 
     navigate(path);
-  }, [navigate, organization.slug, project?.slug]);
+  }, [navigate, organization.slug, project]);
 
   useEffect(() => {
     if (
@@ -120,7 +120,7 @@ export function DataScrubbing({
       try {
         setRules(convertRelayPiiConfig(relayPiiConfig));
       } catch {
-        addErrorMessage(t('Unable to load data scrubbing rules'));
+        toast.error(t('Unable to load data scrubbing rules'));
       }
     }
 
@@ -157,10 +157,10 @@ export function DataScrubbing({
       const data = await submitRules(api, endpoint, filteredRules);
       if (data?.relayPiiConfig) {
         setRules(convertRelayPiiConfig(data.relayPiiConfig));
-        addSuccessMessage(t('Successfully deleted data scrubbing rule'));
+        toast.success(t('Successfully deleted data scrubbing rule'));
       }
     } catch {
-      addErrorMessage(t('An unknown error occurred while deleting data scrubbing rule'));
+      toast.error(t('An unknown error occurred while deleting data scrubbing rule'));
     }
   }
 

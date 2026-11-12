@@ -13,10 +13,11 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getTitle} from 'sentry/utils/events';
 import {Divider} from 'sentry/views/issueDetails/divider';
-import {AttachmentsBadge} from 'sentry/views/issueDetails/header/attachmentsBadge';
-import {ReplayBadge} from 'sentry/views/issueDetails/header/replayBadge';
-import {SeerBadge} from 'sentry/views/issueDetails/header/seerBadge';
-import {UserFeedbackBadge} from 'sentry/views/issueDetails/header/userFeedbackBadge';
+
+import {AttachmentsBadge} from './attachmentsBadge';
+import {ReplayBadge} from './replayBadge';
+import {SeerBadge} from './seerBadge';
+import {UserFeedbackBadge} from './userFeedbackBadge';
 
 interface GroupStatusSubtitleProps {
   group: Group;
@@ -28,7 +29,7 @@ export function GroupStatusSubtitle({group, project}: GroupStatusSubtitleProps) 
   const statusProps = getBadgeProperties(group.status, group.substatus);
 
   return (
-    <Flex gap="md" align="center">
+    <Flex gap="2xs md" align="center" minWidth={0} wrap="wrap">
       {group.isUnhandled && (
         <Fragment>
           <UnhandledTag />
@@ -37,7 +38,6 @@ export function GroupStatusSubtitle({group, project}: GroupStatusSubtitleProps) 
       )}
       {statusProps?.status && (
         <Tooltip
-          isHoverable
           title={tct('[tooltip] [link:Learn more]', {
             tooltip: statusProps.tooltip,
             link: (
@@ -51,13 +51,7 @@ export function GroupStatusSubtitle({group, project}: GroupStatusSubtitleProps) 
       {subtitle && (
         <Fragment>
           <Divider />
-          <Tooltip
-            title={subtitle}
-            skipWrapper
-            isHoverable
-            showOnlyOnOverflow
-            delay={1000}
-          >
+          <Tooltip title={subtitle} skipWrapper showOnlyOnOverflow delay={1000}>
             <Subtext>{subtitle}</Subtext>
           </Tooltip>
         </Fragment>

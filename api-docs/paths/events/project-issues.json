@@ -34,9 +34,10 @@
       {
         "name": "shortIdLookup",
         "in": "query",
-        "description": "If this is set to true then short IDs are looked up by this function as well. This can cause the return value of the function to return an event issue of a different project which is why this is an opt-in. Set to 1 to enable.",
+        "description": "If this is set to `1` then short IDs are looked up by this function as well. This can cause the return value of the function to return an event issue of a different project which is why this is an opt-in.",
         "schema": {
-          "type": "boolean"
+          "type": "string",
+          "enum": ["1", "0"]
         }
       },
       {
@@ -58,11 +59,11 @@
       {
         "name": "sort",
         "in": "query",
-        "description": "The sort order of the issues. Options include 'Last Seen' (`date`), 'First Seen' (`new`), 'Trends' (`trends`), 'Events' (`freq`), 'Users' (`user`), and 'Date Added' (`inbox`).",
+        "description": "The sort order of the issues. Options include 'Last Seen' (`date`), 'First Seen' (`new`), 'Trends' (`trends`), 'Events' (`freq`), 'Users' (`user`), and 'Recommended' (`recommended`).",
         "schema": {
           "type": "string",
           "default": "date",
-          "enum": ["date", "new", "trends", "freq", "user", "inbox"]
+          "enum": ["date", "new", "trends", "freq", "user", "recommended"]
         }
       },
       {
@@ -167,7 +168,7 @@
   },
   "put": {
     "tags": ["Events"],
-    "description": "Bulk mutate various attributes on issues.  The list of issues to modify is given through the `id` query parameter.  It is repeated for each issue that should be modified.\n\n- For non-status updates, the `id` query parameter is required.\n- For status updates, the `id` query parameter may be omitted\nfor a batch \"update all\" query.\n- An optional `status` query parameter may be used to restrict\nmutations to only events with the given status.\n\nThe following attributes can be modified and are supplied as JSON object in the body:\n\nIf any IDs are out of scope this operation will succeed without any data mutation.",
+    "description": "Bulk mutate various attributes on issues.  The list of issues to modify is given through the `id` query parameter.  It is repeated for each issue that should be modified.\n\n- For non-status updates, the `id` query parameter is required.\n- For status updates, the `id` query parameter may be omitted\nfor a batch \"update all\" query.\n- To restrict a batch \"update all\" to issues with a given status,\nuse the `query` parameter, e.g. `query=is:resolved`.\n\nThe following attributes can be modified and are supplied as JSON object in the body:\n\nIf any IDs are out of scope this operation will succeed without any data mutation.",
     "operationId": "Bulk Mutate a List of Issues",
     "parameters": [
       {
@@ -198,9 +199,9 @@
         }
       },
       {
-        "name": "status",
+        "name": "query",
         "in": "query",
-        "description": "Optionally limits the query to issues of the specified status. Valid values are `\"resolved\"`, `\"reprocessing\"`, `\"unresolved\"`, and `\"ignored\"`.",
+        "description": "An optional Sentry structured search query that selects the issues to update when `id` is not provided. If not provided an implied `\"is:unresolved\"` is assumed. Use `is:<status>` (e.g. `is:resolved`) to limit it to issues with that status.",
         "required": false,
         "schema": {
           "type": "string"
@@ -291,14 +292,85 @@
               "required": ["isPublic", "status", "statusDetails"],
               "properties": {
                 "isPublic": {
-                  "type": "boolean"
+                  "type": "boolean",
+                  "description": "Whether the issues are shared publicly."
                 },
                 "status": {
                   "type": "string",
+                  "description": "The new status of the issues.",
                   "enum": ["resolved", "unresolved", "ignored"]
                 },
                 "statusDetails": {
-                  "type": "object"
+                  "type": "object",
+                  "description": "Details of the new status, such as the release that resolves the issues or when an ignore expires. Empty when the new status has no details.",
+                  "properties": {
+                    "ignoreCount": {
+                      "type": "integer",
+                      "nullable": true,
+                      "description": "Number of additional events after which the issues stop being ignored."
+                    },
+                    "ignoreUntil": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                      "description": "When the issues stop being ignored."
+                    },
+                    "ignoreUserCount": {
+                      "type": "integer",
+                      "nullable": true,
+                      "description": "Number of additional affected users after which the issues stop being ignored."
+                    },
+                    "ignoreUserWindow": {
+                      "type": "integer",
+                      "nullable": true,
+                      "description": "Time window in minutes for ignoreUserCount."
+                    },
+                    "ignoreWindow": {
+                      "type": "integer",
+                      "nullable": true,
+                      "description": "Time window in minutes for ignoreCount."
+                    },
+                    "ignoreUntilEscalating": {
+                      "type": "boolean",
+                      "description": "Whether the issues stay ignored until they escalate."
+                    },
+                    "actor": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "User who ignored or resolved the issues.",
+                      "properties": {
+                        "id": { "type": "string", "description": "ID of the user." },
+                        "name": { "type": "string", "description": "Name of the user." },
+                        "username": { "type": "string", "description": "Username of the user." },
+                        "email": { "type": "string", "description": "Email address of the user." }
+                      }
+                    },
+                    "inNextRelease": {
+                      "type": "boolean",
+                      "description": "Whether the issues are resolved in the next release."
+                    },
+                    "inRelease": {
+                      "type": "string",
+                      "description": "Version of the release the issues are resolved in."
+                    },
+                    "inCommit": {
+                      "type": "object",
+                      "description": "Commit the issues are resolved in.",
+                      "properties": {
+                        "id": { "type": "string", "description": "Commit SHA." },
+                        "message": {
+                          "type": "string",
+                          "nullable": true,
+                          "description": "Commit message."
+                        },
+                        "dateCreated": {
+                          "type": "string",
+                          "format": "date-time",
+                          "description": "When the commit was made."
+                        }
+                      }
+                    }
+                  }
                 }
               }
             },
@@ -328,7 +400,7 @@
   },
   "delete": {
     "tags": ["Events"],
-    "description": "Permanently remove the given issues. The list of issues to modify is given through the `id` query parameter.  It is repeated for each issue that should be removed.\n\nOnly queries by 'id' are accepted.\n\nIf any IDs are out of scope this operation will succeed without any data mutation.",
+    "description": "Permanently remove the given issues. The list of issues to modify is given through the `id` query parameter.  It is repeated for each issue that should be removed.\n\nIf any IDs are out of scope this operation will succeed without any data mutation.",
     "operationId": "Bulk Remove a List of Issues",
     "parameters": [
       {
@@ -355,6 +427,15 @@
         "description": "A list of IDs of the issues to be removed. This parameter shall be repeated for each issue, e.g. `?id=1&id=2&id=3`. If this parameter is not provided, it will attempt to remove the first 1000 issues.",
         "schema": {
           "type": "integer"
+        }
+      },
+      {
+        "name": "query",
+        "in": "query",
+        "description": "An optional Sentry structured search query that selects the issues to remove when `id` is not provided. If not provided an implied `\"is:unresolved\"` is assumed. Use `is:<status>` (e.g. `is:resolved`) to limit it to issues with that status.",
+        "required": false,
+        "schema": {
+          "type": "string"
         }
       }
     ],

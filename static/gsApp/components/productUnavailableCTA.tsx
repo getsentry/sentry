@@ -8,10 +8,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {useApi} from 'sentry/utils/useApi';
 
-import {
-  sendReplayOnboardRequest,
-  sendUpgradeRequest,
-} from 'getsentry/actionCreators/upsell';
+import {sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
 import {withSubscription} from 'getsentry/components/withSubscription';
 import {useAM2UpsellModal} from 'getsentry/hooks/useAM2UpsellModal';
 import type {Subscription} from 'getsentry/types';
@@ -70,14 +67,12 @@ function getRequestUpdateLabel({
 function RequestUpdateAlert({
   children,
   organization,
-  isAncientPlan,
   hasPerformanceView,
   hasSessionReplay,
 }: {
   children: React.ReactNode;
   hasPerformanceView: boolean;
   hasSessionReplay: boolean;
-  isAncientPlan: boolean;
   organization: Organization;
 }) {
   const api = useApi();
@@ -111,20 +106,11 @@ function RequestUpdateAlert({
       analyticsCommonProps
     );
 
-    if (isAncientPlan) {
-      await sendUpgradeRequest({
-        api,
-        organization,
-        handleSuccess: () => setRequestSent(true),
-      });
-    } else {
-      await sendReplayOnboardRequest({
-        api,
-        orgSlug: organization.slug,
-        currentPlan: 'am1-non-beta',
-        onSuccess: () => setRequestSent(true),
-      });
-    }
+    await sendUpgradeRequest({
+      api,
+      organization,
+      handleSuccess: () => setRequestSent(true),
+    });
 
     setLoading(false);
   };
@@ -247,8 +233,7 @@ function ProductUnavailableCTAContainer({
   }
 
   // Legacy MM1 & MM2 plans predate performance/tracing and have no direct update
-  // path into AM2, prices could be wildly different. Members can email owners
-  // requesting a plan upgrade and owners can manage subscription
+  // path into AM2, prices could be wildly different. Owners can manage subscription
   const isAncientPlan = !hasPerformance(subscription.planDetails);
 
   const hasBillingAccess = organization.access?.includes('org:billing');
@@ -270,7 +255,6 @@ function ProductUnavailableCTAContainer({
       hasSessionReplay={hasSessionReplay}
       hasPerformanceView={hasPerformanceView}
       organization={organization}
-      isAncientPlan={isAncientPlan}
     >
       {getRequestUpdateLabel({hasSessionReplay, hasPerformanceView})}
     </RequestUpdateAlert>

@@ -2,13 +2,14 @@ import {mutationOptions, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {Scope} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
 interface Props {
@@ -61,26 +62,10 @@ export function EarlyFeaturesSettingsForm({access}: Props) {
     mutationFn: (data: Record<string, boolean>) =>
       fetchMutation<void>({
         method: 'PUT',
-        url: '/internal/feature-flags/',
+        url: getApiUrl('/internal/feature-flags/'),
         data,
       }),
     onSuccess: (_response, updatedFlags) => {
-      const previous = queryClient.getQueryData(featureFlagsQueryOptions.queryKey);
-
-      for (const [flag, newValue] of Object.entries(updatedFlags)) {
-        const previousFlag = previous?.json[flag];
-        if (!previousFlag) {
-          continue;
-        }
-        addSuccessMessage(
-          tct('Changed [fieldName] from [oldValue] to [newValue]', {
-            fieldName: <strong>{previousFlag.description}</strong>,
-            oldValue: <em>{previousFlag.value ? t('enabled') : t('disabled')}</em>,
-            newValue: <em>{newValue ? t('enabled') : t('disabled')}</em>,
-          })
-        );
-      }
-
       queryClient.setQueryData(featureFlagsQueryOptions.queryKey, prev => {
         if (!prev) {
           return prev;
@@ -92,7 +77,7 @@ export function EarlyFeaturesSettingsForm({access}: Props) {
         };
       });
     },
-    onError: () => addErrorMessage(t('Unable to save change')),
+    onError: () => toast.error(t('Unable to save change')),
   });
 
   return (

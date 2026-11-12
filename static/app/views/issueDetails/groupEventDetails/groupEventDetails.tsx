@@ -4,10 +4,13 @@ import isEqual from 'lodash/isEqual';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {withMeta} from 'sentry/components/events/meta/metaProxy';
 import {LoadingError} from 'sentry/components/loadingError';
-import {useSentryAppComponentsData} from 'sentry/stores/useSentryAppComponentsData';
 import type {GroupActivityReprocess, GroupReprocessing} from 'sentry/types/group';
+import {IssueType} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {isRetryableRequestError} from 'sentry/utils/queryClientConfig';
+import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
+import {isNotFoundError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -15,8 +18,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';
-import {GroupEventDetailsContent} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
-import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
+import {SourceMapIssueDetails} from 'sentry/views/issueDetails/configurationIssues/sourceMapIssues/sourceMapIssueDetails';
+import {EventDetails} from 'sentry/views/issueDetails/eventDetails';
+import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
 import {ReprocessingProgress} from 'sentry/views/issueDetails/reprocessingProgress';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
@@ -28,20 +32,25 @@ import {
   useEnvironmentsFromUrl,
 } from 'sentry/views/issueDetails/utils';
 
+import {GroupEventDetailsLoading} from './groupEventDetailsLoading';
+
 function GroupEventDetails() {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
-  const params = useParams<{groupId: string; orgId: string; eventId?: string}>();
+  const {eventId} = useParams<{eventId?: string}>();
+  const groupId = useGroupId();
   const environments = useEnvironmentsFromUrl();
 
   const {
     data: event,
     isPending: isLoadingEvent,
     isError: isEventError,
+    error: eventError,
+    refetch: refetchEvent,
   } = useGroupEvent({
-    groupId: params.groupId,
-    eventId: params.eventId,
+    groupId,
+    eventId,
   });
 
   const {
@@ -49,7 +58,7 @@ function GroupEventDetails() {
     isPending: isGroupPending,
     isError: isGroupError,
     refetch: refetchGroup,
-  } = useGroup({groupId: params.groupId});
+  } = useGroup({groupId});
 
   const eventWithMeta = useMemo(() => withMeta(event), [event]);
   const project = useProjectFromSlug({organization, projectSlug: group?.project?.slug});
@@ -63,8 +72,6 @@ function GroupEventDetails() {
     },
     [event]
   );
-  // load the data
-  useSentryAppComponentsData({projectId: project?.id});
 
   // If environments are being actively changed and will no longer contain the
   // current event's environment, redirect to latest
@@ -75,8 +82,8 @@ function GroupEventDetails() {
     if (
       environmentsHaveChanged &&
       prevEvent &&
-      params.eventId &&
-      !['latest', 'oldest'].includes(params.eventId)
+      eventId &&
+      !['latest', 'oldest'].includes(eventId)
     ) {
       const environment = getEventEnvironment(prevEvent);
       const shouldRedirect =
@@ -85,7 +92,7 @@ function GroupEventDetails() {
       if (shouldRedirect) {
         navigate(
           {
-            pathname: `/organizations/${organization.slug}/issues/${params.groupId}/`,
+            pathname: `/organizations/${organization.slug}/issues/${groupId}/`,
             query: location.query,
           },
           {replace: true}
@@ -98,7 +105,8 @@ function GroupEventDetails() {
     environments,
     location.query,
     organization.slug,
-    params,
+    eventId,
+    groupId,
     prevEvent,
     navigate,
   ]);
@@ -112,15 +120,32 @@ function GroupEventDetails() {
     return <LoadingError onRetry={refetchGroup} />;
   }
 
-  const renderContent = () => {
-    if (isLoadingEvent) {
-      return <GroupEventDetailsLoading />;
-    }
+  const showEventError =
+    isEventError &&
+    !isNotFoundError(eventError) &&
+    (!event || !isRetryableRequestError(eventError));
 
-    return (
-      <GroupEventDetailsContent group={group} event={eventWithMeta} project={project} />
-    );
-  };
+  const isSourceMapIssue = group.issueType === IssueType.SOURCEMAP_CONFIGURATION;
+
+  const content = isSourceMapIssue ? (
+    <SourceMapIssueDetails
+      group={group}
+      project={project}
+      event={eventWithMeta}
+      isEventPending={isLoadingEvent}
+      eventError={eventError}
+      onRetryEvent={refetchEvent}
+    />
+  ) : isLoadingEvent ? (
+    <GroupEventDetailsLoading />
+  ) : showEventError ? (
+    <LoadingError
+      message={getRequestErrorUserMessage(eventError)}
+      onRetry={refetchEvent}
+    />
+  ) : (
+    <EventDetails group={group} event={eventWithMeta} project={project} />
+  );
 
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
 
@@ -128,8 +153,11 @@ function GroupEventDetails() {
     <AnalyticsArea name="issue_details">
       <VisuallyCompleteWithData
         id="IssueDetails-EventBody"
-        hasData={!isLoadingEvent && !isEventError && defined(eventWithMeta)}
-        isLoading={isLoadingEvent}
+        hasData={
+          isSourceMapIssue ||
+          (!isLoadingEvent && !showEventError && defined(eventWithMeta))
+        }
+        isLoading={!isSourceMapIssue && isLoadingEvent}
       >
         <div data-test-id="group-event-details">
           {groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
@@ -143,7 +171,7 @@ function GroupEventDetails() {
               }
             />
           ) : (
-            renderContent()
+            content
           )}
         </div>
       </VisuallyCompleteWithData>

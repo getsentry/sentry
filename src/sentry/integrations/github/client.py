@@ -3,17 +3,19 @@ from __future__ import annotations
 import contextlib
 import logging
 import time
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from datetime import datetime, timedelta
 from enum import StrEnum
 from functools import cached_property
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 import orjson
 import sentry_sdk
 from django.core.cache import cache
 from requests import PreparedRequest, Response
+from sentry_sdk import traces
 
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.blame import (
     create_blame_query,
@@ -22,7 +24,11 @@ from sentry.integrations.github.blame import (
     is_graphql_response,
 )
 from sentry.integrations.github.constants import GITHUB_API_ACCEPT_HEADER
-from sentry.integrations.github.utils import get_jwt, get_next_link
+from sentry.integrations.github.pull_request_status import (
+    create_pull_request_status_query,
+    extract_pull_request_statuses_from_response,
+)
+from sentry.integrations.github.utils import get_jwt, get_last_page_number, get_next_link
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.integrations.source_code_management.commit_context import (
@@ -31,12 +37,17 @@ from sentry.integrations.source_code_management.commit_context import (
     SourceLineInfo,
 )
 from sentry.integrations.source_code_management.metrics import (
-    SCMIntegrationInteractionEvent,
-    SCMIntegrationInteractionType,
+    get_current_scm_interaction_type,
+    normalize_scm_provider_key,
 )
 from sentry.integrations.source_code_management.repo_trees import RepoTreesClient
 from sentry.integrations.source_code_management.repository import RepositoryClient
-from sentry.integrations.source_code_management.status_check import StatusCheckClient
+from sentry.integrations.source_code_management.status_check import (
+    PullRequestStatusClient,
+    PullRequestStatusRequest,
+    PullRequestStatusResult,
+    StatusCheckClient,
+)
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders, IntegrationProviderSlug
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
@@ -47,14 +58,19 @@ from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import (
     ApiConflictError,
     ApiError,
+    ApiForbiddenError,
     ApiPaginationTruncated,
     ApiRateLimitedError,
     UnknownHostError,
 )
+from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo.base import control_silo_function
+from sentry.silo.util import PROXY_PATH, trim_leading_slashes
 from sentry.utils import metrics
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.dates import deprecated_utcnow
-from sentry.utils.tracing import start_span
+from sentry.utils.iterators import chunked
+from sentry.utils.safe import get_path
 
 logger = logging.getLogger("sentry.integrations.github")
 
@@ -63,7 +79,57 @@ logger = logging.getLogger("sentry.integrations.github")
 # many requests left for other features that need to reach Github
 MINIMUM_REQUESTS = 200
 
+SEARCH_ASSIGNABLE_USERS_QUERY = """
+query SearchAssignableUsers($owner: String!, $name: String!, $search: String!) {
+  repository(owner: $owner, name: $name) {
+    results: assignableUsers(first: 100, query: $search) {
+      nodes {
+        login
+        name
+      }
+    }
+  }
+}
+"""
+
+SEARCH_LABELS_QUERY = """
+query SearchLabels($owner: String!, $name: String!, $search: String!) {
+  repository(owner: $owner, name: $name) {
+    results: labels(first: 100, query: $search) {
+      nodes {
+        name
+      }
+    }
+  }
+}
+"""
+
+# When Github advertises the total page count up front, the pages after the
+# first are fetched concurrently. Bounded to keep the fan-out comfortably under
+# Github's secondary (concurrent request) rate limits.
+PAGINATION_MAX_WORKERS = 10
+GET_REPOSITORIES_METRIC = "integrations.source_code_management.get_repositories"
+GET_REPO_TREE_METRIC = "integrations.source_code_management.get_repo_tree"
+GET_RATE_LIMIT_METRIC = "integrations.source_code_management.get_rate_limit"
+
 JWT_AUTH_ROUTES = ("/app/installations", "access_tokens")
+
+
+def _is_rate_limit_forbidden(error: ApiForbiddenError) -> bool:
+    """
+    GitHub does not only use 429 for rate limits: it also returns 403 when an
+    installation trips its primary or secondary rate limits, naming the limit
+    in the response body (e.g. "You have exceeded a secondary rate limit" or
+    "API rate limit exceeded"). ApiForbiddenError does not retain the
+    Retry-After header GitHub sets on these responses, so detect the condition
+    from the body message instead. A plain permission 403 has no such message.
+    """
+    message = ""
+    if isinstance(error.json, dict):
+        raw_message = error.json.get("message")
+        if isinstance(raw_message, str):
+            message = raw_message
+    return "rate limit" in (message or error.text or "").lower()
 
 
 class CachedRepo(TypedDict):
@@ -72,6 +138,13 @@ class CachedRepo(TypedDict):
     full_name: str
     default_branch: str | None
     archived: bool | None
+
+
+def _int_values(mapping: Mapping[str, Any], *, context: str) -> dict[str, int]:
+    values: dict[str, int] = {}
+    for key, value in mapping.items():
+        values[key] = value
+    return values
 
 
 class GithubRateLimitInfo:
@@ -113,7 +186,6 @@ class GitHubApiRequestType(StrEnum):
     CREATE_ISSUE_REACTION = "create_issue_reaction"
     DELETE_ISSUE_REACTION = "delete_issue_reaction"
     GET_ARCHIVE_LINK = "get_archive_link"
-    GET_ASSIGNEES = "get_assignees"
     GET_BLAME_FOR_FILES = "get_blame_for_files"
     GET_CHECK_RUN = "get_check_run"
     GET_CHECK_RUNS = "get_check_runs"
@@ -132,6 +204,7 @@ class GitHubApiRequestType(StrEnum):
     GET_PULL_REQUEST_COMMENTS = "get_pull_request_comments"
     GET_PULL_REQUEST_FILES = "get_pull_request_files"
     GET_PULL_REQUEST_FROM_COMMIT = "get_pull_request_from_commit"
+    GET_PULL_REQUEST_STATUS = "get_pull_request_status"
     GET_RATE_LIMIT = "get_rate_limit"
     GET_REPO = "get_repo"
     GET_REPO_TREE = "get_repo_tree"
@@ -142,10 +215,37 @@ class GitHubApiRequestType(StrEnum):
     REFRESH_ACCESS_TOKEN = "refresh_access_token"
     REPO_HOOKS = "repo_hooks"
     SEARCH_ISSUES = "search_issues"
+    SEARCH_ISSUE_ASSIGNEES = "search_issue_assignees"
+    SEARCH_ISSUE_LABELS = "search_issue_labels"
     SEARCH_REPOSITORIES = "search_repositories"
     UPDATE_COMMENT = "update_comment"
     UPDATE_ISSUE_ASSIGNEES = "update_issue_assignees"
     UPDATE_ISSUE_STATUS = "update_issue_status"
+
+
+class GithubInstallationAccount(TypedDict):
+    login: str
+    avatar_url: str
+
+
+class GithubUserInstallation(TypedDict):
+    id: int
+    account: GithubInstallationAccount
+    target_type: str
+
+
+class GithubUserInstallations(TypedDict):
+    installations: list[GithubUserInstallation]
+
+
+class GithubUserOrganization(TypedDict):
+    login: str
+
+
+class GithubUserOrganizationMembership(TypedDict):
+    organization: GithubUserOrganization
+    role: str
+    state: str
 
 
 class GithubSetupApiClient(IntegrationProxyClient):
@@ -179,7 +279,7 @@ class GithubSetupApiClient(IntegrationProxyClient):
         Authentication: JWT
         Docs: https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#get-an-installation-for-the-authenticated-app
         """
-        return self.get(
+        return self.get_mapping(
             f"/app/installations/{installation_id}",
             api_request_type=GitHubApiRequestType.GET_INSTALLATION_INFO,
         )
@@ -189,33 +289,39 @@ class GithubSetupApiClient(IntegrationProxyClient):
         Authentication: Access Token
         Docs: https://docs.github.com/en/rest/users/users?apiVersion=2022-11-28#get-the-authenticated-user
         """
-        return self.get("/user", api_request_type=GitHubApiRequestType.GET_USER_INFO)
+        return self.get_mapping("/user", api_request_type=GitHubApiRequestType.GET_USER_INFO)
 
-    def get_user_info_installations(self):
+    def get_user_info_installations(self) -> GithubUserInstallations:
         """
         Authentication: Access Token
         Docs: https://docs.github.com/en/rest/apps/installations?apiVersion=2022-11-28#list-app-installations-accessible-to-the-user-access-token
         """
-        return self.get(
-            "/user/installations",
-            api_request_type=GitHubApiRequestType.GET_USER_INFO_INSTALLATIONS,
+        return cast(
+            GithubUserInstallations,
+            self.get(
+                "/user/installations",
+                api_request_type=GitHubApiRequestType.GET_USER_INFO_INSTALLATIONS,
+            ),
         )
 
-    def get_organization_memberships_for_user(self):
+    def get_organization_memberships_for_user(self) -> list[GithubUserOrganizationMembership]:
         """
         Authentication: Access Token
         Docs: https://docs.github.com/en/rest/orgs/members?apiVersion=2022-11-28#get-an-organization-membership-for-the-authenticated-user
         """
-        return self.get(
-            "/user/memberships/orgs",
-            api_request_type=GitHubApiRequestType.GET_ORGANIZATION_MEMBERSHIPS_FOR_USER,
+        return cast(
+            list[GithubUserOrganizationMembership],
+            self.get(
+                "/user/memberships/orgs",
+                api_request_type=GitHubApiRequestType.GET_ORGANIZATION_MEMBERSHIPS_FOR_USER,
+            ),
         )
 
 
 class GithubProxyClient(IntegrationProxyClient):
     integration: Integration | RpcIntegration  # late init
 
-    def request(self, *args: Any, **kwargs: Any):
+    def request(self, *args: Any, **kwargs: Any) -> Any:
         credentials_set = kwargs.pop("credentials_set", None)
         if credentials_set == "application":
             if "headers" not in kwargs:
@@ -226,6 +332,7 @@ class GithubProxyClient(IntegrationProxyClient):
 
     class AccessTokenData(TypedDict):
         access_token: str
+        expires_at: str
         permissions: dict[str, str] | None
 
     @cached_property
@@ -272,18 +379,20 @@ class GithubProxyClient(IntegrationProxyClient):
                 "integration_id": self.integration.id,
             },
         )
-        data = self.post(
+        data = self.post_mapping(
             f"/app/installations/{self._get_installation_id()}/access_tokens",
             api_request_type=GitHubApiRequestType.REFRESH_ACCESS_TOKEN,
         )
         access_token = data["token"]
         expires_at = datetime.strptime(data["expires_at"], "%Y-%m-%dT%H:%M:%SZ").isoformat()
         permissions = data.get("permissions")
+        last_refresh_at = deprecated_utcnow().isoformat()
         integration.metadata.update(
             {
                 "access_token": access_token,
                 "expires_at": expires_at,
                 "permissions": permissions,
+                "last_refresh_at": last_refresh_at,
             }
         )
 
@@ -294,7 +403,7 @@ class GithubProxyClient(IntegrationProxyClient):
             {
                 "permissions": permissions,
                 "expires_at": expires_at,
-                "last_refresh_at": deprecated_utcnow().isoformat(),
+                "last_refresh_at": last_refresh_at,
             }
         )
 
@@ -311,6 +420,7 @@ class GithubProxyClient(IntegrationProxyClient):
         self.integration = integration
         return {
             "access_token": access_token,
+            "expires_at": expires_at,
             "permissions": permissions,
         }
 
@@ -370,9 +480,10 @@ class GithubProxyClient(IntegrationProxyClient):
         if should_refresh:
             return self._refresh_access_token()
 
-        if access_token:
+        if access_token and expires_at:
             return {
                 "access_token": access_token,
+                "expires_at": expires_at,
                 "permissions": self.integration.metadata.get("permissions"),
             }
 
@@ -421,12 +532,19 @@ class GithubProxyClient(IntegrationProxyClient):
 
 
 class GitHubBaseClient(
-    GithubProxyClient, RepositoryClient, CommitContextClient, RepoTreesClient, StatusCheckClient
+    GithubProxyClient,
+    RepositoryClient,
+    CommitContextClient,
+    RepoTreesClient,
+    StatusCheckClient,
+    PullRequestStatusClient,
 ):
     allow_redirects = True
 
     base_url = "https://api.github.com"
     integration_name = IntegrationProviderSlug.GITHUB.value
+    # /languages is precomputed and independent of the tree.
+    has_languages_endpoint = True
     # Github gives us links to navigate, however, let's be safe in case we're fed garbage
     page_number_limit = 200  # With a default of 100 per page -> 20,000 items
 
@@ -436,7 +554,7 @@ class GitHubBaseClient(
         see https://docs.github.com/en/rest/commits/commits#list-commits-on-a-repository
         using end_sha as parameter.
         """
-        return self.get_cached(
+        return self.get_cached_sequence(
             f"/repos/{repo}/commits",
             params={"sha": end_sha, "per_page": per_page},
             api_request_type=GitHubApiRequestType.GET_COMMITS,
@@ -457,13 +575,17 @@ class GitHubBaseClient(
         """
         https://docs.github.com/en/rest/webhooks/repos#list-repository-webhooks
         """
-        return self.get(f"/repos/{repo}/hooks", api_request_type=GitHubApiRequestType.REPO_HOOKS)
+        return self.get_sequence(
+            f"/repos/{repo}/hooks", api_request_type=GitHubApiRequestType.REPO_HOOKS
+        )
 
     def get_commits(self, repo: str) -> Sequence[Any]:
         """
         https://docs.github.com/en/rest/commits/commits#list-commits
         """
-        return self.get(f"/repos/{repo}/commits", api_request_type=GitHubApiRequestType.GET_COMMITS)
+        return self.get_sequence(
+            f"/repos/{repo}/commits", api_request_type=GitHubApiRequestType.GET_COMMITS
+        )
 
     def get_commit(self, repo: str, sha: str) -> Any:
         """
@@ -499,15 +621,16 @@ class GitHubBaseClient(
             )
             return None
 
-        return pull_request.get("merge_commit_sha")
+        merge_commit_sha = pull_request.get("merge_commit_sha")
+        return merge_commit_sha
 
-    def get_pull_request_from_commit(self, repo: str, sha: str) -> Any:
+    def get_pull_request_from_commit(self, repo: str, sha: str) -> Sequence[Mapping[str, Any]]:
         """
         https://docs.github.com/en/rest/commits/commits#list-pull-requests-associated-with-a-commit
 
         Returns the merged pull request that introduced the commit to the repository. If the commit is not present in the default branch, will only return open pull requests associated with the commit.
         """
-        return self.get(
+        return self.get_sequence(
             f"/repos/{repo}/commits/{sha}/pulls",
             api_request_type=GitHubApiRequestType.GET_PULL_REQUEST_FROM_COMMIT,
         )
@@ -558,17 +681,21 @@ class GitHubBaseClient(
         """
         return self.get(f"/repos/{repo}", api_request_type=GitHubApiRequestType.GET_REPO)
 
-    def get_languages(self, repo: str) -> dict[str, int]:
+    def get_languages(self, repo: str, tree: list[dict[str, Any]] | None = None) -> dict[str, int]:
         """
         https://docs.github.com/en/rest/repos/repos#list-repository-languages
 
         :param repo: "owner/repo" format
+        :param tree: ignored; GitHub serves language byte counts directly.
         :returns: {"Python": 50000, "JavaScript": 30000, ...}
                   Keys are GitHub Linguist names, values are bytes of code.
         """
-        return self.get(
-            f"/repos/{repo}/languages",
-            api_request_type=GitHubApiRequestType.GET_LANGUAGES,
+        return _int_values(
+            self.get_mapping(
+                f"/repos/{repo}/languages",
+                api_request_type=GitHubApiRequestType.GET_LANGUAGES,
+            ),
+            context="language byte count",
         )
 
     # https://docs.github.com/en/rest/rate-limit?apiVersion=2022-11-28
@@ -576,17 +703,24 @@ class GitHubBaseClient(
         """This gives information of the current rate limit"""
         # There's more but this is good enough
         assert specific_resource in ("core", "search", "graphql")
-        with SCMIntegrationInteractionEvent(
-            interaction_type=SCMIntegrationInteractionType.GET_RATE_LIMIT,
-            provider_key=self.integration_name,
-            integration_id=self.integration.id,
-            organization_id=self.organization_id,
-        ).capture():
-            return GithubRateLimitInfo(
-                self.get("/rate_limit", api_request_type=GitHubApiRequestType.GET_RATE_LIMIT)[
-                    "resources"
-                ][specific_resource]
+        parent_interaction_type = get_current_scm_interaction_type() or "unattributed"
+        metric_tags = {
+            "integration_name": normalize_scm_provider_key(self.integration_name),
+            "parent_interaction_type": str(parent_interaction_type),
+        }
+        try:
+            response = self.get_mapping(
+                "/rate_limit", api_request_type=GitHubApiRequestType.GET_RATE_LIMIT
             )
+            resources = response["resources"]
+            resource = resources[specific_resource]
+            rate_limit = GithubRateLimitInfo(_int_values(resource, context="rate limit"))
+        except Exception:
+            metrics.incr(GET_RATE_LIMIT_METRIC, tags={**metric_tags, "result": "error"})
+            raise
+
+        metrics.incr(GET_RATE_LIMIT_METRIC, tags={**metric_tags, "result": "success"})
+        return rate_limit
 
     # This method is used by RepoTreesIntegration
     def get_remaining_api_requests(self) -> int:
@@ -596,35 +730,39 @@ class GitHubBaseClient(
     # This method is used by RepoTreesIntegration
     # https://docs.github.com/en/rest/git/trees#get-a-tree
     def get_tree(self, repo_full_name: str, tree_sha: str) -> list[dict[str, Any]]:
-        with SCMIntegrationInteractionEvent(
-            interaction_type=SCMIntegrationInteractionType.GET_REPO_TREE,
-            provider_key=self.integration_name,
-            integration_id=self.integration.id,
-            organization_id=self.organization_id,
-        ).capture() as lifecycle:
-            try:
-                # We do not cache this call since it is a rather large object
-                contents: dict[str, Any] = self.get(
-                    f"/repos/{repo_full_name}/git/trees/{tree_sha}",
-                    # Will cause all objects or subtrees referenced by the tree specified in :tree_sha
-                    params={"recursive": 1},
-                    api_request_type=GitHubApiRequestType.GET_REPO_TREE,
-                )
-            except ApiConflictError as e:
-                # Empty repos return a 409 which is expected
-                lifecycle.record_halt(e)
-                raise
-            # If truncated is true in the response then the number of items in the tree array exceeded our maximum limit.
-            # If you need to fetch more items, use the non-recursive method of fetching trees, and fetch one sub-tree at a time.
-            # Note: The limit for the tree array is 100,000 entries with a maximum size of 7 MB when using the recursive parameter.
-            # XXX: We will need to improve this by iterating through trees without using the recursive parameter
-            if contents.get("truncated"):
-                # e.g. getsentry/DataForThePeople
-                logger.warning(
-                    "The tree for %s has been truncated. Use different a approach for retrieving contents of tree.",
-                    repo_full_name,
-                )
-            return contents["tree"]
+        parent_interaction_type = get_current_scm_interaction_type() or "unattributed"
+        metric_tags = {
+            "integration_name": normalize_scm_provider_key(self.integration_name),
+            "parent_interaction_type": str(parent_interaction_type),
+        }
+        try:
+            # We do not cache this call since it is a rather large object
+            contents = self.get_mapping(
+                f"/repos/{repo_full_name}/git/trees/{tree_sha}",
+                # Will cause all objects or subtrees referenced by the tree specified in :tree_sha
+                params={"recursive": 1},
+                api_request_type=GitHubApiRequestType.GET_REPO_TREE,
+            )
+        except ApiConflictError:
+            # Empty repos return a 409 which is expected
+            metrics.incr(GET_REPO_TREE_METRIC, tags={**metric_tags, "result": "halted"})
+            raise
+        except Exception:
+            metrics.incr(GET_REPO_TREE_METRIC, tags={**metric_tags, "result": "error"})
+            raise
+
+        # If truncated is true in the response then the number of items in the tree array exceeded our maximum limit.
+        # If you need to fetch more items, use the non-recursive method of fetching trees, and fetch one sub-tree at a time.
+        # Note: The limit for the tree array is 100,000 entries with a maximum size of 7 MB when using the recursive parameter.
+        # XXX: We will need to improve this by iterating through trees without using the recursive parameter
+        if contents.get("truncated"):
+            # e.g. getsentry/DataForThePeople
+            logger.warning(
+                "The tree for %s has been truncated. Use different a approach for retrieving contents of tree.",
+                repo_full_name,
+            )
+        metrics.incr(GET_REPO_TREE_METRIC, tags={**metric_tags, "result": "success"})
+        return contents["tree"]
 
     # Used by RepoTreesIntegration
     def should_count_api_error(self, error: ApiError, extra: dict[str, str]) -> bool:
@@ -667,6 +805,7 @@ class GitHubBaseClient(
         self,
         page_number_limit: int | None = None,
         raise_on_page_limit: bool = False,
+        parallel: bool = False,
     ) -> list[dict[str, Any]]:
         """
         This fetches all repositories accessible to the Github App
@@ -678,42 +817,57 @@ class GitHubBaseClient(
         When ``raise_on_page_limit`` is True, raises ``ApiPaginationTruncated`` if the
         pagination loop exits because it hit the cap while there were still
         more pages available.
-        """
-        with SCMIntegrationInteractionEvent(
-            interaction_type=SCMIntegrationInteractionType.GET_REPOSITORIES,
-            provider_key=self.integration_name,
-            integration_id=self.integration.id,
-            organization_id=self.organization_id,
-        ).capture() as lifecycle:
-            try:
-                return self._get_with_pagination(
-                    "/installation/repositories",
-                    response_key="repositories",
-                    page_number_limit=page_number_limit,
-                    api_request_type=GitHubApiRequestType.GET_REPOSITORIES,
-                    raise_on_page_limit=raise_on_page_limit,
-                )
-            except ApiPaginationTruncated as e:
-                # Hitting the pagination cap is an expected signal.
-                # Record as halt so the lifecycle doesn't create a
-                # Sentry every time this is called.
-                lifecycle.record_halt(e, create_issue=False)
-                raise
 
-    def get_repos_cached(self, ttl: int = 300) -> list[CachedRepo]:
+        When ``parallel`` is True, pages after the first are fetched concurrently
+        (see ``_get_with_pagination``). Only interactive callers opt in; the
+        background ``link_all_repos`` task keeps the serial default.
+        """
+        parent_interaction_type = get_current_scm_interaction_type()
+        metric_tags = {
+            "integration_name": normalize_scm_provider_key(self.integration_name),
+            "parent_interaction_type": (
+                str(parent_interaction_type) if parent_interaction_type else "unattributed"
+            ),
+        }
+        try:
+            repositories = self._get_with_pagination(
+                "/installation/repositories",
+                response_key="repositories",
+                page_number_limit=page_number_limit,
+                api_request_type=GitHubApiRequestType.GET_REPOSITORIES,
+                raise_on_page_limit=raise_on_page_limit,
+                parallel=parallel,
+            )
+        except ApiPaginationTruncated:
+            metrics.incr(GET_REPOSITORIES_METRIC, tags={**metric_tags, "result": "halted"})
+            raise
+        except Exception:
+            metrics.incr(GET_REPOSITORIES_METRIC, tags={**metric_tags, "result": "error"})
+            raise
+
+        metrics.incr(GET_REPOSITORIES_METRIC, tags={**metric_tags, "result": "success"})
+        return repositories
+
+    def get_repos_cached(
+        self,
+        ttl: int = 300,
+        parallel: bool = False,
+    ) -> list[CachedRepo]:
         """
         Return all repos accessible to this installation, cached in
         Django cache for ``ttl`` seconds.
 
         Only the fields used by get_repositories() are stored to keep
         the cache payload small.
+
+        ``parallel`` is forwarded to ``get_repos`` for the cache-miss fetch.
         """
         cache_key = f"github:repos:{self.integration.id}"
         cached = cache.get(cache_key)
         if cached is not None:
             return cached
 
-        all_repos = self.get_repos()
+        all_repos = self.get_repos(parallel=parallel)
         repos: list[CachedRepo] = [
             {
                 "id": r["id"],
@@ -734,20 +888,59 @@ class GitHubBaseClient(
 
         NOTE: All search APIs (except code search) share a rate limit of 30 requests/minute
         """
-        return self.get(
+        return self.get_mapping(
             "/search/repositories",
             params={"q": query},
             api_request_type=GitHubApiRequestType.SEARCH_REPOSITORIES,
         )
 
-    def get_assignees(self, repo: str) -> Sequence[Any]:
-        """
-        https://docs.github.com/en/rest/issues/assignees#list-assignees
-        """
-        return self._get_with_pagination(
-            f"/repos/{repo}/assignees",
-            api_request_type=GitHubApiRequestType.GET_ASSIGNEES,
+    def search_issue_assignees(self, repo: str, query: str) -> list[Any]:
+        return self._search_issue_field(
+            repo,
+            query,
+            graphql_query=SEARCH_ASSIGNABLE_USERS_QUERY,
+            api_request_type=GitHubApiRequestType.SEARCH_ISSUE_ASSIGNEES,
         )
+
+    def search_issue_labels(self, repo: str, query: str) -> list[Any]:
+        return self._search_issue_field(
+            repo,
+            query,
+            graphql_query=SEARCH_LABELS_QUERY,
+            api_request_type=GitHubApiRequestType.SEARCH_ISSUE_LABELS,
+        )
+
+    def _search_issue_field(
+        self,
+        repo: str,
+        query: str,
+        *,
+        graphql_query: str,
+        api_request_type: GitHubApiRequestType,
+    ) -> list[Any]:
+        owner, repo_name = repo.split("/", 1)
+        response = self.post_mapping(
+            path="/graphql",
+            data={
+                "query": graphql_query,
+                "variables": {"owner": owner, "name": repo_name, "search": query},
+            },
+            allow_text=False,
+            api_request_type=api_request_type,
+        )
+        if not is_graphql_response(response):
+            raise ApiError("Response is not JSON")
+
+        errors = response.get("errors", [])
+        if any(error.get("type") == "RATE_LIMITED" for error in errors):
+            raise ApiRateLimitedError("GitHub rate limit exceeded")
+
+        nodes = get_path(response, "data", "repository", "results", "nodes")
+        if nodes is None:
+            message = "\n".join(error.get("message", "") for error in errors).strip()
+            raise ApiError(message or "Invalid GitHub GraphQL response")
+
+        return nodes
 
     def _get_with_pagination(
         self,
@@ -756,44 +949,131 @@ class GitHubBaseClient(
         page_number_limit: int | None = None,
         api_request_type: GitHubApiRequestType | None = None,
         raise_on_page_limit: bool = False,
+        parallel: bool = False,
     ) -> list[Any]:
         """
-        Github uses the Link header to provide pagination links. Github
-        recommends using the provided link relations and not constructing our
-        own URL.
+        Github uses the Link header to provide pagination links.
         https://docs.github.com/en/rest/guides/traversing-with-pagination
 
         Use response_key when the API stores the results within a key.
         For instance, the repositories API returns the list of repos under the "repositories" key.
 
-        When ``raise_on_page_limit`` is True and the loop exits because it hit
-        ``page_number_limit`` while Github was still advertising a next page,
+        By default the remaining pages are fetched serially by following the
+        ``next`` links one round-trip at a time, which is what Github recommends.
+
+        When ``parallel`` is True and Github advertises the total page count via
+        a ``rel="last"`` link on the first response, the remaining pages are
+        fetched concurrently instead. Callers opt into this only where the
+        latency matters and the bounded extra concurrency against Github's
+        secondary rate limits is acceptable. Even when ``parallel`` is True,
+        endpoints that do not advertise a last page (a single page, or
+        cursor-based pagination where arbitrary page jumps are unsupported) fall
+        back to the serial ``next`` walk.
+
+        When ``raise_on_page_limit`` is True and pagination stops because it hit
+        ``page_number_limit`` while Github was still advertising more pages,
         raises ``ApiPaginationTruncated`` with the partial result attached.
         """
         if page_number_limit is None or page_number_limit > self.page_number_limit:
             page_number_limit = self.page_number_limit
 
-        with start_span(
-            op=f"{self.integration_type}.http.pagination",
-            name=f"{self.integration_type}.http_response.pagination.{self.name}",
-        ):
-            output: list[dict[str, Any]] = []
+        def page_items(response: Any) -> Sequence[Any]:
+            return response[response_key] if response_key else response
 
-            page_number = 1
-            resp = self.get(
+        with traces.start_span(
+            name=f"{self.integration_type}.http_response.pagination.{self.name}",
+            attributes={"sentry.op": f"{self.integration_type}.http.pagination"},
+        ):
+            # Fetch the first page serially. Besides returning its data, this
+            # warms up any lazily-initialized client state (auth token, session)
+            # before any fan-out, and tells us how many pages there are.
+            first_response = self.get(
                 path, params={"per_page": self.page_size}, api_request_type=api_request_type
             )
-            output.extend(resp) if not response_key else output.extend(resp[response_key])
-            next_link = get_next_link(resp)
+            output: list[Any] = list(page_items(first_response))
 
-            # XXX: In order to speed up this function we will need to parallelize this
-            # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
+            if parallel:
+                last_page_number = get_last_page_number(first_response)
+                if last_page_number is not None and last_page_number > 1:
+                    truncated = last_page_number > page_number_limit
+                    remaining_pages = range(2, min(last_page_number, page_number_limit) + 1)
+
+                    # Pages are addressed by number (per_page + page) rather than
+                    # by following Github's next-link URLs. Any query params
+                    # already in ``path`` survive because fetch_page reuses it, so
+                    # this matches next-link following for offset-paginated
+                    # endpoints (the only kind we take this path for, since it is
+                    # gated on a numeric rel="last"). The one gap: if this function
+                    # ever grows a ``params`` argument for filter/sort/q, fetch_page
+                    # must forward it too -- it hardcodes only per_page and page, so
+                    # params supplied any way other than via ``path`` would be
+                    # dropped from pages 2..N.
+                    def fetch_page(page_number: int) -> BaseApiResponse:
+                        return self.get(
+                            path,
+                            params={"per_page": self.page_size, "page": page_number},
+                            api_request_type=api_request_type,
+                        )
+
+                    if remaining_pages:
+                        # Stats for the parallel fan-out so we can watch whether
+                        # the extra concurrency is what tips installs over
+                        # GitHub's secondary rate limits (the ``rate_limited``
+                        # outcome), and how wide the fan-outs actually get. These
+                        # fire only on multi-page picker opens, and rate_limited
+                        # is rarer still, so pin sample_rate=1.0 (prod lowers the
+                        # global default) to keep the rare event visible.
+                        metrics.distribution(
+                            "integrations.github.parallel_pagination.pages",
+                            len(remaining_pages) + 1,
+                            sample_rate=1.0,
+                        )
+                        try:
+                            with ContextPropagatingThreadPoolExecutor(
+                                thread_name_prefix=__name__,
+                                max_workers=min(PAGINATION_MAX_WORKERS, len(remaining_pages)),
+                            ) as executor:
+                                # ``map`` yields results in input order, so the pages
+                                # are concatenated in order regardless of which request
+                                # finished first. If a page fails, ``map`` cancels the
+                                # pages it has not started yet, so a failed fan-out costs
+                                # at most roughly one in-flight batch of extra requests
+                                # (bounded by max_workers), not the whole page range.
+                                for resp in executor.map(fetch_page, remaining_pages):
+                                    output.extend(page_items(resp))
+                        except (ApiRateLimitedError, ApiForbiddenError) as e:
+                            # GitHub signals a tripped rate limit with either a
+                            # 429 or a 403 whose body names the limit (primary or
+                            # secondary), so attribute both to the rate_limited
+                            # outcome to keep the fan-out's rate-limit exposure
+                            # visible. A plain permission 403 re-raises untagged.
+                            if isinstance(e, ApiRateLimitedError) or _is_rate_limit_forbidden(e):
+                                metrics.incr(
+                                    "integrations.github.parallel_pagination",
+                                    tags={"outcome": "rate_limited"},
+                                    sample_rate=1.0,
+                                )
+                            raise
+                        metrics.incr(
+                            "integrations.github.parallel_pagination",
+                            tags={"outcome": "success"},
+                            sample_rate=1.0,
+                        )
+
+                    if truncated and raise_on_page_limit:
+                        raise ApiPaginationTruncated(
+                            output,
+                            f"pagination stopped at page_number_limit={page_number_limit}",
+                        )
+                    return output
+
+            # Serial walk: the default, and the fallback when ``parallel`` is
+            # requested but Github does not advertise a last page.
+            page_number = 1
+            next_link = get_next_link(first_response)
             while next_link and page_number < page_number_limit:
-                # If a per_page is specified, GitHub preserves the per_page value
-                # in the response headers.
                 resp = self.get(next_link, api_request_type=api_request_type)
-                output.extend(resp) if not response_key else output.extend(resp[response_key])
-
+                output.extend(page_items(resp))
                 next_link = get_next_link(resp)
                 page_number += 1
 
@@ -810,7 +1090,7 @@ class GitHubBaseClient(
 
         NOTE: All search APIs (except code search) share a rate limit of 30 requests/minute
         """
-        return self.get(
+        return self.get_mapping(
             "/search/issues",
             params={"q": query},
             api_request_type=GitHubApiRequestType.SEARCH_ISSUES,
@@ -924,7 +1204,7 @@ class GitHubBaseClient(
         pr_comment: PullRequestComment,
         data: dict[str, Any],
     ) -> Any:
-        return self.update_comment(repo.name, pr.key, pr_comment.external_id, data)
+        return self.update_comment(repo.name, pr.key, str(pr_comment.external_id), data)
 
     def get_comment_reactions(self, repo: str, comment_id: str) -> list[Any]:
         """
@@ -957,17 +1237,26 @@ class GitHubBaseClient(
         """
         return self.get(f"/users/{gh_username}", api_request_type=GitHubApiRequestType.GET_USER)
 
-    def get_labels(self, owner: str, repo: str) -> list[Any]:
+    def get_labels(self, owner: str, repo: str, page_number_limit: int | None = None) -> list[Any]:
         """
         Fetches all labels for a repository.
         https://docs.github.com/en/rest/issues/labels#list-labels-for-a-repository
         """
         return self._get_with_pagination(
             f"/repos/{owner}/{repo}/labels",
+            page_number_limit=page_number_limit,
             api_request_type=GitHubApiRequestType.GET_LABELS,
         )
 
-    def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
+    def get_contents(self, repo: str, path: str, ref: str | None = None) -> Any:
+        """
+        https://docs.github.com/en/rest/repos/contents#get-repository-content
+
+        :param repo: "owner/repo" format
+        """
+        return self.get(f"/repos/{repo}/contents/{path}", params={"ref": ref} if ref else {})
+
+    def check_file(self, repo: Repository, path: str, version: str | None) -> BaseApiResponse:
         return self.head_cached(
             path=f"/repos/{repo.name}/contents/{path}",
             params={"ref": version},
@@ -984,19 +1273,24 @@ class GitHubBaseClient(
         from base64 import b64decode
 
         headers = {"Content-Type": "application/raw; charset=utf-8"} if codeowners else {}
-        contents = self.get(
+        if codeowners:
+            raw_contents = self.get(
+                path=f"/repos/{repo.name}/contents/{path}",
+                params={"ref": ref},
+                raw_response=True,
+                headers=headers,
+                api_request_type=GitHubApiRequestType.GET_FILE,
+            )
+            if not raw_contents.ok:
+                raise ApiError.from_response(raw_contents)
+            return raw_contents.content.decode("utf-8")
+
+        contents = self.get_mapping(
             path=f"/repos/{repo.name}/contents/{path}",
             params={"ref": ref},
-            raw_response=True if codeowners else False,
             headers=headers,
             api_request_type=GitHubApiRequestType.GET_FILE,
         )
-
-        if codeowners:
-            if not contents.ok:
-                raise ApiError.from_response(contents)
-            return contents.content.decode("utf-8")
-
         return b64decode(contents["content"]).decode("utf-8")
 
     def get_blame_for_files(
@@ -1096,6 +1390,82 @@ class GitHubBaseClient(
             },
         )
 
+    def _get_pull_request_status_cache_key(self, pull_request: PullRequestStatusRequest) -> str:
+        cache_key_data: dict[str, str | bool] = {
+            "repo": pull_request.repo,
+            "pull_number": pull_request.pull_number,
+        }
+        if pull_request.include_files:
+            cache_key_data["include_files"] = True
+        cache_data = orjson.dumps(cache_key_data).decode()
+        return self.get_cache_key("/graphql/pull-request-status/v2", "", cache_data)
+
+    def get_pull_request_statuses(
+        self, pull_requests: Sequence[PullRequestStatusRequest]
+    ) -> dict[PullRequestStatusRequest, PullRequestStatusResult]:
+        """Return checks and review state, fetching cache misses in sequential chunks."""
+        results: dict[PullRequestStatusRequest, PullRequestStatusResult] = {}
+        cache_keys: dict[PullRequestStatusRequest, str] = {}
+        uncached_pull_requests: list[PullRequestStatusRequest] = []
+
+        for pull_request in dict.fromkeys(pull_requests):
+            cache_key = self._get_pull_request_status_cache_key(pull_request)
+            cache_keys[pull_request] = cache_key
+            cached_result = self.check_cache(cache_key)
+            if isinstance(cached_result, PullRequestStatusResult):
+                results[pull_request] = cached_result
+            else:
+                uncached_pull_requests.append(pull_request)
+
+        if not uncached_pull_requests:
+            return results
+
+        # GitHub terminates a GraphQL query it can't process in ~10s, so fetch in
+        # bounded chunks (one query each) rather than a single oversized query.
+        #
+        # Chunks run sequentially, not in parallel. Chunk *size* alone keeps each
+        # query under the 10s timeout, so parallel would clear that too -- but the
+        # `files` block makes each query CPU-heavy for GitHub, and running them
+        # concurrently concentrates that CPU into a short real-time window. That
+        # trips GitHub's secondary rate limit (~90s of CPU per 60s of real time),
+        # which 403s the whole installation token -- shared with every other org
+        # using it -- and is worse than a slightly slower serial fetch.
+        chunk_size = max(options.get("github-app.pull-request-status.chunk-size"), 1)
+        for chunk in chunked(uncached_pull_requests, chunk_size):
+            fetched_results = self._fetch_pull_request_status_batch(chunk)
+            for pull_request, result in fetched_results.items():
+                # Short enough that checks still appear to advance while CI runs.
+                self.set_cache(cache_keys[pull_request], result, 60)
+            results.update(fetched_results)
+        return results
+
+    def _fetch_pull_request_status_batch(
+        self, pull_requests: Sequence[PullRequestStatusRequest]
+    ) -> dict[PullRequestStatusRequest, PullRequestStatusResult]:
+        data = create_pull_request_status_query(pull_requests)
+        response = self.post_mapping(
+            path="/graphql",
+            data=data,
+            allow_text=False,
+            api_request_type=GitHubApiRequestType.GET_PULL_REQUEST_STATUS,
+        )
+
+        if not is_graphql_response(response):
+            raise ApiError("Response is not JSON")
+
+        errors = response.get("errors", [])
+        if errors:
+            if any(error.get("type") == "RATE_LIMITED" for error in errors):
+                raise ApiRateLimitedError("GitHub rate limit exceeded")
+            if not response.get("data"):
+                raise ApiError("\n".join(error.get("message", "") for error in errors))
+            logger.info(
+                "github.get_pull_request_statuses.partial_errors",
+                extra={"error_count": len(errors)},
+            )
+
+        return extract_pull_request_statuses_from_response(response, pull_requests)
+
     def create_check_run(self, repo: str, data: dict[str, Any]) -> Any:
         """
         https://docs.github.com/en/rest/checks/runs#create-a-check-run
@@ -1138,10 +1508,73 @@ GITHUB_RATE_LIMIT_WINDOW = 3600
 GITHUB_RATE_LIMIT_CAPACITY = "x-ratelimit-limit"
 GITHUB_RATE_LIMIT_USED = "x-ratelimit-used"
 GITHUB_RATE_LIMIT_RESET = "x-ratelimit-reset"
+GITHUB_RATE_LIMIT_REMAINING = "x-ratelimit-remaining"
+GITHUB_RATE_LIMIT_STATUS_CODES = frozenset((403, 429))
 
 # Requests to this resource do not count against GitHub's primary rate limit, so our
 # internal rate limiter ignores them. https://docs.github.com/en/rest/rate-limit
 GITHUB_RATE_LIMIT_RESOURCE_PATH = "/rate_limit"
+
+# GitHub meters several quota pools independently, each with its own limit and window. Usage
+# against one pool tells us nothing about another, and their limits differ by more than two
+# orders of magnitude (`search` is 30/minute, `core` is at least 5000/hour), so they must be
+# tracked separately.
+# https://docs.github.com/en/rest/rate-limit/rate-limit?apiVersion=2026-03-10#about-rate-limits
+GITHUB_RESOURCE_CORE = "core"
+GITHUB_RESOURCE_SEARCH = "search"
+GITHUB_RESOURCE_CODE_SEARCH = "code_search"
+GITHUB_RESOURCE_GRAPHQL = "graphql"
+
+# Routes authenticated with the app's JWT rather than an installation token are metered against
+# the app, not the installation. Keep them out of the installation's `core` pool.
+GITHUB_RESOURCE_APP = "app"
+
+GITHUB_RESOURCE_WINDOWS = {
+    GITHUB_RESOURCE_CORE: 3600,
+    GITHUB_RESOURCE_GRAPHQL: 3600,
+    GITHUB_RESOURCE_APP: 3600,
+    GITHUB_RESOURCE_SEARCH: 60,
+    GITHUB_RESOURCE_CODE_SEARCH: 60,
+}
+
+
+def resolve_rate_limit_resource(path: str) -> str:
+    """
+    Map an upstream GitHub path to the quota pool GitHub meters it against.
+
+    Anything unrecognized is attributed to `core`, which is where GitHub accounts for the
+    overwhelming majority of REST routes.
+    """
+    path = path.partition("?")[0]
+    if not path.startswith("/"):
+        path = f"/{path}"
+
+    if path == "/graphql":
+        return GITHUB_RESOURCE_GRAPHQL
+    if path == "/search/code":
+        return GITHUB_RESOURCE_CODE_SEARCH
+    if path.startswith("/search/"):
+        return GITHUB_RESOURCE_SEARCH
+    if path.startswith("/app/") or path == "/app":
+        return GITHUB_RESOURCE_APP
+    return GITHUB_RESOURCE_CORE
+
+
+def is_rate_limit_response(response: Response) -> bool:
+    """Return True if GitHub rejected the request because a rate limit was exhausted."""
+    if response.status_code not in GITHUB_RATE_LIMIT_STATUS_CODES:
+        return False
+    if response.status_code == 429:
+        return True
+    return response.headers.get(GITHUB_RATE_LIMIT_REMAINING) == "0"
+
+
+def resolve_upstream_path(request: PreparedRequest) -> str:
+    """Return the final path of the request."""
+    proxy_path = request.headers.get(PROXY_PATH)
+    if proxy_path:
+        return f"/{trim_leading_slashes(proxy_path)}"
+    return request.path_url
 
 
 class GitHubApiClient(GitHubBaseClient):
@@ -1187,10 +1620,11 @@ class GitHubApiClient(GitHubBaseClient):
             rate_limit_provider=RedisRateLimitProvider(),
             rate_limit_window_seconds=GITHUB_RATE_LIMIT_WINDOW,
             referrer_allocation=REFERRER_ALLOCATION,
+            resource_windows=GITHUB_RESOURCE_WINDOWS,
         )
 
     @contextlib.contextmanager
-    def referrer(self, referrer: str):
+    def referrer(self, referrer: str) -> Iterator[None]:
         prev = self.__referrer
         self.__referrer = referrer
         try:
@@ -1201,19 +1635,25 @@ class GitHubApiClient(GitHubBaseClient):
     def _do_send(
         self, session: SafeSession, request: PreparedRequest, session_settings: SessionSettings
     ) -> Response:
+        path = resolve_upstream_path(request)
+
         # The rate-limit resource is not itself rate limited by GitHub, so we skip the internal
         # rate limiter entirely. Counting these requests would both consume quota we don't owe and
         # pollute the recorded capacity with the rate-limit resource's own (unrelated) headers.
-        if request.path_url.partition("?")[0] == GITHUB_RATE_LIMIT_RESOURCE_PATH:
+        if path.partition("?")[0] == GITHUB_RATE_LIMIT_RESOURCE_PATH:
             return super()._do_send(session, request, session_settings)
+
+        # Quota is metered per resource on GitHub's side, so the counter we consult and the
+        # capacity we record must both be scoped to the resource this request belongs to.
+        resource = resolve_rate_limit_resource(path)
 
         is_rate_limited = False
         try:
-            if self.__rate_limiter.is_rate_limited(self.__referrer):
+            if self.__rate_limiter.is_rate_limited(self.__referrer, resource=resource):
                 # For now do nothing. We'll eventually use this once we understand its behavior better.
                 # raise RateLimitExceed
                 is_rate_limited = True
-                metrics.incr("sentry.scm.github.rate_limit_exceeded")
+                metrics.incr("sentry.scm.github.rate_limit_exceeded", tags={"resource": resource})
         except Exception as e:
             # Something went really wrong. Let's not be instrusive. We'll fail silently instead.
             sentry_sdk.capture_exception(e)
@@ -1222,7 +1662,7 @@ class GitHubApiClient(GitHubBaseClient):
 
         try:
             capacity = int(response.headers[GITHUB_RATE_LIMIT_CAPACITY])
-            self.__rate_limiter.set_total_capacity(capacity=capacity)
+            self.__rate_limiter.set_total_capacity(capacity=capacity, resource=resource)
         except KeyError:
             # GitHub didn't return rate-limit headers for some unknown reason.
             metrics.incr("sentry.scm.github.could_not_extract_rate_limit_headers")
@@ -1231,11 +1671,12 @@ class GitHubApiClient(GitHubBaseClient):
             sentry_sdk.capture_exception(e)
 
         # QA metrics.
-        if is_rate_limited and response.status_code != 429:
+        was_rejected = is_rate_limit_response(response)
+        if is_rate_limited and not was_rejected:
             # We thought we exceeded our rate-limit but actually we didn't.
-            metrics.incr("sentry.scm.github.rate_limit.false_positive")
-        elif response.status_code == 429 and not is_rate_limited:
+            metrics.incr("sentry.scm.github.rate_limit.false_positive", tags={"resource": resource})
+        elif was_rejected and not is_rate_limited:
             # We thought we had capacity but actually we didn't.
-            metrics.incr("sentry.scm.github.rate_limit.false_negative")
+            metrics.incr("sentry.scm.github.rate_limit.false_negative", tags={"resource": resource})
 
         return response

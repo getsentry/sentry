@@ -1,14 +1,16 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconDelete} from '@sentry/icons/delete';
+import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Confirm} from 'sentry/components/confirm';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {TextField} from 'sentry/components/forms/fields/textField';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -17,16 +19,16 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {ExternalTeam, Integration} from 'sentry/types/integrations';
 import type {Team} from 'sentry/types/organization';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 const DOCS_LINK =
@@ -147,7 +149,6 @@ function TeamNotificationSettingsPanel({
 }
 
 export default function TeamNotificationSettings() {
-  const api = useApi();
   const params = useParams<{teamId: string}>();
   const organization = useOrganization();
 
@@ -156,18 +157,12 @@ export default function TeamNotificationSettings() {
     isPending: isTeamPending,
     isError: isTeamError,
     refetch: refetchTeam,
-  } = useApiQuery<Team>(
-    [
-      getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/', {
-        path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: params.teamId},
-      }),
-      {
-        query: {expand: ['externalTeams']},
-      },
-    ],
-    {
+  } = useQuery(
+    apiOptions.as<Team>()('/teams/$organizationIdOrSlug/$teamIdOrSlug/', {
+      path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: params.teamId},
+      query: {expand: ['externalTeams']},
       staleTime: 0,
-    }
+    })
   );
 
   const {
@@ -175,46 +170,69 @@ export default function TeamNotificationSettings() {
     isPending: isIntegrationsPending,
     isError: isIntegrationsError,
     refetch: refetchIntegrations,
-  } = useApiQuery<Integration[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {includeConfig: '0'},
-      },
-    ],
-    {
+  } = useQuery(
+    apiOptions.as<Integration[]>()('/organizations/$organizationIdOrSlug/integrations/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {includeConfig: '0'},
       staleTime: 0,
-    }
+    })
   );
 
+  const {mutateAsync: deleteExternalTeam} = useMutation({
+    mutationFn: ({
+      teamIdOrSlug,
+      externalTeamId,
+    }: {
+      externalTeamId: string;
+      teamIdOrSlug: string;
+    }) =>
+      fetchMutation({
+        url: getApiUrl(
+          '/teams/$organizationIdOrSlug/$teamIdOrSlug/external-teams/$externalTeamId/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              teamIdOrSlug,
+              externalTeamId,
+            },
+          }
+        ),
+        method: 'DELETE',
+      }),
+  });
+
   if (isTeamPending || isIntegrationsPending) {
-    return <LoadingIndicator />;
+    return (
+      <Fragment>
+        <BreadcrumbTitle title={t('Notifications')} />
+        <LoadingIndicator />
+      </Fragment>
+    );
   }
 
   if (isTeamError || isIntegrationsError) {
     return (
-      <LoadingError
-        onRetry={() => {
-          refetchTeam();
-          refetchIntegrations();
-        }}
-      />
+      <Fragment>
+        <BreadcrumbTitle title={t('Notifications')} />
+        <LoadingError
+          onRetry={() => {
+            refetchTeam();
+            refetchIntegrations();
+          }}
+        />
+      </Fragment>
     );
   }
 
   const handleDelete = async (externalTeam: ExternalTeam) => {
     try {
-      await api.requestPromise(
-        `/teams/${organization.slug}/${team.slug}/external-teams/${externalTeam.id}/`,
-        {
-          method: 'DELETE',
-        }
-      );
-      addSuccessMessage(t('Deletion successful'));
+      await deleteExternalTeam({
+        teamIdOrSlug: team.slug,
+        externalTeamId: externalTeam.id,
+      });
+      toast.success(t('Deletion successful'));
     } catch {
-      addErrorMessage(t('An error occurred'));
+      toast.error(t('An error occurred'));
     }
 
     refetchTeam();
@@ -223,6 +241,7 @@ export default function TeamNotificationSettings() {
 
   return (
     <Fragment>
+      <BreadcrumbTitle title={t('Notifications')} />
       <SentryDocumentTitle
         title={t('%s Team Notification Settings', `#${params.teamId}`)}
       />

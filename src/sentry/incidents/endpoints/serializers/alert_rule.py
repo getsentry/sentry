@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, TypedDict
 
-from drf_spectacular.utils import extend_schema_serializer
+from sentry.apidocs.omissions import sentry_schema_serializer
 
 if TYPE_CHECKING:
     from sentry.incidents.endpoints.serializers.incident import IncidentSerializerResponse
@@ -30,19 +30,19 @@ class AlertRuleSerializerResponseOptional(TypedDict, total=False):
     extrapolationMode: str | None
 
 
-@extend_schema_serializer(
-    exclude_fields=[
-        "status",
-        "resolution",
-        "thresholdPeriod",
-        "weeklyAvg",
-        "totalThisWeek",
-        "latestIncident",
-        "description",  # TODO: remove this once the feature has been released to add to the public docs, being sure to denote it will only display in Slack notifications
-        "sensitivity",  # For anomaly detection, which is behind a feature flag
-        "seasonality",  # For anomaly detection, which is behind a feature flag
-        "detectionType",  # For anomaly detection, which is behind a feature flag
-    ]
+@sentry_schema_serializer(
+    omit_from_public_schema={
+        "status": "Internal numeric alert-rule status; clients read the rule's state through other fields.",
+        "resolution": "Internal resolution window derived from the rule's time window.",
+        "thresholdPeriod": "Internal consecutive-breach counter used by the alert evaluator.",
+        "weeklyAvg": "Computed rollup used by the alert rule UI.",
+        "totalThisWeek": "Computed rollup used by the alert rule UI.",
+        "latestIncident": "Embedded incident snapshot used by the alert rule UI.",
+        "description": "Internal field distinct from the rule name; not part of the documented shape.",
+        "sensitivity": "Anomaly-detection tuning, meaningful only for dynamic detection rules.",
+        "seasonality": "Anomaly-detection tuning, meaningful only for dynamic detection rules.",
+        "detectionType": "Anomaly-detection tuning, meaningful only for dynamic detection rules.",
+    }
 )
 class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
     """

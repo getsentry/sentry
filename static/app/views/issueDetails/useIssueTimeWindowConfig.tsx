@@ -1,20 +1,26 @@
 import {useMemo, useState} from 'react';
 import moment from 'moment-timezone';
 
+import {useTimezone} from '@sentry/scraps/datetime';
+
 import {usePageFilterDates as useCronsPageFilterDates} from 'sentry/components/checkInTimeline/hooks/useMonitorDates';
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
-import {useTimezone} from 'sentry/components/timezoneProvider';
 import type {Group} from 'sentry/types/group';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useGroupDefaultStatsPeriod} from 'sentry/views/issueDetails/useGroupDefaultStatsPeriod';
+import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
+
+import {useGroupDefaultStatsPeriod} from './useGroupDefaultStatsPeriod';
 
 export function useIssueTimeWindowConfig({
   timelineWidth,
   group,
+  maxBucketInterval,
 }: {
   group: Group;
   timelineWidth: number;
+  maxBucketInterval?: number;
 }) {
   const [now] = useState<Date>(() =>
     moment().startOf('minute').add(1, 'minutes').toDate()
@@ -24,8 +30,11 @@ export function useIssueTimeWindowConfig({
   const defaultStatsPeriod = useGroupDefaultStatsPeriod(group, group.project);
   const timezone = useTimezone();
 
-  const hasSetStatsPeriod =
-    location.query.statsPeriod || location.query.start || location.query.end;
+  const {statsPeriod, start, end} = loadQueryParamsFromLocation(
+    pageFilterParsers,
+    location
+  );
+  const hasSetStatsPeriod = statsPeriod || start || end;
 
   let since: Date;
   let until: Date;
@@ -40,7 +49,8 @@ export function useIssueTimeWindowConfig({
   }
 
   return useMemo(
-    () => getConfigFromTimeRange(since, until, timelineWidth, timezone),
-    [since, until, timelineWidth, timezone]
+    () =>
+      getConfigFromTimeRange(since, until, timelineWidth, timezone, maxBucketInterval),
+    [since, until, timelineWidth, timezone, maxBucketInterval]
   );
 }

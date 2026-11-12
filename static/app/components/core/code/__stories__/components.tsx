@@ -1,14 +1,13 @@
 import {useState} from 'react';
 
-import {CodeBlock} from '@sentry/scraps/code';
-
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
+import {toast} from '@sentry/scraps/toast';
 
 export function OnTabClickExample() {
   const [tab, setTab] = useState('npm');
   function handleTabClick(t: string) {
     setTab(t);
-    addSuccessMessage('Clicked a different tab');
+    toast.success('Clicked a different tab');
   }
 
   return (

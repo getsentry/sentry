@@ -1,3 +1,6 @@
+import {IconAdd} from '@sentry/icons/add';
+import {parseAsString, useQueryStates} from 'nuqs';
+
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
@@ -6,17 +9,16 @@ import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter'
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils/defined';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
 import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
 import {getNoPermissionToCreateMonitorsTooltip} from 'sentry/views/detectors/utils/monitorAccessMessages';
 import {useCanCreateDetector} from 'sentry/views/detectors/utils/useCanCreateDetector';
+
+const searchParsers = {query: parseAsString.withDefault(''), cursor: parseAsString};
 
 interface TableHeaderProps {
   detectorType?: DetectorType;
@@ -32,18 +34,13 @@ export function DetectorListHeader({
   showTimeRangeSelector = false,
 }: TableHeaderProps) {
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
   const {selection} = usePageFilters();
   const canCreateDetector = useCanCreateDetector(null);
-  const query = typeof location.query.query === 'string' ? location.query.query : '';
+  const [{query}, setSearchParams] = useQueryStates(searchParsers);
   const project = selection.projects.find(pid => pid !== ALL_ACCESS_PROJECTS);
 
   const onSearch = (searchQuery: string) => {
-    navigate({
-      pathname: location.pathname,
-      query: {...location.query, query: searchQuery, cursor: undefined},
-    });
+    setSearchParams({query: searchQuery, cursor: null}, {history: 'push'});
   };
 
   // Exclude filter keys when they're set
@@ -77,7 +74,6 @@ export function DetectorListHeader({
             title: canCreateDetector
               ? undefined
               : getNoPermissionToCreateMonitorsTooltip(),
-            isHoverable: true,
           }}
         >
           {t('Create Monitor')}

@@ -5,6 +5,7 @@ Tests the service map building, graph analysis, and task execution
 for the agent service map feature.
 """
 
+from collections.abc import Iterator
 from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest import mock
@@ -12,6 +13,7 @@ from uuid import uuid4
 
 import pytest
 
+from sentry.models.project import Project
 from sentry.search.events.types import SnubaParams
 from sentry.seer.agent.service_map_utils import (
     _build_nodes,
@@ -24,9 +26,10 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
+from sentry.viewer_context import Actor, ActorType, ViewerContext, get_viewer_context
 
 
-def _make_snuba_params(organization, projects):
+def _make_snuba_params(organization: Any, projects: Any) -> SnubaParams:
     end = datetime.now(timezone.utc)
     start = end - timedelta(hours=24)
     return SnubaParams(start=start, end=end, projects=projects, organization=organization)
@@ -137,10 +140,18 @@ class TestBuildServiceMap(TestCase):
 
     @mock.patch("sentry.tasks.seer.context_engine_index._send_to_seer")
     @mock.patch("sentry.tasks.seer.context_engine_index._query_service_dependencies")
-    def test_complete_workflow(self, mock_dependencies, mock_send):
+    def test_complete_workflow(
+        self, mock_dependencies: mock.MagicMock, mock_send: mock.MagicMock
+    ) -> None:
         org = self.create_organization()
         project1 = self.create_project(organization=org)
         project2 = self.create_project(organization=org)
+        observed_contexts: list[ViewerContext | None] = []
+
+        def send_to_seer(*args: object, **kwargs: object) -> None:
+            observed_contexts.append(get_viewer_context())
+
+        mock_send.side_effect = send_to_seer
 
         mock_dependencies.return_value = [
             {
@@ -159,10 +170,16 @@ class TestBuildServiceMap(TestCase):
         snuba_params = mock_dependencies.call_args[0][0]
         assert isinstance(snuba_params, SnubaParams)
         mock_send.assert_called_once()
+        assert observed_contexts == [
+            ViewerContext(actor=Actor(type=ActorType.SYSTEM), organization_id=org.id)
+        ]
+        assert get_viewer_context() is None
 
     @mock.patch("sentry.tasks.seer.context_engine_index._build_nodes")
     @mock.patch("sentry.tasks.seer.context_engine_index._query_service_dependencies")
-    def test_handles_no_nodes(self, mock_dependencies, mock_build_nodes):
+    def test_handles_no_nodes(
+        self, mock_dependencies: mock.MagicMock, mock_build_nodes: mock.MagicMock
+    ) -> None:
         org = self.create_organization()
         self.create_project(organization=org)
 
@@ -176,7 +193,7 @@ class TestBuildServiceMap(TestCase):
         mock_send.assert_not_called()
 
     @mock.patch("sentry.tasks.seer.context_engine_index._query_service_dependencies")
-    def test_handles_exception(self, mock_dependencies):
+    def test_handles_exception(self, mock_dependencies: mock.MagicMock) -> None:
         org = self.create_organization()
 
         mock_dependencies.side_effect = Exception("Test error")
@@ -190,7 +207,7 @@ class TestQueryServiceDependenciesPhase2(TestCase):
     """Unit tests for Phase 2 fallback scan for uncovered projects"""
 
     @mock.patch("sentry.seer.agent.service_map_utils.Spans.run_table_query")
-    def test_phase2_triggered_for_uncovered_projects(self, mock_query):
+    def test_phase2_triggered_for_uncovered_projects(self, mock_query: mock.MagicMock) -> None:
         org = self.create_organization()
         project_covered = self.create_project(organization=org)
         project_uncovered = self.create_project(organization=org)
@@ -206,9 +223,9 @@ class TestQueryServiceDependenciesPhase2(TestCase):
             }
         ]
         # Phase 2 returns empty
-        phase2_data: list[dict] = []
+        phase2_data: list[dict[str, Any]] = []
         # Phase 3 parent resolution returns empty
-        phase3_data: list[dict] = []
+        phase3_data: list[dict[str, Any]] = []
 
         mock_query.side_effect = [
             {"data": phase1_data},
@@ -230,7 +247,9 @@ class TestQueryServiceDependenciesPhase2(TestCase):
         assert "has:parent_span" not in phase2_call_kwargs["query_string"]
 
     @mock.patch("sentry.seer.agent.service_map_utils.Spans.run_table_query")
-    def test_phase2_not_triggered_when_all_projects_covered(self, mock_query):
+    def test_phase2_not_triggered_when_all_projects_covered(
+        self, mock_query: mock.MagicMock
+    ) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
         snuba_params = _make_snuba_params(org, [project])
@@ -245,7 +264,7 @@ class TestQueryServiceDependenciesPhase2(TestCase):
             }
         ]
         # Phase 3 parent resolution returns empty
-        phase3_data: list[dict] = []
+        phase3_data: list[dict[str, Any]] = []
 
         mock_query.side_effect = [
             {"data": phase1_data},
@@ -262,7 +281,7 @@ class TestQueryServiceDependenciesPhase2(TestCase):
         assert "is_transaction" not in phase3_call_kwargs["query_string"]
 
     @mock.patch("sentry.seer.agent.service_map_utils.Spans.run_table_query")
-    def test_phase1_uses_has_parent_span_filter(self, mock_query):
+    def test_phase1_uses_has_parent_span_filter(self, mock_query: mock.MagicMock) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
         snuba_params = _make_snuba_params(org, [project])
@@ -288,15 +307,21 @@ class TestQueryServiceDependenciesIntegration(SnubaTestCase, SpanTestCase):
     """Integration tests for cross-project dependency extraction using real Snuba data"""
 
     @pytest.fixture(autouse=True)
-    def setup_test_data(self):
+    def setup_test_data(self) -> Iterator[None]:
         self.ten_mins_ago = before_now(minutes=10)
         yield
 
-    def _snuba_params(self):
+    def _snuba_params(self) -> SnubaParams:
         projects = list(self.organization.project_set.all())
         return _make_snuba_params(self.organization, projects)
 
-    def _verify_edge(self, edges, source_slug, target_slug, expected_count=None):
+    def _verify_edge(
+        self,
+        edges: Any,
+        source_slug: str,
+        target_slug: str,
+        expected_count: int | None = None,
+    ) -> dict[str, Any]:
         """Verify specific edge exists with expected properties"""
         matching = [
             e
@@ -310,7 +335,9 @@ class TestQueryServiceDependenciesIntegration(SnubaTestCase, SpanTestCase):
             assert matching[0]["count"] == expected_count
         return matching[0]
 
-    def _create_service_topology(self, topology_map, start_ts):
+    def _create_service_topology(
+        self, topology_map: Any, start_ts: Any
+    ) -> tuple[dict[str, Project], list[dict[str, Any]]]:
         """
         Create multi-project topology from map.
 
@@ -791,11 +818,11 @@ class TestClassifyServiceRolesIntegration(SnubaTestCase, SpanTestCase):
     """Integration tests for service role classification with real topologies"""
 
     @pytest.fixture(autouse=True)
-    def setup_test_data(self):
+    def setup_test_data(self) -> Iterator[None]:
         self.ten_mins_ago = before_now(minutes=10)
         yield
 
-    def _snuba_params(self):
+    def _snuba_params(self) -> SnubaParams:
         projects = list(self.organization.project_set.all())
         return _make_snuba_params(self.organization, projects)
 
@@ -1023,7 +1050,7 @@ class TestBuildServiceMapIntegration(SnubaTestCase, SpanTestCase):
     """End-to-end integration tests for the complete service map pipeline"""
 
     @pytest.fixture(autouse=True)
-    def setup_test_data(self):
+    def setup_test_data(self) -> Iterator[None]:
         self.ten_mins_ago = before_now(minutes=10)
         yield
 

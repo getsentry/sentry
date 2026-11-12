@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import itertools
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from typing import cast
 from unittest import mock
 
@@ -110,9 +110,16 @@ def _span(
     )
 
 
-def _normalize_output(output: dict[SegmentKey, FlushedSegment]):
+def _normalize_output(output: dict[SegmentKey, FlushedSegment]) -> None:
     for segment in output.values():
         segment.spans.sort(key=lambda span: span.payload["span_id"])
+
+
+def _delete_span_buffer_keys(client: StrictRedis[bytes] | RedisCluster[bytes]) -> None:
+    # The cluster client has no key prefix, and other xdist workers share the cluster.
+    # FLUSHALL would delete their keys too, so delete only the span buffer keys.
+    for key in client.scan_iter(match="span-buf:*"):
+        client.delete(key)
 
 
 @pytest.fixture(
@@ -123,7 +130,7 @@ def _normalize_output(output: dict[SegmentKey, FlushedSegment]):
         pytest.param(("single", 1), id="single-chunk1"),
     ]
 )
-def buffer(request):
+def buffer(request: pytest.FixtureRequest) -> Iterator[SpansBuffer]:
     redis_type, max_spans_per_evalsha = request.param
     test_options = {
         **DEFAULT_OPTIONS,
@@ -141,9 +148,11 @@ def buffer(request):
             with use_redis_cluster(
                 "span-buffer",
                 with_settings={"SENTRY_SPAN_BUFFER_CLUSTER": "span-buffer"},
+                # The span buffer script makes key names from KEYS[1].
+                prefix_keys=False,
             ):
                 buf = SpansBuffer(assigned_shards=list(range(32)))
-                buf.client.flushall()
+                _delete_span_buffer_keys(buf.client)
                 yield buf
                 # Clean up cached client so it doesn't persist after the
                 # option override is restored.
@@ -154,31 +163,31 @@ def buffer(request):
             yield buf
 
 
-def assert_ttls(client: StrictRedis[bytes] | RedisCluster[bytes]):
+def assert_ttls(client: StrictRedis[bytes] | RedisCluster[bytes]) -> None:
     """
     Check that all keys have a TTL, because if the consumer dies before
     flushing, we should not leak memory.
     """
 
-    for k in client.keys("*"):
+    for k in client.keys("span-buf:*"):
         assert client.ttl(k) > -1, k
 
 
-def assert_clean(client: StrictRedis[bytes] | RedisCluster[bytes]):
+def assert_clean(client: StrictRedis[bytes] | RedisCluster[bytes]) -> None:
     """
     Check that there's no leakage.
 
     Note: CANNOT be done in pytest fixture as that one runs _after_ redis gets
     wiped by the test harness.
     """
-    assert not [x for x in client.keys("*") if b":hrs:" not in x]
+    assert not [x for x in client.keys("span-buf:*") if b":hrs:" not in x]
 
 
 class _SplitBatch:
     pass
 
 
-def process_spans(spans: Sequence[Span | _SplitBatch], buffer: SpansBuffer, now):
+def process_spans(spans: Sequence[Span | _SplitBatch], buffer: SpansBuffer, now: int) -> None:
     """
     Call buffer.process_spans on the list of spans.
 
@@ -204,6 +213,17 @@ def process_spans(spans: Sequence[Span | _SplitBatch], buffer: SpansBuffer, now)
 
     for chunk in span_chunks:
         buffer.process_spans(chunk, now)
+
+
+def _fresh_buffer(buffer: SpansBuffer) -> SpansBuffer:
+    # An earlier permutation can leave state such as `any_shard_at_limit` behind.
+    _delete_span_buffer_keys(buffer.client)
+    return SpansBuffer(assigned_shards=buffer.assigned_shards, slice_id=buffer.slice_id)
+
+
+def _span_order(spans: Sequence[Span | _SplitBatch]) -> str:
+    """Name a permutation by span id initials, with `|` for a batch split, e.g. `d | b a c`."""
+    return " ".join("|" if isinstance(span, _SplitBatch) else span.span_id[0] for span in spans)
 
 
 # --- Unit Tests ---
@@ -517,75 +537,72 @@ def test_update_queue_uses_inserted_subsegment_metadata() -> None:
 # --- Integration / End-to-End Tests ---
 
 
-@pytest.mark.parametrize(
-    "spans",
-    list(
-        itertools.permutations(
-            [
-                Span(
-                    payload=_payload("a" * 16),
-                    trace_id="a" * 32,
-                    span_id="a" * 16,
-                    parent_span_id="b" * 16,
-                    segment_id=None,
-                    project_id=1,
-                ),
-                Span(
-                    payload=_payload("d" * 16),
-                    trace_id="a" * 32,
-                    span_id="d" * 16,
-                    parent_span_id="b" * 16,
-                    segment_id=None,
-                    project_id=1,
-                ),
-                Span(
-                    payload=_payload("c" * 16),
-                    trace_id="a" * 32,
-                    span_id="c" * 16,
-                    parent_span_id="b" * 16,
-                    segment_id=None,
-                    project_id=1,
-                ),
-                Span(
-                    payload=_payload("b" * 16),
-                    trace_id="a" * 32,
-                    span_id="b" * 16,
-                    parent_span_id=None,
-                    segment_id=None,
-                    is_segment_span=True,
-                    project_id=1,
-                ),
-            ]
-        )
-    ),
-)
-def test_basic(buffer: SpansBuffer, spans) -> None:
-    process_spans(spans, buffer, now=0)
+def test_basic(buffer: SpansBuffer, subtests: pytest.Subtests) -> None:
+    for spans in itertools.permutations(
+        [
+            Span(
+                payload=_payload("a" * 16),
+                trace_id="a" * 32,
+                span_id="a" * 16,
+                parent_span_id="b" * 16,
+                segment_id=None,
+                project_id=1,
+            ),
+            Span(
+                payload=_payload("d" * 16),
+                trace_id="a" * 32,
+                span_id="d" * 16,
+                parent_span_id="b" * 16,
+                segment_id=None,
+                project_id=1,
+            ),
+            Span(
+                payload=_payload("c" * 16),
+                trace_id="a" * 32,
+                span_id="c" * 16,
+                parent_span_id="b" * 16,
+                segment_id=None,
+                project_id=1,
+            ),
+            Span(
+                payload=_payload("b" * 16),
+                trace_id="a" * 32,
+                span_id="b" * 16,
+                parent_span_id=None,
+                segment_id=None,
+                is_segment_span=True,
+                project_id=1,
+            ),
+        ]
+    ):
+        with subtests.test(msg=_span_order(spans)):
+            buffer = _fresh_buffer(buffer)
+            process_spans(spans, buffer, now=0)
 
-    assert_ttls(buffer.client)
+            assert_ttls(buffer.client)
 
-    assert buffer.flush_segments(now=5) == {}
-    rv = buffer.flush_segments(now=11)
-    _normalize_output(rv)
-    assert rv == {
-        _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
-            queue_key=mock.ANY,
-            payload_keys=mock.ANY,
-            project_id=1,
-            spans=[
-                _output_segment(b"a" * 16, b"b" * 16, False),
-                _output_segment(b"b" * 16, b"b" * 16, True),
-                _output_segment(b"c" * 16, b"b" * 16, False),
-                _output_segment(b"d" * 16, b"b" * 16, False),
-            ],
-        )
-    }
-    buffer.done_flush_segments(rv)
-    assert buffer.flush_segments(now=30) == {}
+            assert buffer.flush_segments(now=5) == {}
+            rv = buffer.flush_segments(now=11)
+            _normalize_output(rv)
+            assert rv == {
+                _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
+                    queue_key=mock.ANY,
+                    payload_keys=mock.ANY,
+                    project_id=1,
+                    spans=[
+                        _output_segment(b"a" * 16, b"b" * 16, False),
+                        _output_segment(b"b" * 16, b"b" * 16, True),
+                        _output_segment(b"c" * 16, b"b" * 16, False),
+                        _output_segment(b"d" * 16, b"b" * 16, False),
+                    ],
+                )
+            }
+            buffer.done_flush_segments(rv)
+            assert buffer.flush_segments(now=30) == {}
 
-    assert list(buffer.get_memory_info())
+            assert list(buffer.get_memory_info())
 
-    assert_clean(buffer.client)
+            assert_clean(buffer.client)
 
 
 @mock.patch("sentry.spans.buffer_logger.emit_observability_metrics")
@@ -717,238 +734,228 @@ def test_flush_segments_with_null_attributes(buffer: SpansBuffer) -> None:
     assert segment.spans[0].payload["attributes"]["sentry.segment.id"]["value"] == "b" * 16
 
 
-@pytest.mark.parametrize(
-    "spans",
-    list(
-        itertools.permutations(
-            [
-                Span(
-                    payload=_payload("d" * 16),
-                    trace_id="a" * 32,
-                    span_id="d" * 16,
-                    parent_span_id="b" * 16,
-                    segment_id=None,
-                    project_id=1,
-                ),
-                _SplitBatch(),
-                Span(
-                    payload=_payload("b" * 16),
-                    trace_id="a" * 32,
-                    span_id="b" * 16,
-                    parent_span_id="a" * 16,
-                    segment_id=None,
-                    project_id=1,
-                ),
-                Span(
-                    payload=_payload("a" * 16),
-                    trace_id="a" * 32,
-                    span_id="a" * 16,
-                    parent_span_id=None,
-                    is_segment_span=True,
-                    segment_id=None,
-                    project_id=1,
-                ),
-                Span(
-                    payload=_payload("c" * 16),
-                    trace_id="a" * 32,
-                    span_id="c" * 16,
-                    parent_span_id="a" * 16,
-                    segment_id=None,
-                    project_id=1,
-                ),
-            ]
-        )
-    ),
-)
-def test_deep(buffer: SpansBuffer, spans) -> None:
-    process_spans(spans, buffer, now=0)
-
-    assert_ttls(buffer.client)
-
-    rv = buffer.flush_segments(now=10)
-    _normalize_output(rv)
-    assert rv == {
-        _segment_id(1, "a" * 32, "a" * 16): FlushedSegment(
-            queue_key=mock.ANY,
-            payload_keys=mock.ANY,
+def test_deep(buffer: SpansBuffer, subtests: pytest.Subtests) -> None:
+    spans_to_permute: list[Span | _SplitBatch] = [
+        Span(
+            payload=_payload("d" * 16),
+            trace_id="a" * 32,
+            span_id="d" * 16,
+            parent_span_id="b" * 16,
+            segment_id=None,
             project_id=1,
-            spans=[
-                _output_segment(b"a" * 16, b"a" * 16, True),
-                _output_segment(b"b" * 16, b"a" * 16, False),
-                _output_segment(b"c" * 16, b"a" * 16, False),
-                _output_segment(b"d" * 16, b"a" * 16, False),
-            ],
-        )
-    }
-
-    buffer.done_flush_segments(rv)
-
-    rv = buffer.flush_segments(now=60)
-    assert rv == {}
-
-    assert_clean(buffer.client)
-
-
-@pytest.mark.parametrize(
-    "spans",
-    list(
-        itertools.permutations(
-            [
-                Span(
-                    payload=_payload("e" * 16),
-                    trace_id="a" * 32,
-                    span_id="e" * 16,
-                    parent_span_id="d" * 16,
-                    segment_id=None,
-                    project_id=1,
-                ),
-                Span(
-                    payload=_payload("d" * 16),
-                    trace_id="a" * 32,
-                    span_id="d" * 16,
-                    parent_span_id="b" * 16,
-                    segment_id=None,
-                    project_id=1,
-                ),
-                Span(
-                    payload=_payload("b" * 16),
-                    trace_id="a" * 32,
-                    span_id="b" * 16,
-                    parent_span_id="c" * 16,
-                    segment_id=None,
-                    project_id=1,
-                ),
-                Span(
-                    payload=_payload("c" * 16),
-                    trace_id="a" * 32,
-                    span_id="c" * 16,
-                    parent_span_id="a" * 16,
-                    segment_id=None,
-                    project_id=1,
-                ),
-                Span(
-                    payload=_payload("a" * 16),
-                    trace_id="a" * 32,
-                    span_id="a" * 16,
-                    parent_span_id=None,
-                    is_segment_span=True,
-                    segment_id=None,
-                    project_id=1,
-                ),
-            ]
-        )
-    ),
-)
-def test_deep2(buffer: SpansBuffer, spans) -> None:
-    process_spans(spans, buffer, now=0)
-
-    assert_ttls(buffer.client)
-
-    rv = buffer.flush_segments(now=10)
-    _normalize_output(rv)
-    assert rv == {
-        _segment_id(1, "a" * 32, "a" * 16): FlushedSegment(
-            queue_key=mock.ANY,
-            payload_keys=mock.ANY,
+        ),
+        _SplitBatch(),
+        Span(
+            payload=_payload("b" * 16),
+            trace_id="a" * 32,
+            span_id="b" * 16,
+            parent_span_id="a" * 16,
+            segment_id=None,
             project_id=1,
-            spans=[
-                _output_segment(b"a" * 16, b"a" * 16, True),
-                _output_segment(b"b" * 16, b"a" * 16, False),
-                _output_segment(b"c" * 16, b"a" * 16, False),
-                _output_segment(b"d" * 16, b"a" * 16, False),
-                _output_segment(b"e" * 16, b"a" * 16, False),
-            ],
-        )
-    }
+        ),
+        Span(
+            payload=_payload("a" * 16),
+            trace_id="a" * 32,
+            span_id="a" * 16,
+            parent_span_id=None,
+            is_segment_span=True,
+            segment_id=None,
+            project_id=1,
+        ),
+        Span(
+            payload=_payload("c" * 16),
+            trace_id="a" * 32,
+            span_id="c" * 16,
+            parent_span_id="a" * 16,
+            segment_id=None,
+            project_id=1,
+        ),
+    ]
+    for spans in itertools.permutations(spans_to_permute):
+        with subtests.test(msg=_span_order(spans)):
+            buffer = _fresh_buffer(buffer)
+            process_spans(spans, buffer, now=0)
 
-    buffer.done_flush_segments(rv)
+            assert_ttls(buffer.client)
 
-    rv = buffer.flush_segments(now=60)
-    assert rv == {}
-
-    assert_clean(buffer.client)
-
-
-@pytest.mark.parametrize(
-    "spans",
-    list(
-        itertools.permutations(
-            [
-                Span(
-                    payload=_payload("c" * 16),
-                    trace_id="a" * 32,
-                    span_id="c" * 16,
-                    parent_span_id="b" * 16,
-                    segment_id=None,
+            rv = buffer.flush_segments(now=10)
+            _normalize_output(rv)
+            assert rv == {
+                _segment_id(1, "a" * 32, "a" * 16): FlushedSegment(
+                    queue_key=mock.ANY,
+                    payload_keys=mock.ANY,
                     project_id=1,
-                ),
-                Span(
-                    payload=_payload("d" * 16),
-                    trace_id="a" * 32,
-                    span_id="d" * 16,
-                    parent_span_id="b" * 16,
-                    segment_id=None,
+                    spans=[
+                        _output_segment(b"a" * 16, b"a" * 16, True),
+                        _output_segment(b"b" * 16, b"a" * 16, False),
+                        _output_segment(b"c" * 16, b"a" * 16, False),
+                        _output_segment(b"d" * 16, b"a" * 16, False),
+                    ],
+                )
+            }
+
+            buffer.done_flush_segments(rv)
+
+            rv = buffer.flush_segments(now=60)
+            assert rv == {}
+
+            assert_clean(buffer.client)
+
+
+def test_deep2(buffer: SpansBuffer, subtests: pytest.Subtests) -> None:
+    for spans in itertools.permutations(
+        [
+            Span(
+                payload=_payload("e" * 16),
+                trace_id="a" * 32,
+                span_id="e" * 16,
+                parent_span_id="d" * 16,
+                segment_id=None,
+                project_id=1,
+            ),
+            Span(
+                payload=_payload("d" * 16),
+                trace_id="a" * 32,
+                span_id="d" * 16,
+                parent_span_id="b" * 16,
+                segment_id=None,
+                project_id=1,
+            ),
+            Span(
+                payload=_payload("b" * 16),
+                trace_id="a" * 32,
+                span_id="b" * 16,
+                parent_span_id="c" * 16,
+                segment_id=None,
+                project_id=1,
+            ),
+            Span(
+                payload=_payload("c" * 16),
+                trace_id="a" * 32,
+                span_id="c" * 16,
+                parent_span_id="a" * 16,
+                segment_id=None,
+                project_id=1,
+            ),
+            Span(
+                payload=_payload("a" * 16),
+                trace_id="a" * 32,
+                span_id="a" * 16,
+                parent_span_id=None,
+                is_segment_span=True,
+                segment_id=None,
+                project_id=1,
+            ),
+        ]
+    ):
+        with subtests.test(msg=_span_order(spans)):
+            buffer = _fresh_buffer(buffer)
+            process_spans(spans, buffer, now=0)
+
+            assert_ttls(buffer.client)
+
+            rv = buffer.flush_segments(now=10)
+            _normalize_output(rv)
+            assert rv == {
+                _segment_id(1, "a" * 32, "a" * 16): FlushedSegment(
+                    queue_key=mock.ANY,
+                    payload_keys=mock.ANY,
                     project_id=1,
-                ),
-                Span(
-                    payload=_payload("e" * 16),
-                    trace_id="a" * 32,
-                    span_id="e" * 16,
-                    parent_span_id="b" * 16,
-                    segment_id=None,
-                    project_id=1,
-                ),
-                Span(
-                    payload=_payload("b" * 16),
-                    trace_id="a" * 32,
-                    span_id="b" * 16,
-                    parent_span_id=None,
-                    is_segment_span=True,
-                    segment_id=None,
+                    spans=[
+                        _output_segment(b"a" * 16, b"a" * 16, True),
+                        _output_segment(b"b" * 16, b"a" * 16, False),
+                        _output_segment(b"c" * 16, b"a" * 16, False),
+                        _output_segment(b"d" * 16, b"a" * 16, False),
+                        _output_segment(b"e" * 16, b"a" * 16, False),
+                    ],
+                )
+            }
+
+            buffer.done_flush_segments(rv)
+
+            rv = buffer.flush_segments(now=60)
+            assert rv == {}
+
+            assert_clean(buffer.client)
+
+
+def test_parent_in_other_project(buffer: SpansBuffer, subtests: pytest.Subtests) -> None:
+    for spans in itertools.permutations(
+        [
+            Span(
+                payload=_payload("c" * 16),
+                trace_id="a" * 32,
+                span_id="c" * 16,
+                parent_span_id="b" * 16,
+                segment_id=None,
+                project_id=1,
+            ),
+            Span(
+                payload=_payload("d" * 16),
+                trace_id="a" * 32,
+                span_id="d" * 16,
+                parent_span_id="b" * 16,
+                segment_id=None,
+                project_id=1,
+            ),
+            Span(
+                payload=_payload("e" * 16),
+                trace_id="a" * 32,
+                span_id="e" * 16,
+                parent_span_id="b" * 16,
+                segment_id=None,
+                project_id=1,
+            ),
+            Span(
+                payload=_payload("b" * 16),
+                trace_id="a" * 32,
+                span_id="b" * 16,
+                parent_span_id=None,
+                is_segment_span=True,
+                segment_id=None,
+                project_id=2,
+            ),
+        ]
+    ):
+        with subtests.test(msg=_span_order(spans)):
+            buffer = _fresh_buffer(buffer)
+            process_spans(spans, buffer, now=0)
+
+            assert_ttls(buffer.client)
+
+            assert buffer.flush_segments(now=5) == {}
+            rv = buffer.flush_segments(now=11)
+            assert rv == {
+                _segment_id(2, "a" * 32, "b" * 16): FlushedSegment(
+                    queue_key=mock.ANY,
+                    payload_keys=mock.ANY,
                     project_id=2,
-                ),
-            ]
-        )
-    ),
-)
-def test_parent_in_other_project(buffer: SpansBuffer, spans) -> None:
-    process_spans(spans, buffer, now=0)
+                    spans=[_output_segment(b"b" * 16, b"b" * 16, True)],
+                )
+            }
+            buffer.done_flush_segments(rv)
 
-    assert_ttls(buffer.client)
+            # TODO: flush faster, since we already saw parent in other project
+            assert buffer.flush_segments(now=30) == {}
+            rv = buffer.flush_segments(now=60)
+            _normalize_output(rv)
+            assert rv == {
+                _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
+                    queue_key=mock.ANY,
+                    payload_keys=mock.ANY,
+                    project_id=1,
+                    spans=[
+                        _output_segment(b"c" * 16, b"b" * 16, False),
+                        _output_segment(b"d" * 16, b"b" * 16, False),
+                        _output_segment(b"e" * 16, b"b" * 16, False),
+                    ],
+                )
+            }
+            buffer.done_flush_segments(rv)
 
-    assert buffer.flush_segments(now=5) == {}
-    rv = buffer.flush_segments(now=11)
-    assert rv == {
-        _segment_id(2, "a" * 32, "b" * 16): FlushedSegment(
-            queue_key=mock.ANY,
-            payload_keys=mock.ANY,
-            project_id=2,
-            spans=[_output_segment(b"b" * 16, b"b" * 16, True)],
-        )
-    }
-    buffer.done_flush_segments(rv)
+            assert buffer.flush_segments(now=90) == {}
 
-    # TODO: flush faster, since we already saw parent in other project
-    assert buffer.flush_segments(now=30) == {}
-    rv = buffer.flush_segments(now=60)
-    _normalize_output(rv)
-    assert rv == {
-        _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
-            queue_key=mock.ANY,
-            payload_keys=mock.ANY,
-            project_id=1,
-            spans=[
-                _output_segment(b"c" * 16, b"b" * 16, False),
-                _output_segment(b"d" * 16, b"b" * 16, False),
-                _output_segment(b"e" * 16, b"b" * 16, False),
-            ],
-        )
-    }
-    buffer.done_flush_segments(rv)
-
-    assert buffer.flush_segments(now=90) == {}
-
-    assert_clean(buffer.client)
+            assert_clean(buffer.client)
 
 
 @pytest.mark.parametrize(
@@ -992,7 +999,9 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans) -> None:
         ]
     ),
 )
-def test_parent_in_other_project_and_nested_is_segment_span(buffer: SpansBuffer, spans) -> None:
+def test_parent_in_other_project_and_nested_is_segment_span(
+    buffer: SpansBuffer, spans: list[Span]
+) -> None:
     process_spans(spans, buffer, now=0)
 
     assert_ttls(buffer.client)
@@ -1078,12 +1087,12 @@ def test_flush_rebalance(buffer: SpansBuffer) -> None:
 
 
 @pytest.mark.parametrize("compression_level", [-1, 0])
-def test_compression_functionality(compression_level) -> None:
+def test_compression_functionality(compression_level: int) -> None:
     """Test that compression is working correctly at various compression levels."""
     with override_options({**DEFAULT_OPTIONS, "spans.buffer.compression.level": compression_level}):
         buffer = SpansBuffer(assigned_shards=list(range(32)))
 
-        def make_payload(span_id: str):
+        def make_payload(span_id: str) -> bytes:
             return orjson.dumps(
                 {
                     "span_id": span_id,
@@ -1150,7 +1159,9 @@ def test_compression_functionality(compression_level) -> None:
 
 
 @mock.patch("sentry.spans.buffer.Project")
-def test_max_segment_bytes_detaches_over_limit(mock_project_model, buffer: SpansBuffer) -> None:
+def test_max_segment_bytes_detaches_over_limit(
+    mock_project_model: mock.MagicMock, buffer: SpansBuffer
+) -> None:
     """When a segment's cumulative ingested bytes exceed max-segment-bytes, subsequent
     subsegments are written to a detached (salted) key so that overflow spans are not lost."""
     mock_project = mock.Mock()
@@ -1216,7 +1227,7 @@ def test_max_segment_bytes_detaches_over_limit(mock_project_model, buffer: Spans
 
 @mock.patch("sentry.spans.buffer.Project")
 def test_max_segment_bytes_under_limit_merges_normally(
-    mock_project_model, buffer: SpansBuffer
+    mock_project_model: mock.MagicMock, buffer: SpansBuffer
 ) -> None:
     """When a segment is within max-segment-bytes, subsegments merge normally."""
     mock_project = mock.Mock()
@@ -1264,7 +1275,7 @@ def test_max_segment_bytes_under_limit_merges_normally(
 
 
 @mock.patch("sentry.spans.buffer.Project")
-def test_flush_oversized_segments(mock_project_model, buffer: SpansBuffer) -> None:
+def test_flush_oversized_segments(mock_project_model: mock.MagicMock, buffer: SpansBuffer) -> None:
     """When cumulative bytes exceed max-segment-bytes, spans split across
     segments but none are dropped."""
     mock_project = mock.Mock()
@@ -1875,7 +1886,9 @@ def test_flush_lock_mixed_contention(
 
 
 @mock.patch("sentry.spans.buffer.Project")
-def test_flush_lock_detaches_subsegment(mock_project_model, buffer: SpansBuffer) -> None:
+def test_flush_lock_detaches_subsegment(
+    mock_project_model: mock.MagicMock, buffer: SpansBuffer
+) -> None:
     """
     Tests that a span that arrives while a segment is being flushed detaches
     to a new segment rather than merge into the locked segment.
@@ -1927,7 +1940,7 @@ def test_flush_lock_detaches_subsegment(mock_project_model, buffer: SpansBuffer)
 
 @mock.patch("sentry.spans.buffer.Project")
 def test_no_duplicate_flush_after_lock_expiry_and_new_spans(
-    mock_project_model, buffer: SpansBuffer
+    mock_project_model: mock.MagicMock, buffer: SpansBuffer
 ) -> None:
     """
     Regression test for the double-flush bug caused by interaction between
@@ -2175,7 +2188,7 @@ def _dspan(
         pytest.param("single", id="single"),
     ]
 )
-def distributed_buffer(request):
+def distributed_buffer(request: pytest.FixtureRequest) -> Iterator[SpansBuffer]:
     redis_type = request.param
     with override_options(DEFAULT_OPTIONS):
         if redis_type == "cluster":
@@ -2185,9 +2198,11 @@ def distributed_buffer(request):
             with use_redis_cluster(
                 "span-buffer",
                 with_settings={"SENTRY_SPAN_BUFFER_CLUSTER": "span-buffer"},
+                # The span buffer script makes key names from KEYS[1].
+                prefix_keys=False,
             ):
                 buf = SpansBuffer(assigned_shards=list(range(32)))
-                buf.client.flushall()
+                _delete_span_buffer_keys(buf.client)
                 yield buf
                 redis_utils.redis_clusters._clusters_bytes.pop("span-buffer", None)
         else:
@@ -2278,7 +2293,7 @@ def test_distributed_payload_keys_populated(distributed_buffer: SpansBuffer) -> 
     assert_clean(buf.client)
 
 
-def _get_schema_examples():
+def _get_schema_examples() -> Sequence[object]:
     """Load all ingest-spans schema examples for parametrization."""
     examples = []
     for ex in sentry_kafka_schemas.iter_examples("ingest-spans"):
@@ -2287,7 +2302,7 @@ def _get_schema_examples():
 
 
 @pytest.mark.parametrize("example", _get_schema_examples())
-def test_schema_examples(buffer: SpansBuffer, example: dict) -> None:
+def test_schema_examples(buffer: SpansBuffer, example: dict[str, object]) -> None:
     """
     Feed official ingest-spans schema examples through the buffer pipeline
     to verify they are handled without errors.
@@ -2333,7 +2348,9 @@ def test_schema_examples(buffer: SpansBuffer, example: dict) -> None:
     # that's what it is.
     get_topic_codec(Topic.INGEST_SPANS).validate(cast(SpanEvent, output_span.payload))
 
-    # Validate that the assembled segment conforms to the buffered-segments schema
+    # Validate that the assembled segment conforms to the buffered-segments
+    # schema. Nothing produces to or consumes that topic anymore, but the schema
+    # still describes the payload the flusher hands to process_segment_task.
     buffered_segments_codec = get_topic_codec(Topic.BUFFERED_SEGMENTS)
     buffered_segments_codec.validate({"spans": [span.payload for span in segment.spans]})
 

@@ -1,16 +1,17 @@
 import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
-import {IconChevron} from 'sentry/icons/iconChevron';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {t} from 'sentry/locale';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 
 interface Props {
   children: ReactNode;
   sectionKey: string;
+  actions?: ReactNode;
   collapsible?: boolean;
   icon?: ReactNode;
   title?: ReactNode;
@@ -19,6 +20,7 @@ interface Props {
 export function FeedbackItemSection({
   children,
   sectionKey,
+  actions,
   collapsible,
   icon,
   title,
@@ -39,9 +41,14 @@ export function FeedbackItemSection({
             {icon}
             {title}
           </Flex>
-          {collapsible ? (
-            <IconChevron direction={isCollapsed ? 'down' : 'up'} size="xs" />
-          ) : null}
+          <Flex align="center" gap="sm">
+            {actions ? (
+              <Flex onClick={event => event.stopPropagation()}>{actions}</Flex>
+            ) : null}
+            {collapsible ? (
+              <IconChevron direction={isCollapsed ? 'down' : 'up'} size="xs" />
+            ) : null}
+          </Flex>
         </SectionTitle>
       ) : null}
       {isCollapsed ? null : children}

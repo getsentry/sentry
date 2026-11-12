@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Iterable, MutableMapping
 
+from django.db.models import QuerySet
+
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -16,12 +18,11 @@ from sentry.organizations.services.organization import (
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
     RpcOrganizationMemberSummary,
-    RpcOrganizationMemberTeam,
     RpcOrganizationSummary,
     RpcTeam,
     RpcTeamMember,
 )
-from sentry.projects.services.project.serial import serialize_project
+from sentry.projects.services.project.serial import serialize_projects
 
 
 def escape_flag_name(flag_name: str) -> str:
@@ -102,6 +103,14 @@ def serialize_rpc_team(team: Team) -> RpcTeam:
     )
 
 
+def serialize_rpc_teams(teams: QuerySet[Team]) -> list[RpcTeam]:
+    # These RPC fields have no Team columns; preserve their default None values.
+    team_fields = [
+        field for field in RpcTeam.get_field_names() if field not in {"actor_id", "org_role"}
+    ]
+    return [RpcTeam(**team) for team in teams.values(*team_fields)]
+
+
 def _serialize_team_member(
     team_member: OrganizationMemberTeam, project_ids: Iterable[int]
 ) -> RpcTeamMember:
@@ -144,23 +153,8 @@ def serialize_rpc_organization(
     )
 
     if include_projects:
-        projects = Project.objects.filter(organization=org)
-        rpc_org.projects.extend(serialize_project(project) for project in projects)
+        rpc_org.projects = serialize_projects(Project.objects.filter(organization=org))
     if include_teams:
-        teams = Team.objects.filter(organization=org)
-        rpc_org.teams.extend(serialize_rpc_team(team) for team in teams)
+        rpc_org.teams = serialize_rpc_teams(Team.objects.filter(organization=org))
 
     return rpc_org
-
-
-def serialize_rpc_organization_member_team(
-    omt: OrganizationMemberTeam,
-) -> RpcOrganizationMemberTeam:
-    return RpcOrganizationMemberTeam(
-        id=omt.id,
-        team_id=omt.team_id,
-        organizationmember_id=omt.organizationmember_id,
-        organization_id=omt.organizationmember.organization_id,
-        is_active=omt.is_active,
-        role=omt.role,
-    )

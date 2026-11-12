@@ -1,28 +1,27 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery, useQueryClient, useMutation} from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
+import {Grid} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {PanelTable} from 'sentry/components/panels/panelTable';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {BuiltinSymbolSource, CustomRepo, DebugFile} from 'sentry/types/debugFiles';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
@@ -36,13 +35,16 @@ export default function ProjectDebugSymbols() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
   const location = useLocation();
-  const navigate = useNavigate();
   const api = useApi();
   const queryClient = useQueryClient();
   const [showDetails, setShowDetails] = useState(false);
 
-  const query = location.query.query as string | undefined;
-  const cursor = location.query.cursor as string | undefined;
+  const [queryParams, setQueryParams] = useQueryStates({
+    query: parseAsString,
+    cursor: parseAsString,
+  });
+  const query = queryParams.query ?? undefined;
+  const cursor = queryParams.cursor ?? undefined;
 
   const debugFilesApiOptions = apiOptions.as<DebugFile[]>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/',
@@ -87,28 +89,30 @@ export default function ProjectDebugSymbols() {
 
   const handleSearch = useCallback(
     (value: string) => {
-      navigate({
-        ...location,
-        query: {...location.query, cursor: undefined, query: value ? value : undefined},
-      });
+      setQueryParams({cursor: null, query: value || null}, {history: 'push'});
     },
-    [navigate, location]
+    [setQueryParams]
   );
 
   const {mutate: handleDeleteDebugFile} = useMutation<unknown, RequestError, string>({
     mutationFn: (id: string) => {
       return api.requestPromise(
-        `/projects/${organization.slug}/${project.slug}/files/dsyms/?id=${id}`,
+        `${getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/', {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: project.slug,
+          },
+        })}?id=${id}`,
         {
           method: 'DELETE',
         }
       );
     },
     onMutate: () => {
-      addLoadingMessage('Deleting debug file');
+      toast.loading('Deleting debug file');
     },
     onSuccess: () => {
-      addSuccessMessage('Successfully deleted debug file');
+      toast.success('Successfully deleted debug file');
 
       // invalidate debug files query
       queryClient.invalidateQueries({
@@ -121,7 +125,7 @@ export default function ProjectDebugSymbols() {
       });
     },
     onError: () => {
-      addErrorMessage('Failed to delete debug file');
+      toast.error('Failed to delete debug file');
     },
   });
 
@@ -147,7 +151,6 @@ export default function ProjectDebugSymbols() {
         />
       ) : (
         <Sources
-          api={api}
           location={location}
           project={project}
           organization={organization}
@@ -170,14 +173,25 @@ export default function ProjectDebugSymbols() {
         />
       ) : (
         <Fragment>
-          <Wrapper>
+          <Grid
+            columns={{zero: '1fr', xl: 'auto 1fr'}}
+            gap={{zero: 'md', xl: '3xl'}}
+            align="center"
+            marginTop="3xl"
+            marginBottom="md"
+          >
             <TextBlock noMargin>{t('Uploaded debug information files')}</TextBlock>
-            <Filters>
+            <Grid
+              columns={{zero: 'min-content 1fr', xl: 'min-content minmax(200px, 400px)'}}
+              align="center"
+              justify="end"
+              gap="xl"
+            >
               <Label>
                 <Checkbox
                   checked={showDetails}
                   onChange={e => {
-                    setShowDetails((e.target as HTMLInputElement).checked);
+                    setShowDetails(e.target.checked);
                   }}
                 />
                 {t('show details')}
@@ -188,23 +202,28 @@ export default function ProjectDebugSymbols() {
                 onSearch={handleSearch}
                 query={query}
               />
-            </Filters>
-          </Wrapper>
+            </Grid>
+          </Grid>
 
-          <StyledPanelTable
-            headers={[
-              t('Debug ID'),
-              t('Information'),
-              <Actions key="actions">{t('Actions')}</Actions>,
-            ]}
-            emptyMessage={
-              query
-                ? t('There are no debug symbols that match your search.')
-                : t('There are no debug symbols for this project.')
+          <StyledSimpleTable
+            header={
+              <SimpleTable.HeaderRow>
+                <SimpleTable.HeaderCell>{t('Debug ID')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>{t('Information')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>
+                  <Actions>{t('Actions')}</Actions>
+                </SimpleTable.HeaderCell>
+              </SimpleTable.HeaderRow>
             }
-            isEmpty={debugFiles?.length === 0}
-            isLoading={isLoadingDebugFiles}
           >
+            {isLoadingDebugFiles && <SimpleTable.Loading />}
+            {!isLoadingDebugFiles && debugFiles?.length === 0 && (
+              <SimpleTable.Empty>
+                {query
+                  ? t('There are no debug symbols that match your search.')
+                  : t('There are no debug symbols for this project.')}
+              </SimpleTable.Empty>
+            )}
             {debugFiles?.length
               ? debugFiles.map(debugFile => {
                   const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${project.slug}/files/dsyms/?id=${debugFile.id}`;
@@ -222,43 +241,20 @@ export default function ProjectDebugSymbols() {
                   );
                 })
               : null}
-          </StyledPanelTable>
-          <Pagination pageLinks={debugFilesResponse?.headers.Link} />
+          </StyledSimpleTable>
+          <Pagination {...getPaginationProps(debugFilesResponse?.headers.Link)} />
         </Fragment>
       )}
     </SentryDocumentTitle>
   );
 }
 
-const StyledPanelTable = styled(PanelTable)`
+const StyledSimpleTable = styled(SimpleTable)`
   grid-template-columns: 37% 1fr auto;
 `;
 
 const Actions = styled('div')`
   text-align: right;
-`;
-
-const Wrapper = styled('div')`
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: ${p => p.theme.space['3xl']};
-  align-items: center;
-  margin-top: ${p => p.theme.space['3xl']};
-  margin-bottom: ${p => p.theme.space.md};
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: block;
-  }
-`;
-
-const Filters = styled('div')`
-  display: grid;
-  grid-template-columns: min-content minmax(200px, 400px);
-  align-items: center;
-  justify-content: flex-end;
-  gap: ${p => p.theme.space.xl};
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: min-content 1fr;
-  }
 `;
 
 const Label = styled('label')`

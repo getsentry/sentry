@@ -2,9 +2,10 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
@@ -43,24 +44,26 @@ export function RelocationPauseModal({
     mutationFn: (data: {atStep?: string}) =>
       fetchMutation<Relocation>({
         method: 'PUT',
-        url: `/relocations/${relocation.uuid}/pause/`,
+        url: getApiUrl('/relocations/$relocationUuid/pause/', {
+          path: {relocationUuid: relocation.uuid},
+        }),
         data,
         options: {host: relocation.region.url},
       }),
     onSuccess: rawRelocation => {
-      addSuccessMessage('An autopause has been scheduled for this relocation.');
+      toast.success('An autopause has been scheduled for this relocation.');
       onSuccess?.(rawRelocation);
       closeModal();
     },
     onError: (error: unknown) => {
       const fallback = 'Failed to schedule pause.';
       if (!(error instanceof RequestError)) {
-        addErrorMessage(fallback);
+        toast.error(fallback);
         return;
       }
       const detail = error.responseJSON?.detail;
       const message = typeof detail === 'string' ? detail : detail?.message;
-      addErrorMessage(message ?? fallback);
+      toast.error(message ?? fallback);
     },
   });
 

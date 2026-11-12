@@ -1,8 +1,8 @@
-import sentry_sdk
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -12,28 +12,14 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.trace_examples import TraceExamples
-from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.parameters import GlobalParams, TraceParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.search.events.types import SnubaParams
-from sentry.snuba.trace import (
-    SerializedEvent,
-    SerializedIssue,
-    SerializedSpan,
-    SerializedUptimeCheck,
-    query_trace_data,
-)
+from sentry.snuba.trace import SerializedTraceItem, query_trace_data
 from sentry.utils.validators import is_event_id
-
-TRACE_ID_PATH_PARAM = OpenApiParameter(
-    name="trace_id",
-    location="path",
-    required=True,
-    type=str,
-    description="The ID of the trace, a 32-character hexadecimal string.",
-)
 
 REFERRER_QUERY_PARAM = OpenApiParameter(
     name="referrer",
@@ -102,7 +88,7 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
             include_all_accessible=True,
         )
 
-    @sentry_sdk.tracing.trace
+    @traces.trace
     def query_trace_data(
         self,
         snuba_params: SnubaParams,
@@ -113,7 +99,7 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
         include_uptime: bool = False,
         *,
         organization: Organization,
-    ) -> list[SerializedEvent]:
+    ) -> list[SerializedTraceItem]:
         return query_trace_data(
             snuba_params,
             trace_id,
@@ -129,11 +115,12 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
         summary="Retrieve a Trace",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
-            TRACE_ID_PATH_PARAM,
+            TraceParams.TRACE_ID,
             GlobalParams.STATS_PERIOD,
             GlobalParams.START,
             GlobalParams.END,
             REFERRER_QUERY_PARAM,
+            TraceParams.TIMESTAMP,
             ERROR_ID_QUERY_PARAM,
             ADDITIONAL_ATTRIBUTES_PARAM,
             INCLUDE_UPTIME_PARAM,
@@ -141,7 +128,7 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
         responses={
             200: inline_sentry_response_serializer(
                 "OrganizationTraceResponse",
-                list[SerializedSpan | SerializedIssue | SerializedUptimeCheck],
+                list[SerializedTraceItem],
             ),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
@@ -151,7 +138,7 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
     )
     def get(
         self, request: Request, organization: Organization, trace_id: str
-    ) -> Response[list[SerializedSpan | SerializedIssue | SerializedUptimeCheck]] | Response[None]:
+    ) -> Response[list[SerializedTraceItem]] | Response[None]:
         """
         Retrieve the spans, errors, and (optionally) uptime checks that make up a single trace.
 
@@ -176,7 +163,7 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
         if error_id is not None and not is_event_id(error_id):
             raise ParseError(f"eventId: {error_id} needs to be a valid uuid")
 
-        def data_fn(offset: int, limit: int) -> list[SerializedEvent]:
+        def data_fn(offset: int, limit: int) -> list[SerializedTraceItem]:
             """offset and limit don't mean anything on this endpoint currently"""
             with handle_query_errors():
                 update_snuba_params_with_timestamp(request, snuba_params)

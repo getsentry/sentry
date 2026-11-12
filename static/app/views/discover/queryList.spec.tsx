@@ -12,7 +12,8 @@ import {
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
-import QueryList from 'sentry/views/discover/queryList';
+
+import {QueryList} from './queryList';
 
 jest.mock('sentry/actionCreators/modal');
 
@@ -147,10 +148,10 @@ describe('Discover > QueryList', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getAllByTestId(/card-.*/)).toHaveLength(5);
+      expect(screen.getAllByTestId(/card-.*/)).toHaveLength(3);
     });
 
-    expect(eventsStatsMock).toHaveBeenCalledWith(
+    expect(eventsStatsMock).not.toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
         query: expect.objectContaining({
@@ -180,7 +181,7 @@ describe('Discover > QueryList', () => {
 
     await userEvent.click(screen.getAllByTestId(/card-*/).at(0)!);
     expect(router.location.pathname).toBe(
-      '/organizations/org-slug/explore/discover/results/'
+      '/organizations/org-slug/explore/errors/results/'
     );
     expect(router.location.query).toEqual(
       expect.objectContaining({queryDataset: 'error-events'})
@@ -296,7 +297,7 @@ describe('Discover > QueryList', () => {
     await userEvent.click(screen.getAllByTestId(/card-*/).at(0)!);
     expect(router.location).toEqual(
       expect.objectContaining({
-        pathname: '/organizations/org-slug/explore/discover/results/',
+        pathname: '/organizations/org-slug/explore/errors/results/',
         query: {id: '1', statsPeriod: '14d'},
       })
     );
@@ -331,15 +332,11 @@ describe('Discover > QueryList', () => {
     expect(router.location.query.cursor).toBeUndefined();
   });
 
-  it('renders Add to Dashboard in context menu', async () => {
-    const featuredOrganization = OrganizationFixture({
-      features: ['dashboards-edit'],
-    });
-
+  it('renders saved query actions in context menu', async () => {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        organization={featuredOrganization}
+        organization={organization}
         savedQueries={savedQueries.slice(1)}
         pageLinks=""
         renderPrebuilt={false}
@@ -365,40 +362,7 @@ describe('Discover > QueryList', () => {
     expect(screen.getByRole('menuitemradio', {name: 'Delete Query'})).toBeInTheDocument();
   });
 
-  it('only renders Delete Query and Duplicate Query in context menu', async () => {
-    render(
-      <QueryList
-        savedQuerySearchQuery=""
-        organization={organization}
-        savedQueries={savedQueries.slice(1)}
-        pageLinks=""
-        renderPrebuilt={false}
-        location={location}
-        refetchSavedQueries={refetchSavedQueries}
-      />
-    );
-
-    const card = screen.getAllByTestId(/card-*/).at(0)!;
-    const withinCard = within(card);
-
-    await userEvent.click(withinCard.getByTestId('menu-trigger'));
-
-    expect(
-      screen.queryByRole('menuitemradio', {name: 'Add to Dashboard'})
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('menuitemradio', {name: 'Set as Default'})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('menuitemradio', {name: 'Duplicate Query'})
-    ).toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', {name: 'Delete Query'})).toBeInTheDocument();
-  });
-
   it('passes yAxis from the savedQuery to MiniGraph', async () => {
-    const featuredOrganization = OrganizationFixture({
-      features: ['dashboards-edit'],
-    });
     const yAxis = ['count()', 'failure_count()'];
     const savedQueryWithMultiYAxis = {
       ...savedQueries.slice(1)[0]!,
@@ -408,7 +372,7 @@ describe('Discover > QueryList', () => {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        organization={featuredOrganization}
+        organization={OrganizationFixture()}
         savedQueries={[savedQueryWithMultiYAxis]}
         pageLinks=""
         renderPrebuilt={false}
@@ -453,14 +417,14 @@ describe('Discover > QueryList', () => {
   });
 
   it('disabled duplicate for transaction queries with deprecation flag', async () => {
-    const featuredOrganization = OrganizationFixture({
-      features: ['dashboards-edit', 'discover-saved-queries-deprecation'],
+    const organizationWithDeprecation = OrganizationFixture({
+      features: ['discover-saved-queries-deprecation'],
     });
 
     render(
       <QueryList
         savedQuerySearchQuery=""
-        organization={featuredOrganization}
+        organization={organizationWithDeprecation}
         savedQueries={[
           DiscoverSavedQueryFixture({
             display: DisplayModes.DEFAULT,
@@ -489,14 +453,14 @@ describe('Discover > QueryList', () => {
   });
 
   it('does not disable duplicate for error queries with deprecation flag', async () => {
-    const featuredOrganization = OrganizationFixture({
-      features: ['dashboards-edit', 'discover-saved-queries-deprecation'],
+    const organizationWithDeprecation = OrganizationFixture({
+      features: ['discover-saved-queries-deprecation'],
     });
 
     render(
       <QueryList
         savedQuerySearchQuery=""
-        organization={featuredOrganization}
+        organization={organizationWithDeprecation}
         savedQueries={[
           DiscoverSavedQueryFixture({
             display: DisplayModes.DEFAULT,
@@ -526,13 +490,10 @@ describe('Discover > QueryList', () => {
 
   describe('Add to Dashboard modal', () => {
     it('opens a modal with the correct params for Top 5 chart', async () => {
-      const featuredOrganization = OrganizationFixture({
-        features: ['dashboards-edit'],
-      });
       render(
         <QueryList
           savedQuerySearchQuery=""
-          organization={featuredOrganization}
+          organization={OrganizationFixture()}
           renderPrebuilt={false}
           savedQueries={[
             DiscoverSavedQueryFixture({
@@ -591,14 +552,11 @@ describe('Discover > QueryList', () => {
     });
 
     it('opens a modal with the correct params for other chart', async () => {
-      const featuredOrganization = OrganizationFixture({
-        features: ['dashboards-edit'],
-      });
       render(
         <QueryList
           savedQuerySearchQuery=""
           renderPrebuilt={false}
-          organization={featuredOrganization}
+          organization={OrganizationFixture()}
           savedQueries={[
             DiscoverSavedQueryFixture({
               display: DisplayModes.DEFAULT,
@@ -657,13 +615,13 @@ describe('Discover > QueryList', () => {
     });
 
     it('disables Add to Dashboard for transaction queries with deprecation flag', async () => {
-      const featuredOrganization = OrganizationFixture({
-        features: ['dashboards-edit', 'discover-saved-queries-deprecation'],
+      const organizationWithDeprecation = OrganizationFixture({
+        features: ['discover-saved-queries-deprecation'],
       });
       render(
         <QueryList
           savedQuerySearchQuery=""
-          organization={featuredOrganization}
+          organization={organizationWithDeprecation}
           renderPrebuilt={false}
           savedQueries={[
             DiscoverSavedQueryFixture({
@@ -693,13 +651,13 @@ describe('Discover > QueryList', () => {
     });
 
     it('does not disable Add to Dashboard for error queries with deprecation flag', async () => {
-      const featuredOrganization = OrganizationFixture({
-        features: ['dashboards-edit', 'discover-saved-queries-deprecation'],
+      const organizationWithDeprecation = OrganizationFixture({
+        features: ['discover-saved-queries-deprecation'],
       });
       render(
         <QueryList
           savedQuerySearchQuery=""
-          organization={featuredOrganization}
+          organization={organizationWithDeprecation}
           renderPrebuilt={false}
           savedQueries={[
             DiscoverSavedQueryFixture({
@@ -730,14 +688,11 @@ describe('Discover > QueryList', () => {
   });
 
   it('passes dataset to open modal', async () => {
-    const featuredOrganization = OrganizationFixture({
-      features: ['dashboards-edit'],
-    });
     render(
       <QueryList
         savedQuerySearchQuery=""
         renderPrebuilt={false}
-        organization={featuredOrganization}
+        organization={OrganizationFixture()}
         savedQueries={[
           DiscoverSavedQueryFixture({
             display: DisplayModes.DEFAULT,

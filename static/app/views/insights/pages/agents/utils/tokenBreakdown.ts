@@ -1,4 +1,5 @@
 interface TokenBreakdown {
+  cacheWrite: number;
   cached: number;
   netNewInput: number;
   output: number;
@@ -8,16 +9,18 @@ interface TokenBreakdown {
 /**
  * Computes a display-ready token breakdown from raw span attributes.
  *
- * Per OTel conventions, `inputTokens` includes cached and `outputTokens`
- * includes reasoning. Some providers don't follow this, so we detect the
- * gap and adjust as a fallback (see `getAdjustedInput` / `getAdjustedOutput`).
+ * Per OTel conventions, `inputTokens` includes cached and cache-write tokens,
+ * and `outputTokens` includes reasoning. Some providers don't follow this, so
+ * we detect the gap and adjust as a fallback (see `getAdjustedInput` /
+ * `getAdjustedOutput`).
  *
- * Returns net-new input (excluding cached), cached, output (including
- * reasoning), and total.
+ * Returns net-new input (excluding cache reads and writes), cache reads,
+ * cache writes, output (including reasoning), and total.
  */
 export function getTokenBreakdown({
   inputTokens,
   cachedTokens,
+  cacheWriteTokens,
   outputTokens,
   reasoningTokens,
   totalTokens,
@@ -27,11 +30,19 @@ export function getTokenBreakdown({
   outputTokens: number;
   reasoningTokens: number;
   totalTokens: number;
+  cacheWriteTokens?: number;
 }): TokenBreakdown {
   const cached = isNaN(cachedTokens) ? 0 : cachedTokens;
+  const cacheWrite =
+    cacheWriteTokens === undefined || isNaN(cacheWriteTokens) ? 0 : cacheWriteTokens;
   const reasoning = isNaN(reasoningTokens) ? 0 : reasoningTokens;
 
-  const adjustedInput = getAdjustedInput(inputTokens, cached, outputTokens, totalTokens);
+  const adjustedInput = getAdjustedInput(
+    inputTokens,
+    cached + cacheWrite,
+    outputTokens,
+    totalTokens
+  );
   const adjustedOutput = getAdjustedOutput(
     adjustedInput,
     outputTokens,
@@ -40,8 +51,12 @@ export function getTokenBreakdown({
   );
 
   return {
-    netNewInput: cached > 0 ? Math.max(0, adjustedInput - cached) : adjustedInput,
+    netNewInput:
+      cached + cacheWrite > 0
+        ? Math.max(0, adjustedInput - cached - cacheWrite)
+        : adjustedInput,
     cached,
+    cacheWrite,
     output: adjustedOutput,
     total: totalTokens,
   };
@@ -57,6 +72,7 @@ export function getTokenBreakdown({
 export function hasTokenMismatch({
   inputTokens,
   cachedTokens,
+  cacheWriteTokens,
   outputTokens,
   reasoningTokens,
   totalTokens,
@@ -66,21 +82,30 @@ export function hasTokenMismatch({
   outputTokens: number;
   reasoningTokens: number;
   totalTokens: number;
+  cacheWriteTokens?: number;
 }): boolean {
   if (
     inputTokens < 0 ||
     outputTokens < 0 ||
     totalTokens < 0 ||
     cachedTokens < 0 ||
+    (cacheWriteTokens !== undefined && cacheWriteTokens < 0) ||
     reasoningTokens < 0
   ) {
     return true;
   }
 
   const cached = isNaN(cachedTokens) ? 0 : cachedTokens;
+  const cacheWrite =
+    cacheWriteTokens === undefined || isNaN(cacheWriteTokens) ? 0 : cacheWriteTokens;
   const reasoning = isNaN(reasoningTokens) ? 0 : reasoningTokens;
 
-  const adjustedInput = getAdjustedInput(inputTokens, cached, outputTokens, totalTokens);
+  const adjustedInput = getAdjustedInput(
+    inputTokens,
+    cached + cacheWrite,
+    outputTokens,
+    totalTokens
+  );
   const adjustedOutput = getAdjustedOutput(
     adjustedInput,
     outputTokens,
@@ -93,8 +118,11 @@ export function hasTokenMismatch({
   // Also check if the displayed values (after clamping) don't add up.
   // netNewInput is clamped to 0 when cached > adjustedInput, so the
   // displayed sum can differ from total even when raw values match.
-  const netNewInput = cached > 0 ? Math.max(0, adjustedInput - cached) : adjustedInput;
-  const displayedSum = netNewInput + cached + adjustedOutput;
+  const netNewInput =
+    cached + cacheWrite > 0
+      ? Math.max(0, adjustedInput - cached - cacheWrite)
+      : adjustedInput;
+  const displayedSum = netNewInput + cached + cacheWrite + adjustedOutput;
 
   // Allow a small tolerance for rounding
   const tolerance = Math.max(1, totalTokens * 0.01);

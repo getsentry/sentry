@@ -3,7 +3,7 @@ from collections.abc import Callable, MutableMapping
 from datetime import datetime, timedelta, timezone
 from typing import Any, Concatenate, ParamSpec, Protocol, TypeVar
 
-from sentry.utils.tracing import start_span
+from sentry_sdk import traces
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ class TimeChecker:
 
 
 class ExperimentalConfigBuilder(Protocol):
-    def __call__(self, timeout: TimeChecker, *args, **kwargs) -> Any:
+    def __call__(self, timeout: TimeChecker, /, *args: Any, **kwargs: Any) -> Any:
         pass
 
 
@@ -81,8 +81,9 @@ def build_safe_config(
     """
     timeout = TimeChecker(_FEATURE_BUILD_TIMEOUT)
 
-    with start_span(
-        op=f"project_config.build_safe_config.{key}", name=f"project_config.build_safe_config.{key}"
+    with traces.start_span(
+        name=f"project_config.build_safe_config.{key}",
+        attributes={"sentry.op": f"project_config.build_safe_config.{key}"},
     ):
         try:
             return function(timeout, *args, **kwargs)

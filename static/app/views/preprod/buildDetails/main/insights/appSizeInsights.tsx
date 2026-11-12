@@ -1,20 +1,21 @@
 import {useCallback} from 'react';
-import {useSearchParams} from 'react-router-dom';
+import {useSearchParams} from 'react-router';
+import {IconSettings} from '@sentry/icons/settings';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {AppSizeInsightsSidebar} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsightsSidebar';
-import {formatUpside} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsightsSidebarRow';
-import {InsightTimedOutWarning} from 'sentry/views/preprod/buildDetails/main/insights/insightTimedOutWarning';
 import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 import {type ProcessedInsight} from 'sentry/views/preprod/utils/insightProcessing';
+
+import {AppSizeInsightsSidebar} from './appSizeInsightsSidebar';
+import {formatUpside} from './appSizeInsightsSidebarRow';
+import {InsightTimedOutWarning} from './insightTimedOutWarning';
 
 interface AppSizeInsightsProps {
   processedInsights: ProcessedInsight[];
@@ -71,8 +72,7 @@ export function AppSizeInsights({
           </Button>
         )}
       </Flex>
-      <Flex
-        direction="column"
+      <Stack
         gap="2xs"
         css={theme => ({
           '& > :nth-child(odd)': {
@@ -124,7 +124,7 @@ export function AppSizeInsights({
             </Text>
           </Flex>
         )}
-      </Flex>
+      </Stack>
 
       <AppSizeInsightsSidebar
         processedInsights={processedInsights}

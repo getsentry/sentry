@@ -2,14 +2,15 @@ import {useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {BuiltinSymbolSource} from 'sentry/types/debugFiles';
 import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject, Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
@@ -82,7 +83,12 @@ export function BuiltInRepositories({
         mutationOptions={{
           mutationFn: (data: Partial<DetailedProject>) =>
             fetchMutation<DetailedProject>({
-              url: `/projects/${organization.slug}/${project.slug}/`,
+              url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+                path: {
+                  organizationIdOrSlug: organization.slug,
+                  projectIdOrSlug: project.slug,
+                },
+              }),
               method: 'PUT',
               data,
             }),
@@ -96,14 +102,14 @@ export function BuiltInRepositories({
               variables.builtinSymbolSources.length
             );
             if (successMessage) {
-              addSuccessMessage(successMessage);
+              toast.success(successMessage);
             }
           },
           onError: (_error, variables) => {
             const {errorMessage} = getRequestMessages(
               variables.builtinSymbolSources.length
             );
-            addErrorMessage(errorMessage);
+            toast.error(errorMessage);
           },
         }}
       >

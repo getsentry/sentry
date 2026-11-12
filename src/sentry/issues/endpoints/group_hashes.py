@@ -1,7 +1,6 @@
-import logging
 from collections.abc import Sequence
 from functools import partial
-from typing import TypedDict
+from typing import Annotated, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from drf_spectacular.types import OpenApiTypes
@@ -9,14 +8,14 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
 from sentry.api.serializers.models.event import (
+    FULL_PAYLOAD_MAX_PER_PAGE,
     EventSerializerResponse,
     SimpleEventSerializerResponse,
 )
@@ -25,38 +24,58 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.event_examples import EventExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.services import eventstore
-from sentry.tasks.unmerge import unmerge
+from sentry.tasks.unmerge import start_unmerge
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
 from sentry.utils.snuba import raw_query
 
-logger = logging.getLogger(__name__)
-
 
 class GroupHashesResult(TypedDict):
-    id: str
-    latestEvent: EventSerializerResponse | SimpleEventSerializerResponse | None
-    mergedBySeer: bool
-    seerMatchDistance: float | None
+    id: Annotated[str, ApiDescription("Fingerprint hash")]
+    latestEvent: Annotated[
+        EventSerializerResponse | SimpleEventSerializerResponse | None,
+        ApiDescription("Latest event with the hash. Null when the event isn't found"),
+    ]
+    mergedBySeer: Annotated[
+        bool, ApiDescription("Whether Seer merged the hash into the issue as a similar error")
+    ]
+    seerMatchDistance: Annotated[
+        float | None,
+        ApiDescription(
+            "Distance between the hash's stack trace and the issue's when Seer merged them. Null when Seer didn't merge the hash"
+        ),
+    ]
 
 
 @extend_schema(tags=["Events"])
 @cell_silo_endpoint
 class GroupHashesEndpoint(GroupEndpoint):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     publish_status = {
         "PUT": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PUBLIC,
     }
+
+    def get_per_page(
+        self, request: Request, default_per_page: int | None = None, max_per_page: int | None = None
+    ) -> int:
+        per_page = super().get_per_page(request, default_per_page, max_per_page)
+        if request.GET.get("full") not in ("0", "false"):
+            return min(per_page, FULL_PAYLOAD_MAX_PER_PAGE)
+        return per_page
 
     @extend_schema(
         operation_id="listOrganizationIssueHashes",
@@ -73,7 +92,7 @@ class GroupHashesEndpoint(GroupEndpoint):
                 location=OpenApiParameter.QUERY,
                 required=False,
                 default=True,
-                description="Specify true to include the full event body, including the stacktrace, in the event payload.",
+                description="Specify true to include the full event body, including the stacktrace, in the event payload. When true, the page size is capped at 10.",
             ),
             CursorQueryParam,
         ],
@@ -137,24 +156,6 @@ class GroupHashesEndpoint(GroupEndpoint):
         if not grouphash_ids:
             return Response()
 
-        max_times_seen = options.get("issues.merge-unmerge.max-group-times-seen")
-        if max_times_seen and group.times_seen > max_times_seen:
-            metrics.incr("issues.merge_unmerge.restricted", tags={"op": "unmerge"})
-            logger.info(
-                "merge_unmerge.restricted",
-                extra={
-                    "op": "unmerge",
-                    "project_id": group.project_id,
-                    "source_id": group.id,
-                    "grouphash_ids": grouphash_ids,
-                    "max_times_seen": max_times_seen,
-                },
-            )
-            return Response(
-                {"detail": "Large merges and unmerges are temporarily restricted at this time."},
-                status=400,
-            )
-
         grouphashes = list(
             GroupHash.objects.filter(
                 project_id=group.project_id, group=group.id, hash__in=grouphash_ids
@@ -172,8 +173,8 @@ class GroupHashesEndpoint(GroupEndpoint):
             tags={"platform": group.platform or "unknown", "sdk": group.sdk or "unknown"},
         )
 
-        unmerge.delay(
-            group.project_id, group.id, None, grouphashes, request.user.id if request.user else None
+        start_unmerge.delay(
+            group.project_id, group.id, None, grouphashes, acting_user_id(request.user)
         )
 
         return Response(status=202)
@@ -182,7 +183,7 @@ class GroupHashesEndpoint(GroupEndpoint):
         self,
         project_id: int,
         group_id: int,
-        user: User | RpcUser | AnonymousUser | None,
+        user: User | RpcUser | AnonymousUser | ServiceAccountPrincipal | None,
         full: str | bool,
         results: Sequence[dict[str, str]],
     ) -> list[GroupHashesResult]:
@@ -203,7 +204,7 @@ class GroupHashesEndpoint(GroupEndpoint):
 
     def __handle_result(
         self,
-        user: User | RpcUser | AnonymousUser | None,
+        user: User | RpcUser | AnonymousUser | ServiceAccountPrincipal | None,
         project_id: int,
         group_id: int,
         full: str | bool,

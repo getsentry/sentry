@@ -1,5 +1,6 @@
 import {Fragment, useEffect, type ReactNode} from 'react';
 
+import {Container} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -17,10 +18,6 @@ import {
   type AutoRefreshState,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
-import {useLogsAnalyticsPageSource} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {AutoRefreshLabel, AutoRefreshText} from 'sentry/views/explore/logs/styles';
-import {useLogsAutoRefreshInterval} from 'sentry/views/explore/logs/useLogsAutoRefreshInterval';
-import {checkSortIsTimeBasedDescending} from 'sentry/views/explore/logs/utils';
 import {
   useQueryParamsMode,
   useQueryParamsSortBys,
@@ -29,7 +26,11 @@ import {
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 
+import {useLogsAnalyticsPageSource} from './logsQueryParamsProvider';
+import {AutoRefreshLabel} from './styles';
 import {OurLogKnownFieldKey} from './types';
+import {useLogsAutoRefreshInterval} from './useLogsAutoRefreshInterval';
+import {checkSortIsTimeBasedDescending} from './utils';
 
 const MAX_LOGS_PER_SECOND = 100; // Rate limit for initial check
 
@@ -136,7 +137,9 @@ export function AutorefreshToggle({averageLogsPerSecond = 0}: AutorefreshToggleP
             }}
           />
         </Tooltip>
-        <AutoRefreshText>{t('Auto-refresh')}</AutoRefreshText>
+        <Container as="span" display={{zero: 'none', '3xl': 'inline'}}>
+          {t('Auto-refresh')}
+        </Container>
       </AutoRefreshLabel>
     </Fragment>
   );

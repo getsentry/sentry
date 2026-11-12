@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
 import isNumber from 'lodash/isNumber';
 
 import {
@@ -7,13 +8,10 @@ import {
   getPolarityRating,
   type Polarity,
 } from 'sentry/components/percentChange';
-import {IconArrow} from 'sentry/icons';
-import {
-  DEEMPHASIS_VARIANT,
-  LOADING_PLACEHOLDER,
-} from 'sentry/views/dashboards/widgets/bigNumberWidget/settings';
 import {DEFAULT_FIELD} from 'sentry/views/dashboards/widgets/common/settings';
 import type {TabularRow} from 'sentry/views/dashboards/widgets/common/types';
+
+import {DEEMPHASIS_VARIANT, LOADING_PLACEHOLDER} from './settings';
 
 interface DifferenceToPreviousPeriodValueProps {
   previousPeriodValue: number;
@@ -77,7 +75,7 @@ const Deemphasize = styled('span')`
 
 function getDifferenceDirectionMarker(difference: number) {
   if (difference > 0) {
-    return <IconArrow direction="up" size="xs" />;
+    return <IconArrow size="xs" />;
   }
 
   if (difference < 0) {

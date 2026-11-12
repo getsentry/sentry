@@ -1,25 +1,23 @@
-import {useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useContext, useEffect, useRef, useState} from 'react';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Container} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {
-  getPreprodBuildsDisplay,
+  parseAsPreprodBuildsDisplay,
   PreprodBuildsDisplay,
 } from 'sentry/components/preprod/preprodBuildsDisplay';
 import {PreprodBuildsSearchControls} from 'sentry/components/preprod/preprodBuildsSearchControls';
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
@@ -31,6 +29,12 @@ import {getUpdatedQueryForDisplay} from 'sentry/views/preprod/utils/installableQ
 
 import {PreprodOnboarding} from './preprodOnboarding';
 
+const preprodBuildsQueryParsers = {
+  cursor: parseAsString.withDefault(''),
+  display: parseAsPreprodBuildsDisplay,
+  query: parseAsString.withDefault(''),
+};
+
 export default function PreprodBuilds() {
   const organization = useOrganization();
   const releaseContext = useContext(ReleaseContext);
@@ -38,25 +42,17 @@ export default function PreprodBuilds() {
   const projectSlug = releaseContext.project.slug;
   const projectPlatform = releaseContext.project.platform;
   const params = useParams<{release: string}>();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const activeDisplay = useMemo(
-    () => getPreprodBuildsDisplay(location.query.display),
-    [location.query.display]
-  );
-
-  const {query: urlSearchQuery, cursor} = useLocationQuery({
-    fields: {
-      query: decodeScalar,
-      cursor: decodeScalar,
-    },
-  });
+  const [{cursor, display: activeDisplay, query: urlSearchQuery}, setQueryParams] =
+    useQueryStates(preprodBuildsQueryParsers);
 
   const [localSearchQuery, setLocalSearchQuery] = useState(urlSearchQuery || '');
-  const debouncedLocalSearchQuery = useDebouncedValue(localSearchQuery);
+  const [debouncedLocalSearchQuery] = useDebouncedValue(localSearchQuery, {
+    wait: DEFAULT_DEBOUNCE_DURATION,
+  });
   const prevDebouncedRef = useRef(debouncedLocalSearchQuery);
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setLocalSearchQuery(urlSearchQuery || '');
   }, [urlSearchQuery]);
 
@@ -67,16 +63,12 @@ export default function PreprodBuilds() {
     prevDebouncedRef.current = debouncedLocalSearchQuery;
 
     if (debouncedLocalSearchQuery !== (urlSearchQuery || '')) {
-      navigate({
-        ...location,
-        query: {
-          ...location.query,
-          query: debouncedLocalSearchQuery.trim() || undefined,
-          cursor: undefined, // Reset pagination when searching
-        },
-      });
+      setQueryParams(
+        {query: debouncedLocalSearchQuery.trim() || null, cursor: null},
+        {history: 'push'}
+      );
     }
-  }, [debouncedLocalSearchQuery, urlSearchQuery, location, navigate]);
+  }, [debouncedLocalSearchQuery, urlSearchQuery, setQueryParams]);
 
   const queryParams: Record<string, any> = {
     per_page: 25,
@@ -130,17 +122,16 @@ export default function PreprodBuilds() {
 
   const handleDisplayChange = useCallback(
     (display: PreprodBuildsDisplay) => {
-      navigate({
-        ...location,
-        query: {
-          ...location.query,
-          cursor: undefined,
+      setQueryParams(
+        {
+          cursor: null,
           display,
-          query: getUpdatedQueryForDisplay(urlSearchQuery, display),
+          query: getUpdatedQueryForDisplay(urlSearchQuery, display) ?? null,
         },
-      });
+        {history: 'push', clearOnDefault: false}
+      );
     },
-    [location, navigate, urlSearchQuery]
+    [setQueryParams, urlSearchQuery]
   );
 
   const builds = buildsResponse?.json ?? [];

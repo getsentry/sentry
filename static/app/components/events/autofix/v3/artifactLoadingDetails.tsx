@@ -1,13 +1,15 @@
-import styled from '@emotion/styled';
+import {useMemo, useState} from 'react';
 
-import {Flex} from '@sentry/scraps/layout';
-import {Markdown} from '@sentry/scraps/markdown';
-import {Text} from '@sentry/scraps/text';
+import {MessageRow, ThinkingBlock} from '@sentry/scraps/chat';
 
 import {type AutofixSection} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {useAutoScroll} from 'sentry/utils/useAutoScroll';
+import {
+  groupTranscript,
+  ResponseGroup,
+} from 'sentry/views/seerExplorer/components/chat/responseGroup';
+import {findLatestTodos} from 'sentry/views/seerExplorer/components/chat/toolUse';
+
+import {ArtifactDetails} from './artifactDetails';
 
 interface ArtifactLoadingDetailsProps {
   blocks: AutofixSection['blocks'];
@@ -18,48 +20,34 @@ export function ArtifactLoadingDetails({
   loadingMessage,
   blocks,
 }: ArtifactLoadingDetailsProps) {
-  const {containerRef, onScrollHandler} = useAutoScroll({
-    enabled: true,
-    key: blocks,
-  });
+  const [appearedAt] = useState(() => new Date());
+  const responses = useMemo(
+    () =>
+      groupTranscript(blocks).flatMap(segment =>
+        segment.kind === 'response' ? [segment] : []
+      ),
+    [blocks]
+  );
+  const latestTodos = useMemo(() => findLatestTodos(blocks), [blocks]);
 
   return (
     <ArtifactDetails>
-      <Flex
-        direction="column"
-        gap="md"
-        ref={containerRef}
-        maxHeight="200px"
-        overflowY="auto"
-        onScroll={onScrollHandler}
-      >
-        {blocks.map((block, index) => {
-          if (block.message.role === 'user') {
-            // The user role is used to pass the prompts
-            return null;
-          }
-
-          if (block.message.content && block.message.content !== 'Thinking...') {
-            return <Markdown key={index} raw={block.message.content} />;
-          }
-
-          if (block.message.thinking_content) {
-            return <Markdown key={index} raw={block.message.thinking_content} />;
-          }
-
-          return null;
-        })}
-        <Flex direction="row" gap="md">
-          <StyledLoadingIndicator size={16} />
-          <Text variant="muted" density="compressed">
-            {loadingMessage}
-          </Text>
-        </Flex>
-      </Flex>
+      {responses.length ? (
+        responses.map(segment => (
+          <ResponseGroup
+            key={segment.indices[0]}
+            group={segment.blocks}
+            blockIndex={segment.indices[0]!}
+            latestTodos={latestTodos}
+            readOnly
+            showThinking
+          />
+        ))
+      ) : (
+        <MessageRow from="assistant" density="compact">
+          <ThinkingBlock title={loadingMessage} startTime={appearedAt} />
+        </MessageRow>
+      )}
     </ArtifactDetails>
   );
 }
-
-const StyledLoadingIndicator = styled(LoadingIndicator)`
-  margin: 0;
-`;

@@ -1,16 +1,16 @@
 import {css, type Theme} from '@emotion/react';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
+import {openModal} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 
 import type {Subscription} from 'getsentry/types';
 import {displayBudgetName} from 'getsentry/utils/billing';
-import {SharedSpendLimitPriceTable} from 'getsentry/views/spendLimits/spendLimitSettings';
+import {SharedSpendLimitPriceTable} from 'getsentry/views/spendLimits/sharedSpendLimitPriceTable';
 
 function SpendLimitsPricingModal({
   subscription,
@@ -31,7 +31,7 @@ function SpendLimitsPricingModal({
       .map(([category, categoryInfo]) => [category, categoryInfo.reserved ?? 0])
   );
   return (
-    <Flex direction="column" gap="xl">
+    <Stack gap="xl">
       <Heading as="h2">
         {tct('[budgetTerm] pricing', {
           budgetTerm: displayBudgetName(subscription.planDetails, {title: true}),
@@ -51,7 +51,7 @@ function SpendLimitsPricingModal({
         includedAddOns={includedAddOns}
         currentReserved={currentReserved}
       />
-    </Flex>
+    </Stack>
   );
 }
 

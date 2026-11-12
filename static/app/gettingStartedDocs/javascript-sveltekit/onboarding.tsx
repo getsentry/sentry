@@ -3,6 +3,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {copyDsnFieldBlock} from 'sentry/components/onboarding/gettingStartedDoc/copyDsnField';
 import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getDataCollectionStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t, tct} from 'sentry/locale';
 
 import {getConfigStep} from './utils';
@@ -33,6 +34,10 @@ export const onboarding: OnboardingConfig = {
         copyDsnFieldBlock(params),
       ],
     },
+    getDataCollectionStep({
+      docsLink:
+        'https://docs.sentry.io/platforms/javascript/guides/sveltekit/configuration/options/#dataCollection',
+    }),
   ],
   verify: () => [
     {

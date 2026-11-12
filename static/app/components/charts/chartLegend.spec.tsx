@@ -43,12 +43,6 @@ function mockChildWidths() {
 }
 
 describe('ChartLegend', () => {
-  beforeEach(() => {
-    // The CompactSelect trigger is always in the DOM (even when hidden),
-    // which causes react-popper to fire state updates outside of act().
-    jest.spyOn(console, 'error').mockImplementation();
-  });
-
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -182,6 +176,22 @@ describe('ChartLegend', () => {
       'series-b': false,
       'series-c': true,
     });
+  });
+
+  it('overflows the last item when it only fits without the trigger gap', () => {
+    // All three items take 80 + 8 + 80 + 8 + 80 = 256px, but the trigger's
+    // wrapper keeps a 4px gap in the row, leaving only 254px for the items.
+    mockDimensions(258);
+    jest
+      .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+      .mockImplementation(function (this: HTMLElement) {
+        return {width: this.tagName === 'BUTTON' ? 60 : 80} as DOMRect;
+      });
+
+    render(<ChartLegend items={ITEMS} selected={{}} onSelectionChange={jest.fn()} />);
+
+    expect(screen.getByLabelText('Toggle Series C')).not.toBeVisible();
+    expect(screen.getByText('+1 more')).toBeVisible();
   });
 
   it('does not crash at exact boundary conditions', () => {

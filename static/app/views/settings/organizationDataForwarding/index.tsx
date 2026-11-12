@@ -1,29 +1,30 @@
 import {Fragment} from 'react';
+import {IconAdd} from '@sentry/icons/add';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {Access} from 'sentry/components/acl/access';
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {DataForwarderOnboarding} from 'sentry/views/settings/organizationDataForwarding/components/dataForwarderOnboarding';
-import {DataForwarderRow} from 'sentry/views/settings/organizationDataForwarding/components/dataForwarderRow';
-import {getCreateTooltip} from 'sentry/views/settings/organizationDataForwarding/util/forms';
-import {useDataForwarders} from 'sentry/views/settings/organizationDataForwarding/util/hooks';
+
+import {DataForwarderOnboarding} from './components/dataForwarderOnboarding';
+import {DataForwarderRow} from './components/dataForwarderRow';
+import {getCreateTooltip} from './util/forms';
+import {useDataForwarders} from './util/hooks';
 import {
   DATA_FORWARDING_DOCS_URL,
   DATA_FORWARDING_FEATURES,
   DataForwarderProviderSlug,
-} from 'sentry/views/settings/organizationDataForwarding/util/types';
+} from './util/types';
 
 export default function OrganizationDataForwarding() {
   const organization = useOrganization();
@@ -97,9 +98,9 @@ export default function OrganizationDataForwarding() {
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Data Forwarding')} />
-      <Flex direction="column" gap="lg">
+      <Stack gap="lg">
         <Flex align="center" justify="between" gap="2xl">
-          <Flex direction="column" gap="sm">
+          <Stack gap="sm">
             <SettingsPageHeader
               title={t('Data Forwarding')}
               subtitle={tct(
@@ -118,7 +119,7 @@ export default function OrganizationDataForwarding() {
                 }
               )}
             />
-          </Flex>
+          </Stack>
         </Flex>
         {isLoading ? (
           <LoadingIndicator />
@@ -127,7 +128,7 @@ export default function OrganizationDataForwarding() {
         ) : (
           pageContent
         )}
-      </Flex>
+      </Stack>
     </Fragment>
   );
 }

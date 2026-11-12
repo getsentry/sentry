@@ -1,8 +1,8 @@
 import {useEffect, useRef} from 'react';
 import type {Location} from 'history';
 
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {useLocation} from './useLocation';
+import {useNavigate} from './useNavigate';
 
 type Opts<Q> = {
   fieldsToClean: string[];
@@ -47,8 +47,10 @@ export function useCleanQueryParamsOnRouteLeave<Q>({
   const previousPathnameRef = useRef(location.pathname);
 
   const fieldsToCleanRef = useRef(fieldsToClean);
+  // oxlint-disable-next-line react/refs
   fieldsToCleanRef.current = fieldsToClean;
   const shouldCleanRef = useRef(shouldClean);
+  // oxlint-disable-next-line react/refs
   shouldCleanRef.current = shouldClean;
 
   useEffect(() => {

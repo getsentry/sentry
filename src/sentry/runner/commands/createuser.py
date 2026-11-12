@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import click
+from django.conf import settings
 
 from sentry.runner.decorators import configuration
 
@@ -39,7 +40,8 @@ def _get_password() -> str:
     rv = click.prompt("Password", hide_input=True, confirmation_prompt=True)
     field = _get_field("password")
     try:
-        return field.clean(rv, None)
+        password = field.clean(rv, None)
+        return password
     except ValidationError as e:
         raise click.ClickException("; ".join(e.messages))
 
@@ -49,14 +51,10 @@ def _get_superuser() -> bool:
 
 
 def _set_superadmin(user: User) -> None:
-    """
-    superadmin role approximates superuser (model attribute) but leveraging
-    Sentry's role system.
-    """
-    from sentry.users.models.userrole import UserRole, UserRoleUser
+    from sentry.users.models.userpermission import UserPermission
 
-    role = UserRole.objects.get(name="Super Admin")
-    UserRoleUser.objects.create(user=user, role=role)
+    for permission in settings.SENTRY_USER_PERMISSIONS:
+        UserPermission.objects.get_or_create(user=user, permission=permission)
 
 
 @click.command()

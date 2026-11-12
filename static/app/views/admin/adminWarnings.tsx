@@ -1,9 +1,10 @@
 import {Fragment} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
 type Data = {
   groups: Array<[groupName: string, grouppedWarnings: string[]]>;
@@ -11,11 +12,17 @@ type Data = {
 };
 
 function AdminWarnings() {
-  const {data, isPending, isError} = useApiQuery<Data>(
-    [getApiUrl('/internal/warnings/')],
-    {
-      staleTime: 0,
-    }
+  return (
+    <Fragment>
+      <BreadcrumbTitle title={t('Warnings')} />
+      <AdminWarningsContent />
+    </Fragment>
+  );
+}
+
+function AdminWarningsContent() {
+  const {data, isPending, isError} = useQuery(
+    apiOptions.as<Data>()('/internal/warnings/', {staleTime: 0})
   );
 
   if (isPending) {

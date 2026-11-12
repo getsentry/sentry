@@ -1,13 +1,9 @@
 import type {Theme} from '@emotion/react';
 
-import type {
-  TreeLike,
-  UseVirtualizedTreeProps,
-} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
-import type {VirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTree';
-import type {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
-
+import type {TreeLike, UseVirtualizedTreeProps} from './useVirtualizedTree';
 import type {VirtualizedState} from './useVirtualizedTreeReducer';
+import type {VirtualizedTree} from './VirtualizedTree';
+import type {VirtualizedTreeNode} from './VirtualizedTreeNode';
 
 function updateGhostRow({
   element,
@@ -102,15 +98,18 @@ export function markRowAsClicked(
   if (clickedRowKey !== null) {
     const clickedRow = renderedItems.find(row => row.key === clickedRowKey);
     if (clickedRow) {
-      updateGhostRow({
-        element: ghostRowRef,
-        interaction: 'clicked',
-        rowHeight,
-        scrollTop,
-        selectedNodeIndex: clickedRow.key,
-        theme,
-      });
+      ghostRowRef?.style.setProperty('opacity', '0');
+      return;
     }
+
+    updateGhostRow({
+      element: ghostRowRef,
+      interaction: 'clicked',
+      rowHeight,
+      scrollTop,
+      selectedNodeIndex: clickedRowKey,
+      theme,
+    });
   }
 }
 
@@ -181,7 +180,7 @@ export interface VirtualizedTreeRenderedRow<T> {
   item: VirtualizedTreeNode<T>;
   key: number;
   ref: HTMLElement | null;
-  styles: React.CSSProperties;
+  styles: {position: 'absolute'; top: `${number}px`};
 }
 
 export interface VirtualizedTreeRenderedRowHandlers<T> {
@@ -250,7 +249,7 @@ export function findRenderedItems<T extends TreeLike>({
       renderedRows[visibleItemIndex] = {
         key: indexPointer,
         ref: null,
-        styles: {position: 'absolute', top: elementTop},
+        styles: {position: 'absolute', top: `${elementTop}px`},
         item: items[indexPointer]!,
       };
 

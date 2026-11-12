@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -6,8 +6,6 @@ type Props = {
   onChangeEnd: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onChangeStart: (event: React.ChangeEvent<HTMLInputElement>) => void;
   className?: string;
-  // Should inputs be disabled
-  disabled?: boolean;
   // Takes string in 24 hour format
   end?: string;
   hasEndErrors?: boolean;
@@ -16,84 +14,69 @@ type Props = {
   start?: string;
 };
 
-type State = {
-  focused: boolean;
-};
+function TimePickerImpl({
+  className,
+  start,
+  end,
+  onChangeStart,
+  onChangeEnd,
+  hasStartErrors,
+  hasEndErrors,
+}: Props) {
+  const startRef = useRef<HTMLInputElement>(null);
+  const endRef = useRef<HTMLInputElement>(null);
 
-export const TimePicker = styled(
-  class TimePicker extends Component<Props, State> {
-    state: State = {
-      focused: false,
-    };
+  useSyncUnfocusedValue(startRef, start);
+  useSyncUnfocusedValue(endRef, end);
 
-    shouldComponentUpdate() {
-      // This is necessary because when a change event happens,
-      // the change is propagated up to the dropdown. This causes
-      // a re-render of this component which in turn causes the
-      // input element to lose focus. To get around losing focus,
-      // we prevent the component from updating when one of the
-      // inputs has focus. This is okay because the inputs will
-      // keep track of their own values so we do not have to keep
-      // track of it.
-      return !this.state.focused;
+  return (
+    <div className={classNames(className, 'rdrDateDisplay')}>
+      <div>
+        <Input
+          ref={startRef}
+          type="time"
+          defaultValue={start}
+          className="rdrDateDisplayItem"
+          data-test-id="startTime"
+          aria-invalid={hasStartErrors}
+          onChange={onChangeStart}
+        />
+      </div>
+
+      <div>
+        <Input
+          ref={endRef}
+          type="time"
+          defaultValue={end}
+          className="rdrDateDisplayItem"
+          data-test-id="endTime"
+          aria-invalid={hasEndErrors}
+          onChange={onChangeEnd}
+        />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The parent ignores partial or invalid times and keeps its last valid value,
+ * so the inputs stay uncontrolled to hold what the user is typing. New values
+ * are only written to an input that doesn't have focus, otherwise the parent
+ * echoing a keystroke back would overwrite the in-progress edit.
+ */
+function useSyncUnfocusedValue(
+  ref: React.RefObject<HTMLInputElement | null>,
+  value: string | undefined
+) {
+  useEffect(() => {
+    const input = ref.current;
+    if (input && input !== document.activeElement) {
+      input.value = value ?? '';
     }
+  }, [ref, value]);
+}
 
-    handleFocus = () => {
-      this.setState({focused: true});
-    };
-
-    handleBlur = () => {
-      this.setState({focused: false});
-    };
-
-    render() {
-      const {
-        className,
-        start,
-        end,
-        disabled,
-        onChangeStart,
-        onChangeEnd,
-        hasStartErrors,
-        hasEndErrors,
-      } = this.props;
-
-      return (
-        <div className={classNames(className, 'rdrDateDisplay')}>
-          <div>
-            <Input
-              type="time"
-              key={start}
-              defaultValue={start}
-              className="rdrDateDisplayItem"
-              data-test-id="startTime"
-              aria-invalid={hasStartErrors}
-              disabled={disabled}
-              onFocus={this.handleFocus}
-              onBlur={this.handleBlur}
-              onChange={onChangeStart}
-            />
-          </div>
-
-          <div>
-            <Input
-              type="time"
-              defaultValue={end}
-              key={end}
-              className="rdrDateDisplayItem"
-              data-test-id="endTime"
-              disabled={disabled}
-              aria-invalid={hasEndErrors}
-              onFocus={this.handleFocus}
-              onBlur={this.handleBlur}
-              onChange={onChangeEnd}
-            />
-          </div>
-        </div>
-      );
-    }
-  }
-)`
+export const TimePicker = styled(TimePickerImpl)`
   &.rdrDateDisplay {
     display: grid;
     background: transparent;

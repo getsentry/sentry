@@ -6,11 +6,11 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {ConfigStore} from 'sentry/stores/configStore';
-import {RelocationOnboarding as Relocation} from 'sentry/views/relocation/relocation';
+import {toast} from '@sentry/scraps/toast';
 
-jest.mock('sentry/actionCreators/indicator');
+import {ConfigStore} from 'sentry/stores/configStore';
+
+import {RelocationOnboarding as Relocation} from './relocation';
 
 const fakeOrgSlug = 'test-org';
 const fakePromoCode = 'free-hugs';
@@ -40,6 +40,8 @@ describe('Relocation', () => {
   let fetchPublicKeys: jest.Mock;
 
   beforeEach(() => {
+    jest.spyOn(toast, 'error').mockClear();
+    jest.spyOn(toast, 'success').mockClear();
     MockApiClient.clearMockResponses();
     sessionStorage.clear();
 
@@ -126,7 +128,8 @@ describe('Relocation', () => {
         },
       });
 
-      const {router} = await waitForRenderSuccess('get-started');
+      const {router} = renderPage('get-started');
+      await screen.findByTestId('in-progress');
       await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
@@ -137,11 +140,15 @@ describe('Relocation', () => {
       );
     });
 
-    it('should prevent user from going to the next step if no org slugs or region are entered', async () => {
-      await waitForRenderSuccess('get-started');
+    it('should show validation errors and prevent navigation without org slugs or region', async () => {
+      const {router} = await waitForRenderSuccess('get-started');
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
-      expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
+      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+      expect(screen.getByLabelText('org-slugs')).toBeInvalid();
+      expect(screen.getByLabelText('region')).toBeInvalid();
+      expect(router.location.pathname).toBe('/relocation/get-started/');
     });
 
     it('should be allowed to go to next step if org slug is entered, region is selected, and promo code is entered', async () => {
@@ -162,7 +169,7 @@ describe('Relocation', () => {
       await userEvent.type(screen.getByLabelText('promocode'), fakePromoCode);
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
       await waitFor(() => expect(fetchPromoCode).toHaveBeenCalledTimes(1));
-      expect(addErrorMessage).not.toHaveBeenCalled();
+      expect(toast.error).not.toHaveBeenCalled();
     });
 
     it('should persist form data across reloads', async () => {
@@ -202,7 +209,7 @@ describe('Relocation', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
       await waitFor(() => expect(fetchPromoCode).toHaveBeenCalledTimes(1));
-      expect(addErrorMessage).toHaveBeenCalledWith(
+      expect(toast.error).toHaveBeenCalledWith(
         'That promotional code has already been claimed, does not have enough remaining uses, is no longer valid, or never existed.'
       );
     });
@@ -342,7 +349,8 @@ describe('Relocation', () => {
         })
       );
 
-      const {router} = await waitForRenderSuccess('public-key');
+      const {router} = renderPage('public-key');
+      await screen.findByTestId('get-started');
       await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
@@ -385,7 +393,8 @@ describe('Relocation', () => {
         })
       );
 
-      const {router} = await waitForRenderSuccess('encrypt-backup');
+      const {router} = renderPage('encrypt-backup');
+      await screen.findByTestId('get-started');
       await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
@@ -478,7 +487,7 @@ describe('Relocation', () => {
           expect.objectContaining({host: fakeLocalities.Earth!.url, method: 'POST'})
         )
       );
-      expect(addSuccessMessage).toHaveBeenCalledWith(
+      expect(toast.success).toHaveBeenCalledWith(
         "Your relocation has started - we'll email you with updates as soon as we have 'em!"
       );
 
@@ -505,7 +514,7 @@ describe('Relocation', () => {
       );
       await userEvent.click(await screen.findByText('Start Relocation'));
       await waitFor(() => expect(postRelocation).toHaveBeenCalledTimes(1));
-      expect(addErrorMessage).toHaveBeenCalledWith(
+      expect(toast.error).toHaveBeenCalledWith(
         'You already have an in-progress relocation job.'
       );
     });
@@ -530,7 +539,7 @@ describe('Relocation', () => {
       );
       await userEvent.click(await screen.findByText('Start Relocation'));
       await waitFor(() => expect(postRelocation).toHaveBeenCalledTimes(1));
-      expect(addErrorMessage).toHaveBeenCalledWith(
+      expect(toast.error).toHaveBeenCalledWith(
         'We have reached the daily limit of relocations - please try again tomorrow, or contact support.'
       );
     });
@@ -555,7 +564,7 @@ describe('Relocation', () => {
       );
       await userEvent.click(await screen.findByText('Start Relocation'));
       await waitFor(() => expect(postRelocation).toHaveBeenCalledTimes(1));
-      expect(addErrorMessage).toHaveBeenCalledWith('Your session has expired.');
+      expect(toast.error).toHaveBeenCalledWith('Your session has expired.');
     });
 
     it('throws error for 500 error', async () => {
@@ -578,7 +587,7 @@ describe('Relocation', () => {
       );
       await userEvent.click(await screen.findByText('Start Relocation'));
       await waitFor(() => expect(postRelocation).toHaveBeenCalledTimes(1));
-      expect(addErrorMessage).toHaveBeenCalledWith(
+      expect(toast.error).toHaveBeenCalledWith(
         'An error has occurred while trying to start relocation job. Please contact support for further assistance.'
       );
     });
@@ -586,7 +595,8 @@ describe('Relocation', () => {
     it('redirects to `get-started` page if expected local storage data is missing', async () => {
       sessionStorage.setItem('relocationOnboarding', JSON.stringify({}));
 
-      const {router} = await waitForRenderSuccess('upload-backup');
+      const {router} = renderPage('upload-backup');
+      await screen.findByTestId('get-started');
       await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
@@ -634,7 +644,8 @@ describe('Relocation', () => {
     });
 
     it('redirects to `get-started` page if there is no existing relocation', async () => {
-      const {router} = await waitForRenderSuccess('in-progress');
+      const {router} = renderPage('in-progress');
+      await screen.findByTestId('get-started');
       await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
@@ -663,7 +674,8 @@ describe('Relocation', () => {
         },
       });
 
-      const {router} = await waitForRenderSuccess('in-progress');
+      const {router} = renderPage('in-progress');
+      await screen.findByTestId('get-started');
       await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 

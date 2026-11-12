@@ -1,13 +1,17 @@
 import styled from '@emotion/styled';
 
+import {Grid} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {ContextIcon, NAMES} from 'sentry/components/events/contexts/contextIcon';
 import * as Storybook from 'sentry/stories';
+
+import {ContextIcon, NAMES} from './contextIcon';
 
 export default Storybook.story('ContextIcon', story => {
   story('All', () => (
     <Grid
+      align="center"
+      gap="md"
       style={{
         gridAutoFlow: 'column',
         gridTemplateRows: `repeat(${Math.ceil(NAMES.length / 4)}, 1fr)`,
@@ -18,8 +22,7 @@ export default Storybook.story('ContextIcon', story => {
         return (
           <Tooltip
             key={name}
-            isHoverable
-            overlayStyle={{maxWidth: 440}}
+            maxWidth={440}
             title={<Storybook.JSXNode name="ContextIcon" props={props} />}
           >
             <Cell>
@@ -32,12 +35,6 @@ export default Storybook.story('ContextIcon', story => {
     </Grid>
   ));
 });
-
-const Grid = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
-`;
 
 const Cell = styled('div')`
   display: flex;

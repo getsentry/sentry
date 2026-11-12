@@ -1,10 +1,14 @@
 import zipfile
+from collections.abc import Callable, Iterator
+from contextlib import AbstractContextManager
 from io import BytesIO
+from typing import Any
 from uuid import uuid4
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
+from pytest_django.live_server_helper import LiveServer
 
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.files.file import File
@@ -27,6 +31,13 @@ org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
     65:65:void <init>(org.slf4j.helpers.Util$1) -> <init>
 org.slf4j.helpers.Util$ClassContext -> org.a.b.g$b:
     65:65:void <init>() -> <init>
+"""
+PROGUARD_BARE_CAST_UUID = "ce501fd8-36ed-4a47-93bf-801010cd4e5d"
+PROGUARD_BARE_CAST_SOURCE = b"""\
+com.example.CastSource -> a0o$b:
+    1:1:void sourceMethod():1:1 -> a
+com.example.CastTarget -> chf:
+    1:1:void targetMethod():1:1 -> a
 """
 PROGUARD_INLINE_UUID = "d748e578-b3d1-5be5-b0e5-a42e8c9bf8e0"
 PROGUARD_INLINE_SOURCE = b"""\
@@ -417,12 +428,16 @@ class AnotherClassInSameFile {
 @debug_files_test_both_backends
 class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.fixture(autouse=True)
-    def initialize(self, set_sentry_option, live_server):
+    def initialize(
+        self,
+        set_sentry_option: Callable[[str, object], AbstractContextManager[None]],
+        live_server: LiveServer,
+    ) -> Iterator[None]:
         with set_sentry_option("system.url-prefix", live_server.url):
             # Run test case
             yield
 
-    def upload_proguard_mapping(self, uuid, mapping_file_content):
+    def upload_proguard_mapping(self, uuid: str, mapping_file_content: bytes) -> None:
         url = reverse(
             "sentry-api-0-dsym-files",
             kwargs={
@@ -540,6 +555,24 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         # Ensure the value got deobfuscated via classes mapping
         assert "org.slf4j.helpers.Util$ClassContextSecurityManager" in exc.value
         assert "org.a.b.g$a" not in exc.value
+
+    @requires_symbolicator
+    def test_value_only_bare_cast_class_names_are_deobfuscated(self) -> None:
+        self.upload_proguard_mapping(PROGUARD_BARE_CAST_UUID, PROGUARD_BARE_CAST_SOURCE)
+
+        event_data = {
+            "project": self.project.id,
+            "platform": "java",
+            "debug_meta": {"images": [{"type": "proguard", "uuid": PROGUARD_BARE_CAST_UUID}]},
+            "exception": {"values": [{"value": "a0o$b cannot be cast to chf"}]},
+            "timestamp": before_now(seconds=1).isoformat(),
+        }
+
+        event = self.post_and_retrieve_event(event_data)
+
+        exc = event.interfaces["exception"].values[0]
+        assert exc.value == "com.example.CastSource cannot be cast to com.example.CastTarget"
+        assert exc.raw_value == "a0o$b cannot be cast to chf"
 
     @requires_symbolicator
     def test_value_only_multiple_exceptions_are_all_deobfuscated(self) -> None:
@@ -1057,7 +1090,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert error["mapping_uuid"] == "071207ac-b491-4a74-957c-2c94fd9594f2"
         assert error["type"] == "proguard_missing_lineno"
 
-    def upload_jvm_bundle(self, debug_id, source_files):
+    def upload_jvm_bundle(self, debug_id: str, source_files: dict[str, bytes]) -> None:
         files = {}
 
         for source_file in source_files:
@@ -1577,7 +1610,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.mark.skip(reason="flaky: #93949")
     @requires_symbolicator
     def test_invalid_exception(self) -> None:
-        event_data = {
+        event_data: dict[str, Any] = {
             "user": {"ip_address": "31.172.207.97"},
             "extra": {},
             "project": self.project.id,

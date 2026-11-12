@@ -1,4 +1,5 @@
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
 
 type CopyCallback = (
@@ -9,7 +10,7 @@ type CopyCallback = (
    * Pass `null` to disable any toast messages.
    */
   options?: {errorMessage?: React.ReactNode; successMessage?: React.ReactNode} | null
-) => Promise<string>;
+) => Promise<string | void>;
 
 export function copyToClipboard(
   text: string,
@@ -31,15 +32,14 @@ export function copyToClipboard(
     .writeText(text)
     .then(() => {
       if (successMessage) {
-        addSuccessMessage(successMessage);
+        toast.success(successMessage);
       }
       return text;
     })
-    .catch(error => {
+    .catch(_error => {
       if (errorMessage) {
-        addErrorMessage(errorMessage);
+        toast.error(errorMessage);
       }
-      throw error;
     });
 
   return promise;

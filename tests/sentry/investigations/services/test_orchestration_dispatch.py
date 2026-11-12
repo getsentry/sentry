@@ -1,0 +1,947 @@
+from __future__ import annotations
+
+from types import SimpleNamespace
+from typing import Any
+from unittest import mock
+from uuid import uuid4
+
+import pytest
+from django.db import router, transaction
+from django.test import override_settings
+from django.utils import timezone
+
+from sentry.investigations.models import (
+    InvestigationOrchestrationCommandStatus,
+    InvestigationOrchestrationRun,
+)
+from sentry.investigations.services.orchestration import (
+    _create_agentic_investigation,
+    accept_orchestration_command,
+)
+from sentry.investigations.services.orchestration_events import deliver_orchestration_event
+from sentry.seer.models import SeerApiError
+from sentry.seer.models.run import SeerRunMirrorStatus, SeerRunType
+from sentry.seer.signed_seer_api import MissingViewerContextError
+from sentry.service_accounts.models import ServiceAccountProject, ServiceAccountReplica
+from sentry.silo.base import SiloMode
+from sentry.tasks.seer.investigation import (
+    _mark_command_dispatch_failed,
+    _reconcile_command_version_conflict,
+    dispatch_investigation_orchestration_commands,
+    dispatch_investigation_orchestration_create,
+)
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.utils import json
+from sentry.viewer_context import (
+    Actor,
+    ActorId,
+    ActorType,
+    SuperuserAccess,
+    ViewerContext,
+    decode_viewer_context,
+    get_viewer_context,
+    viewer_context_scope,
+)
+
+
+class InvestigationOrchestrationDispatchTest(TestCase):
+    seer_run_id = 8128
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.investigation = self.create_notebook(
+            organization=self.organization,
+            created_by=self.user,
+            source={"type": "manual"},
+        )
+        self.orchestration_run = self.create_investigation_orchestration_run(
+            investigation=self.investigation,
+            source={
+                "type": "manual",
+                "prompt": "Investigate checkout latency",
+                "timeRange": {
+                    "start": "2025-01-01T00:00:00+00:00",
+                    "end": "2025-01-01T01:00:00+00:00",
+                },
+            },
+            projection=self.projection(workflow_version=1),
+        )
+
+    def projection(
+        self,
+        *,
+        workflow_version: int,
+        generation: int = 1,
+        phase: str = "broad_scan",
+        status: str = "processing",
+    ) -> dict[str, Any]:
+        return {
+            "runId": self.seer_run_id,
+            "investigationId": str(self.investigation.id),
+            "sourceType": "manual",
+            "workflowVersion": workflow_version,
+            "generation": generation,
+            "phase": phase,
+            "status": status,
+            "broadScan": {"status": "running"},
+            "hypotheses": [],
+            "report": {
+                "revision": 0,
+                "status": "not_started",
+                "notebookRevision": 0,
+                "metadata": {
+                    "status": "not_started",
+                    "title": None,
+                    "summary": None,
+                    "summaryDescription": None,
+                    "error": None,
+                },
+            },
+            "pendingInput": None,
+            "errors": [],
+            "heartbeatAt": "2025-01-01T00:00:00+00:00",
+        }
+
+    @mock.patch(
+        "sentry.tasks.seer.investigation.dispatch_investigation_orchestration_commands.delay"
+    )
+    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay")
+    def test_creation_and_commands_dispatch_only_after_commit(
+        self, dispatch_create: mock.Mock, dispatch_commands: mock.Mock
+    ) -> None:
+        with transaction.atomic(using=router.db_for_write(InvestigationOrchestrationRun)):
+            investigation, run = _create_agentic_investigation(
+                organization=self.organization,
+                creator=ActorId(ActorType.USER, self.user.id),
+                title=None,
+                source={"type": "manual", "prompt": "Investigate latency"},
+                orchestration_source={"type": "manual", "prompt": "Investigate latency"},
+                project_ids=[],
+                filters={},
+            )
+            dispatch_create.assert_not_called()
+        dispatch_create.assert_called_once_with(run.id)
+
+        with transaction.atomic(using=router.db_for_write(InvestigationOrchestrationRun)):
+            accept_orchestration_command(
+                investigation=investigation,
+                request_id=uuid4(),
+                expected_workflow_version=1,
+                command_type="add_hypothesis",
+                payload={"statement": "A release caused this"},
+                actor_id=self.user.id,
+            )
+            dispatch_commands.assert_not_called()
+        dispatch_commands.assert_called_once_with(run.id)
+
+    @mock.patch(
+        "sentry.tasks.seer.investigation.dispatch_investigation_orchestration_commands.delay"
+    )
+    @mock.patch("sentry.tasks.seer.investigation.create_investigation_orchestration_run")
+    def test_create_dispatch_persists_projection_and_starts_commands(
+        self,
+        create_run: mock.Mock,
+        dispatch_commands: mock.Mock,
+    ) -> None:
+        create_run.return_value = {
+            "runId": self.seer_run_id,
+            "projection": self.projection(workflow_version=1),
+        }
+
+        dispatch_investigation_orchestration_create(self.orchestration_run.id)
+
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.seer_run is not None
+        assert self.orchestration_run.seer_run.seer_run_state_id == self.seer_run_id
+        assert self.orchestration_run.phase == "broad_scan"
+        assert self.orchestration_run.status == "processing"
+        assert create_run.call_args.kwargs["viewer_context"] == {
+            "organization_id": self.organization.id,
+            "user_id": self.user.id,
+        }
+        dispatch_commands.assert_called_once_with(self.orchestration_run.id)
+
+    @mock.patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    @mock.patch("sentry.tasks.seer.investigation.current_task")
+    @mock.patch("sentry.tasks.seer.investigation.create_investigation_orchestration_run")
+    def test_create_dispatch_retries_then_persists_retryable_failure(
+        self,
+        create_run: mock.Mock,
+        current_task: mock.Mock,
+        process_updates: mock.Mock,
+    ) -> None:
+        create_run.side_effect = SeerApiError("unavailable: secret=do-not-expose", 503)
+        current_task.return_value = SimpleNamespace(retries_remaining=True)
+
+        with pytest.raises(SeerApiError):
+            dispatch_investigation_orchestration_create(self.orchestration_run.id)
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.status == "pending"
+        process_updates.assert_not_called()
+
+        current_task.return_value = SimpleNamespace(retries_remaining=False)
+        dispatch_investigation_orchestration_create(self.orchestration_run.id)
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.status == "failed"
+        assert self.orchestration_run.error == {
+            "code": "seer_dispatch_failed",
+            "message": "Unable to start this investigation. Try again.",
+            "retryable": True,
+        }
+        assert "do-not-expose" not in str(self.orchestration_run.projection)
+        process_updates.assert_called_once_with(investigation_id=self.investigation.id)
+
+    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_command")
+    def test_command_dispatch_acknowledges_in_order(self, dispatch: mock.Mock) -> None:
+        self.orchestration_run.seer_run = self.create_seer_run(
+            organization=self.organization,
+            type=SeerRunType.INVESTIGATION,
+            seer_run_state_id=self.seer_run_id,
+            mirror_status=SeerRunMirrorStatus.LIVE,
+        )
+        self.orchestration_run.workflow_version = 3
+        self.orchestration_run.projection = self.projection(workflow_version=3)
+        self.orchestration_run.save()
+        first = self.create_investigation_orchestration_command(
+            orchestration_run=self.orchestration_run,
+            request_id=uuid4(),
+            actor_id=self.user.id,
+            expected_workflow_version=1,
+            resulting_workflow_version=2,
+            type="add_hypothesis",
+            payload={"statement": "A release caused this"},
+        )
+        second = self.create_investigation_orchestration_command(
+            orchestration_run=self.orchestration_run,
+            request_id=uuid4(),
+            actor_id=self.user.id,
+            expected_workflow_version=2,
+            resulting_workflow_version=3,
+            type="cancel",
+            payload={},
+        )
+        dispatch.side_effect = [
+            {
+                "runId": self.seer_run_id,
+                "requestId": str(first.request_id),
+                "rerun": None,
+                "projection": self.projection(workflow_version=2),
+            },
+            {
+                "runId": self.seer_run_id,
+                "requestId": str(second.request_id),
+                "rerun": None,
+                "projection": self.projection(workflow_version=3),
+            },
+        ]
+
+        dispatch_investigation_orchestration_commands(self.orchestration_run.id)
+
+        first.refresh_from_db()
+        second.refresh_from_db()
+        assert first.status == InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
+        assert second.status == InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
+        assert [call.args[0].id for call in dispatch.call_args_list] == [first.id, second.id]
+        assert dispatch.call_args.kwargs["viewer_context"] == {
+            "organization_id": self.organization.id,
+            "user_id": self.user.id,
+        }
+
+    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay")
+    def test_command_dispatch_repairs_a_missing_parent_run(
+        self, dispatch_create: mock.Mock
+    ) -> None:
+        command = self.create_investigation_orchestration_command(
+            orchestration_run=self.orchestration_run,
+            request_id=uuid4(),
+            actor_id=self.user.id,
+            expected_workflow_version=1,
+            resulting_workflow_version=2,
+            type="provide_input",
+            payload={"prompt": "Investigate checkout latency"},
+        )
+
+        dispatch_investigation_orchestration_commands(self.orchestration_run.id)
+
+        command.refresh_from_db()
+        assert command.status == InvestigationOrchestrationCommandStatus.ACCEPTED
+        dispatch_create.assert_called_once_with(self.orchestration_run.id)
+
+    @mock.patch("sentry.tasks.seer.investigation.current_task")
+    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_command")
+    def test_failed_command_can_redeliver_the_same_idempotent_request(
+        self,
+        dispatch: mock.Mock,
+        current_task: mock.Mock,
+    ) -> None:
+        self.orchestration_run.seer_run = self.create_seer_run(
+            organization=self.organization,
+            type=SeerRunType.INVESTIGATION,
+            seer_run_state_id=self.seer_run_id,
+            mirror_status=SeerRunMirrorStatus.LIVE,
+        )
+        self.orchestration_run.workflow_version = 2
+        self.orchestration_run.projection = self.projection(workflow_version=2)
+        self.orchestration_run.save()
+        request_id = uuid4()
+        command = self.create_investigation_orchestration_command(
+            orchestration_run=self.orchestration_run,
+            request_id=request_id,
+            actor_id=self.user.id,
+            expected_workflow_version=1,
+            resulting_workflow_version=2,
+            type="add_hypothesis",
+            payload={"statement": "A release caused this"},
+        )
+        current_task.return_value = SimpleNamespace(retries_remaining=False)
+        dispatch.side_effect = SeerApiError("unavailable: token=do-not-expose", 503)
+
+        dispatch_investigation_orchestration_commands(self.orchestration_run.id)
+
+        command.refresh_from_db()
+        self.orchestration_run.refresh_from_db()
+        assert command.status == InvestigationOrchestrationCommandStatus.FAILED
+        assert self.orchestration_run.error == {
+            "code": "seer_command_dispatch_failed",
+            "message": "Unable to deliver this investigation command. Try again.",
+            "requestId": str(request_id),
+            "commandType": "add_hypothesis",
+            "retryable": True,
+        }
+        assert "do-not-expose" not in str(self.orchestration_run.projection)
+
+        with mock.patch(
+            "sentry.investigations.services.orchestration.transaction.on_commit"
+        ) as schedule:
+            accepted = accept_orchestration_command(
+                investigation=self.investigation,
+                request_id=request_id,
+                expected_workflow_version=1,
+                command_type="add_hypothesis",
+                payload={"statement": "A release caused this"},
+                actor_id=self.user.id,
+            )
+        assert accepted.duplicate is True
+        assert accepted.status == InvestigationOrchestrationCommandStatus.ACCEPTED
+        assert accepted.error is None
+        command.refresh_from_db()
+        assert command.status == InvestigationOrchestrationCommandStatus.ACCEPTED
+        schedule.assert_called_once()
+
+        dispatch.side_effect = None
+        dispatch.return_value = {
+            "runId": self.seer_run_id,
+            "requestId": str(request_id),
+            "rerun": None,
+            "projection": self.projection(workflow_version=2),
+        }
+        dispatch_investigation_orchestration_commands(self.orchestration_run.id)
+        command.refresh_from_db()
+        self.orchestration_run.refresh_from_db()
+        assert command.status == InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
+        assert not self.orchestration_run.error
+        assert self.orchestration_run.projection is not None
+        assert self.orchestration_run.projection["errors"] == []
+
+    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_command")
+    def test_late_success_recovers_commands_blocked_by_a_dispatch_failure(
+        self,
+        dispatch: mock.Mock,
+    ) -> None:
+        self.orchestration_run.seer_run = self.create_seer_run(
+            organization=self.organization,
+            type=SeerRunType.INVESTIGATION,
+            seer_run_state_id=self.seer_run_id,
+            mirror_status=SeerRunMirrorStatus.LIVE,
+        )
+        self.orchestration_run.workflow_version = 3
+        self.orchestration_run.projection = self.projection(workflow_version=3)
+        self.orchestration_run.save()
+        first = self.create_investigation_orchestration_command(
+            orchestration_run=self.orchestration_run,
+            request_id=uuid4(),
+            actor_id=self.user.id,
+            expected_workflow_version=1,
+            resulting_workflow_version=2,
+            type="add_hypothesis",
+            payload={"statement": "A release caused this"},
+        )
+        second = self.create_investigation_orchestration_command(
+            orchestration_run=self.orchestration_run,
+            request_id=uuid4(),
+            actor_id=self.user.id,
+            expected_workflow_version=2,
+            resulting_workflow_version=3,
+            type="cancel",
+            payload={},
+        )
+
+        def dispatch_with_racing_failure(command: Any, **kwargs: Any) -> dict[str, Any]:
+            if command.id == first.id:
+                _mark_command_dispatch_failed(first.id)
+            return {
+                "runId": self.seer_run_id,
+                "requestId": str(command.request_id),
+                "rerun": None,
+                "projection": self.projection(workflow_version=command.resulting_workflow_version),
+            }
+
+        dispatch.side_effect = dispatch_with_racing_failure
+        dispatch_investigation_orchestration_commands(self.orchestration_run.id)
+
+        first.refresh_from_db()
+        second.refresh_from_db()
+        assert first.status == InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
+        assert second.status == InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
+        assert second.error is None
+        assert [call.args[0].id for call in dispatch.call_args_list] == [first.id, second.id]
+
+    @mock.patch("sentry.tasks.seer.investigation.current_task")
+    @mock.patch("sentry.tasks.seer.investigation.get_investigation_orchestration_run")
+    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_command")
+    def test_command_conflict_reconciliation_retries_then_persists_failure(
+        self,
+        dispatch: mock.Mock,
+        get_run: mock.Mock,
+        current_task: mock.Mock,
+    ) -> None:
+        self.orchestration_run.seer_run = self.create_seer_run(
+            organization=self.organization,
+            type=SeerRunType.INVESTIGATION,
+            seer_run_state_id=self.seer_run_id,
+            mirror_status=SeerRunMirrorStatus.LIVE,
+        )
+        self.orchestration_run.workflow_version = 2
+        self.orchestration_run.projection = self.projection(workflow_version=2)
+        self.orchestration_run.save()
+        command = self.create_investigation_orchestration_command(
+            orchestration_run=self.orchestration_run,
+            request_id=uuid4(),
+            actor_id=self.user.id,
+            expected_workflow_version=1,
+            resulting_workflow_version=2,
+            type="add_hypothesis",
+            payload={"statement": "A release caused this"},
+        )
+        dispatch.side_effect = SeerApiError("conflict", 409)
+        get_run.side_effect = SeerApiError("unavailable", 503)
+        current_task.return_value = SimpleNamespace(retries_remaining=True)
+
+        with pytest.raises(SeerApiError):
+            dispatch_investigation_orchestration_commands(self.orchestration_run.id)
+        command.refresh_from_db()
+        assert command.status == InvestigationOrchestrationCommandStatus.DISPATCHED
+
+        current_task.return_value = SimpleNamespace(retries_remaining=False)
+        dispatch_investigation_orchestration_commands(self.orchestration_run.id)
+
+        command.refresh_from_db()
+        assert command.status == InvestigationOrchestrationCommandStatus.FAILED
+        assert command.error is not None
+        assert command.error["code"] == "seer_command_dispatch_failed"
+        assert command.error["retryable"] is True
+
+    @mock.patch("sentry.tasks.seer.investigation.get_investigation_orchestration_run")
+    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_command")
+    def test_command_version_conflict_reconciles_and_fails_stale_queue(
+        self,
+        dispatch: mock.Mock,
+        get_run: mock.Mock,
+    ) -> None:
+        self.orchestration_run.seer_run = self.create_seer_run(
+            organization=self.organization,
+            type=SeerRunType.INVESTIGATION,
+            seer_run_state_id=self.seer_run_id,
+            mirror_status=SeerRunMirrorStatus.LIVE,
+        )
+        self.orchestration_run.workflow_version = 12
+        self.orchestration_run.generation = 3
+        self.orchestration_run.projection = self.projection(
+            workflow_version=12,
+            generation=3,
+            phase="intake",
+            status="awaiting_input",
+        )
+        self.orchestration_run.save()
+        request_id = uuid4()
+        command = self.create_investigation_orchestration_command(
+            orchestration_run=self.orchestration_run,
+            request_id=request_id,
+            actor_id=self.user.id,
+            expected_workflow_version=2,
+            resulting_workflow_version=3,
+            type="provide_input",
+            payload={"prompt": "Investigate checkout latency"},
+        )
+        later_command = self.create_investigation_orchestration_command(
+            orchestration_run=self.orchestration_run,
+            request_id=uuid4(),
+            actor_id=self.user.id,
+            expected_workflow_version=3,
+            resulting_workflow_version=4,
+            type="add_hypothesis",
+            payload={"statement": "A release caused this"},
+        )
+        dispatch.side_effect = SeerApiError("conflict", 409)
+        authoritative_error = {
+            "code": "broad_scan_failed",
+            "message": "The broad investigation failed.",
+            "retryable": True,
+        }
+        authoritative_projection = {
+            **self.projection(
+                workflow_version=7,
+                generation=2,
+                phase="failed",
+                status="failed",
+            ),
+            "broadScan": {"status": "failed", "error": authoritative_error},
+            "errors": [authoritative_error],
+            "error": authoritative_error,
+        }
+        get_run.return_value = {
+            "runId": self.seer_run_id,
+            "created": False,
+            "projection": authoritative_projection,
+        }
+
+        dispatch_investigation_orchestration_commands(self.orchestration_run.id)
+
+        self.orchestration_run.refresh_from_db()
+        command.refresh_from_db()
+        later_command.refresh_from_db()
+        assert self.orchestration_run.workflow_version == 7
+        assert self.orchestration_run.generation == 2
+        assert self.orchestration_run.phase == "failed"
+        assert self.orchestration_run.status == "failed"
+        assert self.orchestration_run.error == authoritative_error
+        assert command.status == InvestigationOrchestrationCommandStatus.FAILED
+        assert command.error == {
+            "code": "seer_command_dispatch_failed",
+            "message": (
+                "The investigation changed before this update could be applied. "
+                "Progress was refreshed; try again."
+            ),
+            "requestId": str(request_id),
+            "commandType": "provide_input",
+            "reason": "workflow_version_conflict",
+            "retryable": False,
+        }
+        assert later_command.status == InvestigationOrchestrationCommandStatus.FAILED
+        assert later_command.error is not None
+        assert later_command.error["code"] == "earlier_command_conflicted"
+
+        with mock.patch(
+            "sentry.investigations.services.orchestration.transaction.on_commit"
+        ) as schedule:
+            accepted = accept_orchestration_command(
+                investigation=self.investigation,
+                request_id=request_id,
+                expected_workflow_version=2,
+                command_type="provide_input",
+                payload={"prompt": "Investigate checkout latency"},
+                actor_id=self.user.id,
+            )
+        assert accepted.duplicate is True
+        assert accepted.status == InvestigationOrchestrationCommandStatus.FAILED
+        assert accepted.error == command.error
+        command.refresh_from_db()
+        assert command.status == InvestigationOrchestrationCommandStatus.FAILED
+        schedule.assert_not_called()
+
+    @mock.patch("sentry.tasks.seer.investigation._mark_command_version_conflicted")
+    @mock.patch("sentry.tasks.seer.investigation.get_investigation_orchestration_run")
+    def test_conflict_reconciliation_and_stale_queue_update_are_atomic(
+        self, get_run: mock.Mock, mark_conflicted: mock.Mock
+    ) -> None:
+        self.orchestration_run.update(
+            seer_run=self.create_seer_run(
+                organization=self.organization,
+                type=SeerRunType.INVESTIGATION,
+                seer_run_state_id=self.seer_run_id,
+                mirror_status=SeerRunMirrorStatus.LIVE,
+            ),
+            workflow_version=2,
+            projection=self.projection(workflow_version=2),
+        )
+        command = self.create_investigation_orchestration_command(
+            orchestration_run=self.orchestration_run,
+            request_id=uuid4(),
+            actor_id=self.user.id,
+            expected_workflow_version=1,
+            resulting_workflow_version=2,
+            type="add_hypothesis",
+            payload={"statement": "A release caused this"},
+        )
+        get_run.return_value = {
+            "runId": self.seer_run_id,
+            "projection": self.projection(workflow_version=1),
+        }
+        mark_conflicted.side_effect = RuntimeError("Stale command update failed")
+
+        with pytest.raises(RuntimeError, match="Stale command update failed"):
+            _reconcile_command_version_conflict(
+                self.orchestration_run,
+                command,
+                {"organization_id": self.organization.id, "user_id": self.user.id},
+                "workflow_version_conflict",
+            )
+
+        self.orchestration_run.refresh_from_db()
+        command.refresh_from_db()
+        assert self.orchestration_run.workflow_version == 2
+        assert self.orchestration_run.projection["workflowVersion"] == 2
+        assert command.status == InvestigationOrchestrationCommandStatus.ACCEPTED
+
+    @mock.patch("sentry.tasks.seer.investigation.current_task")
+    @mock.patch("sentry.tasks.seer.investigation.get_investigation_orchestration_run")
+    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_command")
+    def test_command_conflict_retries_after_a_callback_during_recovery(
+        self,
+        dispatch: mock.Mock,
+        get_run: mock.Mock,
+        current_task: mock.Mock,
+    ) -> None:
+        self.orchestration_run.update(
+            seer_run=self.create_seer_run(
+                organization=self.organization,
+                type=SeerRunType.INVESTIGATION,
+                seer_run_state_id=self.seer_run_id,
+                mirror_status=SeerRunMirrorStatus.LIVE,
+            ),
+            workflow_version=2,
+            projection=self.projection(workflow_version=2),
+        )
+        command = self.create_investigation_orchestration_command(
+            orchestration_run=self.orchestration_run,
+            request_id=uuid4(),
+            actor_id=self.user.id,
+            expected_workflow_version=1,
+            resulting_workflow_version=2,
+            type="add_hypothesis",
+            payload={"statement": "A release caused this"},
+        )
+        latest_projection = self.projection(
+            workflow_version=3, phase="completed", status="completed"
+        )
+
+        def get_with_callback(*args: Any, **kwargs: Any) -> dict[str, Any]:
+            deliver_orchestration_event(
+                organization_id=self.organization.id,
+                event={
+                    "schema_version": 1,
+                    "event_id": uuid4(),
+                    "run_id": self.seer_run_id,
+                    "investigation_id": self.investigation.id,
+                    "sequence": 1,
+                    "generation": 1,
+                    "type": "workflow_updated",
+                    "payload": {"projection": latest_projection},
+                },
+            )
+            return {
+                "runId": self.seer_run_id,
+                "created": False,
+                "projection": self.projection(workflow_version=1),
+            }
+
+        dispatch.side_effect = SeerApiError("conflict", 409)
+        get_run.side_effect = get_with_callback
+        current_task.return_value = SimpleNamespace(retries_remaining=True)
+
+        with pytest.raises(SeerApiError, match="Investigation changed while reconciling"):
+            dispatch_investigation_orchestration_commands(self.orchestration_run.id)
+
+        self.orchestration_run.refresh_from_db()
+        command.refresh_from_db()
+        assert self.orchestration_run.workflow_version == 3
+        assert self.orchestration_run.status == "completed"
+        assert self.orchestration_run.last_event_sequence == 1
+        assert command.status == InvestigationOrchestrationCommandStatus.DISPATCHED
+
+        get_run.side_effect = None
+        get_run.return_value = {
+            "runId": self.seer_run_id,
+            "created": False,
+            "projection": latest_projection,
+        }
+        dispatch_investigation_orchestration_commands(self.orchestration_run.id)
+
+        self.orchestration_run.refresh_from_db()
+        command.refresh_from_db()
+        assert self.orchestration_run.workflow_version == 3
+        assert self.orchestration_run.status == "completed"
+        assert self.orchestration_run.last_event_sequence == 1
+        assert command.status == InvestigationOrchestrationCommandStatus.FAILED
+        assert command.error is not None
+        assert command.error["reason"] == "workflow_version_conflict"
+
+    @mock.patch("sentry.tasks.seer.investigation.current_task")
+    @mock.patch("sentry.tasks.seer.investigation.create_investigation_orchestration_run")
+    def test_retry_run_recovers_an_initial_create_failure_without_version_drift(
+        self,
+        create_run: mock.Mock,
+        current_task: mock.Mock,
+    ) -> None:
+        create_run.side_effect = SeerApiError("unavailable", 503)
+        current_task.return_value = SimpleNamespace(retries_remaining=False)
+        dispatch_investigation_orchestration_create(self.orchestration_run.id)
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.status == "failed"
+
+        request_id = uuid4()
+        with mock.patch(
+            "sentry.investigations.services.orchestration.transaction.on_commit"
+        ) as schedule:
+            accepted = accept_orchestration_command(
+                investigation=self.investigation,
+                request_id=request_id,
+                expected_workflow_version=1,
+                command_type="retry",
+                payload={"target": "run"},
+                actor_id=self.user.id,
+            )
+
+        assert accepted.workflow_version == 1
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.workflow_version == 1
+        assert self.orchestration_run.phase == "broad_scan"
+        assert self.orchestration_run.status == "pending"
+        assert self.orchestration_run.error is None
+        command = self.orchestration_run.commands.get(request_id=request_id)
+        assert command.status == InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
+        assert command.resulting_workflow_version == 1
+        schedule.assert_called_once()
+
+    def seer_run_response(self, *, workflow_version: int = 1, created: bool = True) -> mock.Mock:
+        return mock.Mock(
+            status=200,
+            data=json.dumps(
+                {
+                    "runId": self.seer_run_id,
+                    "created": created,
+                    "projection": self.projection(workflow_version=workflow_version),
+                }
+            ).encode(),
+        )
+
+    def delegated_viewer_context(self) -> ViewerContext:
+        return ViewerContext(
+            actor=Actor(
+                type=ActorType.AGENT,
+                actor_id=910001,
+                delegated_user_id=self.user.id,
+                superuser=SuperuserAccess(expires_at=int(timezone.now().timestamp()) + 3600),
+            ),
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+        )
+
+    @override_settings(SEER_API_SHARED_SECRET="human-dispatch-test-secret")
+    @mock.patch(
+        "sentry.investigations.seer_client.get_monitoring_provider_connections", return_value=[]
+    )
+    @mock.patch("sentry.investigations.seer_client.investigation_connection_pool.urlopen")
+    def test_human_dispatch_preserves_ambient_context(
+        self, urlopen: mock.Mock, connections: mock.Mock
+    ) -> None:
+        urlopen.return_value = self.seer_run_response()
+        with viewer_context_scope(None), pytest.raises(MissingViewerContextError):
+            dispatch_investigation_orchestration_create(self.orchestration_run.id)
+        urlopen.assert_not_called()
+
+        inherited = self.delegated_viewer_context()
+        with viewer_context_scope(inherited):
+            dispatch_investigation_orchestration_create(self.orchestration_run.id)
+            assert get_viewer_context() == inherited
+        urlopen.assert_called_once()
+        assert (
+            decode_viewer_context(
+                urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
+                key="human-dispatch-test-secret",
+            )
+            == inherited
+        )
+
+    @with_feature(["organizations:investigations", "organizations:service-accounts"])
+    @override_settings(SEER_API_SHARED_SECRET="saved-actor-test-secret")
+    @mock.patch(
+        "sentry.investigations.seer_client.get_monitoring_provider_connections", return_value=[]
+    )
+    @mock.patch("sentry.investigations.seer_client.investigation_connection_pool.urlopen")
+    def test_saved_account_identity_reaches_create_command_and_reconciliation(
+        self, urlopen: mock.Mock, connections: mock.Mock
+    ) -> None:
+        with outbox_runner():
+            creator = self.create_service_account(
+                organization=self.organization, id=910001, all_projects=True
+            )
+            sender = self.create_service_account(
+                organization=self.organization, name="sender", all_projects=True
+            )
+        self.investigation.update(created_by_id=None, created_by_service_account_id=creator.id)
+        urlopen.return_value = self.seer_run_response()
+        with viewer_context_scope(None):
+            dispatch_investigation_orchestration_create(self.orchestration_run.id)
+            assert get_viewer_context() is None
+        created_context = decode_viewer_context(
+            urlopen.call_args.kwargs["headers"]["X-Viewer-Context"], key="saved-actor-test-secret"
+        )
+        assert created_context == ViewerContext(
+            actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=creator.id),
+            organization_id=self.organization.id,
+        )
+        command = self.create_investigation_orchestration_command(
+            orchestration_run=self.orchestration_run,
+            requested_by_service_account_id=sender.id,
+            request_id=uuid4(),
+            expected_workflow_version=1,
+            type="cancel",
+            payload={},
+        )
+        urlopen.reset_mock()
+        urlopen.side_effect = [
+            mock.Mock(status=409, data=b'{"code":"workflow_version_conflict"}'),
+            self.seer_run_response(workflow_version=2, created=False),
+        ]
+        inherited = self.delegated_viewer_context()
+        with viewer_context_scope(inherited):
+            dispatch_investigation_orchestration_commands(self.orchestration_run.id)
+            assert get_viewer_context() == inherited
+        assert [call.args[0] for call in urlopen.call_args_list] == ["POST", "GET"]
+        for call in urlopen.call_args_list:
+            assert decode_viewer_context(
+                call.kwargs["headers"]["X-Viewer-Context"], key="saved-actor-test-secret"
+            ) == ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=sender.id),
+                organization_id=self.organization.id,
+            )
+        self.investigation.refresh_from_db()
+        assert self.investigation.creator_actor == ActorId(ActorType.SERVICE_ACCOUNT, creator.id)
+        command.refresh_from_db()
+        assert command.error is not None
+        assert command.error["reason"] == "workflow_version_conflict"
+        connections.assert_called_with(self.organization, None, skip_rpc_errors=False)
+
+    @with_feature(["organizations:investigations", "organizations:service-accounts"])
+    @mock.patch("sentry.tasks.seer.investigation.create_investigation_orchestration_run")
+    def test_project_grant_revocation_and_explicit_recovery(self, create_run: mock.Mock) -> None:
+        other_project = self.create_project(organization=self.organization)
+        self.create_notebook_project(notebook=self.investigation, project=self.project)
+        with outbox_runner():
+            account = self.create_service_account(
+                organization=self.organization, project_ids=[self.project.id]
+            )
+        self.investigation.update(created_by_id=None, created_by_service_account_id=account.id)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            grant = ServiceAccountProject.objects.get(service_account=account)
+        with outbox_runner(), assume_test_silo_mode(SiloMode.CONTROL):
+            grant.update(project_id=other_project.id)
+        dispatch_investigation_orchestration_create(self.orchestration_run.id)
+        create_run.assert_not_called()
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.status == "failed"
+        dispatch_error = self.orchestration_run.error
+        assert dispatch_error is not None
+        assert dispatch_error["dispatchReason"] == "actor_access_denied"
+        assert dispatch_error["retryable"] is True
+        assert list(self.investigation.projects.values_list("id", flat=True)) == [self.project.id]
+
+        with outbox_runner(), assume_test_silo_mode(SiloMode.CONTROL):
+            grant.update(project_id=self.project.id)
+        with mock.patch("sentry.investigations.services.orchestration.transaction.on_commit"):
+            accept_orchestration_command(
+                investigation=self.investigation,
+                request_id=uuid4(),
+                expected_workflow_version=1,
+                command_type="retry",
+                payload={"target": "run"},
+                actor_id=self.user.id,
+            )
+        create_run.return_value = {
+            "runId": self.seer_run_id,
+            "projection": self.projection(workflow_version=1),
+        }
+        dispatch_investigation_orchestration_create(self.orchestration_run.id)
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.error is None
+        assert self.orchestration_run.projection["errors"] == []
+        assert self.orchestration_run.seer_run_id is not None
+        self.investigation.refresh_from_db()
+        assert self.investigation.creator_actor == ActorId(ActorType.SERVICE_ACCOUNT, account.id)
+
+    @with_feature(["organizations:investigations", "organizations:service-accounts"])
+    @mock.patch("sentry.tasks.seer.investigation.get_investigation_orchestration_run")
+    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_command")
+    def test_project_grant_revoked_before_reconciliation(
+        self, dispatch: mock.Mock, get_run: mock.Mock
+    ) -> None:
+        self.create_notebook_project(notebook=self.investigation, project=self.project)
+        with outbox_runner():
+            account = self.create_service_account(
+                organization=self.organization, project_ids=[self.project.id]
+            )
+        self.orchestration_run.update(
+            seer_run=self.create_seer_run(
+                organization=self.organization,
+                type=SeerRunType.INVESTIGATION,
+                seer_run_state_id=self.seer_run_id,
+            )
+        )
+        command = self.create_investigation_orchestration_command(
+            orchestration_run=self.orchestration_run,
+            requested_by_service_account_id=account.id,
+            request_id=uuid4(),
+            expected_workflow_version=1,
+            type="cancel",
+            payload={},
+        )
+
+        def revoke_and_conflict(*args: Any, **kwargs: Any) -> None:
+            with outbox_runner(), assume_test_silo_mode(SiloMode.CONTROL):
+                ServiceAccountProject.objects.get(service_account=account).delete()
+            raise SeerApiError("conflict", 409)
+
+        dispatch.side_effect = revoke_and_conflict
+        dispatch_investigation_orchestration_commands(self.orchestration_run.id)
+        dispatch.assert_called_once()
+        get_run.assert_not_called()
+        command.refresh_from_db()
+        assert command.status == InvestigationOrchestrationCommandStatus.FAILED
+        assert command.error is not None
+        assert command.error["dispatchReason"] == "actor_access_denied"
+        assert command.error["retryable"] is True
+
+    @with_feature(["organizations:investigations", "organizations:service-accounts"])
+    @mock.patch("sentry.tasks.seer.investigation.create_investigation_orchestration_run")
+    def test_empty_selection_requires_explicit_all_projects(self, create_run: mock.Mock) -> None:
+        with outbox_runner():
+            account = self.create_service_account(
+                organization=self.organization, project_ids=[self.project.id]
+            )
+        self.investigation.update(created_by_id=None, created_by_service_account_id=account.id)
+        # Individual grants cover every current project, but not the empty selection's future ones.
+        assert list(self.organization.project_set.values_list("id", flat=True)) == [self.project.id]
+        with mock.patch.object(
+            ServiceAccountReplica.objects, "filter", wraps=ServiceAccountReplica.objects.filter
+        ) as account_lookup:
+            dispatch_investigation_orchestration_create(self.orchestration_run.id)
+        assert account_lookup.call_count == 2
+        create_run.assert_not_called()
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.error is not None
+        assert self.orchestration_run.error["dispatchReason"] == "actor_access_denied"
+
+        with outbox_runner(), assume_test_silo_mode(SiloMode.CONTROL):
+            ServiceAccountProject.objects.get(service_account=account).delete()
+            account.update(all_projects=True)
+        create_run.return_value = {
+            "runId": self.seer_run_id,
+            "projection": self.projection(workflow_version=1),
+        }
+        dispatch_investigation_orchestration_create(self.orchestration_run.id)
+        create_run.assert_called_once()
+        assert not self.investigation.projects.exists()

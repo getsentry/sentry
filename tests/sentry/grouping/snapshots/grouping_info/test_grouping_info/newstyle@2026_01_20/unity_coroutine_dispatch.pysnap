@@ -1,0 +1,450 @@
+---
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
+---
+{
+  "grouping_config": "newstyle:2026-01-20",
+  "variants": {
+    "app_exception_stacktrace": {
+      "component": {
+        "contributes": true,
+        "hint": null,
+        "id": "app",
+        "name": "in-app",
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "exception",
+            "name": "exception",
+            "values": [
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "type",
+                "name": null,
+                "values": [
+                  "System.NullReferenceException"
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": "ignored because stacktrace takes precedence",
+                "id": "value",
+                "name": null,
+                "values": [
+                  "Object reference not set to an instance of an object"
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "stacktrace",
+                "name": "stacktrace",
+                "values": [
+                  {
+                    "contributes": false,
+                    "hint": "marked in-app by the client but ignored by built-in stacktrace rule (family:other package:UnityEngine.CoreModule* function:InvokeMoveNext v-group)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "GameBootstrap"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "gamebootstrap.cs"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "Start"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "UnityEngine.MonoBehaviour"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "StartCoroutine"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "UnityEngine.SetupCoroutine"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "InvokeMoveNext"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "EnemySpawner+<SpawnWaves>d__4"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "enemyspawner.cs"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "MoveNext"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "CombatSystem"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "combatsystem.cs"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "ApplyDamage"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "contributes": true,
+      "description": "exception stacktrace — in-app frames",
+      "hash": "04eb3e30c44355bca4f760682c7b6198",
+      "hint": null,
+      "key": "app_exception_stacktrace",
+      "type": "component"
+    },
+    "system_exception_stacktrace": {
+      "component": {
+        "contributes": true,
+        "hint": null,
+        "id": "system",
+        "name": null,
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "exception",
+            "name": "exception",
+            "values": [
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "type",
+                "name": null,
+                "values": [
+                  "System.NullReferenceException"
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": "ignored because stacktrace takes precedence",
+                "id": "value",
+                "name": null,
+                "values": [
+                  "Object reference not set to an instance of an object"
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "stacktrace",
+                "name": "stacktrace",
+                "values": [
+                  {
+                    "contributes": false,
+                    "hint": "ignored by built-in stacktrace rule (family:other package:UnityEngine.CoreModule* function:InvokeMoveNext v-group)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "GameBootstrap"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "gamebootstrap.cs"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "Start"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored by built-in stacktrace rule (family:other package:UnityEngine.CoreModule* function:InvokeMoveNext v-group)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "UnityEngine.MonoBehaviour"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "StartCoroutine"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "UnityEngine.SetupCoroutine"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "InvokeMoveNext"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "EnemySpawner+<SpawnWaves>d__4"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "enemyspawner.cs"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "MoveNext"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "CombatSystem"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "combatsystem.cs"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "ApplyDamage"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "contributes": true,
+      "description": "exception stacktrace — all frames",
+      "hash": "3280616726a0dc4b6230272e6ae3cafb",
+      "hint": null,
+      "key": "system_exception_stacktrace",
+      "type": "component"
+    }
+  }
+}

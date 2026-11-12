@@ -4,9 +4,7 @@ import {ImageViewer} from 'sentry/components/events/attachmentViewers/imageViewe
 
 export const ImageVisualization = styled(ImageViewer)`
   padding: 0;
+  width: 100%;
   height: 100%;
-  img {
-    width: auto;
-    height: 100%;
-  }
+  object-fit: cover;
 `;

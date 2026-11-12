@@ -1,30 +1,27 @@
 import type {Key} from 'react';
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren} from '@react-types/shared';
+import {IconSearch} from '@sentry/icons/search';
 
 import {Badge} from '@sentry/scraps/badge';
 import {ListBox} from '@sentry/scraps/compactSelect';
 import {useHotkeys} from '@sentry/scraps/hotkey';
 import {InputGroup} from '@sentry/scraps/input';
+import {Overlay} from '@sentry/scraps/overlay';
 
-import {Overlay} from 'sentry/components/overlay';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {useRegistry} from 'sentry/debug/notifications/hooks/useRegistry';
-import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {fzf} from 'sentry/utils/search/fzf';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 export function DebugNotificationsSearch() {
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const searchKeys = useMemo(() => {
-    return [{match: '/', callback: () => inputRef.current?.focus()}];
-  }, []);
-  useHotkeys(searchKeys);
+  useHotkeys([{hotkey: '/', callback: () => inputRef.current?.focus()}]);
   const {data: registry = {}} = useRegistry();
   const sourceData = Object.values(registry)
     .flat()
@@ -65,7 +62,6 @@ interface SearchComboBoxProps<T extends SearchItem> extends Omit<
   children: CollectionChildren<T>;
   defaultItems: T[];
   inputRef: React.RefObject<HTMLInputElement | null>;
-  description?: string | null;
   label?: string;
 }
 
@@ -75,7 +71,7 @@ function SearchComboBox<T extends SearchItem>(props: SearchComboBoxProps<T>) {
   const listBoxRef = useRef<HTMLUListElement | null>(null);
   const popoverRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
-  const handleSelectionChange = useCallback(
+  const handleValueChange = useCallback(
     (key: Key | null) => {
       if (key) {
         navigate({query: {source: key}}, {replace: true});
@@ -93,7 +89,7 @@ function SearchComboBox<T extends SearchItem>(props: SearchComboBoxProps<T>) {
     inputValue,
     onInputChange: setInputValue,
     defaultFilter: filter,
-    onSelectionChange: handleSelectionChange,
+    onChange: handleValueChange,
   });
 
   const {inputProps, listBoxProps, labelProps} = useSearchTokenCombobox<T>(

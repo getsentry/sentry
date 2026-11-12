@@ -1,7 +1,8 @@
 import {t} from 'sentry/locale';
 import {IssueType} from 'sentry/types/group';
-import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 import {Tab} from 'sentry/views/issueDetails/types';
+
+import type {IssueCategoryConfigMapping} from './types';
 
 export const httpClientConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
@@ -89,7 +90,7 @@ export const httpClientConfig: IssueCategoryConfigMapping = {
   [IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD]: {
     resources: {
       description: t(
-        'A Large HTTP Payload issue occurs when an http payload size consistently exceeds a threshold of 300KB'
+        'A Large HTTP Payload issue occurs when an http payload size consistently exceeds a threshold of 300kB'
       ),
       links: [
         {

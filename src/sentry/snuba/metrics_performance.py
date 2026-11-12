@@ -3,13 +3,15 @@ from __future__ import annotations
 import logging
 from collections.abc import Sequence
 from datetime import timedelta
-from typing import Any, Literal, overload
+from typing import Any, Literal, cast, overload
 
 import sentry_sdk
+from sentry_sdk import traces
 from snuba_sdk import Column, Condition
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import IncompatibleMetricsQuery
+from sentry.models.organization import Organization
 from sentry.search.events.builder.metrics import (
     HistogramMetricQueryBuilder,
     MetricsQueryBuilder,
@@ -17,13 +19,17 @@ from sentry.search.events.builder.metrics import (
     TopMetricsQueryBuilder,
 )
 from sentry.search.events.fields import get_function_alias
-from sentry.search.events.types import EventsResponse, QueryBuilderConfig, SnubaParams
+from sentry.search.events.types import (
+    EventsResponse,
+    HistogramParams,
+    QueryBuilderConfig,
+    SnubaParams,
+)
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.query_sources import QuerySource
 from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries
-from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
 
@@ -52,12 +58,12 @@ def query(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     granularity: int | None = None,
-    fallback_to_transactions=False,
+    fallback_to_transactions: bool = False,
     query_source: QuerySource | None = None,
     *,
     referrer: str,
 ) -> EventsResponse:
-    with start_span(op="mep", name="MetricQueryBuilder"):
+    with traces.start_span(name="MetricQueryBuilder", attributes={"sentry.op": "mep"}):
         metrics_query = MetricsQueryBuilder(
             dataset=Dataset.PerformanceMetrics,
             params={},
@@ -86,7 +92,7 @@ def query(
         results = metrics_query.run_query(
             referrer=metrics_referrer, query_source=query_source, use_cache=True
         )
-    with start_span(op="mep", name="query.transform_results"):
+    with traces.start_span(name="query.transform_results", attributes={"sentry.op": "mep"}):
         results = metrics_query.process_results(results)
         results["meta"]["isMetricsData"] = True
         results["meta"]["isMetricsExtractedData"] = metrics_query.use_on_demand
@@ -106,7 +112,7 @@ def bulk_timeseries_query(
     snuba_params: SnubaParams,
     rollup: int,
     zerofill_results: bool = True,
-    allow_metric_aggregates=True,
+    allow_metric_aggregates: bool = True,
     comparison_delta: timedelta | None = None,
     functions_acl: list[str] | None = None,
     has_metrics: bool = True,
@@ -127,7 +133,7 @@ def bulk_timeseries_query(
     snuba_params: SnubaParams,
     rollup: int,
     zerofill_results: bool = True,
-    allow_metric_aggregates=True,
+    allow_metric_aggregates: bool = True,
     comparison_delta: timedelta | None = None,
     functions_acl: list[str] | None = None,
     has_metrics: bool = True,
@@ -146,7 +152,7 @@ def bulk_timeseries_query(
     snuba_params: SnubaParams,
     rollup: int,
     zerofill_results: bool = True,
-    allow_metric_aggregates=True,
+    allow_metric_aggregates: bool = True,
     comparison_delta: timedelta | None = None,
     functions_acl: list[str] | None = None,
     has_metrics: bool = True,
@@ -168,7 +174,9 @@ def bulk_timeseries_query(
         metrics_compatible = True
 
     if metrics_compatible:
-        with start_span(op="mep", name="TimeseriesMetricQueryBuilder"):
+        with traces.start_span(
+            name="TimeseriesMetricQueryBuilder", attributes={"sentry.op": "mep"}
+        ):
             metrics_queries = []
             for query in queries:
                 metrics_query = TimeseriesMetricQueryBuilder(
@@ -196,7 +204,7 @@ def bulk_timeseries_query(
             for br in bulk_result:
                 _result["data"] = [*_result["data"], *br["data"]]
                 _result["meta"] = br["meta"]
-        with start_span(op="mep", name="query.transform_results"):
+        with traces.start_span(name="query.transform_results", attributes={"sentry.op": "mep"}):
             result = metrics_query.process_results(_result)
             sentry_sdk.set_tag("performance.dataset", "metrics")
             sentry_sdk.set_attribute("performance.dataset", "metrics")
@@ -256,7 +264,7 @@ def timeseries_query(
     snuba_params: SnubaParams,
     rollup: int,
     zerofill_results: bool = True,
-    allow_metric_aggregates=True,
+    allow_metric_aggregates: bool = True,
     comparison_delta: timedelta | None = None,
     functions_acl: list[str] | None = None,
     has_metrics: bool = True,
@@ -276,8 +284,10 @@ def timeseries_query(
     equations, columns = categorize_columns(selected_columns)
     metrics_compatible = not equations
 
-    def run_metrics_query(inner_params: SnubaParams):
-        with start_span(op="mep", name="TimeseriesMetricQueryBuilder"):
+    def run_metrics_query(inner_params: SnubaParams) -> dict[str, Any]:
+        with traces.start_span(
+            name="TimeseriesMetricQueryBuilder", attributes={"sentry.op": "mep"}
+        ):
             metrics_query = TimeseriesMetricQueryBuilder(
                 params={},
                 interval=rollup,
@@ -297,7 +307,7 @@ def timeseries_query(
             )
             metrics_referrer = referrer + ".metrics-enhanced"
             result = metrics_query.run_query(referrer=metrics_referrer, query_source=query_source)
-        with start_span(op="mep", name="query.transform_results"):
+        with traces.start_span(name="query.transform_results", attributes={"sentry.op": "mep"}):
             result = metrics_query.process_results(result)
             result["data"] = (
                 discover.zerofill(
@@ -400,28 +410,28 @@ def timeseries_query(
 
 
 def top_events_timeseries(
-    timeseries_columns,
-    selected_columns,
-    user_query,
-    snuba_params,
-    orderby,
-    rollup,
-    limit,
-    organization,
-    equations=None,
-    top_events=None,
-    allow_empty=True,
-    zerofill_results=True,
-    include_other=False,
-    functions_acl=None,
-    on_demand_metrics_enabled=False,
+    timeseries_columns: list[str],
+    selected_columns: list[str],
+    user_query: str,
+    snuba_params: SnubaParams,
+    orderby: list[str],
+    rollup: int,
+    limit: int,
+    organization: Organization,
+    equations: list[str] | None = None,
+    top_events: EventsResponse | None = None,
+    allow_empty: bool = True,
+    zerofill_results: bool = True,
+    include_other: bool = False,
+    functions_acl: list[str] | None = None,
+    on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
     transform_alias_to_input_format: bool = False,
     *,
     referrer: str,
-) -> SnubaTSResult | dict[str, Any]:
+) -> dict[str, SnubaTSResult] | SnubaTSResult:
     if top_events is None:
         top_events = query(
             selected_columns,
@@ -552,24 +562,24 @@ def top_events_timeseries(
 
 
 def histogram_query(
-    fields,
-    user_query,
-    snuba_params,
-    num_buckets,
-    precision=0,
-    min_value=None,
-    max_value=None,
-    data_filter=None,
-    group_by=None,
-    order_by=None,
-    limit_by=None,
-    histogram_rows=None,
-    extra_conditions=None,
-    normalize_results=True,
+    fields: list[str],
+    user_query: str,
+    snuba_params: SnubaParams,
+    num_buckets: int,
+    precision: int = 0,
+    min_value: float | None = None,
+    max_value: float | None = None,
+    data_filter: Literal["exclude_outliers"] | None = None,
+    group_by: list[str] | None = None,
+    order_by: list[str] | None = None,
+    limit_by: list[str] | None = None,
+    histogram_rows: int | None = None,
+    extra_conditions: list[Condition] | None = None,
+    normalize_results: bool = True,
     query_source: QuerySource | None = None,
     *,
     referrer: str,
-):
+) -> dict[str, Any] | EventsResponse:
     """
     API for generating histograms for numeric columns.
 
@@ -597,7 +607,7 @@ def histogram_query(
     """
 
     if data_filter == "exclude_outliers":
-        if user_query is None:
+        if cast("str | None", user_query) is None:
             user_query = INLIER_QUERY_CLAUSE
         elif INLIER_QUERY_CLAUSE not in user_query:
             user_query += " " + INLIER_QUERY_CLAUSE
@@ -641,7 +651,9 @@ def histogram_query(
     return result
 
 
-def normalize_histogram_results(fields, histogram_params, results):
+def normalize_histogram_results(
+    fields: list[str], histogram_params: HistogramParams, results: dict[str, Any]
+) -> dict[str, Any]:
     """
     Normalizes the histogram results by renaming the columns to key and bin
     and make sure to zerofill any missing values.

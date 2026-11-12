@@ -1,52 +1,63 @@
-import {createContext, Fragment, useContext, useState} from 'react';
-import {css, type Theme} from '@emotion/react';
+import {Fragment, useId, useState} from 'react';
 import styled from '@emotion/styled';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Input} from '@sentry/scraps/input';
+import {Container} from '@sentry/scraps/layout';
+import type {TableColumnConfig} from '@sentry/scraps/table';
+import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelBody} from 'sentry/components/panels/panelBody';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
-import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import type {AvatarUser} from 'sentry/types/user';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useUser} from 'sentry/utils/useUser';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
-const IsPrimaryUserContext = createContext(false);
-
 const ENDPOINT = getApiUrl('/auth-v2/merge-accounts/');
 const VERIFICATION_CODE_ENDPOINT = getApiUrl('/auth-v2/user-merge-verification-codes/');
+
+const ORGANIZATIONS_COLUMN_WIDTH = 160;
+const MERGE_COLUMN_WIDTH = 90;
+
+const OTHER_ACCOUNT_COLUMNS: TableColumnConfig[] = [
+  {key: 'name', width: 'minmax(150px, 1fr)'},
+  {key: 'lastActive', width: 160},
+  {key: 'organizations', width: ORGANIZATIONS_COLUMN_WIDTH},
+  {key: 'merge', width: MERGE_COLUMN_WIDTH},
+];
+
+const CURRENT_ACCOUNT_COLUMNS: TableColumnConfig[] = [
+  {key: 'name', width: 'minmax(150px, 1fr)'},
+  {key: 'lastActive', width: 160},
+  {key: 'organizations', width: ORGANIZATIONS_COLUMN_WIDTH + MERGE_COLUMN_WIDTH},
+];
 
 interface UserWithOrganizations extends Omit<AvatarUser, 'options'> {
   lastActive: string;
   organizations: string[];
 }
 
+const mergeAccountsOptions = apiOptions.as<UserWithOrganizations[]>()(
+  '/auth-v2/merge-accounts/',
+  {staleTime: 0}
+);
+
 function MergeAccounts() {
-  const {
-    data: users = [],
-    isPending,
-    isError,
-    refetch,
-  } = useApiQuery<UserWithOrganizations[]>(makeMergeAccountsEndpointKey(), {
-    staleTime: 0,
-  });
+  const {data: users = [], isPending, isError, refetch} = useQuery(mergeAccountsOptions);
   const user = useUser();
   const queryClient = useQueryClient();
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
@@ -82,19 +93,17 @@ function MergeAccounts() {
       });
     },
     onSuccess: data => {
-      addSuccessMessage(t('Accounts merged!'));
+      toast.success(t('Accounts merged!'));
       setSelectedUserIds([]);
-      // Will be fixed soon when we get rid of setApiQueryData.
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
-      setApiQueryData<UserWithOrganizations[]>(
-        queryClient,
-        makeMergeAccountsEndpointKey(),
-        data
-      );
+      queryClient.setQueryData(mergeAccountsOptions.queryKey, response => ({
+        ...response,
+        headers: response?.headers ?? {},
+        json: data,
+      }));
     },
     onError: (err: RequestError) => {
       if (err.responseJSON && !('raw' in err.responseJSON)) {
-        addErrorMessage(
+        toast.error(
           Object.values(err.responseJSON ?? {})
             .flat()
             .join(' ')
@@ -112,7 +121,7 @@ function MergeAccounts() {
       });
     },
     onSuccess: () => {
-      addSuccessMessage(t('Verification code posted!'));
+      toast.success(t('Verification code posted!'));
       setVerificationCodeSent(true);
     },
   });
@@ -210,10 +219,6 @@ function MergeAccounts() {
 
 export default MergeAccounts;
 
-function makeMergeAccountsEndpointKey(): ApiQueryKey {
-  return [ENDPOINT];
-}
-
 type AccountSelectionProps = {
   onSelect: (newUserId: string) => void;
   selectedUsers: string[];
@@ -222,6 +227,8 @@ type AccountSelectionProps = {
 
 function AccountSelection({users, onSelect, selectedUsers}: AccountSelectionProps) {
   const signedInUser = useUser();
+  const currentAccountLabelId = useId();
+  const otherAccountsLabelId = useId();
 
   const currentAccount = users.filter(({id}) => id === signedInUser.id);
   const otherAccounts = users.filter(({id}) => id !== signedInUser.id);
@@ -238,131 +245,93 @@ function AccountSelection({users, onSelect, selectedUsers}: AccountSelectionProp
           }
         )}
       </TextBlock>
-      <TextBlock>{t('Your currently active account:')}</TextBlock>
-      <IsPrimaryUserContext value>
-        <Users users={currentAccount} onSelect={onSelect} selectedUsers={selectedUsers} />
-      </IsPrimaryUserContext>
-      <TextBlock>{t('Your other accounts:')}</TextBlock>
-      <IsPrimaryUserContext value={false}>
-        <Users users={otherAccounts} onSelect={onSelect} selectedUsers={selectedUsers} />
-      </IsPrimaryUserContext>
+      <TextBlock id={currentAccountLabelId}>
+        {t('Your currently active account:')}
+      </TextBlock>
+      <Container marginBottom="xl">
+        <SimpleTable
+          aria-labelledby={currentAccountLabelId}
+          columns={CURRENT_ACCOUNT_COLUMNS}
+          flexibleLastColumn={false}
+          scrollable
+          header={
+            <SimpleTable.HeaderRow>
+              <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell>{t('Last Active')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell>{t('Organizations')}</SimpleTable.HeaderCell>
+            </SimpleTable.HeaderRow>
+          }
+        >
+          {currentAccount.map(user => (
+            <SimpleTable.Row key={user.id}>
+              <NameCell user={user} />
+              <SimpleTable.RowCell>{t('Currently active')}</SimpleTable.RowCell>
+              <OrganizationsCell user={user} />
+            </SimpleTable.Row>
+          ))}
+        </SimpleTable>
+      </Container>
+      <TextBlock id={otherAccountsLabelId}>{t('Your other accounts:')}</TextBlock>
+      <Container marginBottom="xl">
+        <SimpleTable
+          aria-labelledby={otherAccountsLabelId}
+          columns={OTHER_ACCOUNT_COLUMNS}
+          flexibleLastColumn={false}
+          scrollable
+          header={
+            <SimpleTable.HeaderRow>
+              <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell>{t('Last Active')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell>{t('Organizations')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell>{t('Merge')}</SimpleTable.HeaderCell>
+            </SimpleTable.HeaderRow>
+          }
+        >
+          {otherAccounts.map(user => (
+            <SimpleTable.Row key={user.id}>
+              <NameCell user={user} />
+              <SimpleTable.RowCell>
+                {user.lastActive === '' ? (
+                  t('Never')
+                ) : (
+                  <Text size="sm">
+                    <TimeSince date={user.lastActive} />
+                  </Text>
+                )}
+              </SimpleTable.RowCell>
+              <OrganizationsCell user={user} />
+              <SimpleTable.RowCell>
+                <Checkbox
+                  aria-label={t('Merge %s', user.name)}
+                  onChange={() => onSelect(user.id)}
+                  checked={selectedUsers.includes(user.id)}
+                />
+              </SimpleTable.RowCell>
+            </SimpleTable.Row>
+          ))}
+        </SimpleTable>
+      </Container>
     </Fragment>
   );
 }
 
-type UserProps = {
-  onSelect: (newUserId: string) => void;
-  selectedUsers: string[];
-  users: UserWithOrganizations[];
-};
-
-function Users({users, onSelect, selectedUsers}: UserProps) {
-  const isPrimaryUser = useContext(IsPrimaryUserContext);
-  if (isPrimaryUser) {
-    return (
-      <Panel>
-        <UserPanelHeader>
-          <div>{t('Name')}</div>
-          <div>{t('Last Active')}</div>
-          <div>{t('Organizations')}</div>
-        </UserPanelHeader>
-        <PanelBody>
-          {users.map(userObj => (
-            <UserRow
-              selectedUsers={selectedUsers}
-              onSelect={onSelect}
-              key={userObj.id}
-              user={userObj}
-            />
-          ))}
-        </PanelBody>
-      </Panel>
-    );
-  }
+function NameCell({user}: {user: UserWithOrganizations}) {
   return (
-    <Panel>
-      <UserPanelHeader>
-        <div>{t('Name')}</div>
-        <div>{t('Last Active')}</div>
-        <div>{t('Organizations')}</div>
-        <div>{t('Merge')}</div>
-      </UserPanelHeader>
-      <PanelBody>
-        {users.map(userObj => (
-          <UserRow
-            onSelect={onSelect}
-            selectedUsers={selectedUsers}
-            key={userObj.id}
-            user={userObj}
-          />
-        ))}
-      </PanelBody>
-    </Panel>
+    <SimpleTable.RowCell>
+      <Text bold wordBreak="break-word">
+        {user.name}
+      </Text>
+    </SimpleTable.RowCell>
   );
 }
 
-type UserRowProps = {
-  onSelect: (newUserId: string) => void;
-  selectedUsers: string[];
-  user: UserWithOrganizations;
-};
-
-function UserRow({user, onSelect, selectedUsers}: UserRowProps) {
-  const isPrimaryUser = useContext(IsPrimaryUserContext);
-
+function OrganizationsCell({user}: {user: UserWithOrganizations}) {
   return (
-    <UserPanelItem>
-      <Name>{user.name}</Name>
-      {isPrimaryUser ? (
-        t('Currently active')
-      ) : user.lastActive === '' ? (
-        t('Never')
-      ) : (
-        <div>
-          <StyledTimeSince date={user.lastActive} />
-        </div>
-      )}
-      <div> {user.organizations.join(', ')} </div>
-      {isPrimaryUser ? null : (
-        <div>
-          <Checkbox
-            role="checkbox"
-            name={user.name}
-            value={user.name}
-            onChange={() => onSelect(user.id)}
-            style={{margin: 5}}
-            checked={selectedUsers.includes(user.id)}
-          />
-        </div>
-      )}
-    </UserPanelItem>
+    <SimpleTable.RowCell>
+      <Text wordBreak="break-word">{user.organizations.join(', ')}</Text>
+    </SimpleTable.RowCell>
   );
 }
-
-const tableLayout = (p: {theme: Theme}) => css`
-  display: grid;
-  grid-template-columns: auto 140px 140px 60px;
-  gap: ${p.theme.space.md};
-  align-items: center;
-`;
-
-const UserPanelItem = styled(PanelItem)`
-  ${tableLayout};
-`;
-
-const Name = styled('div')`
-  margin-bottom: ${p => p.theme.space.xs};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const StyledTimeSince = styled(TimeSince)`
-  font-size: ${p => p.theme.font.size.sm};
-`;
-
-const UserPanelHeader = styled(PanelHeader)`
-  ${tableLayout}
-  justify-content: initial;
-`;
 
 const StyledListItem = styled(ListItem)`
   margin-bottom: ${p => p.theme.space.xs};

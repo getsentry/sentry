@@ -5,16 +5,25 @@ category: status
 source: '@sentry/scraps/badge'
 resources:
   figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=3574-5336
-  js: https://github.com/getsentry/sentry/blob/481d8d642e9cf549eb46fbaac1d0527395e8b490/static/app/components/core/badge/index.tsx
+  js: https://github.com/getsentry/sentry/blob/master/static/packages/scraps/src/badge/index.tsx
   a11y:
     WCAG 1.4.3: https://www.w3.org/TR/WCAG22/#contrast-minimum
 ---
 
 import {useState} from 'react';
 
-import {AlertBadge, DeployBadge, FeatureBadge, Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {FeatureBadge, Tag} from '@sentry/scraps/badge';
+import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
+import {DeployBadge} from 'sentry/components/core/badge/deployBadge';
+import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import {IconCheckmark, IconCircle, IconRefresh, IconWarning} from 'sentry/icons';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconCircle} from '@sentry/icons/circle';
+import {IconRefresh} from '@sentry/icons/refresh';
+import {IconWarning} from '@sentry/icons/warning';
 import * as Storybook from 'sentry/stories';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 
@@ -22,6 +31,75 @@ export const documentation = import('!!type-loader!@sentry/scraps/badge');
 
 Badges are a contextual highlighted text components that support specific use cases like
 `FeatureBadge`, `AlertBadge`, and `DeployBadge`.
+
+## ProjectsBadge
+
+`ProjectsBadge` renders a fixed 16×16 badge of the project platform icons. It's used
+by secondary-navigation items and breadcrumb crumbs to give each a recognizable glyph
+while keeping every leading slot the same size.
+
+The badge adapts to how many platform slugs you pass in `projectPlatforms`:
+
+- **0 platforms** — a "my projects" glyph, or an "all projects" glyph when `allProjects`
+  is set.
+- **1 platform** — a single bordered platform icon.
+- **2+ platforms** — the first two platforms as stacked icons (extra platforms are not
+  shown).
+
+<Storybook.Grid>
+  <Flex align="center" gap="sm">
+    <ProjectsBadge projectPlatforms={[]} />
+    <Text variant="muted">My projects (0)</Text>
+  </Flex>
+  <Flex align="center" gap="sm">
+    <ProjectsBadge projectPlatforms={[]} allProjects />
+    <Text variant="muted">All projects (0)</Text>
+  </Flex>
+  <Flex align="center" gap="sm">
+    <ProjectsBadge projectPlatforms={['javascript']} />
+    <Text variant="muted">1 platform</Text>
+  </Flex>
+  <Flex align="center" gap="sm">
+    <ProjectsBadge projectPlatforms={['python', 'javascript']} />
+    <Text variant="muted">2 platforms</Text>
+  </Flex>
+  <Flex align="center" gap="sm">
+    <ProjectsBadge projectPlatforms={['react', 'node', 'python']} />
+    <Text variant="muted">3 platforms (first two shown)</Text>
+  </Flex>
+</Storybook.Grid>
+```tsx
+{/* No projects selected */}
+<ProjectsBadge projectPlatforms={[]} />
+{/* All projects */}
+<ProjectsBadge projectPlatforms={[]} allProjects />
+{/* A single project */}
+<ProjectsBadge projectPlatforms={['javascript']} />
+{/* Multiple projects — first two platforms are stacked */}
+<ProjectsBadge projectPlatforms={['python', 'javascript']} />
+```
+
+Platform slugs are passed straight through to `PlatformIcon` from `platformicons`, so any
+supported platform renders:
+
+<Storybook.Grid>
+  {['javascript', 'python', 'ruby', 'php', 'java', 'go', 'rust', 'node'].map(platform => (
+    <Flex key={platform} align="center" gap="sm">
+      <ProjectsBadge projectPlatforms={[platform]} />
+      <Text variant="muted">{platform}</Text>
+    </Flex>
+  ))}
+</Storybook.Grid>
+
+### Accessibility
+
+The badge renders `aria-hidden` — it's decorative, and its meaning is carried by the label
+it sits beside.
+
+### Developer responsibilities
+
+- Always pair `ProjectsBadge` with a visible text label. Never rely on the badge alone to
+  convey which saved view, project, or item a crumb or link points to.
 
 ## FeatureBadge
 
@@ -32,6 +110,7 @@ The `FeatureBadge` component should be used to annotate new features as they mov
   <FeatureBadge type="beta" />
   <FeatureBadge type="new" />
   <FeatureBadge type="experimental" />
+  <FeatureBadge type="debug" />
 </Storybook.Demo>
 ```jsx import {FeatureBadge} from '@sentry/scraps/badge';
 
@@ -39,6 +118,28 @@ The `FeatureBadge` component should be used to annotate new features as they mov
 <FeatureBadge type="beta" />
 <FeatureBadge type="new" />
 <FeatureBadge type="experimental" />
+<FeatureBadge type="debug" />
+```
+
+### Nested interactive controls
+
+When a `FeatureBadge` is nested inside an interactive element such as a button, link, or menu item, it detects the parent and does not add a second tab stop. This keeps keyboard navigation on the parent control while still making the badge tooltip available.
+
+When the parent receives keyboard focus, the badge tooltip is shown after the standard tooltip open delay. Do not add a separate `tabIndex` to a nested `FeatureBadge`.
+
+<Storybook.Demo>
+  <Button>
+    <Flex gap="md" align="center">
+      Recommended
+      <FeatureBadge type="new" />
+    </Flex>
+  </Button>
+</Storybook.Demo>
+```jsx
+<Button>
+  Recommended
+  <FeatureBadge type="new" />
+</Button>
 ```
 
 Generally, the default tooltip should suffice, but if your special feature requires additional context, you can customize the `tooltipProps`.
@@ -61,46 +162,19 @@ Generally, the default tooltip should suffice, but if your special feature requi
 The `AlertBadge` component displays an indicator for all Alert types that Sentry supports.
 
 - For metric alerts, set the `status` prop to the `IncidentStatus` enum (from `sentry/views/alerts/types`).
-- For issue alerts, set the `isIssue` prop. `isIssue` overrides the `status`.
-- For alerts that are disabled/paused, set the `isDisabled` prop. `isDisabled` overrides the `status`.
 
 <Storybook.Demo>
   <AlertBadge status={IncidentStatus.OPENED} />
   <AlertBadge status={IncidentStatus.CLOSED} />
   <AlertBadge status={IncidentStatus.WARNING} />
   <AlertBadge status={IncidentStatus.CRITICAL} />
-  <AlertBadge isIssue />
-  <AlertBadge isDisabled />
 </Storybook.Demo>
-```jsx import {AlertBadge} from '@sentry/scraps/badge';
+```jsx import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
 
 <AlertBadge status={IncidentStatus.OPENED} />
 <AlertBadge status={IncidentStatus.CLOSED} />
 <AlertBadge status={IncidentStatus.WARNING} />
 <AlertBadge status={IncidentStatus.CRITICAL} />
-<AlertBadge isIssue />
-<AlertBadge isDisabled />
-```
-
-### Labels
-
-The `withText` prop displays a label for each status.
-
-<Storybook.Demo>
-  <AlertBadge withText status={IncidentStatus.OPENED} />
-  <AlertBadge withText status={IncidentStatus.CLOSED} />
-  <AlertBadge withText status={IncidentStatus.WARNING} />
-  <AlertBadge withText status={IncidentStatus.CRITICAL} />
-  <AlertBadge withText isIssue />
-  <AlertBadge withText isDisabled />
-</Storybook.Demo>
-```jsx
-<AlertBadge withText status={IncidentStatus.OPENED} />
-<AlertBadge withText status={IncidentStatus.CLOSED} />
-<AlertBadge withText status={IncidentStatus.WARNING} />
-<AlertBadge withText status={IncidentStatus.CRITICAL} />
-<AlertBadge withText isIssue />
-<AlertBadge withText isDisabled />
 ```
 
 ## DeployBadge
@@ -122,7 +196,7 @@ The text of each badge is derived from the `environment` passed to the `deploy` 
 <Storybook.Demo>
   <DeployBadge deploy={deploy} orgSlug="sentry" version="1.2.3" projectId={1} />
 </Storybook.Demo>
-```jsx import {DeployBadge} from '@sentry/scraps/badge';
+```jsx import {DeployBadge} from 'sentry/components/core/badge/deployBadge';
 
 <DeployBadge deploy={deploy} orgSlug="sentry" version="1.2.3" projectId={1} />
 ```

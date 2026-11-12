@@ -1,28 +1,38 @@
+from typing import cast
+
 from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
 
 from sentry import audit_log
+from sentry.audit_log.metadata import AGENT_DELEGATION_DATA_KEY, SEER_AGENT_DELEGATION
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.deletedorganization import DeletedOrganization
 from sentry.models.deletedproject import DeletedProject
 from sentry.models.deletedteam import DeletedTeam
 from sentry.models.organization import Organization, OrganizationStatus
+from sentry.service_accounts.auth import SERVICE_ACCOUNT_TOKEN_KIND
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
+from sentry.users.models.user import User
 from sentry.utils.audit import (
     create_audit_entry,
     create_audit_entry_from_user,
     create_system_audit_entry,
 )
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 username = "hello" * 20
 
 
-def fake_http_request(user):
+def fake_http_request(
+    user: User | AnonymousUser | ServiceAccountPrincipal,
+) -> HttpRequest:
     request = HttpRequest()
-    request.user = user
+    setattr(request, "user", user)
     request.META["REMOTE_ADDR"] = "127.0.0.1"
     return request
 
@@ -36,7 +46,7 @@ class CreateAuditEntryTest(TestCase):
         self.team = self.create_team(organization=self.org)
         self.project = self.create_project(teams=[self.team], platform="java")
 
-    def assert_no_delete_log_created(self):
+    def assert_no_delete_log_created(self) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
             assert not DeletedOrganization.objects.filter(slug=self.org.slug).exists()
             assert not DeletedTeam.objects.filter(slug=self.team.slug).exists()
@@ -47,7 +57,7 @@ class CreateAuditEntryTest(TestCase):
         apikey = self.create_api_key(org, allowed_origins="*")
 
         req = fake_http_request(AnonymousUser())
-        req.auth = apikey
+        req.auth = cast("AuthenticatedToken", apikey)
 
         entry = create_audit_entry(req, organization_id=org.id, data={"thing": "to True"})
         assert entry.actor_key == apikey
@@ -55,6 +65,65 @@ class CreateAuditEntryTest(TestCase):
         assert entry.ip_address == req.META["REMOTE_ADDR"]
 
         self.assert_no_delete_log_created()
+
+    def test_audit_entry_service_account_is_labeled(self) -> None:
+        req = fake_http_request(
+            ServiceAccountPrincipal(
+                service_account_id=1, organization_id=self.org.id, name="deploy-bot"
+            )
+        )
+        req.auth = AuthenticatedToken(
+            kind=SERVICE_ACCOUNT_TOKEN_KIND, entity_id=1, organization_id=self.org.id
+        )
+        entry = create_audit_entry(req, organization_id=self.org.id, data={"thing": "to True"})
+        assert entry.actor is None
+        assert entry.actor_label == "service_account:1 (deploy-bot)"
+
+    def test_audit_entry_agent_token_attributes_to_delegating_user(self) -> None:
+        req = fake_http_request(AnonymousUser())
+        # An agent token authenticates as a non-user actor; the audit entry should still be
+        # attributed to the member it acts on behalf of.
+        req.auth = AuthenticatedToken(
+            kind="agent_token", user_id=self.user.id, organization_id=self.org.id
+        )
+
+        with outbox_runner():
+            entry = create_audit_entry(
+                req,
+                organization_id=self.org.id,
+                target_object=self.org.id,
+                event=audit_log.get_event_id("ORG_EDIT"),
+                data={"name": self.org.name},
+            )
+
+        assert entry.actor_id == self.user.id
+        assert entry.data[AGENT_DELEGATION_DATA_KEY] == SEER_AGENT_DELEGATION
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            persisted_entry = AuditLogEntry.objects.get(
+                organization_id=self.org.id,
+                target_object=self.org.id,
+                event=audit_log.get_event_id("ORG_EDIT"),
+            )
+            assert persisted_entry.actor_id == self.user.id
+            assert persisted_entry.data[AGENT_DELEGATION_DATA_KEY] == SEER_AGENT_DELEGATION
+
+        self.assert_no_delete_log_created()
+
+    def test_audit_entry_uses_agent_viewer_context_for_delegation(self) -> None:
+        with viewer_context_scope(
+            ViewerContext(
+                actor=Actor(type=ActorType.AGENT, delegated_user_id=self.user.id),
+                organization_id=self.org.id,
+            )
+        ):
+            entry = create_audit_entry_from_user(
+                self.user,
+                organization_id=self.org.id,
+                data={"thing": "to True"},
+            )
+
+        assert entry.actor_id == self.user.id
+        assert entry.data[AGENT_DELEGATION_DATA_KEY] == SEER_AGENT_DELEGATION
 
     def test_audit_entry_frontend(self) -> None:
         org = self.create_organization()
@@ -65,6 +134,7 @@ class CreateAuditEntryTest(TestCase):
         assert entry.actor == req.user
         assert entry.actor_key is None
         assert entry.ip_address == req.META["REMOTE_ADDR"]
+        assert AGENT_DELEGATION_DATA_KEY not in entry.data
 
         self.assert_no_delete_log_created()
 

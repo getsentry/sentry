@@ -4,7 +4,8 @@ import {observe} from 'mobx';
 
 import {FormContext} from 'sentry/components/forms/formContext';
 import type {FieldValue} from 'sentry/components/forms/types';
-import {getFormFieldValue} from 'sentry/components/workflowEngine/form/getFormFieldValue';
+
+import {getFormFieldValue} from './getFormFieldValue';
 
 // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 export function useFormField<Value extends FieldValue = FieldValue>(
@@ -19,22 +20,11 @@ export function useFormField<Value extends FieldValue = FieldValue>(
         return noop;
       }
 
-      // Check if the field exists
-      if (!form?.fields.has(field)) {
-        // Allow field to be created later by subscribing to all fields
-        return observe(form.fields, () => {
-          // Only call callback if our specific field now exists
-          // This is less efficient than observing the specific field
-          if (form.fields.has(field)) {
-            callback();
-          }
-        });
-      }
-
-      // Use MobX observe for specific field watching
-      const dispose = observe(form.fields, field, callback);
-
-      return dispose;
+      return observe(form.fields, change => {
+        if (change.name === field) {
+          callback();
+        }
+      });
     },
     [context.form, field]
   );

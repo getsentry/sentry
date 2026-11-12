@@ -9,6 +9,7 @@ from slack_sdk.models.blocks import (
     Block,
     ButtonElement,
     ContextBlock,
+    DividerBlock,
     InteractiveElement,
     LinkButtonElement,
     MarkdownBlock,
@@ -17,23 +18,35 @@ from slack_sdk.models.blocks import (
     RichTextBlock,
     RichTextElementParts,
     RichTextListElement,
+    RichTextQuoteElement,
     RichTextSectionElement,
     SectionBlock,
+    TaskCardBlock,
 )
 
+from sentry.notifications.platform.registry import renderer_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
     SeerAgentError,
     SeerAgentResponse,
     SeerAutofixError,
+    SeerAutofixStopped,
     SeerAutofixTrigger,
     SeerAutofixUpdate,
+    SeerInvestigationConclusion,
+    SeerInvestigationError,
+    SeerInvestigationStarted,
+    SeerInvestigationStatus,
 )
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     NotificationData,
+    NotificationProviderKey,
     NotificationRenderedTemplate,
+    NotificationSource,
 )
+from sentry.seer.agent.client_models import RepoPRState
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
 
 if TYPE_CHECKING:
@@ -85,10 +98,30 @@ AUTOFIX_CONFIG: dict[AutofixStoppingPoint, AutofixStageConfig] = {
 }
 
 
+@renderer_registry.register(
+    NotificationProviderKey.SLACK,
+    sources=[
+        NotificationSource.SEER_AUTOFIX_TRIGGER,
+        NotificationSource.SEER_AUTOFIX_ERROR,
+        NotificationSource.SEER_AUTOFIX_STOPPED,
+        NotificationSource.SEER_AUTOFIX_SUCCESS,
+        NotificationSource.SEER_AUTOFIX_UPDATE,
+        NotificationSource.SEER_AGENT_RESPONSE,
+        NotificationSource.SEER_AGENT_ERROR,
+        NotificationSource.SEER_INVESTIGATION_STARTED,
+        NotificationSource.SEER_INVESTIGATION_ERROR,
+        NotificationSource.SEER_INVESTIGATION_STATUS,
+        NotificationSource.SEER_INVESTIGATION_CONCLUSION,
+    ],
+)
 class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
     @classmethod
     def render[DataT: NotificationData](
-        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
+        cls,
+        *,
+        data: DataT,
+        rendered_template: NotificationRenderedTemplate,
+        link_decorator: NotificationLinkDecorator,
     ) -> SlackRenderable:
         if isinstance(data, SeerAutofixTrigger):
             autofix_button = cls._render_autofix_button(data)
@@ -98,12 +131,29 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             )
         elif isinstance(data, SeerAutofixError):
             return cls._render_autofix_error(data)
+        elif isinstance(data, SeerAutofixStopped):
+            return SlackRenderable(
+                blocks=[
+                    SectionBlock(text="Seer stopped early"),
+                    SectionBlock(text=MarkdownTextObject(text=f">{data.reason}")),
+                    SectionBlock(text=MarkdownTextObject(text=f"*Suggestion:* {data.suggestion}")),
+                ],
+                text="Seer stopped early",
+            )
         elif isinstance(data, SeerAutofixUpdate):
-            return cls._render_autofix_update(data)
+            return cls._render_autofix_update(data, link_decorator)
         elif isinstance(data, SeerAgentError):
             return cls._render_agent_error(data)
         elif isinstance(data, SeerAgentResponse):
-            return cls._render_agent_response(data)
+            return cls._render_agent_response(data, link_decorator)
+        elif isinstance(data, SeerInvestigationStarted):
+            return cls._render_investigation_started(data)
+        elif isinstance(data, SeerInvestigationError):
+            return cls._render_investigation_error(data)
+        elif isinstance(data, SeerInvestigationStatus):
+            return cls._render_investigation_status(data, link_decorator)
+        elif isinstance(data, SeerInvestigationConclusion):
+            return cls._render_investigation_conclusion(data, link_decorator)
         else:
             raise ValueError(f"SeerSlackRenderer does not support {data.__class__.__name__}")
 
@@ -161,7 +211,9 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         )
 
     @classmethod
-    def _render_autofix_update(cls, data: SeerAutofixUpdate) -> SlackRenderable:
+    def _render_autofix_update(
+        cls, data: SeerAutofixUpdate, link_decorator: NotificationLinkDecorator
+    ) -> SlackRenderable:
         from sentry.integrations.slack.message_builder.routing import encode_action_id
         from sentry.integrations.slack.message_builder.types import SlackAction
 
@@ -169,7 +221,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         link_button = cls._render_link_button(
             organization_id=data.organization_id,
             project_id=data.project_id,
-            group_link=data.group_link,
+            group_link=link_decorator.decorate_url(data.group_link),
         )
         action_elements: list[InteractiveElement] = [link_button]
         if data.handoff_target and data.current_point == AutofixStoppingPoint.ROOT_CAUSE:
@@ -192,7 +244,18 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
 
         if data.summary:
             blocks.append(SectionBlock(text=MarkdownTextObject(text=data.summary)))
+        if data.reasoning:
+            if data.reasoning_header:
+                blocks.append(
+                    SectionBlock(text=MarkdownTextObject(text=f"*{data.reasoning_header}*"))
+                )
+            parts = [RichTextElementParts.Text(text=item) for item in data.reasoning[:MAX_STEPS]]
+            sections = [RichTextSectionElement(elements=[part]) for part in parts]
+            list_element = RichTextListElement(style="ordered", indent=0, elements=sections)
+            blocks.append(RichTextBlock(elements=[list_element]))
         if data.steps:
+            if data.steps_header:
+                blocks.append(SectionBlock(text=MarkdownTextObject(text=f"*{data.steps_header}*")))
             parts = [RichTextElementParts.Text(text=step) for step in data.steps[:MAX_STEPS]]
             sections = [RichTextSectionElement(elements=[part]) for part in parts]
             list_element = RichTextListElement(style="ordered", indent=0, elements=sections)
@@ -208,21 +271,20 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 if change.get("diff"):
                     change_mrkdwn.append(f"```{change['diff']}```")
                 blocks.append(SectionBlock(text=MarkdownTextObject(text="\n".join(change_mrkdwn))))
-        if data.pull_requests:
-            action_id = encode_action_id(
-                action=SlackAction.SEER_AUTOFIX_VIEW_PR.value,
-                organization_id=data.organization_id,
-                project_id=data.project_id,
-            )
-            for pr in data.pull_requests[:MAX_PRS]:
-                action_elements.append(
-                    LinkButtonElement(
-                        text=f"View PR (#{pr['pr_number']})",
-                        style="primary",
-                        url=pr["pr_url"],
-                        action_id=f"{action_id}::{pr['pr_number']}",
-                    )
+        for pr in data.pull_requests[:MAX_PRS]:
+            action_elements.append(
+                LinkButtonElement(
+                    text=f"View PR (#{pr['pr_number']})",
+                    style="primary",
+                    url=link_decorator.decorate_url(pr["pr_url"]),
+                    action_id=encode_action_id(
+                        action=SlackAction.SEER_AUTOFIX_VIEW_PR.value,
+                        organization_id=data.organization_id,
+                        project_id=data.project_id,
+                        suffix=str(pr["pr_number"]),
+                    ),
                 )
+            )
 
         if action_elements:
             blocks.append(ActionsBlock(elements=action_elements))
@@ -240,22 +302,174 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         )
 
     @classmethod
-    def _render_agent_response(cls, data: SeerAgentResponse) -> SlackRenderable:
+    def _render_investigation_started(cls, data: SeerInvestigationStarted) -> SlackRenderable:
+        text = f"<@{data.slack_user_id}> started a Seer investigation for this alert."
+        return SlackRenderable(blocks=[MarkdownBlock(text=text)], text=text)
+
+    @classmethod
+    def render_investigation_link_button(
+        cls, data: SeerInvestigationStarted, link_decorator: NotificationLinkDecorator
+    ) -> ButtonElement:
+        return ButtonElement(
+            text="Open investigation",
+            url=link_decorator.decorate_url(data.investigation_url),
+            value="link_clicked",
+        )
+
+    @classmethod
+    def _render_investigation_error(cls, data: SeerInvestigationError) -> SlackRenderable:
+        text = f"Seer couldn't start an investigation: {data.error_message}"
+        return SlackRenderable(blocks=[MarkdownBlock(text=text)], text=text)
+
+    @classmethod
+    def _render_progress(cls, data: SeerInvestigationStatus) -> list[Block]:
+        if not data.progress:
+            return []
+        return [
+            TaskCardBlock(
+                task_id="investigation-progress",
+                title=data.progress["title"],
+                status=data.progress["status"],
+                details=RichTextBlock(
+                    elements=[
+                        RichTextSectionElement(
+                            elements=[RichTextElementParts.Text(text=data.progress["detail"])]
+                        )
+                    ]
+                ),
+            )
+        ]
+
+    @classmethod
+    def _render_investigation_status(
+        cls, data: SeerInvestigationStatus, link_decorator: NotificationLinkDecorator
+    ) -> SlackRenderable:
+        from sentry.integrations.slack.utils.escape import escape_slack_text
+
+        text = f"Investigating {data.title}"
+        header = f"*{escape_slack_text(text)}*"
+        if data.subtitle:
+            header += f"\n{escape_slack_text(data.subtitle)}"
+        bold = RichTextElementParts.TextStyle(bold=True)
+        blocks: list[Block] = [SectionBlock(text=MarkdownTextObject(text=header))]
+        for index, hypothesis in enumerate(data.hypotheses, start=1):
+            quote = RichTextQuoteElement(
+                elements=[
+                    RichTextElementParts.Text(
+                        text=f"{index}. {hypothesis['statement']}", style=bold
+                    ),
+                    RichTextElementParts.Text(text=f"\n{hypothesis['label']}", style=bold),
+                    RichTextElementParts.Text(text=f"\n{hypothesis['detail']}"),
+                ]
+            )
+            blocks.append(RichTextBlock(elements=[quote]))
+        blocks.extend(cls._render_progress(data))
+        if not data.progress or data.progress["status"] != "complete":
+            blocks.append(DividerBlock())
+            blocks.append(
+                ActionsBlock(
+                    elements=[
+                        ButtonElement(
+                            text="View full investigation",
+                            style="primary",
+                            url=link_decorator.decorate_url(data.investigation_url),
+                            value="link_clicked",
+                        )
+                    ]
+                )
+            )
+        return SlackRenderable(blocks=blocks, text=escape_slack_text(text))
+
+    @classmethod
+    def _render_investigation_conclusion(
+        cls, data: SeerInvestigationConclusion, link_decorator: NotificationLinkDecorator
+    ) -> SlackRenderable:
+        from sentry.integrations.slack.utils.escape import escape_slack_text
+
+        text = f"*{escape_slack_text(data.summary)}*"
+        if data.summary_description:
+            text += f"\n{escape_slack_text(data.summary_description)}"
+        blocks: list[Block] = [SectionBlock(text=MarkdownTextObject(text=text))]
+        if data.next_step:
+            next_step = (
+                f"*Suggested next step:* {escape_slack_text(data.next_step['title'])}\n"
+                f"{escape_slack_text(data.next_step['rationale'])}"
+            )
+            blocks.append(SectionBlock(text=MarkdownTextObject(text=next_step)))
+        blocks.append(DividerBlock())
+        blocks.append(
+            ActionsBlock(
+                elements=[
+                    ButtonElement(
+                        text="View full investigation",
+                        style="primary",
+                        url=link_decorator.decorate_url(data.investigation_url),
+                        value="link_clicked",
+                    )
+                ]
+            )
+        )
+        return SlackRenderable(blocks=blocks, text="Seer finished the investigation")
+
+    @classmethod
+    def _render_agent_response(
+        cls, data: SeerAgentResponse, link_decorator: NotificationLinkDecorator
+    ) -> SlackRenderable:
         from sentry import features
         from sentry.models.organization import Organization
+        from sentry.seer.endpoints.utils import get_seer_run
 
         blocks: list[Block] = [MarkdownBlock(text=data.summary)]
+        if data.repo_pr_states:
+            pr_status = "\n".join(cls._render_agent_pr_state(pr) for pr in data.repo_pr_states)
+            blocks.append(ContextBlock(elements=[MarkdownTextObject(text=pr_status)]))
         try:
             organization = Organization.objects.get_from_cache(id=data.organization_id)
         except Organization.DoesNotExist:
             organization = None
         if organization and features.has("organizations:seer-run-id-in-slack", organization):
-            blocks.append(ContextBlock(elements=[PlainTextObject(text=f"Run ID: {data.run_id}")]))
+            # Explore Agents conversations use SeerRun.uuid (gen_ai.conversation.id),
+            # not Seer's numeric DbRunState id from the Slack payload.
+            seer_run = get_seer_run(data.run_id, organization)
+            if seer_run is not None:
+                conversation_id = str(seer_run.uuid)
+                run_url = organization.absolute_url(
+                    f"/organizations/{organization.slug}/explore/agents/conversations/{conversation_id}/"
+                )
+                run_url = link_decorator.decorate_url(run_url)
+                blocks.append(
+                    ContextBlock(
+                        elements=[
+                            MarkdownTextObject(text=f"Agent Trace: <{run_url}|{conversation_id}>")
+                        ]
+                    )
+                )
 
         if data.missing_scope_settings_url:
-            blocks.extend(cls.render_missing_scope_footer(data.missing_scope_settings_url))
+            blocks.extend(
+                cls.render_missing_scope_footer(
+                    link_decorator.decorate_url(data.missing_scope_settings_url)
+                )
+            )
 
         return SlackRenderable(blocks=blocks, text="Seer Agent has finished")
+
+    @staticmethod
+    def _render_agent_pr_state(pr: RepoPRState) -> str:
+        repo_text = f"`{pr.repo_name}`"
+        pr_text = f"<{pr.pr_url}|{pr.repo_name}#{pr.pr_number}>" if pr.pr_url else repo_text
+        match pr.pr_creation_status:
+            case "creating":
+                return (
+                    f"Updating {pr_text}..." if pr.pr_number else f"Creating a PR in {repo_text}..."
+                )
+            case "error":
+                return f"Latest push failed for {pr_text}"
+            case "completed":
+                commit = f" (`{pr.commit_sha[:7]}`)" if pr.commit_sha else ""
+                return f"Latest push complete for {pr_text}{commit}"
+            case _:
+                return pr_text
 
     @classmethod
     def _render_link_button(
@@ -283,6 +497,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
     def render_footer_blocks(
         cls,
         data: SeerAutofixUpdate,
+        link_decorator: NotificationLinkDecorator,
         extra_text: str | None = None,
         has_complete_stage: bool = True,
     ) -> list[Block]:
@@ -303,7 +518,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 accessory=cls._render_link_button(
                     organization_id=data.organization_id,
                     project_id=data.project_id,
-                    group_link=data.group_link,
+                    group_link=link_decorator.decorate_url(data.group_link),
                 ),
             ),
         ]

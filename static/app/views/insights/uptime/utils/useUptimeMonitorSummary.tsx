@@ -1,8 +1,8 @@
-import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useQuery} from '@tanstack/react-query';
+
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {UptimeSummary} from 'sentry/views/alerts/rules/uptime/types';
+import type {UptimeSummary} from 'sentry/views/detectors/components/uptime/types';
 
 interface Options {
   /**
@@ -10,41 +10,24 @@ interface Options {
    * IDs of the UptimeRule id's
    */
   detectorIds: string[];
-  /**
-   * The window configuration object, if supplied the `start` and `end` will be
-   * calculated using the timewindow start end time.
-   */
-  timeWindowConfig?: TimeWindowConfig;
 }
 
 /**
  * Fetches Uptime Monitor summaries
  */
-export function useUptimeMonitorSummaries({detectorIds, timeWindowConfig}: Options) {
-  const selectionQuery: Record<string, any> = {};
-
-  if (timeWindowConfig) {
-    selectionQuery.start = Math.floor(timeWindowConfig.start.getTime() / 1000);
-    selectionQuery.end = Math.floor(timeWindowConfig.end.getTime() / 1000);
-  }
-
+export function useUptimeMonitorSummaries({detectorIds}: Options) {
   const organization = useOrganization();
 
-  return useApiQuery<Record<string, UptimeSummary>>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/uptime-summary/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  return useQuery(
+    apiOptions.as<Record<string, UptimeSummary>>()(
+      '/organizations/$organizationIdOrSlug/uptime-summary/',
       {
+        path: {organizationIdOrSlug: organization.slug},
         query: {
           uptimeDetectorId: detectorIds,
-          ...selectionQuery,
         },
-      },
-    ],
-    {
-      staleTime: 0,
-      enabled: !timeWindowConfig || timeWindowConfig.rollupConfig.totalBuckets > 0,
-    }
+        staleTime: 0,
+      }
+    )
   );
 }

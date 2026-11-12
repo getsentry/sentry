@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 import pytest
 
 from sentry.interfaces.stacktrace import Frame
@@ -12,6 +14,12 @@ from sentry.stacktraces.functions import (
 @pytest.mark.parametrize(
     "input,output",
     [
+        ["function", "function"],
+        ["namespace::Class::function", "namespace::Class::function"],
+        [" const ", " const "],
+        [" namespace::const ", "namespace::"],
+        ["namespace::function::h9de5fbebc1652d47", "namespace::function"],
+        ["?A0xc3a0617d::crash", "`anonymous namespace'::crash"],
         [
             "Scaleform::GFx::AS3::IMEManager::DispatchEvent(char const *,char const *,char const *)",
             "Scaleform::GFx::AS3::IMEManager::DispatchEvent",
@@ -78,6 +86,92 @@ from sentry.stacktraces.functions import (
         ["<T as core::convert::Into<U>>::into", "core::convert::Into<T>::into"],
         ["ThreadStartWhatever@16", "ThreadStartWhatever"],
         ["@ThreadStartWhatever@16", "ThreadStartWhatever"],
+        [
+            "NativeButtons_DoSomeWorkHere_m7486FA1E8A228E806BA045D26ABECC87DFD436B4",
+            "NativeButtons_DoSomeWorkHere",
+        ],
+        # Symbolicated frames carry the C++ signature, so the hash is only final once args go.
+        [
+            "Thread_Sleep_m71DE163765BF465EC4A0163F2ED4D43143094549(int, MethodInfo const*)",
+            "Thread_Sleep",
+        ],
+        [
+            "U3CAppHangCaptureU3Ed__12_MoveNext_m92EE64B7CB73ABCEE3CA67581B1F90122637F61D"
+            "(U3CAppHangCaptureU3Ed__12_tF24197A44C378085E75CA07E995888BBF01EDA62*, MethodInfo const*)",
+            "U3CAppHangCaptureU3Ed__12_MoveNext",
+        ],
+        [
+            "List_1_CopyTo_m5180D7A430072A21034A0692CDD1D565ADEE2ABB_gshared(RuntimeArray*, int32_t)",
+            "List_1_CopyTo_gshared",
+        ],
+        [
+            "List_1_CopyTo_m5180D7A430072A21034A0692CDD1D565ADEE2ABB_gshared",
+            "List_1_CopyTo_gshared",
+        ],
+        [
+            "List_1_CopyTo_m5180D7A430072A21034A0692CDD1D565ADEE2ABB_fshared",
+            "List_1_CopyTo_fshared",
+        ],
+        [
+            "LinkedList_1_get_First_mFE6CE39F3C815C988217E69C202C990619E7EB87_inline",
+            "LinkedList_1_get_First_inline",
+        ],
+        [
+            "LinkedList_1_get_First_mFE6CE39F3C815C988217E69C202C990619E7EB87_gshared_inline",
+            "LinkedList_1_get_First_gshared_inline",
+        ],
+        [
+            "LinkedList_1_get_First_mFE6CE39F3C815C988217E69C202C990619E7EB87_fshared_inline",
+            "LinkedList_1_get_First_fshared_inline",
+        ],
+        [
+            "AnimationClipPlayable_Equals_mC5263BEA86C02CEDF93C5B14EAA168883E1DB5F4_AdjustorThunk",
+            "AnimationClipPlayable_Equals_AdjustorThunk",
+        ],
+        [
+            "GetRayIntersectionAllCallback_Invoke_m917AA4108EBDC724AFEF39BFD06A586B7461F497_Multicast",
+            "GetRayIntersectionAllCallback_Invoke_Multicast",
+        ],
+        [
+            "GetRayIntersectionAllCallback_Invoke_m917AA4108EBDC724AFEF39BFD06A586B7461F497_OpenStatic",
+            "GetRayIntersectionAllCallback_Invoke_OpenStatic",
+        ],
+        [
+            "unitytls_x509list_get_ref_t_Invoke_mE7C675B7847FFEF96C25AE757D34CE920AA16EC2_OpenInstance",
+            "unitytls_x509list_get_ref_t_Invoke_OpenInstance",
+        ],
+        [
+            "LocalCertificateSelectionCallback_Invoke_mED43EE6E88B8C653C7D68966F86751B70907591C_OpenGenericVirtual",
+            "LocalCertificateSelectionCallback_Invoke_OpenGenericVirtual",
+        ],
+        # The delegate invokers ship in both spellings, and both occur in the same build.
+        [
+            "ParameterizedConstructorDelegate_5_Invoke_m8ABE4DDEF0C49FF41403E4B3A4064E885DEC800E_OpenStaticInvoker",
+            "ParameterizedConstructorDelegate_5_Invoke_OpenStaticInvoker",
+        ],
+        [
+            "ParameterizedConstructorDelegate_5_Invoke_m8E54847F621BC27BAF3601B6E718F8243082CE3E_OpenVirtualInvoker",
+            "ParameterizedConstructorDelegate_5_Invoke_OpenVirtualInvoker",
+        ],
+        [
+            "OnVideoCaptureResourceCreatedCallback_Invoke_mE75C26918C0D14F264699056B8BB4B303246A7AD_OpenInterfaceInvoker",
+            "OnVideoCaptureResourceCreatedCallback_Invoke_OpenInterfaceInvoker",
+        ],
+        # Generic parameter instantiations carry a variable number of indices.
+        [
+            "AndroidJNIHelper_ConvertFromJNIArray_mAB7ACB3EE802BD8FCCF0D816108D296367FCA69D_gp_0_0_0_0",
+            "AndroidJNIHelper_ConvertFromJNIArray_gp_0_0_0_0",
+        ],
+        [
+            "AndroidJNIHelper_GetFieldID_mD25F75AF5FF5844520E9564616E3A25F6070B3EB_gp_0_1_0_2",
+            "AndroidJNIHelper_GetFieldID_gp_0_1_0_2",
+        ],
+        # `_RuntimeMethod_var` is a real IL2CPP suffix, but it names a variable rather than a
+        # function, so it never reaches a stack trace and the hash stays put.
+        [
+            "Scope_Apply_m68049D2D67C5881750236D8E55E464E7A96A2DD7_RuntimeMethod_var",
+            "Scope_Apply_m68049D2D67C5881750236D8E55E464E7A96A2DD7_RuntimeMethod_var",
+        ],
         ["@objc ViewController.causeCrash(Any) -> ()", "ViewController.causeCrash"],
         ["ViewController.causeCrash(Any) -> ()", "ViewController.causeCrash"],
         [
@@ -129,7 +223,7 @@ from sentry.stacktraces.functions import (
         ],
     ],
 )
-def test_trim_native_function_name(input, output) -> None:
+def test_trim_native_function_name(input: str, output: str) -> None:
     assert trim_function_name(input, "native") == output
 
 
@@ -143,7 +237,7 @@ def test_trim_native_function_name(input, output) -> None:
         ],
     ],
 )
-def test_trim_csharp_function_name(input, output) -> None:
+def test_trim_csharp_function_name(input: str, output: str) -> None:
     assert trim_function_name(input, "csharp") == output
 
 
@@ -176,11 +270,11 @@ def test_trim_csharp_function_name(input, output) -> None:
         ],
     ],
 )
-def test_trim_cocoa_function_name(input, output) -> None:
+def test_trim_cocoa_function_name(input: str, output: str) -> None:
     assert trim_function_name(input, "cocoa") == output
 
 
-def replace_group(value, start):
+def replace_group(value: str, start: int) -> str:
     if start == 0:
         assert value == "anonymous namespace"
         return "(new value)"
@@ -201,13 +295,16 @@ def replace_group(value, start):
         ],
     ],
 )
-def test_enclosed_string_simple(input, start, end, replacement, output) -> None:
+def test_enclosed_string_simple(
+    input: str, start: str, end: str, replacement: str | Callable[[str, int], str], output: str
+) -> None:
     assert replace_enclosed_string(input, start, end, replacement) == output
 
 
 @pytest.mark.parametrize(
     "input,output",
     [
+        ["namespace::Class::function", ["namespace::Class::function"]],
         ["foo bar baz", ["foo", "bar", "baz"]],
         ["foo bar (enclosed baz)", ["foo", "bar", "(enclosed baz)"]],
         ["foo (enclosed bar) baz", ["foo", "(enclosed bar)", "baz"]],
@@ -215,7 +312,7 @@ def test_enclosed_string_simple(input, start, end, replacement, output) -> None:
         ["foo bar [baz (blah)]", ["foo", "bar", "[baz (blah)]"]],
     ],
 )
-def test_split_func_tokens(input, output) -> None:
+def test_split_func_tokens(input: str, output: list[str]) -> None:
     assert split_func_tokens(input) == output
 
 
@@ -261,5 +358,7 @@ def test_trim_function_name_cocoa() -> None:
         [{"source_link": "woejfdsiwjidsoi", "lineNo": "7"}, None],
     ],
 )
-def test_get_source_link_for_frame(input, output) -> None:
-    assert get_source_link_for_frame(Frame.to_python(input)) == output
+def test_get_source_link_for_frame(input: dict[str, str], output: str | None) -> None:
+    frame = Frame.to_python(input)
+    assert frame is not None
+    assert get_source_link_for_frame(frame) == output

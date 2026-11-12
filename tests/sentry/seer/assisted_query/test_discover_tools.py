@@ -1,6 +1,7 @@
 from sentry.seer.assisted_query.discover_tools import (
     _ALWAYS_RETURN_EVENT_FIELDS,
     _SPECIAL_FIELD_VALUE_TYPES,
+    _get_static_values,
     get_event_filter_key_values,
     get_event_filter_keys,
 )
@@ -54,6 +55,7 @@ class TestGetEventFilterKeys(APITestCase, SnubaTestCase):
 
         assert isinstance(result, EventFilterKeysResponse)
         result_d = result.dict()
+        assert result_d["issue.id"] == {"type": "integer"}
 
         # Check tags
         for k in ["fruit", "color"]:
@@ -165,6 +167,9 @@ class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
+
+    def test_get_static_values_integer_returns_empty(self) -> None:
+        assert _get_static_values("issue.id") == []
 
     def test_get_event_filter_key_values_tag_key(self) -> None:
         """Test getting values for a tag key"""

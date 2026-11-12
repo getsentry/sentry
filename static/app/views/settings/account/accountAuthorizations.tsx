@@ -1,11 +1,12 @@
 import styled from '@emotion/styled';
-import {useQueryClient} from '@tanstack/react-query';
+import {IconDelete} from '@sentry/icons/delete';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -14,12 +15,10 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {ApiApplication} from 'sentry/types/user';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useApi} from 'sentry/utils/useApi';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -31,14 +30,15 @@ type Authorization = {
   scopes: string[];
 };
 
+const authorizationsOptions = apiOptions.as<Authorization[]>()('/api-authorizations/', {
+  staleTime: 0,
+});
+
 function AccountAuthorizations() {
   const api = useApi();
   const queryClient = useQueryClient();
-  const ENDPOINT = getApiUrl('/api-authorizations/');
 
-  const {data, isPending, isError, refetch} = useApiQuery<Authorization[]>([ENDPOINT], {
-    staleTime: 0,
-  });
+  const {data, isPending, isError, refetch} = useQuery(authorizationsOptions);
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -50,18 +50,24 @@ function AccountAuthorizations() {
 
   const handleRevoke = async (authorization: Authorization) => {
     const oldData = data;
-    setApiQueryData<Authorization[]>(queryClient, [ENDPOINT], prevData =>
-      prevData?.filter(a => a.id !== authorization.id)
+    queryClient.setQueryData(authorizationsOptions.queryKey, response =>
+      response?.json
+        ? {...response, json: response.json.filter(a => a.id !== authorization.id)}
+        : response
     );
     try {
       await api.requestPromise('/api-authorizations/', {
         method: 'DELETE',
         data: {authorization: authorization.id},
       });
-      addSuccessMessage(t('Saved changes'));
+      toast.success(t('Saved changes'));
     } catch (_err) {
-      setApiQueryData<any>(queryClient, [ENDPOINT], oldData);
-      addErrorMessage(t('Unable to save changes, please try again'));
+      queryClient.setQueryData(authorizationsOptions.queryKey, response => ({
+        ...response,
+        headers: response?.headers ?? {},
+        json: oldData,
+      }));
+      toast.error(t('Unable to save changes, please try again'));
     }
   };
 

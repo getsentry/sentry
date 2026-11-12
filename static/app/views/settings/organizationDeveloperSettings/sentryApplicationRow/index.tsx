@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {SentryAppAvatar} from '@sentry/scraps/avatar';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 
@@ -58,20 +58,18 @@ export function SentryApplicationRow({
           </SentryAppDetails>
         </SentryAppBox>
 
-        <Box>
+        <Container>
           <SentryApplicationRowButtons
             organization={organization}
             app={app}
             onClickRemove={onRemoveApp}
             onClickPublish={handlePublish}
           />
-        </Box>
+        </Container>
       </StyledFlex>
     </SentryAppItem>
   );
 }
-
-const Box = styled('div')``;
 
 const SentryAppItem = styled(PanelItem)`
   flex-direction: column;

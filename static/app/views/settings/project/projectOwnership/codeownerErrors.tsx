@@ -3,9 +3,10 @@ import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Grid, Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import type {CodeOwner, RepositoryProjectPathConfig} from 'sentry/types/integrations';
+import type {CodeOwner} from 'sentry/types/integrations';
 
 type CodeOwnerErrorKeys = keyof CodeOwner['errors'];
 
@@ -22,10 +23,10 @@ function ErrorMessage({
 }) {
   return (
     <Fragment>
-      <ErrorMessageContainer>
+      <Grid gap="lg" area="message">
         <span>{message}</span>
         <b>{values.join(', ')}</b>
-      </ErrorMessageContainer>
+      </Grid>
       <ErrorCtaContainer>
         <ExternalLink href={link}>{linkValue}</ExternalLink>
       </ErrorCtaContainer>
@@ -46,9 +47,9 @@ function ErrorMessageList({
 }) {
   return (
     <Fragment>
-      <ErrorMessageContainer>
+      <Grid gap="lg" area="message">
         <span>{message}</span>
-      </ErrorMessageContainer>
+      </Grid>
       <ErrorMessageListContainer>
         {values.map((value, index) => (
           <ErrorInlineContainer key={index}>
@@ -63,6 +64,70 @@ function ErrorMessageList({
       </ErrorMessageListContainer>
     </Fragment>
   );
+}
+
+function CodeOwnerErrorMessage({
+  codeMapping,
+  orgSlug,
+  projectSlug,
+  type,
+  values,
+}: {
+  codeMapping: CodeOwner['codeMapping'];
+  orgSlug: string;
+  projectSlug: string;
+  type: CodeOwnerErrorKeys;
+  values: string[];
+}) {
+  switch (type) {
+    case 'missing_external_teams':
+      return (
+        <ErrorMessage
+          message="There’s a problem linking teams and members from an integration"
+          values={values}
+          link={`/settings/${orgSlug}/integrations/${codeMapping?.provider?.slug}/${codeMapping?.integrationId}/?tab=teamMappings`}
+          linkValue="Configure Team Mappings"
+        />
+      );
+    case 'missing_external_users':
+      return (
+        <ErrorMessage
+          message={`The following usernames do not have an association in the organization: ${orgSlug}`}
+          values={values}
+          link={`/settings/${orgSlug}/integrations/${codeMapping?.provider?.slug}/${codeMapping?.integrationId}/?tab=userMappings`}
+          linkValue="Configure User Mappings"
+        />
+      );
+    case 'missing_user_emails':
+      return (
+        <ErrorMessage
+          message={`The following emails do not have an Sentry user in the organization: ${orgSlug}`}
+          values={values}
+          link={`/settings/${orgSlug}/members/`}
+          linkValue="Invite Users"
+        />
+      );
+    case 'teams_without_access':
+      return (
+        <ErrorMessageList
+          message={`The following teams do not have access to the project: ${projectSlug}`}
+          values={values}
+          linkFunction={value => `/settings/${orgSlug}/teams/${value.slice(1)}/projects/`}
+          linkValueFunction={value => `Configure ${value} Permissions`}
+        />
+      );
+    case 'users_without_access':
+      return (
+        <ErrorMessageList
+          message={`The following users are not on a team that has access to the project: ${projectSlug}`}
+          values={values}
+          linkFunction={email => `/settings/${orgSlug}/members/?query=${email}`}
+          linkValueFunction={() => 'Configure Member Settings'}
+        />
+      );
+    default:
+      return null;
+  }
 }
 
 interface CodeOwnerErrorsProps {
@@ -86,67 +151,6 @@ export function CodeOwnerErrors({
     return uniqBy(owners, codeowner => JSON.stringify(codeowner.errors));
   }, [codeowners]);
 
-  const errMessage = (
-    codeMapping: RepositoryProjectPathConfig,
-    type: CodeOwnerErrorKeys,
-    values: string[]
-  ) => {
-    switch (type) {
-      case 'missing_external_teams':
-        return (
-          <ErrorMessage
-            message="There’s a problem linking teams and members from an integration"
-            values={values}
-            link={`/settings/${orgSlug}/integrations/${codeMapping?.provider?.slug}/${codeMapping?.integrationId}/?tab=teamMappings`}
-            linkValue="Configure Team Mappings"
-          />
-        );
-
-      case 'missing_external_users':
-        return (
-          <ErrorMessage
-            message={`The following usernames do not have an association in the organization: ${orgSlug}`}
-            values={values}
-            link={`/settings/${orgSlug}/integrations/${codeMapping?.provider?.slug}/${codeMapping?.integrationId}/?tab=userMappings`}
-            linkValue="Configure User Mappings"
-          />
-        );
-      case 'missing_user_emails':
-        return (
-          <ErrorMessage
-            message={`The following emails do not have an Sentry user in the organization: ${orgSlug}`}
-            values={values}
-            link={`/settings/${orgSlug}/members/`}
-            linkValue="Invite Users"
-          />
-        );
-
-      case 'teams_without_access':
-        return (
-          <ErrorMessageList
-            message={`The following teams do not have access to the project: ${projectSlug}`}
-            values={values}
-            linkFunction={value =>
-              `/settings/${orgSlug}/teams/${value.slice(1)}/projects/`
-            }
-            linkValueFunction={value => `Configure ${value} Permissions`}
-          />
-        );
-
-      case 'users_without_access':
-        return (
-          <ErrorMessageList
-            message={`The following users are not on a team that has access to the project: ${projectSlug}`}
-            values={values}
-            linkFunction={email => `/settings/${orgSlug}/members/?query=${email}`}
-            linkValueFunction={() => 'Configure Member Settings'}
-          />
-        );
-      default:
-        return null;
-    }
-  };
-
   return (
     <Fragment>
       {filteredCodeowners.map(({id, codeMapping, errors}) => {
@@ -163,13 +167,21 @@ export function CodeOwnerErrors({
               key={id}
               variant="danger"
               expand={
-                <AlertContentContainer key="container">
-                  {errorPairs.map(([type, values]) => (
-                    <ErrorContainer key={`${id}-${type}`}>
-                      {errMessage(codeMapping!, type, values)}
-                    </ErrorContainer>
-                  ))}
-                </AlertContentContainer>
+                <Container maxHeight="350px" overflowY="auto" key="container">
+                  {errorPairs.map(([type, values]) => {
+                    return (
+                      <ErrorContainer key={`${id}-${type}`}>
+                        <CodeOwnerErrorMessage
+                          codeMapping={codeMapping}
+                          orgSlug={orgSlug}
+                          projectSlug={projectSlug}
+                          type={type}
+                          values={values}
+                        />
+                      </ErrorContainer>
+                    );
+                  })}
+                </Container>
               }
             >
               {errorCount === 1
@@ -182,11 +194,6 @@ export function CodeOwnerErrors({
     </Fragment>
   );
 }
-
-const AlertContentContainer = styled('div')`
-  overflow-y: auto;
-  max-height: 350px;
-`;
 
 const ErrorContainer = styled('div')`
   display: grid;
@@ -201,12 +208,6 @@ const ErrorInlineContainer = styled(ErrorContainer)`
   grid-template-columns: 1fr 2fr;
   align-items: center;
   padding: 0;
-`;
-
-const ErrorMessageContainer = styled('div')`
-  grid-area: message;
-  display: grid;
-  gap: ${p => p.theme.space.lg};
 `;
 
 const ErrorMessageListContainer = styled('div')`

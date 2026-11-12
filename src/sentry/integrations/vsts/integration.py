@@ -4,7 +4,7 @@ import logging
 import re
 from collections.abc import Mapping, MutableMapping, Sequence
 from time import time
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse
 
 from django.http.request import HttpRequest
@@ -35,12 +35,12 @@ from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.source_code_management.repository import (
-    HaltReason,
     RepositoryInfo,
     RepositoryIntegration,
 )
+from sentry.integrations.source_code_management.url import url_is_under
 from sentry.integrations.tasks.migrate_repo import migrate_repo
-from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.types import HaltReason, IntegrationProviderSlug
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineHaltReason,
     IntegrationPipelineViewEvent,
@@ -356,6 +356,7 @@ class VstsIntegration(RepositoryIntegration[VstsApiClient], VstsIssuesSpec):
         accessible_only: bool = False,
         use_cache: bool = False,
         raise_on_page_limit: bool = False,
+        parallel: bool = False,
     ) -> list[RepositoryInfo]:
         try:
             repos = self.get_client().get_repos()
@@ -387,7 +388,7 @@ class VstsIntegration(RepositoryIntegration[VstsApiClient], VstsIssuesSpec):
         return True
 
     def source_url_matches(self, url: str) -> bool:
-        return url.startswith(self.model.metadata["domain_name"])
+        return url_is_under(url, self.model.metadata["domain_name"])
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         filepath = filepath.lstrip("/")
@@ -437,14 +438,16 @@ class VstsIntegration(RepositoryIntegration[VstsApiClient], VstsIssuesSpec):
 
     @property
     def instance(self) -> str:
-        return self.model.metadata["domain_name"]
+        domain_name = self.model.metadata["domain_name"]
+        return domain_name
 
     @property
     def default_project(self) -> str | None:
         try:
-            return self.model.metadata["default_project"]
+            default_project = self.model.metadata["default_project"]
         except KeyError:
             return None
+        return default_project
 
 
 class VstsInitialDataSerializer(CamelSnakeSerializer[dict[str, Any]]):
@@ -497,8 +500,7 @@ class VstsAccountSelectionApiStep:
             oauth_data = pipeline.fetch_state("oauth_data") or {}
             access_token: str = oauth_data["access_token"]
             user = get_user_info(access_token)
-
-            accounts = get_accounts(access_token, user["uuid"])
+            accounts = get_accounts(access_token, cast(str, user["uuid"]))
             extra = {
                 "organization_id": pipeline.organization.id if pipeline.organization else None,
                 "user_id": request.user.id,
@@ -646,7 +648,7 @@ class VstsIntegrationProvider(IntegrationProvider):
             "metadata": {"domain_name": base_url, "scopes": scopes},
             "user_identity": {
                 "type": IntegrationProviderSlug.AZURE_DEVOPS.value,
-                "external_id": user["id"],
+                "external_id": cast(str, user["id"]),
                 "scopes": scopes,
                 "data": oauth_data,
             },
@@ -797,7 +799,8 @@ class VstsIntegrationProvider(IntegrationProvider):
                     "Authorization": f"Bearer {access_token}",
                 },
             )
-            return response.json()["locationUrl"]
+            location_url = response.json()["locationUrl"]
+            return location_url
 
     def setup(self) -> None:
         from sentry.plugins.base import bindings

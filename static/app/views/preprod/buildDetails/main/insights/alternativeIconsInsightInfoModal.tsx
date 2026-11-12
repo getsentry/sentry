@@ -1,16 +1,14 @@
 import {Fragment} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
-import {CodeBlock} from '@sentry/scraps/code';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {openInsightInfoModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
-import {
-  CodeBlockWrapper,
-  InlineCode,
-} from 'sentry/views/preprod/buildDetails/main/insights/insightInfoModal';
+
+import {CodeBlockWrapper, InlineCode} from './insightInfoModal';
 
 const HEIC_SCRIPT = `#!/bin/bash
 #
@@ -65,7 +63,7 @@ function AlternativeIconsContent() {
         </CodeBlock>
       </CodeBlockWrapper>
 
-      <Flex direction="column" gap="sm">
+      <Stack gap="sm">
         <Heading as="h3" size="md">
           {t('How to use:')}
         </Heading>
@@ -87,7 +85,7 @@ function AlternativeIconsContent() {
             </Text>
           </li>
         </ol>
-      </Flex>
+      </Stack>
     </Fragment>
   );
 }

@@ -1,6 +1,6 @@
 ---
 name: setup-dev
-description: Set up and manage the Sentry development environment using devenv. Handles fresh setup, updating existing environments, starting dev services, and troubleshooting. Use when asked to "set up sentry", "setup dev environment", "get sentry running", "start dev server", "devenv setup", "devservices not working", "sentry won't start", or any development environment issue.
+description: Set up and manage the Sentry development environment using devenv. Handles fresh setup, updating existing environments, starting dev services, resetting the database, per-worktree environment setup (each worktree needs its own devenv sync/.venv), and troubleshooting. Use when asked to "set up sentry", "setup dev environment", "get sentry running", "start dev server", "devenv setup", "devservices not working", "sentry won't start", "reset the database", "new worktree venv/devenv setup", or any development environment issue.
 ---
 
 # Set Up Sentry Development Environment
@@ -153,24 +153,9 @@ This is the longest step. Tell the user:
 
 > **This will take 10-20 minutes** on first run. It installs Python, Node, all pip/npm dependencies, and runs database migrations. Subsequent syncs are much faster (2-5 min).
 
-### If direnv hangs
+### Before the first sync
 
-The `.envrc` runs Docker checks. If the Docker runtime isn't running, direnv will hang. Symptoms:
-
-```
-direnv: ([...]/direnv export zsh) is taking a while to execute. Use CTRL-C to give up.
-```
-
-**Fix**: Start the Docker runtime first:
-
-- OrbStack: Open OrbStack.app or `open -a OrbStack`
-- Colima: `devenv colima start`
-
-Then `direnv allow` again.
-
-### Chicken-and-Egg Problem
-
-direnv checks node version and sentry installation. On a fresh setup, these don't exist yet, so direnv will fail. This is normal. **Bypass direnv and run devenv sync directly:**
+`.envrc` only sets environment variables and PATH. On a fresh checkout it still loads and prints a `Run: devenv sync` hint. Run sync directly:
 
 ```bash
 ~/.local/share/sentry-devenv/bin/devenv sync
@@ -182,7 +167,7 @@ Or if devenv is on PATH:
 devenv sync
 ```
 
-After sync completes, `direnv allow` should succeed.
+After sync completes, `direnv allow` activates the environment.
 
 ### If devenv sync fails
 
@@ -238,15 +223,9 @@ If this is a first-time setup, the database needs seeding:
 .venv/bin/sentry upgrade --noinput
 ```
 
-This runs all Django migrations AND creates default data (organizations, roles, projects). Without this, the dev server will 500 on every page.
+This runs all Django migrations AND creates default data (organizations, roles, projects, and the admin@sentry.io / admin superuser). Without this, the dev server will 500 on every page.
 
 **Do NOT just run `sentry django migrate`** — that only runs migrations without seeding the required default data.
-
-### Create Superuser
-
-```bash
-.venv/bin/sentry createuser --superuser --email admin@sentry.io --password admin --no-input
-```
 
 ## Step 7: Start the Dev Server
 
@@ -300,11 +279,20 @@ After pulling new code:
 devenv sync              # update dependencies + migrations (2-5 min)
 ```
 
+### Reset the database
+
+```bash
+make reset-db
+```
+
+### Git worktrees
+
+Each worktree has its own `.venv`. When you create a worktree with `git worktree add`, a post-checkout hook runs `devenv sync` in it to set up the dev environment. Otherwise run `devenv sync` once in the new worktree, then `direnv allow` to validate and activate it.
+
 ## Troubleshooting Decision Tree
 
 | Symptom                                         | Likely Cause                              | Fix                                                  |
 | ----------------------------------------------- | ----------------------------------------- | ---------------------------------------------------- |
-| direnv hangs                                    | Docker runtime not running                | Start OrbStack / Colima                              |
 | `devenv sync` fails with version error          | Outdated devenv                           | `devenv update` or reinstall                         |
 | `devservices up` says "colima not running"      | Using OrbStack, script only checks Colima | Patch `devservices.py` — see Step 6                  |
 | Server 500s on every page                       | DB not seeded                             | `.venv/bin/sentry upgrade --noinput`                 |

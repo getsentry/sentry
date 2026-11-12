@@ -2,24 +2,26 @@ import * as Sentry from '@sentry/react';
 import Cookies from 'js-cookie';
 import * as qs from 'query-string';
 
-import {redirectToProject} from 'sentry/actionCreators/redirectToProject';
-import {openSudo} from 'sentry/actionCreators/sudoModal';
-import {EXPERIMENTAL_SPA} from 'sentry/constants';
+import {redirectToProject} from './actionCreators/redirectToProject';
+import {openSudo} from './actionCreators/sudoModal';
 import {
+  PRIMARY_EMAIL_VERIFICATION_REQUIRED,
   PROJECT_MOVED,
+  STAFF_REQUIRED,
   SUDO_REQUIRED,
   SUPERUSER_REQUIRED,
-} from 'sentry/constants/apiErrorCodes';
-import type {ApiResult, ResponseMeta} from 'sentry/types/api';
-import {metric} from 'sentry/utils/analytics';
-import {isSimilarOrigin} from 'sentry/utils/api/isSimilarOrigin';
-import {resolveHostname} from 'sentry/utils/api/resolveHostname';
-import {isDemoModeActive} from 'sentry/utils/demoMode';
-import {getCsrfToken} from 'sentry/utils/getCsrfToken';
-import {uniqueId} from 'sentry/utils/guid';
-import {RequestError} from 'sentry/utils/requestError/requestError';
-import {sanitizePath} from 'sentry/utils/requestError/sanitizePath';
-import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+} from './constants/apiErrorCodes';
+import type {ApiResult, ResponseMeta} from './types/api';
+import {isSimilarOrigin} from './utils/api/isSimilarOrigin';
+import {resolveHostname} from './utils/api/resolveHostname';
+import {isDemoModeActive} from './utils/demoMode';
+import {getCsrfToken} from './utils/getCsrfToken';
+import {uniqueId} from './utils/guid';
+import {RequestError} from './utils/requestError/requestError';
+import {sanitizePath} from './utils/requestError/sanitizePath';
+import {testableWindowLocation} from './utils/testableWindowLocation';
+import type {ReactRouter3Navigate} from './utils/useNavigate';
+import {EXPERIMENTAL_SPA} from './constants';
 
 /**
  * `api.tsx` is consumed outside React, so it can't use the `useNavigate` hook.
@@ -54,9 +56,13 @@ export class Request {
   }
 
   cancel() {
+    // Cancelled requests stay in `activeRequests`, so `Client.clear()` can
+    // cancel the same request more than once. Only count the first abort.
+    if (this.alive) {
+      Sentry.metrics.count('ui.api-request.abort', 1);
+    }
     this.alive = false;
     this.aborter?.abort();
-    metric('app.api.request-abort', 1);
   }
 }
 
@@ -68,30 +74,49 @@ function csrfSafeMethod(method?: string): boolean {
   return /^(GET|HEAD|OPTIONS|TRACE)$/.test(method ?? '');
 }
 
-// TODO: Need better way of identifying anonymous pages that don't trigger redirect
-const ALLOWED_ANON_PAGES = [
-  /^\/accept\//,
-  /^\/share\//,
-  /^\/auth\/login\//,
-  /^\/join-request\//,
-  /^\/unsubscribe\//,
-];
+/**
+ * The server derives `next` on the SSO login URL from the Referer header. API
+ * requests usually go to a different (region) origin than the page, so
+ * browsers strip the Referer down to the origin and `next` ends up pointing at
+ * `/`. Replace it with the page the user is actually on. The login view still
+ * validates `next` before redirecting. A missing or unparseable login URL is
+ * returned unchanged.
+ */
+export function withCurrentPageAsNext(loginUrl: string): string {
+  if (!loginUrl) {
+    return loginUrl;
+  }
+  try {
+    const url = new URL(loginUrl, window.location.origin);
+    url.searchParams.set('next', window.location.href);
+    return url.toString();
+  } catch {
+    return loginUrl;
+  }
+}
 
 /**
  * Return true if we should skip calling the normal error handler
  */
-const globalErrorHandlers: Array<
-  (resp: ResponseMeta, options: RequestOptions) => boolean
-> = [];
+export type ApiErrorHandler = (
+  response: ResponseMeta,
+  options: Readonly<RequestOptions>
+) => boolean;
+
+const globalErrorHandlers = new Set<ApiErrorHandler>();
+
+export function registerApiErrorHandler(handler: ApiErrorHandler) {
+  globalErrorHandlers.add(handler);
+
+  return () => {
+    globalErrorHandlers.delete(handler);
+  };
+}
 
 export const initApiClientErrorHandling = () =>
-  globalErrorHandlers.push((resp: ResponseMeta, options: RequestOptions) => {
-    const pageAllowsAnon = ALLOWED_ANON_PAGES.find(regex =>
-      regex.test(window.location.pathname)
-    );
-
+  registerApiErrorHandler((resp: ResponseMeta, options: RequestOptions) => {
     // Ignore error unless it is a 401
-    if (resp?.status !== 401 || pageAllowsAnon) {
+    if (resp?.status !== 401) {
       return false;
     }
     if (resp && options.allowAuthError && resp.status === 401) {
@@ -106,6 +131,7 @@ export const initApiClientErrorHandling = () =>
     if (
       [
         'sudo-required',
+        PRIMARY_EMAIL_VERIFICATION_REQUIRED,
         'ignore',
         '2fa-required',
         'app-connect-authentication-error',
@@ -116,7 +142,7 @@ export const initApiClientErrorHandling = () =>
 
     // If user must login via SSO, redirect to org login page
     if (code === 'sso-required') {
-      window.location.assign(extra.loginUrl);
+      testableWindowLocation.assign(withCurrentPageAsNext(extra.loginUrl));
       return true;
     }
 
@@ -193,7 +219,7 @@ export function hasProjectBeenRenamed(response: ResponseMeta) {
 
 type FunctionCallback<Args extends any[] = any[]> = (...args: Args) => void;
 
-export type RequestCallbacks = {
+type RequestCallbacks = {
   /**
    * Callback for the request completing (success or error)
    */
@@ -230,7 +256,7 @@ export type RequestOptions = RequestCallbacks & {
   /**
    * The HTTP method to use when making the API request
    */
-  method?: 'DELETE' | 'GET' | 'POST' | 'PUT';
+  method?: 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT';
   /**
    * Because of the async nature of API requests, errors will happen outside of
    * the stack that initated the request. a preservedError can be passed to
@@ -336,18 +362,34 @@ export class Client {
     errorThrown: string
   ) {
     const code = response?.responseJSON?.detail?.code;
-    const isSudoRequired = code === SUDO_REQUIRED || code === SUPERUSER_REQUIRED;
+    const accessModes: Partial<Record<string, 'sudo' | 'staff' | 'superuser'>> = {
+      [SUDO_REQUIRED]: 'sudo',
+      [STAFF_REQUIRED]: 'staff',
+      [SUPERUSER_REQUIRED]: 'superuser',
+    };
+    const accessMode =
+      code && Object.hasOwn(accessModes, code) ? accessModes[code] : undefined;
 
     let didSuccessfullyRetry = false;
 
-    if (isSudoRequired) {
+    if (accessMode) {
+      const extra = response?.responseJSON?.detail?.extra;
       openSudo({
-        isSuperuser: code === SUPERUSER_REQUIRED,
-        sudo: code === SUDO_REQUIRED,
+        accessMode,
+        orgSlug: extra?.orgSlug,
         retryRequest: async () => {
           try {
-            const data = await this.requestPromise(path, requestOptions);
-            requestOptions.success?.(data);
+            // Forward the retry's own response rather than just its body, so
+            // callers still see the real status code and headers after a sudo
+            // prompt interrupts the original request.
+            const [retryData, retryTextStatus, retryResponse] = await this.requestPromise(
+              path,
+              {
+                ...requestOptions,
+                includeAllArgs: true,
+              }
+            );
+            requestOptions.success?.(retryData, retryTextStatus, retryResponse);
             didSuccessfullyRetry = true;
           } catch (err) {
             requestOptions.error?.(err);
@@ -371,7 +413,7 @@ export class Client {
   /**
    * Initiate a request to the backend API.
    *
-   * @deprecated Use `useApiQuery` or `useMutation` with `fetchDataQuery` and `fetchMutation` instead.
+   * @deprecated Use `useQuery` with `apiOptions`, or `useMutation` with `fetchMutation` instead.
    * See https://develop.sentry.dev/frontend/network-requests/ for more.
    */
   request(path: string, options: Readonly<RequestOptions> = {}): Request {
@@ -397,9 +439,20 @@ export class Client {
     }
 
     const id = uniqueId();
-    const startMarker = `api-request-start-${id}`;
+    const startTime = performance.now();
+    const url = sanitizePath(path);
 
-    metric.mark({name: startMarker});
+    const recordRequestMetric = (outcome: 'success' | 'error', status?: number) => {
+      // Skip requests cancelled while in flight (e.g. with `skipAbort`), which
+      // are already counted as aborts
+      if (!this.activeRequests[id]?.alive) {
+        return;
+      }
+      Sentry.metrics.distribution('ui.api-request', performance.now() - startTime, {
+        unit: 'millisecond',
+        attributes: {status, outcome, url, method},
+      });
+    };
 
     /**
      * Called when the request completes with a 2xx status
@@ -409,11 +462,7 @@ export class Client {
       textStatus: string,
       responseData: any
     ) => {
-      metric.measure({
-        name: 'app.api.request-success',
-        start: startMarker,
-        data: {status: resp?.status},
-      });
+      recordRequestMetric('success', resp?.status);
       if (options.success !== undefined) {
         this.wrapCallback<[any, string, ResponseMeta]>(id, options.success)(
           responseData,
@@ -431,12 +480,6 @@ export class Client {
       textStatus: string,
       errorThrown: string
     ) => {
-      metric.measure({
-        name: 'app.api.request-error',
-        start: startMarker,
-        data: {status: resp?.status},
-      });
-
       this.handleRequestError(
         {id, path, requestOptions: options},
         resp,
@@ -586,9 +629,13 @@ export class Client {
               });
             }
 
-            const shouldSkipErrorHandler = globalErrorHandlers
-              .map(handler => handler(responseMeta, options))
-              .some(Boolean);
+            // Record before the global handlers, which may skip `errorHandler`
+            // (e.g. 401 redirects)
+            recordRequestMetric('error', status);
+
+            const shouldSkipErrorHandler = Array.from(globalErrorHandlers, handler =>
+              handler(responseMeta, options)
+            ).some(Boolean);
 
             if (!shouldSkipErrorHandler) {
               errorHandler(responseMeta, statusText, errorReason);
@@ -620,7 +667,7 @@ export class Client {
   /**
    * Initiate a request to the backend API.
    *
-   * @deprecated Use `useApiQuery` or `useMutation` with `fetchDataQuery` and `fetchMutation` instead.
+   * @deprecated Use `useQuery` with `apiOptions`, or `useMutation` with `fetchMutation` instead.
    * See https://develop.sentry.dev/frontend/network-requests/ for more.
    */
   requestPromise<IncludeAllArgsType extends boolean>(
@@ -638,8 +685,8 @@ export class Client {
     // or handle with a user friendly error message
     const preservedError = new Error('API Request Error');
 
-    return new Promise((resolve, reject) =>
-      this.request(path, {
+    return new Promise((resolve, reject) => {
+      const request = this.request(path, {
         ...options,
         preservedError,
         success: (data, textStatus, resp) => {
@@ -661,7 +708,17 @@ export class Client {
           // potentially be logged by Sentry's unhandled rejection handler
           reject(errorObjectToUse);
         },
-      })
-    );
+      });
+
+      // `request` runs neither callback when the fetch itself rejects (a blocked
+      // request, a network failure), which would leave this promise pending
+      // forever. A cancelled request rejects the same way, but it was abandoned
+      // on purpose, so it stays unsettled rather than surfacing as an error.
+      request.requestPromise.catch(() => {
+        if (request.alive) {
+          reject(new RequestError(options.method, path, preservedError));
+        }
+      });
+    });
   }
 }

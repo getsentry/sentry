@@ -8,7 +8,9 @@ from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
     FunctionAndModulePattern,
+    FunctionAndPathPattern,
     SDKCrashDetectionConfig,
+    StacktraceIgnoreMatcher,
 )
 
 
@@ -110,6 +112,17 @@ class SDKCrashDetector:
         if not potential_sdk_crash:
             return False
 
+        # Loop 1.5: Check if the full stacktrace matches an ignore group. Unlike
+        # sdk_crash_ignore_matchers (Loop 2), which only inspects frames up to the first SDK
+        # frame, these matchers inspect the entire stacktrace and only ignore the crash when
+        # *every* pattern in a group matches some frame (and, when the group requires it, its last
+        # pattern is directly followed by an SDK frame). This lets us ignore crashes that can only
+        # be identified by a combination of frames, e.g. SDK setup being re-run by the React
+        # Native dev server (Metro) on hot reload, where it is dispatched through the device event
+        # emitter and the WebSocket module directly into SDK code — never a production path.
+        if self._matches_sdk_crash_ignore_stacktrace(iter_frames):
+            return False
+
         # Loop 2: Check if any frame (up to the first SDK frame) matches sdk_crash_ignore_matchers.
         # These are SDK methods used for testing (e.g., +[SentrySDK crash]) that intentionally
         # trigger crashes and should not be reported as SDK crashes. We only check frames up to
@@ -152,6 +165,51 @@ class SDKCrashDetector:
 
     def _matches_sdk_crash_ignore(self, frame: Mapping[str, Any]) -> bool:
         return self._matches_frame_pattern(frame, self.config.sdk_crash_ignore_matchers)
+
+    def _matches_sdk_crash_ignore_stacktrace(self, frames: Sequence[Mapping[str, Any]]) -> bool:
+        for matcher in self.config.sdk_crash_ignore_stacktrace_matchers:
+            if self._matches_stacktrace_ignore(frames, matcher):
+                return True
+        return False
+
+    def _matches_stacktrace_ignore(
+        self, frames: Sequence[Mapping[str, Any]], matcher: StacktraceIgnoreMatcher
+    ) -> bool:
+        if not all(
+            any(self._matches_function_and_path(frame, pattern) for frame in frames)
+            for pattern in matcher.patterns
+        ):
+            return False
+
+        if not matcher.require_sdk_frame_after:
+            return True
+
+        # Require that a frame matching the last pattern is directly followed by an SDK frame
+        # (its callee). `frames` is ordered newest (callee) to oldest (caller), so the callee of
+        # frames[i] is frames[i - 1]. This distinguishes a caller that dispatches straight into
+        # SDK code (e.g. the React Native dev server re-evaluating an SDK module) from a
+        # production caller chain that passes through the same frame before reaching app code.
+        anchor = matcher.patterns[-1]
+        return any(
+            i > 0
+            and self._matches_function_and_path(frame, anchor)
+            and self.is_sdk_frame(frames[i - 1])
+            for i, frame in enumerate(frames)
+        )
+
+    def _matches_function_and_path(
+        self, frame: Mapping[str, Any], pattern: FunctionAndPathPattern
+    ) -> bool:
+        function = frame.get("function")
+        if not function:
+            return False
+
+        if not glob_match(function, pattern.function_pattern, ignorecase=True):
+            return False
+
+        # Match the path pattern against the frame's path-bearing fields (filename, abs_path,
+        # etc.). React Native JS frames carry the module path there rather than in `module`.
+        return self._path_patters_match_frame({pattern.path_pattern}, frame)
 
     def _matches_frame_pattern(
         self, frame: Mapping[str, Any], matchers: set[FunctionAndModulePattern]

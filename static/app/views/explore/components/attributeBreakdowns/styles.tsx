@@ -1,16 +1,18 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconMegaphone} from '@sentry/icons/megaphone';
+import {IconSearch} from '@sentry/icons/search';
+import {IconTimer} from '@sentry/icons/timer';
+import {IconWarning} from '@sentry/icons/warning';
 import type {BarSeriesOption} from 'echarts';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {BaseChart, type TooltipOption} from 'sentry/components/charts/baseChart';
 import {SearchBar as BaseSearchBar} from 'sentry/components/searchBar';
-import {IconSearch, IconTimer, IconWarning} from 'sentry/icons';
-import {IconChevron} from 'sentry/icons/iconChevron';
-import {IconMegaphone} from 'sentry/icons/iconMegaphone';
 import {t, tct} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -37,8 +39,8 @@ function FeedbackButton() {
             'How can we make attribute breakdowns work better for you?'
           ),
           tags: {
-            ['feedback.source']: 'attribute-breakdowns',
-            ['feedback.owner']: 'ml-ai',
+            'feedback.source': 'attribute-breakdowns',
+            'feedback.owner': 'ml-ai',
           },
         })
       }
@@ -110,7 +112,7 @@ function ErrorState({error}: {error: Error}) {
   const config = ERROR_STATE_CONFIG[status] ?? ERROR_STATE_CONFIG.default;
 
   return (
-    <Flex direction="column" gap="2xl" padding="3xl" align="center" justify="center">
+    <Stack gap="2xl" padding="3xl" align="center" justify="center">
       {config.icon}
       <Text size="xl" variant="muted">
         {config.title}
@@ -118,13 +120,13 @@ function ErrorState({error}: {error: Error}) {
       <Text size="md" variant="muted">
         {config.subtitle}
       </Text>
-    </Flex>
+    </Stack>
   );
 }
 
 function EmptySearchState() {
   return (
-    <Flex direction="column" gap="2xl" padding="3xl" align="center" justify="center">
+    <Stack gap="2xl" padding="3xl" align="center" justify="center">
       <StyledIconSearch size="xl" />
       <Text size="xl" variant="muted">
         {t('No matching attributes found')}
@@ -134,7 +136,7 @@ function EmptySearchState() {
           feedbackLink: <FeedbackLink />,
         })}
       </Text>
-    </Flex>
+    </Stack>
   );
 }
 
@@ -260,7 +262,6 @@ function Chart({
     <BaseChart
       ref={chartRef}
       autoHeightResize
-      isGroupedByDate={false}
       tooltip={tooltip}
       grid={{
         left: 2,

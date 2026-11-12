@@ -1,4 +1,5 @@
-from unittest.mock import create_autospec
+from datetime import timedelta
+from unittest.mock import MagicMock, create_autospec
 
 from django.db import models
 
@@ -8,6 +9,8 @@ from sentry.testutils.cases import TestCase
 from sentry.utils.function_cache import cache_func, cache_func_for_models
 
 cache_func_for_models
+
+_TTL = timedelta(days=7)
 
 
 @cell_silo_model
@@ -19,20 +22,22 @@ class CacheModel(models.Model):
         app_label = "fixtures"
 
 
-def count_func(text_search: str):
+def count_func(text_search: str) -> int:
     return CacheModel.objects.filter(some_field=text_search).count()
 
 
-def simple_func(val: str):
+def simple_func(val: str) -> str:
     return val + "_yay"
 
 
-def arg_extractor(instance: CacheModel):
+def arg_extractor(instance: CacheModel) -> tuple[str]:
     return (instance.some_field,)
 
 
 class CacheFuncForModelsTest(TestCase):
-    def assert_called_with_count(self, mock_test_func, text_search: str, count: int):
+    def assert_called_with_count(
+        self, mock_test_func: MagicMock, text_search: str, count: int
+    ) -> None:
         assert (
             len([ca for ca in mock_test_func.call_args_list if ca.args[0] == text_search]) == count
         )
@@ -40,7 +45,9 @@ class CacheFuncForModelsTest(TestCase):
     def test(self) -> None:
         mock_test_func = create_autospec(count_func)
         mock_test_func.side_effect = count_func
-        decorated_test_func = cache_func_for_models([(CacheModel, arg_extractor)])(mock_test_func)
+        decorated_test_func = cache_func_for_models([(CacheModel, arg_extractor)], cache_ttl=_TTL)(
+            mock_test_func
+        )
         self.assert_called_with_count(mock_test_func, "test", 0)
         assert decorated_test_func("test") == 0
         self.assert_called_with_count(mock_test_func, "test", 1)
@@ -64,7 +71,9 @@ class CacheFuncForModelsTest(TestCase):
         mock_test_func = create_autospec(count_func)
         mock_test_func.side_effect = count_func
         decorated_test_func = cache_func_for_models(
-            [(CacheModel, arg_extractor)], recalculate=False
+            [(CacheModel, arg_extractor)],
+            cache_ttl=_TTL,
+            recalculate=False,
         )(mock_test_func)
         self.assert_called_with_count(mock_test_func, "test", 0)
         assert decorated_test_func("test") == 0
@@ -86,7 +95,9 @@ class CacheFuncForModelsTest(TestCase):
     def test_batch(self) -> None:
         mock_test_func = create_autospec(count_func)
         mock_test_func.side_effect = count_func
-        decorated_test_func = cache_func_for_models([(CacheModel, arg_extractor)])(mock_test_func)
+        decorated_test_func = cache_func_for_models([(CacheModel, arg_extractor)], cache_ttl=_TTL)(
+            mock_test_func
+        )
 
         results = decorated_test_func.batch([("test1",), ("test2",), ("test3",)])
         assert results == [0, 0, 0]
@@ -108,7 +119,9 @@ class CacheFuncForModelsTest(TestCase):
 
 
 class CacheFuncTest(TestCase):
-    def assert_called_with_count(self, mock_test_func, text_search: str, count: int):
+    def assert_called_with_count(
+        self, mock_test_func: MagicMock, text_search: str, count: int
+    ) -> None:
         assert (
             len([ca for ca in mock_test_func.call_args_list if ca.args[0] == text_search]) == count
         )

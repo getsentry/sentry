@@ -1,0 +1,6 @@
+interface:
+  display_name: 'Scraps Review'
+  short_description: 'Filter large Scraps migration PRs'
+  default_prompt: 'Use $scraps-review to classify this large getsentry/sentry Scraps migration, confirm the proposed noise files, and mark only the approved set as viewed.'
+policy:
+  allow_implicit_invocation: false

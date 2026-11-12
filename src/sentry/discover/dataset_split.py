@@ -1,9 +1,7 @@
-import logging
 from datetime import datetime
 from enum import Enum
 from typing import Any
 
-import sentry_sdk
 from snuba_sdk import (
     AliasedExpression,
     And,
@@ -15,13 +13,10 @@ from snuba_sdk import (
     Op,
     Or,
 )
-from snuba_sdk.query_visitors import InvalidQueryError
 
 from sentry.api.utils import get_date_range_from_stats_period
-from sentry.constants import ObjectStatus
-from sentry.discover.arithmetic import ArithmeticParseError, is_equation, strip_equation
-from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
-from sentry.exceptions import InvalidParams, InvalidSearchQuery
+from sentry.discover.arithmetic import is_equation, strip_equation
+from sentry.exceptions import InvalidParams
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -30,22 +25,13 @@ from sentry.search.events.builder.errors import ErrorsQueryBuilder
 from sentry.search.events.filter import to_list
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.query_sources import QuerySource
-from sentry.utils import snuba
-from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
-
-logger = logging.getLogger("sentry.tasks.split_discover_query_dataset")
+from sentry.utils.dates import outside_retention_with_modified_start
 
 
 class SplitDataset(Enum):
     Errors = 0
     Transactions = 1
 
-
-SPLIT_DATASET_TO_DISCOVER_DATASET_MAP = {
-    SplitDataset.Errors: DiscoverSavedQueryTypes.ERROR_EVENTS,
-    SplitDataset.Transactions: DiscoverSavedQueryTypes.TRANSACTION_LIKE,
-}
 
 TRANSACTION_ONLY_AGGREGATES = [
     "failure_rate",
@@ -115,20 +101,9 @@ ERROR_ONLY_FIELDS = [
 ]
 
 
-def _save_split_decision_for_query(
-    saved_query: DiscoverSavedQuery,
-    split_decision: int | None,
-    dataset_source: DatasetSourcesTypes | None,
-):
-    if split_decision is not None:
-        saved_query.dataset = split_decision
-    if dataset_source is not None:
-        saved_query.dataset_source = dataset_source.value
-
-    saved_query.save()
-
-
-def _get_top_level_filter_conditions(builder: ErrorsQueryBuilder | DiscoverQueryBuilder):
+def _get_top_level_filter_conditions(
+    builder: ErrorsQueryBuilder | DiscoverQueryBuilder,
+) -> list[Condition | BooleanCondition]:
     top_level_conditions: list[Condition | BooleanCondition] = []
     for cond in builder.where:
         if isinstance(cond, And) or isinstance(cond, Or):
@@ -194,7 +169,7 @@ def _check_column_matches_dataset(
     return False
 
 
-def _check_event_type_condition(cond: Condition, dataset: Dataset):
+def _check_event_type_condition(cond: Condition, dataset: Dataset) -> bool:
     op = cond.op
     rhs = cond.rhs
     if dataset == Dataset.Events and (
@@ -225,7 +200,7 @@ def _check_condition_matches_dataset(
 def _check_top_level_conditions_match_dataset(
     builder: ErrorsQueryBuilder | DiscoverQueryBuilder,
     dataset: Dataset,
-):
+) -> bool:
     top_level_conditions = _get_top_level_filter_conditions(builder)
     for cond in top_level_conditions:
         if isinstance(cond, Condition):
@@ -238,7 +213,7 @@ def _check_top_level_conditions_match_dataset(
 def _check_selected_columns_match_dataset(
     builder: ErrorsQueryBuilder | DiscoverQueryBuilder,
     dataset: Dataset,
-):
+) -> bool:
     for select_col in builder.columns:
         if isinstance(select_col, Column):
             if _check_column_matches_dataset(select_col, dataset):
@@ -258,7 +233,7 @@ def _check_selected_columns_match_dataset(
     return False
 
 
-def _check_event_type_filter(errors_builder) -> SplitDataset | None:
+def _check_event_type_filter(errors_builder: ErrorsQueryBuilder) -> SplitDataset | None:
     top_level_conditions = _get_top_level_filter_conditions(errors_builder)
 
     for cond in top_level_conditions:
@@ -358,230 +333,3 @@ def _get_snuba_dataclass(
         teams=[],
         organization=organization,
     )
-
-
-def _get_snuba_dataclass_for_saved_query(
-    saved_query: DiscoverSavedQuery, projects: list[Project]
-) -> SnubaParams:
-    start: datetime | None = None
-    end: datetime | None = None
-    if "start" and "end" in saved_query.query:
-        start = parse_timestamp(saved_query.query["start"]) or start
-        end = parse_timestamp(saved_query.query["end"]) or end
-
-    environment = saved_query.query.get("environment", [])
-    period = saved_query.query.get("range")
-
-    return _get_snuba_dataclass(saved_query.organization, projects, start, end, period, environment)
-
-
-@sentry_sdk.trace
-def _get_and_save_split_decision_for_query(
-    saved_query: DiscoverSavedQuery, dry_run: bool
-) -> tuple[int, bool]:
-    """
-    This function is called by migration 0894_split_discover_dataset_saved_queries.
-    To delete this function, we need to introduce a
-    [hard stop upgrade](https://develop.sentry.dev/self-hosted/releases/#hard-stops).
-    """
-
-    # We use all projects for the clickhouse query but don't do anything
-    # with the data returned other than check if data exists. So this
-    # all projects query should be a safe operation.
-    projects = saved_query.projects.all() or Project.objects.filter(
-        organization_id=saved_query.organization.id, status=ObjectStatus.ACTIVE
-    )
-
-    # Handle cases where the organization has no projects at all.
-    # No projects means a downstream check will fail and we can default
-    # to the errors dataset.
-    if not projects.exists():
-        if not dry_run:
-            sentry_sdk.set_context(
-                "query",
-                {
-                    "saved_query_id": saved_query.id,
-                    "org_slug": saved_query.organization.slug,
-                },
-            )
-            sentry_sdk.set_attribute("query.saved_query_id", saved_query.id)
-            sentry_sdk.set_attribute("query.org_slug", saved_query.organization.slug)
-            sentry_sdk.capture_message(
-                "No projects found in organization for saved query, defaulting to errors dataset"
-            )
-            _save_split_decision_for_query(
-                saved_query,
-                DiscoverSavedQueryTypes.ERROR_EVENTS,
-                DatasetSourcesTypes.FORCED,
-            )
-        return DiscoverSavedQueryTypes.ERROR_EVENTS, False
-
-    snuba_dataclass = _get_snuba_dataclass_for_saved_query(saved_query, list(projects))
-    selected_columns = _get_field_list(saved_query.query.get("fields", []))
-    equations = [
-        equation for equation in _get_equation_list(saved_query.query.get("fields", [])) if equation
-    ]
-    query = saved_query.query.get("query", "")
-
-    try:
-        # Optimizing the query we're running a little - we're omitting the order by
-        # and setting limit = 1 since the only check happening with the data returned
-        # is if data exists.
-        errors_builder = ErrorsQueryBuilder(
-            Dataset.Events,
-            params={},
-            snuba_params=snuba_dataclass,
-            query=query,
-            selected_columns=selected_columns,
-            equations=equations,
-            limit=1,
-        )
-    except (
-        snuba.UnqualifiedQueryError,
-        InvalidSearchQuery,
-        InvalidQueryError,
-        snuba.QueryExecutionError,
-    ) as e:
-        sentry_sdk.capture_exception(e)
-        if dry_run:
-            logger.info(
-                "Split decision for %s: %s (forced fallback)",
-                saved_query.id,
-                DiscoverSavedQueryTypes.TRANSACTION_LIKE,
-            )
-        else:
-            _save_split_decision_for_query(
-                saved_query,
-                DiscoverSavedQueryTypes.TRANSACTION_LIKE,
-                DatasetSourcesTypes.FORCED,
-            )
-        return DiscoverSavedQueryTypes.TRANSACTION_LIKE, False
-
-    try:
-        transactions_builder = DiscoverQueryBuilder(
-            Dataset.Transactions,
-            params={},
-            snuba_params=snuba_dataclass,
-            query=query,
-            selected_columns=selected_columns,
-            equations=equations,
-            limit=1,
-        )
-    except (
-        snuba.UnqualifiedQueryError,
-        InvalidSearchQuery,
-        InvalidQueryError,
-        snuba.QueryExecutionError,
-    ) as e:
-        sentry_sdk.capture_exception(e)
-        if dry_run:
-            logger.info(
-                "Split decision for %s: %s (forced fallback)",
-                saved_query.id,
-                DiscoverSavedQueryTypes.ERROR_EVENTS,
-            )
-        else:
-            _save_split_decision_for_query(
-                saved_query,
-                DiscoverSavedQueryTypes.ERROR_EVENTS,
-                DatasetSourcesTypes.FORCED,
-            )
-        return DiscoverSavedQueryTypes.ERROR_EVENTS, False
-
-    dataset_inferred_from_query = _dataset_split_decision_inferred_from_query(
-        errors_builder, transactions_builder
-    )
-
-    if dataset_inferred_from_query is not None:
-        discover_dataset = SPLIT_DATASET_TO_DISCOVER_DATASET_MAP[dataset_inferred_from_query]
-        if dry_run:
-            logger.info("Split decision for %s: %s", saved_query.id, discover_dataset)
-        else:
-            _save_split_decision_for_query(
-                saved_query,
-                discover_dataset,
-                DatasetSourcesTypes.INFERRED,
-            )
-        return discover_dataset, False
-
-    has_errors = False
-    try:
-        error_results = errors_builder.process_results(
-            errors_builder.run_query(
-                "tasks.performance.split_discover_dataset", query_source=QuerySource.SENTRY_BACKEND
-            )
-        )
-        has_errors = len(error_results["data"]) > 0
-    except (
-        snuba.QueryIllegalTypeOfArgument,
-        snuba.UnqualifiedQueryError,
-        InvalidQueryError,
-        snuba.QueryExecutionError,
-        snuba.SnubaError,
-        ArithmeticParseError,
-    ):
-        pass
-
-    if has_errors:
-        if dry_run:
-            logger.info(
-                "Split decision for %s: %s (inferred from running query)",
-                saved_query.id,
-                DiscoverSavedQueryTypes.ERROR_EVENTS,
-            )
-        else:
-            _save_split_decision_for_query(
-                saved_query,
-                DiscoverSavedQueryTypes.ERROR_EVENTS,
-                DatasetSourcesTypes.INFERRED,
-            )
-        return DiscoverSavedQueryTypes.ERROR_EVENTS, True
-
-    has_transactions = False
-    try:
-        transaction_results = transactions_builder.process_results(
-            transactions_builder.run_query(
-                "tasks.performance.split_discover_dataset", query_source=QuerySource.SENTRY_BACKEND
-            )
-        )
-        has_transactions = len(transaction_results["data"]) > 0
-    except (
-        snuba.QueryIllegalTypeOfArgument,
-        snuba.UnqualifiedQueryError,
-        InvalidQueryError,
-        snuba.QueryExecutionError,
-        snuba.SnubaError,
-        ArithmeticParseError,
-    ):
-        pass
-
-    if has_transactions:
-        if dry_run:
-            logger.info(
-                "Split decision for %s: %s (inferred from running query)",
-                saved_query.id,
-                DiscoverSavedQueryTypes.TRANSACTION_LIKE,
-            )
-        else:
-            _save_split_decision_for_query(
-                saved_query,
-                DiscoverSavedQueryTypes.TRANSACTION_LIKE,
-                DatasetSourcesTypes.INFERRED,
-            )
-
-        return DiscoverSavedQueryTypes.TRANSACTION_LIKE, True
-
-    if dry_run:
-        logger.info(
-            "Split decision for %s: %s (forced)",
-            saved_query.id,
-            DiscoverSavedQueryTypes.ERROR_EVENTS,
-        )
-    else:
-        _save_split_decision_for_query(
-            saved_query,
-            DiscoverSavedQueryTypes.ERROR_EVENTS,
-            DatasetSourcesTypes.FORCED,
-        )
-
-    return DiscoverSavedQueryTypes.ERROR_EVENTS, True

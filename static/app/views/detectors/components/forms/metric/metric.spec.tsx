@@ -9,11 +9,12 @@ import {selectEvent} from 'sentry-test/selectEvent';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {DetectorFormProvider} from 'sentry/views/detectors/components/forms/context';
-import {NewMetricDetectorForm} from 'sentry/views/detectors/components/forms/metric/metric';
+
+import {NewMetricDetectorForm} from './metric';
 
 describe('NewMetricDetectorForm', () => {
   const organization = OrganizationFixture({
-    features: ['workflow-engine-ui', 'visibility-explore-view'],
+    features: ['visibility-explore-view'],
   });
   const project = ProjectFixture({id: '1', slug: 'proj-1'});
   const user = UserFixture();

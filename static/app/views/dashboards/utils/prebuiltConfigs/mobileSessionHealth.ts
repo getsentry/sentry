@@ -4,7 +4,8 @@ import type {
   PrebuiltDashboard,
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
+
+import {spaceWidgetsEquallyOnRow} from './utils/spaceWidgetsEquallyOnRow';
 
 const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
@@ -196,6 +197,7 @@ export const MOBILE_SESSION_HEALTH_PREBUILT_CONFIG: PrebuiltDashboard = {
   filters: {},
   projects: [],
   title: t('Mobile Session Health'),
+  description: t('Monitor mobile session health by user and session.'),
   widgets: [
     ...FIRST_ROW_WIDGETS,
     ...SECOND_ROW_WIDGETS,

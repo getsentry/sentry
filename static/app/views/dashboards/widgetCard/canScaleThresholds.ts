@@ -1,0 +1,34 @@
+import {getEquation, isEquation, parseFunction} from 'sentry/utils/discover/fields';
+import {AggregationKey} from 'sentry/utils/fields';
+import type {Widget} from 'sentry/views/dashboards/types';
+import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
+
+const SCALABLE_AGGREGATES = new Set<string>([
+  AggregationKey.COUNT,
+  AggregationKey.COUNT_IF,
+  AggregationKey.COUNT_WEB_VITALS,
+  AggregationKey.SUM,
+  AggregationKey.FAILURE_COUNT,
+]);
+
+function isScalableAggregate(aggregate: string): boolean {
+  if (isEquation(aggregate)) {
+    // Equations scale by user choice; we do not classify whether their result is interval-additive.
+    return getEquation(aggregate).trim() !== '';
+  }
+
+  const functionName = parseFunction(aggregate)?.name;
+  return functionName !== undefined && SCALABLE_AGGREGATES.has(functionName);
+}
+
+export function canScaleThresholds(
+  widget: Pick<Widget, 'displayType' | 'queries'>
+): boolean {
+  return (
+    usesTimeSeriesData(widget.displayType) &&
+    widget.queries.length > 0 &&
+    widget.queries.every(
+      query => query.aggregates.length > 0 && query.aggregates.every(isScalableAggregate)
+    )
+  );
+}

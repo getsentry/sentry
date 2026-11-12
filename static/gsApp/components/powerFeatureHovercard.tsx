@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
+import {IconLightning} from '@sentry/icons/lightning';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {Hovercard} from 'sentry/components/hovercard';
-import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -91,7 +91,7 @@ function PowerFeatureHovercard({
 
         return (
           <LearnMoreTextBody data-test-id="power-hovercard">
-            <Flex direction="column" gap="md">
+            <Stack gap="md">
               <div>
                 {partial
                   ? t('Better With %s Plan', planName)
@@ -106,7 +106,7 @@ function PowerFeatureHovercard({
               >
                 {t('Learn More')}
               </Button>
-            </Flex>
+            </Stack>
           </LearnMoreTextBody>
         );
       }}

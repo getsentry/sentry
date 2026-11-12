@@ -6,12 +6,7 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from django.db.models.signals import post_save
-
-from sentry import options
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
-from sentry.issues.action_log import publish_action_from_context
-from sentry.issues.action_log.types import ArchiveAction, UnresolveAction
 from sentry.issues.ignored import IGNORED_CONDITION_FIELDS
 from sentry.issues.ongoing import TRANSITION_AFTER_DAYS
 from sentry.models.activity import Activity
@@ -155,13 +150,6 @@ def handle_status_update(
         )
         record_group_history_from_activity_type(group, activity_type, actor=acting_user)
 
-        action = ArchiveAction() if new_status == GroupStatus.IGNORED else UnresolveAction()
-        publish_action_from_context(
-            action,
-            group_id=group.id,
-            project=project_lookup[group.project_id],
-        )
-
         if update_open_period:
             update_group_open_period(
                 group=group,
@@ -182,12 +170,4 @@ def handle_status_update(
         if new_status == GroupStatus.UNRESOLVED:
             kick_off_status_syncs.apply_async(
                 kwargs={"project_id": group.project_id, "group_id": group.id}
-            )
-
-        if not options.get("groups.enable-post-update-signal"):
-            post_save.send_robust(
-                sender=Group,
-                instance=group,
-                created=False,
-                update_fields=["status", "substatus"],
             )

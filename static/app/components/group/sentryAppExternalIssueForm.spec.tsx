@@ -11,8 +11,9 @@ import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import {SentryAppExternalIssueForm} from 'sentry/components/group/sentryAppExternalIssueForm';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
+
+import {SentryAppExternalIssueForm} from './sentryAppExternalIssueForm';
 
 describe('SentryAppExternalIssueForm', () => {
   const group = GroupFixture({
@@ -49,7 +50,7 @@ describe('SentryAppExternalIssueForm', () => {
           event={EventFixture()}
           onSubmitSuccess={jest.fn()}
           group={group}
-          sentryAppInstallation={sentryAppInstallation}
+          sentryAppInstallationUuid={sentryAppInstallation.uuid}
           appName={sentryApp.name}
           config={component.schema.create}
           action="create"
@@ -102,7 +103,7 @@ describe('SentryAppExternalIssueForm', () => {
           event={EventFixture()}
           onSubmitSuccess={jest.fn()}
           group={group}
-          sentryAppInstallation={sentryAppInstallation}
+          sentryAppInstallationUuid={sentryAppInstallation.uuid}
           appName={sentryApp.name}
           config={component.schema.create}
           action="create"
@@ -119,6 +120,27 @@ describe('SentryAppExternalIssueForm', () => {
         `Sentry Issue: [${group.shortId}](${url})`
       );
     });
+
+    it('renders without an event', async () => {
+      render(
+        <SentryAppExternalIssueForm
+          event={undefined}
+          onSubmitSuccess={jest.fn()}
+          group={group}
+          sentryAppInstallationUuid={sentryAppInstallation.uuid}
+          appName={sentryApp.name}
+          config={component.schema.create}
+          action="create"
+        />
+      );
+
+      const url = addQueryParamsToExistingUrl(group.permalink, {
+        referrer: sentryApp.name,
+      });
+      expect(await screen.findByRole('textbox', {name: 'Description'})).toHaveValue(
+        `Sentry Issue: [${group.shortId}](${url})`
+      );
+    });
   });
 
   describe('link', () => {
@@ -128,7 +150,7 @@ describe('SentryAppExternalIssueForm', () => {
           event={EventFixture()}
           onSubmitSuccess={jest.fn()}
           group={group}
-          sentryAppInstallation={sentryAppInstallation}
+          sentryAppInstallationUuid={sentryAppInstallation.uuid}
           appName={sentryApp.name}
           config={component.schema.link}
           action="link"
@@ -195,7 +217,7 @@ describe('SentryAppExternalIssueForm Async Field', () => {
         event={EventFixture()}
         onSubmitSuccess={jest.fn()}
         group={group}
-        sentryAppInstallation={sentryAppInstallation}
+        sentryAppInstallationUuid={sentryAppInstallation.uuid}
         appName={sentryApp.name}
         config={component.schema.create}
         action="create"
@@ -265,7 +287,7 @@ describe('SentryAppExternalIssueForm Dependent fields', () => {
         event={EventFixture()}
         onSubmitSuccess={jest.fn()}
         group={group}
-        sentryAppInstallation={sentryAppInstallation}
+        sentryAppInstallationUuid={sentryAppInstallation.uuid}
         appName={sentryApp.name}
         config={component.schema.create}
         action="create"

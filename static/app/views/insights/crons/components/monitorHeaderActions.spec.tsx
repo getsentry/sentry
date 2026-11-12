@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {MonitorHeaderActions} from 'sentry/views/insights/crons/components/monitorHeaderActions';
+import {MonitorHeaderActions} from './monitorHeaderActions';
 
 describe('MonitorHeaderActions', () => {
   const organization = OrganizationFixture();
@@ -23,7 +23,7 @@ describe('MonitorHeaderActions', () => {
     );
 
     const muteButton = screen.getByRole('button', {name: 'Mute'});
-    expect(muteButton).toBeDisabled();
+    expect(muteButton).toHaveAttribute('aria-disabled', 'true');
 
     await userEvent.hover(muteButton);
     expect(
@@ -52,7 +52,7 @@ describe('MonitorHeaderActions', () => {
     );
 
     const muteButton = screen.getByRole('button', {name: 'Mute'});
-    expect(muteButton).toBeEnabled();
+    expect(muteButton).not.toHaveAttribute('aria-disabled', 'true');
 
     await userEvent.click(muteButton);
     expect(updateMock).toHaveBeenCalledWith(

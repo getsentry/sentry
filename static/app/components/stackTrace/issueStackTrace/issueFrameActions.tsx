@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {IconRefresh} from '@sentry/icons/refresh';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -9,24 +10,31 @@ import {
   useStackTraceContext,
   useStackTraceFrameContext,
 } from 'sentry/components/stackTrace/stackTraceContext';
-import {IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 
+import {AnrFrameAction} from './anrFrameAction';
 import {IssueSourceLinkAction} from './issueSourceLinkAction';
 import {IssueSourceMapsDebuggerAction} from './issueSourceMapsDebuggerAction';
 
 interface IssueFrameActionsProps {
   isHovering: boolean;
+  // These actions require an actual event (e.g. an error) in context, so they
+  // won't work when rendering for e.g. a span.
+  includeIssueOnlyActions?: boolean;
 }
 
-export function IssueFrameActions({isHovering}: IssueFrameActionsProps) {
+export function IssueFrameActions({
+  isHovering,
+  includeIssueOnlyActions = true,
+}: IssueFrameActionsProps) {
   const {hasAnyExpandableFrames} = useStackTraceContext();
   const {frame, hiddenFrameCount, timesRepeated} = useStackTraceFrameContext();
 
   return (
     <Fragment>
       <IssueSourceLinkAction isHovering={isHovering} />
-      <IssueSourceMapsDebuggerAction />
+      {includeIssueOnlyActions && <IssueSourceMapsDebuggerAction />}
+      {includeIssueOnlyActions && <AnrFrameAction />}
       {hiddenFrameCount ? <HiddenFramesToggleAction /> : null}
       {timesRepeated > 0 ? (
         <Tooltip

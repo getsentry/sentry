@@ -1,20 +1,31 @@
 import styled from '@emotion/styled';
+import {IconExclamation} from '@sentry/icons/exclamation';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconSeer} from 'sentry/icons';
+import {t} from 'sentry/locale';
 
 interface SeerSearchHeaderProps {
   title: string;
+  isError?: boolean;
   loading?: boolean;
 }
 
-export function AskSeerSearchHeader({title, loading = false}: SeerSearchHeaderProps) {
+export function AskSeerSearchHeader({
+  title,
+  isError = false,
+  loading = false,
+}: SeerSearchHeaderProps) {
   return (
     <Flex align="center" padding="lg xl" gap="md" width="100%">
-      <StyledIconSeer animation={loading ? 'loading' : undefined} />
-      <Text>{title}</Text>
+      {isError ? (
+        <IconExclamation aria-label={t('Error')} variant="danger" />
+      ) : (
+        <StyledIconSeer animation={loading ? 'idle' : undefined} />
+      )}
+      <Text monospace>{title}</Text>
     </Flex>
   );
 }

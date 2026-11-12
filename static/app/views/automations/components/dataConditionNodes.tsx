@@ -1,24 +1,21 @@
 import type React from 'react';
-import {createContext, useContext} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
-import {
-  DataConditionType,
-  type DataCondition,
-} from 'sentry/types/workflowEngine/dataConditions';
+import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
+
 import {
   AgeComparisonDetails,
   AgeComparisonNode,
   validateAgeComparisonCondition,
-} from 'sentry/views/automations/components/actionFilters/ageComparison';
+} from './actionFilters/ageComparison';
 import {
   AssignedToDetails,
   AssignedToNode,
   validateAssignedToCondition,
-} from 'sentry/views/automations/components/actionFilters/assignedTo';
+} from './actionFilters/assignedTo';
 import {
   AgeComparison,
   Attribute,
@@ -29,98 +26,75 @@ import {
   Priority,
   TargetType,
   TimeUnit,
-} from 'sentry/views/automations/components/actionFilters/constants';
+} from './actionFilters/constants';
 import {
   EventAttributeDetails,
   EventAttributeNode,
   validateEventAttributeCondition,
-} from 'sentry/views/automations/components/actionFilters/eventAttribute';
+} from './actionFilters/eventAttribute';
 import {
   EventFrequencyCountDetails,
   EventFrequencyNode,
   EventFrequencyPercentDetails,
   validateEventFrequencyCondition,
-} from 'sentry/views/automations/components/actionFilters/eventFrequency';
+} from './actionFilters/eventFrequency';
 import {
   EventUniqueUserFrequencyCountDetails,
   EventUniqueUserFrequencyNode,
   EventUniqueUserFrequencyPercentDetails,
   validateEventUniqueUserFrequencyCondition,
-} from 'sentry/views/automations/components/actionFilters/eventUniqueUserFrequency';
+} from './actionFilters/eventUniqueUserFrequency';
 import {
   IssueCategoryDetails,
   IssueCategoryNode,
   validateIssueCategoryCondition,
-} from 'sentry/views/automations/components/actionFilters/issueCategory';
+} from './actionFilters/issueCategory';
 import {
   IssueOccurrencesDetails,
   IssueOccurrencesNode,
   validateIssueOccurrencesCondition,
-} from 'sentry/views/automations/components/actionFilters/issueOccurrences';
+} from './actionFilters/issueOccurrences';
 import {
   IssuePriorityDetails,
   IssuePriorityNode,
   validateIssuePriorityCondition,
-} from 'sentry/views/automations/components/actionFilters/issuePriority';
-import {IssuePriorityDeescalating} from 'sentry/views/automations/components/actionFilters/issuePriorityDeescalating';
+} from './actionFilters/issuePriority';
+import {IssuePriorityDeescalating} from './actionFilters/issuePriorityDeescalating';
 import {
   IssueTypeDetails,
   IssueTypeNode,
   validateIssueTypeCondition,
-} from 'sentry/views/automations/components/actionFilters/issueType';
+} from './actionFilters/issueType';
 import {
   LatestAdoptedReleaseDetails,
   LatestAdoptedReleaseNode,
   validateLatestAdoptedReleaseCondition,
-} from 'sentry/views/automations/components/actionFilters/latestAdoptedRelease';
-import {LatestReleaseNode} from 'sentry/views/automations/components/actionFilters/latestRelease';
-import {
-  LevelDetails,
-  LevelNode,
-  validateLevelCondition,
-} from 'sentry/views/automations/components/actionFilters/level';
+} from './actionFilters/latestAdoptedRelease';
+import {LatestReleaseNode} from './actionFilters/latestRelease';
+import {LevelDetails, LevelNode, validateLevelCondition} from './actionFilters/level';
 import {
   PercentSessionsCountDetails,
   PercentSessionsNode,
   PercentSessionsPercentDetails,
   validatePercentSessionsCondition,
-} from 'sentry/views/automations/components/actionFilters/percentSessions';
+} from './actionFilters/percentSessions';
 import {
   SeerActivityTriggerDetails,
   SeerActivityTriggerNode,
   validateSeerActivityTriggerCondition,
-} from 'sentry/views/automations/components/actionFilters/seerActivityTrigger';
+} from './actionFilters/seerActivityTrigger';
 import {
   TaggedEventDetails,
   TaggedEventNode,
   validateTaggedEventCondition,
-} from 'sentry/views/automations/components/actionFilters/taggedEvent';
-import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
-
-interface DataConditionNodeProps {
-  condition: DataCondition;
-  condition_id: string;
-  onUpdate: (params: {comparison?: any; type?: DataConditionType}) => void;
-}
-
-export const DataConditionNodeContext = createContext<DataConditionNodeProps | null>(
-  null
-);
-
-export function useDataConditionNodeContext(): DataConditionNodeProps {
-  const context = useContext(DataConditionNodeContext);
-  if (!context) {
-    throw new Error(
-      'useDataConditionNodeContext was called outside of DataConditionNode'
-    );
-  }
-  return context;
-}
+} from './actionFilters/taggedEvent';
+import type {ValidateDataConditionProps} from './automationFormData';
+import type {DataConditionNodeComponentProps} from './dataConditionNodeContext';
 
 type DataConditionNode = {
   label: string;
   validate: (({condition}: ValidateDataConditionProps) => string | undefined) | undefined;
-  dataCondition?: React.ComponentType<any>;
+  dataCondition?: React.ComponentType<DataConditionNodeComponentProps>;
   defaultComparison?: any;
   details?: React.ComponentType<any>;
   warningMessage?: React.ComponentType<any>;
@@ -142,9 +116,16 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     },
   ],
   [
+    DataConditionType.EVERY_EVENT,
+    {
+      label: t('An event or issue activity is captured'),
+      validate: undefined,
+    },
+  ],
+  [
     DataConditionType.REGRESSION_EVENT,
     {
-      label: t('A resolved issue becomes unresolved'),
+      label: t('A resolved issue regresses'),
       validate: undefined,
     },
   ],
@@ -175,7 +156,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Seer runs on an issue and reaches the stage...'),
       dataCondition: SeerActivityTriggerNode,
       details: SeerActivityTriggerDetails,
-      defaultComparison: [],
+      defaultComparison: ['pr_ready_for_review'],
       validate: validateSeerActivityTriggerCondition,
     },
   ],
@@ -247,6 +228,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('De-escalation'),
       dataCondition: IssuePriorityDeescalating,
       details: IssuePriorityDeescalating,
+      defaultComparison: Priority.HIGH,
       validate: undefined,
     },
   ],
@@ -420,7 +402,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
 
 function OccurenceBasedMonitorsWarning() {
   return (
-    <Flex direction="column" gap="md">
+    <Stack gap="md">
       <WarningLine>
         {t('These filters will only apply to some of your monitors and triggers.')}
       </WarningLine>
@@ -429,7 +411,7 @@ function OccurenceBasedMonitorsWarning() {
           'They are only available for occurrence-based monitors (errors, N+1, and replay) and only apply to the triggers "A new event is captured for an issue" and "A new issue is created."'
         )}
       </WarningLine>
-    </Flex>
+    </Stack>
   );
 }
 

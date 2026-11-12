@@ -29,15 +29,14 @@ describe('provisionSubscriptionAction', () => {
   const mockSub = SubscriptionFixture({organization: mockOrg});
   const mockBillingConfig = BillingConfigFixture(PlanTier.ALL);
 
+  // The tests fill in over a hundred number fields. Looking them up by label
+  // skips computing the role of every element in this large form each time.
   function getSpinbutton(name: string) {
-    return screen.getByRole('spinbutton', {name, hidden: true});
+    return screen.getByLabelText(name);
   }
 
   function getAllSpinbuttons(startsWith: string) {
-    return screen.getAllByRole('spinbutton', {
-      name: new RegExp(startsWith),
-      hidden: true,
-    });
+    return screen.getAllByLabelText(new RegExp(startsWith));
   }
 
   async function clickCheckbox(name: string | RegExp) {

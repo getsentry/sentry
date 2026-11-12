@@ -1,24 +1,30 @@
 import {Fragment, type ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconDownload} from '@sentry/icons/download';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconLink} from '@sentry/icons/link';
+import {useQuery} from '@tanstack/react-query';
 
-import {Button} from '@sentry/scraps/button';
+import {Tag} from '@sentry/scraps/badge';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {QuietZoneQRCode} from 'sentry/components/quietZoneQRCode';
-import {IconLink} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {InstallDetailsApiResponse} from 'sentry/views/preprod/types/installDetailsTypes';
+import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 
 export function getDistributionErrorTooltip(
   errorCode?: string | null,
@@ -40,11 +46,29 @@ export function getDistributionErrorTooltip(
   return errorMessage || t('Not installable');
 }
 
+export function getDeviceInstallUrl(platform: Platform, installUrl: string): string {
+  if (platform === 'apple') {
+    return `itms-services://?action=download-manifest&url=${encodeURIComponent(installUrl)}`;
+  }
+  return installUrl;
+}
+
+export function getIpaDownloadUrl(installUrl: string): string {
+  try {
+    const url = new URL(installUrl);
+    url.searchParams.set('response_format', 'ipa');
+    return url.toString();
+  } catch {
+    return installUrl;
+  }
+}
+
 interface InstallDetailsContentProps {
   artifactId: string;
   projectSlug: string;
   distributionErrorCode?: string | null;
   distributionErrorMessage?: string | null;
+  installGroups?: string[] | null;
   size?: 'sm' | 'lg';
 }
 
@@ -54,6 +78,7 @@ export function InstallDetailsContent({
   size = 'sm',
   distributionErrorCode,
   distributionErrorMessage,
+  installGroups,
 }: InstallDetailsContentProps) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -68,31 +93,27 @@ export function InstallDetailsContent({
     isError,
     error,
     refetch,
-  } = useApiQuery<InstallDetailsApiResponse>(
-    [
-      getApiUrl(
-        '/organizations/$organizationIdOrSlug/preprodartifacts/$headArtifactId/private-install-details/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            headArtifactId: artifactId,
-          },
-        }
-      ),
-    ],
-    {
-      staleTime: 0,
-      retry: (failureCount, apiError: RequestError) => {
-        if (apiError?.status === 404) {
-          return false;
-        }
-        return failureCount < 2;
-      },
-    }
-  );
+  } = useQuery({
+    ...apiOptions.as<InstallDetailsApiResponse>()(
+      '/organizations/$organizationIdOrSlug/preprodartifacts/$headArtifactId/private-install-details/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          headArtifactId: artifactId,
+        },
+        staleTime: 0,
+      }
+    ),
+    retry: (failureCount, apiError) => {
+      if (apiError instanceof RequestError && apiError.status === 404) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+  });
 
   const distributionDisabledBody = (
-    <Flex direction="column" align="center" gap={outerGap}>
+    <Stack align="center" gap={outerGap}>
       <Text>{t('Build distribution is not enabled')}</Text>
       <Text size="sm" variant="muted" align="center">
         {tct(
@@ -106,19 +127,19 @@ export function InstallDetailsContent({
           }
         )}
       </Text>
-    </Flex>
+    </Stack>
   );
 
   let body: ReactNode;
   if (isPending) {
     body = (
-      <Flex direction="column" align="center" gap={outerGap}>
+      <Stack align="center" gap={outerGap}>
         <LoadingIndicator />
         <Text>{t('Loading install details...')}</Text>
-      </Flex>
+      </Stack>
     );
   } else if (isError || !installDetails) {
-    if (error?.status === 404) {
+    if (error instanceof RequestError && error.status === 404) {
       // 404 means there's no installable file. Use the error_code/message the
       // parent passes from build-details to explain why — only show the
       // settings link when distribution is actually disabled for the project.
@@ -129,24 +150,24 @@ export function InstallDetailsContent({
           ? getDistributionErrorTooltip(distributionErrorCode, distributionErrorMessage)
           : t('No install download link available');
         body = (
-          <Flex direction="column" align="center" gap={outerGap}>
+          <Stack align="center" gap={outerGap}>
             <Text>{message}</Text>
-          </Flex>
+          </Stack>
         );
       }
     } else {
       body = (
-        <Flex direction="column" align="center" gap={outerGap}>
+        <Stack align="center" gap={outerGap}>
           <Text>
             {t('Error: %s', error?.message || 'Failed to fetch install details')}
           </Text>
           <Button onClick={() => refetch()}>{t('Retry')}</Button>
-        </Flex>
+        </Stack>
       );
     }
   } else if (installDetails.codesigning_type === 'appstore') {
     body = (
-      <Flex direction="column" align="center" gap={outerGap}>
+      <Stack align="center" gap={outerGap}>
         <CodeSignatureInfo>
           <Text>{t('This app cannot be installed')}</Text>
           <br />
@@ -159,9 +180,14 @@ export function InstallDetailsContent({
             )}
           </Text>
         </CodeSignatureInfo>
-      </Flex>
+      </Stack>
     );
   } else if (installDetails.install_url) {
+    const deviceInstallUrl = getDeviceInstallUrl(
+      installDetails.platform,
+      installDetails.install_url
+    );
+    const ipaDownloadUrl = getIpaDownloadUrl(installDetails.install_url);
     const details = installDetails.is_code_signature_valid !== undefined && (
       <CodeSignatureInfo>
         {installDetails.profile_name && (
@@ -179,7 +205,7 @@ export function InstallDetailsContent({
     );
 
     body = (
-      <Flex direction="column" align="center" gap={outerGap} width="100%">
+      <Stack align="center" gap={outerGap} width="100%">
         <Fragment>
           <Stack align="center" gap="md">
             {installDetails.download_count !== undefined &&
@@ -188,29 +214,25 @@ export function InstallDetailsContent({
                   {tn('%s download', '%s downloads', installDetails.download_count)}
                 </Text>
               )}
-            <Container display={{'screen:xs': 'none', 'screen:sm': 'block'}}>
+            <Container display={{sm: 'none', xl: 'block'}}>
               <QuietZoneQRCode
                 aria-label={t('Install QR Code')}
-                value={
-                  installDetails.platform === 'apple'
-                    ? `itms-services://?action=download-manifest&url=${encodeURIComponent(installDetails.install_url)}`
-                    : installDetails.install_url
-                }
+                value={deviceInstallUrl}
                 size={qrSize}
               />
             </Container>
             {details}
-            <Container display={{'screen:xs': 'none', 'screen:sm': 'block'}}>
-              <Flex direction="column" maxWidth="300px" gap="xl" paddingTop="xl">
+            <Container display={{sm: 'none', xl: 'block'}}>
+              <Stack maxWidth="300px" gap="xl" paddingTop="xl">
                 <Text align="center" size="lg">
                   {t(
                     'Scan the QR code with your device and follow the installation prompts'
                   )}
                 </Text>
-              </Flex>
+              </Stack>
             </Container>
           </Stack>
-          <Container display={{'screen:xs': 'none', 'screen:sm': 'block'}} width="100%">
+          <Container display={{sm: 'none', xl: 'block'}} width="100%">
             <Flex align="center" gap="md" width="100%">
               <Separator
                 orientation="horizontal"
@@ -231,65 +253,127 @@ export function InstallDetailsContent({
             <Flex
               gap="md"
               width="100%"
-              direction={{'screen:xs': 'column', 'screen:sm': 'row'}}
+              direction={{zero: 'column', sm: 'row'}}
               justify="center"
-              align={{'screen:xs': 'stretch', 'screen:sm': 'center'}}
+              align={{zero: 'stretch', sm: 'center'}}
             >
-              <Flex width={{'screen:xs': '100%', 'screen:sm': 'auto'}}>
-                <Button
-                  onClick={() => window.open(installDetails.install_url, '_blank')}
-                  variant="primary"
-                  size="md"
-                  style={{width: '100%'}}
-                >
-                  {t('Download')}
-                </Button>
-              </Flex>
-              {installDetails.install_url && (
-                <Flex
-                  alignSelf={{'screen:xs': 'stretch', 'screen:sm': 'center'}}
-                  width={{'screen:xs': '100%', 'screen:sm': 'auto'}}
-                >
-                  <Container
-                    display={{'screen:xs': 'block', 'screen:sm': 'none'}}
-                    width="100%"
-                  >
-                    <Button
-                      onClick={() =>
-                        copy(installDetails.install_url!, {
-                          successMessage: t('Copied Download Link'),
-                        })
-                      }
+              {installDetails.platform === 'apple' ? (
+                <Fragment>
+                  <Flex width={{sm: '100%', xl: 'auto'}}>
+                    <LinkButton
+                      href={deviceInstallUrl}
+                      variant="primary"
                       size="md"
-                      variant="secondary"
                       style={{width: '100%'}}
                     >
-                      {t('Copy Download Link')}
+                      {t('Install')}
+                    </LinkButton>
+                  </Flex>
+                  <Flex width={{sm: '100%', xl: 'auto'}}>
+                    <DropdownMenu
+                      items={[
+                        {
+                          key: 'download-ipa',
+                          label: t('Download IPA'),
+                          leadingItems: <IconDownload />,
+                          externalHref: ipaDownloadUrl,
+                        },
+                        {
+                          key: 'copy-link',
+                          label: t('Copy Install Link'),
+                          leadingItems: <IconLink />,
+                          onAction: () =>
+                            copy(deviceInstallUrl, {
+                              successMessage: t('Copied Install Link'),
+                            }),
+                        },
+                      ]}
+                      trigger={triggerProps => (
+                        <OverlayTrigger.IconButton
+                          icon={<IconEllipsis />}
+                          {...triggerProps}
+                          size="md"
+                          aria-label={t('More install options')}
+                          style={{width: '100%'}}
+                        />
+                      )}
+                    />
+                  </Flex>
+                </Fragment>
+              ) : (
+                <Fragment>
+                  <Flex width={{sm: '100%', xl: 'auto'}}>
+                    <Button
+                      onClick={() => window.open(deviceInstallUrl, '_blank')}
+                      variant="primary"
+                      size="md"
+                      style={{width: '100%'}}
+                    >
+                      {t('Download')}
                     </Button>
-                  </Container>
-                  <Container display={{'screen:xs': 'none', 'screen:sm': 'block'}}>
-                    <Tooltip title={t('Copy Download Link')}>
+                  </Flex>
+                  <Flex
+                    alignSelf={{sm: 'stretch', xl: 'center'}}
+                    width={{sm: '100%', xl: 'auto'}}
+                  >
+                    <Container display={{zero: 'block', sm: 'none'}} width="100%">
                       <Button
-                        aria-label={t('Copy Download Link')}
-                        icon={<IconLink />}
-                        size="md"
                         onClick={() =>
-                          copy(installDetails.install_url!, {
+                          copy(deviceInstallUrl, {
                             successMessage: t('Copied Download Link'),
                           })
                         }
-                      />
-                    </Tooltip>
-                  </Container>
-                </Flex>
+                        size="md"
+                        variant="secondary"
+                        style={{width: '100%'}}
+                      >
+                        {t('Copy Download Link')}
+                      </Button>
+                    </Container>
+                    <Container display={{zero: 'none', sm: 'block'}}>
+                      <Tooltip title={t('Copy Download Link')}>
+                        <Button
+                          aria-label={t('Copy Download Link')}
+                          icon={<IconLink />}
+                          size="md"
+                          onClick={() =>
+                            copy(deviceInstallUrl, {
+                              successMessage: t('Copied Download Link'),
+                            })
+                          }
+                        />
+                      </Tooltip>
+                    </Container>
+                  </Flex>
+                </Fragment>
               )}
             </Flex>
             <Text align="center" size="md" variant="muted">
               {t('The install link will expire in 12 hours')}
             </Text>
           </Stack>
+          {installGroups && installGroups.length > 0 && (
+            <Stack gap="md" width="100%">
+              <Heading as="h3">{t('Install Groups')}</Heading>
+              <Container
+                padding="xl"
+                background="secondary"
+                border="primary"
+                radius="md"
+                width="100%"
+              >
+                <Flex gap="sm" wrap="wrap">
+                  {installGroups.map(group => (
+                    <Tag key={group} variant="muted">
+                      {group}
+                    </Tag>
+                  ))}
+                </Flex>
+              </Container>
+            </Stack>
+          )}
           {installDetails.release_notes && (
-            <Flex direction="column" gap="md" width="100%">
+            <Stack gap="md" width="100%">
               <Heading as="h3">{t('Release Notes')}</Heading>
               <Container
                 padding="xl"
@@ -300,10 +384,10 @@ export function InstallDetailsContent({
               >
                 <MarkedText text={installDetails.release_notes} />
               </Container>
-            </Flex>
+            </Stack>
           )}
         </Fragment>
-      </Flex>
+      </Stack>
     );
   } else if (distributionErrorCode === 'distribution_disabled') {
     body = distributionDisabledBody;
@@ -321,7 +405,7 @@ export function InstallDetailsContent({
     }
 
     body = (
-      <Flex direction="column" align="center" gap={outerGap}>
+      <Stack align="center" gap={outerGap}>
         <Text>{message}</Text>
         {installDetails.code_signature_errors &&
           installDetails.code_signature_errors.length > 0 && (
@@ -333,7 +417,7 @@ export function InstallDetailsContent({
               </Stack>
             </CodeSignatureInfo>
           )}
-      </Flex>
+      </Stack>
     );
   }
 

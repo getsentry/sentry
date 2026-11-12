@@ -1,4 +1,7 @@
-from unittest.mock import patch
+from collections.abc import Iterator
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 from sentry.integrations.messaging.metrics import SeerSlackHaltReason
 from sentry.testutils.asserts import assert_halt_metric
@@ -18,13 +21,20 @@ AUTHORIZATIONS_DATA = {"authorizations": [{"user_id": "U0BOT", "is_bot": True}]}
 
 
 class AppMentionEventTest(BaseEventTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         # Tests default to having the mention come from a linked user.
         self.link_identity(user=self.user, slack_user_id=APP_MENTION_EVENT["user"])
 
+    @pytest.fixture(autouse=True)
+    def mock_set_thread_status(self) -> Iterator[None]:
+        with patch(
+            "sentry.integrations.slack.integration.SlackIntegration.set_thread_status",
+        ) as self.mock_status:
+            yield
+
     @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
-    def test_app_mention_dispatches_task(self, mock_apply_async):
+    def test_app_mention_dispatches_task(self, mock_apply_async: MagicMock) -> None:
         with self.feature(SEER_EXPLORER_FEATURES):
             resp = self.post_webhook(
                 event_data=THREADED_APP_MENTION_EVENT, data=AUTHORIZATIONS_DATA
@@ -44,7 +54,7 @@ class AppMentionEventTest(BaseEventTest):
         assert kwargs["attachments"] is None
 
     @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
-    def test_app_mention_forwards_unfurl_attachments(self, mock_apply_async):
+    def test_app_mention_forwards_unfurl_attachments(self, mock_apply_async: MagicMock) -> None:
         """When Slack auto-unfurls a permalink in the mention, the attachment
         list rides along to the task so we can skip the API call."""
         unfurl_attachment = {
@@ -65,7 +75,9 @@ class AppMentionEventTest(BaseEventTest):
         assert kwargs["attachments"] == [unfurl_attachment]
 
     @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
-    def test_app_mention_dispatches_task_no_authorizations(self, mock_apply_async):
+    def test_app_mention_dispatches_task_no_authorizations(
+        self, mock_apply_async: MagicMock
+    ) -> None:
         with self.feature(SEER_EXPLORER_FEATURES):
             resp = self.post_webhook(event_data=THREADED_APP_MENTION_EVENT)
 
@@ -75,7 +87,7 @@ class AppMentionEventTest(BaseEventTest):
         assert kwargs["bot_user_id"] == ""
 
     @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
-    def test_app_mention_non_threaded_dispatches_task(self, mock_apply_async):
+    def test_app_mention_non_threaded_dispatches_task(self, mock_apply_async: MagicMock) -> None:
         """Non-threaded mentions dispatch with ts set and thread_ts as None."""
         with self.feature(SEER_EXPLORER_FEATURES):
             resp = self.post_webhook(event_data=APP_MENTION_EVENT)
@@ -88,7 +100,9 @@ class AppMentionEventTest(BaseEventTest):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
-    def test_app_mention_empty_text(self, mock_apply_async, mock_record):
+    def test_app_mention_empty_text(
+        self, mock_apply_async: MagicMock, mock_record: MagicMock
+    ) -> None:
         event_data = {**APP_MENTION_EVENT, "text": ""}
         with self.feature(SEER_EXPLORER_FEATURES):
             resp = self.post_webhook(event_data=event_data)
@@ -97,9 +111,116 @@ class AppMentionEventTest(BaseEventTest):
         mock_apply_async.assert_not_called()
         assert_halt_metric(mock_record, SeerSlackHaltReason.MISSING_EVENT_DATA)
 
+    @patch("sentry.integrations.slack.workspace.send_threaded_ephemeral_message")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
-    def test_app_mention_no_integration(self, mock_apply_async, mock_record):
+    def test_app_mention_only_the_bot_mention_halts(
+        self, mock_apply_async: MagicMock, mock_record: MagicMock, mock_send: MagicMock
+    ) -> None:
+        for text in ("<@U0BOT>", "  <@U0BOT>   "):
+            with self.subTest(text=text):
+                mock_apply_async.reset_mock()
+                mock_record.reset_mock()
+                mock_send.reset_mock()
+
+                with self.feature(SEER_EXPLORER_FEATURES):
+                    resp = self.post_webhook(
+                        event_data={**APP_MENTION_EVENT, "text": text},
+                        data=AUTHORIZATIONS_DATA,
+                    )
+
+                assert resp.status_code == 200
+                mock_apply_async.assert_not_called()
+                assert_halt_metric(mock_record, SeerSlackHaltReason.EMPTY_PROMPT)
+
+                mock_send.assert_called_once()
+                kwargs = mock_send.call_args.kwargs
+                assert kwargs["channel_id"] == APP_MENTION_EVENT["channel"]
+                assert kwargs["thread_ts"] == APP_MENTION_EVENT["ts"]
+                assert "came through empty" in kwargs["renderable"]["text"]
+
+    @patch("sentry.integrations.slack.workspace.send_threaded_ephemeral_message")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
+    def test_app_mention_only_the_bot_mention_halts_without_authorizations(
+        self, mock_apply_async: MagicMock, mock_record: MagicMock, mock_send: MagicMock
+    ) -> None:
+        with self.feature(SEER_EXPLORER_FEATURES):
+            resp = self.post_webhook(event_data={**APP_MENTION_EVENT, "text": "<@U0BOT>"})
+
+        assert resp.status_code == 200
+        mock_apply_async.assert_not_called()
+        assert_halt_metric(mock_record, SeerSlackHaltReason.EMPTY_PROMPT)
+        mock_send.assert_called_once()
+
+    @patch("sentry.integrations.slack.workspace.send_threaded_ephemeral_message")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
+    def test_app_mention_only_mentions_halts(
+        self, mock_apply_async: MagicMock, mock_record: MagicMock, mock_send: MagicMock
+    ) -> None:
+        """Mentioning us alongside other users, with no question, is still empty."""
+        with self.feature(SEER_EXPLORER_FEATURES):
+            resp = self.post_webhook(
+                event_data={**APP_MENTION_EVENT, "text": "<@U0BOT> <@U1234567890|alice>"},
+                data=AUTHORIZATIONS_DATA,
+            )
+
+        assert resp.status_code == 200
+        mock_apply_async.assert_not_called()
+        assert_halt_metric(mock_record, SeerSlackHaltReason.EMPTY_PROMPT)
+
+    @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
+    def test_app_mention_other_user_mention_with_text_dispatches(
+        self, mock_apply_async: MagicMock
+    ) -> None:
+        """A mention of someone else is context, not emptiness, when text follows."""
+        with self.feature(SEER_EXPLORER_FEATURES):
+            resp = self.post_webhook(
+                event_data={
+                    **APP_MENTION_EVENT,
+                    "text": "<@U0BOT> what did <@U1234567890> break?",
+                },
+                data=AUTHORIZATIONS_DATA,
+            )
+
+        assert resp.status_code == 200
+        mock_apply_async.assert_called_once()
+
+    @patch("sentry.integrations.slack.workspace.send_threaded_ephemeral_message")
+    @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
+    def test_app_mention_empty_prompt_reply_failure_is_swallowed(
+        self, mock_apply_async: MagicMock, mock_send: MagicMock
+    ) -> None:
+        mock_send.side_effect = Exception("slack down")
+
+        with self.feature(SEER_EXPLORER_FEATURES):
+            resp = self.post_webhook(
+                event_data={**APP_MENTION_EVENT, "text": "<@U0BOT>"},
+                data=AUTHORIZATIONS_DATA,
+            )
+
+        assert resp.status_code == 200
+        mock_apply_async.assert_not_called()
+
+    @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
+    def test_app_mention_with_text_after_the_mention_dispatches(
+        self, mock_apply_async: MagicMock
+    ) -> None:
+        with self.feature(SEER_EXPLORER_FEATURES):
+            resp = self.post_webhook(
+                event_data={**APP_MENTION_EVENT, "text": "<@U0BOT> why is this slow?"},
+                data=AUTHORIZATIONS_DATA,
+            )
+
+        assert resp.status_code == 200
+        mock_apply_async.assert_called_once()
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
+    def test_app_mention_no_integration(
+        self, mock_apply_async: MagicMock, mock_record: MagicMock
+    ) -> None:
         """When the integration has no org integrations, we should not dispatch."""
         with patch(
             "sentry.integrations.slack.requests.event.integration_service.get_organization_integrations",
@@ -114,7 +235,9 @@ class AppMentionEventTest(BaseEventTest):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
-    def test_app_mention_no_explorer_access(self, mock_apply_async, mock_record):
+    def test_app_mention_no_explorer_access(
+        self, mock_apply_async: MagicMock, mock_record: MagicMock
+    ) -> None:
         resp = self.post_webhook(event_data=APP_MENTION_EVENT)
 
         assert resp.status_code == 200
@@ -123,7 +246,9 @@ class AppMentionEventTest(BaseEventTest):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
-    def test_app_mention_no_identity_halts(self, mock_apply_async, mock_record):
+    def test_app_mention_no_identity_halts(
+        self, mock_apply_async: MagicMock, mock_record: MagicMock
+    ) -> None:
         self.unlink_identity()
 
         resp = self.post_webhook(event_data=APP_MENTION_EVENT)
@@ -134,7 +259,9 @@ class AppMentionEventTest(BaseEventTest):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
-    def test_app_mention_linked_user_not_org_member(self, mock_apply_async, mock_record):
+    def test_app_mention_linked_user_not_org_member(
+        self, mock_apply_async: MagicMock, mock_record: MagicMock
+    ) -> None:
         self.unlink_identity()
 
         other_user = self.create_user()

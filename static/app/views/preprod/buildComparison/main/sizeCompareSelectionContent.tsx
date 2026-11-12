@@ -1,24 +1,24 @@
 import {useState} from 'react';
+import {IconSearch} from '@sentry/icons/search';
 import {useMutation, useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {InputGroup} from '@sentry/scraps/input';
 import {Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Heading} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {parseApiError} from 'sentry/utils/parseApiError';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
-import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -37,22 +37,17 @@ import {SizeCompareSelectedBuilds} from './sizeCompareSelectedBuilds';
 
 interface SizeCompareSelectionContentProps {
   headBuildDetails: BuildDetailsApiResponse;
-  baseBuildDetails?: BuildDetailsApiResponse;
 }
 
 export function SizeCompareSelectionContent({
   headBuildDetails,
-  baseBuildDetails,
 }: SizeCompareSelectionContentProps) {
   const organization = useOrganization();
-  const api = useApi({persistInFlight: true});
   const navigate = useNavigate();
-  const {cursor} = useLocationQuery({
-    fields: {
-      cursor: decodeScalar,
-    },
-  });
-  const [selectedBaseBuild, setSelectedBaseBuild] = useState(baseBuildDetails);
+  const [cursor] = useQueryState('cursor', parseAsString.withDefault(''));
+  const [selectedBaseBuild, setSelectedBaseBuild] = useState<
+    BuildDetailsApiResponse | undefined
+  >();
   const [searchQuery, setSearchQuery] = useState('');
 
   const searchFilters: string[] = [`state:${BuildDetailsState.PROCESSED}`];
@@ -94,14 +89,14 @@ export function SizeCompareSelectionContent({
     {baseArtifactId: string; headArtifactId: string}
   >({
     mutationFn: ({headArtifactId, baseArtifactId}) => {
-      return api.requestPromise(
-        getCompareApiUrl({
+      return fetchMutation<void>({
+        url: getCompareApiUrl({
           organizationSlug: organization.slug,
           headArtifactId,
           baseArtifactId,
         }),
-        {method: 'POST'}
-      );
+        method: 'POST',
+      });
     },
     onSuccess: () => {
       navigate(
@@ -114,7 +109,7 @@ export function SizeCompareSelectionContent({
     },
     onError: error => {
       const errorMessage = parseApiError(error);
-      addErrorMessage(
+      toast.error(
         errorMessage === 'Unknown API Error'
           ? t('Failed to trigger comparison. Please try again.')
           : errorMessage
@@ -131,7 +126,7 @@ export function SizeCompareSelectionContent({
         onClearBaseBuild={() => setSelectedBaseBuild(undefined)}
         onTriggerComparison={() => {
           if (!selectedBaseBuild) {
-            addErrorMessage(t('Please select a base build to compare.'));
+            toast.error(t('Please select a base build to compare.'));
             return;
           }
 
@@ -205,7 +200,7 @@ export function SizeCompareSelectionContent({
               );
             })}
 
-            {hasPagination && <Pagination pageLinks={pageLinks} />}
+            {hasPagination && <Pagination {...getPaginationProps(pageLinks)} />}
           </Stack>
         )}
       </Stack>

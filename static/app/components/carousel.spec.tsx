@@ -1,6 +1,6 @@
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Carousel} from 'sentry/components/carousel';
+import {Carousel} from './carousel';
 
 describe('Carousel', () => {
   let intersectionOnbserverCb: (
@@ -109,7 +109,7 @@ describe('Carousel', () => {
 
   it('skips an element when it is past the visibleRatio', async () => {
     render(
-      <Carousel visibleRatio={0.9}>
+      <Carousel>
         <div data-test-id="child-1" />
         <div data-test-id="child-2" />
         <div data-test-id="child-3" />

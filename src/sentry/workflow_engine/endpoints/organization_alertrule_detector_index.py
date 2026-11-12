@@ -59,7 +59,8 @@ class OrganizationAlertRuleDetectorIndexEndpoint(OrganizationEndpoint):
         alert_rule_id = validator.validated_data.get("alert_rule_id")
         detector_id = validator.validated_data.get("detector_id")
 
-        queryset = AlertRuleDetector.objects.filter(detector__project__organization=organization)
+        projects = self.get_projects(request, organization, include_all_accessible=True)
+        queryset = AlertRuleDetector.objects.filter(detector__project__in=projects)
 
         if detector_id:
             queryset = queryset.filter(detector_id=detector_id)
@@ -77,11 +78,13 @@ class OrganizationAlertRuleDetectorIndexEndpoint(OrganizationEndpoint):
 
         # Fallback: if alert_rule_id was provided but no AlertRuleDetector was found,
         # try looking up Detector directly using calculated detector_id
-        if alert_rule_id:
+        if alert_rule_id and not rule_id:
             try:
                 calculated_detector_id = get_object_id_from_fake_id(int(alert_rule_id))
+                if detector_id and detector_id != calculated_detector_id:
+                    raise ResourceDoesNotExist
                 detector = Detector.objects.with_type_filters().get(
-                    id=calculated_detector_id, project__organization=organization
+                    id=calculated_detector_id, project__in=projects
                 )
 
                 if detector:

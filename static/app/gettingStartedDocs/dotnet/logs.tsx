@@ -6,11 +6,9 @@ import {
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  getInstallSnippetCoreCli,
-  getInstallSnippetPackageManager,
-} from 'sentry/gettingStartedDocs/dotnet/utils';
 import {t, tct} from 'sentry/locale';
+
+import {getInstallSnippetCoreCli, getInstallSnippetPackageManager} from './utils';
 
 export const logsVerify = (params: DocsParams): ContentBlock => ({
   type: 'conditional',
@@ -18,7 +16,9 @@ export const logsVerify = (params: DocsParams): ContentBlock => ({
   content: [
     {
       type: 'text',
-      text: t('Send a test log from your app to verify logs are arriving in Sentry.'),
+      text: t(
+        'Send a test log from your app, then refresh this page to verify it arrived in Sentry.'
+      ),
     },
     {
       type: 'code',

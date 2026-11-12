@@ -1,5 +1,8 @@
 import {Fragment, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconFlag} from '@sentry/icons/flag';
+import {IconInfo} from '@sentry/icons/info';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, ButtonBar} from '@sentry/scraps/button';
@@ -8,20 +11,11 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Collapsible} from 'sentry/components/collapsible';
-import {IconInfo} from 'sentry/icons';
-import {IconChevron} from 'sentry/icons/iconChevron';
-import {IconFlag} from 'sentry/icons/iconFlag';
 import {t, tn} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {openAlternativeIconsInsightModal} from 'sentry/views/preprod/buildDetails/main/insights/alternativeIconsInsightInfoModal';
-import {InsightTimedOutWarning} from 'sentry/views/preprod/buildDetails/main/insights/insightTimedOutWarning';
-import {openMainBinaryExportedSymbolsModal} from 'sentry/views/preprod/buildDetails/main/insights/mainBinaryExportedSymbolsModal';
-import {openMinifyLocalizedStringsModal} from 'sentry/views/preprod/buildDetails/main/insights/minifyLocalizedStringsModal';
-import {openOptimizeImagesModal} from 'sentry/views/preprod/buildDetails/main/insights/optimizeImagesModal';
-import {openStripDebugSymbolsModal} from 'sentry/views/preprod/buildDetails/main/insights/stripDebugSymbolsModal';
 import type {
   FileSavingsResultGroup,
   OptimizableImageFile,
@@ -31,6 +25,13 @@ import type {
   ProcessedInsight,
   ProcessedInsightFile,
 } from 'sentry/views/preprod/utils/insightProcessing';
+
+import {openAlternativeIconsInsightModal} from './alternativeIconsInsightInfoModal';
+import {InsightTimedOutWarning} from './insightTimedOutWarning';
+import {openMainBinaryExportedSymbolsModal} from './mainBinaryExportedSymbolsModal';
+import {openMinifyLocalizedStringsModal} from './minifyLocalizedStringsModal';
+import {openOptimizeImagesModal} from './optimizeImagesModal';
+import {openStripDebugSymbolsModal} from './stripDebugSymbolsModal';
 
 export function formatUpside(percentage: number): string {
   // percentage is between 0 and 1.
@@ -114,6 +115,7 @@ export function AppSizeInsightsSidebarRow({
 
   useEffect(() => {
     if (!isExpanded) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setCurrentPage(0);
     }
   }, [isExpanded]);
@@ -131,7 +133,7 @@ export function AppSizeInsightsSidebarRow({
   };
 
   return (
-    <Flex border="muted" radius="md" padding="xl" direction="column" gap="md">
+    <Stack border="muted" radius="md" padding="xl" gap="md">
       <Flex align="start" justify="between">
         <Flex align="center" gap="xs">
           <Text variant="primary" size="md" bold>
@@ -228,7 +230,7 @@ export function AppSizeInsightsSidebarRow({
           )}
         </Container>
       )}
-    </Flex>
+    </Stack>
   );
 }
 
@@ -286,7 +288,7 @@ function DuplicateGroupFileRow({
           -{formatBytesBase10(file.savings)}
         </Text>
       </Flex>
-      <Flex direction="column" gap="xs" padding="xs sm">
+      <Stack gap="xs" padding="xs sm">
         <Collapsible
           maxVisibleItems={DUPLICATE_GROUP_VISIBLE_FILE_COUNT}
           expandButton={({onExpand, numberOfHiddenItems}) => (
@@ -317,7 +319,7 @@ function DuplicateGroupFileRow({
             </Flex>
           ))}
         </Collapsible>
-      </Flex>
+      </Stack>
     </Fragment>
   );
 }
@@ -347,13 +349,13 @@ function OptimizableImageFileRow({
     (originalFile.idiom || originalFile.colorspace) && file.data.isDuplicateVariant;
   // TODO (EME-460): Add link to formal documentation about idiom/colorspaces in apple binaries as well as more info about app thinning
   const tooltipContent = hasMetadata && (
-    <Flex direction="column" gap="lg" align="start">
+    <Stack gap="lg" align="start">
       <Text size="xs" align="left">
         {t(
           'This image shows up multiple times because this build likely did not have app thinning applied. That means your asset catalog can include different copies of the same image meant for different device types.'
         )}
       </Text>
-      <Flex direction="column" gap="xs" align="start">
+      <Stack gap="xs" align="start">
         {originalFile.idiom && (
           <Flex align="center" gap="xs">
             <Text size="xs">{t('Idiom:')}</Text>
@@ -366,8 +368,8 @@ function OptimizableImageFileRow({
             <Text size="xs">{originalFile.colorspace}</Text>
           </Flex>
         )}
-      </Flex>
-    </Flex>
+      </Stack>
+    </Stack>
   );
 
   return (
@@ -386,7 +388,7 @@ function OptimizableImageFileRow({
             {file.path}
           </Text>
           {hasMetadata && (
-            <Tooltip title={tooltipContent} isHoverable skipWrapper>
+            <Tooltip title={tooltipContent} skipWrapper>
               <Flex align="center" flexShrink={0}>
                 <IconFlag size="xs" variant="muted" />
               </Flex>
@@ -399,7 +401,7 @@ function OptimizableImageFileRow({
           </Text>
         </Flex>
       </Flex>
-      <Flex direction="column" gap="xs" padding="xs sm">
+      <Stack gap="xs" padding="xs sm">
         {hasMinifySavings && (
           <Flex align="center" gap="sm">
             <Text size="xs" variant="muted" style={{minWidth: '100px'}}>
@@ -432,7 +434,7 @@ function OptimizableImageFileRow({
             </Text>
           </Flex>
         )}
-      </Flex>
+      </Stack>
     </Fragment>
   );
 }

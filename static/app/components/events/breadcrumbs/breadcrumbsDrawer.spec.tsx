@@ -1,26 +1,13 @@
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {BreadcrumbsDataSection} from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
-import {
-  MOCK_BREADCRUMBS,
-  MOCK_DATA_SECTION_PROPS,
-} from 'sentry/components/events/breadcrumbs/testUtils';
+import {getShortEventId} from 'sentry/utils/events';
+import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 
-async function renderBreadcrumbDrawer() {
-  // Needed to mock useVirtualizer lists.
-  jest
-    .spyOn(window.Element.prototype, 'getBoundingClientRect')
-    .mockImplementation(() => ({
-      x: 0,
-      y: 0,
-      width: 0,
-      height: 30,
-      left: 0,
-      top: 0,
-      right: 0,
-      bottom: 0,
-      toJSON: jest.fn(),
-    }));
+import {BreadcrumbsDataSection} from './breadcrumbsDataSection';
+import {MOCK_BREADCRUMBS, MOCK_DATA_SECTION_PROPS} from './testUtils';
+
+async function openBreadcrumbDrawer() {
+  mockElementSize({width: 0, height: 30});
   render(<BreadcrumbsDataSection {...MOCK_DATA_SECTION_PROPS} />);
   await userEvent.click(screen.getByRole('button', {name: 'View 2 more'}));
   return screen.getByRole('complementary', {name: 'breadcrumb drawer'});
@@ -28,23 +15,21 @@ async function renderBreadcrumbDrawer() {
 
 describe('BreadcrumbsDrawer', () => {
   it('renders the drawer as expected', async () => {
-    const drawerScreen = await renderBreadcrumbDrawer();
+    const drawerScreen = await openBreadcrumbDrawer();
     expect(
       within(drawerScreen).getByRole('button', {name: 'Close Drawer'})
     ).toBeInTheDocument();
 
     // Inner drawer breadcrumbs
-    const {event, group} = MOCK_DATA_SECTION_PROPS;
-    expect(within(drawerScreen).getByText(group.shortId)).toBeInTheDocument();
-    expect(within(drawerScreen).getByText(event.id.slice(0, 8))).toBeInTheDocument();
+    const {event} = MOCK_DATA_SECTION_PROPS;
+    const currentCrumb = within(drawerScreen).getByText('Breadcrumbs');
+    expect(currentCrumb).toHaveAttribute('aria-current', 'location');
+    await userEvent.hover(currentCrumb);
     expect(
-      within(drawerScreen).getByText('Breadcrumbs', {selector: 'span'})
+      await screen.findByText(`Event ID: ${getShortEventId(event.id)}`)
     ).toBeInTheDocument();
 
-    // Header & Controls
-    expect(
-      within(drawerScreen).getByText('Breadcrumbs', {selector: 'h3'})
-    ).toBeInTheDocument();
+    // Controls
     expect(
       within(drawerScreen).getByRole('textbox', {name: 'Search All Breadcrumbs'})
     ).toBeInTheDocument();
@@ -72,7 +57,7 @@ describe('BreadcrumbsDrawer', () => {
   });
 
   it('allows search to affect displayed crumbs', async () => {
-    const drawerScreen = await renderBreadcrumbDrawer();
+    const drawerScreen = await openBreadcrumbDrawer();
 
     const [warningCrumb, logCrumb] = MOCK_BREADCRUMBS;
     expect(within(drawerScreen).getByText(warningCrumb.category)).toBeInTheDocument();
@@ -88,7 +73,7 @@ describe('BreadcrumbsDrawer', () => {
   });
 
   it('allows type filter to affect displayed crumbs', async () => {
-    const drawerScreen = await renderBreadcrumbDrawer();
+    const drawerScreen = await openBreadcrumbDrawer();
 
     const queryCrumb = MOCK_BREADCRUMBS[3];
     const requestCrumb = MOCK_BREADCRUMBS[2];
@@ -107,7 +92,7 @@ describe('BreadcrumbsDrawer', () => {
   });
 
   it('allows level spofilter to affect displayed crumbs', async () => {
-    const drawerScreen = await renderBreadcrumbDrawer();
+    const drawerScreen = await openBreadcrumbDrawer();
 
     const [warningCrumb, logCrumb] = MOCK_BREADCRUMBS;
 
@@ -124,7 +109,7 @@ describe('BreadcrumbsDrawer', () => {
   });
 
   it('allows sort dropdown to affect displayed crumbs', async () => {
-    const drawerScreen = await renderBreadcrumbDrawer();
+    const drawerScreen = await openBreadcrumbDrawer();
 
     const [warningCrumb, logCrumb] = MOCK_BREADCRUMBS;
 
@@ -157,7 +142,7 @@ describe('BreadcrumbsDrawer', () => {
   });
 
   it('allows time display dropdown to change all displayed crumbs', async () => {
-    const drawerScreen = await renderBreadcrumbDrawer();
+    const drawerScreen = await openBreadcrumbDrawer();
     expect(
       within(drawerScreen).getAllByText('May 21, 2019 6:00:48.760 PM UTC')
     ).toHaveLength(MOCK_BREADCRUMBS.length);

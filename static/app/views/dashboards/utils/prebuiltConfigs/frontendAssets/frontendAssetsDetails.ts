@@ -5,11 +5,12 @@ import type {
   PrebuiltDashboard,
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {DETAILS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendAssets/settings';
 import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+
+import {DETAILS_DASHBOARD_TITLE} from './settings';
 
 const ASSET_DESCRIPTION_WIDGET: PrebuiltWidget = {
   id: 'domain-widget',
@@ -40,7 +41,6 @@ const ASSET_DESCRIPTION_WIDGET: PrebuiltWidget = {
       fieldAliases: [],
       conditions: '',
       orderby: SpanFields.ID,
-      onDemand: [],
       linkedDashboards: [],
     },
   ],

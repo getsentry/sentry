@@ -7,7 +7,7 @@ import type {
 } from 'echarts';
 import type EChartsReact from 'echarts-for-react';
 
-import type {Confidence} from 'sentry/types/organization';
+import type {Confidence} from './organization';
 
 export type SeriesDataUnit = {
   // number because we sometimes use timestamps
@@ -162,16 +162,10 @@ export type EChartFinishedHandler = EChartEventHandler<Record<string, unknown>>;
 
 export type EChartRenderedHandler = EChartEventHandler<Record<string, unknown>>;
 
-export type EChartBrushArea = {
+type EChartBrushArea = {
   coordRange: number[] | number[][];
   panelId: string;
   range: number[] | number[][];
-  /**
-   * On a grid with multiple coordinate systems, the brush reports one
-   * coordinate range per axis-pair it touches. ECharts' own types only cover
-   * the singular `coordRange`, so this plural field is declared here.
-   */
-  coordRanges?: number[][][];
 };
 
 type EchartBrushAreas = EChartBrushArea[];

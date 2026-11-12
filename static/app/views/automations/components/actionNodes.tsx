@@ -1,83 +1,27 @@
 import type React from 'react';
-import {createContext, useContext} from 'react';
 
 import {t} from 'sentry/locale';
-import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
+import type {Action} from 'sentry/types/workflowEngine/actions';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
-import {
-  AzureDevOpsDetails,
-  AzureDevOpsNode,
-} from 'sentry/views/automations/components/actions/azureDevOps';
-import {
-  DiscordDetails,
-  DiscordNode,
-  validateDiscordAction,
-} from 'sentry/views/automations/components/actions/discord';
-import {
-  EmailDetails,
-  EmailNode,
-  validateEmailAction,
-} from 'sentry/views/automations/components/actions/email';
-import {
-  GithubDetails,
-  GithubNode,
-} from 'sentry/views/automations/components/actions/github';
-import {
-  GithubEnterpriseDetails,
-  GithubEnterpriseNode,
-} from 'sentry/views/automations/components/actions/githubEnterprise';
-import {JiraDetails, JiraNode} from 'sentry/views/automations/components/actions/jira';
-import {
-  JiraServerDetails,
-  JiraServerNode,
-} from 'sentry/views/automations/components/actions/jiraServer';
-import {
-  MSTeamsDetails,
-  MSTeamsNode,
-  validateMSTeamsAction,
-} from 'sentry/views/automations/components/actions/msTeams';
-import {
-  OpsgenieDetails,
-  OpsgenieNode,
-  validateOpsgenieAction,
-} from 'sentry/views/automations/components/actions/opsgenie';
+
+import {AzureDevOpsDetails, AzureDevOpsNode} from './actions/azureDevOps';
+import {DiscordDetails, DiscordNode, validateDiscordAction} from './actions/discord';
+import {EmailDetails, EmailNode, validateEmailAction} from './actions/email';
+import {GithubDetails, GithubNode} from './actions/github';
+import {GithubEnterpriseDetails, GithubEnterpriseNode} from './actions/githubEnterprise';
+import {JiraDetails, JiraNode} from './actions/jira';
+import {JiraServerDetails, JiraServerNode} from './actions/jiraServer';
+import {MSTeamsDetails, MSTeamsNode, validateMSTeamsAction} from './actions/msTeams';
+import {OpsgenieDetails, OpsgenieNode, validateOpsgenieAction} from './actions/opsgenie';
 import {
   PagerdutyDetails,
   PagerdutyNode,
   validatePagerdutyAction,
-} from 'sentry/views/automations/components/actions/pagerduty';
-import {PluginNode} from 'sentry/views/automations/components/actions/plugin';
-import {
-  SentryAppDetails,
-  SentryAppNode,
-} from 'sentry/views/automations/components/actions/sentryApp';
-import {
-  SlackDetails,
-  SlackNode,
-  validateSlackAction,
-} from 'sentry/views/automations/components/actions/slack';
-import {
-  validateWebhookAction,
-  WebhookDetails,
-  WebhookNode,
-} from 'sentry/views/automations/components/actions/webhook';
-
-interface ActionNodeProps {
-  action: Action;
-  actionId: string;
-  handler: ActionHandler;
-  onUpdate: (params: Record<string, any>) => void;
-}
-
-export const ActionNodeContext = createContext<ActionNodeProps | null>(null);
-
-export function useActionNodeContext(): ActionNodeProps {
-  const context = useContext(ActionNodeContext);
-  if (!context) {
-    throw new Error('useActionNodeContext was called outside of ActionNode');
-  }
-  return context;
-}
+} from './actions/pagerduty';
+import {PluginNode} from './actions/plugin';
+import {SentryAppDetails, SentryAppNode} from './actions/sentryApp';
+import {SlackDetails, SlackNode, validateSlackAction} from './actions/slack';
+import {validateWebhookAction, WebhookDetails, WebhookNode} from './actions/webhook';
 
 type ActionNode = {
   action: React.ComponentType<any>;
@@ -85,8 +29,6 @@ type ActionNode = {
   defaultData?: Record<string, any>;
   details?: React.ComponentType<any>;
   label?: string;
-  link?: string;
-  ticketType?: string;
 };
 
 export const actionNodesMap = new Map<ActionType, ActionNode>([
@@ -96,8 +38,6 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
       label: t('Azure DevOps'),
       action: AzureDevOpsNode,
       details: AzureDevOpsDetails,
-      ticketType: t('an Azure DevOps work item'),
-      link: 'https://docs.sentry.io/product/integrations/source-code-mgmt/azure-devops/#issue-sync',
       validate: validateIntegrationId,
     },
   ],
@@ -126,7 +66,6 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
       label: t('GitHub'),
       action: GithubNode,
       details: GithubDetails,
-      ticketType: t('a GitHub issue'),
       validate: validateIntegrationId,
     },
   ],
@@ -136,7 +75,6 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
       label: t('GitHub Enterprise'),
       action: GithubEnterpriseNode,
       details: GithubEnterpriseDetails,
-      ticketType: t('a GitHub Enterprise issue'),
       validate: validateIntegrationId,
     },
   ],
@@ -146,8 +84,6 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
       label: t('Jira'),
       action: JiraNode,
       details: JiraDetails,
-      ticketType: t('a Jira issue'),
-      link: 'https://docs.sentry.io/product/integrations/issue-tracking/jira/#issue-sync',
       validate: validateIntegrationId,
     },
   ],
@@ -157,8 +93,6 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
       label: t('Jira Server'),
       action: JiraServerNode,
       details: JiraServerDetails,
-      ticketType: t('a Jira Server issue'),
-      link: 'https://docs.sentry.io/product/integrations/issue-tracking/jira/#issue-sync',
       validate: validateIntegrationId,
     },
   ],

@@ -1,30 +1,18 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconDelete} from '@sentry/icons/delete';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconDelete} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
-import {
-  createOnDemandFilterWarning,
-  shouldDisplayOnDemandWidgetWarning,
-} from 'sentry/utils/onDemandMetrics';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {
-  DisplayType,
-  WidgetType,
-  type ValidateWidgetResponse,
-} from 'sentry/views/dashboards/types';
-import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
-import {WidgetOnDemandQueryWarning} from 'sentry/views/dashboards/widgetBuilder/components/widgetOnDemandQueryWarning';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
@@ -33,14 +21,14 @@ import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/us
 import {getDiscoverDatasetFromWidgetType} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 
+import {SectionHeader} from './common/sectionHeader';
+
 interface WidgetBuilderQueryFilterBuilderProps {
   onQueryConditionChange: (valid: boolean) => void;
-  validatedWidgetResponse: UseApiQueryResult<ValidateWidgetResponse, RequestError>;
 }
 
 export function WidgetBuilderQueryFilterBuilder({
   onQueryConditionChange,
-  validatedWidgetResponse,
 }: WidgetBuilderQueryFilterBuilderProps) {
   const {state, dispatch} = useWidgetBuilderContext();
   const {selection} = usePageFilters();
@@ -136,6 +124,7 @@ export function WidgetBuilderQueryFilterBuilder({
       dispatch({
         type: BuilderStateAction.SET_QUERY,
         payload: state.query?.filter((_, i) => i !== queryIndex) ?? [],
+        removedQueryIndex: queryIndex,
       });
       dispatch({
         type: BuilderStateAction.SET_LEGEND_ALIAS,
@@ -164,15 +153,6 @@ export function WidgetBuilderQueryFilterBuilder({
     ]
   );
 
-  const getOnDemandFilterWarning = createOnDemandFilterWarning(
-    tct(
-      'We don’t routinely collect metrics from this property. However, we’ll do so [strong:once this widget has been saved.]',
-      {
-        strong: <strong />,
-      }
-    )
-  );
-
   return (
     <Fragment>
       <SectionHeader
@@ -189,15 +169,7 @@ export function WidgetBuilderQueryFilterBuilder({
       {state.query?.map((_, index) => (
         <QueryFieldRowWrapper key={index}>
           <datasetConfig.SearchBar
-            getFilterWarning={
-              shouldDisplayOnDemandWidgetWarning(
-                widget.queries[index]!,
-                widgetType,
-                organization
-              )
-                ? getOnDemandFilterWarning
-                : undefined
-            }
+            getFilterWarning={undefined}
             disabled={disableTransactionWidget}
             pageFilters={selection}
             onClose={handleClose(index)}
@@ -237,21 +209,16 @@ export function WidgetBuilderQueryFilterBuilder({
                         )
                       : [e.target.value],
                   },
-                  {updateUrl: false}
+                  {debounceUrl: true}
                 );
               }}
               onBlur={e => {
-                dispatch(
-                  {
-                    type: BuilderStateAction.SET_LEGEND_ALIAS,
-                    payload: state.legendAlias?.length
-                      ? state.legendAlias?.map((q, i) =>
-                          i === index ? e.target.value : q
-                        )
-                      : [e.target.value],
-                  },
-                  {updateUrl: true}
-                );
+                dispatch({
+                  type: BuilderStateAction.SET_LEGEND_ALIAS,
+                  payload: state.legendAlias?.length
+                    ? state.legendAlias?.map((q, i) => (i === index ? e.target.value : q))
+                    : [e.target.value],
+                });
                 trackAnalytics('dashboards_views.widget_builder.change', {
                   builder_version: WidgetBuilderVersion.SLIDEOUT,
                   field: 'filter.alias',
@@ -262,17 +229,6 @@ export function WidgetBuilderQueryFilterBuilder({
                   organization,
                 });
               }}
-            />
-          )}
-          {shouldDisplayOnDemandWidgetWarning(
-            widget.queries[index]!,
-            widgetType,
-            organization
-          ) && (
-            <WidgetOnDemandQueryWarning
-              query={widget.queries[index]!}
-              validatedWidgetResponse={validatedWidgetResponse}
-              queryIndex={index}
             />
           )}
           {state.query && state.query?.length > 1 && (

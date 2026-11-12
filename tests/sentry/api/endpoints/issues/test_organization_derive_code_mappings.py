@@ -218,8 +218,8 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         assert response.data == expected_matches
 
     def test_get_no_installation(self) -> None:
-        config_data = {
-            "projectId": self.project.id,
+        config_data: dict[str, str] = {
+            "projectId": str(self.project.id),
             "stacktraceFilename": "stack/root/file.py",
         }
         with (
@@ -320,6 +320,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         assert response.status_code == 201, response.content
         assert response.data == {
             "automaticallyGenerated": False,
+            "hasCodeOwner": False,
             "id": str(response.data["id"]),
             "projectId": str(self.project.id),
             "projectSlug": self.project.slug,
@@ -367,6 +368,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         return_value=[{"name": "name", "identifier": "name", "external_id": "88888"}],
     )
     def test_post_existing_code_mapping(self, mock_get_repos: MagicMock) -> None:
+        assert self.organization_integration is not None
         project_repo, _ = ProjectRepository.objects.get_or_create(
             project=self.project,
             repository=self.repo,

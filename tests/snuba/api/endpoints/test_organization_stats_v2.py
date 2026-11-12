@@ -1,8 +1,13 @@
 from datetime import UTC, datetime, timedelta
+from typing import Any
+
+from rest_framework.response import Response
 
 from sentry.constants import DataCategory
+from sentry.models.organization import Organization
 from sentry.testutils.cases import APITestCase, OutcomesSnubaTest
 from sentry.testutils.helpers.datetime import freeze_time, isoformat_z
+from sentry.users.models.user import User
 from sentry.utils.dates import floor_to_utc_day
 from sentry.utils.outcomes import Outcome
 
@@ -100,7 +105,13 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             3,
         )
 
-    def do_request(self, query, user=None, org=None, status_code=200):
+    def do_request(
+        self,
+        query: dict[str, Any],
+        user: User | None = None,
+        org: Organization | None = None,
+        status_code: int = 200,
+    ) -> Response:
         self.login_as(user=user or self.user)
         org_slug = (org or self.organization).slug
         if status_code >= 400:
@@ -347,6 +358,40 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 {"by": {}, "series": {"sum(quantity)": [0, 7]}, "totals": {"sum(quantity)": 7}}
             ],
         }
+
+    @freeze_time(_now)
+    def test_user_my_projects_total_excludes_other_projects(self) -> None:
+        self.store_outcomes(
+            {
+                "org_id": self.org.id,
+                "timestamp": self._now - timedelta(hours=1),
+                "project_id": self.project4.id,
+                "outcome": Outcome.ACCEPTED,
+                "reason": "none",
+                "category": DataCategory.ERROR,
+                "quantity": 1,
+            },
+            2,
+        )
+
+        response = self.do_request(
+            {
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(quantity)"],
+                "category": ["error"],
+                "groupBy": ["outcome", "reason"],
+            },
+            user=self.user2,
+        )
+
+        assert result_sorted(response.data)["groups"] == [
+            {
+                "by": {"outcome": "accepted", "reason": "none"},
+                "series": {"sum(quantity)": [0, 2]},
+                "totals": {"sum(quantity)": 2},
+            }
+        ]
 
     @freeze_time(_now)
     def test_user_no_proj_specific_access(self) -> None:
@@ -1037,10 +1082,10 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         }
 
 
-def result_sorted(result):
+def result_sorted(result: dict[str, Any]) -> dict[str, Any]:
     """sort the groups of the results array by the `by` object, ensuring a stable order"""
 
-    def stable_dict(d):
+    def stable_dict(d: dict[str, Any]) -> tuple[tuple[str, Any], ...]:
         return tuple(sorted(d.items(), key=lambda t: t[0]))
 
     if "groups" in result:

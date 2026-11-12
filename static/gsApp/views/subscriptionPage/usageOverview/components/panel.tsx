@@ -1,4 +1,7 @@
 import {Fragment} from 'react';
+import {IconClock} from '@sentry/icons/clock';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconWarning} from '@sentry/icons/warning';
 import {useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -7,12 +10,15 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconClock, IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 
+import {
+  hasPaidSeer,
+  SeerPricingChangeAlert,
+} from 'getsentry/components/ai/seerPricingChangeAlert';
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
 import {AddOnCategory, OnDemandBudgetMode} from 'getsentry/types';
 import {
@@ -209,6 +215,10 @@ export function ProductBreakdownPanel({
   }
 
   const shouldShowUpgradeCta = !potentialProductTrial && !isEnabled;
+  const shouldShowSeerPricingChangeAlert =
+    (selectedProduct === AddOnCategory.SEER ||
+      selectedProduct === AddOnCategory.LEGACY_SEER) &&
+    hasPaidSeer(subscription);
 
   return (
     <Container
@@ -241,6 +251,11 @@ export function ProductBreakdownPanel({
           )}
           {isEnabled && (
             <Fragment>
+              {shouldShowSeerPricingChangeAlert && (
+                <Container padding="xl">
+                  <SeerPricingChangeAlert />
+                </Container>
+              )}
               {breakdownInfo}
               <UsageCharts
                 selectedProduct={selectedProduct}

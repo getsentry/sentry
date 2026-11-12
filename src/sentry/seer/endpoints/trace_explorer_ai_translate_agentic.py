@@ -13,9 +13,15 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
+from sentry.auth.principal import acting_user_id
 from sentry.models.organization import Organization
-from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
-from sentry.seer.endpoints.utils import get_extra_seer_feature_flags
+from sentry.seer.agent.client_utils import collect_user_org_context
+from sentry.seer.assisted_query.capabilities import (
+    get_transformation_capabilities,
+    validate_search_agent_options,
+)
+from sentry.seer.endpoints.search_agent_start import resolve_referrer
+from sentry.seer.endpoints.utils import OrganizationTraceExplorerAIPermission
 from sentry.seer.models import SeerApiError
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import (
@@ -49,13 +55,15 @@ class SearchAgentTranslateSerializer(serializers.Serializer):
         allow_null=True,
         help_text="Optional configuration options.",
     )
+    referrer = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text="Which caller started the run (e.g. `search_bar`). Unknown values are ignored.",
+    )
 
     def validate_options(self, value: dict[str, Any] | None) -> dict[str, Any] | None:
-        if value is None:
-            return None
-        if "model_name" in value and not isinstance(value["model_name"], str):
-            raise serializers.ValidationError("model_name must be a string")
-        return value
+        return validate_search_agent_options(value)
 
 
 def send_translate_agentic_request(
@@ -64,10 +72,12 @@ def send_translate_agentic_request(
     project_ids: list[int],
     natural_language_query: str,
     strategy: str = "Traces",
+    user_email: str | None = None,
+    timezone: str | None = None,
     model_name: str | None = None,
     metric_context: dict[str, Any] | None = None,
     viewer_context: SeerViewerContext | None = None,
-    extra_feature_flags: dict[str, bool] | None = None,
+    options: dict[str, Any] | None = None,
 ) -> Any:
     """
     Sends a request to seer to translate a natural language query using the agentic search API.
@@ -79,14 +89,17 @@ def send_translate_agentic_request(
         natural_language_query=natural_language_query,
         strategy=strategy,
     )
-    options: dict[str, Any] = {}
+    if user_email:
+        body["user_email"] = user_email
+    if timezone:
+        body["timezone"] = timezone
+
+    merged_options: dict[str, Any] = {**(options or {})}
     if model_name is not None:
-        options["model_name"] = model_name
+        merged_options["model_name"] = model_name
     if metric_context is not None:
-        options["metric_context"] = metric_context
-    extra_feature_flags = extra_feature_flags or {}
-    options["extra_feature_flags"] = extra_feature_flags
-    body["options"] = options
+        merged_options["metric_context"] = metric_context
+    body["options"] = merged_options
 
     response = make_translate_agentic_request(body, timeout=10, viewer_context=viewer_context)
     if response.status >= 400:
@@ -121,6 +134,7 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
         options = validated_data.get("options") or {}
         model_name = options.get("model_name")
         metric_context = options.get("metric_context")
+        code_mode_toggle = bool(options.get("code_mode"))
 
         projects = self.get_projects(
             request, organization, project_ids=set(validated_data["project_ids"])
@@ -133,7 +147,7 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        has_seer_access, detail = has_seer_access_with_detail(organization, actor=request.user)
+        has_seer_access, detail = has_seer_access_with_detail(organization)
         if not has_seer_access:
             return Response(
                 {"detail": detail},
@@ -146,19 +160,44 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        viewer_context = SeerViewerContext(organization_id=organization.id, user_id=request.user.id)
-        extra_feature_flags = get_extra_seer_feature_flags(
-            organization=organization, user=request.user
+        user_org_context = collect_user_org_context(request.user, organization)
+        user_email = user_org_context.get("user_email")
+        timezone = user_org_context.get("user_timezone")
+
+        viewer_context = SeerViewerContext(
+            organization_id=organization.id, user_id=acting_user_id(request.user)
         )
+        options["cross_event"] = features.has(
+            "organizations:seer-assisted-query-cross-event-explorer",
+            organization,
+            actor=request.user,
+        )
+        options["reflection_step"] = features.has(
+            "organizations:seer-assisted-query-reflection",
+            organization,
+            actor=request.user,
+        )
+        options["code_mode"] = code_mode_toggle and features.has(
+            "organizations:seer-assisted-query-codemode",
+            organization,
+            actor=request.user,
+        )
+        options["source"] = resolve_referrer(request, validated_data.get("referrer")).value
+        if options["code_mode"]:
+            options["transformation_capabilities"] = get_transformation_capabilities(
+                organization, actor=request.user
+            )
         data = send_translate_agentic_request(
             organization.id,
             organization.slug,
             project_ids,
             natural_language_query,
             strategy=strategy,
+            user_email=user_email,
+            timezone=timezone,
             model_name=model_name,
             metric_context=metric_context,
             viewer_context=viewer_context,
-            extra_feature_flags=extra_feature_flags,
+            options=options,
         )
         return Response(data)

@@ -1,8 +1,9 @@
 import {Fragment, useCallback, useState} from 'react';
 import * as React from 'react';
-import {useMatches} from 'react-router-dom';
+import {useMatches} from 'react-router';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
+import {IconArrow} from '@sentry/icons/arrow';
 
 import {Button} from '@sentry/scraps/button';
 import type {SelectOption, SingleSelectProps} from '@sentry/scraps/compactSelect';
@@ -12,7 +13,6 @@ import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';

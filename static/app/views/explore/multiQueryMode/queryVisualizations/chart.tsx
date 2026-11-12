@@ -1,28 +1,36 @@
 import {Fragment, useMemo} from 'react';
-import styled from '@emotion/styled';
+import {IconClock} from '@sentry/icons/clock';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconGraph} from '@sentry/icons/graph';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Feature from 'sentry/components/acl/feature';
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconClock} from 'sentry/icons/iconClock';
-import {IconEllipsis} from 'sentry/icons/iconEllipsis';
-import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
+import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
+import {useAlwaysMatchesCaseDetails} from 'sentry/views/explore/caseInsensitivityDefault';
+import {
+  ChartVisualization,
+  useChartVisualizationPlottables,
+} from 'sentry/views/explore/components/chart/chartVisualization';
+import {
+  ExtrapolationConfidenceFooter,
+  hasLowConfidencePlottables,
+} from 'sentry/views/explore/components/chart/extrapolationConfidenceFooter';
+import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
+import {useHasExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/useHasExtrapolationConfidenceFooter';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useAddCompareQueryToDashboard} from 'sentry/views/explore/multiQueryMode/hooks/useAddCompareQueryToDashboard';
@@ -32,7 +40,11 @@ import {
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
-import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
+import {
+  combineConfidenceForSeries,
+  getFirstSamplingWarning,
+} from 'sentry/views/explore/utils';
+import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
@@ -85,16 +97,36 @@ export function MultiQueryModeChart({
     };
   }, [chartType, isTopN, timeseriesResult, yAxes]);
 
+  const plottables = useChartVisualizationPlottables(chartInfo);
+  const hasExtrapolationConfidenceFooter = useHasExtrapolationConfidenceFooter();
+
   const organization = useOrganization();
   const {addToDashboard} = useAddCompareQueryToDashboard(queryParts);
   const pageFilters = usePageFilters();
   const {projects} = useProjects();
+  const {alert: alertCaseDetails, dashboard: dashboardCaseDetails} =
+    useAlwaysMatchesCaseDetails({
+      query: queryParts.query,
+      yAxes,
+      groupBys: queryParts.groupBys,
+      mode,
+      caseInsensitive: queryParts.caseInsensitive === '1',
+    });
 
   const Title = (
     <Fragment>
       <Widget.WidgetTitle title={formattedYAxes.filter(Boolean).join(', ')} />
     </Fragment>
   );
+
+  const samplingWarning = getFirstSamplingWarning(
+    yAxes,
+    timeseriesResult.data,
+    chartInfo.dataScanned
+  );
+  const TitleBadges = samplingWarning ? (
+    <SamplingWarning yAxis={samplingWarning.yAxis} reason={samplingWarning.reason} />
+  ) : null;
 
   const items: MenuItemProps[] = [];
 
@@ -105,46 +137,34 @@ export function MultiQueryModeChart({
 
   if (defined(yAxes[0])) {
     items.push({
-      key: 'create-alert',
-      textValue: t('Create an Alert'),
-      label: t('Create an Alert'),
-      to: getAlertsUrl({
-        project,
-        query: queryParts.query,
-        pageFilters: pageFilters.selection,
-        aggregate: yAxes[0],
-        organization,
-        dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-        interval,
-      }),
-      onAction: () => {
-        trackAnalytics('trace_explorer.save_as', {
-          save_type: 'alert',
-          ui_source: 'compare chart',
+      ...getSaveAsAlertMenuItem({
+        to: getAlertsUrl({
+          project,
+          query: queryParts.query,
+          pageFilters: pageFilters.selection,
+          aggregate: yAxes[0],
           organization,
-        });
-      },
+          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+          interval,
+        }),
+        onAction: () => {
+          trackAnalytics('trace_explorer.save_as', {
+            save_type: 'alert',
+            ui_source: 'compare chart',
+            organization,
+          });
+        },
+      }),
+      details: alertCaseDetails,
     });
   }
 
-  const disableAddToDashboard = !organization.features.includes('dashboards-edit');
   items.push({
     key: 'add-to-dashboard',
     textValue: t('Add to Dashboard'),
-    label: (
-      <Feature
-        overrideName="feature-disabled:dashboards-edit"
-        features="organizations:dashboards-edit"
-        renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
-      >
-        {t('Add to Dashboard')}
-      </Feature>
-    ),
-    disabled: disableAddToDashboard,
+    details: dashboardCaseDetails,
+    label: t('Add to Dashboard'),
     onAction: () => {
-      if (disableAddToDashboard) {
-        return;
-      }
       trackAnalytics('trace_explorer.save_as', {
         save_type: 'dashboard',
         ui_source: 'compare chart',
@@ -159,6 +179,7 @@ export function MultiQueryModeChart({
       key={index}
       height={CHART_HEIGHT}
       Title={Title}
+      TitleBadges={TitleBadges}
       Actions={[
         <Tooltip
           key="visualization"
@@ -205,33 +226,39 @@ export function MultiQueryModeChart({
         items && (
           <DropdownMenu
             key="contextMenu"
-            triggerProps={{
-              size: 'xs',
-              variant: 'transparent',
-              showChevron: false,
-              icon: <IconEllipsis />,
-            }}
+            trigger={triggerProps => (
+              <OverlayTrigger.IconButton
+                {...triggerProps}
+                size="xs"
+                variant="transparent"
+                icon={<IconEllipsis />}
+                aria-label={t('Chart actions')}
+              />
+            )}
             position="bottom-end"
             items={items}
           />
         ),
       ]}
       revealActions="always"
-      Visualization={<ChartVisualization chartInfo={chartInfo} />}
+      Visualization={<ChartVisualization chartInfo={chartInfo} plottables={plottables} />}
       Footer={
-        <ConfidenceFooter
-          sampleCount={chartInfo.sampleCount}
-          isLoading={chartInfo.timeseriesResult?.isPending || false}
-          isSampled={chartInfo.isSampled}
-          confidence={chartInfo.confidence}
-          topEvents={isTopN ? chartInfo.series.length : undefined}
-          dataScanned={chartInfo.dataScanned}
-        />
+        hasExtrapolationConfidenceFooter ? (
+          !chartInfo.timeseriesResult?.isPending &&
+          hasLowConfidencePlottables(plottables) && (
+            <ExtrapolationConfidenceFooter plottables={plottables} />
+          )
+        ) : (
+          <ConfidenceFooter
+            sampleCount={chartInfo.sampleCount}
+            isLoading={chartInfo.timeseriesResult?.isPending || false}
+            isSampled={chartInfo.isSampled}
+            confidence={chartInfo.confidence}
+            topEvents={isTopN ? chartInfo.series.length : undefined}
+            dataScanned={chartInfo.dataScanned}
+          />
+        )
       }
     />
   );
 }
-
-const DisabledText = styled('span')`
-  color: ${p => p.theme.tokens.content.disabled};
-`;

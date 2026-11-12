@@ -9,18 +9,21 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
 import {BackendJsonSubmitForm} from './backendJsonSubmitForm';
 import type {JsonFormAdapterFieldConfig} from './types';
 
-jest.mock('sentry/actionCreators/indicator');
-
 const org = OrganizationFixture();
 
 describe('BackendJsonSubmitForm', () => {
   const onSubmit = jest.fn().mockResolvedValue({});
+
+  beforeEach(() => {
+    jest.spyOn(toast, 'error');
+  });
 
   afterEach(() => {
     jest.clearAllMocks();
@@ -334,9 +337,18 @@ describe('BackendJsonSubmitForm', () => {
       expect(screen.getByText('This field is required')).toBeInTheDocument();
     });
 
-    it('shows error toast on submit failure', async () => {
+    it.each([
+      [{non_field_errors: ['Issues are disabled']}, 'Issues are disabled'],
+      [{nonFieldErrors: ['Issues are disabled']}, 'Issues are disabled'],
+      [{title: ['Title is invalid']}, 'Title is invalid'],
+      [{repo: 'Organization not found'}, 'Organization not found'],
+      [{detail: 'Something went wrong'}, 'Something went wrong'],
+      [{detail: {message: 'Something went wrong'}}, 'Something went wrong'],
+      [{detail: 'Internal Error', errorId: '1234567890abcdef'}, 'Internal Error'],
+      [{}, 'An error occurred while submitting'],
+    ])('shows error toast on submit failure %#', async (responseJSON, expected) => {
       const error = new RequestError('POST', '/api/test/', new Error('Bad Request'));
-      error.responseJSON = {detail: 'Something went wrong'};
+      error.responseJSON = responseJSON;
       const failingSubmit = jest.fn().mockRejectedValue(error);
 
       render(
@@ -351,7 +363,7 @@ describe('BackendJsonSubmitForm', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Create'}));
 
       await waitFor(() => {
-        expect(addErrorMessage).toHaveBeenCalledWith('Something went wrong');
+        expect(toast.error).toHaveBeenCalledWith(expected);
       });
     });
 
@@ -471,6 +483,116 @@ describe('BackendJsonSubmitForm', () => {
   });
 
   describe('select variants', () => {
+    describe.each(['static', 'async'] as const)('%s multi-select values', variant => {
+      it.each([
+        {name: 'empty string default', defaultValue: '', selectedValues: []},
+        {name: 'null default', defaultValue: null, selectedValues: []},
+        {name: 'missing default', defaultValue: undefined, selectedValues: []},
+        {name: 'scalar string default', defaultValue: 'bug', selectedValues: ['bug']},
+        {name: 'scalar numeric default', defaultValue: 0, selectedValues: [0]},
+        {name: 'array default', defaultValue: ['bug', 0], selectedValues: ['bug', 0]},
+        {
+          name: 'empty string initial value',
+          defaultValue: ['bug'],
+          initialValues: {labels: ''},
+          selectedValues: [],
+        },
+        {
+          name: 'null initial value',
+          defaultValue: ['bug'],
+          initialValues: {labels: null},
+          selectedValues: [],
+        },
+        {
+          name: 'scalar string initial value',
+          defaultValue: [],
+          initialValues: {labels: 'bug'},
+          selectedValues: ['bug'],
+        },
+        {
+          name: 'scalar numeric initial value',
+          defaultValue: [],
+          initialValues: {labels: 0},
+          selectedValues: [0],
+        },
+      ])('handles $name', async ({defaultValue, initialValues, selectedValues}) => {
+        render(
+          <BackendJsonSubmitForm
+            fields={[
+              {
+                name: 'labels',
+                type: 'select',
+                label: 'Labels',
+                multiple: true,
+                default: defaultValue,
+                choices: [
+                  ['bug', 'Bug'],
+                  [0, 'Zero'],
+                  ['feature', 'Feature'],
+                ],
+                url: variant === 'async' ? '/search' : undefined,
+              },
+            ]}
+            initialValues={initialValues}
+            onSubmit={onSubmit}
+            submitLabel="Create"
+          />,
+          {organization: org}
+        );
+
+        for (const [value, label] of [
+          ['bug', 'Bug'],
+          [0, 'Zero'],
+        ] as const) {
+          if (selectedValues.some(selectedValue => selectedValue === value)) {
+            expect(await screen.findByText(label)).toBeInTheDocument();
+          } else {
+            expect(screen.queryByText(label)).not.toBeInTheDocument();
+          }
+        }
+
+        await selectEvent.select(
+          screen.getByRole('textbox', {name: 'Labels'}),
+          'Feature'
+        );
+        await userEvent.click(screen.getByRole('button', {name: 'Create'}));
+
+        await waitFor(() => {
+          expect(onSubmit).toHaveBeenCalledWith({labels: [...selectedValues, 'feature']});
+        });
+      });
+    });
+
+    it('preserves numeric choice values', async () => {
+      render(
+        <BackendJsonSubmitForm
+          fields={[
+            {
+              name: 'externalIssue',
+              type: 'select',
+              label: 'Issue',
+              choices: [[25, '#25 Example issue']],
+            },
+          ]}
+          onSubmit={onSubmit}
+          submitLabel="Link"
+        />,
+        {organization: org}
+      );
+
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Issue'}),
+        '#25 Example issue'
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Link'}));
+
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({externalIssue: 25})
+        );
+      });
+    });
+
     it('renders multi-select field and allows multiple selections', async () => {
       render(
         <BackendJsonSubmitForm
@@ -530,6 +652,100 @@ describe('BackendJsonSubmitForm', () => {
       await userEvent.click(screen.getByRole('textbox', {name: 'Repository'}));
       expect(await screen.findByText('My Repo')).toBeInTheDocument();
       expect(screen.getByText('Other Repo')).toBeInTheDocument();
+    });
+
+    it('prefetches async select options and searches when the user types', async () => {
+      MockApiClient.addMockResponse({
+        url: '/search',
+        body: [],
+      });
+      const prefetchResponse = MockApiClient.addMockResponse({
+        url: '/search',
+        match: [MockApiClient.matchQuery({field: 'repo', query: ''})],
+        body: [{value: 'my-org/prefetched-repo', label: 'prefetched-repo'}],
+      });
+      const searchResponse = MockApiClient.addMockResponse({
+        url: '/search',
+        match: [MockApiClient.matchQuery({field: 'repo', query: 'searched'})],
+        body: [{value: 'my-org/searched-repo', label: 'searched-repo'}],
+      });
+
+      render(
+        <BackendJsonSubmitForm
+          fields={[
+            {
+              name: 'repo',
+              type: 'select',
+              label: 'Repository',
+              url: '/search',
+              choices: [],
+              prefetch: true,
+            },
+          ]}
+          onSubmit={onSubmit}
+          submitLabel="Create"
+        />,
+        {organization: org}
+      );
+
+      await waitFor(() => expect(prefetchResponse).toHaveBeenCalled());
+
+      const textbox = screen.getByRole('textbox', {name: 'Repository'});
+      await userEvent.click(textbox);
+      expect(await screen.findByText('prefetched-repo')).toBeInTheDocument();
+
+      await userEvent.type(textbox, 'searched');
+
+      await waitFor(() => expect(searchResponse).toHaveBeenCalled());
+      expect(await screen.findByText('searched-repo')).toBeInTheDocument();
+    });
+
+    it('only waits for the fields declared as prefetch dependencies', async () => {
+      const prefetchResponse = MockApiClient.addMockResponse({
+        url: '/search',
+        match: [
+          MockApiClient.matchQuery({
+            field: 'labels',
+            query: '',
+            repo: 'my-org/my-repo',
+            project: '',
+          }),
+        ],
+        body: [{value: 'bug', label: 'bug'}],
+      });
+
+      render(
+        <BackendJsonSubmitForm
+          fields={[
+            {
+              name: 'repo',
+              type: 'select',
+              label: 'Repository',
+              updatesForm: true,
+            },
+            {
+              name: 'project',
+              type: 'select',
+              label: 'Project',
+              updatesForm: true,
+            },
+            {
+              name: 'labels',
+              type: 'select',
+              label: 'Labels',
+              url: '/search',
+              prefetch: true,
+              dependsOn: ['repo'],
+            },
+          ]}
+          dynamicFieldValues={{repo: 'my-org/my-repo', project: ''}}
+          onSubmit={onSubmit}
+          submitLabel="Create"
+        />,
+        {organization: org}
+      );
+
+      await waitFor(() => expect(prefetchResponse).toHaveBeenCalled());
     });
 
     it('async select fetches from URL on search', async () => {
@@ -1006,72 +1222,6 @@ describe('BackendJsonSubmitForm', () => {
         expect(onSubmit).toHaveBeenCalledWith(
           expect.objectContaining({
             status_mapping: {repo1: {on_resolve: 'closed'}},
-          })
-        );
-      });
-    });
-  });
-
-  describe('project_mapper adapter', () => {
-    const projectMapperField = {
-      name: 'project_mappings',
-      type: 'project_mapper' as const,
-      label: 'Project Mappings',
-      mappedDropdown: {
-        items: [
-          {value: 'proj-1', label: 'Vercel Project 1'},
-          {value: 'proj-2', label: 'Vercel Project 2'},
-        ] as const,
-        placeholder: 'Vercel project\u2026',
-      },
-      sentryProjects: [
-        {id: 101, slug: 'sentry-frontend', name: 'Sentry Frontend'},
-        {id: 102, slug: 'sentry-backend', name: 'Sentry Backend'},
-      ] as const,
-    };
-
-    it('renders with dropdowns and disabled add button', () => {
-      render(
-        <BackendJsonSubmitForm
-          fields={[projectMapperField]}
-          onSubmit={onSubmit}
-          submitLabel="Save"
-        />,
-        {organization: org}
-      );
-
-      expect(screen.getByText('Vercel project\u2026')).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: /Add project/i})).toBeDisabled();
-    });
-
-    it('can add a mapping and submit', async () => {
-      render(
-        <BackendJsonSubmitForm
-          fields={[projectMapperField]}
-          onSubmit={onSubmit}
-          submitLabel="Save"
-        />,
-        {organization: org}
-      );
-
-      // Select external project
-      await userEvent.click(screen.getByText('Vercel project\u2026'));
-      await userEvent.click(await screen.findByText('Vercel Project 1'));
-
-      // Select Sentry project (placeholder uses unicode ellipsis, options use slug)
-      await userEvent.click(screen.getByText('Sentry project\u2026'));
-      await userEvent.click(await screen.findByText('sentry-frontend'));
-
-      // Add mapping
-      await userEvent.click(screen.getByRole('button', {name: /Add project/i}));
-
-      // Submit
-      await userEvent.click(screen.getByRole('button', {name: 'Save'}));
-
-      await waitFor(() => {
-        expect(onSubmit).toHaveBeenCalledWith(
-          expect.objectContaining({
-            project_mappings: [[101, 'proj-1']],
           })
         );
       });

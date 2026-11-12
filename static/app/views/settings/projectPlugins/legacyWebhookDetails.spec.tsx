@@ -3,8 +3,9 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
-import LegacyWebhookDetails from 'sentry/views/settings/projectPlugins/legacyWebhookDetails';
+import {toast} from '@sentry/scraps/toast';
+
+import LegacyWebhookDetails from './legacyWebhookDetails';
 
 describe('LegacyWebhookDetails', () => {
   const organization = OrganizationFixture();
@@ -83,7 +84,7 @@ describe('LegacyWebhookDetails', () => {
   });
 
   it('saves URLs on save button click', async () => {
-    jest.spyOn(indicators, 'addSuccessMessage');
+    jest.spyOn(toast, 'success');
 
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/legacy-webhooks/`,
@@ -110,9 +111,7 @@ describe('LegacyWebhookDetails', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
     await waitFor(() => expect(saveMock).toHaveBeenCalled());
-    expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
-      'Webhook URLs saved successfully.'
-    );
+    expect(toast.success).toHaveBeenCalledWith('Webhook URLs saved successfully.');
   });
 
   it('disables save button when no changes made', async () => {
@@ -129,7 +128,7 @@ describe('LegacyWebhookDetails', () => {
   });
 
   it('sends test event on test button click', async () => {
-    jest.spyOn(indicators, 'addSuccessMessage');
+    jest.spyOn(toast, 'success');
 
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/legacy-webhooks/`,
@@ -149,9 +148,7 @@ describe('LegacyWebhookDetails', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Send Test Event'}));
 
     await waitFor(() => expect(testMock).toHaveBeenCalled());
-    expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
-      'Test event sent successfully.'
-    );
+    expect(toast.success).toHaveBeenCalledWith('Test event sent successfully.');
   });
 
   it('disables test button when webhooks are disabled', async () => {
@@ -164,11 +161,14 @@ describe('LegacyWebhookDetails', () => {
     renderComponent();
 
     await screen.findByPlaceholderText('Enter callback URLs (one per line)');
-    expect(screen.getByRole('button', {name: 'Send Test Event'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Send Test Event'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('toggles webhook enabled state', async () => {
-    jest.spyOn(indicators, 'addSuccessMessage');
+    jest.spyOn(toast, 'success');
 
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/legacy-webhooks/`,
@@ -187,7 +187,7 @@ describe('LegacyWebhookDetails', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Enable'}));
 
     await waitFor(() => expect(postMock).toHaveBeenCalled());
-    expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Webhooks enabled');
+    expect(toast.success).toHaveBeenCalledWith('Webhooks enabled');
   });
 
   it('shows disable button when enabled', async () => {
@@ -203,7 +203,7 @@ describe('LegacyWebhookDetails', () => {
   });
 
   it('shows error on save failure', async () => {
-    jest.spyOn(indicators, 'addErrorMessage');
+    jest.spyOn(toast, 'error');
 
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/legacy-webhooks/`,
@@ -228,9 +228,7 @@ describe('LegacyWebhookDetails', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
     await waitFor(() =>
-      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
-        'Unable to save webhook URLs.'
-      )
+      expect(toast.error).toHaveBeenCalledWith('Unable to save webhook URLs.')
     );
   });
 });

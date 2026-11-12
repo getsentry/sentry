@@ -8,7 +8,7 @@ from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
 
-from django.db.models import F, Max, Q
+from django.db.models import Model, Q
 from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 
@@ -16,8 +16,7 @@ from sentry import quotas
 from sentry.api.event_search import SearchFilter
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.exceptions import InvalidSearchQuery
-from sentry.issues.progress import PROGRESS_RESET_ACTIVITY_TYPES
-from sentry.models.activity import Activity
+from sentry.issues.progress_state import IssueProgressState
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
@@ -37,6 +36,7 @@ from sentry.search.snuba.executors import (
     TrendsSortWeights,
 )
 from sentry.seer.autofix.constants import FixabilityScoreThresholds
+from sentry.seer.autofix.issue_search import autofix_state_filter
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.users.models.user import User
 from sentry.utils import metrics
@@ -52,6 +52,9 @@ SEER_LAST_RUN_RECENCY_WINDOW = timedelta(days=30)
 def assigned_to_filter(
     actors: Sequence[User | Team | None], projects: Sequence[Project], field_filter: str = "id"
 ) -> Q:
+    if not actors:
+        # my_teams for a caller with no teams; Q() would match every group
+        return Q(pk__in=[])
     include_none = False
     types_to_actors = defaultdict(list)
     for actor in actors:
@@ -174,6 +177,9 @@ def inbox_filter(inbox: bool, projects: Sequence[Project]) -> Q:
 def assigned_or_suggested_filter(
     owners: Sequence[User | Team | None], projects: Sequence[Project], field_filter: str = "id"
 ) -> Q:
+    if not owners:
+        # my_teams for a caller with no teams; Q() would match every group
+        return Q(pk__in=[])
     organization_id = projects[0].organization_id
     project_ids = [p.id for p in projects]
 
@@ -186,43 +192,48 @@ def assigned_or_suggested_filter(
             (owner and owner.class_name()) if not isinstance(owner, SimpleLazyObject) else "User"
         ].append(owner)
 
-    query = Q()
+    # Collect every owner/assignee branch into a single `IN (... UNION ...)`. OR-ing separate
+    # `IN (subquery)` clauses forces Postgres to test every candidate group against each
+    # subquery; a single semi-join lets it start from the (usually small) set of owned group ids.
+    group_id_querysets: list[BaseQuerySet[Model, int]] = []
 
     if "Team" in types_to_owners:
         teams = types_to_owners["Team"]
-        query |= Q(
-            **{
-                f"{field_filter}__in": GroupOwner.objects.filter(
-                    Q(group__assignee_set__isnull=True),
-                    team__in=teams,
-                    project_id__in=project_ids,
-                    organization_id=organization_id,
-                )
-                .values_list("group_id", flat=True)
-                .distinct()
-            }
-        ) | assigned_to_filter(teams, projects, field_filter=field_filter)
+        group_id_querysets.append(
+            GroupOwner.objects.filter(
+                Q(group__assignee_set__isnull=True),
+                team__in=teams,
+                project_id__in=project_ids,
+                organization_id=organization_id,
+            ).values_list("group_id", flat=True)
+        )
+        group_id_querysets.append(
+            GroupAssignee.objects.filter(team__in=teams, project_id__in=project_ids).values_list(
+                "group_id", flat=True
+            )
+        )
 
     if "User" in types_to_owners:
         users = types_to_owners["User"]
         user_ids: list[int] = [u.id for u in users if u is not None]
-        query_ids = Q(user_id__in=user_ids)
-        owned_by_me = Q(
-            **{
-                f"{field_filter}__in": GroupOwner.objects.filter(
-                    query_ids,
-                    group__assignee_set__isnull=True,
-                    project_id__in=[p.id for p in projects],
-                    organization_id=organization_id,
-                )
-                .values_list("group_id", flat=True)
-                .distinct()
-            }
+        group_id_querysets.append(
+            GroupOwner.objects.filter(
+                user_id__in=user_ids,
+                group__assignee_set__isnull=True,
+                project_id__in=project_ids,
+                organization_id=organization_id,
+            ).values_list("group_id", flat=True)
+        )
+        group_id_querysets.append(
+            GroupAssignee.objects.filter(
+                user_id__in=user_ids, project_id__in=project_ids
+            ).values_list("group_id", flat=True)
         )
 
-        owner_query = owned_by_me | assigned_to_filter(users, projects, field_filter=field_filter)
-
-        query |= owner_query
+    query = Q()
+    if group_id_querysets:
+        first, *rest = group_id_querysets
+        query = Q(**{f"{field_filter}__in": first.union(*rest)})
 
     if include_none:
         query |= Q(
@@ -252,66 +263,21 @@ def regressed_in_release_filter(versions: Sequence[str], projects: Sequence[Proj
     )
 
 
-def issue_activity_type_filter(activity_types: list[int], projects: Sequence[Project]) -> Q:
-    group_ids = (
-        Activity.objects.filter(
-            project__in=projects,
-            type__in=set(activity_types) | PROGRESS_RESET_ACTIVITY_TYPES,
-        )
-        .values("group_id")
-        .annotate(
-            _latest_match=Max("datetime", filter=Q(type__in=activity_types)),
-            _latest_reset=Max("datetime", filter=Q(type__in=PROGRESS_RESET_ACTIVITY_TYPES)),
-        )
-        .filter(_latest_match__isnull=False)
-        .filter(Q(_latest_reset__isnull=True) | Q(_latest_match__gte=F("_latest_reset")))
-        .values_list("group_id", flat=True)
-    )
-
-    return Q(id__in=group_ids)
-
-
 def issue_progress_filter(progress_values: list[str], projects: Sequence[Project]) -> Q:
     """
     Filters issues by their position in the resolution lifecycle:
 
       identified -> assigned -> diagnosed -> fix_proposed -> fix_applied
 
-    "diagnosed" and above are determined by seer/resolution activity types (see
-    ISSUE_PROGRESS_TO_ACTIVITY_TYPES). A regression or manual unresolve resets an issue
-    back, so only activities *after* the latest reset count.
-
-    "identified" and "assigned" are the two base states before any seer activity,
-    distinguished solely by whether the issue is currently assigned:
-      - identified: not assigned AND no post-regression seer activity
-      - assigned:   assigned (via GroupAssignee) AND no post-regression seer activity
-
-    Assignment is checked via GroupAssignee rather than ASSIGNED activity so that it
-    survives regressions — an issue that was assigned, progressed, then regressed
-    remains assigned as long as it's still assigned.
+    Progress is read from the materialized GroupDerivedData.progress column. A null
+    column (closed issues) counts as fix_applied, and a group without a derived-data
+    row counts as identified.
     """
-    from sentry.issues.progress import ISSUE_PROGRESS_TO_ACTIVITY_TYPES, IssueProgressState
-
-    all_progress_activity_types = [
-        t for types in ISSUE_PROGRESS_TO_ACTIVITY_TYPES.values() for t in types
-    ]
-    has_progress_q = issue_activity_type_filter(all_progress_activity_types, projects)
-    assigned_q = Q(
-        id__in=GroupAssignee.objects.filter(project_id__in=[p.id for p in projects]).values_list(
-            "group_id", flat=True
-        )
-    )
-
-    q = Q()
-    for value in progress_values:
-        progress = IssueProgressState(value)
-        if progress is IssueProgressState.IDENTIFIED:
-            q |= ~assigned_q & ~has_progress_q
-        elif progress is IssueProgressState.ASSIGNED:
-            q |= assigned_q & ~has_progress_q
-        else:
-            activity_types = ISSUE_PROGRESS_TO_ACTIVITY_TYPES[progress]
-            q |= issue_activity_type_filter(activity_types, projects)
+    q = Q(groupderiveddata__progress__in=progress_values)
+    if IssueProgressState.FIX_APPLIED.value in progress_values:
+        q |= Q(groupderiveddata__isnull=False, groupderiveddata__progress__isnull=True)
+    if IssueProgressState.IDENTIFIED.value in progress_values:
+        q |= Q(groupderiveddata__isnull=True)
     return q
 
 
@@ -412,7 +378,7 @@ class ScalarCondition(Condition):
         # !has:field → operator is "=", value is "" → want records where field IS NULL
         if search_filter.value.raw_value == "" and search_filter.operator in ("=", "!="):
             django_operator = "__isnull"
-            value: bool | str | float | datetime | Sequence[float] | Sequence[str] = True
+            value: bool | str | float | datetime | Sequence[float] | Sequence[str] | None = True
         else:
             django_operator = self._get_operator(search_filter)
             value = search_filter.value.raw_value
@@ -692,6 +658,13 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             "issue.progress": QCallbackCondition(
                 functools.partial(issue_progress_filter, projects=projects)
             ),
+            "issue.autofix_state": QCallbackCondition(
+                functools.partial(
+                    autofix_state_filter,
+                    projects=projects,
+                    recency_window=SEER_LAST_RUN_RECENCY_WINDOW,
+                )
+            ),
             # TODO: the recency window approximates an "active" run while
             # we figure out how to handle deletion of seer runs better. Once runs
             # clear the column on deletion, this should go back to a plain
@@ -700,7 +673,12 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
                 "seer_explorer_autofix_last_triggered", SEER_LAST_RUN_RECENCY_WINDOW
             ),
             "issue.id": QCallbackCondition(
-                lambda ids: Q(id__in=[int(v) for v in (ids if isinstance(ids, list) else [ids])])
+                # The search parser encodes `has:issue.id` as `issue.id != ''` and
+                # `!has:issue.id` as `issue.id = ''`. Filter out empty strings before
+                # casting to int so those queries don't raise a ValueError.
+                lambda ids: Q(
+                    id__in=[int(v) for v in (ids if isinstance(ids, list) else [ids]) if v != ""]
+                )
             ),
         }
 

@@ -1,7 +1,9 @@
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {NewQuery, SavedQuery} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 
 export function fetchSavedQuery(
   api: Client,
@@ -9,14 +11,16 @@ export function fetchSavedQuery(
   queryId: string
 ): Promise<SavedQuery> {
   const promise: Promise<SavedQuery> = api.requestPromise(
-    `/organizations/${orgId}/discover/saved/${queryId}/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/discover/saved/$queryId/', {
+      path: {organizationIdOrSlug: orgId, queryId},
+    }),
     {
       method: 'GET',
     }
   );
 
   promise.catch(() => {
-    addErrorMessage(t('Unable to load saved query'));
+    toast.error(t('Unable to load saved query'));
   });
   return promise;
 }
@@ -27,7 +31,9 @@ export function createSavedQuery(
   query: NewQuery
 ): Promise<SavedQuery> {
   const promise: Promise<SavedQuery> = api.requestPromise(
-    `/organizations/${orgId}/discover/saved/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/discover/saved/', {
+      path: {organizationIdOrSlug: orgId},
+    }),
     {
       method: 'POST',
       data: query,
@@ -35,7 +41,7 @@ export function createSavedQuery(
   );
 
   promise.catch(() => {
-    addErrorMessage(t('Unable to create your saved query'));
+    toast.error(t('Unable to create your saved query'));
   });
   return promise;
 }
@@ -46,7 +52,9 @@ export function updateSavedQuery(
   query: NewQuery
 ): Promise<SavedQuery> {
   const promise: Promise<SavedQuery> = api.requestPromise(
-    `/organizations/${orgId}/discover/saved/${query.id}/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/discover/saved/$queryId/', {
+      path: {organizationIdOrSlug: orgId, queryId: String(query.id)},
+    }),
     {
       method: 'PUT',
       data: query,
@@ -54,7 +62,7 @@ export function updateSavedQuery(
   );
 
   promise.catch(() => {
-    addErrorMessage(t('Unable to update your saved query'));
+    toast.error(t('Unable to update your saved query'));
   });
   return promise;
 }
@@ -66,7 +74,9 @@ export function updateSavedQueryVisit(
   // Create a new client so the request is not cancelled
   const api = new Client();
   const promise = api.requestPromise(
-    `/organizations/${orgId}/discover/saved/${queryId}/visit/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/discover/saved/$queryId/visit/', {
+      path: {organizationIdOrSlug: orgId, queryId: String(queryId)},
+    }),
     {
       method: 'POST',
     }
@@ -81,12 +91,14 @@ export function deleteSavedQuery(
   queryId: string
 ): Promise<void> {
   const promise: Promise<void> = api.requestPromise(
-    `/organizations/${orgId}/discover/saved/${queryId}/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/discover/saved/$queryId/', {
+      path: {organizationIdOrSlug: orgId, queryId},
+    }),
     {method: 'DELETE'}
   );
 
   promise.catch(() => {
-    addErrorMessage(t('Unable to delete the saved query'));
+    toast.error(t('Unable to delete the saved query'));
   });
   return promise;
 }

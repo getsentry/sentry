@@ -1,8 +1,9 @@
 import {useContext, useEffect} from 'react';
-import {useMatches} from 'react-router-dom';
+import {useMatches} from 'react-router';
 import styled from '@emotion/styled';
 import type {Scope} from '@sentry/core';
 import * as Sentry from '@sentry/react';
+import {useStore} from 'zustand';
 
 import {Alert} from '@sentry/scraps/alert';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -12,31 +13,20 @@ import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
-import {ProjectRouteContext} from 'sentry/views/projects/projectRouteContext';
+
+import {ProjectRouteContext} from './projects/projectRouteContext';
 
 interface RouteErrorProps {
-  /**
-   * Disable logging to Sentry
-   */
-  disableLogSentry?: boolean;
-  /**
-   * Disable the report dialog
-   */
-  disableReport?: boolean;
   error?: Error;
 }
 
-export function RouteError({error, disableLogSentry, disableReport}: RouteErrorProps) {
+export function RouteError({error}: RouteErrorProps) {
   const matches = useMatches();
-  const {organization} = useLegacyStore(OrganizationStore);
+  const organization = useStore(OrganizationStore, state => state.organization);
   const project = useContext(ProjectRouteContext);
 
   useEffect(() => {
-    if (disableLogSentry) {
-      return;
-    }
     if (!error) {
       return;
     }
@@ -75,16 +65,14 @@ export function RouteError({error, disableLogSentry, disableReport}: RouteErrorP
         Sentry.captureException(error);
       });
 
-      if (!disableReport) {
-        Sentry.showReportDialog({eventId: getLastEventId() || ''});
-      }
+      Sentry.showReportDialog({eventId: getLastEventId() || ''});
     });
 
     return function cleanup() {
       window.clearTimeout(reportDialogTimeout);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [error, disableLogSentry]);
+  }, [error]);
 
   // Remove the report dialog on unmount
   useEffect(() => () => document.querySelector('.sentry-error-embed-wrapper')?.remove());

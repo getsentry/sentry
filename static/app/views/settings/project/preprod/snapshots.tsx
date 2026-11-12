@@ -1,11 +1,10 @@
 import {Fragment} from 'react';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Stack} from '@sentry/scraps/layout';
 
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {TopBar} from 'sentry/views/navigation/topBar';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {SnapshotPrCommentsToggle} from './snapshotPrCommentsToggle';
@@ -16,12 +15,13 @@ export default function SnapshotSettings() {
     <Fragment>
       <SentryDocumentTitle title={t('Snapshots')} />
       <SettingsPageHeader
-        title={t('Snapshots')}
+        title={{
+          type: 'page-title',
+          label: t('Snapshots'),
+          trailingActions: {type: 'badge', element: <FeatureBadge type="beta" />},
+        }}
         subtitle={t('Configure status checks and PR comments for snapshot testing.')}
       />
-      <TopBar.Slot name="feedback">
-        <FeedbackButton>{null}</FeedbackButton>
-      </TopBar.Slot>
       <Stack gap="lg">
         <SnapshotStatusChecks />
         <SnapshotPrCommentsToggle />

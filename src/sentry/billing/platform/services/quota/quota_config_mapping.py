@@ -17,23 +17,23 @@ logger = logging.getLogger(__name__)
 
 def sentry_to_proto_quota_config(quota: QuotaConfig) -> ProtoQuotaConfig:
     """Convert a sentry QuotaConfig to its proto equivalent."""
-    kwargs: dict = {
-        "id": quota.id or "",
-        "categories": sorted(sentry_to_proto_category(int(c)) for c in quota.categories),
-        "scope": ProtoQuotaScope.ValueType(int(quota.scope))
+    proto_quota = ProtoQuotaConfig(
+        id=quota.id or "",
+        categories=sorted(sentry_to_proto_category(int(c)) for c in quota.categories),
+        scope=ProtoQuotaScope.ValueType(int(quota.scope))
         if quota.scope is not None
         else ProtoQuotaScope.QUOTA_SCOPE_UNSPECIFIED,
-    }
+    )
     if quota.scope_id is not None:
-        kwargs["scope_id"] = quota.scope_id
+        proto_quota.scope_id = quota.scope_id
     if quota.limit is not None:
-        kwargs["limit"] = quota.limit
+        proto_quota.limit = quota.limit
     if quota.window is not None:
-        kwargs["window"] = quota.window
+        proto_quota.window = quota.window
     if quota.reason_code is not None:
-        kwargs["reason_code"] = quota.reason_code
+        proto_quota.reason_code = quota.reason_code
 
-    return ProtoQuotaConfig(**kwargs)
+    return proto_quota
 
 
 def proto_to_sentry_quota_config(proto_quota: ProtoQuotaConfig) -> QuotaConfig | None:
@@ -45,6 +45,9 @@ def proto_to_sentry_quota_config(proto_quota: ProtoQuotaConfig) -> QuotaConfig |
     categories: list[DataCategory] = []
     for c in proto_quota.categories:
         sentry_cat = proto_to_sentry_category(c)
+        # UNKNOWN is a valid enum member, so the ValueError handler won't drop it.
+        if sentry_cat == DataCategory.UNKNOWN:
+            continue
         try:
             categories.append(DataCategory(sentry_cat))
         except ValueError:

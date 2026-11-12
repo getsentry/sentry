@@ -1,4 +1,4 @@
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilterDatetime} from 'sentry/types/core';
 import type {
   GroupStatusResolution,
   MarkReviewed,
@@ -6,7 +6,8 @@ import type {
   TagValue,
 } from 'sentry/types/group';
 import type {AvatarUser} from 'sentry/types/user';
-import type {IssueSortOptions} from 'sentry/views/issueList/utils';
+
+import type {IssueSortOptions} from './utils';
 
 export type TagValueLoader = (key: string, search: string) => Promise<TagValue[]>;
 
@@ -39,7 +40,7 @@ export type StarredGroupSearchView = {
   query: string;
   querySort: IssueSortOptions;
   stars: number;
-  timeFilters: PageFilters['datetime'];
+  timeFilters: PageFilterDatetime;
 };
 
 export type GroupSearchView = StarredGroupSearchView & {

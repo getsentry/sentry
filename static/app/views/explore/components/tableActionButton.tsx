@@ -1,5 +1,6 @@
 import {Fragment, type ReactNode} from 'react';
-import styled from '@emotion/styled';
+
+import {Container} from '@sentry/scraps/layout';
 
 interface TableActionButtonProps {
   /**
@@ -15,22 +16,8 @@ interface TableActionButtonProps {
 export function TableActionButton({mobile, desktop}: TableActionButtonProps) {
   return (
     <Fragment>
-      <MobileWrapper>{mobile}</MobileWrapper>
-      <DesktopWrapper>{desktop}</DesktopWrapper>
+      <Container display={{zero: 'block', '3xl': 'none'}}>{mobile}</Container>
+      <Container display={{zero: 'none', '3xl': 'block'}}>{desktop}</Container>
     </Fragment>
   );
 }
-
-const MobileWrapper = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    display: none;
-  }
-`;
-
-const DesktopWrapper = styled('div')`
-  display: none;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    display: block;
-  }
-`;

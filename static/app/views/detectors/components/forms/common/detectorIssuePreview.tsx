@@ -1,5 +1,5 @@
 import {ActorAvatar} from '@sentry/scraps/avatar';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {ShortId} from 'sentry/components/group/inboxBadges/shortId';
@@ -26,18 +26,22 @@ export function DetectorIssuePreview({
   const shortId = `${projectSlug.toUpperCase()}-D3M0`;
 
   return (
-    <SimpleTable style={{gridTemplateColumns: '1fr auto auto auto auto auto'}}>
-      <SimpleTable.Header>
-        <SimpleTable.HeaderCell>{t('Issue')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Last Seen')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Age')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Events')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Users')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Assignee')}</SimpleTable.HeaderCell>
-      </SimpleTable.Header>
+    <SimpleTable
+      style={{gridTemplateColumns: '1fr auto auto auto auto auto'}}
+      header={
+        <SimpleTable.HeaderRow>
+          <SimpleTable.HeaderCell>{t('Issue')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Last Seen')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Age')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Events')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Users')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Assignee')}</SimpleTable.HeaderCell>
+        </SimpleTable.HeaderRow>
+      }
+    >
       <SimpleTable.Row>
         <SimpleTable.RowCell>
-          <Flex direction="column" gap="xs">
+          <Stack gap="xs">
             <Text bold size="lg">
               {issueTitle}
             </Text>
@@ -48,7 +52,7 @@ export function DetectorIssuePreview({
                 <ShortId shortId={shortId} />
               </Text>
             </Flex>
-          </Flex>
+          </Stack>
         </SimpleTable.RowCell>
         <SimpleTable.RowCell justify="end">2min ago</SimpleTable.RowCell>
         <SimpleTable.RowCell justify="end">4h</SimpleTable.RowCell>

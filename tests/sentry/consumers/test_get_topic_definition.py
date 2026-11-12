@@ -1,7 +1,7 @@
 from django.test import override_settings
 
 from sentry.conf.types.kafka_definition import Topic
-from sentry.utils.kafka_config import get_topic_definition, get_topic_definition_from_name
+from sentry.utils.kafka_config import get_topic_definition
 
 
 def test_get_topic_definition_without_slice_id() -> None:
@@ -24,12 +24,12 @@ def test_get_topic_definition_cluster_lookup_uses_overridden_name() -> None:
         assert topic_def["real_topic_name"] == "custom-events-topic"
 
 
-def test_get_topic_definition_from_name_cluster_lookup_uses_overridden_name() -> None:
+def test_get_topic_definition_cluster_lookup_uses_overridden_name_string() -> None:
     with override_settings(
         KAFKA_TOPIC_TO_CLUSTER={"custom-events-topic": "events-cluster"},
         KAFKA_TOPIC_OVERRIDES={"events": "custom-events-topic"},
     ):
-        topic_def = get_topic_definition_from_name("events")
+        topic_def = get_topic_definition("events")
         assert topic_def["cluster"] == "events-cluster"
         assert topic_def["real_topic_name"] == "custom-events-topic"
 
@@ -62,3 +62,13 @@ def test_get_topic_definition_with_slice_id() -> None:
         topic_def = get_topic_definition(Topic.EVENTS, kafka_slice_id=1)
         assert topic_def["cluster"] == "slice-1"
         assert topic_def["real_topic_name"] == "events-slice-1"
+
+
+def test_get_topic_definition_string_defaults_to_default_cluster() -> None:
+    with override_settings(
+        KAFKA_TOPIC_TO_CLUSTER={},
+        KAFKA_TOPIC_OVERRIDES={},
+    ):
+        topic_def = get_topic_definition("private-taskworker-topic")
+        assert topic_def["cluster"] == "default"
+        assert topic_def["real_topic_name"] == "private-taskworker-topic"

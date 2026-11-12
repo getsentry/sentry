@@ -13,6 +13,7 @@ from django.db.models import Count
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationFeatures, IntegrationProvider
 from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.services.integration import integration_service
@@ -36,10 +37,8 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
-from sentry.models.rule import Rule
 from sentry.services.eventstore.models import BaseEvent, Event, GroupEvent
 from sentry.silo.base import cell_silo_function
-from sentry.types.rules import NotificationRuleDetails
 from sentry.users.services.user import RpcUser
 from sentry.utils.committers import (
     AuthorCommitsSerialized,
@@ -117,24 +116,13 @@ def get_repos(
 
 def get_environment_for_deploy(deploy: Deploy | None) -> str:
     if deploy:
-        environment = Environment.objects.get(id=deploy.environment_id)
+        try:
+            environment = Environment.objects.get(id=deploy.environment_id)
+        except Environment.DoesNotExist:
+            return "Default Environment"
         if environment and environment.name:
             return str(environment.name)
     return "Default Environment"
-
-
-def get_rules(
-    rules: Sequence[Rule], organization: Organization, project: Project
-) -> Sequence[NotificationRuleDetails]:
-    return [
-        NotificationRuleDetails(
-            rule.id,
-            rule.label,
-            f"/organizations/{organization.slug}/issues/alerts/rules/{project.slug}/{rule.id}/",
-            f"/organizations/{organization.slug}/issues/alerts/rules/{project.slug}/{rule.id}/details/",
-        )
-        for rule in rules
-    ]
 
 
 def process_serialized_committers(
@@ -154,11 +142,10 @@ def process_serialized_committers(
         for commit in committer["commits"]:
             if commit["id"] not in commits:
                 commit_data = dict(commit)
-                commit_data["shortId"] = commit_data["id"][:7]
+                commit_data["shortId"] = cast(str, commit_data["id"])[:7]
                 commit_data["author"] = committer["author"]
-                commit_data["subject"] = (
-                    commit_data["message"].split("\n", 1)[0] if commit_data["message"] else ""
-                )
+                commit_message = cast(str | None, commit_data["message"])
+                commit_data["subject"] = commit_message.split("\n", 1)[0] if commit_message else ""
                 if commit.get("pullRequest"):
                     commit_data["pull_request"] = commit["pullRequest"]
                 commits[commit["id"]] = commit_data
@@ -187,7 +174,7 @@ def get_suspect_commits_by_group_id(
     return list(commits.values())
 
 
-def get_commits(project: Project, event: Event) -> Sequence[Mapping[str, Any]]:
+def get_commits(project: Project, event: Event | GroupEvent) -> Sequence[Mapping[str, Any]]:
     # let's identify possible suspect commits and owners
     commits: MutableMapping[str, Mapping[str, Any]] = {}
     try:
@@ -224,7 +211,12 @@ def has_alert_integration(project: Project) -> bool:
     provider_keys = [
         provider.key for provider in integrations.all() if is_alert_rule_integration(provider)
     ]
-    if integration_service.get_integrations(organization_id=org.id, providers=provider_keys):
+    if integration_service.get_integrations(
+        organization_id=org.id,
+        providers=provider_keys,
+        status=ObjectStatus.ACTIVE,
+        org_integration_status=ObjectStatus.ACTIVE,
+    ):
         return True
 
     return False
@@ -270,12 +262,10 @@ def get_parent_and_repeating_spans(
     repeating_spans = None
 
     for span in spans:
-        if problem.parent_span_ids:
-            if problem.parent_span_ids[0] == span.get("span_id"):
-                parent_span = span
-        if problem.offender_span_ids:
-            if problem.offender_span_ids[0] == span.get("span_id"):
-                repeating_spans = span
+        if problem.parent_span_ids and problem.parent_span_ids[0] == span.get("span_id"):
+            parent_span = span
+        if problem.offender_span_ids and problem.offender_span_ids[0] == span.get("span_id"):
+            repeating_spans = span
         if parent_span is not None and repeating_spans is not None:
             break
 
@@ -335,7 +325,7 @@ def get_performance_issue_alert_subtitle(event: GroupEvent) -> str:
 
 
 def get_notification_group_title(
-    group: Group, event: Event | GroupEvent, max_length: int = 255, **kwargs: str
+    group: Group | None, event: Event | GroupEvent, max_length: int = 255, **kwargs: str
 ) -> str:
     if isinstance(event, GroupEvent) and event.occurrence is not None:
         issue_title = event.occurrence.issue_title
@@ -394,9 +384,7 @@ class PerformanceProblemContext:
             "transaction_name": self.transaction,
             "parent_span": get_span_evidence_value(self.parent_span),
             "repeating_spans": get_span_evidence_value(self.repeating_spans),
-            "num_repeating_spans": (
-                str(len(self.problem.offender_span_ids)) if self.problem.offender_span_ids else ""
-            ),
+            "num_repeating_spans": str(len(self.problem.offender_span_ids)),
         }
 
     @property
@@ -470,9 +458,7 @@ class NPlusOneAPICallProblemContext(PerformanceProblemContext):
             "transaction_name": self.transaction,
             "repeating_spans": self.path_prefix,
             "parameters": self.parameters,
-            "num_repeating_spans": (
-                str(len(self.problem.offender_span_ids)) if self.problem.offender_span_ids else ""
-            ),
+            "num_repeating_spans": str(len(self.problem.offender_span_ids)),
         }
 
     @property
@@ -527,7 +513,7 @@ class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
 
     @property
     def starting_span(self) -> str:
-        if not self.problem.cause_span_ids or len(self.problem.cause_span_ids) < 1:
+        if not self.problem.cause_span_ids:
             return ""
 
         starting_span_id = self.problem.cause_span_ids[0]
@@ -536,7 +522,7 @@ class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
 
     @property
     def parallelizable_spans(self) -> list[str]:
-        if not self.problem.offender_span_ids or len(self.problem.offender_span_ids) < 1:
+        if not self.problem.offender_span_ids:
             return [""]
 
         offender_span_ids = self.problem.offender_span_ids
@@ -555,7 +541,7 @@ class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
         this is where thresholds come in
         """
         independent_spans = [self._find_span_by_id(id) for id in self.problem.offender_span_ids]
-        consecutive_spans = [self._find_span_by_id(id) for id in self.problem.cause_span_ids or ()]
+        consecutive_spans = [self._find_span_by_id(id) for id in self.problem.cause_span_ids]
         total_duration = self._sum_span_duration(consecutive_spans)
 
         max_independent_span_duration = max(

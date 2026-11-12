@@ -1,36 +1,62 @@
 import re
 from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
+from typing import Any, cast
 from unittest import mock
+from unittest.mock import MagicMock
 
 import orjson
 import pytest
 import responses
 from django.test import override_settings
 from django.utils import timezone
-from requests import Request
+from requests import PreparedRequest, Request
 from responses import matchers
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.blame import create_blame_query, generate_file_path_mapping
-from sentry.integrations.github.client import GitHubApiClient, GitHubApiRequestType, GitHubReaction
+from sentry.integrations.github.client import (
+    GitHubApiClient,
+    GitHubApiRequestType,
+    GitHubReaction,
+    resolve_rate_limit_resource,
+    resolve_upstream_path,
+)
 from sentry.integrations.github.constants import GITHUB_API_ACCEPT_HEADER
 from sentry.integrations.github.integration import GitHubIntegration
+from sentry.integrations.github.pull_request_status import (
+    PULL_REQUEST_FILES_FRAGMENT,
+    PULL_REQUEST_STATUS_FRAGMENT,
+)
 from sentry.integrations.source_code_management.commit_context import (
     CommitInfo,
     FileBlameInfo,
     SourceLineInfo,
 )
+from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
+from sentry.integrations.source_code_management.status_check import (
+    AggregateChecksStatus,
+    AggregateReviewStatus,
+    PullRequestStatusRequest,
+    PullRequestStatusResult,
+)
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.scm.private.rate_limit import DynamicRateLimiter
-from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
+from sentry.shared_integrations.exceptions import (
+    ApiConflictError,
+    ApiError,
+    ApiForbiddenError,
+    ApiPaginationTruncated,
+    ApiRateLimitedError,
+)
 from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo.base import SiloMode
-from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
+from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_PATH, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.integrations import get_installation_of_type
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.cache import cache
 from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
@@ -44,7 +70,7 @@ GITHUB_CODEOWNERS = {
 
 class GitHubApiClientTest(TestCase):
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
-    def setUp(self, get_jwt):
+    def setUp(self, get_jwt: MagicMock) -> None:
         ten_days = timezone.now() + timedelta(days=10)
         self.integration = self.create_integration(
             organization=self.organization,
@@ -107,6 +133,157 @@ class GitHubApiClientTest(TestCase):
             self.github_client.get_rate_limit("foo")
 
     @responses.activate
+    def test_get_rate_limit_records_success_metric(self) -> None:
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/rate_limit",
+            json={
+                "resources": {
+                    "graphql": {
+                        "limit": 5000,
+                        "remaining": 4993,
+                        "reset": 1372700389,
+                        "used": 7,
+                    }
+                },
+            },
+        )
+
+        with (
+            mock.patch(
+                "sentry.integrations.github.client.get_current_scm_interaction_type",
+                return_value=SCMIntegrationInteractionType.GET_BLAME_FOR_FILES,
+            ),
+            mock.patch("sentry.integrations.github.client.metrics.incr") as mock_incr,
+            mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
+        ):
+            self.github_client.get_rate_limit("graphql")
+
+        assert (
+            mock.call(
+                "integrations.source_code_management.get_rate_limit",
+                tags={
+                    "integration_name": "github",
+                    "parent_interaction_type": "get_blame_for_files",
+                    "result": "success",
+                },
+            )
+            in mock_incr.mock_calls
+        )
+
+    @responses.activate
+    def test_get_rate_limit_records_error_metric(self) -> None:
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/rate_limit",
+            status=500,
+        )
+
+        with (
+            mock.patch("sentry.integrations.github.client.metrics.incr") as mock_incr,
+            mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
+            pytest.raises(ApiError),
+        ):
+            self.github_client.get_rate_limit()
+
+        assert (
+            mock.call(
+                "integrations.source_code_management.get_rate_limit",
+                tags={
+                    "integration_name": "github",
+                    "parent_interaction_type": "unattributed",
+                    "result": "error",
+                },
+            )
+            in mock_incr.mock_calls
+        )
+
+    @responses.activate
+    def test_get_tree_records_success_metric(self) -> None:
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{self.repo.name}/git/trees/main",
+            json={"tree": [{"path": "src/foo.py", "type": "blob"}], "truncated": False},
+        )
+
+        with (
+            mock.patch(
+                "sentry.integrations.github.client.get_current_scm_interaction_type",
+                return_value=SCMIntegrationInteractionType.DERIVE_CODEMAPPINGS,
+            ),
+            mock.patch("sentry.integrations.github.client.metrics.incr") as mock_incr,
+            mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
+        ):
+            tree = self.github_client.get_tree(self.repo.name, "main")
+
+        assert tree == [{"path": "src/foo.py", "type": "blob"}]
+        assert (
+            mock.call(
+                "integrations.source_code_management.get_repo_tree",
+                tags={
+                    "integration_name": "github",
+                    "parent_interaction_type": "derive_codemappings",
+                    "result": "success",
+                },
+            )
+            in mock_incr.mock_calls
+        )
+
+    @responses.activate
+    def test_get_tree_records_halted_metric_for_empty_repo(self) -> None:
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{self.repo.name}/git/trees/main",
+            status=409,
+        )
+
+        with (
+            mock.patch("sentry.integrations.github.client.metrics.incr") as mock_incr,
+            mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
+            pytest.raises(ApiConflictError),
+        ):
+            self.github_client.get_tree(self.repo.name, "main")
+
+        assert (
+            mock.call(
+                "integrations.source_code_management.get_repo_tree",
+                tags={
+                    "integration_name": "github",
+                    "parent_interaction_type": "unattributed",
+                    "result": "halted",
+                },
+            )
+            in mock_incr.mock_calls
+        )
+
+    @responses.activate
+    def test_get_tree_records_error_metric(self) -> None:
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{self.repo.name}/git/trees/main",
+            status=500,
+        )
+
+        with (
+            mock.patch("sentry.integrations.github.client.metrics.incr") as mock_incr,
+            mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
+            pytest.raises(ApiError),
+        ):
+            self.github_client.get_tree(self.repo.name, "main")
+
+        assert (
+            mock.call(
+                "integrations.source_code_management.get_repo_tree",
+                tags={
+                    "integration_name": "github",
+                    "parent_interaction_type": "unattributed",
+                    "result": "error",
+                },
+            )
+            in mock_incr.mock_calls
+        )
+
+    @responses.activate
     def test_internal_rate_limiter_ignores_get_rate_limit(self) -> None:
         """
         The /rate_limit resource does not count against GitHub's primary rate limit, so the
@@ -157,11 +334,58 @@ class GitHubApiClientTest(TestCase):
             self.github_client.get_commits(self.repo.name)
 
         mock_is_rate_limited.assert_called_once()
-        mock_set_capacity.assert_called_once_with(capacity=5000)
+        mock_set_capacity.assert_called_once_with(capacity=5000, resource="core")
+
+    @responses.activate
+    def test_search_capacity_is_recorded_against_the_search_resource(self) -> None:
+        """
+        GitHub's search resource allows 30 requests/minute while core allows at least 5000/hour.
+        Recording the search limit against core made every subsequent core request appear rate
+        limited until a core response overwrote it.
+        """
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/search/issues",
+            json={"items": []},
+            headers={"x-ratelimit-limit": "30"},
+        )
+
+        with (
+            mock.patch.object(
+                DynamicRateLimiter, "is_rate_limited", return_value=False
+            ) as mock_is_rate_limited,
+            mock.patch.object(DynamicRateLimiter, "set_total_capacity") as mock_set_capacity,
+            mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
+        ):
+            self.github_client.search_issues("repo:foo bar")
+
+        assert mock_is_rate_limited.call_args.kwargs["resource"] == "search"
+        mock_set_capacity.assert_called_once_with(capacity=30, resource="search")
+
+    @responses.activate
+    def test_core_capacity_is_recorded_against_the_core_resource(self) -> None:
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{self.repo.name}/commits",
+            json=[],
+            headers={"x-ratelimit-limit": "5000"},
+        )
+
+        with (
+            mock.patch.object(
+                DynamicRateLimiter, "is_rate_limited", return_value=False
+            ) as mock_is_rate_limited,
+            mock.patch.object(DynamicRateLimiter, "set_total_capacity") as mock_set_capacity,
+            mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
+        ):
+            self.github_client.get_commits(self.repo.name)
+
+        assert mock_is_rate_limited.call_args.kwargs["resource"] == "core"
+        mock_set_capacity.assert_called_once_with(capacity=5000, resource="core")
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_check_file(self, get_jwt) -> None:
+    def test_check_file(self, get_jwt: MagicMock) -> None:
         path = "src/sentry/integrations/github/client.py"
         version = "master"
         url = f"https://api.github.com/repos/{self.repo.name}/contents/{path}?ref={version}"
@@ -178,7 +402,7 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_check_file_tracks_check_file_endpoint(self, get_jwt) -> None:
+    def test_check_file_tracks_check_file_endpoint(self, get_jwt: MagicMock) -> None:
         with mock.patch.object(self.github_client, "head_cached") as mock_head_cached:
             self.github_client.check_file(self.repo, "README.md", "master")
 
@@ -190,7 +414,7 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_check_no_file(self, get_jwt) -> None:
+    def test_check_no_file(self, get_jwt: MagicMock) -> None:
         path = "src/santry/integrations/github/client.py"
         version = "master"
         url = f"https://api.github.com/repos/{self.repo.name}/contents/{path}?ref={version}"
@@ -203,8 +427,11 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @mock.patch("sentry.integrations.source_code_management.repository.metrics.incr")
     @responses.activate
-    def test_get_stacktrace_link(self, mock_record, get_jwt) -> None:
+    def test_get_stacktrace_link(
+        self, mock_incr: MagicMock, mock_record: MagicMock, get_jwt: MagicMock
+    ) -> None:
         path = "/src/sentry/integrations/github/client.py"
         version = "master"
         url = "https://api.github.com/repos/{}/contents/{}?ref={}".format(
@@ -222,18 +449,21 @@ class GitHubApiClientTest(TestCase):
             source_url
             == "https://github.com/Test-Organization/foo/blob/master/src/sentry/integrations/github/client.py"
         )
-        assert (
-            len(mock_record.mock_calls) == 4
-        )  # get_stacktrace_link calls check_file, which also has metrics
-        start1, start2, halt1, halt2 = mock_record.mock_calls
-        assert start1.args[0] == EventLifecycleOutcome.STARTED
-        assert start2.args[0] == EventLifecycleOutcome.STARTED  # check_file
-        assert halt1.args[0] == EventLifecycleOutcome.SUCCESS  # check_file
-        assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
+        assert len(mock_record.mock_calls) == 2
+        assert mock_record.mock_calls[0].args[0] == EventLifecycleOutcome.STARTED
+        assert mock_record.mock_calls[1].args[0] == EventLifecycleOutcome.SUCCESS
+        mock_incr.assert_any_call(
+            "integrations.source_code_management.check_file",
+            tags={
+                "integration_name": "github",
+                "parent_interaction_type": "get_stacktrace_link",
+                "result": "file_found",
+            },
+        )
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_compare_commits_tracks_compare_endpoint(self, get_jwt) -> None:
+    def test_compare_commits_tracks_compare_endpoint(self, get_jwt: MagicMock) -> None:
         with mock.patch.object(
             self.github_client, "_get_with_pagination"
         ) as mock_get_with_pagination:
@@ -247,8 +477,9 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_last_commits_tracks_get_commits_endpoint(self, get_jwt) -> None:
+    def test_get_last_commits_tracks_get_commits_endpoint(self, get_jwt: MagicMock) -> None:
         with mock.patch.object(self.github_client, "get_cached") as mock_get_cached:
+            mock_get_cached.return_value = []
             self.github_client.get_last_commits(self.repo.name, "abc")
 
         mock_get_cached.assert_called_once_with(
@@ -259,7 +490,7 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_commit_tracks_get_commit_endpoint(self, get_jwt) -> None:
+    def test_get_commit_tracks_get_commit_endpoint(self, get_jwt: MagicMock) -> None:
         with mock.patch.object(self.github_client, "get_cached") as mock_get_cached:
             self.github_client.get_commit(self.repo.name, "abc")
 
@@ -270,32 +501,32 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_with_pagination(self, get_jwt) -> None:
+    def test_get_with_pagination(self, get_jwt: MagicMock) -> None:
         url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.github_client.page_size}"
 
         responses.add(
             method=responses.GET,
             url=url,
-            json={"text": 200},
+            json=[],
             headers={"link": f'<{url}&page=2>; rel="next", <{url}&page=4>; rel="last"'},
         )
         # For simplicity, we're skipping the `first` and `prev` links from the following responses
         responses.add(
             method=responses.GET,
             url=f"{url}&page=2",
-            json={"text": 200},
+            json=[],
             headers={"link": f'<{url}&page=3>; rel="next", <{url}&page=4>; rel="last"'},
         )
         responses.add(
             method=responses.GET,
             url=f"{url}&page=3",
-            json={"text": 200},
+            json=[],
             headers={"link": f'<{url}&page=4>; rel="next", <{url}&page=4>; rel="last"'},
         )
         responses.add(
             method=responses.GET,
             url=f"{url}&page=4",
-            json={"text": 200},
+            json=[],
             # To help understanding, the last page only contains the `first` and `prev` links
             # The code only cares about the `next` value which is not included here
             headers={"link": f'<{url}&page=1>; rel="first", <{url}&page=3>; rel="prev"'},
@@ -306,14 +537,312 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_with_pagination_only_one_page(self, get_jwt) -> None:
+    def test_get_with_pagination_only_one_page(self, get_jwt: MagicMock) -> None:
         url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.github_client.page_size}"
 
         # No link in the headers because there are no more pages
-        responses.add(method=responses.GET, url=url, json={}, headers={})
+        responses.add(method=responses.GET, url=url, json=[], headers={})
         self.github_client._get_with_pagination(f"/repos/{self.repo.name}/assignees")
         assert len(responses.calls) == 1
         assert responses.calls[0].response.status_code == 200
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_with_pagination_parallel_uses_last_link(self, get_jwt: MagicMock) -> None:
+        # When Github advertises the last page, the remaining pages are fetched
+        # by page number (concurrently) rather than by following each page's
+        # `next` link. The later pages omit their `next` link to prove the
+        # last-page hint, not serial `next` walking, drives the fetch, and the
+        # results are concatenated in page order regardless of completion order.
+        url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.github_client.page_size}"
+        responses.add(
+            method=responses.GET,
+            url=url,
+            json=[{"id": 1}, {"id": 2}],
+            headers={"link": f'<{url}&page=2>; rel="next", <{url}&page=3>; rel="last"'},
+        )
+        responses.add(method=responses.GET, url=f"{url}&page=2", json=[{"id": 3}, {"id": 4}])
+        responses.add(method=responses.GET, url=f"{url}&page=3", json=[{"id": 5}, {"id": 6}])
+
+        result = self.github_client._get_with_pagination(
+            f"/repos/{self.repo.name}/assignees", parallel=True
+        )
+
+        assert [item["id"] for item in result] == [1, 2, 3, 4, 5, 6]
+        assert len(responses.calls) == 3
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_with_pagination_parallel_preserves_path_query_params(
+        self, get_jwt: MagicMock
+    ) -> None:
+        # A query string embedded in ``path`` must ride along on every page the
+        # parallel fan-out fetches, not just the first. ``fetch_page`` reuses
+        # ``path``, so pages 2..N keep the original query params alongside the
+        # reconstructed per_page/page. No caller does this today (all pass bare
+        # paths), so this locks in that invariant. The strict query_param_matcher
+        # fails the request if ``type`` is dropped from any page.
+        pp = self.github_client.page_size
+        url = f"https://api.github.com/repos/{self.repo.name}/assignees"
+        last_link = f'<{url}?type=all&per_page={pp}&page=2>; rel="last"'
+        responses.add(
+            method=responses.GET,
+            url=url,
+            match=[matchers.query_param_matcher({"type": "all", "per_page": pp})],
+            json=[{"id": 1}],
+            headers={"link": last_link},
+        )
+        responses.add(
+            method=responses.GET,
+            url=url,
+            match=[matchers.query_param_matcher({"type": "all", "per_page": pp, "page": 2})],
+            json=[{"id": 2}],
+        )
+
+        result = self.github_client._get_with_pagination(
+            f"/repos/{self.repo.name}/assignees?type=all", parallel=True
+        )
+
+        assert [item["id"] for item in result] == [1, 2]
+        assert len(responses.calls) == 2
+        # Both requests carried the query param that was embedded in ``path``.
+        assert all("type=all" in call.request.url for call in responses.calls)
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_with_pagination_falls_back_to_serial_without_last_link(
+        self, get_jwt: MagicMock
+    ) -> None:
+        # Even with parallel requested, cursor-style pagination provides `next`
+        # links but no `rel="last"`, so arbitrary page jumps are unavailable and
+        # we fall back to following the links serially.
+        url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.github_client.page_size}"
+        responses.add(
+            method=responses.GET,
+            url=url,
+            json=[{"id": 1}],
+            headers={"link": f'<{url}&page=2>; rel="next"'},
+        )
+        responses.add(
+            method=responses.GET,
+            url=f"{url}&page=2",
+            json=[{"id": 2}],
+            headers={"link": f'<{url}&page=3>; rel="next"'},
+        )
+        responses.add(method=responses.GET, url=f"{url}&page=3", json=[{"id": 3}])
+
+        result = self.github_client._get_with_pagination(
+            f"/repos/{self.repo.name}/assignees", parallel=True
+        )
+
+        assert [item["id"] for item in result] == [1, 2, 3]
+        assert len(responses.calls) == 3
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_with_pagination_raises_when_truncated(self, get_jwt: MagicMock) -> None:
+        # Github advertises five pages but the caller caps at three: only the
+        # first three pages are fetched and the partial result is attached.
+        url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.github_client.page_size}"
+        responses.add(
+            method=responses.GET,
+            url=url,
+            json=[{"id": 1}],
+            headers={"link": f'<{url}&page=2>; rel="next", <{url}&page=5>; rel="last"'},
+        )
+        for page in (2, 3):
+            responses.add(method=responses.GET, url=f"{url}&page={page}", json=[{"id": page}])
+
+        with pytest.raises(ApiPaginationTruncated) as excinfo:
+            self.github_client._get_with_pagination(
+                f"/repos/{self.repo.name}/assignees",
+                page_number_limit=3,
+                raise_on_page_limit=True,
+                parallel=True,
+            )
+
+        assert len(responses.calls) == 3
+        assert [item["id"] for item in excinfo.value.partial_data] == [1, 2, 3]
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_with_pagination_truncates_without_raising(self, get_jwt: MagicMock) -> None:
+        # Same cap, but without raise_on_page_limit the partial result (the
+        # pages fetched up to the cap) is returned silently.
+        url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.github_client.page_size}"
+        responses.add(
+            method=responses.GET,
+            url=url,
+            json=[{"id": 1}],
+            headers={"link": f'<{url}&page=2>; rel="next", <{url}&page=5>; rel="last"'},
+        )
+        for page in (2, 3):
+            responses.add(method=responses.GET, url=f"{url}&page={page}", json=[{"id": page}])
+
+        result = self.github_client._get_with_pagination(
+            f"/repos/{self.repo.name}/assignees",
+            page_number_limit=3,
+            parallel=True,
+        )
+
+        assert [item["id"] for item in result] == [1, 2, 3]
+        assert len(responses.calls) == 3
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_with_pagination_serial_by_default_ignores_last_link(
+        self, get_jwt: MagicMock
+    ) -> None:
+        # parallel defaults to False: even though Github advertises rel="last",
+        # the serial walk follows `next` links only. Page 2 omits its `next`
+        # link, so the walk stops there and never fetches the advertised page 3.
+        url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.github_client.page_size}"
+        responses.add(
+            method=responses.GET,
+            url=url,
+            json=[{"id": 1}],
+            headers={"link": f'<{url}&page=2>; rel="next", <{url}&page=3>; rel="last"'},
+        )
+        responses.add(method=responses.GET, url=f"{url}&page=2", json=[{"id": 2}])
+        responses.add(method=responses.GET, url=f"{url}&page=3", json=[{"id": 3}])
+
+        result = self.github_client._get_with_pagination(f"/repos/{self.repo.name}/assignees")
+
+        assert [item["id"] for item in result] == [1, 2]
+        assert len(responses.calls) == 2
+
+    @mock.patch("sentry.integrations.github.client.metrics")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_with_pagination_parallel_records_success_metric(
+        self, get_jwt: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        # A successful parallel fan-out records its width (total pages) and a
+        # success outcome so we can watch the fast path in production.
+        url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.github_client.page_size}"
+        responses.add(
+            method=responses.GET,
+            url=url,
+            json=[{"id": 1}],
+            headers={"link": f'<{url}&page=2>; rel="next", <{url}&page=3>; rel="last"'},
+        )
+        responses.add(method=responses.GET, url=f"{url}&page=2", json=[{"id": 2}])
+        responses.add(method=responses.GET, url=f"{url}&page=3", json=[{"id": 3}])
+
+        self.github_client._get_with_pagination(f"/repos/{self.repo.name}/assignees", parallel=True)
+
+        mock_metrics.distribution.assert_called_once_with(
+            "integrations.github.parallel_pagination.pages", 3, sample_rate=1.0
+        )
+        mock_metrics.incr.assert_any_call(
+            "integrations.github.parallel_pagination",
+            tags={"outcome": "success"},
+            sample_rate=1.0,
+        )
+
+    @mock.patch("sentry.integrations.github.client.metrics")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_with_pagination_parallel_records_rate_limited_metric(
+        self, get_jwt: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        # A 429 from any page in the fan-out surfaces as ApiRateLimitedError and
+        # is attributed to the parallel path, so we can tell whether the extra
+        # concurrency is what trips Github's secondary rate limits.
+        url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.github_client.page_size}"
+        responses.add(
+            method=responses.GET,
+            url=url,
+            json=[{"id": 1}],
+            headers={"link": f'<{url}&page=2>; rel="next", <{url}&page=3>; rel="last"'},
+        )
+        responses.add(method=responses.GET, url=f"{url}&page=2", json=[{"id": 2}])
+        responses.add(
+            method=responses.GET, url=f"{url}&page=3", status=429, json={"message": "rate limited"}
+        )
+
+        with pytest.raises(ApiRateLimitedError):
+            self.github_client._get_with_pagination(
+                f"/repos/{self.repo.name}/assignees", parallel=True
+            )
+
+        mock_metrics.incr.assert_any_call(
+            "integrations.github.parallel_pagination",
+            tags={"outcome": "rate_limited"},
+            sample_rate=1.0,
+        )
+
+    @mock.patch("sentry.integrations.github.client.metrics")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_with_pagination_parallel_403_rate_limit_records_rate_limited_metric(
+        self, get_jwt: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        # Github also signals a tripped secondary rate limit with a 403 whose
+        # body names the limit, not only a 429, so that outcome is attributed to
+        # the parallel path too.
+        url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.github_client.page_size}"
+        responses.add(
+            method=responses.GET,
+            url=url,
+            json=[{"id": 1}],
+            headers={"link": f'<{url}&page=2>; rel="next", <{url}&page=3>; rel="last"'},
+        )
+        responses.add(method=responses.GET, url=f"{url}&page=2", json=[{"id": 2}])
+        responses.add(
+            method=responses.GET,
+            url=f"{url}&page=3",
+            status=403,
+            json={
+                "message": "You have exceeded a secondary rate limit. Please wait a few minutes."
+            },
+        )
+
+        with pytest.raises(ApiForbiddenError):
+            self.github_client._get_with_pagination(
+                f"/repos/{self.repo.name}/assignees", parallel=True
+            )
+
+        mock_metrics.incr.assert_any_call(
+            "integrations.github.parallel_pagination",
+            tags={"outcome": "rate_limited"},
+            sample_rate=1.0,
+        )
+
+    @mock.patch("sentry.integrations.github.client.metrics")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_with_pagination_parallel_403_permission_does_not_record_rate_limited(
+        self, get_jwt: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        # A plain permission 403 (no rate-limit message) is not a rate limit, so
+        # it re-raises without recording either outcome.
+        url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.github_client.page_size}"
+        responses.add(
+            method=responses.GET,
+            url=url,
+            json=[{"id": 1}],
+            headers={"link": f'<{url}&page=2>; rel="next", <{url}&page=3>; rel="last"'},
+        )
+        responses.add(method=responses.GET, url=f"{url}&page=2", json=[{"id": 2}])
+        responses.add(
+            method=responses.GET,
+            url=f"{url}&page=3",
+            status=403,
+            json={"message": "Resource not accessible by integration"},
+        )
+
+        with pytest.raises(ApiForbiddenError):
+            self.github_client._get_with_pagination(
+                f"/repos/{self.repo.name}/assignees", parallel=True
+            )
+
+        outcomes = [
+            call.kwargs.get("tags", {}).get("outcome")
+            for call in mock_metrics.incr.call_args_list
+            if call.args and call.args[0] == "integrations.github.parallel_pagination"
+        ]
+        assert outcomes == []
 
     @mock.patch(
         "sentry.integrations.github.integration.GitHubIntegration.check_file",
@@ -322,7 +851,9 @@ class GitHubApiClientTest(TestCase):
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
-    def test_get_codeowner_file(self, mock_record, mock_jwt, mock_check_file) -> None:
+    def test_get_codeowner_file(
+        self, mock_record: MagicMock, mock_jwt: MagicMock, mock_check_file: MagicMock
+    ) -> None:
         self.config = self.create_code_mapping(
             repo=self.repo,
             project=self.project,
@@ -340,15 +871,13 @@ class GitHubApiClientTest(TestCase):
             responses.calls[0].request.headers["Content-Type"] == "application/raw; charset=utf-8"
         )
         assert result == GITHUB_CODEOWNERS
-        assert (
-            len(mock_record.mock_calls) == 2
-        )  # check_file is mocked in this test, so there will be no metrics logged for it
+        assert len(mock_record.mock_calls) == 2
         assert mock_record.mock_calls[0].args[0] == EventLifecycleOutcome.STARTED
         assert mock_record.mock_calls[1].args[0] == EventLifecycleOutcome.SUCCESS
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_file_codeowners_raises_on_json_error_response(self, mock_jwt) -> None:
+    def test_get_file_codeowners_raises_on_json_error_response(self, mock_jwt: MagicMock) -> None:
         responses.add(
             method=responses.GET,
             url=f"https://api.github.com/repos/{self.repo.name}/contents/CODEOWNERS",
@@ -369,7 +898,7 @@ class GitHubApiClientTest(TestCase):
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_codeowner_file_returns_none_on_error_response(
-        self, mock_jwt, mock_check_file
+        self, mock_jwt: MagicMock, mock_check_file: MagicMock
     ) -> None:
         self.config = self.create_code_mapping(
             repo=self.repo,
@@ -510,7 +1039,7 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_update_comment(self, get_jwt) -> None:
+    def test_update_comment(self, get_jwt: MagicMock) -> None:
         responses.add(
             method=responses.POST,
             url=f"https://api.github.com/repos/{self.repo.name}/issues/1/comments",
@@ -553,7 +1082,7 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_update_pr_comment(self, get_jwt) -> None:
+    def test_update_pr_comment(self, get_jwt: MagicMock) -> None:
         responses.add(
             method=responses.POST,
             url=f"https://api.github.com/repos/{self.repo.name}/issues/1/comments",
@@ -593,7 +1122,7 @@ class GitHubApiClientTest(TestCase):
         self.github_client.update_pr_comment(
             repo=self.repo,
             pr=PullRequest(key="1"),
-            pr_comment=PullRequestComment(external_id="1"),
+            pr_comment=PullRequestComment(external_id=1),
             data={"body": "world"},
         )
         assert responses.calls[1].response.status_code == 200
@@ -601,7 +1130,7 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_comment_reactions(self, get_jwt) -> None:
+    def test_get_comment_reactions(self, get_jwt: MagicMock) -> None:
         reaction_list = [
             {"id": 1, "content": "hooray", "user": {"login": "octocat", "id": 1}},
             {"id": 2, "content": "+1", "user": {"login": "hubot", "id": 2}},
@@ -618,7 +1147,7 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_comment_reactions_empty(self, get_jwt) -> None:
+    def test_get_comment_reactions_empty(self, get_jwt: MagicMock) -> None:
         responses.add(
             responses.GET,
             f"https://api.github.com/repos/{self.repo.name}/issues/comments/2/reactions?per_page=100",
@@ -631,7 +1160,7 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_create_comment_reaction(self, get_jwt) -> None:
+    def test_create_comment_reaction(self, get_jwt: MagicMock) -> None:
         response_data = {
             "id": 1,
             "node_id": "MDg6UmVhY3Rpb24x",
@@ -654,7 +1183,7 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_issue_reactions(self, get_jwt) -> None:
+    def test_get_issue_reactions(self, get_jwt: MagicMock) -> None:
         responses.add(
             method=responses.GET,
             url=f"https://api.github.com/repos/{self.repo.name}/issues/42/reactions?per_page={self.github_client.page_size}",
@@ -669,7 +1198,7 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_create_issue_reaction(self, get_jwt) -> None:
+    def test_create_issue_reaction(self, get_jwt: MagicMock) -> None:
         response_data = {
             "id": 1,
             "node_id": "MDg6UmVhY3Rpb24x",
@@ -690,7 +1219,7 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_delete_issue_reaction(self, get_jwt) -> None:
+    def test_delete_issue_reaction(self, get_jwt: MagicMock) -> None:
         responses.add(
             responses.DELETE,
             f"https://api.github.com/repos/{self.repo.name}/issues/42/reactions/123",
@@ -704,7 +1233,7 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_merge_commit_sha_from_commit(self, get_jwt) -> None:
+    def test_get_merge_commit_sha_from_commit(self, get_jwt: MagicMock) -> None:
         merge_commit_sha = "jkl123"
         pull_requests = [{"merge_commit_sha": merge_commit_sha, "state": "closed"}]
         commit_sha = "asdf"
@@ -719,7 +1248,7 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_merge_commit_sha_from_commit_open_pr(self, get_jwt) -> None:
+    def test_get_merge_commit_sha_from_commit_open_pr(self, get_jwt: MagicMock) -> None:
         merge_commit_sha = "jkl123"
         pull_requests = [{"merge_commit_sha": merge_commit_sha, "state": "open"}]
         commit_sha = "asdf"
@@ -734,7 +1263,7 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_pull_request(self, get_jwt) -> None:
+    def test_get_pull_request(self, get_jwt: MagicMock) -> None:
         pull_number = 42
         pr_data = {
             "number": pull_number,
@@ -764,6 +1293,268 @@ class GitHubApiClientTest(TestCase):
         assert result["state"] == "open"
         assert result["head"]["sha"] == "abc123def456"
         assert result["base"]["ref"] == "main"
+
+    def add_graphql_response(self, json: dict[str, Any]) -> None:
+        responses.add(
+            responses.POST,
+            "https://api.github.com/graphql",
+            json=json,
+            content_type="application/json",
+        )
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_search_issue_assignees_missing_repository(self, get_jwt: MagicMock) -> None:
+        self.add_graphql_response({"data": {"repository": None}})
+
+        with pytest.raises(ApiError, match="Invalid GitHub GraphQL response"):
+            self.github_client.search_issue_assignees(self.repo.name, "user")
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_search_issue_labels_query_error(self, get_jwt: MagicMock) -> None:
+        self.add_graphql_response(
+            {
+                "errors": [
+                    {
+                        "type": "NOT_FOUND",
+                        "message": "Could not resolve to a Repository with the requested name.",
+                    }
+                ]
+            }
+        )
+
+        with pytest.raises(ApiError, match="Could not resolve to a Repository"):
+            self.github_client.search_issue_labels(self.repo.name, "bug")
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_search_issue_field_rate_limited(self, get_jwt: MagicMock) -> None:
+        self.add_graphql_response({"errors": [{"type": "RATE_LIMITED"}]})
+
+        with pytest.raises(ApiRateLimitedError):
+            self.github_client.search_issue_assignees(self.repo.name, "user")
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_pull_request_status(self, get_jwt: MagicMock) -> None:
+        self.add_graphql_response(
+            {
+                "data": {
+                    "repository0": {
+                        "pullRequest": {
+                            "reviewDecision": "APPROVED",
+                            "commits": {
+                                "nodes": [{"commit": {"statusCheckRollup": {"state": "SUCCESS"}}}]
+                            },
+                        }
+                    }
+                }
+            }
+        )
+
+        assert self.github_client.get_pull_request_status(
+            repo=self.repo.name, pull_number="42"
+        ) == PullRequestStatusResult(
+            checks=AggregateChecksStatus.SUCCESS, review=AggregateReviewStatus.APPROVED
+        )
+
+        body = orjson.loads(responses.calls[-1].request.body)
+        assert PULL_REQUEST_STATUS_FRAGMENT in body["query"]
+        assert PULL_REQUEST_FILES_FRAGMENT not in body["query"]
+        assert body["variables"] == {
+            "owner0": "Test-Organization",
+            "name0": "foo",
+            "number0": 42,
+        }
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_pull_request_statuses_batches_cache_misses(self, get_jwt: MagicMock) -> None:
+        self.add_graphql_response(
+            {
+                "data": {
+                    "repository0": {
+                        "pullRequest": {
+                            "reviewDecision": "APPROVED",
+                            "commits": {
+                                "nodes": [{"commit": {"statusCheckRollup": {"state": "SUCCESS"}}}]
+                            },
+                        }
+                    },
+                    "repository1": {
+                        "pullRequest": {
+                            "reviewDecision": "CHANGES_REQUESTED",
+                            "commits": {
+                                "nodes": [{"commit": {"statusCheckRollup": {"state": "FAILURE"}}}]
+                            },
+                        }
+                    },
+                }
+            }
+        )
+        first = PullRequestStatusRequest(repo=self.repo.name, pull_number="41")
+        second = PullRequestStatusRequest(repo=self.repo.name, pull_number="42")
+
+        assert self.github_client.get_pull_request_statuses([first, second]) == {
+            first: PullRequestStatusResult(
+                checks=AggregateChecksStatus.SUCCESS,
+                review=AggregateReviewStatus.APPROVED,
+            ),
+            second: PullRequestStatusResult(
+                checks=AggregateChecksStatus.FAILURE,
+                review=AggregateReviewStatus.CHANGES_REQUESTED,
+            ),
+        }
+        assert len(responses.calls) == 1
+
+        body = orjson.loads(responses.calls[-1].request.body)
+        assert body["variables"] == {
+            "owner0": "Test-Organization",
+            "name0": "foo",
+            "number0": 41,
+            "owner1": "Test-Organization",
+            "name1": "foo",
+            "number1": 42,
+        }
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_pull_request_statuses_chunks_cache_misses(self, get_jwt: MagicMock) -> None:
+        # A batch larger than the chunk size is fetched over several sequential
+        # queries so no single query exceeds GitHub's ~10s server-side timeout.
+        self.add_graphql_response(
+            {
+                "data": {
+                    "repository0": {
+                        "pullRequest": {
+                            "reviewDecision": "APPROVED",
+                            "commits": {
+                                "nodes": [{"commit": {"statusCheckRollup": {"state": "SUCCESS"}}}]
+                            },
+                        }
+                    }
+                }
+            }
+        )
+        self.add_graphql_response(
+            {
+                "data": {
+                    "repository0": {
+                        "pullRequest": {
+                            "reviewDecision": "CHANGES_REQUESTED",
+                            "commits": {
+                                "nodes": [{"commit": {"statusCheckRollup": {"state": "FAILURE"}}}]
+                            },
+                        }
+                    }
+                }
+            }
+        )
+        first = PullRequestStatusRequest(repo=self.repo.name, pull_number="41")
+        second = PullRequestStatusRequest(repo=self.repo.name, pull_number="42")
+
+        with override_options({"github-app.pull-request-status.chunk-size": 1}):
+            results = self.github_client.get_pull_request_statuses([first, second])
+
+        assert results == {
+            first: PullRequestStatusResult(
+                checks=AggregateChecksStatus.SUCCESS,
+                review=AggregateReviewStatus.APPROVED,
+            ),
+            second: PullRequestStatusResult(
+                checks=AggregateChecksStatus.FAILURE,
+                review=AggregateReviewStatus.CHANGES_REQUESTED,
+            ),
+        }
+        # One GraphQL POST per chunk, each carrying only its own PR's variables.
+        assert len(responses.calls) == 2
+        assert orjson.loads(responses.calls[0].request.body)["variables"] == {
+            "owner0": "Test-Organization",
+            "name0": "foo",
+            "number0": 41,
+        }
+        assert orjson.loads(responses.calls[1].request.body)["variables"] == {
+            "owner0": "Test-Organization",
+            "name0": "foo",
+            "number0": 42,
+        }
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_pull_request_status_caches_the_response(self, get_jwt: MagicMock) -> None:
+        # One provider request per pull request per window: the endpoint fetches for
+        # every linked pull request, so a repeat view must not re-query GitHub.
+        self.add_graphql_response(
+            {
+                "data": {
+                    "repository0": {
+                        "pullRequest": {
+                            "reviewDecision": "APPROVED",
+                            "commits": {
+                                "nodes": [{"commit": {"statusCheckRollup": {"state": "SUCCESS"}}}]
+                            },
+                        }
+                    }
+                }
+            }
+        )
+        expected = PullRequestStatusResult(
+            checks=AggregateChecksStatus.SUCCESS, review=AggregateReviewStatus.APPROVED
+        )
+
+        first = self.github_client.get_pull_request_status(repo=self.repo.name, pull_number="45")
+        second = self.github_client.get_pull_request_status(repo=self.repo.name, pull_number="45")
+
+        assert first == second == expected
+        assert len(responses.calls) == 1
+
+        # A different pull request keys separately, so it still reaches GitHub.
+        self.github_client.get_pull_request_status(repo=self.repo.name, pull_number="46")
+        assert len(responses.calls) == 2
+
+    def test_pull_request_status_cache_separates_file_expansion(self) -> None:
+        status_only = PullRequestStatusRequest(repo=self.repo.name, pull_number="45")
+        with_files = PullRequestStatusRequest(
+            repo=self.repo.name, pull_number="45", include_files=True
+        )
+        previous_cache_data = orjson.dumps({"repo": self.repo.name, "pull_number": "45"}).decode()
+
+        status_only_key = self.github_client._get_pull_request_status_cache_key(status_only)
+        assert status_only_key == self.github_client.get_cache_key(
+            "/graphql/pull-request-status/v2", "", previous_cache_data
+        )
+        assert status_only_key != self.github_client._get_pull_request_status_cache_key(with_files)
+
+    def test_pull_request_status_cache_key_versions_the_result_shape(self) -> None:
+        # failed_checks changed shape (str -> FailedCheck), so the key must not
+        # collide with entries cached under the previous shape; otherwise the
+        # overview serializer reads stale bare strings and 500s just after deploy.
+        request = PullRequestStatusRequest(repo=self.repo.name, pull_number="45")
+        pre_version_key = self.github_client.get_cache_key(
+            "/graphql/pull-request-status",
+            "",
+            orjson.dumps({"repo": self.repo.name, "pull_number": "45"}).decode(),
+        )
+        assert self.github_client._get_pull_request_status_cache_key(request) != pre_version_key
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_pull_request_status_query_errors(self, get_jwt: MagicMock) -> None:
+        self.add_graphql_response(
+            {"data": None, "errors": [{"message": "Field 'statusCheckRollup' doesn't exist"}]}
+        )
+
+        with pytest.raises(ApiError, match="Field 'statusCheckRollup' doesn't exist"):
+            self.github_client.get_pull_request_status(repo=self.repo.name, pull_number="43")
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_pull_request_status_rate_limited(self, get_jwt: MagicMock) -> None:
+        self.add_graphql_response({"data": None, "errors": [{"type": "RATE_LIMITED"}]})
+
+        with pytest.raises(ApiRateLimitedError):
+            self.github_client.get_pull_request_status(repo=self.repo.name, pull_number="44")
 
 
 @control_silo_test
@@ -813,7 +1604,7 @@ class GithubProxyClientTest(TestCase):
 
     @responses.activate
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=jwt)
-    def test__refresh_access_token(self, mock_jwt) -> None:
+    def test__refresh_access_token(self, mock_jwt: MagicMock) -> None:
         assert self.integration.metadata == {
             "access_token": None,
             "expires_at": None,
@@ -824,6 +1615,9 @@ class GithubProxyClientTest(TestCase):
         assert mock_jwt.called
 
         self.integration.refresh_from_db()
+        debug_data = self.integration.debug_data
+        assert debug_data is not None
+        assert self.integration.metadata.pop("last_refresh_at") == debug_data["last_refresh_at"]
         assert self.integration.metadata == {
             "access_token": self.access_token,
             "expires_at": self.expires_at.rstrip("Z"),
@@ -838,7 +1632,7 @@ class GithubProxyClientTest(TestCase):
 
     @responses.activate
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=jwt)
-    def test__get_token(self, mock_jwt) -> None:
+    def test__get_token(self, mock_jwt: MagicMock) -> None:
         access_token_request = Request(
             url=f"{self.gh_client.base_url}/repos/test-repo/issues"
         ).prepare()
@@ -873,7 +1667,7 @@ class GithubProxyClientTest(TestCase):
 
     @responses.activate
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=jwt)
-    def test_get_access_token(self, _) -> None:
+    def test_get_access_token(self, _: MagicMock) -> None:
         self.gh_client.integration.metadata["access_token"] = "access_token_1"
         self.gh_client.integration.metadata["expires_at"] = "3000-01-01T00:00:00Z"
         self.gh_client.integration.metadata["permissions"] = {
@@ -886,6 +1680,7 @@ class GithubProxyClientTest(TestCase):
 
         assert self.gh_client.get_access_token() == {
             "access_token": "access_token_1",
+            "expires_at": "3000-01-01T00:00:00Z",
             "permissions": {
                 "administration": "read",
                 "contents": "read",
@@ -897,7 +1692,7 @@ class GithubProxyClientTest(TestCase):
 
     @responses.activate
     @mock.patch("sentry.integrations.github.client.GithubProxyClient._get_token", return_value=None)
-    def test_authorize_request_invalid(self, mock_get_invalid_token) -> None:
+    def test_authorize_request_invalid(self, mock_get_invalid_token: MagicMock) -> None:
         request = Request(url=f"{self.gh_client.base_url}/repos/test-repo/issues").prepare()
 
         self.gh_client.integration = None
@@ -911,7 +1706,7 @@ class GithubProxyClientTest(TestCase):
 
     @responses.activate
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=jwt)
-    def test_authorize_request_valid(self, mock_jwt) -> None:
+    def test_authorize_request_valid(self, mock_jwt: MagicMock) -> None:
         access_token_request = Request(
             url=f"{self.gh_client.base_url}/repos/test-repo/issues"
         ).prepare()
@@ -930,7 +1725,7 @@ class GithubProxyClientTest(TestCase):
 
         # Following requests should just add headers
         self.gh_client.authorize_request(prepared_request=access_token_request)
-        assert not mock_jwt.called
+        assert not bool(mock_jwt.called)
         assert access_token_request.headers["Accept"] == GITHUB_API_ACCEPT_HEADER
         assert self.access_token in access_token_request.headers["Authorization"]
 
@@ -944,12 +1739,12 @@ class GithubProxyClientTest(TestCase):
     @mock.patch(
         "sentry.integrations.github.client.GithubProxyClient._get_token", return_value=access_token
     )
-    def test_integration_proxy_is_active(self, mock_get_token) -> None:
+    def test_integration_proxy_is_active(self, mock_get_token: MagicMock) -> None:
         class GithubProxyTestClient(GitHubApiClient):
             _use_proxy_url_for_tests = True
 
-            def assert_proxy_request(self, request, is_proxy=True):
-                assert (PROXY_BASE_PATH in request.url) == is_proxy
+            def assert_proxy_request(self, request: PreparedRequest, is_proxy: bool = True) -> None:
+                assert (PROXY_BASE_PATH in cast("str", request.url)) == is_proxy
                 assert (PROXY_OI_HEADER in request.headers) == is_proxy
                 assert (PROXY_SIGNATURE_HEADER in request.headers) == is_proxy
                 # The following GitHub headers don't appear in proxied requests
@@ -1008,7 +1803,7 @@ class GithubProxyClientTest(TestCase):
 
 class GitHubCommitContextClientTest(TestCase):
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
-    def setUp(self, get_jwt):
+    def setUp(self, get_jwt: MagicMock) -> None:
         ten_days = timezone.now() + timedelta(days=10)
         self.integration = self.create_integration(
             organization=self.organization,
@@ -1031,7 +1826,7 @@ class GitHubCommitContextClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_create_check_run(self, get_jwt) -> None:
+    def test_create_check_run(self, get_jwt: MagicMock) -> None:
         repo_name = "getsentry/sentry"
         check_data = {
             "name": "sentry/ci",
@@ -1066,7 +1861,7 @@ class GitHubCommitContextClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_check_run(self, get_jwt) -> None:
+    def test_get_check_run(self, get_jwt: MagicMock) -> None:
         repo_name = "getsentry/sentry"
         check_run_id = 123456
 
@@ -1094,7 +1889,7 @@ class GitHubCommitContextClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_check_runs(self, get_jwt) -> None:
+    def test_get_check_runs(self, get_jwt: MagicMock) -> None:
         repo_name = "getsentry/sentry"
         sha = "abc123"
 
@@ -1136,7 +1931,7 @@ class GitHubCommitContextClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_create_check_run_error(self, get_jwt) -> None:
+    def test_create_check_run_error(self, get_jwt: MagicMock) -> None:
         repo_name = "getsentry/sentry"
         check_data = {"name": "sentry/ci", "head_sha": "abc123"}
 
@@ -1153,7 +1948,7 @@ class GitHubCommitContextClientTest(TestCase):
 
 class GitHubClientFileBlameBase(TestCase):
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
-    def setUp(self, get_jwt):
+    def setUp(self, get_jwt: MagicMock) -> None:
         integration = self.create_integration(
             organization=self.organization,
             provider="github",
@@ -1218,7 +2013,7 @@ class GitHubClientFileBlameBase(TestCase):
 
 class GitHubClientFileBlameIntegrationDisableTest(TestCase):
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
-    def setUp(self, get_jwt):
+    def setUp(self, get_jwt: MagicMock) -> None:
         ten_days = timezone.now() + timedelta(days=10)
         self.integration = self.create_integration(
             organization=self.organization,
@@ -1261,7 +2056,7 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_blame_for_files_same_repo(self, get_jwt) -> None:
+    def test_get_blame_for_files_same_repo(self, get_jwt: MagicMock) -> None:
         """
         When all files are in the same repo, only one repository object should be
         queried and files blames within the repo should be deduped
@@ -1351,7 +2146,7 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_blame_for_files_different_repos(self, get_jwt) -> None:
+    def test_get_blame_for_files_different_repos(self, get_jwt: MagicMock) -> None:
         """
         When files are in different repos, multiple repository objects should be
         queried. Files within the same repo and branch should be deduped.
@@ -1469,7 +2264,7 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_blame_for_files_different_refs(self, get_jwt) -> None:
+    def test_get_blame_for_files_different_refs(self, get_jwt: MagicMock) -> None:
         """
         When files are in the same repo but different branches, query multiple
         ref objects. Files should still be deduped.
@@ -1566,7 +2361,7 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_trim_file_path_for_query(self, get_jwt) -> None:
+    def test_trim_file_path_for_query(self, get_jwt: MagicMock) -> None:
         """
         When file path has hanging forward slashes, trims them for the request.
         The GitHub GraphQL API will return empty responses otherwise.
@@ -1721,7 +2516,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_blame_for_files_full_response(self, get_jwt) -> None:
+    def test_get_blame_for_files_full_response(self, get_jwt: MagicMock) -> None:
         """
         Tests that the correct commits are selected from the blame range when a full response is returned.
         """
@@ -1776,7 +2571,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_cached_blame_for_files_full_response(self, get_jwt) -> None:
+    def test_get_cached_blame_for_files_full_response(self, get_jwt: MagicMock) -> None:
         """
         Tests that the cached commits are returned with full response
         """
@@ -1859,7 +2654,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_blame_for_files_response_partial_data(self, get_jwt) -> None:
+    def test_get_blame_for_files_response_partial_data(self, get_jwt: MagicMock) -> None:
         """
         Tests that commits are still returned when some data is missing from the response
         """
@@ -1947,7 +2742,9 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
     @mock.patch("sentry.integrations.github.client.logger.warning")
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_blame_for_files_invalid_commit(self, get_jwt, mock_logger_warning) -> None:
+    def test_get_blame_for_files_invalid_commit(
+        self, get_jwt: MagicMock, mock_logger_warning: MagicMock
+    ) -> None:
         """
         Tests commits that have invalid data are skipped and logged
         """
@@ -2091,7 +2888,7 @@ class GitHubClientFileBlameRateLimitTest(GitHubClientFileBlameBase):
     @mock.patch("sentry.integrations.github.client.logger.warning")
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_rate_limit_exceeded(self, get_jwt, mock_logger_warning) -> None:
+    def test_rate_limit_exceeded(self, get_jwt: MagicMock, mock_logger_warning: MagicMock) -> None:
         with pytest.raises(ApiRateLimitedError):
             self.github_client.get_blame_for_files([self.file], extra={})
         mock_logger_warning.assert_called_with(
@@ -2107,7 +2904,7 @@ class GitHubClientFileBlameRateLimitTest(GitHubClientFileBlameBase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_no_rate_limiting(self, get_jwt) -> None:
+    def test_no_rate_limiting(self, get_jwt: MagicMock) -> None:
         """
         Tests that no error is thrown when GitHub isn't enforcing rate limits
         """
@@ -2134,3 +2931,77 @@ class GitHubClientFileBlameRateLimitTest(GitHubClientFileBlameBase):
         )
 
         assert self.github_client.get_blame_for_files([self.file], extra={}) == []
+
+
+class TestResolveRateLimitResource:
+    """
+    https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api enumerates the
+    quota pools GitHub meters independently.
+    """
+
+    def test_graphql(self) -> None:
+        assert resolve_rate_limit_resource("/graphql") == "graphql"
+
+    def test_search_issues(self) -> None:
+        assert resolve_rate_limit_resource("/search/issues") == "search"
+
+    def test_search_repositories(self) -> None:
+        assert resolve_rate_limit_resource("/search/repositories") == "search"
+
+    def test_code_search_is_metered_separately_from_search(self) -> None:
+        assert resolve_rate_limit_resource("/search/code") == "code_search"
+
+    def test_app_routes_are_metered_against_the_app(self) -> None:
+        """JWT-authenticated app routes count against the app, not the installation."""
+        assert resolve_rate_limit_resource("/app/installations/1/access_tokens") == "app"
+        assert resolve_rate_limit_resource("/app") == "app"
+
+    def test_repository_routes_are_core(self) -> None:
+        assert resolve_rate_limit_resource("/repos/foo/bar/commits") == "core"
+
+    def test_query_string_is_ignored(self) -> None:
+        assert resolve_rate_limit_resource("/search/issues?q=repo%3Afoo+bar") == "search"
+
+    def test_leading_slash_is_optional(self) -> None:
+        assert resolve_rate_limit_resource("search/issues") == "search"
+
+    def test_unknown_route_falls_back_to_core(self) -> None:
+        assert resolve_rate_limit_resource("/some/new/route") == "core"
+
+    def test_search_prefix_without_subresource_is_not_search(self) -> None:
+        """`/searchable` must not be mistaken for the search resource."""
+        assert resolve_rate_limit_resource("/searchable") == "core"
+
+
+class TestResolveUpstreamPath:
+    def test_uses_path_url_when_not_proxying(self) -> None:
+        request = Request(method="GET", url="https://api.github.com/repos/foo/bar").prepare()
+        assert resolve_upstream_path(request) == "/repos/foo/bar"
+
+    def test_uses_proxy_path_header_when_proxying(self) -> None:
+        """
+        In a cell silo the URL is rewritten to the control silo proxy before `_do_send` runs, so
+        `path_url` names the proxy endpoint. The GitHub route lives in the proxy path header.
+        """
+        request = Request(
+            method="GET",
+            url="http://controlserver/api/0/internal/integration-proxy/",
+            headers={PROXY_PATH: "search/issues"},
+        ).prepare()
+        assert resolve_upstream_path(request) == "/search/issues"
+
+    def test_proxied_path_resolves_to_the_correct_resource(self) -> None:
+        request = Request(
+            method="POST",
+            url="http://controlserver/api/0/internal/integration-proxy/",
+            headers={PROXY_PATH: "graphql"},
+        ).prepare()
+        assert resolve_rate_limit_resource(resolve_upstream_path(request)) == "graphql"
+
+    def test_empty_proxy_path_header_falls_back_to_path_url(self) -> None:
+        request = Request(
+            method="GET",
+            url="https://api.github.com/repos/foo/bar",
+            headers={PROXY_PATH: ""},
+        ).prepare()
+        assert resolve_upstream_path(request) == "/repos/foo/bar"

@@ -1,16 +1,19 @@
+from collections.abc import Mapping
+from typing import Any, TypedDict
+
 import sentry_sdk
-from django.db.models import Q
-from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_serializer
+from django.db.models import Q, QuerySet
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ListField
 
-from sentry import options, release_health
+from sentry import release_health
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ReleaseAnalyticsMixin, cell_silo_endpoint
-from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
+from sentry.api.bases.organization import FilterParamsDateNotNull, OrganizationReleasesBaseEndpoint
 from sentry.api.endpoints.organization_releases import (
     _release_suffix,
     add_environment_to_queryset,
@@ -42,7 +45,12 @@ from sentry.apidocs.response_types import (
     as_validation_errors,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG
+from sentry.issues.action_log import (
+    action_context_scope,
+)
+from sentry.issues.action_log.request import resolve_action_actor, resolve_action_source
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.models.release import Release, ReleaseStatus
@@ -56,12 +64,12 @@ class InvalidSortException(Exception):
     pass
 
 
-@extend_schema_serializer(exclude_fields=["headCommits", "status"])
 class OrganizationReleaseSerializer(ReleaseSerializer):
     headCommits = ListField(
         child=ReleaseHeadCommitSerializerDeprecated(),
         required=False,
         allow_null=False,
+        help_text="Deprecated, use `commits`. Head commits to associate with the release.",
     )
     refs = ListField(
         child=ReleaseHeadCommitSerializer(),
@@ -71,7 +79,14 @@ class OrganizationReleaseSerializer(ReleaseSerializer):
     )
 
 
-def add_status_filter_to_queryset(queryset, status_filter):
+class _ReleaseDateQueryAndOrder(TypedDict):
+    date_query_q: Q
+    order_by: list[str]
+
+
+def add_status_filter_to_queryset(
+    queryset: QuerySet[Release], status_filter: str
+) -> QuerySet[Release]:
     """
     Function that adds status filter on a queryset
     """
@@ -87,7 +102,9 @@ def add_status_filter_to_queryset(queryset, status_filter):
     return queryset
 
 
-def add_query_filter_to_queryset(queryset, query):
+def add_query_filter_to_queryset(
+    queryset: QuerySet[Release], query: str | None
+) -> QuerySet[Release]:
     """
     Function that adds a query filtering to a queryset
     """
@@ -104,7 +121,9 @@ def add_query_filter_to_queryset(queryset, query):
 
 class OrganizationReleaseDetailsPaginationMixin:
     @staticmethod
-    def __get_prev_release_date_query_q_and_order_by(release):
+    def __get_prev_release_date_query_q_and_order_by(
+        release: Release,
+    ) -> _ReleaseDateQueryAndOrder:
         """
         Method that takes a release and returns a dictionary containing a date query Q expression
         and order by columns required to fetch previous release to that passed in release on date
@@ -117,7 +136,9 @@ class OrganizationReleaseDetailsPaginationMixin:
         }
 
     @staticmethod
-    def __get_next_release_date_query_q_and_order_by(release):
+    def __get_next_release_date_query_q_and_order_by(
+        release: Release,
+    ) -> _ReleaseDateQueryAndOrder:
         """
         Method that takes a release and returns a dictionary containing a date query Q expression
         and order by columns required to fetch next release to that passed in release on date
@@ -131,13 +152,13 @@ class OrganizationReleaseDetailsPaginationMixin:
 
     @staticmethod
     def __get_release_according_to_filters_and_order_by_for_date_sort(
-        org,
-        filter_params,
-        date_query_q,
-        order_by,
-        status_filter,
-        query,
-    ):
+        org: Organization,
+        filter_params: FilterParamsDateNotNull,
+        date_query_q: Q,
+        order_by: list[str],
+        status_filter: str,
+        query: str | None,
+    ) -> QuerySet[Release]:
         """
         Helper function that executes a query on Release table based on different filters
         provided as inputs and orders that query based on `order_by` input provided
@@ -152,7 +173,7 @@ class OrganizationReleaseDetailsPaginationMixin:
             Queryset that contains one element that represents either next or previous release
             based on the inputs
         """
-        queryset = Release.objects.filter(
+        queryset: QuerySet[Release] = Release.objects.filter(
             date_query_q,
             organization=org,
             projects__id__in=filter_params["project_id"],
@@ -174,14 +195,14 @@ class OrganizationReleaseDetailsPaginationMixin:
 
     def get_adjacent_releases_to_current_release(
         self,
-        release,
-        org,
-        filter_params,
-        stats_period,
-        sort,
-        status_filter,
-        query,
-    ):
+        release: Release,
+        org: Organization,
+        filter_params: FilterParamsDateNotNull,
+        stats_period: str | None,
+        sort: str,
+        status_filter: str,
+        query: str | None,
+    ) -> dict[str, str | None]:
         """
         Method that returns the prev and next release to a current release based on different
         sort options
@@ -198,22 +219,25 @@ class OrganizationReleaseDetailsPaginationMixin:
             previous release and next release respectively
         """
         if sort == "date":
-            release_common_filters = {
-                "org": org,
-                "filter_params": filter_params,
-                "status_filter": status_filter,
-                "query": query,
-            }
-
             # Get previous queryset of current release
+            prev_date_query = self.__get_prev_release_date_query_q_and_order_by(release)
             prev_release_list = self.__get_release_according_to_filters_and_order_by_for_date_sort(
-                **release_common_filters,
-                **self.__get_prev_release_date_query_q_and_order_by(release),
+                org=org,
+                filter_params=filter_params,
+                date_query_q=prev_date_query["date_query_q"],
+                order_by=prev_date_query["order_by"],
+                status_filter=status_filter,
+                query=query,
             )
             # Get next queryset of current release
+            next_date_query = self.__get_next_release_date_query_q_and_order_by(release)
             next_release_list = self.__get_release_according_to_filters_and_order_by_for_date_sort(
-                **release_common_filters,
-                **self.__get_next_release_date_query_q_and_order_by(release),
+                org=org,
+                filter_params=filter_params,
+                date_query_q=next_date_query["date_query_q"],
+                order_by=next_date_query["order_by"],
+                status_filter=status_filter,
+                query=query,
             )
         else:
             raise InvalidSortException
@@ -243,7 +267,9 @@ class OrganizationReleaseDetailsPaginationMixin:
         }
 
     @staticmethod
-    def __get_top_of_queryset_release_version_based_on_order_by(org, proj_and_env_dict, order_by):
+    def __get_top_of_queryset_release_version_based_on_order_by(
+        org: Organization, proj_and_env_dict: Mapping[str, Any], order_by: list[str]
+    ) -> str | None:
         """
         Helper function that executes a query on Release table orders that query based on `order_by`
         input provided
@@ -265,9 +291,16 @@ class OrganizationReleaseDetailsPaginationMixin:
 
         if not release:
             return None
-        return release.version
+        version = release.version
+        return version
 
-    def get_first_and_last_releases(self, org, environment, project_id, sort):
+    def get_first_and_last_releases(
+        self,
+        org: Organization,
+        environment: list[str] | None,
+        project_id: list[int],
+        sort: str,
+    ) -> dict[str, str | None]:
         """
         Method that returns the first and last release based on `date_added`
         Inputs:-
@@ -283,7 +316,7 @@ class OrganizationReleaseDetailsPaginationMixin:
         last_release_version = None
 
         if sort == "date":
-            proj_and_env_dict = {"project_id": project_id}
+            proj_and_env_dict: dict[str, list[int] | list[str]] = {"project_id": project_id}
             if environment is not None:
                 proj_and_env_dict["environment"] = environment
 
@@ -313,6 +346,7 @@ class OrganizationReleaseDetailsEndpoint(
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
 
     @extend_schema(
         operation_id="getOrganizationRelease",
@@ -352,7 +386,7 @@ class OrganizationReleaseDetailsEndpoint(
         examples=OrganizationExamples.RELEASE_DETAILS,
     )
     def get(
-        self, request: Request, organization, version
+        self, request: Request, organization: Organization, version: str
     ) -> Response[ReleaseSerializerResponse] | Response[DetailResponse]:
         """
 
@@ -486,7 +520,7 @@ class OrganizationReleaseDetailsEndpoint(
         examples=OrganizationExamples.RELEASE_DETAILS,
     )
     def put(
-        self, request: Request, organization: Organization, version
+        self, request: Request, organization: Organization, version: str
     ) -> Response[ReleaseSerializerResponse] | Response[ValidationErrorResponse]:
         """
 
@@ -503,18 +537,21 @@ class OrganizationReleaseDetailsEndpoint(
             projects = release.projects.all()
         except Release.DoesNotExist:
             scope.set_tag("failure_reason", "Release.DoesNotExist")
+            scope.set_attribute("failure_reason", "Release.DoesNotExist")
             raise ResourceDoesNotExist
 
         if not self.has_release_permission(
             request, organization, release, require_all_projects=True
         ):
             scope.set_tag("failure_reason", "no_release_permission")
+            scope.set_attribute("failure_reason", "no_release_permission")
             raise ResourceDoesNotExist
 
         serializer = OrganizationReleaseSerializer(data=request.data)
 
         if not serializer.is_valid():
             scope.set_tag("failure_reason", "serializer_error")
+            scope.set_attribute("failure_reason", "serializer_error")
             return Response(as_validation_errors(serializer), status=400)
 
         result = serializer.validated_data
@@ -538,7 +575,10 @@ class OrganizationReleaseDetailsEndpoint(
         if commit_list:
             # TODO(dcramer): handle errors with release payloads
             try:
-                release.set_commits(commit_list)
+                with action_context_scope(
+                    resolve_action_source(request), resolve_action_actor(request)
+                ):
+                    release.set_commits(commit_list)
                 self.track_set_commits_local(
                     request,
                     organization_id=organization.id,
@@ -569,15 +609,17 @@ class OrganizationReleaseDetailsEndpoint(
         if refs:
             if not request.user.is_authenticated and not request.auth:
                 scope.set_tag("failure_reason", "user_not_authenticated")
+                scope.set_attribute("failure_reason", "user_not_authenticated")
                 return Response(
                     {"refs": ["You must use an authenticated API token to fetch refs"]},
                     status=400,
                 )
             fetch_commits = not commit_list
             try:
-                release.set_refs(refs, request.user.id, fetch=fetch_commits)
+                release.set_refs(refs, acting_user_id(request.user), fetch=fetch_commits)
             except InvalidRepository as e:
                 scope.set_tag("failure_reason", "InvalidRepository")
+                scope.set_attribute("failure_reason", "InvalidRepository")
                 return Response({"refs": [str(e)]}, status=400)
 
         if not was_released and release.date_released:
@@ -590,10 +632,7 @@ class OrganizationReleaseDetailsEndpoint(
                     datetime=release.date_released,
                 )
 
-        no_snuba_for_release_creation = options.get("releases.no_snuba_for_release_creation")
-        data: ReleaseSerializerResponse = serialize(
-            release, request.user, no_snuba_for_release_creation=no_snuba_for_release_creation
-        )
+        data: ReleaseSerializerResponse = serialize(release, request.user, skip_snuba=True)
         return Response(data)
 
     @extend_schema(
@@ -611,7 +650,7 @@ class OrganizationReleaseDetailsEndpoint(
         },
     )
     def delete(
-        self, request: Request, organization, version
+        self, request: Request, organization: Organization, version: str
     ) -> Response[None] | Response[DetailResponse]:
         """
 

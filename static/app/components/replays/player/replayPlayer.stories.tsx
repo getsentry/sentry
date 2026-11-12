@@ -1,15 +1,16 @@
 import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
-import {JumpToOffsetButtonBar} from 'sentry/components/replays/player/__stories__/jumpToOffsetButtonBar';
-import {ReplaySlugChooser} from 'sentry/components/replays/player/__stories__/replaySlugChooser';
-import {ReplayCurrentTime} from 'sentry/components/replays/player/replayCurrentTime';
-import {ReplayPlayer} from 'sentry/components/replays/player/replayPlayer';
-import {ReplayPlayerMeasurer} from 'sentry/components/replays/player/replayPlayerMeasurer';
-import {ReplayPlayPauseButton} from 'sentry/components/replays/player/replayPlayPauseButton';
 import {ReplayPreferenceDropdown} from 'sentry/components/replays/preferences/replayPreferenceDropdown';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import * as Storybook from 'sentry/stories';
 import {useReplayPlayerState} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
+
+import {JumpToOffsetButtonBar} from './__stories__/jumpToOffsetButtonBar';
+import {ReplaySlugChooser} from './__stories__/replaySlugChooser';
+import {ReplayCurrentTime} from './replayCurrentTime';
+import {ReplayPlayer} from './replayPlayer';
+import {ReplayPlayerMeasurer} from './replayPlayerMeasurer';
+import {ReplayPlayPauseButton} from './replayPlayPauseButton';
 
 export default Storybook.story('ReplayPlayer', story => {
   story('Default', () => {
@@ -23,7 +24,7 @@ export default Storybook.story('ReplayPlayer', story => {
           <DebugReplayPlayerState />
           <DebugReplayPrefsState />
           <NegativeSpaceContainer style={{height: 500}}>
-            <ReplayPlayerMeasurer measure="both">
+            <ReplayPlayerMeasurer>
               {style => <ReplayPlayer style={style} />}
             </ReplayPlayerMeasurer>
           </NegativeSpaceContainer>

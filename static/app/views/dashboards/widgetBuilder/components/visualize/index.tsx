@@ -1,70 +1,77 @@
-import {Fragment, useMemo, useState, type ReactNode} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconDelete} from '@sentry/icons/delete';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {Button} from '@sentry/scraps/button';
-import {CompactSelect, TriggerLabel} from '@sentry/scraps/compactSelect';
-import {Input} from '@sentry/scraps/input';
-import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import type {SelectValue} from '@sentry/scraps/select';
 
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
-import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
-import {defined} from 'sentry/utils/defined';
-import {
-  DEPRECATED_FIELDS,
-  generateFieldAsString,
-  parseFunction,
-  type QueryFieldValue,
-  type ValidateColumnTypes,
-} from 'sentry/utils/discover/fields';
-import {classifyTagKey, FieldValueType, prettifyTagKey} from 'sentry/utils/fields';
+import {generateFieldAsString, type QueryFieldValue} from 'sentry/utils/discover/fields';
+import {classifyTagKey, prettifyTagKey} from 'sentry/utils/fields';
 import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTags} from 'sentry/utils/useTags';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
+import {supportsWidgetTransformations} from 'sentry/views/dashboards/utils/transformations';
 import {correctDragOverlayOffset} from 'sentry/views/dashboards/widgetBuilder/components/common/draggableUtils';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {SortableVisualizeFieldWrapper} from 'sentry/views/dashboards/widgetBuilder/components/common/sortableFieldWrapper';
 import {ExploreArithmeticBuilder} from 'sentry/views/dashboards/widgetBuilder/components/exploreArithmeticBuilder';
-import {AggregateParameterField} from 'sentry/views/dashboards/widgetBuilder/components/visualize/aggregateParameterField';
-import {
-  ColumnCompactSelect,
-  SelectRow,
-} from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
-import {buildTraceItemColumnOptions} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceItemColumnOptions';
-import {MetricSelectRow} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricSelectRow';
-import {MetricsEquationVisualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize';
-import {VisualizeGhostField} from 'sentry/views/dashboards/widgetBuilder/components/visualize/visualizeGhostField';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/constants';
+import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/useWidgetBuilderContext';
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import type {TraceMetricsVisualizeModeState} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
-import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {useWidgetBuilderTraceItemConfig} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderTraceItemConfig';
 import {SESSIONS_TAGS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
-import {ArithmeticInput} from 'sentry/views/discover/table/arithmeticInput';
-import {validateColumnTypes} from 'sentry/views/discover/table/queryField';
-import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {
+  AddTransformationButton,
+  VisualizeTransformationRows,
+} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeTransformations';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
-import {canUseMetricsEquationsInDashboards} from 'sentry/views/explore/metrics/metricsFlags';
 import {MAX_METRICS_ALLOWED} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
+import {TraceItemDataset} from 'sentry/views/explore/types';
+import {
+  supportsConditionalAggregateFilter,
+  withBaseConditionalAggregateField,
+} from 'sentry/views/explore/utils/conditionalAggregate';
 
-export const NONE = 'none';
+import {MetricSelectRow} from './traceMetrics/metricSelectRow';
+import {MetricsEquationVisualize} from './traceMetrics/metricsEquationVisualize';
+import {AggregateParameterField} from './aggregateParameterField';
+import {SelectRow} from './selectRow';
+import {buildTraceItemColumnOptions} from './traceItemColumnOptions';
+import {
+  NONE,
+  _sortFn,
+  getColumnOptions,
+  getAggregateValueKey,
+  renderTag,
+  LegendAliasInput,
+  ParameterRefinements,
+  FieldBar,
+  FieldRow,
+  FieldExtras,
+  StyledArithmeticInput,
+} from './utils';
+import {VisualizeGhostField} from './visualizeGhostField';
 
 const NONE_AGGREGATE = {
   textValue: t('field'),
@@ -72,173 +79,6 @@ const NONE_AGGREGATE = {
   value: NONE,
   trailingItems: null,
 };
-
-function formatColumnOptions(
-  dataset: WidgetType,
-  options: Array<SelectValue<FieldValue>>,
-  columnFilterMethod: (
-    option: SelectValue<FieldValue>,
-    field?: QueryFieldValue
-  ) => boolean,
-  field: QueryFieldValue
-) {
-  return options
-    .filter(option => {
-      // Don't show any aggregates under the columns
-      return option.value.kind !== FieldValueKind.FUNCTION;
-    })
-    .map(option => {
-      const supported = columnFilterMethod ? columnFilterMethod(option, field) : false;
-      return {
-        value: option.value.meta.name,
-        label:
-          dataset === WidgetType.SPANS || dataset === WidgetType.LOGS
-            ? prettifyTagKey(option.value.meta.name)
-            : option.value.meta.name,
-
-        trailingItems: () => {
-          return renderTag(
-            option.value.kind,
-            option.value.meta.name,
-            option.value.kind !== FieldValueKind.FUNCTION &&
-              option.value.kind !== FieldValueKind.EQUATION
-              ? option.value.meta.dataType
-              : undefined
-          );
-        },
-        disabled: !supported,
-        tooltip: ({disabled}: {disabled: boolean}) => {
-          return disabled && field.kind === FieldValueKind.FUNCTION
-            ? tct('This field is not available for the [aggregate] function', {
-                aggregate: <strong>{field.function[0]}</strong>,
-              })
-            : undefined;
-        },
-      };
-    });
-}
-
-function _sortFn(
-  a: SelectValue<string> & {value: string; label?: string | ReactNode},
-  b: SelectValue<string> & {value: string; label?: string | ReactNode}
-) {
-  // The labels should always be strings in this component, but we'll
-  // handle the cases where they are not.
-  if (typeof a.label !== 'string' || typeof b.label !== 'string') {
-    return 0;
-  }
-  if (!defined(a.label) || !defined(b.label)) {
-    return 0;
-  }
-
-  if (a.disabled && b.disabled) {
-    return a.label.localeCompare(b.label);
-  }
-  if (a.disabled) {
-    return 1;
-  }
-  if (b.disabled) {
-    return -1;
-  }
-
-  return a.label.localeCompare(b.label);
-}
-
-export function getColumnOptions(
-  dataset: WidgetType,
-  selectedField: QueryFieldValue,
-  fieldOptions: Record<string, SelectValue<FieldValue>>,
-  columnFilterMethod: (
-    option: SelectValue<FieldValue>,
-    field?: QueryFieldValue
-  ) => boolean,
-  filterOutIncompatibleResults?: boolean
-) {
-  const fieldValues = Object.values(fieldOptions);
-
-  if (
-    selectedField.kind !== FieldValueKind.FUNCTION ||
-    dataset === WidgetType.SPANS ||
-    dataset === WidgetType.LOGS
-  ) {
-    // For SPANS/LOGS functions, check for dropdown parameters before returning
-    // generic columns. Functions like performance_score and opportunity_score
-    // define restricted dropdown options that must be respected.
-    if (
-      selectedField.kind === FieldValueKind.FUNCTION &&
-      (dataset === WidgetType.SPANS || dataset === WidgetType.LOGS)
-    ) {
-      const fnData = fieldValues.find(
-        option => option.value.meta.name === selectedField.function[0]
-      )?.value;
-      if (
-        fnData?.kind === FieldValueKind.FUNCTION &&
-        fnData.meta.parameters.length > 0 &&
-        fnData.meta.parameters[0]?.kind === 'dropdown'
-      ) {
-        return fnData.meta.parameters[0].options;
-      }
-    }
-    return formatColumnOptions(dataset, fieldValues, columnFilterMethod, selectedField)
-      .filter(option => (filterOutIncompatibleResults ? !option.disabled : true))
-      .sort(_sortFn);
-  }
-
-  const fieldData = fieldValues.find(
-    option => option.value.meta.name === selectedField.function[0]
-  )?.value;
-
-  if (
-    fieldData?.kind === FieldValueKind.FUNCTION &&
-    fieldData.meta.parameters.length > 0 &&
-    fieldData.meta.parameters[0]
-  ) {
-    const parameter = fieldData.meta.parameters[0];
-    if (parameter?.kind === 'dropdown') {
-      // Parameters for dropdowns are already formatted in the correct manner
-      // for select fields
-      return parameter.options;
-    }
-
-    if (parameter?.kind === 'column' && parameter.columnTypes) {
-      // Release Health widgets are the only widgets that actually have different
-      // columns than the aggregates accept. e.g. project will never be a valid
-      // parameter for any of the aggregates.
-      const allowedColumns =
-        dataset === WidgetType.RELEASE
-          ? fieldValues.filter(
-              option =>
-                option.value.kind === FieldValueKind.METRICS &&
-                validateColumnTypes(
-                  parameter.columnTypes as ValidateColumnTypes,
-                  option.value
-                )
-            )
-          : fieldValues;
-      return formatColumnOptions(
-        dataset,
-        allowedColumns,
-        (option, field) =>
-          columnFilterMethod(option, field) &&
-          (option.value.kind === FieldValueKind.FIELD ||
-            option.value.kind === FieldValueKind.TAG ||
-            option.value.kind === FieldValueKind.MEASUREMENT ||
-            option.value.kind === FieldValueKind.CUSTOM_MEASUREMENT ||
-            option.value.kind === FieldValueKind.METRICS ||
-            option.value.kind === FieldValueKind.BREAKDOWN) &&
-          validateColumnTypes(parameter.columnTypes as ValidateColumnTypes, option.value),
-        selectedField
-      ).sort(_sortFn);
-    }
-  }
-
-  return formatColumnOptions(
-    dataset,
-    fieldValues,
-    columnFilterMethod,
-    selectedField
-  ).sort(_sortFn);
-}
 
 function canDeleteField(
   dataset: WidgetType,
@@ -253,27 +93,18 @@ function canDeleteField(
       ).length > 1 || field.kind === FieldValueKind.FIELD
     );
   }
+  if (dataset === WidgetType.TRACEMETRICS) {
+    // Trace metric tables only support aggregates. Keep the last aggregate so
+    // a table cannot become a samples-only query.
+    return (
+      selectedFields.filter(
+        selectedField =>
+          selectedField.kind === FieldValueKind.FUNCTION ||
+          selectedField.kind === FieldValueKind.EQUATION
+      ).length > 1 || field.kind === FieldValueKind.FIELD
+    );
+  }
   return true;
-}
-
-// Prefixes a value with `function:` because we need to ensure tags
-// and functions do not overlap in value for the dropdowns
-// Conflicting values seems to cause duplicate aggregate options
-export function getAggregateValueKey(value: string | undefined) {
-  if (!value) {
-    return '';
-  }
-
-  return `function:${value}`;
-}
-
-// When we set the aggregate, we need to split out the function prefix
-export function parseAggregateFromValueKey(value: string) {
-  if (!value.startsWith('function:')) {
-    return value;
-  }
-
-  return value.split(':')[1];
 }
 
 interface VisualizeProps {
@@ -304,9 +135,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
   // Heat maps don't support equations, so the equation mode toggle and the
   // "Add Equation" affordances are hidden for them.
   const canShowTraceMetricEquations =
-    state.dataset === WidgetType.TRACEMETRICS &&
-    !isHeatmapWidget &&
-    canUseMetricsEquationsInDashboards(organization);
+    state.dataset === WidgetType.TRACEMETRICS && !isHeatmapWidget;
 
   const {isEquationMode, handleModeToggle, equationSnapshot} =
     traceMetricsVisualizeMode ?? {
@@ -320,6 +149,15 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
     hiddenKeys = HiddenTraceMetricSearchFields;
   }
   const {traceItemType, ...traceItemOptions} = useWidgetBuilderTraceItemConfig();
+  const transformationDataset =
+    supportsWidgetTransformations(state.dataset, state.displayType) &&
+    organization.features.includes('explore-interpolation-and-smoothing') &&
+    !isEquationMode &&
+    (traceItemType === TraceItemDataset.SPANS ||
+      traceItemType === TraceItemDataset.LOGS ||
+      traceItemType === TraceItemDataset.TRACEMETRICS)
+      ? traceItemType
+      : undefined;
   const {attributes: numericSpanTags} = useTraceItemDatasetAttributes(
     traceItemType,
     traceItemOptions,
@@ -481,12 +319,12 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
   // Used to extract selected aggregates and parameters from the fields
   const stringFields = fields?.map(generateFieldAsString);
 
-  const fieldErrors = error?.queries?.find(
-    (queryError: any) => queryError?.fields
-  )?.fields;
-  const aggregateErrors = error?.queries?.find(
-    (aggregateError: any) => aggregateError?.aggregates
-  )?.aggregates;
+  const fieldErrors = Array.isArray(error?.queries)
+    ? error.queries.find((queryError: any) => queryError?.fields)?.fields
+    : undefined;
+  const aggregateErrors = Array.isArray(error?.queries)
+    ? error.queries.find((aggregateError: any) => aggregateError?.aggregates)?.aggregates
+    : undefined;
 
   const canDrag =
     fields?.length &&
@@ -630,6 +468,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
       {canShowTraceMetricEquations && (
         <Container paddingBottom="md">
           <SegmentedControl
+            aria-label={t('Visualization mode')}
             value={isEquationMode ? 'equation' : 'series'}
             onChange={value => handleModeToggle(value === 'equation')}
             size="sm"
@@ -665,6 +504,13 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                     dispatch({
                       type: updateAction,
                       payload: arrayMove(fields ?? [], activeIndex, overIndex),
+                      ...(usesYAxisState && {
+                        sourceIndices: arrayMove(
+                          (fields ?? []).map((_, index) => index),
+                          activeIndex,
+                          overIndex
+                        ),
+                      }),
                     });
                   }
                 }
@@ -744,10 +590,16 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                       fields[index]!.kind === FieldValueKind.FUNCTION &&
                       FieldValueKind.FUNCTION in fields[index]!
                     ) {
+                      const fieldForMatch =
+                        state.dataset === WidgetType.SPANS
+                          ? withBaseConditionalAggregateField(fields[index]!)
+                          : fields[index]!;
                       matchingAggregate = aggregates.find(
                         option =>
                           option.value.meta.name ===
-                          parseFunction(stringFields?.[index] ?? '')?.name
+                          (fieldForMatch.kind === FieldValueKind.FUNCTION
+                            ? fieldForMatch.function[0]
+                            : undefined)
                       );
                     }
 
@@ -767,6 +619,27 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                         matchingAggregate?.value.meta.parameters.length !== 0) ||
                       fields[index]!.kind === FieldValueKind.FIELD;
 
+                    const fieldTransformationDataset =
+                      field.kind === FieldValueKind.FIELD
+                        ? undefined
+                        : transformationDataset;
+                    const baseField = withBaseConditionalAggregateField(field);
+                    const hasSeriesFilter =
+                      state.dataset === WidgetType.SPANS &&
+                      baseField.kind === FieldValueKind.FUNCTION &&
+                      supportsConditionalAggregateFilter(baseField.function[0]);
+                    const fieldTransformations =
+                      state.transformations?.[0]?.[index] ?? [];
+                    const setFieldTransformations = (
+                      transformations: readonly string[]
+                    ) => {
+                      dispatch({
+                        type: BuilderStateAction.SET_AGGREGATE_TRANSFORMATIONS,
+                        payload: {index, transformations},
+                      });
+                      setError?.({...error, queries: []});
+                    };
+
                     return (
                       <SortableVisualizeFieldWrapper
                         dragId={draggableFieldIds[index] ?? ''}
@@ -774,290 +647,353 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                         key={draggableFieldIds[index]}
                       >
                         {activeId !== null && index === Number(activeId) ? null : (
-                          <FieldRow>
-                            {fields.length > 1 &&
-                              (state.displayType === DisplayType.BIG_NUMBER ||
-                                state.displayType === DisplayType.CATEGORICAL_BAR ||
-                                state.displayType === DisplayType.HEATMAP) && (
-                                <RadioLineItem
-                                  index={index}
-                                  role="radio"
-                                  aria-label="aggregate-selector"
-                                >
-                                  <Radio
-                                    checked={index === state.selectedAggregate}
-                                    onChange={() => {
-                                      dispatch({
-                                        type: BuilderStateAction.SET_SELECTED_AGGREGATE,
-                                        payload: index,
-                                      });
-                                    }}
-                                    onClick={() => {
-                                      trackAnalytics(
-                                        'dashboards_views.widget_builder.change',
-                                        {
-                                          builder_version: WidgetBuilderVersion.SLIDEOUT,
-                                          field: 'visualize.selectAggregate',
-                                          from: source,
-                                          new_widget: !isEditing,
-                                          value: '',
-                                          widget_type: state.dataset ?? '',
-                                          organization,
-                                        }
-                                      );
-                                    }}
-                                    aria-label={'field' + index}
-                                  />
-                                </RadioLineItem>
-                              )}
-                            <FieldBar data-testid="field-bar">
-                              {field.kind === FieldValueKind.EQUATION ? (
-                                state.dataset === WidgetType.SPANS ? (
-                                  <ExploreArithmeticBuilder
-                                    equation={field.field}
-                                    onUpdate={value => {
-                                      dispatch({
-                                        type: updateAction,
-                                        payload: fields.map((_field, i) =>
-                                          i === index ? {..._field, field: value} : _field
-                                        ),
-                                      });
-                                      setError?.({...error, queries: []});
-                                      trackAnalytics(
-                                        'dashboards_views.widget_builder.change',
-                                        {
-                                          builder_version: WidgetBuilderVersion.SLIDEOUT,
-                                          field: 'visualize.updateEquation',
-                                          from: source,
-                                          new_widget: !isEditing,
-                                          value: '',
-                                          widget_type: state.dataset ?? '',
-                                          organization,
-                                        }
-                                      );
-                                    }}
-                                  />
-                                ) : (
-                                  <StyledArithmeticInput
-                                    name="arithmetic"
-                                    key="parameter:text"
-                                    type="text"
-                                    value={field.field}
-                                    disabled={disableTransactionWidget}
-                                    onUpdate={value => {
-                                      dispatch({
-                                        type: updateAction,
-                                        payload: fields.map((_field, i) =>
-                                          i === index ? {..._field, field: value} : _field
-                                        ),
-                                      });
-                                      setError?.({...error, queries: []});
-                                      trackAnalytics(
-                                        'dashboards_views.widget_builder.change',
-                                        {
-                                          builder_version: WidgetBuilderVersion.SLIDEOUT,
-                                          field: 'visualize.updateEquation',
-                                          from: source,
-                                          new_widget: !isEditing,
-                                          value: '',
-                                          widget_type: state.dataset ?? '',
-                                          organization,
-                                        }
-                                      );
-                                    }}
-                                    options={fields}
-                                    placeholder={t('Equation')}
-                                    aria-label={t('Equation')}
-                                  />
-                                )
-                              ) : (
-                                <Fragment>
-                                  {state.dataset === WidgetType.TRACEMETRICS ? (
-                                    <MetricSelectRow
-                                      // Heat maps always count() the metric, so
-                                      // the aggregate function is locked (only the
-                                      // metric is selectable), mirroring Explore.
-                                      disabled={
-                                        disableTransactionWidget || isHeatmapWidget
-                                      }
-                                      field={field}
-                                      index={index}
+                          <Stack gap="md" flex="1" minWidth="0">
+                            <FieldRow>
+                              {fields.length > 1 &&
+                                (state.displayType === DisplayType.BIG_NUMBER ||
+                                  state.displayType === DisplayType.CATEGORICAL_BAR ||
+                                  state.displayType === DisplayType.HEATMAP) && (
+                                  <RadioLineItem
+                                    index={index}
+                                    role="radio"
+                                    aria-label="aggregate-selector"
+                                  >
+                                    <Radio
+                                      checked={index === state.selectedAggregate}
+                                      onChange={() => {
+                                        dispatch({
+                                          type: BuilderStateAction.SET_SELECTED_AGGREGATE,
+                                          payload: index,
+                                        });
+                                      }}
+                                      onClick={() => {
+                                        trackAnalytics(
+                                          'dashboards_views.widget_builder.change',
+                                          {
+                                            builder_version:
+                                              WidgetBuilderVersion.SLIDEOUT,
+                                            field: 'visualize.selectAggregate',
+                                            from: source,
+                                            new_widget: !isEditing,
+                                            value: '',
+                                            widget_type: state.dataset ?? '',
+                                            organization,
+                                          }
+                                        );
+                                      }}
+                                      aria-label={'field' + index}
+                                    />
+                                  </RadioLineItem>
+                                )}
+                              <FieldBar data-testid="field-bar">
+                                {field.kind === FieldValueKind.EQUATION ? (
+                                  state.dataset === WidgetType.SPANS ? (
+                                    <ExploreArithmeticBuilder
+                                      equation={field.field}
+                                      onUpdate={value => {
+                                        dispatch({
+                                          type: updateAction,
+                                          payload: fields.map((_field, i) =>
+                                            i === index
+                                              ? {..._field, field: value}
+                                              : _field
+                                          ),
+                                        });
+                                        setError?.({...error, queries: []});
+                                        trackAnalytics(
+                                          'dashboards_views.widget_builder.change',
+                                          {
+                                            builder_version:
+                                              WidgetBuilderVersion.SLIDEOUT,
+                                            field: 'visualize.updateEquation',
+                                            from: source,
+                                            new_widget: !isEditing,
+                                            value: '',
+                                            widget_type: state.dataset ?? '',
+                                            organization,
+                                          }
+                                        );
+                                      }}
                                     />
                                   ) : (
-                                    <SelectRow
-                                      field={field}
-                                      index={index}
-                                      hasColumnParameter={hasColumnParameter}
-                                      columnOptions={columnOptions}
-                                      aggregateOptions={aggregateOptions}
-                                      stringFields={stringFields}
-                                      error={error}
-                                      setError={setError}
-                                      fields={fields}
-                                      source={source}
-                                      isEditing={isEditing}
-                                      fieldOptions={fieldOptions}
-                                      columnFilterMethod={columnFilterMethod}
-                                      aggregates={aggregates}
+                                    <StyledArithmeticInput
+                                      name="arithmetic"
+                                      key="parameter:text"
+                                      type="text"
+                                      value={field.field}
                                       disabled={disableTransactionWidget}
+                                      onUpdate={value => {
+                                        dispatch({
+                                          type: updateAction,
+                                          payload: fields.map((_field, i) =>
+                                            i === index
+                                              ? {..._field, field: value}
+                                              : _field
+                                          ),
+                                        });
+                                        setError?.({...error, queries: []});
+                                        trackAnalytics(
+                                          'dashboards_views.widget_builder.change',
+                                          {
+                                            builder_version:
+                                              WidgetBuilderVersion.SLIDEOUT,
+                                            field: 'visualize.updateEquation',
+                                            from: source,
+                                            new_widget: !isEditing,
+                                            value: '',
+                                            widget_type: state.dataset ?? '',
+                                            organization,
+                                          }
+                                        );
+                                      }}
+                                      options={fields}
+                                      placeholder={t('Equation')}
+                                      aria-label={t('Equation')}
                                     />
-                                  )}
-                                  {field.kind === FieldValueKind.FUNCTION &&
-                                    parameterRefinements.length > 0 && (
-                                      <ParameterRefinements>
-                                        {parameterRefinements.map(
-                                          (parameter: any, parameterIndex: any) => {
-                                            // The current value is displaced by 2 because the first two parameters
-                                            // are the aggregate name and the column selection
-                                            const currentValue =
-                                              field.function[parameterIndex + 2] || '';
-                                            const key = `${field.function.join('_')}-${parameterIndex}`;
-                                            return (
-                                              <AggregateParameterField
-                                                key={key}
-                                                parameter={parameter}
-                                                fieldValue={field}
-                                                currentValue={currentValue}
-                                                onChange={value => {
-                                                  const newFields = cloneDeep(fields);
-                                                  if (
-                                                    newFields[index]!.kind !==
-                                                    FieldValueKind.FUNCTION
-                                                  ) {
-                                                    return;
-                                                  }
-                                                  newFields[index]!.function[
-                                                    parameterIndex + 2
-                                                  ] = value;
-                                                  dispatch({
-                                                    type: updateAction,
-                                                    payload: newFields,
-                                                  });
-                                                  setError?.({...error, queries: []});
-                                                }}
-                                              />
-                                            );
-                                          }
-                                        )}
-                                      </ParameterRefinements>
-                                    )}
-                                  {isApdexOrUserMisery &&
-                                    field.kind === FieldValueKind.FUNCTION && (
-                                      <AggregateParameterField
-                                        parameter={
-                                          matchingAggregate?.value.meta.parameters[0]
+                                  )
+                                ) : (
+                                  <Fragment>
+                                    {state.dataset === WidgetType.TRACEMETRICS ? (
+                                      <MetricSelectRow
+                                        // Heat maps always count() the metric, so
+                                        // the aggregate function is locked (only the
+                                        // metric is selectable), mirroring Explore.
+                                        disabled={
+                                          disableTransactionWidget || isHeatmapWidget
                                         }
-                                        fieldValue={field}
-                                        currentValue={field.function[1]}
-                                        onChange={value => {
-                                          const newFields = cloneDeep(fields);
-                                          if (
-                                            newFields[index]!.kind !==
-                                            FieldValueKind.FUNCTION
-                                          ) {
-                                            return;
-                                          }
-                                          newFields[index]!.function[1] = value;
-                                          dispatch({
-                                            type: updateAction,
-                                            payload: newFields,
-                                          });
-                                          setError?.({...error, queries: []});
-                                        }}
+                                        field={field}
+                                        fieldSelector={autoSelectFirstColumn =>
+                                          field.kind === FieldValueKind.FIELD ? (
+                                            <SelectRow
+                                              autoSelectFirstColumn={
+                                                autoSelectFirstColumn
+                                              }
+                                              showAggregateSelector={false}
+                                              field={field}
+                                              index={index}
+                                              hasColumnParameter={hasColumnParameter}
+                                              columnOptions={columnOptions}
+                                              aggregateOptions={aggregateOptions}
+                                              stringFields={stringFields}
+                                              error={error}
+                                              setError={setError}
+                                              fields={fields}
+                                              source={source}
+                                              isEditing={isEditing}
+                                              fieldOptions={fieldOptions}
+                                              columnFilterMethod={columnFilterMethod}
+                                              aggregates={aggregates}
+                                              disabled={disableTransactionWidget}
+                                            />
+                                          ) : undefined
+                                        }
+                                        index={index}
+                                      />
+                                    ) : (
+                                      <SelectRow
+                                        field={field}
+                                        index={index}
+                                        hasColumnParameter={hasColumnParameter}
+                                        columnOptions={columnOptions}
+                                        aggregateOptions={aggregateOptions}
+                                        stringFields={stringFields}
+                                        error={error}
+                                        setError={setError}
+                                        fields={fields}
+                                        source={source}
+                                        isEditing={isEditing}
+                                        fieldOptions={fieldOptions}
+                                        columnFilterMethod={columnFilterMethod}
+                                        aggregates={aggregates}
+                                        disabled={disableTransactionWidget}
                                       />
                                     )}
-                                </Fragment>
-                              )}
-                            </FieldBar>
-                            <FieldExtras
-                              compact={
-                                isTimeSeriesWidget ||
-                                isBigNumberWidget ||
-                                isCategoricalBarWidget ||
-                                isHeatmapWidget
-                              }
-                            >
-                              {canHaveAlias && (
-                                <LegendAliasInput
-                                  name="alias"
-                                  placeholder={t('Add Alias')}
-                                  value={field.alias ?? ''}
-                                  disabled={disableTransactionWidget}
-                                  onChange={e => {
-                                    const newFields = cloneDeep(fields);
-                                    newFields[index]!.alias = e.target.value;
-                                    dispatch(
-                                      {
+                                    {field.kind === FieldValueKind.FUNCTION &&
+                                      parameterRefinements.length > 0 && (
+                                        <ParameterRefinements>
+                                          {parameterRefinements.map(
+                                            (parameter: any, parameterIndex: any) => {
+                                              // The current value is displaced by 2 because the first two parameters
+                                              // are the aggregate name and the column selection
+                                              const currentValue =
+                                                field.function[parameterIndex + 2] || '';
+                                              const key = `${field.function.join('_')}-${parameterIndex}`;
+                                              return (
+                                                <AggregateParameterField
+                                                  key={key}
+                                                  parameter={parameter}
+                                                  fieldValue={field}
+                                                  currentValue={currentValue}
+                                                  onChange={value => {
+                                                    const newFields = cloneDeep(fields);
+                                                    if (
+                                                      newFields[index]!.kind !==
+                                                      FieldValueKind.FUNCTION
+                                                    ) {
+                                                      return;
+                                                    }
+                                                    newFields[index]!.function[
+                                                      parameterIndex + 2
+                                                    ] = value;
+                                                    dispatch({
+                                                      type: updateAction,
+                                                      payload: newFields,
+                                                    });
+                                                    setError?.({...error, queries: []});
+                                                  }}
+                                                />
+                                              );
+                                            }
+                                          )}
+                                        </ParameterRefinements>
+                                      )}
+                                    {isApdexOrUserMisery &&
+                                      field.kind === FieldValueKind.FUNCTION && (
+                                        <AggregateParameterField
+                                          parameter={
+                                            matchingAggregate?.value.meta.parameters[0]
+                                          }
+                                          fieldValue={field}
+                                          currentValue={field.function[1]}
+                                          onChange={value => {
+                                            const newFields = cloneDeep(fields);
+                                            if (
+                                              newFields[index]!.kind !==
+                                              FieldValueKind.FUNCTION
+                                            ) {
+                                              return;
+                                            }
+                                            newFields[index]!.function[1] = value;
+                                            dispatch({
+                                              type: updateAction,
+                                              payload: newFields,
+                                            });
+                                            setError?.({...error, queries: []});
+                                          }}
+                                        />
+                                      )}
+                                  </Fragment>
+                                )}
+                              </FieldBar>
+                              <FieldExtras
+                                compact={
+                                  isTimeSeriesWidget ||
+                                  isBigNumberWidget ||
+                                  isCategoricalBarWidget ||
+                                  isHeatmapWidget
+                                }
+                              >
+                                {canHaveAlias && (
+                                  <LegendAliasInput
+                                    name="alias"
+                                    placeholder={t('Add Alias')}
+                                    value={field.alias ?? ''}
+                                    disabled={disableTransactionWidget}
+                                    onChange={e => {
+                                      const newFields = cloneDeep(fields);
+                                      newFields[index]!.alias = e.target.value;
+                                      dispatch(
+                                        {
+                                          type: updateAction,
+                                          payload: newFields,
+                                        },
+                                        {debounceUrl: true}
+                                      );
+                                    }}
+                                    onBlur={e => {
+                                      const newFields = cloneDeep(fields);
+                                      newFields[index]!.alias = e.target.value;
+                                      dispatch({
                                         type: updateAction,
                                         payload: newFields,
-                                      },
-                                      {updateUrl: false}
-                                    );
-                                  }}
-                                  onBlur={e => {
-                                    const newFields = cloneDeep(fields);
-                                    newFields[index]!.alias = e.target.value;
-                                    dispatch(
-                                      {
-                                        type: updateAction,
-                                        payload: newFields,
-                                      },
-                                      {updateUrl: true}
-                                    );
-                                    trackAnalytics(
-                                      'dashboards_views.widget_builder.change',
-                                      {
-                                        builder_version: WidgetBuilderVersion.SLIDEOUT,
-                                        field: 'visualize.legendAlias',
-                                        from: source,
-                                        new_widget: !isEditing,
-                                        value: '',
-                                        widget_type: state.dataset ?? '',
-                                        organization,
-                                      }
-                                    );
-                                  }}
-                                />
-                              )}
-                              {(!isBigNumberWidget ||
-                                datasetConfig.enableEquations ||
-                                (isBigNumberWidget && fields.length > 1)) && (
-                                <Button
-                                  variant="transparent"
-                                  icon={<IconDelete />}
-                                  size="zero"
-                                  disabled={
-                                    fields.length <= 1 ||
-                                    !canDelete ||
-                                    isOnlyFieldOrAggregate
-                                  }
-                                  onClick={() => {
-                                    dispatch({
-                                      type: BuilderStateAction.DELETE_AGGREGATE,
-                                      payload: index,
-                                    });
+                                      });
+                                      trackAnalytics(
+                                        'dashboards_views.widget_builder.change',
+                                        {
+                                          builder_version: WidgetBuilderVersion.SLIDEOUT,
+                                          field: 'visualize.legendAlias',
+                                          from: source,
+                                          new_widget: !isEditing,
+                                          value: '',
+                                          widget_type: state.dataset ?? '',
+                                          organization,
+                                        }
+                                      );
+                                    }}
+                                  />
+                                )}
+                                <Flex
+                                  direction={hasSeriesFilter ? 'column' : 'row'}
+                                  gap="md"
+                                  alignSelf="start"
+                                >
+                                  {fieldTransformationDataset && (
+                                    <Flex align="center" height={theme.form.md.height}>
+                                      <AddTransformationButton
+                                        iconOnly
+                                        analyticsSource="dashboards"
+                                        traceItemDataset={fieldTransformationDataset}
+                                        transformations={fieldTransformations}
+                                        onChange={setFieldTransformations}
+                                      />
+                                    </Flex>
+                                  )}
+                                  {(!isBigNumberWidget ||
+                                    datasetConfig.enableEquations ||
+                                    (isBigNumberWidget && fields.length > 1)) && (
+                                    <Flex align="center" height={theme.form.md.height}>
+                                      <Button
+                                        variant="transparent"
+                                        icon={<IconDelete />}
+                                        size="zero"
+                                        disabled={
+                                          fields.length <= 1 ||
+                                          !canDelete ||
+                                          isOnlyFieldOrAggregate
+                                        }
+                                        onClick={() => {
+                                          dispatch({
+                                            type: BuilderStateAction.DELETE_AGGREGATE,
+                                            payload: index,
+                                          });
 
-                                    trackAnalytics(
-                                      'dashboards_views.widget_builder.change',
-                                      {
-                                        builder_version: WidgetBuilderVersion.SLIDEOUT,
-                                        field:
-                                          field.kind === FieldValueKind.EQUATION
-                                            ? 'visualize.deleteEquation'
-                                            : 'visualize.deleteField',
-                                        from: source,
-                                        new_widget: !isEditing,
-                                        value: '',
-                                        widget_type: state.dataset ?? '',
-                                        organization,
-                                      }
-                                    );
-                                  }}
-                                  aria-label={t('Remove field')}
+                                          trackAnalytics(
+                                            'dashboards_views.widget_builder.change',
+                                            {
+                                              builder_version:
+                                                WidgetBuilderVersion.SLIDEOUT,
+                                              field:
+                                                field.kind === FieldValueKind.EQUATION
+                                                  ? 'visualize.deleteEquation'
+                                                  : 'visualize.deleteField',
+                                              from: source,
+                                              new_widget: !isEditing,
+                                              value: '',
+                                              widget_type: state.dataset ?? '',
+                                              organization,
+                                            }
+                                          );
+                                        }}
+                                        aria-label={t('Remove field')}
+                                      />
+                                    </Flex>
+                                  )}
+                                </Flex>
+                              </FieldExtras>
+                            </FieldRow>
+                            {fieldTransformationDataset &&
+                              fieldTransformations.length > 0 && (
+                                <VisualizeTransformationRows
+                                  traceItemDataset={fieldTransformationDataset}
+                                  analyticsSource="dashboards"
+                                  transformations={fieldTransformations}
+                                  layout="inline"
+                                  size="sm"
+                                  gap="md"
+                                  onChange={setFieldTransformations}
                                 />
                               )}
-                            </FieldExtras>
-                          </FieldRow>
+                          </Stack>
                         )}
                       </SortableVisualizeFieldWrapper>
                     );
@@ -1083,7 +1019,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
             </DndContext>
           </StyledFieldGroup>
           {canAddFields && (
-            <AddButtons>
+            <Flex display="inline-flex" gap="lg">
               <AddButton
                 variant="link"
                 disabled={disableTransactionWidget || hasMaxMetrics}
@@ -1151,7 +1087,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                     {t('+ Add Equation')}
                   </AddButton>
                 )}
-            </AddButtons>
+            </Flex>
           )}
         </Fragment>
       )}
@@ -1159,103 +1095,8 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
   );
 }
 
-function renderTag(kind: FieldValueKind, label: string, dataType?: string) {
-  return (
-    <TypeBadge
-      label={label}
-      valueKind={kind}
-      valueType={dataType as FieldValueType}
-      deprecatedFields={DEPRECATED_FIELDS}
-    />
-  );
-}
-
-export const AggregateCompactSelect = styled(CompactSelect)<{
-  hasColumnParameter: boolean;
-}>`
-  ${p =>
-    p.hasColumnParameter
-      ? css`
-          width: fit-content;
-          left: 1px;
-
-          ${TriggerLabel} {
-            overflow: visible;
-          }
-        `
-      : css`
-          width: 100%;
-        `}
-
-  > button {
-    width: 100%;
-  }
-`;
-
-export const LegendAliasInput = styled(Input)``;
-
-export const ParameterRefinements = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${p => p.theme.space.md};
-
-  > * {
-    flex: 1;
-  }
-`;
-
-export const FieldBar = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: ${p => p.theme.space.md};
-  flex: 3;
-  min-width: 0;
-`;
-
-export const PrimarySelectRow = styled('div')<{
-  hasColumnParameter: boolean;
-}>`
-  display: flex;
-  width: 100%;
-  min-width: 0;
-
-  & ${ColumnCompactSelect} button {
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
-  }
-  & ${AggregateCompactSelect} button {
-    ${p =>
-      p.hasColumnParameter &&
-      css`
-        border-top-right-radius: 0;
-        border-bottom-right-radius: 0;
-      `}
-  }
-`;
-
-export function FieldRow(props: FlexProps) {
-  return <Flex gap="md" width="100%" minWidth="0" {...props} />;
-}
-
-export const FieldExtras = styled('div')<{compact: boolean}>`
-  display: flex;
-  flex-direction: row;
-  gap: ${p => p.theme.space.md};
-  flex: ${p => (p.compact ? '0' : '1')};
-  align-items: center;
-`;
-
 const AddButton = styled(Button)`
   margin-top: ${p => p.theme.space.md};
-`;
-
-const AddButtons = styled('div')`
-  display: inline-flex;
-  gap: ${p => p.theme.space.lg};
-`;
-
-export const StyledArithmeticInput = styled(ArithmeticInput)`
-  width: 100%;
 `;
 
 const StyledFieldGroup = styled(FieldGroup)`

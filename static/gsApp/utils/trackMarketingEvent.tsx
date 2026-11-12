@@ -2,7 +2,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 
 export function trackMarketingEvent(
   event_type: string,
-  options?: {event_label?: string; plan?: string}
+  options?: {event_label?: string}
 ) {
   // quit early if analytics is disabled
   if (!ConfigStore.get('enableAnalytics')) {

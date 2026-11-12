@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Mapping
+from typing import Any, cast
 
 from django.core.exceptions import PermissionDenied
 from requests import Response
@@ -16,7 +17,7 @@ from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
 
 
-def get_user_info(access_token):
+def get_user_info(access_token: str) -> dict[str, object]:
     with http.build_session() as session:
         resp = session.get(
             "https://app.vssps.visualstudio.com/_apis/profile/profiles/me?api-version=1.0",
@@ -24,7 +25,8 @@ def get_user_info(access_token):
         )
         resp.raise_for_status()
 
-        user = resp.json()
+        payload = resp.json()
+        user: dict[str, object] = payload
         user["uuid"] = user["id"]
 
         resp = session.get(
@@ -41,22 +43,29 @@ def get_user_info(access_token):
         # profiles/me API above). To get the current user's descriptor, we call the "connection data"
         # REST API (this assumes we are authenticating with an access token issued to the user).
         # We will also see descriptors returned for every user in the "Get users" (Graph) REST API.
-        user["id"] = resp.json()["authenticatedUser"]["subjectDescriptor"]
+        connection_data = resp.json()
+        user["id"] = connection_data["authenticatedUser"]["subjectDescriptor"]
 
     return user
 
 
 class VSTSIdentityProvider(OAuth2Provider):
+    """Legacy VSTS OAuth identity provider (pre-Azure AD v2.0).
+
+    Still used for token refresh on old identities. New logins and
+    integrations should use VSTSNewIdentityProvider.
+    """
+
     key = IntegrationProviderSlug.AZURE_DEVOPS.value
     name = "Azure DevOps"
 
     oauth_access_token_url = "https://app.vssps.visualstudio.com/oauth2/token"
     oauth_authorize_url = "https://app.vssps.visualstudio.com/oauth2/authorize"
 
-    def get_oauth_client_id(self):
+    def get_oauth_client_id(self) -> str:
         return options.get("vsts.client-id")
 
-    def get_oauth_client_secret(self):
+    def get_oauth_client_secret(self) -> str:
         return options.get("vsts.client-secret")
 
     def get_refresh_token_url(self) -> str:
@@ -76,7 +85,7 @@ class VSTSIdentityProvider(OAuth2Provider):
             ),
         ]
 
-    def get_refresh_token_headers(self):
+    def get_refresh_token_headers(self) -> dict[str, str]:
         return {"Content-Type": "application/x-www-form-urlencoded", "Content-Length": "1654"}
 
     def get_refresh_token_params(
@@ -110,12 +119,12 @@ class VSTSIdentityProvider(OAuth2Provider):
             "redirect_uri": absolute_uri(oauth_redirect_url),
         }
 
-    def build_identity(self, data):
-        data = data["data"]
-        access_token = data.get("access_token")
+    def build_identity(self, data: Mapping[str, object]) -> Mapping[str, object]:
+        identity_data = cast(Mapping[str, object], data["data"])
+        access_token = identity_data.get("access_token")
         if not access_token:
             raise PermissionDenied()
-        user = get_user_info(access_token)
+        user = get_user_info(cast(str, access_token))
 
         return {
             "type": IntegrationProviderSlug.AZURE_DEVOPS.value,
@@ -123,7 +132,7 @@ class VSTSIdentityProvider(OAuth2Provider):
             "email": user["emailAddress"],
             "name": user["displayName"],
             "scopes": sorted(self.oauth_scopes),
-            "data": self.get_oauth_data(data),
+            "data": self.get_oauth_data(identity_data),
         }
 
 
@@ -143,11 +152,13 @@ class VSTSOAuth2CallbackView(OAuth2CallbackView):
         return safe_urlopen(self.access_token_url, data=data, headers=headers)
 
 
-# TODO(ecosystem): Make this the default provider
-# We created this new flow in order to quickly update the DevOps integration to use
-# the new Azure AD OAuth2 flow.
-# This is a temporary solution until we can fully migrate to the new flow once customers are migrated
 class VSTSNewIdentityProvider(OAuth2Provider):
+    """Active VSTS identity provider using Azure AD v2.0 OAuth.
+
+    Handles all new logins and integrations. Old identities created under
+    VSTSIdentityProvider are migrated via MigratingIdentityId.
+    """
+
     key = "vsts_new"
     name = "Azure DevOps"
 
@@ -155,16 +166,16 @@ class VSTSNewIdentityProvider(OAuth2Provider):
     oauth_authorize_url = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
 
     # Using a new option
-    def get_oauth_client_id(self):
+    def get_oauth_client_id(self) -> str:
         return options.get("vsts_new.client-id")
 
-    def get_oauth_client_secret(self):
+    def get_oauth_client_secret(self) -> str:
         return options.get("vsts_new.client-secret")
 
     def get_refresh_token_url(self) -> str:
         return self.oauth_access_token_url
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView[IdentityPipeline]]:
         return [
             # made a new view to override `get_authorize_params` for the new params needed for the oauth
             VSTSOAuth2LoginView(
@@ -179,7 +190,7 @@ class VSTSNewIdentityProvider(OAuth2Provider):
             ),
         ]
 
-    def get_refresh_token_headers(self):
+    def get_refresh_token_headers(self) -> dict[str, str]:
         return {"Content-Type": "application/x-www-form-urlencoded", "Content-Length": "1654"}
 
     def get_refresh_token_params(
@@ -196,12 +207,12 @@ class VSTSNewIdentityProvider(OAuth2Provider):
             "refresh_token": refresh_token,
         }
 
-    def build_identity(self, data):
-        data = data["data"]
-        access_token = data.get("access_token")
+    def build_identity(self, data: Mapping[str, object]) -> Mapping[str, object]:
+        identity_data = cast(Mapping[str, object], data["data"])
+        access_token = identity_data.get("access_token")
         if not access_token:
             raise PermissionDenied()
-        user = get_user_info(access_token)
+        user = get_user_info(cast(str, access_token))
 
         return {
             "type": IntegrationProviderSlug.AZURE_DEVOPS.value,
@@ -209,12 +220,12 @@ class VSTSNewIdentityProvider(OAuth2Provider):
             "email": user["emailAddress"],
             "name": user["displayName"],
             "scopes": sorted(self.oauth_scopes),
-            "data": self.get_oauth_data(data),
+            "data": self.get_oauth_data(identity_data),
         }
 
 
 class VSTSOAuth2LoginView(OAuth2LoginView):
-    def get_authorize_params(self, state, redirect_uri):
+    def get_authorize_params(self, state: str, redirect_uri: str) -> dict[str, str | int | None]:
         params = {
             "client_id": self.client_id,
             "response_type": "code",

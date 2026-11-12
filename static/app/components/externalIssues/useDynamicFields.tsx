@@ -1,11 +1,9 @@
 import {useCallback, useEffect, useState} from 'react';
 
-import {
-  getDynamicFields,
-  type ExternalIssueAction,
-} from 'sentry/components/externalIssues/utils';
 import type {FieldValue} from 'sentry/components/forms/types';
 import type {IntegrationIssueConfig} from 'sentry/types/integrations';
+
+import {getDynamicFields, type ExternalIssueAction} from './utils';
 
 interface UseDynamicFieldsProps {
   action: ExternalIssueAction;
@@ -25,6 +23,7 @@ export function useDynamicFields({action, integrationDetails}: UseDynamicFieldsP
 
   // If we ever refetch the action or config, replace the state with the response
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setDynamicFieldValues(getDynamicFields({action, integrationDetails}));
   }, [action, integrationDetails]);
   return {dynamicFieldValues, setDynamicFieldValue, setDynamicFieldValues};

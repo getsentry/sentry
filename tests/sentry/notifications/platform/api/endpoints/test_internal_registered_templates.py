@@ -1,4 +1,5 @@
 from typing import Any
+from unittest import mock
 
 from sentry.notifications.platform.api.endpoints.internal_registered_templates import (
     serialize_slack_preview,
@@ -18,8 +19,35 @@ class InternalRegisteredTemplatesEndpointTest(APITestCase):
         response = self.get_response()
         assert response.status_code == 401
 
+    def test_non_superuser(self) -> None:
+        user = self.create_user(is_staff=False, is_superuser=False)
+        self.login_as(user)
+
+        with mock.patch(
+            "sentry.notifications.platform.api.endpoints.internal_registered_templates.serialize_template",
+            wraps=serialize_template,
+        ) as serialize:
+            response = self.get_response()
+
+        assert response.status_code == 403
+        serialize.assert_not_called()
+
+    def test_staff_without_superuser(self) -> None:
+        user = self.create_user(is_staff=True, is_superuser=False)
+        self.login_as(user, staff=True)
+
+        response = self.get_response()
+        assert response.status_code == 403
+
+    def test_superuser_without_elevation(self) -> None:
+        user = self.create_user(is_staff=False, is_superuser=True)
+        self.login_as(user, superuser=False)
+
+        response = self.get_response()
+        assert response.status_code == 403
+
     def test_get_all_registered_templates(self) -> None:
-        self.login_as(self.user)
+        self.login_as(self.user, superuser=True)
         response = self.get_response()
         assert response.status_code == 200
         for source, template_cls in template_registry.registrations.items():
@@ -33,8 +61,8 @@ class InternalRegisteredTemplatesEndpointTest(APITestCase):
             )
 
     def test_valid_template_serialization(self) -> None:
-        self.login_as(self.user)
-        response = self.get_response()
+        self.login_as(self.user, superuser=True)
+        response = self.get_success_response()
         for templates_by_category in response.data.values():
             for template in templates_by_category:
                 assert "source" in template
@@ -50,8 +78,8 @@ class InternalRegisteredTemplatesEndpointTest(APITestCase):
                 assert "slack" in template["previews"]
 
     def test_email_preview(self) -> None:
-        self.login_as(self.user)
-        response = self.get_response()
+        self.login_as(self.user, superuser=True)
+        response = self.get_success_response()
         for templates_by_category in response.data.values():
             for template in templates_by_category:
                 assert "email" in template["previews"]
@@ -60,8 +88,8 @@ class InternalRegisteredTemplatesEndpointTest(APITestCase):
                 assert isinstance(template["previews"]["email"]["html_content"], str)
 
     def test_discord_preview(self) -> None:
-        self.login_as(self.user)
-        response = self.get_response()
+        self.login_as(self.user, superuser=True)
+        response = self.get_success_response()
         for templates_by_category in response.data.values():
             for template in templates_by_category:
                 assert "discord" in template["previews"]
@@ -74,6 +102,17 @@ class InternalRegisteredTemplatesEndpointTest(APITestCase):
                     )
                 assert template["previews"]["discord"]["content"] == ""
                 assert len(template["previews"]["discord"]["embeds"]) == 1
+
+    def test_hidden_template_is_excluded(self) -> None:
+        self.login_as(self.user, superuser=True)
+
+        with mock.patch.object(MockNotificationTemplate, "hide_from_debugger", True):
+            response = self.get_success_response()
+
+        sources = {
+            template["source"] for templates in response.data.values() for template in templates
+        }
+        assert MockNotificationTemplate.example_data.source not in sources
 
 
 def find_block_by_type(blocks: list[dict[str, Any]], block_type: str) -> dict[str, Any] | None:

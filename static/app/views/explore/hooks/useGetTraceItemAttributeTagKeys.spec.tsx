@@ -2,8 +2,9 @@ import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {FieldKind} from 'sentry/utils/fields';
-import {useGetTraceItemAttributeTagKeys} from 'sentry/views/explore/hooks/useGetTraceItemAttributeTagKeys';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {useGetTraceItemAttributeTagKeys} from './useGetTraceItemAttributeTagKeys';
 
 function mockTraceItemAttributeKeysByType({
   body,
@@ -14,6 +15,7 @@ function mockTraceItemAttributeKeysByType({
     key: string;
     kind: FieldKind;
     name: string;
+    attributeSource?: {source_type: 'sentry' | 'user'};
   }>;
   itemType?: TraceItemDataset;
 }) {
@@ -222,6 +224,31 @@ describe('useGetTraceItemAttributeTagKeys', () => {
 
     expect(tags).toHaveLength(1);
     expect(tags).toMatchObject([{key: 'log.field', name: 'log.field'}]);
+  });
+
+  it('keeps user-sent attributes whose name collides with a hidden key', async () => {
+    mockTraceItemAttributeKeysByType({
+      body: [
+        {
+          attributeType: 'string',
+          key: 'organization.id',
+          name: 'organization.id',
+          kind: FieldKind.TAG,
+          attributeSource: {source_type: 'user'},
+        },
+      ],
+    });
+
+    const {result} = renderHookWithProviders(useGetTraceItemAttributeTagKeys, {
+      initialProps: {
+        itemType: TraceItemDataset.LOGS,
+        hiddenKeys: ['organization.id'],
+      },
+    });
+
+    const tags = await result.current('search-query');
+
+    expect(tags).toMatchObject([{key: 'organization.id', name: 'organization.id'}]);
   });
 
   it('appends extraTags that are not in fetched results', async () => {

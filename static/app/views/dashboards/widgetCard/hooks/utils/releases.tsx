@@ -4,16 +4,16 @@ import {t} from 'sentry/locale';
 import type {DateString, PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
+import {
+  requiresCustomReleaseSorting,
+  resolveDerivedStatusFields,
+} from 'sentry/views/dashboards/datasetConfig/utils/releaseQueryFields';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {
   DerivedStatusFields,
   DISABLED_SORT,
   FIELD_TO_METRICS_EXPRESSION,
 } from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
-import {
-  requiresCustomReleaseSorting,
-  resolveDerivedStatusFields,
-} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 
 const METRICS_BACKED_SESSIONS_START_DATE = new Date('2022-07-12');
 

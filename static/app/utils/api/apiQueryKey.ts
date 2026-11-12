@@ -1,8 +1,8 @@
 import {z} from 'zod';
 
-import type {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import type {getApiUrl} from './getApiUrl';
 
-export type RequestMethod = 'DELETE' | 'GET' | 'POST' | 'PUT';
+export type RequestMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT';
 
 type ApiUrl = ReturnType<typeof getApiUrl>;
 
@@ -24,28 +24,25 @@ const markerSchema = z.object({infinite: z.boolean()});
 
 const queryKeySchema = z
   .tuple([apiUrlSchema, optionsSchema, markerSchema])
+  .rest(z.unknown())
   .transform(([url, options, marker]) => ({
     url,
     options,
     isInfinite: marker.infinite,
   }));
 
-export type CanonicalApiQueryKey = readonly [
+export type ApiQueryKey = readonly [
   ApiUrl,
   QueryKeyEndpointOptions,
   {infinite: false},
+  ...unknown[],
 ];
 
-// Loose input forms accepted at the useApiQuery / setApiQueryData / getApiQueryData
-// boundary for backward compatibility. Normalized to the canonical 3-slot form via
-// `normalizeQueryKey` before the key reaches the cache.
-type LooseApiQueryKey = readonly [ApiUrl] | readonly [ApiUrl, QueryKeyEndpointOptions];
-
-export type ApiQueryKey = LooseApiQueryKey | CanonicalApiQueryKey;
 export type InfiniteApiQueryKey = readonly [
   ApiUrl,
   QueryKeyEndpointOptions,
   {infinite: true},
+  ...unknown[],
 ];
 
 type ParsedQueryKey = z.infer<typeof queryKeySchema>;
@@ -53,8 +50,7 @@ type ParsedQueryKey = z.infer<typeof queryKeySchema>;
 export function parseQueryKey(
   queryKey: ApiQueryKey | InfiniteApiQueryKey
 ): ParsedQueryKey {
-  const normalized = queryKey.length === 3 ? queryKey : normalizeQueryKey(queryKey);
-  return queryKeySchema.parse(normalized);
+  return queryKeySchema.parse(queryKey);
 }
 
 const safeParseCache = new WeakMap<readonly unknown[], ParsedQueryKey | undefined>();
@@ -69,12 +65,4 @@ export function safeParseQueryKey(
   const result = queryKeySchema.safeParse(queryKey).data;
   safeParseCache.set(queryKey, result);
   return result;
-}
-
-export function normalizeQueryKey(key: ApiQueryKey): CanonicalApiQueryKey {
-  if (key.length === 3) {
-    return key;
-  }
-  const [url, options] = key;
-  return [url, options ?? {}, {infinite: false}] as const;
 }

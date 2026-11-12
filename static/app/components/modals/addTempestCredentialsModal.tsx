@@ -3,15 +3,17 @@ import {z} from 'zod';
 
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {useFetchTempestCredentials} from 'sentry/views/settings/project/tempest/hooks/useFetchTempestCredentials';
 
 interface Props extends ModalRenderProps {
@@ -41,7 +43,10 @@ export default function AddCredentialsModal({
   const mutation = useMutation({
     mutationFn: (data: FormValues) =>
       fetchMutation({
-        url: `/projects/${organization.slug}/${project.slug}/tempest-credentials/`,
+        url: getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/tempest-credentials/',
+          {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug}}
+        ),
         method: 'POST',
         data,
       }),
@@ -55,7 +60,7 @@ export default function AddCredentialsModal({
       mutation
         .mutateAsync(value)
         .then(() => {
-          addSuccessMessage(t('Credentials submitted successfully'));
+          toast.success(t('Credentials submitted successfully'));
           invalidateCredentialsCache();
           trackAnalytics('tempest.credentials.added', {
             organization,
@@ -66,9 +71,12 @@ export default function AddCredentialsModal({
         })
         .catch(error => {
           if (error instanceof RequestError) {
-            setFieldErrors(formApi, error);
+            setFieldErrors(
+              formApi,
+              requestErrorToFieldErrors(error, formApi.state.values)
+            );
           } else {
-            addErrorMessage(t('Unable to add credentials'));
+            toast.error(t('Unable to add credentials'));
           }
         }),
   });

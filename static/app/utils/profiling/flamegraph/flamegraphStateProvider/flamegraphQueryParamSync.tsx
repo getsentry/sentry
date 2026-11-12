@@ -1,13 +1,12 @@
 import {useEffect} from 'react';
 import type {Query} from 'history';
+import {parseAsInteger, parseAsString, useQueryStates} from 'nuqs';
 import type * as qs from 'query-string';
 
 import type {DeepPartial} from 'sentry/types/utils';
 import {useFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 
 import type {FlamegraphState} from './flamegraphContext';
 import {DEFAULT_FLAMEGRAPH_STATE} from './flamegraphContext';
@@ -126,24 +125,22 @@ export function decodeFlamegraphStateFromQueryParams(
   return decoded;
 }
 
+const flamegraphQueryParsers = {
+  colorCoding: parseAsString,
+  sorting: parseAsString,
+  view: parseAsString,
+  query: parseAsString,
+  frameName: parseAsString,
+  framePackage: parseAsString,
+  fov: parseAsString,
+  tid: parseAsInteger,
+};
+
 function encodeFlamegraphStateToQueryParams(state: FlamegraphState) {
-  const highlightFrameToEncode: Record<string, string> = {};
-
-  // For some frames we do not have a package (or name) if that happens we want to omit
-  // the field entirely from the query string. This is to avoid default values being used
-  // as qs.parse will initialize empty values to "" which can differ from the respective
-  // frame values which are undefined.
-  if (state.search.highlightFrames?.name) {
-    highlightFrameToEncode.frameName = state.search.highlightFrames.name;
-  }
-  if (state.search.highlightFrames?.package) {
-    highlightFrameToEncode.framePackage = state.search.highlightFrames.package;
-  }
-
   const highlightFrame = state.search.highlightFrames
     ? {
-        frameName: state.search.highlightFrames?.name,
-        framePackage: state.search.highlightFrames?.package,
+        frameName: state.search.highlightFrames.name ?? null,
+        framePackage: state.search.highlightFrames.package ?? null,
       }
     : {};
 
@@ -153,42 +150,33 @@ function encodeFlamegraphStateToQueryParams(state: FlamegraphState) {
     view: state.preferences.view,
     query: state.search.query,
     ...highlightFrame,
-    ...(state.position.view.isEmpty()
-      ? {fov: undefined}
-      : {fov: Rect.encode(state.position.view)}),
+    fov: state.position.view.isEmpty() ? null : Rect.encode(state.position.view),
     ...(typeof state.profiles.threadId === 'number'
       ? {tid: state.profiles.threadId}
       : {}),
   };
 }
 
-function maybeOmitHighlightedFrame(query: Query, state: FlamegraphState) {
+function maybeOmitHighlightedFrame(
+  query: {frameName: string | null; framePackage: string | null},
+  state: FlamegraphState
+) {
   if (!state.search.highlightFrames && query.frameName && query.framePackage) {
-    const {frameName: _, framePackage: __, ...rest} = query;
-    return rest;
+    return {frameName: null, framePackage: null};
   }
-  return query;
+  return {};
 }
 
 export function FlamegraphStateQueryParamSync() {
-  const location = useLocation();
-  const navigate = useNavigate();
   const [state] = useFlamegraphState();
+  const [, setQueryParams] = useQueryStates(flamegraphQueryParsers);
 
   useEffect(() => {
-    navigate(
-      {
-        ...location,
-        query: {
-          ...maybeOmitHighlightedFrame(location.query, state),
-          ...encodeFlamegraphStateToQueryParams(state),
-        },
-      },
-      {replace: true}
-    );
-    // We only want to sync the query params when the state changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state]);
+    setQueryParams(query => ({
+      ...maybeOmitHighlightedFrame(query, state),
+      ...encodeFlamegraphStateToQueryParams(state),
+    }));
+  }, [state, setQueryParams]);
 
   return null;
 }

@@ -1,4 +1,5 @@
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
+
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -7,7 +8,6 @@ import type {
   PrebuiltDashboard,
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/backendOverview/settings';
 import {BASE_FILTER_STRING} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/settings';
 import {
   WIDGET_COLUMN_LABELS,
@@ -21,6 +21,8 @@ import {
 } from 'sentry/views/insights/pages/frontend/settings';
 import {OVERVIEW_PAGE_ALLOWED_OPS as MOBILE_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/mobile/settings';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {DASHBOARD_DESCRIPTION, DASHBOARD_TITLE} from './settings';
 
 const disallowedOps = [
   ...new Set([
@@ -54,11 +56,11 @@ export const BACKEND_OVERVIEW_FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           name: 'Requests',
           fields: [
             `count(${SpanFields.SPAN_DURATION})`,
-            `equation|(count_if(${SpanFields.TRACE_STATUS},equals,internal_error) + count_if(${SpanFields.TRACE_STATUS},equals,error)) / count(${SpanFields.SPAN_DURATION})`,
+            `equation|(count_if(\`${SpanFields.TRACE_STATUS}:internal_error\`) + count_if(\`${SpanFields.TRACE_STATUS}:error\`)) / count(${SpanFields.SPAN_DURATION})`,
           ],
           aggregates: [
             `count(${SpanFields.SPAN_DURATION})`,
-            `equation|(count_if(${SpanFields.TRACE_STATUS},equals,internal_error) + count_if(${SpanFields.TRACE_STATUS},equals,error)) / count(${SpanFields.SPAN_DURATION})`,
+            `equation|(count_if(\`${SpanFields.TRACE_STATUS}:internal_error\`) + count_if(\`${SpanFields.TRACE_STATUS}:error\`)) / count(${SpanFields.SPAN_DURATION})`,
           ],
           columns: [],
           fieldAliases: [],
@@ -130,11 +132,11 @@ export const BACKEND_OVERVIEW_SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           name: '',
           fields: [
             `count(${SpanFields.SPAN_DURATION})`,
-            `equation|(count_if(${SpanFields.TRACE_STATUS},equals,internal_error) + count_if(${SpanFields.TRACE_STATUS},equals,error)) / count(${SpanFields.SPAN_DURATION})`,
+            `equation|(count_if(\`${SpanFields.TRACE_STATUS}:internal_error\`) + count_if(\`${SpanFields.TRACE_STATUS}:error\`)) / count(${SpanFields.SPAN_DURATION})`,
           ],
           aggregates: [
             `count(${SpanFields.SPAN_DURATION})`,
-            `equation|(count_if(${SpanFields.TRACE_STATUS},equals,internal_error) + count_if(${SpanFields.TRACE_STATUS},equals,error)) / count(${SpanFields.SPAN_DURATION})`,
+            `equation|(count_if(\`${SpanFields.TRACE_STATUS}:internal_error\`) + count_if(\`${SpanFields.TRACE_STATUS}:error\`)) / count(${SpanFields.SPAN_DURATION})`,
           ],
           columns: [],
           fieldAliases: [],
@@ -185,15 +187,15 @@ export const BACKEND_OVERVIEW_SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
         {
           name: '',
           fields: [
-            `equation|count_if(${SpanFields.CACHE_HIT},equals,false) / count(${SpanFields.SPAN_DURATION})`,
+            `equation|count_if(\`${SpanFields.CACHE_HIT}:false\`) / count(${SpanFields.SPAN_DURATION})`,
           ],
           aggregates: [
-            `equation|count_if(${SpanFields.CACHE_HIT},equals,false) / count(${SpanFields.SPAN_DURATION})`,
+            `equation|count_if(\`${SpanFields.CACHE_HIT}:false\`) / count(${SpanFields.SPAN_DURATION})`,
           ],
           columns: [SpanFields.TRANSACTION],
           fieldAliases: [''],
           conditions: `${SpanFields.SPAN_OP}:[cache.get,cache.get_item]`,
-          orderby: `-equation|count_if(${SpanFields.CACHE_HIT},equals,false) / count(${SpanFields.SPAN_DURATION})`,
+          orderby: `-equation|count_if(\`${SpanFields.CACHE_HIT}:false\`) / count(${SpanFields.SPAN_DURATION})`,
         },
       ],
       limit: 3,
@@ -276,6 +278,7 @@ export const BACKEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
   title: DASHBOARD_TITLE,
+  description: DASHBOARD_DESCRIPTION,
   filters: {
     globalFilter: [
       {

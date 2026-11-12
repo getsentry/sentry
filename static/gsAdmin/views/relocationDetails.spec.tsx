@@ -8,11 +8,8 @@ import {
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import * as useNavigateModule from 'sentry/utils/useNavigate';
 
 import {RelocationDetails} from 'admin/views/relocationDetails';
-
-jest.mock('sentry/actionCreators/indicator');
 
 describe('Relocation Details', () => {
   const in_progress_relocation_uuid = '9f14e990-dd8d-4f45-b759-a8982692e530';
@@ -517,9 +514,6 @@ describe('Relocation Details', () => {
   });
 
   it('retries failed relocation', async () => {
-    const navigate = jest.fn();
-    jest.spyOn(useNavigateModule, 'useNavigate').mockReturnValue(navigate);
-
     const old_uuid = paused_relocation_uuid;
     const old_model = {
       ...get_paused_relocation_model(),
@@ -532,7 +526,7 @@ describe('Relocation Details', () => {
       body: old_model,
     });
 
-    render(<RelocationDetails />, {
+    const {router} = render(<RelocationDetails />, {
       initialRouterConfig: {
         location: {
           pathname: `/admin/relocations/test/${old_uuid}/`,
@@ -568,6 +562,6 @@ describe('Relocation Details', () => {
     await userEvent.click(screen.getByText('Retry'));
     await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
     await waitForModalToHide();
-    expect(navigate).toHaveBeenCalledWith(`/_admin/relocations/test/${new_uuid}/`);
+    expect(router.location.pathname).toBe(`/_admin/relocations/test/${new_uuid}/`);
   });
 });

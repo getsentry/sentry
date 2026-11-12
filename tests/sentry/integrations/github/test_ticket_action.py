@@ -1,21 +1,27 @@
+from collections.abc import Iterator
+from typing import Any
 from unittest.mock import patch
 
 import pytest
 import responses
-from django.urls import reverse
 from rest_framework.test import APITestCase as BaseAPITestCase
 
 from sentry.integrations.github import client
 from sentry.integrations.github.actions.create_ticket import GitHubCreateTicketAction
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.services.integration.serial import serialize_integration
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
+from sentry.issues.action_log.types import CreateExternalIssueAction
 from sentry.models.activity import Activity
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.integrations import get_installation_of_type
+from sentry.testutils.helpers.notifications import create_notification_action_context
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -26,7 +32,7 @@ pytestmark = [requires_snuba]
 
 class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
     rule_cls = GitHubCreateTicketAction
-    repo = "foo/bar"
+    repo_name = "foo/bar"
     assignee = "sentry_user"
     labels = ["bug", "invalid"]
     issue_num = 1
@@ -58,23 +64,24 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         )
 
     @pytest.fixture(autouse=True)
-    def stub_get_jwt(self):
+    def stub_get_jwt(self) -> Iterator[None]:
         with patch.object(client, "get_jwt", return_value="jwt_token_1"):
             yield
 
-    def trigger(self, event, rule_object):
+    def trigger(self, event: GroupEvent, rule_object: Rule) -> Any:
         action = rule_object.data.get("actions", ())[0]
-        action_inst = self.get_rule(data=action, rule=rule_object)
+        context = create_notification_action_context(rule_object)
+        action_inst = self.get_rule(data=action, context=context)
         results = list(action_inst.after(event=event))
         assert len(results) == 1
 
-        rule_future = RuleFuture(rule=rule_object, kwargs=results[0].kwargs)
+        rule_future = RuleFuture(context=context, kwargs=results[0].kwargs)
         return results[0].callback(event, futures=[rule_future])
 
-    def get_key(self, event: GroupEvent):
-        return ExternalIssue.objects.get_linked_issues(event, self.integration).values_list(
-            "key", flat=True
-        )[0]
+    def get_key(self, event: GroupEvent) -> Any:
+        return ExternalIssue.objects.get_linked_issues(
+            event, serialize_integration(self.integration)
+        ).values_list("key", flat=True)[0]
 
     @responses.activate()
     def test_ticket_rules(self) -> None:
@@ -84,7 +91,7 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
         with assume_test_silo_mode(SiloMode.CELL):
             Repository.objects.create(
-                name=self.repo,
+                name=self.repo_name,
                 provider="integrations:github",
                 organization_id=self.organization.id,
                 integration_id=self.integration.id,
@@ -114,46 +121,43 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         )
 
         # Create a new Rule
-        response = self.client.post(
-            reverse(
-                "sentry-api-0-project-rules",
-                kwargs={
-                    "organization_id_or_slug": self.organization.slug,
-                    "project_id_or_slug": self.project.slug,
-                },
-            ),
-            format="json",
-            data={
-                "name": "hello world",
-                "owner": self.user.id,
-                "environment": None,
-                "actionMatch": "any",
-                "frequency": 5,
-                "actions": [
-                    {
-                        "id": "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
-                        "integration": self.integration.id,
-                        "dynamic_form_fields": [{"random": "garbage"}],
-                        "repo": self.repo,
-                        "assignee": self.assignee,
-                        "labels": self.labels,
-                    }
-                ],
-                "conditions": [],
-            },
+        rule_object = self.create_project_rule(
+            project=self.project,
+            name="hello world",
+            action_match="any",
+            frequency=5,
+            action_data=[
+                {
+                    "id": "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
+                    "integration": self.integration.id,
+                    "dynamic_form_fields": [{"random": "garbage"}],
+                    "repo": self.repo_name,
+                    "assignee": self.assignee,
+                    "labels": self.labels,
+                }
+            ],
         )
-        assert response.status_code == 200
 
-        # Get the rule from DB
-        rule_object = Rule.objects.get(id=response.data["id"])
         event = self.get_group_event()
 
         # Trigger its `after`
-        self.trigger(event, rule_object)
+        with (
+            action_context_scope(ActionSource.SYSTEM),
+            capture_action_log() as action_log,
+        ):
+            self.trigger(event, rule_object)
+
+        action_log.assert_logged(
+            CreateExternalIssueAction,
+            group_id=event.group_id,
+            source=ActionSource.SYSTEM,
+            actor=SYSTEM_ACTOR,
+            provider="github",
+        )
 
         # assert ticket created in DB
         key = self.get_key(event)
-        assert key == f"{self.repo}#{self.issue_num}"
+        assert key == f"{self.repo_name}#{self.issue_num}"
         external_issue = ExternalIssue.objects.get(key=key)
         external_issue_count = len(ExternalIssue.objects.filter(key=key))
         assert external_issue_count == 1
@@ -173,7 +177,7 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
         # assert ticket created in GitHub
         data = self.installation.get_issue(
-            key, data={"repo": self.repo, "externalIssue": self.issue_num}
+            key, data={"repo": self.repo_name, "externalIssue": self.issue_num}
         )
         assert sample_description in data["description"]
 
@@ -188,39 +192,3 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             ).count()
             == 1
         )
-
-    @responses.activate()
-    def test_fails_validation(self) -> None:
-        """
-        Test that the absence of dynamic_form_fields in the action fails validation
-        """
-        # Create a new Rule
-        response = self.client.post(
-            reverse(
-                "sentry-api-0-project-rules",
-                kwargs={
-                    "organization_id_or_slug": self.organization.slug,
-                    "project_id_or_slug": self.project.slug,
-                },
-            ),
-            format="json",
-            data={
-                "name": "hello world",
-                "owner": self.user.id,
-                "environment": None,
-                "actionMatch": "any",
-                "frequency": 5,
-                "actions": [
-                    {
-                        "id": "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
-                        "integration": self.integration.id,
-                        "repo": self.repo,
-                        "assignee": self.assignee,
-                        "labels": self.labels,
-                    }
-                ],
-                "conditions": [],
-            },
-        )
-        assert response.status_code == 400
-        assert response.data["actions"][0] == "Must configure issue link settings."

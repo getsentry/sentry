@@ -1,3 +1,6 @@
+import pytest
+
+from django.db.migrations.state import StateApps
 from sentry.discover.models import (
     DiscoverSavedQuery,
     DiscoverSavedQueryProject,
@@ -7,11 +10,15 @@ from sentry.explore.models import ExploreSavedQueryDataset
 from sentry.testutils.cases import SnubaTestCase, TestMigrations
 
 
+@pytest.mark.skip(
+    reason="Test fixtures build rows with the current model, which fails once a model "
+    "gains a field newer than migrate_from's schema"
+)
 class MigrateDiscoverQueriesToExploreQueriesSelfHostedTest(TestMigrations, SnubaTestCase):
     migrate_from = "1126_transactions_to_spans_widgets_self_hosted"
     migrate_to = "1127_discover_to_explore_queries_self_hosted"
 
-    def setup_before_migration(self, apps):
+    def setup_before_migration(self, apps: StateApps) -> None:
         self.org = self.create_organization(name="Test org", slug="test-org")
         self.project = self.create_project(organization=self.org)
         self.project_ids = [self.project.id]
@@ -53,7 +60,7 @@ class MigrateDiscoverQueriesToExploreQueriesSelfHostedTest(TestMigrations, Snuba
             dataset=DiscoverSavedQueryTypes.ERROR_EVENTS,
         )
 
-    def test(self):
+    def test(self) -> None:
         self.discover_query_with_fields_to_translate.refresh_from_db()
         self.discover_query_without_projects.refresh_from_db()
         self.discover_query_dropped_fields.refresh_from_db()

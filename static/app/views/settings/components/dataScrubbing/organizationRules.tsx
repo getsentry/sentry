@@ -1,17 +1,17 @@
 import {useCallback, useReducer, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {PanelAlert} from 'sentry/components/panels/panelAlert';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
 
+import {convertRelayPiiConfig} from './convertRelayPiiConfig';
 import {Rules} from './rules';
 
 type Props = {
@@ -28,7 +28,7 @@ export function OrganizationRules({organization}: Props) {
       try {
         return convertRelayPiiConfig(organization.relayPiiConfig);
       } catch {
-        addErrorMessage(t('Unable to load data scrubbing rules'));
+        toast.error(t('Unable to load data scrubbing rules'));
         return null;
       }
     },

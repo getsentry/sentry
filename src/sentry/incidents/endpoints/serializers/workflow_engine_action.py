@@ -4,12 +4,12 @@ from typing import Any, Sequence
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer
-from sentry.incidents.endpoints.serializers.alert_rule_trigger_action import (
+from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
+from sentry.incidents.endpoints.serializers.workflow_engine_action_utils import (
     get_identifier_from_action,
     get_input_channel_id,
     human_desc,
 )
-from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.notifications.models.notificationaction import ActionService, ActionTarget
 from sentry.notifications.notification_action.group_type_notification_registry.handlers.metric_alert_registry_handler import (
     MetricAlertRegistryHandler,
@@ -57,7 +57,7 @@ class WorkflowEngineActionSerializer(Serializer[dict[str, Any]]):
         type_value: int | None = ActionService.get_value(obj.type)
         target = attrs.get("target")
 
-        target_type: int = obj.config.get("target_type")
+        target_type: int | None = obj.config.get("target_type")
         target_identifier: str | None = obj.config.get("target_identifier")
         target_display: str | None = obj.config.get("target_display")
 
@@ -75,7 +75,11 @@ class WorkflowEngineActionSerializer(Serializer[dict[str, Any]]):
             ),
             "alertRuleTriggerId": str(alert_rule_trigger_id),
             "type": obj.type,
-            "targetType": ACTION_TARGET_TYPE_TO_STRING[ActionTarget(target_type)],
+            "targetType": (
+                ACTION_TARGET_TYPE_TO_STRING[ActionTarget(target_type)]
+                if target_type is not None
+                else None
+            ),
             "targetIdentifier": get_identifier_from_action(
                 type_value, str(target_identifier), target_display
             ),

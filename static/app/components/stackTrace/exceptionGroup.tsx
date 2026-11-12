@@ -2,9 +2,10 @@ import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {AnsiText} from 'sentry/components/ansiText';
 import {t, tn} from 'sentry/locale';
 import type {ExceptionValue} from 'sentry/types/event';
 import {defined} from 'sentry/utils/defined';
@@ -59,9 +60,19 @@ export function useHiddenExceptions(values: ExceptionValue[]) {
 
 function getExceptionName(exception: ExceptionValue) {
   if (exception.type) {
-    return exception.value ? `${exception.type}: ${exception.value}` : exception.type;
+    return exception.value ? (
+      <span>
+        {exception.type}: <AnsiText>{exception.value}</AnsiText>
+      </span>
+    ) : (
+      exception.type
+    );
   }
-  return exception.value ?? t('Exception');
+  return defined(exception.value) ? (
+    <AnsiText>{exception.value}</AnsiText>
+  ) : (
+    t('Exception')
+  );
 }
 
 interface ToggleRelatedExceptionsButtonProps {
@@ -143,7 +154,7 @@ export function RelatedExceptionsTree({
   }
 
   return (
-    <Flex direction="column" gap="xs" data-test-id="related-exceptions-tree">
+    <Stack gap="xs" data-test-id="related-exceptions-tree">
       <Text variant="muted" size="sm" bold>
         {t('Related Exceptions')}
       </Text>
@@ -172,7 +183,7 @@ export function RelatedExceptionsTree({
           />
         ))}
       </TreePre>
-    </Flex>
+    </Stack>
   );
 }
 

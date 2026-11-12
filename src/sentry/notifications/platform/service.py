@@ -21,13 +21,23 @@ from sentry.notifications.platform.provider import (
 )
 from sentry.notifications.platform.registry import provider_registry, template_registry
 from sentry.notifications.platform.rollout import NotificationRolloutService
-from sentry.notifications.platform.target import deserialize_target, serialize_target
+from sentry.notifications.platform.target import (
+    IntegrationNotificationTarget,
+    deserialize_target,
+    serialize_target,
+)
 from sentry.notifications.platform.threading import (
     ThreadContext,
     ThreadingConfig,
     ThreadingLookup,
     ThreadingOptions,
     ThreadingService,
+)
+from sentry.notifications.platform.tracking import (
+    NotificationLink,
+    NotificationLinkDecorator,
+    NotificationTrackingContext,
+    record_sent,
 )
 from sentry.notifications.platform.types import (
     NotificationData,
@@ -62,7 +72,7 @@ class NotificationKillswitchedError(NotificationServiceError):
 
 
 class NotificationService[T: NotificationData]:
-    def __init__(self, *, data: T):
+    def __init__(self, *, data: T) -> None:
         self.data: Final[T] = data
 
     @staticmethod
@@ -119,7 +129,7 @@ class NotificationService[T: NotificationData]:
             # Update the lifecycle with the notification category now that we know it
             event_lifecycle.notification_category = template.category
             try:
-                renderable = NotificationService.render_template(
+                renderable, links = NotificationService.render_template(
                     data=self.data, template=template, provider=provider
                 )
             except Exception as e:
@@ -136,6 +146,17 @@ class NotificationService[T: NotificationData]:
                 )
 
             # Step 4: Send the notification
+            tracking_context = NotificationTrackingContext(
+                source=self.data.source,
+                provider=target.provider_key,
+                category=template.category,
+                notification_uuid=self.data.notification_uuid,
+                organization_id=self.data.organization_id,
+            )
+            tracked = {
+                *links,
+                *provider.track_actions(renderable=renderable, context=tracking_context),
+            }
             result = provider.send(
                 target=target, renderable=renderable, thread_context=thread_context
             )
@@ -146,6 +167,8 @@ class NotificationService[T: NotificationData]:
                         lifecycle.record_halt(halt_reason=result.exception, create_issue=False)
                     case SendFailureStatus.FAILURE:
                         lifecycle.record_failure(failure_reason=result.exception, create_issue=True)
+            else:
+                record_sent(tracking_context, links=tracked)
 
             # Step 5: Store threading result
             if threading_options is not None:
@@ -169,10 +192,20 @@ class NotificationService[T: NotificationData]:
         data: T,
         template: NotificationTemplate[T],
         provider: type[NotificationProvider[RenderableT]],
-    ) -> RenderableT:
+    ) -> tuple[RenderableT, set[NotificationLink]]:
+        """
+        Returns the renderable and the kinds of tracked link it contains.
+        """
+        link_decorator = NotificationLinkDecorator(data=data, provider=provider.key)
         rendered_template = template.render(data=data)
-        renderer = provider.get_renderer(data=data, category=template.category)
-        return renderer.render(data=data, rendered_template=rendered_template)
+        renderer = provider.get_renderer(data=data)
+        if renderer is provider.default_renderer:
+            # We aren't using a custom renderer (which decorates its own links), so we need to decorate the default renderer.
+            rendered_template = link_decorator.decorate_rendered_template(rendered_template)
+        renderable = renderer.render(
+            data=data, rendered_template=rendered_template, link_decorator=link_decorator
+        )
+        return renderable, link_decorator.links
 
     @staticmethod
     def _resolve_thread_context(
@@ -287,6 +320,13 @@ class NotificationService[T: NotificationData]:
                     target_id=target.resource_id,
                     thread_identifier=result.provider_message_id,
                     provider_data=None,
+                    object_type=threading_options.thread_key.object_type,
+                    object_id=threading_options.thread_key.object_id,
+                    integration_id=(
+                        target.integration_id
+                        if isinstance(target, IntegrationNotificationTarget)
+                        else None
+                    ),
                 )
                 ThreadingService.store_new_thread(
                     threading_config=threading_config,
@@ -367,7 +407,7 @@ def notify_target_async(
         template = template_cls()
         lifecycle_metric.notification_category = template.category
         try:
-            renderable = NotificationService.render_template(
+            renderable, links = NotificationService.render_template(
                 data=notification_data, template=template, provider=provider
             )
         except Exception as e:
@@ -384,6 +424,17 @@ def notify_target_async(
             )
 
         # Step 5: Send the notification
+        tracking_context = NotificationTrackingContext(
+            source=notification_data.source,
+            provider=target.provider_key,
+            category=template.category,
+            notification_uuid=notification_data.notification_uuid,
+            organization_id=notification_data.organization_id,
+        )
+        tracked = {
+            *links,
+            *provider.track_actions(renderable=renderable, context=tracking_context),
+        }
         result = provider.send(target=target, renderable=renderable, thread_context=thread_context)
 
         if isinstance(result, SendFailure):
@@ -392,6 +443,8 @@ def notify_target_async(
                     lifecycle.record_halt(halt_reason=result.exception, create_issue=False)
                 case SendFailureStatus.FAILURE:
                     lifecycle.record_failure(failure_reason=result.exception, create_issue=True)
+        else:
+            record_sent(tracking_context, links=tracked)
 
         # Step 6: Store threading result
         if options is not None:

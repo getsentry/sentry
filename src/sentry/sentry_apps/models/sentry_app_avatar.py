@@ -25,7 +25,7 @@ class SentryAppAvatarTypes(Enum):
     UPLOAD = 1
 
     @classmethod
-    def get_choices(cls):
+    def get_choices(cls) -> tuple[tuple[int, str], ...]:
         return tuple((_.value, _.name.lower()) for _ in SentryAppAvatarTypes)
 
 
@@ -67,9 +67,9 @@ class SentryAppAvatar(ControlAvatarBase):
 
     url_path = "sentry-app-avatar"
 
-    def get_cache_key(self, size):
+    def get_cache_key(self, size: int) -> str:
         color_identifier = "color" if self.color else "simple"
         return f"sentry_app_avatar:{self.sentry_app_id}:{color_identifier}:{size}"
 
-    def get_avatar_photo_type(self):
+    def get_avatar_photo_type(self) -> SentryAppAvatarPhotoTypes:
         return SentryAppAvatarPhotoTypes.LOGO if self.color else SentryAppAvatarPhotoTypes.ICON

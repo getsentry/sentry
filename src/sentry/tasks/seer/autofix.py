@@ -1,8 +1,8 @@
 import logging
-from collections.abc import Mapping
-from typing import Any
+from typing import cast
 
 import sentry_sdk
+from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 from taskbroker_client.retry import Retry
 from taskbroker_client.state import current_task
@@ -12,28 +12,18 @@ from sentry.analytics.events.autofix_automation_events import AiAutofixAutomatio
 from sentry.constants import (
     ObjectStatus,
 )
-from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.seer.agent.client_models import SeerRunState
-from sentry.seer.autofix.autofix_agent import (
-    AutofixStep,
-    Feedback,
-    PrIterationNoPullRequestException,
-    PrIterationNotEnabledException,
-    get_autofix_run_state,
-    parse_feedback,
-    trigger_autofix_agent,
-)
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
-    AutofixReferrer,
     SeerAutomationSource,
 )
-from sentry.seer.autofix.feedback_queue import (
-    QueuedAutofixFeedback,
-    pop_queued_autofix_feedback,
+from sentry.seer.autofix.exceptions import IssueSummaryUnavailable
+from sentry.seer.autofix.issue_summary import (
+    get_and_update_group_fixability_score,
+    get_or_generate_issue_summary,
+    run_automation,
 )
 from sentry.seer.autofix.utils import (
     SEAT_BASED_STOPPING_POINTS,
@@ -45,14 +35,24 @@ from sentry.seer.autofix.utils import (
     get_seer_seat_based_tier_cache_key,
     update_seer_project_settings,
 )
-from sentry.seer.models import SeerPermissionError
+from sentry.seer.models.project_repository import SeerProjectRepository
+from sentry.services import eventstore
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import ingest_errors_tasks, issues_tasks, seer_tasks
+from sentry.taskworker.namespaces import ingest_errors_tasks, issues_tasks
 from sentry.utils import metrics
 from sentry.utils.cache import cache
-from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger(__name__)
+
+
+def _clear_free_autofix_cohort_configuration(organization: Organization) -> None:
+    if not organization.get_option("agentic-triage-free-cohort", False):
+        return
+
+    SeerProjectRepository.objects.filter(
+        project_repository__project__organization_id=organization.id
+    ).delete()
+    organization.delete_option("agentic-triage-free-cohort")
 
 
 def _get_group_or_log(group_id: int, task_name: str) -> Group | None:
@@ -64,125 +64,14 @@ def _get_group_or_log(group_id: int, task_name: str) -> Group | None:
         return None
 
 
-def _github_comment_id(feedback: Feedback) -> int | None:
-    source: Mapping[str, Any] = feedback.source
-    if source.get("type") != "github-pr-comment":
-        return None
-    comment: Mapping[str, Any] = source.get("comment") or {}
-    return comment.get("id")
-
-
-def _processed_github_comment_ids(state: SeerRunState) -> set[int]:
-    ids: set[int] = set()
-    for block in state.blocks:
-        raw = (block.message.metadata or {}).get("feedback")
-        if not raw:
-            continue
-        for entry in parse_feedback(raw):
-            cid = _github_comment_id(entry)
-            if cid is not None:
-                ids.add(cid)
-    return ids
-
-
-def _dedup_github_feedback(
-    items: list[QueuedAutofixFeedback], processed: set[int]
-) -> list[QueuedAutofixFeedback]:
-    deduped: list[QueuedAutofixFeedback] = []
-    seen: set[int] = set()
-    for item in items:
-        cid = _github_comment_id(item.feedback)
-        if cid is not None:
-            if cid in processed or cid in seen:
-                continue
-            seen.add(cid)
-        deduped.append(item)
-    return deduped
-
-
-def _get_feedback_referrer(items: list[QueuedAutofixFeedback]) -> AutofixReferrer:
-    referrers = {item.referrer for item in items}
-    if len(referrers) == 1:
-        return referrers.pop()
-    return AutofixReferrer.UNKNOWN
-
-
-@instrumented_task(
-    name="sentry.tasks.autofix.consume_queued_feedback",
-    namespace=seer_tasks,
-    processing_deadline_duration=60,
-    retry=Retry(on=(UnableToAcquireLock,), times=3, delay=5),
-)
-def consume_queued_autofix_feedback(run_id: int, organization_id: int, group_id: int) -> None:
-    lock = locks.get(
-        f"autofix:feedback:lock:{run_id}",
-        duration=60,
-        name="autofix_feedback",
-    )
-
-    with lock.acquire():
-        group = Group.objects.filter(
-            id=group_id,
-            project__organization_id=organization_id,
-        ).first()
-        if group is None:
-            logger.warning(
-                "autofix.feedback_task.group_not_found",
-                extra={"run_id": run_id, "group_id": group_id},
-            )
-            return
-
-        try:
-            state = get_autofix_run_state(group, run_id)
-        except SeerPermissionError:
-            logger.warning(
-                "autofix.feedback_task.run_state_not_found",
-                extra={"run_id": run_id, "group_id": group_id},
-            )
-            return
-
-        if state.status == "processing":
-            return
-
-        queued_items = pop_queued_autofix_feedback(run_id)
-        if not queued_items:
-            return
-
-        queued_items = _dedup_github_feedback(queued_items, _processed_github_comment_ids(state))
-        if not queued_items:
-            return
-
-        feedback_items = [item.feedback for item in queued_items]
-        try:
-            trigger_autofix_agent(
-                group=group,
-                step=AutofixStep.PR_ITERATION,
-                referrer=_get_feedback_referrer(queued_items),
-                run_id=run_id,
-                user_context="\n\n".join(item.text for item in feedback_items),
-                feedback=feedback_items,
-            )
-        except (
-            PrIterationNoPullRequestException,
-            PrIterationNotEnabledException,
-            SeerPermissionError,
-        ) as error:
-            logger.info(
-                "autofix.feedback_task.skipped",
-                extra={"run_id": run_id, "group_id": group.id, "error": str(error)},
-            )
-
-
 @instrumented_task(
     name="sentry.tasks.autofix.generate_summary_and_run_automation",
     namespace=ingest_errors_tasks,
     processing_deadline_duration=35,
     retry=Retry(times=1),
 )
-def generate_summary_and_run_automation(group_id: int, **kwargs) -> None:
-    from sentry.seer.autofix.issue_summary import get_issue_summary
-
-    trigger_path = kwargs.get("trigger_path", "unknown")
+def generate_summary_and_run_automation(group_id: int, **kwargs: object) -> None:
+    trigger_path = cast(str, kwargs.get("trigger_path", "unknown"))
     sentry_sdk.set_tag("trigger_path", trigger_path)
     sentry_sdk.set_attribute("trigger_path", trigger_path)
 
@@ -205,7 +94,43 @@ def generate_summary_and_run_automation(group_id: int, **kwargs) -> None:
             )
         )
 
-    get_issue_summary(group=group, source=SeerAutomationSource.POST_PROCESS)
+    try:
+        summary = get_or_generate_issue_summary(
+            group=group, source=SeerAutomationSource.POST_PROCESS
+        )
+    except IssueSummaryUnavailable:
+        return
+
+    try:
+        event = eventstore.backend.get_event_by_id(
+            group.project_id, summary.event_id, group_id=group.id
+        )
+        if event is None:
+            logger.warning(
+                "generate_summary_and_run_automation.no_event_found", extra={"group_id": group.id}
+            )
+            return
+        run_automation(group, AnonymousUser(), event, SeerAutomationSource.POST_PROCESS)
+    except Exception:
+        logger.exception(
+            "Error auto-triggering autofix from issue summary", extra={"group_id": group.id}
+        )
+
+
+@instrumented_task(
+    name="sentry.tasks.autofix.summarize_issue",
+    namespace=issues_tasks,
+    processing_deadline_duration=35,
+    retry=Retry(times=3, delay=40, on=(Exception,)),
+)
+def summarize_issue(group_id: int, source: str) -> None:
+    group = _get_group_or_log(group_id, "summarize_issue")
+    if group is None:
+        return
+    try:
+        get_or_generate_issue_summary(group=group, source=SeerAutomationSource(source))
+    except IssueSummaryUnavailable:
+        return
 
 
 @instrumented_task(
@@ -216,14 +141,8 @@ def generate_summary_and_run_automation(group_id: int, **kwargs) -> None:
 )
 def generate_issue_summary_only(group_id: int) -> None:
     """
-    Generate issue summary WITHOUT triggering automation.
-    Used for triage signals flow when event count < AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD or when summary doesn't exist yet.
+    Obtain a summary and generate a fixability score for triage, without running automation.
     """
-    from sentry.seer.autofix.issue_summary import (
-        get_and_update_group_fixability_score,
-        get_issue_summary,
-    )
-
     group = _get_group_or_log(group_id, "generate_issue_summary_only")
     if group is None:
         return
@@ -243,10 +162,10 @@ def generate_issue_summary_only(group_id: int) -> None:
             )
         )
 
-    # Generate and cache the summary
-    get_issue_summary(
-        group=group, source=SeerAutomationSource.POST_PROCESS, should_run_automation=False
-    )
+    try:
+        get_or_generate_issue_summary(group=group, source=SeerAutomationSource.POST_PROCESS)
+    except IssueSummaryUnavailable:
+        return
 
     get_and_update_group_fixability_score(group, force_generate=True)
 
@@ -260,7 +179,7 @@ def generate_issue_summary_only(group_id: int) -> None:
 def run_automation_only_task(group_id: int) -> None:
     """
     Run automation directly for a group (assumes summary and fixability already exist).
-    Used for triage signals flow when event count >= AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD and summary exists.
+    Used for the triage signals flow when a summary already exists.
     """
     from django.contrib.auth.models import AnonymousUser
 
@@ -323,12 +242,20 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
     - Org-level: enable_seer_coding
     """
 
-    organization = Organization.objects.get(id=organization_id)
+    try:
+        organization = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        logger.warning(
+            "configure_seer_for_existing_org.organization_not_found",
+            extra={"organization_id": organization_id},
+        )
+        return
 
     sentry_sdk.set_tag("organization_id", organization.id)
     sentry_sdk.set_attribute("organization_id", organization.id)
     sentry_sdk.set_tag("organization_slug", organization.slug)
     sentry_sdk.set_attribute("organization_slug", organization.slug)
+    _clear_free_autofix_cohort_configuration(organization)
 
     # Set org-level options
     organization.update_option(

@@ -6,7 +6,6 @@ from urllib.parse import parse_qs, urlparse
 
 import orjson
 import responses
-from django.conf import settings
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 from django.db.models import F
@@ -16,6 +15,7 @@ from slack_sdk.web import SlackResponse
 
 from sentry.event_manager import EventManager
 from sentry.eventstream.types import EventStreamEventType
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.integrations.slack.analytics import SlackIntegrationNotificationSent
 from sentry.mail.analytics import EmailNotificationSent
 from sentry.models.activity import Activity
@@ -30,19 +30,20 @@ from sentry.tasks.post_process import post_process_group
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.users.models.identity import Identity, IdentityStatus
 from sentry.users.models.user_option import UserOption
 from sentry.utils import json
+from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.typings.notification_action import ActionTarget
 
 pytestmark = [requires_snuba]
 
 
-def make_event(**kwargs):
-    result = {
+def make_event(**kwargs: object) -> dict[str, object]:
+    result: dict[str, object] = {
         "event_id": uuid.uuid1().hex,
         "level": logging.ERROR,
         "logger": "default",
@@ -52,7 +53,7 @@ def make_event(**kwargs):
     return result
 
 
-def get_attachment():
+def get_attachment() -> tuple[dict[str, object], str]:
     assert len(responses.calls) >= 1
     data = parse_qs(responses.calls[0].request.body)
     assert "text" in data
@@ -63,7 +64,7 @@ def get_attachment():
     return attachments[0], data["text"][0]
 
 
-def get_notification_uuid(url: str):
+def get_notification_uuid(url: str) -> str:
     query_params = parse_qs(urlparse(url).query)
     notification_uuid = query_params["notification_uuid"][0].split("|")[0]
     assert len(notification_uuid) > 1
@@ -119,9 +120,6 @@ class ActivityNotificationTest(APITestCase):
                 type=type,
                 value="always",
             )
-        responses.add_passthru(
-            settings.SENTRY_SNUBA + "/tests/entities/generic_metrics_counters/insert",
-        )
         self.name = self.user.get_display_name()
         self.short_id = self.group.qualified_short_id
 
@@ -414,6 +412,10 @@ class ActivityNotificationTest(APITestCase):
             == f"Release {version_parsed} was deployed to {self.environment.name} for this project"
         )
         notification_uuid = get_notification_uuid(url)
+        assert (
+            f'href="http://testserver/organizations/{self.organization.slug}/releases/{release.version}/?project={self.project.id}&amp;referrer=release_activity&amp;notification_uuid={notification_uuid}"'
+            in msg.alternatives[0][0]
+        )
         assert url == (
             f"http://testserver/organizations/{self.organization.slug}/releases/{release.version}/?project={self.project.id}&unselectedSeries=Healthy&referrer=release_activity&notification_uuid={notification_uuid}"
         )
@@ -587,7 +589,9 @@ class ActivityNotificationTest(APITestCase):
             assert "enhanced privacy" in html_content
 
             assert self.group.title not in msg.subject
-            assert self.group.qualified_short_id in msg.subject
+            qualified_short_id = self.group.qualified_short_id
+            assert qualified_short_id is not None
+            assert qualified_short_id in msg.subject
 
     @patch("sentry.analytics.record")
     def test_sends_resolved_in_release_notification(
@@ -676,16 +680,38 @@ class ActivityNotificationTest(APITestCase):
         the expected values when an issue comes in that triggers an alert rule.
         """
 
-        action_data = {
-            "id": "sentry.mail.actions.NotifyEmailAction",
-            "targetType": "Member",
-            "targetIdentifier": str(self.user.id),
-        }
         with assume_test_silo_mode(SiloMode.CELL):
-            self.create_project_rule(
-                name="a rule",
-                action_data=[action_data],
+            trigger_group = self.create_data_condition_group(organization=self.organization)
+            self.create_data_condition(
+                condition_group=trigger_group,
+                type=Condition.EVENT_SEEN_COUNT,
+                comparison=1,
+                condition_result=True,
             )
+            workflow = self.create_workflow(
+                organization=self.organization,
+                name="a rule",
+                when_condition_group=trigger_group,
+            )
+            detector = self.create_detector(
+                project=self.project,
+                type=ErrorGroupType.slug,
+            )
+            self.create_detector_workflow(detector=detector, workflow=workflow)
+            action_group = self.create_data_condition_group(organization=self.organization)
+            self.create_workflow_data_condition_group(
+                workflow=workflow,
+                condition_group=action_group,
+            )
+            action = self.create_action(
+                type="email",
+                config={
+                    "target_type": ActionTarget.USER,
+                    "target_display": None,
+                    "target_identifier": str(self.user.id),
+                },
+            )
+            self.create_data_condition_group_action(condition_group=action_group, action=action)
             min_ago = before_now(minutes=1).isoformat()
             event = self.store_event(
                 data={
@@ -694,14 +720,13 @@ class ActivityNotificationTest(APITestCase):
                 },
                 project_id=self.project.id,
             )
-            cache_key = write_event_to_cache(event)
             with self.tasks():
                 post_process_group(
                     is_new=True,
                     is_regression=False,
                     is_new_group_environment=True,
                     group_id=event.group_id,
-                    cache_key=cache_key,
+                    event_id=event.event_id,
                     project_id=self.project.id,
                     eventstream_type=EventStreamEventType.Error.value,
                 )

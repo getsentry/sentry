@@ -6,7 +6,8 @@ import {
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {AgeComparison} from 'sentry/views/automations/components/actionFilters/constants';
-import {findConflictingConditions} from 'sentry/views/automations/hooks/utils';
+
+import {findConflictingConditions} from './utils';
 
 describe('findConflictingConditions', () => {
   it('returns nothing when there is a valid trigger and logic type is ANY_SHORT_CIRCUIT', () => {
@@ -182,6 +183,16 @@ describe('findConflictingConditions', () => {
         type: DataConditionType.AGE_COMPARISON,
         comparison: {comparison_type: AgeComparison.OLDER, value: 10},
       },
+      {
+        id: '8',
+        type: DataConditionType.PERCENT_SESSIONS_COUNT,
+        comparison: {value: 0},
+      },
+      {
+        id: '9',
+        type: DataConditionType.PERCENT_SESSIONS_PERCENT,
+        comparison: {value: 0},
+      },
     ];
 
     const anyShortCircuitActionFilters = [
@@ -198,7 +209,7 @@ describe('findConflictingConditions', () => {
     expect(anyShortCircuitResult).toEqual({
       conflictingConditionGroups: {
         triggers: new Set(['1']),
-        actionFilter1: new Set(['2', '3', '4', '5', '6', '7']),
+        actionFilter1: new Set(['2', '3', '4', '5', '6', '7', '8', '9']),
       },
       conflictReason:
         'The conditions highlighted in red are in conflict with "A new issue is created."',
@@ -215,7 +226,7 @@ describe('findConflictingConditions', () => {
     expect(allResult).toEqual({
       conflictingConditionGroups: {
         triggers: new Set(['1']),
-        actionFilter1: new Set(['2', '3', '4', '5', '6', '7']),
+        actionFilter1: new Set(['2', '3', '4', '5', '6', '7', '8', '9']),
       },
       conflictReason:
         'The conditions highlighted in red are in conflict with "A new issue is created."',

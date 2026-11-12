@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import type {AriaPopoverProps} from '@react-aria/overlays';
 import type {OverlayTriggerState} from '@react-stately/overlays';
 
-import {Overlay} from 'sentry/components/overlay';
-import {useOverlay} from 'sentry/utils/useOverlay';
+import {Overlay} from '@sentry/scraps/overlay';
+import {useOverlay} from '@sentry/scraps/useOverlay';
 
 type OverlayProps = ReturnType<typeof useOverlay>['overlayProps'];
 
@@ -55,10 +55,11 @@ const ListBoxOverlay = styled(Overlay)`
   overflow-y: auto;
   border-top-left-radius: 0;
   border-top-right-radius: 0;
+  will-change: auto;
 `;
 
 const BackgroundColorWrapper = styled('div')`
-  background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const StyledPositionWrapper = styled('div')<{visible?: boolean}>`

@@ -2,20 +2,21 @@ import {useCallback} from 'react';
 
 import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
+import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import {
   useProgressiveQuery,
   type RPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
-import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
-import {useLogsTimeseriesRequest} from 'sentry/views/explore/logs/useLogsTimeseriesRequest';
-import {useStreamingTimeseriesResult} from 'sentry/views/explore/logs/useStreamingTimeseriesResult';
 import {
   useQueryParamsTopEventsLimit,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {computeVisualizeSampleTotals} from 'sentry/views/explore/utils';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+
+import type {UseInfiniteLogsQueryResult} from './useLogsQuery';
+import {useLogsTimeseriesRequest} from './useLogsTimeseriesRequest';
+import {useStreamingTimeseriesResult} from './useStreamingTimeseriesResult';
 
 interface UseLogsTimeseriesImplOptions {
   enabled: boolean;
@@ -60,7 +61,7 @@ export function useLogsTimeseries({
   );
 
   const timeseriesResult = useProgressiveQuery<typeof useLogsTimeseriesImpl>({
-    queryHookImplementation: useLogsTimeseriesImpl,
+    queryHookImplementation: useLogsTimeseriesImpl, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
     queryHookArgs: {enabled, timeseriesIngestDelay},
     queryOptions: {
       canTriggerHighAccuracy,

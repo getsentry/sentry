@@ -37,6 +37,15 @@ describe('formatTooltipValue', () => {
     ])('Formats %s as %s', (value, formattedValue) => {
       expect(formatTooltipValue(value, 'percentage')).toEqual(formattedValue);
     });
+
+    it.each([
+      [0, 'percent', '0%'],
+      [71.2, 'percent', '71.2%'],
+      [100, 'percent', '100%'],
+      [0.712, 'ratio', '71.2%'],
+    ])('Formats %s %s as %s', (value, unit, formattedValue) => {
+      expect(formatTooltipValue(value, 'percentage', unit)).toEqual(formattedValue);
+    });
   });
 
   describe('duration', () => {
@@ -52,7 +61,7 @@ describe('formatTooltipValue', () => {
   describe('size', () => {
     it.each([
       [0, 'byte', '0 B'],
-      [0.712, 'megabyte', '712 KB'],
+      [0.712, 'megabyte', '712 kB'],
       [1231, 'kibibyte', '1.2 MiB'],
     ])('Formats %s as %s', (value, unit, formattedValue) => {
       expect(formatTooltipValue(value, 'size', unit)).toEqual(formattedValue);

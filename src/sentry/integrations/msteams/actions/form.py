@@ -8,6 +8,7 @@ from django.utils.translation import gettext_lazy as _
 from sentry.constants import ObjectStatus
 from sentry.integrations.msteams.utils import find_channel_id
 from sentry.integrations.services.integration.service import integration_service
+from sentry.shared_integrations.exceptions import ApiInvalidRequestError
 from sentry.utils.forms import set_field_choices
 
 
@@ -16,7 +17,7 @@ class MsTeamsNotifyServiceForm(forms.Form):
     channel = forms.CharField(widget=forms.TextInput())
     channel_id = forms.HiddenInput()
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self._team_list = [(i.id, i.name) for i in kwargs.pop("integrations")]
 
         super().__init__(*args, **kwargs)
@@ -39,7 +40,12 @@ class MsTeamsNotifyServiceForm(forms.Form):
         if not integration:
             raise forms.ValidationError(_("Team is a required field."), code="invalid")
 
-        channel_id = find_channel_id(integration, channel)
+        try:
+            channel_id = find_channel_id(integration, channel)
+        except ApiInvalidRequestError:
+            # Invalid requests mean the stored team or conversation can no longer be
+            # used, so surface the problem as validation instead of failing test-fire.
+            channel_id = None
 
         if channel_id is None and integration_id is not None:
             params = {

@@ -22,7 +22,6 @@ from requests.cookies import RequestsCookieJar
 from requests.exceptions import ConnectionError, Timeout
 
 from sentry import options
-from sentry.objectstore.endpoints.organization import ChunkedEncodingDecoder, get_raw_body
 from sentry.options.rollout import in_random_rollout
 from sentry.silo.util import (
     PRESERVE_CONTENT_ENCODING_URL_NAMES,
@@ -38,7 +37,7 @@ from sentry.types.cell import (
 )
 from sentry.utils import metrics
 from sentry.utils.circuit_breaker2 import CircuitBreaker, CountBasedTripStrategy
-from sentry.utils.http import BodyWithLength
+from sentry.utils.http import BodyWithLength, ChunkedEncodingDecoder, request_body_stream
 
 logger = logging.getLogger(__name__)
 
@@ -174,7 +173,8 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
     header_dict[PROXY_APIGATEWAY_HEADER] = "true"
 
     assert request.method is not None
-    query_params = request.GET
+    query_string = request.META.get("QUERY_STRING")
+    request_url = f"{target_url}?{query_string}" if query_string else target_url
 
     # This option has a default of None, which is cast to 0
     timeout = options.get("apigateway.proxy.timeout")
@@ -191,7 +191,7 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
 
     data: bytes | Generator[bytes] | ChunkedEncodingDecoder | BodyWithLength | None = None
     if url_name == "sentry-api-0-organization-objectstore":
-        data = get_raw_body(request)
+        data = request_body_stream(request)
     else:
         data = BodyWithLength(request)
 
@@ -205,9 +205,8 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
         with metrics.timer("apigateway.proxy_request.duration", tags=metric_tags):
             resp = requester(
                 request.method,
-                url=target_url,
+                url=request_url,
                 headers=header_dict,
-                params=dict(query_params) if query_params is not None else None,
                 data=data,
                 stream=True,
                 timeout=timeout,

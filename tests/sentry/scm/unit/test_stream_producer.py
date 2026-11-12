@@ -6,9 +6,9 @@ from sentry.scm.types import SubscriptionEvent
 
 
 def test_produce_to_scm_stream() -> None:
-    metrics = []
+    metrics: list[tuple[str, int, dict[str, str]]] = []
 
-    def record_count(k, a, t):
+    def record_count(k: str, a: int, t: dict[str, str]) -> None:
         metrics.append((k, a, t))
 
     event: SubscriptionEvent = {
@@ -24,15 +24,14 @@ def test_produce_to_scm_stream() -> None:
         "control",
         produce_to_listener=lambda a, b, c, d: None,
         record_count=record_count,
-        rollout_enabled=lambda _: True,
     )
     assert metrics == [("sentry.scm.produce_event_to_scm_stream.success", 1, {})]
 
 
 def test_produce_to_scm_stream_unsupported_provider() -> None:
-    metrics = []
+    metrics: list[tuple[str, int, dict[str, str]]] = []
 
-    def record_count(k, a, t):
+    def record_count(k: str, a: int, t: dict[str, str]) -> None:
         metrics.append((k, a, t))
 
     event: SubscriptionEvent = {
@@ -47,7 +46,6 @@ def test_produce_to_scm_stream_unsupported_provider() -> None:
         event,
         "control",
         record_count=record_count,
-        rollout_enabled=lambda _: True,
     )
 
     assert metrics == [
@@ -60,13 +58,13 @@ def test_produce_to_scm_stream_unsupported_provider() -> None:
 
 
 def test_produce_to_scm_stream_invalid_payload() -> None:
-    metrics = []
-    reported_exception = None
+    metrics: list[tuple[str, int, dict[str, str]]] = []
+    reported_exception: Exception | None = None
 
-    def record_count(k, a, t):
+    def record_count(k: str, a: int, t: dict[str, str]) -> None:
         metrics.append((k, a, t))
 
-    def report_error(e):
+    def report_error(e: Exception) -> None:
         nonlocal reported_exception
         reported_exception = e
 
@@ -83,42 +81,9 @@ def test_produce_to_scm_stream_invalid_payload() -> None:
         "control",
         record_count=record_count,
         report_error=report_error,
-        rollout_enabled=lambda _: True,
     )
 
     assert isinstance(reported_exception, msgspec.MsgspecError)
     assert metrics == [
         ("sentry.scm.produce_event_to_scm_stream.failed", 1, {"reason": "processing"})
     ]
-
-
-def test_produce_to_scm_stream_rollout_disabled() -> None:
-    metrics = []
-    reported_exception = None
-
-    def record_count(k, a, t):
-        metrics.append((k, a, t))
-
-    def report_error(e):
-        nonlocal reported_exception
-        reported_exception = e
-
-    event: SubscriptionEvent = {
-        "event": "",
-        "event_type_hint": "pull_request",
-        "extra": {},
-        "received_at": 0,
-        "sentry_meta": [],
-        "type": "github",
-    }
-    produce_event_to_scm_stream(
-        event,
-        "control",
-        record_count=record_count,
-        report_error=report_error,
-        rollout_enabled=lambda _: False,
-    )
-
-    # Would have raised if enabled.
-    assert reported_exception is None
-    assert metrics == []

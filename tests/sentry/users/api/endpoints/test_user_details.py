@@ -1,7 +1,9 @@
 from collections.abc import Generator
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from django.test import override_settings
+from django.urls import reverse
 from pytest import fixture
 
 from sentry import audit_log
@@ -12,16 +14,34 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.deletedorganization import DeletedOrganization
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
+from sentry.seer import agent_token
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.api.endpoints.user_details import UserOptionsSerializer
+from sentry.users.api.parsers.display_preference import (
+    DISPLAY_PREFERENCE_OPTION_KEYS,
+    DisplayPreferencesData,
+)
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
 from sentry.users.models.userpermission import UserPermission
-from sentry.users.models.userrole import UserRole
+
+
+def test_user_option_types_cover_every_serializer_field() -> None:
+    """The option types are declared by hand, so keep them in step with the serializer.
+
+    A field present on the serializer but missing from DISPLAY_PREFERENCE_OPTION_KEYS is accepted by
+    the API and then silently never written. Type checking cannot see DRF's fields,
+    which are declared at runtime, so assert the three agree here instead.
+    """
+    serializer_fields = set(UserOptionsSerializer().fields)
+
+    assert serializer_fields == set(DisplayPreferencesData.__annotations__)
+    assert serializer_fields == set(DISPLAY_PREFERENCE_OPTION_KEYS)
 
 
 class UserDetailsTest(APITestCase):
@@ -85,14 +105,13 @@ class UserDetailsGetTest(UserDetailsTest):
         assert "permissions" in resp.data
         assert resp.data["permissions"] == ["users.admin"]
 
-        role = UserRole.objects.create(name="test", permissions=["broadcasts.admin"])
-        role.users.add(self.superuser)
+        UserPermission.objects.create(user=self.superuser, permission="broadcasts.admin")
 
         resp = self.get_success_response(self.superuser.id)
         assert resp.data["permissions"] == ["broadcasts.admin", "users.admin"]
 
     @override_options({"staff.ga-rollout": True})
-    def test_staff_includes_roles_and_permissions(self) -> None:
+    def test_staff_includes_permissions(self) -> None:
         self.add_user_permission(self.staff_user, "users.admin")
         self.login_as(user=self.staff_user, staff=True)
 
@@ -102,11 +121,102 @@ class UserDetailsGetTest(UserDetailsTest):
         assert "permissions" in resp.data
         assert resp.data["permissions"] == ["users.admin"]
 
-        role = UserRole.objects.create(name="test", permissions=["broadcasts.admin"])
-        role.users.add(self.staff_user)
+        UserPermission.objects.create(user=self.staff_user, permission="broadcasts.admin")
 
         resp = self.get_success_response(self.staff_user.id)
         assert resp.data["permissions"] == ["broadcasts.admin", "users.admin"]
+
+
+@control_silo_test
+@override_settings(SEER_API_SHARED_SECRET="test-secret")
+class UserDetailsGetTokenTest(APITestCase):
+    """GET with a bearer token and no session, the way the Sentry CLI calls it."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.user = self.create_user(email="a@example.com")
+        self.organization = self.create_organization(owner=self.user)
+        # No `login_as`: the bearer token must be the only credential on the request.
+
+    def _get(self, token: str, user_id: int | str = "me", method: str = "get") -> Any:
+        url = reverse("sentry-api-0-user-details", args=[user_id])
+        return getattr(self.client, method)(url, HTTP_AUTHORIZATION=f"Bearer {token}")
+
+    def test_personal_token_without_scopes_reads_self(self) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=[])
+
+        response = self._get(token.plaintext_token)
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(self.user.id)
+        assert response.data["email"] == "a@example.com"
+        assert response.data["options"]["theme"] == "system"
+        assert response.data["permissions"] == []
+
+    def test_oauth_application_token_reads_self(self) -> None:
+        app = self.create_api_application(owner=self.create_user())
+        token = self.create_user_auth_token(user=self.user, scope_list=["openid"], application=app)
+
+        response = self._get(token.plaintext_token)
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(self.user.id)
+
+    def test_token_reads_self_by_id(self) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=["org:read"])
+
+        response = self._get(token.plaintext_token, self.user.id)
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(self.user.id)
+
+    def test_token_cannot_read_another_user(self) -> None:
+        other = self.create_user(email="b@example.com")
+        token = self.create_user_auth_token(user=self.user, scope_list=["org:admin"])
+
+        response = self._get(token.plaintext_token, other.id)
+
+        assert response.status_code == 403, response.content
+
+    def test_superuser_token_cannot_read_another_user(self) -> None:
+        superuser = self.create_user(is_superuser=True)
+        token = self.create_user_auth_token(user=superuser, scope_list=["org:admin"])
+
+        response = self._get(token.plaintext_token, self.user.id)
+
+        assert response.status_code == 403, response.content
+
+    def test_agent_token_is_rejected(self) -> None:
+        token, _ = agent_token.encode_agent_token(
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            scopes=["org:read"],
+            session_id="s1",
+        )
+
+        with self.feature(agent_token.FEATURE_FLAG):
+            response = self._get(token)
+
+        assert response.status_code in {401, 403}, response.content
+
+    def test_internal_integration_token_is_rejected(self) -> None:
+        internal_app = self.create_internal_integration(
+            name="Internal App", organization=self.organization, scopes=["org:read"]
+        )
+        token = self.create_internal_integration_token(
+            user=self.user, internal_integration=internal_app
+        )
+
+        response = self._get(token.plaintext_token)
+
+        assert response.status_code == 403, response.content
+
+    def test_token_cannot_update_or_delete(self) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=["org:admin"])
+        bearer = token.plaintext_token
+
+        assert self._get(bearer, method="put").status_code == 403
+        assert self._get(bearer, method="delete").status_code == 403
 
 
 @control_silo_test
@@ -173,44 +283,72 @@ class UserDetailsUpdateTest(UserDetailsTest):
             user = User.objects.get(id=self.user.id)
             assert user
 
-    def test_change_username_when_different(self) -> None:
-        # if email != username and we change username, only username should change
+    def test_change_username_with_different_email(self) -> None:
         user = self.create_user(email="c@example.com", username="diff@example.com")
         self.login_as(user=user, superuser=False)
 
-        self.create_useremail(user, "new@example.com", is_verified=True)
-        response = self.get_success_response("me", username="new@example.com")
+        response = self.get_success_response("me", username="john")
         user = User.objects.get(id=user.id)
 
         assert user.email == "c@example.com"
         assert response.data["email"] == "c@example.com"
-        assert user.username == "new@example.com"
+        assert user.username == "john"
 
-    def test_change_username_when_same(self) -> None:
-        # if email == username and we change username,
-        # keep email in sync
+    def test_change_username_with_same_email(self) -> None:
         user = self.create_user(email="c@example.com", username="c@example.com")
         self.login_as(user=user)
 
-        self.create_useremail(user, "new@example.com", is_verified=True)
         self.get_success_response("me", username="new@example.com")
 
         user = User.objects.get(id=user.id)
 
-        assert user.email == "new@example.com"
+        assert user.email == "c@example.com"
         assert user.username == "new@example.com"
 
-    def test_cannot_change_username_to_non_verified(self) -> None:
-        user = self.create_user(email="c@example.com", username="c@example.com")
+    def test_cannot_edit_email_through_this_endpoint(self) -> None:
+        user = self.create_user(email="c@example.com", username="diff@example.com")
         self.login_as(user=user)
+        self.create_useremail(user, "new@example.com", is_verified=True)
 
-        self.create_useremail(user, "new@example.com", is_verified=False)
-        resp = self.get_error_response("me", username="new@example.com", status_code=400)
-        assert resp.data["detail"] == "Verified email address is not found."
+        self.get_success_response("me", email="new@example.com")
 
         user = User.objects.get(id=user.id)
 
         assert user.email == "c@example.com"
+        assert user.username == "diff@example.com"
+
+    def test_cannot_take_another_users_email_as_username(self) -> None:
+        self.create_user(email="user_a@example.com", username="sso-abc123")
+        user_b = self.create_user(email="b_user@example.com", username="user_b@example.com")
+        self.login_as(user=user_b)
+
+        resp = self.get_error_response("me", username="user_a@example.com", status_code=400)
+        assert resp.data["username"] == ["That username is already in use."]
+
+        user_b = User.objects.get(id=user_b.id)
+        assert user_b.username == "user_b@example.com"
+
+    def test_change_username_to_own_secondary_email(self) -> None:
+        user = self.create_user(email="c@example.com", username="c@example.com")
+        self.create_useremail(user, "secondary@example.com", is_verified=True)
+        self.login_as(user=user)
+
+        self.get_success_response("me", username="secondary@example.com")
+
+        user = User.objects.get(id=user.id)
+        assert user.username == "secondary@example.com"
+        assert user.email == "c@example.com"
+
+    def test_cannot_take_another_users_verified_secondary_email_as_username(self) -> None:
+        other = self.create_user(email="other@example.com", username="other@example.com")
+        self.create_useremail(other, "shared@example.com", is_verified=True)
+        user = self.create_user(email="c@example.com", username="c@example.com")
+        self.login_as(user=user)
+
+        resp = self.get_error_response("me", username="shared@example.com", status_code=400)
+        assert resp.data["username"] == ["That username is already in use."]
+
+        user = User.objects.get(id=user.id)
         assert user.username == "c@example.com"
 
     @override_settings(SENTRY_MODE=SentryMode.SAAS)
@@ -320,9 +458,13 @@ class UserDetailsUpdateTest(UserDetailsTest):
 
 
 @control_silo_test
-@override_options({"staff.ga-rollout": False})
 class UserDetailsSuperuserUpdateTest(UserDetailsTest):
     method = "put"
+
+    @fixture(autouse=True)
+    def _deactivate_staff_mode(self) -> Generator[None]:
+        with override_options({"staff.ga-rollout": False}):
+            yield
 
     def test_superuser_can_change_is_active(self) -> None:
         self.user.update(is_active=True)
@@ -423,14 +565,15 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
             org = self.create_organization(name="Default Org")
             self.create_member(user=self.user, organization=org)
 
-        resp = self.get_success_response(
-            self.user.id,
-            isSuperuser="true",
-        )
-        assert resp.data["id"] == str(self.user.id)
+        with self.settings(SUPERUSER_ORG_ID=org.id):
+            resp = self.get_success_response(
+                self.user.id,
+                isSuperuser="true",
+            )
+            assert resp.data["id"] == str(self.user.id)
 
-        user = User.objects.get(id=self.user.id)
-        assert user.is_superuser
+            user = User.objects.get(id=self.user.id)
+            assert user.is_superuser
 
     @override_settings(SENTRY_MODE=SentryMode.SAAS)
     def test_superuser_with_permission_cannot_add_superuser_without_org_1_membership(self) -> None:
@@ -599,9 +742,6 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         """Test that superuser can update non-privileged fields even without users.admin permission"""
         self.login_as(user=self.superuser, superuser=True)
 
-        # Create a verified email for the user before updating username
-        self.create_useremail(self.user, "newemail@example.com", is_verified=True)
-
         resp = self.get_success_response(
             self.user.id,
             name="New Name",
@@ -715,6 +855,7 @@ class UserDetailsSuspensionTest(UserDetailsTest):
     def test_superuser_cannot_suspend_sentry_app_user(self) -> None:
         sentry_app = self.create_sentry_app(name="test-app", organization=self.organization)
         self.login_as(user=self.superuser, superuser=True)
+        assert sentry_app.proxy_user is not None
         resp = self.get_error_response(
             sentry_app.proxy_user.id, isSuspended="true", status_code=400
         )
@@ -728,7 +869,6 @@ class UserDetailsSuspensionTest(UserDetailsTest):
 
 
 @control_silo_test
-@override_options({"staff.ga-rollout": True})
 class UserDetailsStaffUpdateTest(UserDetailsTest):
     method = "put"
 
@@ -828,14 +968,15 @@ class UserDetailsStaffUpdateTest(UserDetailsTest):
             org = self.create_organization(name="Default Org")
             self.create_member(user=self.user, organization=org)
 
-        resp = self.get_success_response(
-            self.user.id,
-            isSuperuser="true",
-        )
-        assert resp.data["id"] == str(self.user.id)
+        with self.settings(SUPERUSER_ORG_ID=org.id):
+            resp = self.get_success_response(
+                self.user.id,
+                isSuperuser="true",
+            )
+            assert resp.data["id"] == str(self.user.id)
 
-        user = User.objects.get(id=self.user.id)
-        assert user.is_superuser
+            user = User.objects.get(id=self.user.id)
+            assert user.is_superuser
 
     @override_settings(SENTRY_MODE=SentryMode.SAAS)
     def test_staff_with_permission_cannot_add_superuser_without_default_organization_membership(

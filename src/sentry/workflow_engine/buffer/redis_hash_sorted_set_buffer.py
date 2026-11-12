@@ -7,8 +7,7 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from typing import Any, TypeAlias, TypeVar
 
 import pydantic
-import rb
-from redis.client import Pipeline
+from redis.client import Pipeline, StrictRedis
 
 ClusterPipeline: TypeAlias = Any
 
@@ -18,17 +17,10 @@ from sentry.db import models
 from sentry.utils import metrics
 from sentry.utils.redis import (
     get_dynamic_cluster_from_options,
-    is_instance_rb_cluster,
-    is_instance_redis_cluster,
     load_redis_script,
 )
 
 logger = logging.getLogger(__name__)
-
-
-def _decode_redis_value(value: Any) -> str:
-    """Helper to decode Redis values that might be bytes or strings."""
-    return value.decode("utf-8") if isinstance(value, bytes) else str(value)
 
 
 T = TypeVar("T")
@@ -74,32 +66,19 @@ class RedisHashSortedSetBuffer:
     ):
         """Initialize with Redis cluster configuration."""
         self.is_redis_cluster, self.cluster, _ = get_dynamic_cluster_from_options(
-            cfg_key_name, config or {}
+            cfg_key_name, config or {}, decode_responses=True
         )
         self.now_fn = now_fn
 
-    def _get_redis_connection(
-        self, key: str | None, transaction: bool = True
-    ) -> ClusterPipeline | Pipeline[str]:
-        """Get a Redis connection pipeline for the given key."""
-        conn: ClusterPipeline | Pipeline[str]
-        if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
-            conn = self.cluster
-        elif is_instance_rb_cluster(self.cluster, self.is_redis_cluster):
-            # For RB clusters, use get_local_client_for_key to get the actual connection
-            assert key is not None
-            conn = self.cluster.get_local_client_for_key(key)
-        else:
-            # For standalone Redis
-            conn = self.cluster
-
-        return conn.pipeline(transaction=transaction)
+    def _get_redis_connection(self, transaction: bool = True) -> ClusterPipeline | Pipeline[str]:
+        """Get a Redis pipeline."""
+        return self.cluster.pipeline(transaction=transaction)
 
     def _execute_redis_operation(
         self, key: str, operation_name: str, *args: Any, **kwargs: Any
     ) -> Any:
         """Execute a Redis operation on the given key."""
-        pipe = self._get_redis_connection(key, transaction=False)
+        pipe = self._get_redis_connection(transaction=False)
         operation = getattr(pipe, operation_name)
         operation(key, *args, **kwargs)
         if _NEED_EXPIRE[operation_name]:
@@ -113,7 +92,7 @@ class RedisHashSortedSetBuffer:
     ) -> Any:
         """Execute a Redis operation on multiple keys."""
         assert keys
-        pipe = self._get_redis_connection("UNUSED", transaction=False)
+        pipe = self._get_redis_connection(transaction=False)
         for key in keys:
             operation = getattr(pipe, operation_name)
             operation(key, *args, **kwargs)
@@ -151,17 +130,13 @@ class RedisHashSortedSetBuffer:
         """Get all field-value pairs from a Redis hash."""
         key = make_key(model, filters)
         redis_hash = self._execute_redis_operation(key, "hgetall")
-        decoded_hash = {}
-        for k, v in redis_hash.items():
-            k = _decode_redis_value(k)
-            v = _decode_redis_value(v)
-            decoded_hash[k] = v
-        return decoded_hash
+        return redis_hash
 
     def get_hash_length(self, model: type[models.Model], filters: Mapping[str, BufferField]) -> int:
         """Get the number of fields in a Redis hash."""
         key = make_key(model, filters)
-        return self._execute_redis_operation(key, "hlen")
+        length = self._execute_redis_operation(key, "hlen")
+        return length
 
     def delete_hash(
         self,
@@ -171,7 +146,7 @@ class RedisHashSortedSetBuffer:
     ) -> None:
         """Delete specific fields from a Redis hash."""
         key = make_key(model, filters)
-        pipe = self._get_redis_connection(key, transaction=False)
+        pipe = self._get_redis_connection(transaction=False)
         for field in fields:
             pipe.hdel(key, field)
         pipe.expire(key, self.key_expire)
@@ -199,7 +174,6 @@ class RedisHashSortedSetBuffer:
         decoded_set = []
         for items in redis_set:
             item = items[0]
-            item = _decode_redis_value(item)
             data_and_timestamp = (int(item), items[1])
             decoded_set.append(data_and_timestamp)
         return decoded_set
@@ -211,13 +185,6 @@ class RedisHashSortedSetBuffer:
         data_to_timestamps: dict[int, list[float]] = defaultdict(list)
 
         if not keys:
-            return data_to_timestamps
-
-        if not self.is_redis_cluster:
-            # Slow path for RB support.
-            for key in keys:
-                for member, score in self.get_sorted_set(key, min, max):
-                    data_to_timestamps[int(member)].append(score)
             return data_to_timestamps
 
         redis_set = self._execute_sharded_redis_operation(
@@ -239,7 +206,6 @@ class RedisHashSortedSetBuffer:
             if result:  # Skip empty results
                 for items in result:
                     item = items[0]
-                    item = _decode_redis_value(item)
                     data_to_timestamps[int(item)].append(items[1])
 
         return data_to_timestamps
@@ -250,11 +216,9 @@ class RedisHashSortedSetBuffer:
 
     def delete_keys(self, keys: Sequence[str], min: float, max: float) -> None:
         """Delete values from multiple Redis sorted sets within a score range."""
-        if not self.is_redis_cluster:
-            for key in keys:
-                self.delete_key(key, min, max)
-        else:
-            self._execute_sharded_redis_operation(keys, "zremrangebyscore", min=min, max=max)
+        if not keys:
+            return
+        self._execute_sharded_redis_operation(keys, "zremrangebyscore", min=min, max=max)
 
     # Lua script for conditional sorted set member removal
     _conditional_zrem_script = load_redis_script("alerts/conditional_zrem.lua")
@@ -269,7 +233,8 @@ class RedisHashSortedSetBuffer:
 
         # Use the cluster client's built-in slot calculation
         try:
-            return self.cluster.connection_pool.nodes.keyslot(key)
+            slot = self.cluster.connection_pool.nodes.keyslot(key)
+            return slot
         except AttributeError:
             # Fallback for standalone Redis using cluster client
             return 0  # Treat as single slot
@@ -288,10 +253,8 @@ class RedisHashSortedSetBuffer:
         """Parse flat array result from Lua script and return results dict."""
         # Parse flat array result: [key1, member1, key1, member2, key2, member3, ...]
         slot_results_dict = defaultdict(list)
-        for key_raw, member_raw in _by_pairs(slot_result):
-            key = _decode_redis_value(key_raw)
-            member_int = int(_decode_redis_value(member_raw))
-            slot_results_dict[key].append(member_int)
+        for key, member in _by_pairs(slot_result):
+            slot_results_dict[key].append(int(member))
 
         # Ensure all slot keys have entries in results
         return {key: slot_results_dict.get(key, []) for key in slot_keys}
@@ -338,8 +301,8 @@ class RedisHashSortedSetBuffer:
             return {key: [] for key in keys}
 
         cluster = self.cluster
-        if is_instance_rb_cluster(cluster, self.is_redis_cluster):
-            return self._conditional_delete_rb_fallback(cluster, keys, members_and_scores)
+        if not self.is_redis_cluster:
+            return self._conditional_delete_standalone(cluster, keys, members_and_scores)
 
         # Fast path for RedisCluster - group keys by slot for optimal batching
         script_args = []
@@ -379,48 +342,23 @@ class RedisHashSortedSetBuffer:
 
         return converted_results
 
-    def _group_keys_by_host_rb(
-        self, cluster: rb.Cluster, keys: Sequence[str]
-    ) -> dict[str, list[str]]:
-        """Group keys by their rb.Cluster host for efficient batching."""
-        host_groups = defaultdict(list)
-        router = cluster.get_router()
-
-        for key in keys:
-            host = router.get_host_for_key(key)
-            host_groups[host].append(key)
-
-        return dict(host_groups)
-
-    def _conditional_delete_rb_fallback(
-        self, cluster: rb.Cluster, keys: Sequence[str], members_and_scores: list[tuple[int, float]]
+    def _conditional_delete_standalone(
+        self,
+        cluster: StrictRedis[str],
+        keys: Sequence[str],
+        members_and_scores: list[tuple[int, float]],
     ) -> dict[str, list[int]]:
         """
-        Fallback implementation for rb.Cluster using atomic Lua script execution.
-        Groups keys by host for efficient batching.
+        Conditional delete for a single Redis host that is not in cluster mode. All keys are on
+        the same host, so one atomic Lua script call does the work.
         """
         # Flatten the list for Lua script ARGV: [member1, max_score1, member2, max_score2, ...]
         script_args = []
         for member, score in members_and_scores:
             script_args.extend([str(member), str(score)])
 
-        # Group keys by host for efficient batching
-        host_groups = self._group_keys_by_host_rb(cluster, keys)
-
-        # Execute script once per host group
-        converted_results = {}
-        for host, host_keys in host_groups.items():
-            # Get client for this specific host
-            client = cluster.get_local_client_for_key(host_keys[0])
-
-            # Use the script as a callable - it handles NoScriptError fallback automatically
-            result = self._conditional_zrem_script(keys=host_keys, args=script_args, client=client)
-
-            # Parse and merge results from this host
-            host_parsed = self._parse_slot_result(result, host_keys)
-            converted_results.update(host_parsed)
-
-        return converted_results
+        result = self._conditional_zrem_script(keys=keys, args=script_args, client=cluster)
+        return self._parse_slot_result(result, keys)
 
     def get_parsed_key[T: pydantic.BaseModel](self, key: str, model: type[T]) -> T | None:
         value = self._execute_redis_operation(key, "get")

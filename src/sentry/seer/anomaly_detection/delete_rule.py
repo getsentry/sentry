@@ -39,7 +39,7 @@ if TYPE_CHECKING:
     from sentry.workflow_engine.models.detector import Detector
 
 
-def delete_data_in_seer_for_detector(detector: Detector):
+def delete_data_in_seer_for_detector(detector: Detector) -> None:
     from sentry.incidents.models.alert_rule import AlertRuleDetectionType
     from sentry.workflow_engine.models import DataSourceDetector
 
@@ -53,7 +53,7 @@ def delete_data_in_seer_for_detector(detector: Detector):
         )
         return
 
-    organization = detector.project.organization
+    organization = detector.linked_project.organization
 
     if detector.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC:
         success = delete_rule_in_seer(

@@ -2,23 +2,21 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {AddressElement, useElements, useStripe} from '@stripe/react-stripe-js';
 import type {StripeAddressElementChangeEvent} from '@stripe/stripe-js';
+import {useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Flex} from '@sentry/scraps/layout';
+import {InfoTip} from '@sentry/scraps/info';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import type {FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';
 import {TextField} from 'sentry/components/forms/fields/textField';
 import {Form} from 'sentry/components/forms/form';
 import {FormModel} from 'sentry/components/forms/model';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
 
 import {StripeWrapper} from 'getsentry/components/stripeWrapper';
 import type {BillingDetails} from 'getsentry/types';
@@ -43,35 +41,11 @@ type Props = {
    */
   analyticsEvent?: GetsentryEventKey;
   /**
-   * Extra button to render in the form footer.
-   */
-  extraButton?: React.ReactNode;
-  /**
-   * Additional form field props for custom components.
-   */
-  fieldProps?: FieldGroupProps;
-  /**
-   * Custom styles for the form footer.
-   */
-  footerStyle?: React.CSSProperties;
-  /**
    * Initial form data.
    */
   initialData?: BillingDetails;
-  /**
-   * Display detailed view for subscription settings.
-   */
-  isDetailed?: boolean;
-  onPreSubmit?: () => void;
+  onCancel?: () => void;
   onSubmitError?: (error: any) => void;
-  /**
-   * Are changes required before the form can be submitted?
-   */
-  requireChanges?: boolean;
-  /**
-   * Form submit button label.
-   */
-  submitLabel?: string;
 };
 
 type State = {
@@ -83,21 +57,15 @@ type State = {
 const GOOGLE_MAPS_API_KEY = ConfigStore.get('getsentry.googleMapsApiKey');
 
 function BillingDetailsFormFields({
-  form,
-  isDetailed,
-  fieldProps,
   initialData,
   handleStripeFormChange,
   state,
   taxFieldInfo,
   onSubmitDisabled,
 }: {
-  form: FormModel;
   handleStripeFormChange: (data: StripeAddressElementChangeEvent) => void;
-  isDetailed: boolean;
   onSubmitDisabled: (disabled: boolean) => void;
   state: State;
-  fieldProps?: FieldGroupProps;
   initialData?: BillingDetails;
   taxFieldInfo?: TaxFieldInfo;
 }) {
@@ -131,7 +99,7 @@ function BillingDetailsFormFields({
   }, [stripe, elements, handleStripeLoadError, handleStripeLoadSuccess]);
 
   return (
-    <Flex direction="column" gap="xl">
+    <Stack gap="xl">
       {stripeIsBlocked ? (
         <Alert variant="warning">
           {t(
@@ -140,7 +108,7 @@ function BillingDetailsFormFields({
         </Alert>
       ) : (
         <Fragment>
-          {isDetailed && !stripeIsLoading && (
+          {!stripeIsLoading && (
             <CustomBillingDetailsFormField
               inputName="billingEmail"
               label={t('Billing email')}
@@ -148,8 +116,6 @@ function BillingDetailsFormFields({
                 'If provided, all billing-related notifications will be sent to this address'
               )}
               placeholder={t('name@example.com (optional)')}
-              value={form.getValue('billingEmail') ?? ''}
-              fieldProps={fieldProps}
             />
           )}
           {stripeIsLoading && <LoadingIndicator />}
@@ -198,14 +164,12 @@ function BillingDetailsFormFields({
                 "Your company's [taxNumberName] will appear on all receipts. You may be subject to taxes depending on country specific tax policies.",
                 {taxNumberName: <strong>{taxFieldInfo.taxNumberName}</strong>}
               )}
-              value={form.getValue('taxNumber') ?? ''}
               placeholder={taxFieldInfo.placeholder}
-              fieldProps={fieldProps}
             />
           )}
         </Fragment>
       )}
-    </Flex>
+    </Stack>
   );
 }
 
@@ -214,32 +178,22 @@ function CustomBillingDetailsFormField({
   label,
   help,
   placeholder,
-  value,
-  fieldProps,
 }: {
   inputName: string;
   label: string;
-  value: string;
-  fieldProps?: FieldGroupProps;
   help?: React.ReactNode;
   placeholder?: string;
 }) {
   return (
-    <Flex direction="column" gap="xs">
+    <Stack gap="xs">
       <Flex align="center" gap="xs">
         <Text size="sm" variant="muted">
           {label}
         </Text>
-        <QuestionTooltip title={help} size="sm" />
+        <InfoTip title={help} size="sm" />
       </Flex>
-      <StyledTextField
-        {...fieldProps}
-        name={inputName}
-        placeholder={placeholder}
-        value={value}
-        aria-label={label}
-      />
-    </Flex>
+      <StyledTextField name={inputName} placeholder={placeholder} aria-label={label} />
+    </Stack>
   );
 }
 
@@ -249,16 +203,10 @@ function CustomBillingDetailsFormField({
  */
 export function BillingDetailsForm({
   initialData,
-  onPreSubmit,
   onSubmitError,
   onSubmitSuccess,
   organization,
-  submitLabel,
-  footerStyle,
-  requireChanges,
-  isDetailed = true,
-  fieldProps,
-  extraButton,
+  onCancel,
   analyticsEvent,
 }: Props) {
   const [submitDisabled, setSubmitDisabled] = useState(true);
@@ -283,7 +231,7 @@ export function BillingDetailsForm({
     showTaxNumber:
       !!initialData?.taxNumber || countryHasSalesTax(initialData?.countryCode),
   });
-  const location = useLocation();
+  const [referrer] = useQueryState('referrer');
 
   const taxFieldInfo = useMemo(
     () => getTaxFieldInfo(state.countryCode),
@@ -332,7 +280,7 @@ export function BillingDetailsForm({
       trackGetsentryAnalytics(analyticsEvent, {
         organization,
         isStripeComponent: true,
-        referrer: decodeScalar(location.query?.referrer),
+        referrer: referrer || undefined,
       });
     }
     onSubmitSuccess(data);
@@ -350,21 +298,14 @@ export function BillingDetailsForm({
       <Form
         apiMethod="PUT"
         model={form}
-        requireChanges={requireChanges}
         submitDisabled={submitDisabled}
         apiEndpoint={`/customers/${organization.slug}/billing-details/`}
-        submitLabel={submitLabel}
-        onPreSubmit={onPreSubmit}
         onSubmitSuccess={handleSubmit}
         onSubmitError={err => onSubmitError?.(err)}
         initialData={transformedInitialData}
-        footerStyle={footerStyle}
-        extraButton={extraButton}
+        onCancel={onCancel}
       >
         <BillingDetailsFormFields
-          form={form}
-          isDetailed={isDetailed}
-          fieldProps={fieldProps}
           initialData={initialData}
           handleStripeFormChange={handleStripeFormChange}
           state={state}

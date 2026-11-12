@@ -1,8 +1,9 @@
 import {Fragment, useMemo} from 'react';
+import {IconList} from '@sentry/icons/list';
+import {IconRefresh} from '@sentry/icons/refresh';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
-import {Markdown} from '@sentry/scraps/markdown';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {
@@ -11,16 +12,18 @@ import {
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {ArtifactCard} from 'sentry/components/events/autofix/v3/artifactCard';
-import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
-import {ArtifactLoadingDetails} from 'sentry/components/events/autofix/v3/artifactLoadingDetails';
-import {AutofixResetPrompt} from 'sentry/components/events/autofix/v3/autofixResetPrompt';
-import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetAutofixStep';
-import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
-import {IconList} from 'sentry/icons/iconList';
-import {IconRefresh} from 'sentry/icons/iconRefresh';
+import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils/defined';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+
+import {ArtifactCard} from './artifactCard';
+import {ArtifactDetails} from './artifactDetails';
+import {ArtifactLoadingDetails} from './artifactLoadingDetails';
+import {AutofixResetPrompt} from './autofixResetPrompt';
+import {useResetAutofixStep} from './useResetAutofixStep';
+import {useRethinkInChat} from './useRethinkInChat';
+import {artifactToMarkdown} from './utils';
 
 interface SolutionCardProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
@@ -46,6 +49,12 @@ export function SolutionCard({autofix, section}: SolutionCardProps) {
       step: 'solution',
     });
 
+  const rethinkPrompt = t('How can this plan be improved?');
+  const rethinkInChat = useRethinkInChat({
+    prompt: rethinkPrompt,
+    step: 'solution',
+  });
+
   return (
     <ArtifactCard
       icon={<IconList />}
@@ -56,7 +65,8 @@ export function SolutionCard({autofix, section}: SolutionCardProps) {
           : undefined
       }
       allowReset
-      onReset={canReset ? () => setShouldShowReset(true) : undefined}
+      onReset={canReset ? (rethinkInChat ?? (() => setShouldShowReset(true))) : undefined}
+      resetInChat={defined(rethinkInChat)}
     >
       {section.status === 'processing' ? (
         <ArtifactLoadingDetails
@@ -70,11 +80,11 @@ export function SolutionCard({autofix, section}: SolutionCardProps) {
               onClosePrompt={() => setShouldShowReset(false)}
               onReset={handleReset}
               placeholder={t('Give seer additional context to improve this plan.')}
-              prompt={t('How can this plan be improved?')}
+              prompt={rethinkPrompt}
             />
           )}
           <ArtifactDetails>
-            <Markdown raw={artifact.data.one_line_summary} />
+            <SeerMarkdown raw={artifact.data.one_line_summary} />
           </ArtifactDetails>
           {artifact.data.steps ? (
             <ArtifactDetails>
@@ -82,12 +92,12 @@ export function SolutionCard({autofix, section}: SolutionCardProps) {
               <Container as="ol" margin="0">
                 {artifact.data.steps.map((step, index) => (
                   <li key={index}>
-                    <Flex direction="column">
-                      <Markdown raw={step.title} />
+                    <Stack>
+                      <SeerMarkdown raw={step.title} />
                       <Text size="sm" variant="muted">
                         {step.description}
                       </Text>
-                    </Flex>
+                    </Stack>
                   </li>
                 ))}
               </Container>

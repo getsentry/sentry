@@ -1,27 +1,29 @@
 import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconImage} from '@sentry/icons/image';
 import * as Sentry from '@sentry/react';
 
 import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {ResourceSize} from 'sentry/views/insights/browser/resources/components/resourceSize';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import {ChartPanel} from 'sentry/views/insights/common/components/chartPanel';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {SpanResponse} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/utils';
+
+import {ResourceSize} from './resourceSize';
 
 type Props = {groupId: string; noVisualizationPadding?: boolean; projectId?: number};
 
@@ -213,7 +215,13 @@ export function DisabledImages(props: {
           'You know, you can see the actual images that are on your site if you opt into this feature.'
         )}
       </ChartPanelTextContainer>
-      <ButtonContainer>
+      <Grid
+        justify="center"
+        align="center"
+        paddingTop="xl"
+        gap="md"
+        columns="repeat(2, auto)"
+      >
         <Button onClick={onClickShowLinks}>Only show links</Button>
         <Link
           to={`/settings/${organization.slug}/projects/${firstProjectSelected?.slug}/performance/`}
@@ -222,7 +230,7 @@ export function DisabledImages(props: {
             {t(' Enable in Settings')}
           </Button>
         </Link>
-      </ButtonContainer>
+      </Grid>
     </div>
   );
 }
@@ -312,15 +320,6 @@ const ImageWrapper = styled('div')<{noVisualizationPadding?: boolean}>`
   grid-template-columns: repeat(auto-fill, ${imageWidth});
   padding-top: ${p => (p.noVisualizationPadding ? 0 : p.theme.space.xl)};
   gap: 30px;
-`;
-
-const ButtonContainer = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(2, auto);
-  gap: ${p => p.theme.space.md};
-  justify-content: center;
-  align-items: center;
-  padding-top: ${p => p.theme.space.xl};
 `;
 
 const ChartPanelTextContainer = styled('div')`

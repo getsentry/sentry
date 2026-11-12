@@ -1,13 +1,12 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 
-import {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   ActionGroup,
@@ -15,18 +14,17 @@ import {
   type Action,
   type ActionHandler,
 } from 'sentry/types/workflowEngine/actions';
+import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  ActionNodeContext,
-  actionNodesMap,
-  useActionNodeContext,
-} from 'sentry/views/automations/components/actionNodes';
-import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
-import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
-import {AutomationBuilderRow} from 'sentry/views/automations/components/automationBuilderRow';
 import {useAvailableActionsQuery} from 'sentry/views/automations/hooks';
 import {useConnectedDetectors} from 'sentry/views/automations/hooks/useConnectedDetectors';
 import {getIncompatibleActionWarnings} from 'sentry/views/automations/utils/getIncompatibleActionWarning';
+
+import {ActionNodeContext, useActionNodeContext} from './actionNodeContext';
+import {actionNodesMap} from './actionNodes';
+import {useAutomationBuilderContext} from './automationBuilderContext';
+import {useAutomationBuilderErrorContext} from './automationBuilderErrorContext';
+import {AutomationBuilderRow} from './automationBuilderRow';
 
 interface ActionNodeListProps {
   actions: Action[];
@@ -68,13 +66,11 @@ export function ActionNodeList({
   onDeleteRow,
   updateAction,
 }: ActionNodeListProps) {
-  const organization = useOrganization();
   const {data: availableActions = [], isLoading: isLoadingActions} =
     useAvailableActionsQuery();
-  const {errors, removeError} = useAutomationBuilderErrorContext();
-  const {connectedDetectors} = useConnectedDetectors();
+  const {errors} = useAutomationBuilderErrorContext();
   const {state} = useAutomationBuilderContext();
-  const triggerConditions = state.triggers.conditions ?? [];
+  const triggerConditions = state.triggers.conditions;
 
   const options = useMemo(() => {
     const notificationActions: Option[] = [];
@@ -82,7 +78,7 @@ export function ActionNodeList({
     const otherActions: Option[] = [];
 
     availableActions.forEach(action => {
-      if (action.type === ActionType.PLUGIN) {
+      if (action.type === ActionType.PLUGIN || action.disabledReason) {
         return;
       }
       const label =
@@ -127,7 +123,7 @@ export function ActionNodeList({
           return null;
         }
         const handler = getActionHandler(action, availableActions);
-        if (!handler) {
+        if (!handler || handler.disabledReason) {
           const actionLabel = actionNodesMap.get(action.type)?.label;
           return (
             <AutomationBuilderRow
@@ -136,78 +132,32 @@ export function ActionNodeList({
                 onDeleteRow(action.id);
               }}
               hasError
-              errorMessage={
-                actionLabel
-                  ? t(
-                      'The %s action is no longer available. Please remove and reconfigure this action.',
-                      actionLabel
-                    )
-                  : t(
-                      'The integration is no longer available. Please remove and reconfigure this action.'
-                    )
-              }
+              errorMessage={t(
+                'This action is no longer available. Remove it to save changes.'
+              )}
             >
               {actionLabel ?? t('Unknown integration')}
             </AutomationBuilderRow>
           );
         }
-        const error = errors?.[action.id];
-        const warningMessages = getIncompatibleActionWarnings(action, {
-          connectedDetectors,
-          triggerConditions,
-        });
         return (
-          <AutomationBuilderRow
+          <ActionNodeRow
             key={`actionFilters.${conditionGroupId}.action.${action.id}`}
-            onDelete={() => {
-              onDeleteRow(action.id);
-            }}
-            hasError={!!error}
-            errorMessage={error}
-            warningMessages={warningMessages}
-          >
-            <ActionNodeContext.Provider
-              value={{
-                action,
-                actionId: `actionFilters.${conditionGroupId}.action.${action.id}`,
-                onUpdate: newAction => updateAction(action.id, newAction),
-                handler,
-              }}
-            >
-              <Node />
-            </ActionNodeContext.Provider>
-          </AutomationBuilderRow>
+            action={action}
+            conditionGroupId={conditionGroupId}
+            handler={handler}
+            error={errors?.[action.id]}
+            triggerConditions={triggerConditions}
+            onDeleteRow={onDeleteRow}
+            updateAction={updateAction}
+          />
         );
       })}
-      <StyledSelectControl
-        aria-label={t('Add action')}
+      <AddActionSelect
+        conditionGroupId={conditionGroupId}
         options={options}
-        onChange={(obj: any) => {
-          onAddRow(obj.value);
-          removeError(conditionGroupId);
-        }}
         placeholder={placeholder}
-        value={null}
-        components={{
-          Menu: ({children, ...props}) => (
-            <selectComponents.Menu {...props}>
-              <Fragment>
-                {children}
-                <Container padding="md" borderTop="muted">
-                  <LinkButton
-                    size="xs"
-                    variant="secondary"
-                    icon={<IconAdd />}
-                    href={`/settings/${organization.slug}/integrations/`}
-                    external
-                  >
-                    {t('Add another integration')}
-                  </LinkButton>
-                </Container>
-              </Fragment>
-            </selectComponents.Menu>
-          ),
-        }}
+        onAddRow={onAddRow}
       />
       {errors[conditionGroupId] && (
         <Alert variant="danger">{errors[conditionGroupId]}</Alert>
@@ -215,6 +165,101 @@ export function ActionNodeList({
     </Fragment>
   );
 }
+
+interface ActionNodeRowProps {
+  action: Action;
+  conditionGroupId: string;
+  handler: ActionHandler;
+  onDeleteRow: (id: string) => void;
+  triggerConditions: DataCondition[];
+  updateAction: (id: string, params: Record<string, any>) => void;
+  error?: string;
+}
+
+// Memoized so editing one action only re-renders that action's row
+const ActionNodeRow = memo(function ActionNodeRow({
+  action,
+  conditionGroupId,
+  handler,
+  error,
+  triggerConditions,
+  onDeleteRow,
+  updateAction,
+}: ActionNodeRowProps) {
+  const {connectedDetectors} = useConnectedDetectors();
+  const warningMessages = getIncompatibleActionWarnings(action, {
+    connectedDetectors,
+    triggerConditions,
+  });
+  const actionId = `actionFilters.${conditionGroupId}.action.${action.id}`;
+  const onUpdate = useCallback(
+    (params: Record<string, any>) => updateAction(action.id, params),
+    [updateAction, action.id]
+  );
+  const contextValue = useMemo(
+    () => ({action, actionId, onUpdate, handler}),
+    [action, actionId, onUpdate, handler]
+  );
+
+  return (
+    <AutomationBuilderRow
+      onDelete={() => {
+        onDeleteRow(action.id);
+      }}
+      hasError={!!error}
+      errorMessage={error}
+      warningMessages={warningMessages}
+    >
+      <ActionNodeContext.Provider value={contextValue}>
+        <Node />
+      </ActionNodeContext.Provider>
+    </AutomationBuilderRow>
+  );
+});
+
+interface AddActionSelectProps {
+  conditionGroupId: string;
+  onAddRow: (actionHandler: ActionHandler) => void;
+  options: Array<{key: ActionGroup; label: string; options: Option[]}>;
+  placeholder: string;
+}
+
+const AddActionSelect = memo(function AddActionSelect({
+  conditionGroupId,
+  options,
+  placeholder,
+  onAddRow,
+}: AddActionSelectProps) {
+  const organization = useOrganization();
+  const {removeError} = useAutomationBuilderErrorContext();
+  const menuFooter = (
+    <Container padding="md" borderTop="muted">
+      <LinkButton
+        size="xs"
+        variant="secondary"
+        icon={<IconAdd />}
+        href={`/settings/${organization.slug}/integrations/`}
+        external
+      >
+        {t('Add another integration')}
+      </LinkButton>
+    </Container>
+  );
+
+  return (
+    <StyledSelectControl
+      aria-label={t('Add action')}
+      options={options}
+      onChange={(obj: any) => {
+        onAddRow(obj.value);
+        removeError(conditionGroupId);
+      }}
+      placeholder={placeholder}
+      value={null}
+      menuFooter={menuFooter}
+    />
+  );
+});
 
 function Node() {
   const {action} = useActionNodeContext();
@@ -226,4 +271,4 @@ function Node() {
 
 const StyledSelectControl = styled(Select)`
   width: 100%;
-`;
+` as typeof Select;

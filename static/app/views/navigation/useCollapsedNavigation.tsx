@@ -4,9 +4,9 @@ import {useInteractOutside} from '@react-aria/interactions';
 import {
   NAVIGATION_SIDEBAR_COLLAPSE_DELAY_MS,
   NAVIGATION_SIDEBAR_OPEN_DELAY_MS,
-} from 'sentry/views/navigation/constants';
-import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
-import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
+} from './constants';
+import {usePrimaryNavigation} from './primaryNavigationContext';
+import {useSecondaryNavigation} from './secondaryNavigationContext';
 
 const IGNORE_ELEMENTS = [
   // Tooltips are rendered in document.body so will cause the nav to close
@@ -32,6 +32,7 @@ export function useCollapsedNavigation() {
   // Keep a ref so event handlers can read the latest isCollapsed value during
   // React's commit phase (e.g. focusout fires while React is unmounting elements).
   const isCollapsedRef = useRef(isCollapsed);
+  // oxlint-disable-next-line react/refs
   isCollapsedRef.current = isCollapsed;
 
   const isHoveredRef = useRef(false);
@@ -58,8 +59,11 @@ export function useCollapsedNavigation() {
 
   const shouldNavigationStayOpen = useCallback(() => {
     const hasKeyboardFocus = navigationParentRef.current?.querySelector(':focus-visible');
+    // Only open popups should hold the nav open, not disclosures such as the
+    // collapsible section toggles. Menu and listbox triggers set aria-haspopup,
+    // while dialog overlays only set aria-controls while they are open.
     const hasOpenMenu = navigationParentRef.current?.querySelector(
-      '[aria-expanded="true"]'
+      '[aria-expanded="true"][aria-haspopup]:not([aria-haspopup="false"]), [aria-expanded="true"][aria-controls]'
     );
     const isDragging = navigationParentRef.current?.querySelector('[data-is-dragging]');
 
@@ -166,6 +170,7 @@ export function useCollapsedNavigation() {
     isCollapsed,
     navigationParentRef,
     setView,
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     shouldNavigationStayOpen,
     tryCloseNavigation,
   ]);

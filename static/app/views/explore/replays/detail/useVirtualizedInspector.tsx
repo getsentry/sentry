@@ -13,6 +13,7 @@ export type OnExpandCallback = (
 
 export function useVirtualizedInspector({expandPathsRef, onMeasure}: Opts) {
   return {
+    // oxlint-disable-next-line react/refs
     expandPaths: expandPathsRef.current,
     handleDimensionChange: useCallback(
       (index: number, path: string, expandedState: Record<string, boolean>) => {

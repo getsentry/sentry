@@ -1,18 +1,13 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {
-  TourAction,
-  TourContextProvider,
-  TourElement,
-  TourGuide,
-} from 'sentry/components/tours/components';
+import {TourAction, TourContextProvider, TourElement, TourGuide} from './components';
 import {
   emptyTourContext,
   ORDERED_TEST_TOUR,
   TestTour,
   TestTourContext,
-} from 'sentry/components/tours/testUtils';
-import {useTourReducer} from 'sentry/components/tours/tourContext';
+} from './testUtils';
+import {useTourReducer} from './tourContext';
 
 jest.mock('sentry/components/tours/tourContext', () => ({
   useTourReducer: jest.fn(),
@@ -150,7 +145,7 @@ describe('Tour Components', () => {
       expect(screen.getByText('1/3')).toBeInTheDocument();
       expect(screen.queryByRole('button', {name: 'Previous'})).not.toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
-      expect(screen.queryByRole('button', {name: 'Finish tour'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Done'})).not.toBeInTheDocument();
 
       unmountFirstStep();
       mockUseTourReducer.mockReturnValue({
@@ -180,7 +175,7 @@ describe('Tour Components', () => {
       expect(await screen.findByText('2/3')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Previous'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
-      expect(screen.queryByRole('button', {name: 'Finish tour'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Done'})).not.toBeInTheDocument();
 
       unmountSecondStep();
       mockUseTourReducer.mockReturnValue({
@@ -210,7 +205,7 @@ describe('Tour Components', () => {
       expect(await screen.findByText('3/3')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Previous'})).toBeInTheDocument();
       expect(screen.queryByRole('button', {name: 'Next'})).not.toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Finish tour'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Done'})).toBeInTheDocument();
     });
 
     it('handles registration of the tour steps', () => {
@@ -345,12 +340,80 @@ describe('Tour Components', () => {
       expect(screen.getByRole('button', {name: 'Test Action'})).toBeInTheDocument();
       expect(screen.getByText('50/100')).toBeInTheDocument();
       expect(screen.getByText('Child Element')).toBeInTheDocument();
-      expect(mockScrollIntoView).toHaveBeenCalledWith({
-        block: 'center',
-        behavior: 'smooth',
-      });
       await userEvent.click(screen.getByRole('button', {name: 'Close'}));
       expect(mockHandleDismiss).toHaveBeenCalled();
+    });
+
+    it('scrolls the highlighted element into view and pins the guide to the viewport', async () => {
+      const scrolledElements: Element[] = [];
+      Element.prototype.scrollIntoView = jest.fn(function (this: Element) {
+        scrolledElements.push(this);
+      });
+
+      render(
+        <TourGuide isOpen title="Test Title" description="Test Description">
+          {props => <div {...props}>Child Element</div>}
+        </TourGuide>
+      );
+
+      const guide = await screen.findByText('Test Title');
+      // The highlighted element, not the guide, is scrolled so that nested scroll
+      // containers holding it are scrolled too
+      expect(scrolledElements).toEqual([screen.getByText('Child Element')]);
+      expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({
+        block: 'nearest',
+        behavior: 'smooth',
+      });
+      // Fixed positioning keeps the guide from extending the document's height
+      expect(guide.closest<HTMLElement>('[style*="position"]')).toHaveStyle({
+        position: 'fixed',
+      });
+    });
+
+    it('reports clicks outside the guide and lets them reach the page', async () => {
+      Element.prototype.scrollIntoView = jest.fn();
+      const handlePageClick = jest.fn();
+      const handleClickOutside = jest.fn();
+
+      render(
+        <div>
+          <button onClick={handlePageClick}>Page Button</button>
+          <TourGuide
+            isOpen
+            title="Test Title"
+            description="Test Description"
+            actions={<TourAction>Test Action</TourAction>}
+            onClickOutside={handleClickOutside}
+          >
+            {props => <div {...props}>Child Element</div>}
+          </TourGuide>
+        </div>
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Test Action'}));
+      expect(handleClickOutside).not.toHaveBeenCalled();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Page Button'}));
+      expect(handlePageClick).toHaveBeenCalledTimes(1);
+      expect(handleClickOutside).toHaveBeenCalledTimes(1);
+    });
+
+    it('blocks clicks outside a guide without onClickOutside', async () => {
+      Element.prototype.scrollIntoView = jest.fn();
+      const handlePageClick = jest.fn();
+
+      render(
+        <div>
+          <button onClick={handlePageClick}>Page Button</button>
+          <TourGuide isOpen title="Test Title" description="Test Description">
+            {props => <div {...props}>Child Element</div>}
+          </TourGuide>
+        </div>
+      );
+
+      expect(await screen.findByText('Test Title')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Page Button'}));
+      expect(handlePageClick).not.toHaveBeenCalled();
     });
   });
 });

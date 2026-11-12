@@ -1,15 +1,14 @@
 import type {ReactNode} from 'react';
-import {PageFilterStateFixture, PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {useValidateSpansTab} from 'sentry/views/explore/spans/hooks/useValidateSpansTab';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
 
-jest.mock('sentry/components/pageFilters/usePageFilters');
+import {useValidateSpansTab} from './useValidateSpansTab';
 
 function Wrapper({children}: {children: ReactNode}) {
   return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;
@@ -31,18 +30,17 @@ const validationBody: EventValidationData = {
 
 describe('useValidateSpansTab', () => {
   beforeEach(() => {
-    jest.mocked(usePageFilters).mockReturnValue(
-      PageFilterStateFixture({
-        selection: PageFiltersFixture({
-          datetime: {period: '14d', start: null, end: null, utc: false},
-          environments: ['production'],
-          projects: [1],
-        }),
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({
+        datetime: {period: '14d', start: null, end: null, utc: false},
+        environments: ['production'],
+        projects: [1],
       })
     );
   });
 
   afterEach(() => {
+    PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
   });
@@ -78,6 +76,45 @@ describe('useValidateSpansTab', () => {
         }),
       })
     );
+  });
+
+  it('validates aggregate table fields and sorts', async () => {
+    const validateMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/validate/',
+      body: validationBody,
+    });
+
+    renderHookWithProviders(useValidateSpansTab, {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/',
+          query: {
+            aggregateField: [
+              JSON.stringify({groupBy: 'span.op'}),
+              JSON.stringify({yAxes: ['avg(span.duration)']}),
+            ],
+            aggregateSort: '-avg(span.duration)',
+          },
+        },
+      },
+    });
+
+    await waitFor(() => {
+      expect(validateMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/validate/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            field: expect.arrayContaining([
+              'span.op',
+              'avg(span.duration)',
+              'span.duration',
+            ]),
+            orderby: expect.arrayContaining(['-avg(span.duration)']),
+          }),
+        })
+      );
+    });
   });
 
   it('returns validation details from request errors', async () => {

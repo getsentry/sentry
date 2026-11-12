@@ -1,5 +1,6 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconLink} from '@sentry/icons/link';
 import type {LocationDescriptor} from 'history';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
@@ -10,7 +11,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
-import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';

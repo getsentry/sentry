@@ -1,10 +1,11 @@
 import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconList} from '@sentry/icons/list';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import {IconChevron, IconList} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 
 export const COLLAPSE_COUNT = 5;

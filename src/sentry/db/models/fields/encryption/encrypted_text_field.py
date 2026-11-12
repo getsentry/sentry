@@ -1,13 +1,13 @@
 from typing import Any
 
-import sentry_sdk
 from django.db.models import TextField
+from sentry_sdk import traces
 
 from ._base import EncryptedField
 
 
-class EncryptedTextField(EncryptedField, TextField):
-    @sentry_sdk.trace
+class EncryptedTextField(EncryptedField[str | None, str | None], TextField[str | None, str | None]):
+    @traces.trace
     def from_db_value(self, value: Any, expression: Any, connection: Any) -> Any:
         db_value = super().from_db_value(value, expression, connection)
         if db_value is None:

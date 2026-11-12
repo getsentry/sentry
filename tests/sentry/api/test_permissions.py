@@ -1,3 +1,8 @@
+from collections.abc import Sequence
+from typing import cast
+from unittest.mock import MagicMock, patch
+
+from rest_framework.request import Request
 from rest_framework.views import APIView
 
 from sentry.api.bases.organization import OrganizationPermission
@@ -6,15 +11,25 @@ from sentry.api.exceptions import InsufficientScope
 from sentry.api.permissions import (
     DemoSafePermission,
     DisallowImpersonatedTokenCreation,
+    ScopedPermission,
     SentryIsAuthenticated,
     StaffPermission,
     SuperuserOrStaffFeatureFlaggedPermission,
     SuperuserPermission,
+    _least_privileged_scope,
 )
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.demo_mode.utils import READONLY_SCOPES
+from sentry.models.apitoken import ApiToken
 from sentry.organizations.services.organization import organization_service
+from sentry.organizations.services.organization.model import (
+    RpcOrganizationMember,
+    RpcUserOrganizationContext,
+)
+from sentry.testutils.asserts import assert_no_organization_resource_hydration
 from sentry.testutils.cases import APITestCase, DRFPermissionTestCase
 from sentry.testutils.helpers.options import override_options
+from sentry.users.models.user import User
 
 
 class PermissionsTest(DRFPermissionTestCase):
@@ -119,7 +134,7 @@ class InsufficientScopeTest(DRFPermissionTestCase):
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
 
-    def _token_request(self, scopes, method):
+    def _token_request(self, scopes: Sequence[str], method: str) -> Request:
         token = self.create_user_auth_token(user=self.user, scope_list=list(scopes))
         return self.make_request(user=self.user, auth=token, method=method)
 
@@ -133,6 +148,15 @@ class InsufficientScopeTest(DRFPermissionTestCase):
             InsufficientScope(["org:admin"]).auth_header
             == 'Bearer error="insufficient_scope", scope="org:admin"'
         )
+
+    def test_agent_challenge_excludes_token_only_scopes(self) -> None:
+        assert (
+            _least_privileged_scope(
+                {"project:write", "project:admin", "project:releases", "org:ci"}
+            )
+            == "project:releases"
+        )
+        assert _least_privileged_scope({"org:ci"}) is None
 
     def test_under_scoped_token_is_denied(self) -> None:
         # PUT requires org:write/org:admin; a read-only token holds neither.
@@ -166,6 +190,70 @@ class InsufficientScopeTest(DRFPermissionTestCase):
         assert self.permission.has_permission(request, APIView())
 
 
+class DashboardReadPermission(ScopedPermission):
+    scope_map = {"GET": ["dashboard:read"]}
+
+
+class DeprecatedScopeTranslationTest(DRFPermissionTestCase):
+    permission = DashboardReadPermission()
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.user = self.create_user()
+        self.organization = self.create_organization(owner=self.user)
+
+    def _token_request(self, scopes: Sequence[str]) -> Request:
+        # Requests authenticated with a token carry an AuthenticatedToken.
+        token = AuthenticatedToken(kind="api_token", scopes=list(scopes), user_id=self.user.id)
+        return self.make_request(user=self.user, auth=token, method="GET")
+
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    @patch("sentry.auth.deprecated_scope_translation.sentry_sdk.metrics")
+    def test_deprecated_scope_is_translated(self, mock_metrics: MagicMock) -> None:
+        request = self._token_request(["org:read"])
+        assert self.permission.has_permission(request, APIView())
+        mock_metrics.count.assert_called_once_with(
+            "auth.deprecated_scope_translation.applied",
+            1,
+            attributes={"endpoint": "APIView", "deprecated_scope": "org:read"},
+        )
+
+    @override_options({"auth.deprecated-scope-translation.enabled": False})
+    def test_deprecated_scope_not_translated_when_disabled(self) -> None:
+        request = self._token_request(["org:read"])
+        assert not self.permission.has_permission(request, APIView())
+
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    @patch("sentry.auth.deprecated_scope_translation.sentry_sdk.metrics")
+    def test_granular_scope_does_not_record_translation(self, mock_metrics: MagicMock) -> None:
+        request = self._token_request(["dashboard:read"])
+        assert self.permission.has_permission(request, APIView())
+        mock_metrics.count.assert_not_called()
+
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    @patch("sentry.auth.deprecated_scope_translation.sentry_sdk.metrics")
+    def test_translation_not_recorded_when_granular_scopes_already_held(
+        self, mock_metrics: MagicMock
+    ) -> None:
+        request = self._token_request(
+            [
+                "org:read",
+                "dashboard:read",
+                "dashboard:write",
+                "saved_query:read",
+                "saved_query:write",
+                "user_preference:read",
+                "user_preference:write",
+            ]
+        )
+        assert self.permission.has_permission(request, APIView())
+        mock_metrics.count.assert_not_called()
+
+    def test_unrelated_scope_is_not_translated(self) -> None:
+        request = self._token_request(["project:read"])
+        assert self.permission.has_permission(request, APIView()) is False
+
+
 class DemoSafePermissionsTest(DRFPermissionTestCase):
     user_permission = DemoSafePermission()
 
@@ -178,7 +266,7 @@ class DemoSafePermissionsTest(DRFPermissionTestCase):
             organization_id=self.organization.id, user_id=self.readonly_user.id
         ).get_scopes()
 
-    def _get_rpc_context(self, user):
+    def _get_rpc_context(self, user: User) -> RpcUserOrganizationContext:
         rpc_context = organization_service.get_organization_by_id(
             id=self.organization.id, user_id=user.id
         )
@@ -250,7 +338,9 @@ class DemoSafePermissionsTest(DRFPermissionTestCase):
                 organization=readonly_rpc_context,
             )
 
-            assert readonly_rpc_context.member.scopes == list(self.org_member_scopes)
+            assert cast(RpcOrganizationMember, readonly_rpc_context.member).scopes == list(
+                self.org_member_scopes
+            )
 
     def test_determine_access(self) -> None:
         with override_options(
@@ -268,7 +358,9 @@ class DemoSafePermissionsTest(DRFPermissionTestCase):
                 organization=readonly_rpc_context,
             )
 
-            assert readonly_rpc_context.member.scopes == sorted(READONLY_SCOPES)
+            assert cast(RpcOrganizationMember, readonly_rpc_context.member).scopes == sorted(
+                READONLY_SCOPES
+            )
 
     def test_determine_access_no_demo_users(self) -> None:
         with override_options({"demo-mode.enabled": False, "demo-mode.users": []}):
@@ -284,7 +376,24 @@ class DemoSafePermissionsTest(DRFPermissionTestCase):
                 organization=readonly_rpc_context,
             )
 
-            assert readonly_rpc_context.member.scopes == list(self.org_member_scopes)
+            assert cast(RpcOrganizationMember, readonly_rpc_context.member).scopes == list(
+                self.org_member_scopes
+            )
+
+    def test_determine_access_omits_full_organization_resources(self) -> None:
+        team = self.create_team(organization=self.organization)
+        self.create_project(organization=self.organization, teams=[team])
+        request = self.make_request(self.readonly_user)
+
+        with (
+            override_options(
+                {"demo-mode.enabled": True, "demo-mode.users": [self.readonly_user.id]}
+            ),
+            assert_no_organization_resource_hydration(),
+        ):
+            self.user_permission.determine_access(request=request, organization=self.organization)
+
+        assert request.access.scopes == frozenset(READONLY_SCOPES)
 
 
 class InsufficientScopeResponseTest(APITestCase):
@@ -297,7 +406,7 @@ class InsufficientScopeResponseTest(APITestCase):
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
 
-    def _token(self, scopes):
+    def _token(self, scopes: Sequence[str]) -> ApiToken:
         return self.create_user_auth_token(user=self.user, scope_list=list(scopes))
 
     def test_under_scoped_token_put_returns_insufficient_scope_header(self) -> None:

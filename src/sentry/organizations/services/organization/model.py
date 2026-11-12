@@ -163,8 +163,8 @@ class RpcOrganizationMember(RpcOrganizationMemberSummary):
         }
 
 
-# Add new organization flags to RpcOrganizationFlags first, only add them here after
-# they have been replicated via Organization.handle_async_replication logic
+# Only flags that `serialize_organization_mapping_flags` populates belong here; anything else
+# silently reads as its default. Declare new organization flags on `RpcOrganizationFlags` below.
 class RpcOrganizationMappingFlags(RpcModel):
     early_adopter: bool = False
     require_2fa: bool = False
@@ -172,14 +172,15 @@ class RpcOrganizationMappingFlags(RpcModel):
     enhanced_privacy: bool = False
     disable_shared_issues: bool = False
     disable_new_visibility_features: bool = False
-    require_email_verification: bool = False
-    codecov_access: bool = False
     disable_member_project_creation: bool = False
     prevent_superuser_access: bool = False
     disable_member_invite: bool = False
 
 
 class RpcOrganizationFlags(RpcOrganizationMappingFlags):
+    require_email_verification: bool = False
+    codecov_access: bool = False
+
     def as_int(self) -> int:
         # Must maintain the same order as the ORM's `Organization.flags` fields
         return flags_to_bits(
@@ -351,6 +352,21 @@ class RpcUserOrganizationContext(RpcModel):
             assert self.user_id == self.member.user_id
 
 
+class RpcOrganizationResourceIds(RpcModel):
+    project_ids: list[int] = Field(default_factory=list)
+    team_ids: list[int] = Field(default_factory=list)
+
+
+class RpcOrganizationAccessContext(RpcUserOrganizationContext):
+    # None means not loaded, rather than an organization with no active resources.
+    resource_ids: RpcOrganizationResourceIds | None = None
+
+
+class RpcOrganizationProjectSummary(RpcModel):
+    platforms: list[str | None] = Field(default_factory=list)
+    flags: RpcProjectFlags
+
+
 class RpcUserInviteContext(RpcUserOrganizationContext):
     """
     A context containing an intended organization member object as a potential invite, and the true
@@ -414,7 +430,7 @@ class RpcOrganizationDeleteResponse(RpcModel):
 
 class RpcAuditLogEntryActor(RpcModel):
     actor_label: str | None
-    actor_id: int
+    actor_id: int | None
     actor_key: str | None
     ip_address: str | None
 
@@ -423,3 +439,7 @@ class OrganizationMemberUpdateArgs(TypedDict, total=False):
     flags: RpcOrganizationMemberFlags | None
     role: str
     invite_status: int
+
+
+class RpcOnboardingReportingCode(RpcModel):
+    code: str = Field(repr=False)

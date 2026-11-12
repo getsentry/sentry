@@ -9,29 +9,42 @@ from sentry.scm.private.ipc import (
     AuthorParser,
     CheckRunEventDataParser,
     CheckRunEventParser,
+    CheckSuiteEventDataParser,
+    CheckSuiteEventParser,
     CommentEventDataParser,
     CommentEventParser,
     PullRequestBranchParser,
     PullRequestEventDataParser,
     PullRequestEventParser,
+    PullRequestReviewEventDataParser,
+    PullRequestReviewEventParser,
     SubscriptionEventParser,
     deserialize_check_run_event,
+    deserialize_check_suite_event,
     deserialize_comment_event,
     deserialize_event,
     deserialize_pull_request_event,
+    deserialize_pull_request_review_event,
+    deserialize_raw_event,
     exec_listener,
     produce_to_listeners,
     run_listener,
     serialize_check_run_event,
+    serialize_check_suite_event,
     serialize_comment_event,
     serialize_event,
     serialize_pull_request_event,
+    serialize_pull_request_review_event,
 )
 from sentry.scm.types import (
     CheckRunEvent,
+    CheckSuiteEvent,
     CommentEvent,
     EventType,
+    EventTypeHint,
+    HybridCloudSilo,
     PullRequestEvent,
+    PullRequestReviewEvent,
     SubscriptionEvent,
 )
 
@@ -42,7 +55,7 @@ def test_exec_listener() -> None:
     """
     count = 0
 
-    def record_count(a, b, c):
+    def record_count(a: str, b: int, c: dict[str, str]) -> None:
         nonlocal count
         count += 1
 
@@ -54,10 +67,10 @@ def test_exec_listener_missing_listener() -> None:
     """
     Assert the developers listener was removed prior to channel drain.
     """
-    key = None
-    tags = None
+    key: str | None = None
+    tags: dict[str, str] | None = None
 
-    def record_count(k, a, t):
+    def record_count(k: str, a: int, t: dict[str, str]) -> None:
         nonlocal key, tags
         key = k
         tags = t
@@ -71,13 +84,13 @@ def test_exec_listener_failed() -> None:
     """
     Assert the developers listener failed.
     """
-    key = None
-    tags = None
+    key: str | None = None
+    tags: dict[str, str] | None = None
 
-    def listener(e):
+    def listener(e: int) -> None:
         raise Exception("whatever")
 
-    def record_count(k, a, t):
+    def record_count(k: str, a: int, t: dict[str, str]) -> None:
         nonlocal key, tags
         key = k
         tags = t
@@ -89,12 +102,12 @@ def test_exec_listener_failed() -> None:
 
 
 def test_run_check_run_listener() -> None:
-    event = None
+    event: CheckRunEvent | None = None
 
     scm = SourceCodeManagerEventStream()
 
     @scm.listen_for("check_run")
-    def call_me_maybe(e):
+    def call_me_maybe(e: CheckRunEvent) -> None:
         nonlocal event
         event = e
 
@@ -127,7 +140,7 @@ def test_run_comment_listener() -> None:
     scm = SourceCodeManagerEventStream()
 
     @scm.listen_for("comment")
-    def comment_handler(e):
+    def comment_handler(e: CommentEvent) -> None:
         nonlocal event
         event = e
 
@@ -165,12 +178,12 @@ def test_run_pull_request_listener() -> None:
     """
     Test that pull request events are properly deserialized and routed to PR listeners.
     """
-    event = None
+    event: PullRequestEvent | None = None
 
     scm = SourceCodeManagerEventStream()
 
     @scm.listen_for("pull_request")
-    def pr_handler(e):
+    def pr_handler(e: PullRequestEvent) -> None:
         nonlocal event
         event = e
 
@@ -209,18 +222,89 @@ def test_run_pull_request_listener() -> None:
     assert event.pull_request["base"]["ref"] == "main"
 
 
+def test_run_check_suite_listener() -> None:
+    event: CheckSuiteEvent | None = None
+
+    scm = SourceCodeManagerEventStream()
+
+    @scm.listen_for("check_suite")
+    def call_me_maybe(e: CheckSuiteEvent) -> None:
+        nonlocal event
+        event = e
+
+    check_suite_event = CheckSuiteEventParser(
+        action="completed",
+        check_suite=CheckSuiteEventDataParser("1", "completed", "success", ["10", "20"]),
+        subscription_event=SubscriptionEventParser(None, "", {}, 0, [], "github"),
+    )
+    message = msgspec.json.encode(check_suite_event).decode("utf-8")
+
+    run_listener(
+        "call_me_maybe",
+        message,
+        "check_suite",
+        stream=scm,
+        get_current_time=lambda: 0.0,
+        record_count=lambda a, b, c: None,
+        record_timer=lambda a, b, c: None,
+    )
+
+    assert isinstance(event, CheckSuiteEvent)
+    assert event.action == "completed"
+    assert event.check_suite["id"] == "1"
+    assert event.check_suite["status"] == "completed"
+    assert event.check_suite["conclusion"] == "success"
+    assert event.check_suite["pull_request_ids"] == ["10", "20"]
+
+
+def test_run_pull_request_review_listener() -> None:
+    event: PullRequestReviewEvent | None = None
+
+    scm = SourceCodeManagerEventStream()
+
+    @scm.listen_for("pull_request_review")
+    def review_handler(e: PullRequestReviewEvent) -> None:
+        nonlocal event
+        event = e
+
+    review_event = PullRequestReviewEventParser(
+        action="submitted",
+        pull_request_review=PullRequestReviewEventDataParser("99", "approved", "42"),
+        author=AuthorParser(id="user-1", username="reviewer"),
+        is_bot=False,
+        subscription_event=SubscriptionEventParser(None, "", {}, 0, [], "github"),
+    )
+    message = msgspec.json.encode(review_event).decode("utf-8")
+
+    run_listener(
+        "review_handler",
+        message,
+        "pull_request_review",
+        stream=scm,
+        get_current_time=lambda: 0.0,
+        record_count=lambda a, b, c: None,
+        record_timer=lambda a, b, c: None,
+    )
+
+    assert isinstance(event, PullRequestReviewEvent)
+    assert event.action == "submitted"
+    assert event.pull_request_review["id"] == "99"
+    assert event.pull_request_review["state"] == "approved"
+    assert event.pull_request_review["pull_request_id"] == "42"
+
+
 def test_run_listener_metrics_recorded() -> None:
     """
     Test that success metrics and timing metrics are properly recorded.
     """
-    distributions = None
-    metrics = []
-    timers = []
+    distributions: tuple[str, int, dict[str, str], str] | None = None
+    metrics: list[tuple[str, int, dict[str, str]]] = []
+    timers: list[tuple[str, float, dict[str, str]]] = []
 
     scm = SourceCodeManagerEventStream()
 
     @scm.listen_for("check_run")
-    def handler(e):
+    def handler(e: CheckRunEvent) -> None:
         pass
 
     check_run_event = CheckRunEventParser(
@@ -230,14 +314,14 @@ def test_run_listener_metrics_recorded() -> None:
     )
     message = msgspec.json.encode(check_run_event).decode("utf-8")
 
-    def record_count(key, amount, tags):
+    def record_count(key: str, amount: int, tags: dict[str, str]) -> None:
         metrics.append((key, amount, tags))
 
-    def record_distribution(key, amount, tags, unit):
+    def record_distribution(key: str, amount: int, tags: dict[str, str], unit: str) -> None:
         nonlocal distributions
         distributions = (key, amount, tags, unit)
 
-    def record_timer(key, amount, tags):
+    def record_timer(key: str, amount: float, tags: dict[str, str]) -> None:
         timers.append((key, amount, tags))
 
     run_listener(
@@ -267,9 +351,9 @@ def test_run_listener_not_found() -> None:
     """
     Test that calling a non-existent listener doesn't raise an exception.
     """
-    metrics = []
+    metrics: list[tuple[str, int, dict[str, str]]] = []
 
-    def record_count(key, amount, tags):
+    def record_count(key: str, amount: int, tags: dict[str, str]) -> None:
         metrics.append((key, amount, tags))
 
     check_run_event = CheckRunEventParser(
@@ -301,15 +385,15 @@ def test_run_listener_exception_propagates() -> None:
     """
     Test that exceptions from listeners are properly propagated and metrics recorded.
     """
-    metrics = []
+    metrics: list[tuple[str, int, dict[str, str]]] = []
 
     scm = SourceCodeManagerEventStream()
 
     @scm.listen_for("check_run")
-    def failing_handler(e):
+    def failing_handler(e: CheckRunEvent) -> None:
         raise ValueError("Something went wrong")
 
-    def record_count(key, amount, tags):
+    def record_count(key: str, amount: int, tags: dict[str, str]) -> None:
         metrics.append((key, amount, tags))
 
     check_run_event = CheckRunEventParser(
@@ -338,9 +422,9 @@ def test_run_listener_exception_propagates() -> None:
 
 
 def test_run_listener_malformed_input() -> None:
-    metrics = []
+    metrics: list[tuple[str, int, dict[str, str]]] = []
 
-    def record_count(a, b, c):
+    def record_count(a: str, b: int, c: dict[str, str]) -> None:
         metrics.append((a, b, c))
 
     with pytest.raises(msgspec.MsgspecError):
@@ -526,6 +610,119 @@ def test_serialize_deserialize_pull_request_event_no_author() -> None:
     assert deserialized.pull_request["description"] is None
 
 
+def test_serialize_deserialize_check_suite_event() -> None:
+    event = CheckSuiteEvent(
+        action="completed",
+        check_suite={
+            "id": "suite-1",
+            "status": "completed",
+            "conclusion": "success",
+            "html_url": "https://example.com/check-suite/1",
+            "pull_request_ids": ["10", "20"],
+        },
+        subscription_event={
+            "event": "raw_event_data",
+            "event_type_hint": "check_suite",
+            "extra": {},
+            "received_at": 1234567890,
+            "sentry_meta": [{"id": 1, "integration_id": 100, "organization_id": 200}],
+            "type": "github",
+        },
+    )
+
+    serialized = serialize_check_suite_event(event)
+    assert isinstance(serialized, str)
+
+    deserialized = deserialize_check_suite_event(serialized)
+    assert deserialized.action == event.action
+    assert deserialized.check_suite["id"] == event.check_suite["id"]
+    assert deserialized.check_suite["status"] == event.check_suite["status"]
+    assert deserialized.check_suite["conclusion"] == event.check_suite["conclusion"]
+    assert deserialized.check_suite["html_url"] == ""
+    assert deserialized.check_suite["pull_request_ids"] == event.check_suite["pull_request_ids"]
+    assert deserialized.subscription_event["type"] == event.subscription_event["type"]
+
+
+def test_serialize_deserialize_check_suite_event_no_conclusion() -> None:
+    event = CheckSuiteEvent(
+        action="requested",
+        check_suite={
+            "id": "suite-2",
+            "status": "pending",
+            "conclusion": None,
+            "html_url": "https://example.com/check-suite/2",
+            "pull_request_ids": [],
+        },
+        subscription_event={
+            "event": "",
+            "event_type_hint": None,
+            "extra": {},
+            "received_at": 0,
+            "sentry_meta": None,
+            "type": "github",
+        },
+    )
+
+    serialized = serialize_check_suite_event(event)
+    deserialized = deserialize_check_suite_event(serialized)
+
+    assert deserialized.check_suite["conclusion"] is None
+    assert deserialized.check_suite["pull_request_ids"] == []
+
+
+def test_deserialize_github_check_suite_startup_failure() -> None:
+    event: SubscriptionEvent = {
+        "event": (
+            '{"action":"completed","check_suite":{"id":1,"status":"completed",'
+            '"conclusion":"startup_failure","pull_requests":[]}}'
+        ),
+        "event_type_hint": "check_suite",
+        "extra": {},
+        "received_at": 0,
+        "sentry_meta": [],
+        "type": "github",
+    }
+
+    parsed_event = deserialize_raw_event(event)
+
+    assert isinstance(parsed_event, CheckSuiteEvent)
+    assert parsed_event.check_suite["conclusion"] == "failure"
+
+
+def test_serialize_deserialize_pull_request_review_event() -> None:
+    event = PullRequestReviewEvent(
+        action="submitted",
+        pull_request_review={
+            "id": "review-1",
+            "state": "approved",
+            "pull_request_id": "42",
+        },
+        author={"id": "user-1", "username": "reviewer"},
+        is_bot=False,
+        subscription_event={
+            "event": "raw_event_data",
+            "event_type_hint": "pull_request_review",
+            "extra": {"key": "value"},
+            "received_at": 1234567890,
+            "sentry_meta": [{"id": 1, "integration_id": 100, "organization_id": 200}],
+            "type": "github",
+        },
+    )
+
+    serialized = serialize_pull_request_review_event(event)
+    assert isinstance(serialized, str)
+
+    deserialized = deserialize_pull_request_review_event(serialized)
+    assert deserialized.action == event.action
+    assert deserialized.pull_request_review["id"] == event.pull_request_review["id"]
+    assert deserialized.pull_request_review["state"] == event.pull_request_review["state"]
+    assert (
+        deserialized.pull_request_review["pull_request_id"]
+        == event.pull_request_review["pull_request_id"]
+    )
+    assert deserialized.subscription_event["type"] == event.subscription_event["type"]
+
+
 def test_serialize_event_dispatches_correctly() -> None:
     """
     Test that serialize_event dispatches to the correct serializer based on event type.
@@ -580,18 +777,60 @@ def test_serialize_event_dispatches_correctly() -> None:
         },
     )
 
+    check_suite_event = CheckSuiteEvent(
+        action="completed",
+        check_suite={
+            "id": "1",
+            "status": "completed",
+            "conclusion": "success",
+            "html_url": "url",
+            "pull_request_ids": [],
+        },
+        subscription_event={
+            "event": "",
+            "event_type_hint": None,
+            "extra": {},
+            "received_at": 0,
+            "sentry_meta": None,
+            "type": "github",
+        },
+    )
+
+    pr_review_event = PullRequestReviewEvent(
+        action="submitted",
+        pull_request_review={"id": "1", "state": "approved", "pull_request_id": "42"},
+        author={"id": "user-1", "username": "reviewer"},
+        is_bot=False,
+        subscription_event={
+            "event": "",
+            "event_type_hint": None,
+            "extra": {},
+            "received_at": 0,
+            "sentry_meta": None,
+            "type": "github",
+        },
+    )
+
     check_run_bytes = serialize_event(check_run_event)
     comment_bytes = serialize_event(comment_event)
     pr_bytes = serialize_event(pr_event)
+    check_suite_bytes = serialize_event(check_suite_event)
+    pr_review_bytes = serialize_event(pr_review_event)
 
     assert isinstance(check_run_bytes, str)
     assert isinstance(comment_bytes, str)
     assert isinstance(pr_bytes, str)
+    assert isinstance(check_suite_bytes, str)
+    assert isinstance(pr_review_bytes, str)
 
     # Verify they can be deserialized back
     assert isinstance(deserialize_check_run_event(check_run_bytes), CheckRunEvent)
     assert isinstance(deserialize_comment_event(comment_bytes), CommentEvent)
     assert isinstance(deserialize_pull_request_event(pr_bytes), PullRequestEvent)
+    assert isinstance(deserialize_check_suite_event(check_suite_bytes), CheckSuiteEvent)
+    assert isinstance(
+        deserialize_pull_request_review_event(pr_review_bytes), PullRequestReviewEvent
+    )
 
 
 def test_deserialize_event_dispatches_correctly() -> None:
@@ -630,18 +869,40 @@ def test_deserialize_event_dispatches_correctly() -> None:
     )
     pr_bytes = msgspec.json.encode(pr_parser).decode("utf-8")
 
+    check_suite_parser = CheckSuiteEventParser(
+        action="completed",
+        check_suite=CheckSuiteEventDataParser("1", "completed", "success", []),
+        subscription_event=SubscriptionEventParser(None, "", {}, 0, None, "github"),
+    )
+    check_suite_bytes = msgspec.json.encode(check_suite_parser).decode("utf-8")
+
+    pr_review_parser = PullRequestReviewEventParser(
+        action="submitted",
+        pull_request_review=PullRequestReviewEventDataParser("1", "approved", "42"),
+        author=AuthorParser(id="user-1", username="reviewer"),
+        is_bot=False,
+        subscription_event=SubscriptionEventParser(None, "", {}, 0, None, "github"),
+    )
+    pr_review_bytes = msgspec.json.encode(pr_review_parser).decode("utf-8")
+
     assert isinstance(deserialize_event(check_run_bytes, "check_run"), CheckRunEvent)
     assert isinstance(deserialize_event(comment_bytes, "comment"), CommentEvent)
     assert isinstance(deserialize_event(pr_bytes, "pull_request"), PullRequestEvent)
+    assert isinstance(deserialize_event(check_suite_bytes, "check_suite"), CheckSuiteEvent)
+    assert isinstance(
+        deserialize_event(pr_review_bytes, "pull_request_review"), PullRequestReviewEvent
+    )
 
 
 def test_produce_to_listeners_check_run() -> None:
     """
     Test that produce_to_listeners correctly routes check run events to registered listeners.
     """
-    produced_messages = []
+    produced_messages: list[tuple[str, EventTypeHint, str, HybridCloudSilo]] = []
 
-    def mock_produce(message, event_type_hint, listener_name, silo):
+    def mock_produce(
+        message: str, event_type_hint: EventTypeHint, listener_name: str, silo: HybridCloudSilo
+    ) -> None:
         produced_messages.append((message, event_type_hint, listener_name, silo))
 
     subscription_event: SubscriptionEvent = {
@@ -653,7 +914,7 @@ def test_produce_to_listeners_check_run() -> None:
         "type": "github",
     }
 
-    def mock_deserialize(event):
+    def mock_deserialize(event: SubscriptionEvent) -> EventType:
         return CheckRunEvent(
             action="completed",
             check_run={"external_id": "1", "html_url": "url"},
@@ -663,11 +924,11 @@ def test_produce_to_listeners_check_run() -> None:
     mock_stream = SourceCodeManagerEventStream()
 
     @mock_stream.listen_for("check_run")
-    def listener_one(e):
+    def listener_one(e: CheckRunEvent) -> None:
         pass
 
     @mock_stream.listen_for("check_run")
-    def listener_two(e):
+    def listener_two(e: CheckRunEvent) -> None:
         pass
 
     with mock.patch("sentry.scm.private.ipc.deserialize_raw_event", mock_deserialize):
@@ -684,9 +945,11 @@ def test_produce_to_listeners_comment() -> None:
     """
     Test that produce_to_listeners correctly routes comment events to registered listeners.
     """
-    produced_messages = []
+    produced_messages: list[tuple[str, EventTypeHint, str, HybridCloudSilo]] = []
 
-    def mock_produce(message, event_type_hint, listener_name, silo):
+    def mock_produce(
+        message: str, event_type_hint: EventTypeHint, listener_name: str, silo: HybridCloudSilo
+    ) -> None:
         produced_messages.append((message, event_type_hint, listener_name, silo))
 
     subscription_event: SubscriptionEvent = {
@@ -698,7 +961,7 @@ def test_produce_to_listeners_comment() -> None:
         "type": "github",
     }
 
-    def mock_deserialize(event):
+    def mock_deserialize(event: SubscriptionEvent) -> EventType:
         return CommentEvent(
             action="created",
             comment_type="issue",
@@ -709,7 +972,7 @@ def test_produce_to_listeners_comment() -> None:
     mock_stream = SourceCodeManagerEventStream()
 
     @mock_stream.listen_for("comment")
-    def comment_listener(e):
+    def comment_listener(e: CommentEvent) -> None:
         pass
 
     with mock.patch("sentry.scm.private.ipc.deserialize_raw_event", mock_deserialize):
@@ -724,9 +987,11 @@ def test_produce_to_listeners_pull_request() -> None:
     """
     Test that produce_to_listeners correctly routes PR events to registered listeners.
     """
-    produced_messages = []
+    produced_messages: list[tuple[str, EventTypeHint, str, HybridCloudSilo]] = []
 
-    def mock_produce(message, event_type_hint, listener_name, silo):
+    def mock_produce(
+        message: str, event_type_hint: EventTypeHint, listener_name: str, silo: HybridCloudSilo
+    ) -> None:
         produced_messages.append((message, event_type_hint, listener_name, silo))
 
     subscription_event: SubscriptionEvent = {
@@ -738,7 +1003,7 @@ def test_produce_to_listeners_pull_request() -> None:
         "type": "github",
     }
 
-    def mock_deserialize(event):
+    def mock_deserialize(event: SubscriptionEvent) -> EventType:
         return PullRequestEvent(
             action="opened",
             pull_request={
@@ -758,7 +1023,7 @@ def test_produce_to_listeners_pull_request() -> None:
     mock_stream = SourceCodeManagerEventStream()
 
     @mock_stream.listen_for("pull_request")
-    def pr_listener(e):
+    def pr_listener(e: PullRequestEvent) -> None:
         pass
 
     with mock.patch("sentry.scm.private.ipc.deserialize_raw_event", mock_deserialize):
@@ -769,13 +1034,99 @@ def test_produce_to_listeners_pull_request() -> None:
         assert produced_messages[0][3] == "control"
 
 
+def test_produce_to_listeners_check_suite() -> None:
+    produced_messages: list[tuple[str, EventTypeHint, str, HybridCloudSilo]] = []
+
+    def mock_produce(
+        message: str, event_type_hint: EventTypeHint, listener_name: str, silo: HybridCloudSilo
+    ) -> None:
+        produced_messages.append((message, event_type_hint, listener_name, silo))
+
+    subscription_event: SubscriptionEvent = {
+        "event": "{}",
+        "event_type_hint": "check_suite",
+        "extra": {},
+        "received_at": 0,
+        "sentry_meta": None,
+        "type": "github",
+    }
+
+    def mock_deserialize(event: SubscriptionEvent) -> EventType:
+        return CheckSuiteEvent(
+            action="completed",
+            check_suite={
+                "id": "1",
+                "status": "completed",
+                "conclusion": "success",
+                "html_url": "url",
+                "pull_request_ids": [],
+            },
+            subscription_event=event,
+        )
+
+    mock_stream = SourceCodeManagerEventStream()
+
+    @mock_stream.listen_for("check_suite")
+    def cs_listener(e: CheckSuiteEvent) -> None:
+        pass
+
+    with mock.patch("sentry.scm.private.ipc.deserialize_raw_event", mock_deserialize):
+        produce_to_listeners(subscription_event, "region", mock_produce, stream=mock_stream)
+
+        assert len(produced_messages) == 1
+        assert produced_messages[0][1] == "check_suite"
+        assert produced_messages[0][3] == "region"
+
+
+def test_produce_to_listeners_pull_request_review() -> None:
+    produced_messages: list[tuple[str, EventTypeHint, str, HybridCloudSilo]] = []
+
+    def mock_produce(
+        message: str, event_type_hint: EventTypeHint, listener_name: str, silo: HybridCloudSilo
+    ) -> None:
+        produced_messages.append((message, event_type_hint, listener_name, silo))
+
+    subscription_event: SubscriptionEvent = {
+        "event": "{}",
+        "event_type_hint": "pull_request_review",
+        "extra": {},
+        "received_at": 0,
+        "sentry_meta": None,
+        "type": "github",
+    }
+
+    def mock_deserialize(event: SubscriptionEvent) -> EventType:
+        return PullRequestReviewEvent(
+            action="submitted",
+            pull_request_review={"id": "1", "state": "approved", "pull_request_id": "42"},
+            author={"id": "user-1", "username": "reviewer"},
+            is_bot=False,
+            subscription_event=event,
+        )
+
+    mock_stream = SourceCodeManagerEventStream()
+
+    @mock_stream.listen_for("pull_request_review")
+    def review_listener(e: PullRequestReviewEvent) -> None:
+        pass
+
+    with mock.patch("sentry.scm.private.ipc.deserialize_raw_event", mock_deserialize):
+        produce_to_listeners(subscription_event, "control", mock_produce, stream=mock_stream)
+
+        assert len(produced_messages) == 1
+        assert produced_messages[0][1] == "pull_request_review"
+        assert produced_messages[0][3] == "control"
+
+
 def test_produce_to_listeners_returns_none_for_unsupported_events() -> None:
     """
     Test that produce_to_listeners returns None when deserialize_raw_event returns None.
     """
-    produced_messages = []
+    produced_messages: list[tuple[str, EventTypeHint, str, HybridCloudSilo]] = []
 
-    def mock_produce(message, event_type_hint, listener_name, silo):
+    def mock_produce(
+        message: str, event_type_hint: EventTypeHint, listener_name: str, silo: HybridCloudSilo
+    ) -> None:
         produced_messages.append((message, event_type_hint, listener_name, silo))
 
     subscription_event: SubscriptionEvent = {

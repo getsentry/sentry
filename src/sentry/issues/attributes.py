@@ -4,28 +4,32 @@ from collections.abc import Iterable
 from datetime import datetime
 from enum import Enum
 from functools import partial
+from typing import cast
 
 import urllib3
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from django.conf import settings
-from django.db.models import F, Window
+from django.db import router, transaction
+from django.db.models import F, Model, Window
 from django.db.models.functions import Rank
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 from sentry_kafka_schemas.schema_types.group_attributes_v1 import GroupAttributesSnapshot
-from taskbroker_client.state import current_task
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
-from sentry.options.rollout import in_random_rollout
+from sentry.models.project import Project
 from sentry.signals import issue_assigned, issue_deleted, issue_unassigned, post_update
-from sentry.taskworker.producer import get_task_producer
 from sentry.utils import json, metrics, snuba
-from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
+from sentry.utils.arroyo_producer import (
+    get_arroyo_producer,
+    get_future_tracking_producer,
+)
 from sentry.utils.kafka_config import get_topic_definition
+from sentry.utils.safe import safe_execute
 from sentry.utils.snuba import _snuba_pool
 
 logger = logging.getLogger(__name__)
@@ -57,13 +61,9 @@ def _get_attribute_snapshot_producer(name: str = "sentry.issues.attributes") -> 
     )
 
 
-_attribute_snapshot_producer = SingletonProducer(
-    _get_attribute_snapshot_producer, max_futures=settings.SENTRY_GROUP_ATTRIBUTES_FUTURES_MAX_LIMIT
-)
-_task_producer_name = "sentry.tasks.issues.attributes"
-_attribute_snapshot_task_producer = get_task_producer(
-    producer_name=_task_producer_name,
-    producer_factory=partial(_get_attribute_snapshot_producer, name=_task_producer_name),
+_attribute_snapshot_producer = get_future_tracking_producer(
+    producer_name="sentry.issues.attributes",
+    producer_factory=_get_attribute_snapshot_producer,
 )
 
 
@@ -132,16 +132,10 @@ def produce_snapshot_to_kafka(snapshot: GroupAttributesSnapshot) -> None:
             raise snuba.SnubaError(err)
     else:
         payload = KafkaPayload(None, json.dumps(snapshot).encode("utf-8"), [])
-        if current_task() is not None and in_random_rollout("tasks.producer.snapshots.rollout"):
-            _attribute_snapshot_task_producer.produce(
-                ArroyoTopic(get_topic_definition(Topic.GROUP_ATTRIBUTES)["real_topic_name"]),
-                payload,
-            )
-        else:
-            _attribute_snapshot_producer.produce(
-                ArroyoTopic(get_topic_definition(Topic.GROUP_ATTRIBUTES)["real_topic_name"]),
-                payload,
-            )
+        _attribute_snapshot_producer.produce(
+            ArroyoTopic(get_topic_definition(Topic.GROUP_ATTRIBUTES)["real_topic_name"]),
+            payload,
+        )
 
 
 def _bulk_retrieve_group_values(group_ids: list[int]) -> list[GroupValues]:
@@ -229,46 +223,70 @@ def _bulk_retrieve_snapshot_values(
     return snapshots
 
 
+def _string_set(value: object) -> set[str] | None:
+    if value is None:
+        return None
+    return set(cast("Iterable[str]", value))
+
+
 @receiver(
     post_save, sender=Group, dispatch_uid="post_save_log_group_attributes_changed", weak=False
 )
-def post_save_log_group_attributes_changed(instance, sender, created, *args, **kwargs) -> None:
+def post_save_log_group_attributes_changed(
+    instance: Group, sender: type[Group], created: bool, *args: object, **kwargs: object
+) -> None:
     try:
+        if _string_set(kwargs.get("update_fields")) == {"num_comments"}:
+            _log_group_attributes_changed(Operation.UPDATED, "group", "num_comments")
+            transaction.on_commit(
+                partial(safe_execute, bulk_send_snapshot_values, [instance.id], None),
+                using=router.db_for_write(Group),
+            )
+            return
         if created:
             _log_group_attributes_changed(Operation.CREATED, "group", None)
             send_snapshot_values(None, instance, False)
         else:
-            if process_update_fields(kwargs.get("update_fields", set())):
+            if process_update_fields(_string_set(kwargs.get("update_fields"))):
                 send_snapshot_values(None, instance, False)
     except Exception:
         logger.exception("failed to log group attributes after group post_save")
 
 
 @receiver(post_update, sender=Group, dispatch_uid="post_update_group", weak=False)
-def post_update_group(sender, updated_fields, model_ids, *args, **kwargs) -> None:
+def post_update_group(
+    sender: type[Model],
+    updated_fields: list[str],
+    model_ids: list[int],
+    *args: object,
+    **kwargs: object,
+) -> None:
     try:
-        updated_fields = process_update_fields(updated_fields)
-        if updated_fields:
+        changed_fields = process_update_fields(updated_fields)
+        if changed_fields:
             bulk_send_snapshot_values(model_ids, None)
     except Exception:
         logger.exception("failed to log group attributes after group_owner updated")
 
 
-def process_update_fields(updated_fields) -> set[str]:
+def process_update_fields(updated_fields: Iterable[str] | None) -> set[str]:
+    fields: set[str]
     if not updated_fields:
         # we have no guarantees update_fields is used everywhere save() is called
         # we'll need to assume any of the attributes are updated in that case
-        updated_fields = {"all"}
+        fields = {"all"}
     else:
         VALID_FIELDS = {"status", "substatus", "num_comments", "priority", "first_release"}
-        updated_fields = VALID_FIELDS.intersection(updated_fields or ())
-    if updated_fields:
-        _log_group_attributes_changed(Operation.UPDATED, "group", "-".join(sorted(updated_fields)))
-    return updated_fields
+        fields = VALID_FIELDS.intersection(updated_fields)
+    if fields:
+        _log_group_attributes_changed(Operation.UPDATED, "group", "-".join(sorted(fields)))
+    return fields
 
 
 @issue_deleted.connect(weak=False)
-def on_issue_deleted_log_deleted(group, user, delete_type, **kwargs) -> None:
+def on_issue_deleted_log_deleted(
+    group: Group, user: object, delete_type: str, **kwargs: object
+) -> None:
     try:
         _log_group_attributes_changed(Operation.DELETED, "group", "all")
         send_snapshot_values(None, group, True)
@@ -277,7 +295,9 @@ def on_issue_deleted_log_deleted(group, user, delete_type, **kwargs) -> None:
 
 
 @issue_assigned.connect(weak=False)
-def on_issue_assigned_log_group_assignee_attributes_changed(project, group, user, **kwargs) -> None:
+def on_issue_assigned_log_group_assignee_attributes_changed(
+    project: Project, group: Group, user: object, **kwargs: object
+) -> None:
     try:
         _log_group_attributes_changed(Operation.UPDATED, "group_assignee", "all")
         send_snapshot_values(None, group, False)
@@ -287,7 +307,7 @@ def on_issue_assigned_log_group_assignee_attributes_changed(project, group, user
 
 @issue_unassigned.connect(weak=False)
 def on_issue_unassigned_log_group_assignee_attributes_changed(
-    project, group, user, **kwargs
+    project: Project, group: Group, user: object, **kwargs: object
 ) -> None:
     try:
         _log_group_attributes_changed(Operation.DELETED, "group_assignee", "all")
@@ -300,7 +320,12 @@ def on_issue_unassigned_log_group_assignee_attributes_changed(
     post_save, sender=GroupOwner, dispatch_uid="post_save_log_group_owner_changed", weak=False
 )
 def post_save_log_group_owner_changed(
-    instance, sender, created, update_fields, *args, **kwargs
+    instance: GroupOwner,
+    sender: type[GroupOwner],
+    created: bool,
+    update_fields: object,
+    *args: object,
+    **kwargs: object,
 ) -> None:
     try:
         _log_group_attributes_changed(
@@ -314,7 +339,9 @@ def post_save_log_group_owner_changed(
 @receiver(
     post_delete, sender=GroupOwner, dispatch_uid="post_delete_log_group_owner_changed", weak=False
 )
-def post_delete_log_group_owner_changed(instance, sender, *args, **kwargs) -> None:
+def post_delete_log_group_owner_changed(
+    instance: GroupOwner, sender: type[GroupOwner], *args: object, **kwargs: object
+) -> None:
     try:
         _log_group_attributes_changed(Operation.DELETED, "group_owner", "all")
         send_snapshot_values(instance.group_id, None, False)

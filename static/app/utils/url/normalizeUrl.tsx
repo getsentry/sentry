@@ -1,11 +1,11 @@
-import type {Location, LocationDescriptor} from 'history';
+import type {LocationDescriptor} from 'history';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 
 // If you change this also update the patterns in sentry.api.utils
 const NORMALIZE_PATTERNS: Array<[pattern: RegExp, replacement: string]> = [
-  // /organizations/slug/section, but not /organizations/new
-  [/\/organizations\/(?!new)[^/]+\/(.*)/, '/$1'],
+  // /organizations/slug/section, but not /organizations/new/ (slugs like new-moray still match)
+  [/\/organizations\/(?!new\/)[^/]+\/(.*)/, '/$1'],
   // For /settings/:orgId/ -> /settings/organization/
   [
     /\/settings\/(?!account\/|billing\/|projects\/|teams\/|stats\/|seer\/)[^/]+\/?$/,
@@ -42,20 +42,8 @@ export function normalizeUrl(
 
 export function normalizeUrl(
   path: LocationDescriptor,
-  location?: Location,
-  options?: NormalizeUrlOptions
-): LocationDescriptor;
-
-export function normalizeUrl(
-  path: LocationDescriptor,
-  location?: Location | NormalizeUrlOptions,
   options?: NormalizeUrlOptions
 ): LocationDescriptor {
-  if (location && 'forceCustomerDomain' in location) {
-    options = location;
-    location = undefined;
-  }
-
   const customerDomain = ConfigStore.get('customerDomain');
   if (!options?.forceCustomerDomain && !customerDomain) {
     return path;

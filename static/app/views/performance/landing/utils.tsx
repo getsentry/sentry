@@ -1,20 +1,10 @@
 import type {Location} from 'history';
 
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
-import {
-  platformToPerformanceType,
-  ProjectPerformanceType,
-} from 'sentry/views/performance/utils';
-
-type LandingDisplay = {
-  field: LandingDisplayField;
-  label: string;
-};
 
 export enum LandingDisplayField {
   ALL = 'all',
@@ -69,47 +59,6 @@ export function getLandingDisplayFromParam(location: Location) {
 
   const display = LANDING_DISPLAYS.find(({field}) => field === landingField);
   return display;
-}
-
-function getDefaultDisplayForPlatform(projects: Project[], eventView?: EventView) {
-  const defaultDisplayField = getDefaultDisplayFieldForPlatform(projects, eventView);
-
-  const defaultDisplay = LANDING_DISPLAYS.find(
-    ({field}) => field === defaultDisplayField
-  );
-  return defaultDisplay || LANDING_DISPLAYS[0]!;
-}
-
-export function getCurrentLandingDisplay(
-  location: Location,
-  projects: Project[],
-  eventView?: EventView
-): LandingDisplay {
-  const display = getLandingDisplayFromParam(location);
-  if (display) {
-    return display;
-  }
-
-  return getDefaultDisplayForPlatform(projects, eventView);
-}
-
-function getDefaultDisplayFieldForPlatform(projects: Project[], eventView?: EventView) {
-  if (!eventView) {
-    return LandingDisplayField.ALL;
-  }
-  const projectIds = eventView.project;
-
-  const performanceTypeToDisplay = {
-    [ProjectPerformanceType.ANY]: LandingDisplayField.ALL,
-    [ProjectPerformanceType.FRONTEND]: LandingDisplayField.FRONTEND_OTHER,
-    [ProjectPerformanceType.BACKEND]: LandingDisplayField.BACKEND,
-    [ProjectPerformanceType.MOBILE]: LandingDisplayField.MOBILE,
-  };
-  const performanceType = platformToPerformanceType(projects, projectIds);
-  const landingField =
-    performanceTypeToDisplay[performanceType as keyof typeof performanceTypeToDisplay] ??
-    LandingDisplayField.ALL;
-  return landingField;
 }
 
 export function checkIsReactNative(eventView: EventView) {

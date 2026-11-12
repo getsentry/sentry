@@ -1,8 +1,8 @@
 import logging
 import re
+from collections.abc import Mapping, Sequence
 from typing import Any
 
-from sentry.debug_files.artifact_bundles import maybe_renew_artifact_bundles_from_processing
 from sentry.lang.javascript.utils import JAVASCRIPT_PLATFORMS
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import FrameOrder, Symbolicator
@@ -19,7 +19,10 @@ logger = logging.getLogger(__name__)
 NON_BUILTIN_PATH_REGEX = re.compile(r"^((app|webpack|[a-zA-Z]|https?):|/)")
 
 
-def _merge_frame_context(new_frame, symbolicated):
+def _merge_frame_context(
+    new_frame: Mapping[str, Any],
+    symbolicated: Mapping[str, Any],
+) -> dict[str, Any]:
     new_frame = dict(new_frame)
     symbolicated = dict(symbolicated)
 
@@ -33,7 +36,7 @@ def _merge_frame_context(new_frame, symbolicated):
     return new_frame
 
 
-def _merge_frame(new_frame, symbolicated):
+def _merge_frame(new_frame: Mapping[str, Any], symbolicated: Mapping[str, Any]) -> dict[str, Any]:
     new_frame = dict(new_frame)
     symbolicated = dict(symbolicated)
 
@@ -65,17 +68,12 @@ def _merge_frame(new_frame, symbolicated):
             frame_meta["symbolicated"] = data["symbolicated"]
     if symbolicated.get("module"):
         new_frame["module"] = symbolicated["module"]
-    if symbolicated.get("in_app") is not None:
-        new_frame["in_app"] = symbolicated["in_app"]
-    # if symbolicated.get("status"):
-    # NOTE: We don't need this currently, and it's not clear whether we'll use it at all.
-    # frame_meta["symbolicator_status"] = symbolicated["status"]
 
     return new_frame
 
 
 # TODO: Change this error handling to be JS-specific?
-def _handle_response_status(event_data, response_json):
+def _handle_response_status(event_data: Any, response_json: Any) -> bool | None:
     if not response_json:
         error = SymbolicationFailed(type=EventErrorType.NATIVE_INTERNAL_FAILURE)
     elif response_json["status"] == "completed":
@@ -90,9 +88,10 @@ def _handle_response_status(event_data, response_json):
         error = SymbolicationFailed(type=EventErrorType.NATIVE_INTERNAL_FAILURE)
 
     write_error(error, event_data)
+    return None
 
 
-def is_sourcemap_image(image):
+def is_sourcemap_image(image: Any) -> bool:
     return (
         bool(image)
         and image.get("type") == "sourcemap"
@@ -101,17 +100,20 @@ def is_sourcemap_image(image):
     )
 
 
-def sourcemap_images_from_data(data):
-    return get_path(data, "debug_meta", "images", default=(), filter=is_sourcemap_image)
+def sourcemap_images_from_data(data: Mapping[str, Any]) -> list[dict[str, Any]]:
+    images = get_path(data, "debug_meta", "images", default=(), filter=is_sourcemap_image)
+    return images
 
 
 # Most people don't upload release artifacts for their third-party libraries,
 # so ignore missing node_modules files or chrome extensions
-def should_skip_missing_source_error(abs_path) -> bool:
+def should_skip_missing_source_error(abs_path: str) -> bool:
     return "node_modules" in abs_path or abs_path.startswith("chrome-extension:")
 
 
-def map_symbolicator_process_js_errors(errors):
+def map_symbolicator_process_js_errors(
+    errors: Sequence[dict[str, Any]] | None,
+) -> list[dict[str, Any]]:
     if errors is None:
         return []
 
@@ -176,7 +178,7 @@ def map_symbolicator_process_js_errors(errors):
     return mapped_errors
 
 
-def _handles_frame(frame, data):
+def _handles_frame(frame: Mapping[str, Any], data: Mapping[str, Any]) -> bool:
     abs_path = frame.get("abs_path")
     platform = frame.get("platform") or data.get("platform", "unknown")
 
@@ -199,16 +201,16 @@ def _handles_frame(frame, data):
     return True
 
 
-def _is_native_frame(abs_path):
+def _is_native_frame(abs_path: str) -> bool:
     return abs_path in ("native", "[native code]")
 
 
-def _is_built_in(abs_path, platform):
+def _is_built_in(abs_path: str, platform: str | None) -> bool:
     return platform == "node" and not NON_BUILTIN_PATH_REGEX.match(abs_path)
 
 
 # We want to make sure that some specific frames are always marked as non-inapp prior to going into grouping.
-def _normalize_nonhandled_frame(frame, data):
+def _normalize_nonhandled_frame(frame: dict[str, Any], data: Mapping[str, Any]) -> dict[str, Any]:
     abs_path = frame.get("abs_path")
 
     if abs_path and (_is_native_frame(abs_path) or _is_built_in(abs_path, data.get("platform"))):
@@ -220,7 +222,7 @@ def _normalize_nonhandled_frame(frame, data):
 FRAME_FIELDS = ("platform", "abs_path", "lineno", "colno", "function")
 
 
-def _normalize_frame(raw_frame: Any) -> dict:
+def _normalize_frame(raw_frame: Any) -> dict[str, Any]:
     frame = {}
     for key in FRAME_FIELDS:
         if (value := raw_frame.get(key)) is not None:
@@ -264,10 +266,6 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
 
     if not _handle_response_status(data, response):
         return data
-
-    used_artifact_bundles = response.get("used_artifact_bundles", [])
-    if used_artifact_bundles:
-        maybe_renew_artifact_bundles_from_processing(symbolicator.project.id, used_artifact_bundles)
 
     processing_errors = response.get("errors", [])
     if len(processing_errors) > 0:
@@ -333,7 +331,7 @@ NODE_MODULES_RE = re.compile(r"\bnode_modules/")
 
 
 # Port from symbolicator-js
-def is_in_app(frame):
+def is_in_app(frame: Mapping[str, Any]) -> bool | None:
     """
     Determine if a frame is part of the application code.
     Returns None if we can't determine, otherwise returns a boolean.

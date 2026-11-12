@@ -27,11 +27,14 @@ class CheckinPayload(TypedDict):
     status: str
     environment: NotRequired[str]
     duration: NotRequired[int]
-    monitor_config: NotRequired[dict]
+    monitor_config: NotRequired[dict[str, object]]
     contexts: NotRequired[CheckinContexts]
 
 
 def slugify_monitor_slug(slug: str) -> str:
+    # Keep in sync with `slugify_monitor_slug` in Relay, which uses the result
+    # for the check-in routing key and rate limit dimensions:
+    # https://github.com/getsentry/relay/blob/master/relay-monitors/src/lib.rs
     return slugify(slug)[:DEFAULT_SLUG_MAX_LENGTH].strip("-")
 
 
@@ -75,11 +78,11 @@ class CheckinItem:
     """
 
     @cached_property
-    def valid_monitor_slug(self):
+    def valid_monitor_slug(self) -> str:
         return slugify_monitor_slug(self.payload["monitor_slug"])
 
     @property
-    def processing_key(self):
+    def processing_key(self) -> str:
         """
         This key is used to uniquely identify the check-in group this check-in
         belongs to. Check-ins grouped together will never be processed in

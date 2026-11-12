@@ -23,8 +23,11 @@ env:
 jobs:
   files-changed:
     name: detect what files changed
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 3
+    permissions:
+      contents: read
+      pull-requests: read
     # Map a step output to a job output
     outputs:
       api_docs: ${{ steps.changes.outputs.api_docs }}
@@ -33,13 +36,14 @@ jobs:
       backend_api_urls: ${{ steps.changes.outputs.backend_api_urls }}
       backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
       migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
+      migration_tests: ${{ steps.changes.outputs.migration_tests }}
       # When true, skip selective testing and run the full backend suite
       skip_selective_testing: "${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'Trigger: Override Selective Testing') }}"
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Check for backend file changes
-        uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
+        uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
         id: changes
         with:
           token: ${{ github.token }}
@@ -49,25 +53,41 @@ jobs:
     if: needs.files-changed.outputs.api_docs == 'true'
     needs: files-changed
     name: api docs test
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
+    env:
+      DEVSERVICES_TIMEOUT: '10'
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
-        id: setup-node
-        with:
-          node-version-file: '.node-version'
-
-      - uses: pnpm/action-setup@9b5745cdf0a2e8c2620f0746130f809adb911c19 # v4
       - name: Setup sentry python env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          mode: default
+          skip-devservices: 'true'
+
+      # Only the pytest step needs devservices (~60s to pull and get healthy in
+      # default mode), so bring them up while node is set up and the specs build.
+      - name: Start devservices in the background
+        env:
+          ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES: '1'
+          DEVSERVICES_WORKDIR: .
+          DEVSERVICES_LOCKFILE: uv.lock
+          DEVSERVICES_MODE: default
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          sentry init
+          python3 .github/actions/setup-sentry/devservices-bg.py start
+
+      - uses: ./.github/actions/setup-node-pnpm
+
+      - name: Build and validate API docs
+        run: make validate-api-docs
+
+      - name: Wait for devservices
+        run: python3 .github/actions/setup-sentry/devservices-bg.py wait
 
       - name: Run API docs tests
-        run: |
-          make test-api-docs
+        run: python3 -b -m pytest tests/apidocs --reuse-db
 
       - name: Inspect failure
         if: failure()
@@ -86,7 +106,7 @@ jobs:
       github.event.pull_request.head.repo.full_name == github.repository
     needs: files-changed
     name: select tests
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 10
     permissions:
       contents: read
@@ -94,6 +114,7 @@ jobs:
     outputs:
       has-selected-tests: ${{ steps.compute-tests.outputs.has-selected-tests }}
       test-count: ${{ steps.compute-tests.outputs.test-count }}
+      test-item-count: ${{ steps.compute-tests.outputs.test-item-count }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
@@ -155,7 +176,9 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: selected-tests-${{ github.run_id }}
-          path: .artifacts/selected-tests.txt
+          path: |
+            .artifacts/selected-tests.txt
+            .artifacts/selected-tests.counts.json
           retention-days: 1
 
   calculate-shards:
@@ -166,7 +189,7 @@ jobs:
       needs.files-changed.outputs.backend == 'true'
     needs: [files-changed, select-tests]
     name: calculate test shards
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 5
     outputs:
       shard-count: ${{ steps.static-shards.outputs.shard-count || steps.calculate-shards.outputs.shard-count }}
@@ -178,8 +201,8 @@ jobs:
         if: needs.select-tests.outputs.has-selected-tests != 'true'
         # Keep in sync with MAX_SHARDS in .github/workflows/scripts/calculate-backend-test-shards.py
         run: |
-          echo "shard-count=22" >> "$GITHUB_OUTPUT"
-          echo "shard-indices=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21]" >> "$GITHUB_OUTPUT"
+          echo "shard-count=30" >> "$GITHUB_OUTPUT"
+          echo "shard-indices=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29]" >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         if: needs.select-tests.outputs.has-selected-tests == 'true'
@@ -195,8 +218,8 @@ jobs:
         id: calculate-shards
         if: needs.select-tests.outputs.has-selected-tests == 'true'
         env:
-          SELECTED_TESTS_FILE: '.artifacts/selected-tests.txt'
-          SELECTED_TEST_COUNT: ${{ needs.select-tests.outputs.test-count || '' }}
+          SELECTED_TESTS_FILE: .artifacts/selected-tests.txt
+          SELECTED_TEST_ITEM_COUNT: ${{ needs.select-tests.outputs.test-item-count }}
         run: |
           python3 .github/workflows/scripts/calculate-backend-test-shards.py
 
@@ -208,7 +231,8 @@ jobs:
       needs.files-changed.outputs.backend == 'true' && needs.calculate-shards.outputs.shard-count != '0'
     needs: [files-changed, select-tests, calculate-shards]
     name: backend test
-    runs-on: ubuntu-24.04
+    # Arm runners on pull requests only; master stays on amd64 for now.
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-26.04' }}
     timeout-minutes: 60
     permissions:
       contents: read
@@ -229,16 +253,27 @@ jobs:
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
       XDIST_PER_WORKER_SNUBA: '1'
-      XDIST_WORKERS: ${{ github.event_name == 'pull_request' && '2' || '3' }}
+      XDIST_WORKERS: '4'
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Start resource monitor
+        run: python3 .github/workflows/scripts/monitor-resources.py --start
+
+      # Overlaps the per-worker ClickHouse bootstrap with devservices up.
+      - name: Start per-worker Snuba bootstrap in the background
+        if: env.XDIST_PER_WORKER_SNUBA == '1'
+        env:
+          DEVSERVICES_STATUS_FILE: ${{ runner.temp }}/devservices-ci/up.exit
+        run: python3 .github/workflows/scripts/bootstrap-snuba.py --start
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
           mode: backend-ci
+          early-devservices: 'true'
 
       # Restart postgres with a Unix socket mount. Django's postgres driver uses TCP by
       # default, and each ORM call is multiple round-trips — switching to a Unix socket
@@ -255,7 +290,8 @@ jobs:
             -v /tmp/pg-sock:/var/run/postgresql \
             -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=sentry \
             "$PG_IMAGE" postgres \
-              -c wal_level=logical -c max_replication_slots=1 -c max_wal_senders=1
+              -c wal_level=logical -c max_replication_slots=1 -c max_wal_senders=1 \
+              -c fsync=off -c synchronous_commit=off -c full_page_writes=off
           # docker run -d returns 0 even if postgres dies right after — bound the
           # wait so a crashing postgres surfaces fast instead of hitting the job
           # timeout silently.
@@ -272,14 +308,42 @@ jobs:
 
       - name: Download odiff binary
         run: |
+          case "$(uname -m)" in
+            aarch64) odiff=odiff-linux-arm64 ;;
+            *) odiff=odiff-linux-x64 ;;
+          esac
           curl -sL https://registry.npmjs.org/odiff-bin/-/odiff-bin-4.3.8.tgz \
-            | tar -xz --strip-components=2 package/raw_binaries/odiff-linux-x64
-          sudo install -m 755 odiff-linux-x64 /usr/local/bin/odiff
-          rm odiff-linux-x64
+            | tar -xz --strip-components=2 "package/raw_binaries/$odiff"
+          sudo install -m 755 "$odiff" /usr/local/bin/odiff
+          rm "$odiff"
 
       - name: Bootstrap per-worker Snuba instances
         if: env.XDIST_PER_WORKER_SNUBA == '1'
-        run: python3 .github/workflows/scripts/bootstrap-snuba.py
+        run: python3 .github/workflows/scripts/bootstrap-snuba.py --wait
+
+      # sentry-shared-kafka's healthcheck runs `kafka-topics --list` every 5s, which starts
+      # a JVM each time: about 0.25 of the runner's 4 cores during tests. Everything that
+      # waits on Kafka's health is done by now, so answer that exact command with a TCP
+      # probe instead (kafka-topics-healthcheck.sh).
+      - name: Make the Kafka healthcheck cheap
+        continue-on-error: true
+        run: |
+          real=$(docker exec kafka-kafka-1 sh -c 'command -v kafka-topics')
+          docker exec -u 0 kafka-kafka-1 mv "$real" "$real.real"
+          docker cp .github/workflows/scripts/kafka-topics-healthcheck.sh "kafka-kafka-1:$real"
+          time docker exec kafka-kafka-1 kafka-topics --bootstrap-server 127.0.0.1:9092 --list
+
+      # To profile pytest and its xdist workers (adds ~0.4 cores of overhead), uncomment
+      # this step, run the test command through
+      # .github/workflows/scripts/profile-backend-tests.sh, and add .artifacts/py-spy.txt
+      # to the resource usage upload.
+      # - name: Install py-spy
+      #   run: |
+      #     uv tool install py-spy==0.4.1
+      #     echo "PY_SPY=$(uv tool dir --bin)/py-spy" >> "$GITHUB_ENV"
+      #     echo "PY_SPY_OUTPUT=$PWD/.artifacts/py-spy.txt" >> "$GITHUB_ENV"
+      #     # py-spy attaches to the running pytest controller, which isn't its child.
+      #     sudo sysctl -w kernel.yama.ptrace_scope=0
 
       - name: Download selected tests artifact
         if: needs.select-tests.outputs.has-selected-tests == 'true'
@@ -304,6 +368,41 @@ jobs:
           else
             make test-python-ci
           fi
+
+      - name: Stop resource monitor
+        if: always()
+        continue-on-error: true
+        run: python3 .github/workflows/scripts/monitor-resources.py --stop
+
+      # pytest-selected.py balances full-run shards with these. See
+      # .github/workflows/scripts/backend-test-durations.py to refresh them.
+      - name: Extract test durations
+        id: durations
+        if: ${{ !cancelled() && needs.select-tests.outputs.has-selected-tests != 'true' && hashFiles('.artifacts/pytest.json') != '' }}
+        continue-on-error: true
+        run: |
+          python3 .github/workflows/scripts/backend-test-durations.py extract \
+            .artifacts/pytest.json .artifacts/test-durations.json
+
+      - name: Upload test durations
+        if: ${{ !cancelled() && steps.durations.outcome == 'success' }}
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: backend-test-durations-${{ github.run_id }}-${{ matrix.instance }}
+          path: .artifacts/test-durations.json
+          retention-days: 30
+
+      - name: Upload resource usage
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: backend-resource-usage-${{ github.run_id }}-${{ matrix.instance }}
+          path: |
+            .artifacts/resource-usage.jsonl
+            .artifacts/resource-usage-summary.json
+          retention-days: 30
 
       - name: Report failures
         if: ${{ !cancelled() && github.event_name == 'pull_request' }}
@@ -331,28 +430,25 @@ jobs:
             done
           fi
 
-      - name: Collect test data
-        uses: ./.github/actions/collect-test-data
-        if: ${{ !cancelled() }}
-        continue-on-error: true
-        with:
-          artifact_path: .artifacts/pytest.json
-          gcs_bucket: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}
-          gcp_project_id: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
-          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
-          service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
-          matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
-
   backend-migration-tests:
-    if: needs.files-changed.outputs.backend == 'true'
+    if: >-
+      needs.files-changed.outputs.backend == 'true' &&
+      (
+        github.event_name != 'pull_request' ||
+        needs.files-changed.outputs.migration_tests == 'true' ||
+        needs.files-changed.outputs.skip_selective_testing == 'true'
+      )
     needs: files-changed
     name: backend migration tests
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 30
     permissions:
       contents: read
       actions: read
       pull-requests: write
+    env:
+      MIGRATION_DB_DIR: .artifacts/migration-test-db
+      SAVE_MIGRATION_DB: ${{ github.ref == 'refs/heads/master' }}
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -361,11 +457,35 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          mode: default
+          mode: migrations
+          early-devservices: 'true'
+
+      # Only master saves, so PRs restore the newest master dump.
+      - name: Restore migrated test databases
+        id: db-cache
+        uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          path: ${{ env.MIGRATION_DB_DIR }}
+          key: migration-test-db-v1-${{ hashFiles('src/**/migrations/*.py', 'src/sentry/new_migrations/**/*.py') }}
+          restore-keys: migration-test-db-v1-
+
+      - name: Load migrated test databases
+        run: .github/workflows/scripts/migration-test-db.py restore "$MIGRATION_DB_DIR"
 
       - name: run tests
         run: |
-          PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations --migrations --reruns 0 --fail-slow=150s" make test-python-ci
+          make test-migrations-ci
+
+      - name: Dump migrated test databases
+        if: env.SAVE_MIGRATION_DB == 'true' && steps.db-cache.outputs.cache-hit != 'true'
+        run: .github/workflows/scripts/migration-test-db.py save "$MIGRATION_DB_DIR"
+
+      - name: Save migrated test databases
+        if: env.SAVE_MIGRATION_DB == 'true' && steps.db-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          path: ${{ env.MIGRATION_DB_DIR }}
+          key: ${{ steps.db-cache.outputs.cache-primary-key }}
 
       - name: Report failures
         if: ${{ !cancelled() && github.event_name == 'pull_request' }}
@@ -390,7 +510,7 @@ jobs:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     name: cli test
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -420,7 +540,7 @@ jobs:
     if: needs.files-changed.outputs.backend_dependencies == 'true'
     needs: files-changed
     name: requirements check
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 3
     steps:
       - uses: getsentry/action-github-app-token@5c1e90706fe007857338ac1bfbd7a4177db2f789 # v4.0.0
@@ -434,7 +554,7 @@ jobs:
 
       - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
         with:
-          version: '0.9.28'
+          version: '0.13.7'
 
       - uses: getsentry/action-setup-venv@5a80476d175edf56cb205b08bc58986fa99d1725 # v3.2.0
         with:
@@ -460,7 +580,7 @@ jobs:
     if: needs.files-changed.outputs.backend_api_urls == 'true'
     needs: files-changed
     name: api url typescript generation
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 10
     steps:
       - uses: getsentry/action-github-app-token@5c1e90706fe007857338ac1bfbd7a4177db2f789 # v4.0.0
@@ -491,7 +611,7 @@ jobs:
     if: needs.files-changed.outputs.migration_lockfile == 'true'
     needs: files-changed
     name: check migration
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
 
     steps:
       - name: Checkout sentry
@@ -521,7 +641,7 @@ jobs:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     name: monolith-dbs test
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 20
     permissions:
       contents: read
@@ -536,9 +656,12 @@ jobs:
         id: setup
         with:
           mode: migrations
+          early-devservices: 'true'
 
+      # The backup tests are mostly waiting on postgres, so 4 workers cut ~4m to ~1.5m.
       - name: Run test
         run: |
+          export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n 4 --dist=load"
           make test-monolith-dbs
 
       - name: Report failures
@@ -560,29 +683,18 @@ jobs:
             devservices logs
           fi
 
-      - name: Collect test data
-        uses: ./.github/actions/collect-test-data
-        if: ${{ !cancelled() }}
-        continue-on-error: true
-        with:
-          artifact_path: .artifacts/pytest.monolith-dbs.json
-          gcs_bucket: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}
-          gcp_project_id: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
-          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
-          service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
-
   typing:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     name: backend typing
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
         with:
-          version: '0.9.28'
+          version: '0.13.7'
           # we just cache the venv-dir directly in action-setup-venv
           enable-cache: false
 
@@ -591,10 +703,11 @@ jobs:
           cache-dependency-path: uv.lock
           install-cmd: uv sync --frozen --active
 
+      - name: install sentry
+        run: uv pip install --no-deps -e .
+
       - name: setup sentry (lite)
-        run: |
-          python3 -m tools.fast_editable --path .
-          sentry init
+        run: sentry init
 
       - run: PYTHONWARNINGS=error::RuntimeWarning mypy
         id: run
@@ -662,7 +775,7 @@ jobs:
     name: Backend
     # This is necessary since a failed/skipped dependent job would cause this job to be skipped
     if: always()
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     steps:
       # If any jobs we depend on fail, we will fail since this is a required check
       # NOTE: A timeout is considered a failure

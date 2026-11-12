@@ -1,12 +1,14 @@
 import {css} from '@emotion/react';
-import styled from '@emotion/styled';
+import {IconFix} from '@sentry/icons/fix';
+import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 
 import {
   prepareSourceMapDebuggerFrameInformation,
-  useSourceMapDebugQuery,
+  sourceMapDebugApiOptions,
 } from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
 import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {VALID_SOURCE_MAP_DEBUGGER_FILE_EXTENSIONS} from 'sentry/components/stackTrace/frame/actions/utils';
@@ -14,7 +16,6 @@ import {
   useStackTraceContext,
   useStackTraceFrameContext,
 } from 'sentry/components/stackTrace/stackTraceContext';
-import {IconFix} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -26,10 +27,30 @@ export function IssueSourceMapsDebuggerAction() {
   const {exceptionIndex, hideSourceMapDebugger, project} = useStackTraceContext();
   const organization = useOrganization({allowNull: true});
 
-  const {data: sourceMapDebuggerData} = useSourceMapDebugQuery(
-    project?.slug ?? '',
-    event.id,
-    event.sdk?.name ?? null
+  const frameHasValidFileEndingForSourceMapDebugger =
+    VALID_SOURCE_MAP_DEBUGGER_FILE_EXTENSIONS.some(
+      ending =>
+        (frame.absPath ?? '').endsWith(ending) || (frame.filename ?? '').endsWith(ending)
+    );
+  const frameCanShowSourceMapDebuggerButton =
+    !frame.context?.length &&
+    !hideSourceMapDebugger &&
+    frame.inApp &&
+    frameHasValidFileEndingForSourceMapDebugger;
+
+  // Each frame calls this hook, but they share one query key, so the
+  // request runs once per event and only if some frame could show the button.
+  const {data: sourceMapDebuggerData} = useQuery(
+    sourceMapDebugApiOptions(
+      frameCanShowSourceMapDebuggerButton
+        ? {
+            organizationSlug: organization?.slug,
+            projectSlug: project?.slug ?? '',
+            eventId: event.id,
+            sdkName: event.sdk?.name ?? null,
+          }
+        : skipToken
+    )
   );
   const debuggerFrame =
     exceptionIndex === undefined
@@ -45,16 +66,8 @@ export function IssueSourceMapsDebuggerAction() {
         )
       : undefined;
 
-  const frameHasValidFileEndingForSourceMapDebugger =
-    VALID_SOURCE_MAP_DEBUGGER_FILE_EXTENSIONS.some(
-      ending =>
-        (frame.absPath ?? '').endsWith(ending) || (frame.filename ?? '').endsWith(ending)
-    );
   const shouldShowSourceMapDebuggerButton =
-    !frame.context?.length &&
-    !hideSourceMapDebugger &&
-    frame.inApp &&
-    frameHasValidFileEndingForSourceMapDebugger &&
+    frameCanShowSourceMapDebuggerButton &&
     !!frameSourceResolutionResults &&
     !frameSourceResolutionResults.frameIsResolved;
 
@@ -107,16 +120,10 @@ export function IssueSourceMapsDebuggerAction() {
         );
       }}
     >
-      <UnminifyActionContent>
+      <Flex as="span" display="inline-flex" align="center" gap="xs">
         <IconFix size="xs" />
         <span>{t('Unminify Code')}</span>
-      </UnminifyActionContent>
+      </Flex>
     </Button>
   );
 }
-
-const UnminifyActionContent = styled('span')`
-  display: inline-flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-`;

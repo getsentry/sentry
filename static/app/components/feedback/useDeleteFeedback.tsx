@@ -1,9 +1,9 @@
 import {useCallback} from 'react';
 
+import {openConfirmModal} from '@sentry/scraps/confirm';
+import {toast} from '@sentry/scraps/toast';
+
 import {bulkDelete} from 'sentry/actionCreators/group';
-import {addLoadingMessage} from 'sentry/actionCreators/indicator';
-import {openConfirmModal} from 'sentry/components/confirm';
-import {useRefetchFeedbackList} from 'sentry/components/feedback/list/useRefetchFeedbackList';
 import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
@@ -11,6 +11,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
+
+import {useRefetchFeedbackList} from './list/useRefetchFeedbackList';
 
 export const useDeleteFeedback = (feedbackIds: any, projectId: any) => {
   const organization = useOrganization();
@@ -24,35 +26,32 @@ export const useDeleteFeedback = (feedbackIds: any, projectId: any) => {
 
   return useCallback(() => {
     openConfirmModal({
-      onConfirm: () => {
-        addLoadingMessage(t('Updating feedback...'));
-        bulkDelete(
-          api,
-          {
+      onConfirm: async () => {
+        toast.loading(t('Updating feedback...'));
+        try {
+          await bulkDelete(api, {
             orgId: organization.slug,
             projectId,
             itemIds: feedbackIds,
-          },
-          {
-            complete: () => {
-              refetchFeedbackList();
-              navigate(
-                normalizeUrl({
-                  pathname: makeFeedbackPathname({
-                    path: '/',
-                    organization,
-                  }),
-                  query: {
-                    mailbox: locationQuery.mailbox,
-                    project: locationQuery.project,
-                    query: locationQuery.query,
-                    statsPeriod: locationQuery.statsPeriod,
-                  },
-                })
-              );
-            },
-          }
-        );
+          });
+          navigate(
+            normalizeUrl({
+              pathname: makeFeedbackPathname({
+                path: '/',
+                organization,
+              }),
+              query: {
+                mailbox: locationQuery.mailbox,
+                project: locationQuery.project,
+                query: locationQuery.query,
+                statsPeriod: locationQuery.statsPeriod,
+              },
+            })
+          );
+        } catch {
+          // GroupStore already shows the error
+        }
+        refetchFeedbackList();
       },
       message: t('Deleting feedback is permanent. Are you sure you wish to continue?'),
       confirmText: t('Delete'),

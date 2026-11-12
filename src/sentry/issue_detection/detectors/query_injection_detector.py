@@ -4,12 +4,17 @@ import hashlib
 from typing import Any
 
 from sentry.issue_detection.base import DetectorType, PerformanceDetector
-from sentry.issue_detection.detectors.utils import get_notification_attachment_body
+from sentry.issue_detection.detectors.utils import (
+    get_notification_attachment_body,
+    get_span_description,
+    is_redis_span,
+)
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issue_detection.types import Span
 from sentry.issues.grouptype import QueryInjectionVulnerabilityGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.utils import json
+from sentry.utils.safe import get_path
 
 MAX_EVIDENCE_VALUE_LENGTH = 10_000
 
@@ -33,8 +38,8 @@ class QueryInjectionDetector(PerformanceDetector):
         self.extract_request_data(event)
 
     def extract_request_data(self, event: dict[str, Any]) -> None:
-        self.request_data = event.get("request", {}).get("data", {})
-        self.request_url = event.get("request", {}).get("url", "")
+        self.request_data = get_path(event, "request", "data", default={})
+        self.request_url = get_path(event, "request", "url", default="")
         if not isinstance(self.request_data, dict):
             return
 
@@ -45,13 +50,11 @@ class QueryInjectionDetector(PerformanceDetector):
                 self.potential_unsafe_inputs.append(query_pair)
 
     def visit_span(self, span: Span) -> None:
-        if not self._is_span_eligible(span):
+        # Check the event-level inputs first: free, unlike the span checks.
+        if not self.potential_unsafe_inputs or not self._is_span_eligible(span):
             return
 
-        if len(self.potential_unsafe_inputs) == 0:
-            return
-
-        description = span.get("description", None) or ""
+        description = get_span_description(span)
         op = span.get("op", None) or ""
         spans_involved = [span["span_id"]]
 
@@ -127,10 +130,10 @@ class QueryInjectionDetector(PerformanceDetector):
 
         op = span.get("op", None)
 
-        if not op or not op.startswith("db") or op.startswith("db.redis"):
+        if not op or not op.startswith("db") or is_redis_span(span):
             return False
 
-        description = span.get("description", None)
+        description = get_span_description(span)
 
         if not description:
             return False

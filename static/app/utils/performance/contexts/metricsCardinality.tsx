@@ -1,22 +1,22 @@
 import type {ReactNode} from 'react';
-import {createContext, Fragment, useContext, useEffect} from 'react';
+import {createContext, Fragment, useContext} from 'react';
 import type {Location} from 'history';
 
 import type {Organization} from 'sentry/types/organization';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
-import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {MetricsCompatibilityData} from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuery';
 import {MetricsCompatibilityQuery} from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuery';
 import type {MetricsCompatibilitySumData} from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuerySums';
 import {MetricsCompatibilitySumsQuery} from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuerySums';
 
+import {canUseMetricsData} from './useMEPSettingContext';
+
 const UNPARAM_THRESHOLD = 0.01;
 const NULL_THRESHOLD = 0.01;
 
-export interface MetricDataSwitcherOutcome {
+interface MetricDataSwitcherOutcome {
   forceTransactionsOnly: boolean;
   compatibleProjects?: number[];
   shouldNotifyUnnamedTransactions?: boolean;
@@ -41,7 +41,6 @@ export function MetricsCardinalityProvider(props: {
   children: ReactNode;
   location: Location;
   organization: Organization;
-  sendOutcomeAnalytics?: boolean;
 }) {
   const isUsingMetrics = canUseMetricsData(props.organization);
 
@@ -91,16 +90,14 @@ export function MetricsCardinalityProvider(props: {
                     );
 
               return (
-                <Provider
-                  sendOutcomeAnalytics={props.sendOutcomeAnalytics}
-                  organization={props.organization}
+                <MetricsCardinalityCtx
                   value={{
                     isLoading,
                     outcome,
                   }}
                 >
                   {props.children}
-                </Provider>
+                </MetricsCardinalityCtx>
               );
             }}
           </MetricsCompatibilitySumsQuery>
@@ -108,36 +105,6 @@ export function MetricsCardinalityProvider(props: {
       </MetricsCompatibilityQuery>
     </Fragment>
   );
-}
-
-function Provider(props: {
-  children: ReactNode;
-  organization: Organization;
-  value: MetricsCardinalityContext;
-  sendOutcomeAnalytics?: boolean;
-}) {
-  const fallbackFromNull = props.value.outcome?.shouldWarnIncompatibleSDK ?? false;
-  const fallbackFromUnparam =
-    props.value.outcome?.shouldNotifyUnnamedTransactions ?? false;
-  const isOnMetrics = !props.value.outcome?.forceTransactionsOnly;
-  useEffect(() => {
-    if (!props.value.isLoading && props.sendOutcomeAnalytics) {
-      trackAnalytics('performance_views.mep.metrics_outcome', {
-        organization: props.organization,
-        is_on_metrics: isOnMetrics,
-        fallback_from_null: fallbackFromNull,
-        fallback_from_unparam: fallbackFromUnparam,
-      });
-    }
-  }, [
-    props.organization,
-    props.value.isLoading,
-    isOnMetrics,
-    fallbackFromUnparam,
-    fallbackFromNull,
-    props.sendOutcomeAnalytics,
-  ]);
-  return <MetricsCardinalityCtx {...props}>{props.children}</MetricsCardinalityCtx>;
 }
 
 export function useMetricsCardinalityContext(): MetricsCardinalityContext | undefined {

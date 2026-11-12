@@ -1,15 +1,16 @@
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
-import {DetectorDetailsContent} from 'sentry/views/detectors/components/details';
-import {useDetectorQuery} from 'sentry/views/detectors/hooks';
+
+import {DetectorDetailsContent} from './components/details';
+import {useDetectorQuery} from './hooks';
 
 function DetectorDetailsLoadingStates({
   detectorId,
@@ -35,7 +36,11 @@ function DetectorDetailsLoadingStates({
   if (isError) {
     return (
       <LoadingError
-        message={error.status === 404 ? t('The monitor could not be found.') : undefined}
+        message={
+          error instanceof RequestError && error.status === 404
+            ? t('The monitor could not be found.')
+            : undefined
+        }
         onRetry={refetch}
       />
     );
@@ -53,7 +58,6 @@ function DetectorDetailsLoadingStates({
 }
 
 export default function DetectorDetails() {
-  useWorkflowEngineFeatureGate({redirect: true});
   const params = useParams<{detectorId: string}>();
   const {projects, fetching: isFetchingProjects} = useProjects();
 

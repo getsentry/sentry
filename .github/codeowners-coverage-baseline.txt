@@ -53,7 +53,6 @@ bin/split-silo-database
 bin/update-migration
 config/build-chartcuterie.ts
 config/commit-template
-jest.config.snapshots.ts
 migrations_lockfile.txt
 rspack.config.ts
 src/AGENTS.md
@@ -291,14 +290,12 @@ src/sentry/web_vitals/types.py
 src/sentry/wsgi.py
 src/sudo/LICENSE
 src/sudo/__init__.py
-src/sudo/forms.py
 src/sudo/middleware.py
 src/sudo/models.py
 src/sudo/py.typed
 src/sudo/settings.py
 src/sudo/signals.py
 src/sudo/utils.py
-src/sudo/views.py
 static/app/__mocks__/api.tsx
 static/app/__mocks__/prismjs.tsx
 static/app/__mocks__/react-date-range.tsx
@@ -314,7 +311,6 @@ static/app/actionCreators/events.tsx
 static/app/actionCreators/group.spec.tsx
 static/app/actionCreators/group.tsx
 static/app/actionCreators/guides.tsx
-static/app/actionCreators/indicator.tsx
 static/app/actionCreators/integrations.tsx
 static/app/actionCreators/members.tsx
 static/app/actionCreators/modal.tsx
@@ -415,9 +411,6 @@ static/app/components/badge/groupPriority.tsx
 static/app/components/badge/iconCellSignal.tsx
 static/app/components/banner.spec.tsx
 static/app/components/banner.tsx
-static/app/components/breadcrumbs.spec.tsx
-static/app/components/breadcrumbs.stories.tsx
-static/app/components/breadcrumbs.tsx
 static/app/components/calendar/calendar.stories.tsx
 static/app/components/calendar/calendarStylesWrapper.tsx
 static/app/components/calendar/datePicker.tsx
@@ -543,14 +536,6 @@ static/app/components/discover/transactionsList.spec.tsx
 static/app/components/discover/transactionsList.tsx
 static/app/components/discover/transactionsTable.tsx
 static/app/components/discoverButton.tsx
-static/app/components/dropdownButton.tsx
-static/app/components/dropdownMenu/footer.tsx
-static/app/components/dropdownMenu/index.spec.tsx
-static/app/components/dropdownMenu/index.stories.tsx
-static/app/components/dropdownMenu/index.tsx
-static/app/components/dropdownMenu/item.tsx
-static/app/components/dropdownMenu/list.tsx
-static/app/components/dropdownMenu/section.tsx
 static/app/components/duration.tsx
 static/app/components/duration/duration.spec.tsx
 static/app/components/duration/duration.stories.tsx
@@ -1036,7 +1021,6 @@ static/app/components/searchBar/utils.spec.tsx
 static/app/components/searchBar/utils.tsx
 static/app/components/searchSyntax/evaluator.spec.tsx
 static/app/components/searchSyntax/evaluator.tsx
-static/app/components/searchSyntax/grammar.pegjs
 static/app/components/searchSyntax/mutableSearch.spec.tsx
 static/app/components/searchSyntax/mutableSearch.tsx
 static/app/components/searchSyntax/parser.spec.tsx
@@ -1279,8 +1263,6 @@ static/app/types/workflowEngine/dataConditions.tsx
 static/app/types/workflowEngine/detectors.tsx
 static/app/utils.spec.tsx
 static/app/utils.tsx
-static/app/views/acceptOrganizationInvite/index.spec.tsx
-static/app/views/acceptOrganizationInvite/index.tsx
 static/app/views/acceptProjectTransfer/index.spec.tsx
 static/app/views/acceptProjectTransfer/index.tsx
 static/app/views/app/alertMessage.tsx
@@ -1660,11 +1642,6 @@ tests/acceptance/test_teams_list.py
 tests/acceptance/test_trace_view_from_explore.py
 tests/acceptance/test_trace_view_waterfall.py
 tests/conftest.py
-tests/flagpole/__init__.py
-tests/flagpole/test_conditions.py
-tests/flagpole/test_evaluation_context.py
-tests/flagpole/test_feature.py
-tests/flagpole/test_flagpole_eval.py
 tests/integration/__init__.py
 tests/integration/fixtures/csp/chrome_input.json
 tests/integration/fixtures/csp/chrome_output.json
@@ -1825,7 +1802,6 @@ tests/js/fixtures/vercelIntegration.ts
 tests/js/fixtures/widget.ts
 tests/js/fixtures/widgetQuery.ts
 tests/js/fixtures/workflowEngine.ts
-tests/js/instrumentedEnv/userEventIntegration.ts
 tests/js/jest-pegjs-transform.js
 tests/js/setup.ts
 tests/js/setupFramework.ts
@@ -1916,7 +1892,6 @@ tests/sentry/db/models/fields/encryption/test_encrypted_text_field.py
 tests/sentry/db/models/fields/test_bounded.py
 tests/sentry/db/models/fields/test_hybrid_cloud_foreign_key.py
 tests/sentry/db/models/fields/test_jsonfield.py
-tests/sentry/db/models/fields/test_picklefield.py
 tests/sentry/db/models/fields/test_slug.py
 tests/sentry/db/models/manager/__init__.py
 tests/sentry/db/models/manager/test_base_query_set.py
@@ -1951,7 +1926,6 @@ tests/sentry/digests/test_utilities.py
 tests/sentry/discover/__init__.py
 tests/sentry/discover/test_arithmetic.py
 tests/sentry/discover/test_compare_tables.py
-tests/sentry/discover/test_compare_timeseries.py
 tests/sentry/discover/test_dashboard_widget_split.py
 tests/sentry/discover/test_dataset_split.py
 tests/sentry/discover/test_models.py
@@ -2138,7 +2112,6 @@ tests/sentry/models/test_releaseprojectenvironment.py
 tests/sentry/models/test_repository.py
 tests/sentry/models/test_repositorysettings.py
 tests/sentry/models/test_rule.py
-tests/sentry/models/test_rulesnooze.py
 tests/sentry/models/test_statistical_detectors.py
 tests/sentry/models/test_team.py
 tests/sentry/models/test_teamkeytransaction.py
@@ -2187,7 +2160,6 @@ tests/sentry/quotas/__init__.py
 tests/sentry/quotas/test_base.py
 tests/sentry/quotas/test_redis.py
 tests/sentry/ratelimits/__init__.py
-tests/sentry/ratelimits/test_cardinality.py
 tests/sentry/ratelimits/test_config.py
 tests/sentry/ratelimits/test_leaky_bucket.py
 tests/sentry/ratelimits/test_redis.py
@@ -2269,7 +2241,6 @@ tests/sentry/snuba/metrics/test_metrics_layer/test_metrics_enhanced_performance.
 tests/sentry/snuba/metrics/test_metrics_layer/test_release_health.py
 tests/sentry/snuba/metrics/test_metrics_query_layer/__init__.py
 tests/sentry/snuba/metrics/test_metrics_query_layer/test_metrics_query_layer.py
-tests/sentry/snuba/metrics/test_mqb_query_transformer.py
 tests/sentry/snuba/metrics/test_naming_layer.py
 tests/sentry/snuba/metrics/test_query.py
 tests/sentry/snuba/metrics/test_query_builder.py
@@ -2316,7 +2287,6 @@ tests/sentry/tasks/test_auth.py
 tests/sentry/tasks/test_auto_enable_codecov.py
 tests/sentry/tasks/test_base.py
 tests/sentry/tasks/test_beacon.py
-tests/sentry/tasks/test_check_am2_compatibility.py
 tests/sentry/tasks/test_check_auth.py
 tests/sentry/tasks/test_collect_project_platforms.py
 tests/sentry/tasks/test_commits.py
@@ -2367,7 +2337,6 @@ tests/sentry/testutils/thread_leaks/test_sentry.py
 tests/sentry/tsdb/__init__.py
 tests/sentry/tsdb/test_base.py
 tests/sentry/tsdb/test_redis.py
-tests/sentry/tsdb/test_redissnuba.py
 tests/sentry/tsdb/test_snuba.py
 tests/sentry/types/__init__.py
 tests/sentry/types/test_actor.py

@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Collection, Iterable
 from datetime import datetime, timedelta
 
 from django.conf import settings
@@ -15,11 +16,24 @@ from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, cell_silo_m
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.issues.grouptype import get_group_type_by_type_id
-from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+# Preserve the existing OPENED/CLOSED activity policy independently of detector registration.
+_OPEN_PERIOD_ACTIVITY_GROUP_TYPES = frozenset(
+    {
+        "error",
+        "issue_stream",
+        "metric_issue",
+        "monitor_check_in_failure",
+        "preprod_size_analysis",
+        "sourcemap_configuration",
+        "uptime_domain_failure",
+    }
+)
 
 
 class TsTzRange(models.Func):
@@ -27,13 +41,18 @@ class TsTzRange(models.Func):
     output_field = DateTimeRangeField()
 
 
+def get_group_types_without_open_periods() -> Collection[int]:
+    type_ids = options.get("workflow_engine.group.type_id.open_periods_type_denylist")
+    return type_ids
+
+
 def should_create_open_periods(type_id: int) -> bool:
-    grouptypes_without_open_periods = options.get(
-        "workflow_engine.group.type_id.open_periods_type_denylist"
-    )
-    if type_id in grouptypes_without_open_periods:
-        return False
-    return True
+    return type_id not in get_group_types_without_open_periods()
+
+
+def should_record_open_period_activity(type_id: int) -> bool:
+    """Whether to record OPENED/CLOSED activities; priority activities have a separate policy."""
+    return get_group_type_by_type_id(type_id).slug in _OPEN_PERIOD_ACTIVITY_GROUP_TYPES
 
 
 @cell_silo_model
@@ -92,20 +111,23 @@ class GroupOpenPeriod(DefaultFieldsModel):
 
     def close_open_period(
         self,
-        resolution_activity: Activity,
         resolution_time: datetime,
     ) -> None:
         if self.date_ended is not None:
             logger.warning("Open period is already closed", extra={"group_id": self.group.id})
             return
 
-        self.update(
-            date_ended=resolution_time,
-            resolution_activity=resolution_activity,
-            user_id=resolution_activity.user_id,
-        )
+        if resolution_time < self.date_started:
+            metrics.incr(
+                "group_open_period.close.resolution_time_before_start",
+                tags={"group_type": get_group_type_by_type_id(self.group.type).slug},
+            )
 
-        if get_group_type_by_type_id(self.group.type).detector_settings is not None:
+            resolution_time = self.date_started
+
+        self.update(date_ended=resolution_time)
+
+        if should_record_open_period_activity(self.group.type):
             GroupOpenPeriodActivity.objects.create(
                 group_open_period=self,
                 type=OpenPeriodActivityType.CLOSED,
@@ -116,26 +138,7 @@ class GroupOpenPeriod(DefaultFieldsModel):
             logger.warning("Open period is not closed", extra={"group_id": self.group.id})
             return
 
-        self.update(date_ended=None, resolution_activity=None, user_id=None)
-
-
-def get_last_checked_for_open_period(group: Group) -> datetime:
-    from sentry.incidents.grouptype import MetricIssue
-    from sentry.incidents.models.alert_rule import AlertRule
-
-    event = group.get_latest_event()
-    last_checked = group.last_seen
-    if event and group.type == MetricIssue.type_id:
-        alert_rule_id = event.data.get("contexts", {}).get("metric_alert", {}).get("alert_rule_id")
-        if alert_rule_id:
-            try:
-                alert_rule = AlertRule.objects.get(id=alert_rule_id)
-                now = timezone.now()
-                last_checked = now - timedelta(seconds=alert_rule.snuba_query.time_window)
-            except AlertRule.DoesNotExist:
-                pass
-
-    return last_checked
+        self.update(date_ended=None)
 
 
 def get_open_periods_for_group(
@@ -167,17 +170,47 @@ def get_open_periods_for_group(
     if not query_end:
         query_end = timezone.now()
 
+    return _filter_open_periods_overlapping_range(
+        GroupOpenPeriod.objects.filter(group=group),
+        query_start=query_start,
+        query_end=query_end,
+    )
+
+
+def get_open_periods_for_groups(
+    group_ids: Iterable[int],
+    query_start: datetime | None = None,
+    query_end: datetime | None = None,
+) -> BaseQuerySet[GroupOpenPeriod]:
+    """
+    Get open periods across many groups that overlap with the query time range, newest first.
+    See `get_open_periods_for_group` for more details on how overlapping works
+    """
+    if not query_start:
+        query_start = timezone.now() - timedelta(days=90)
+
+    if not query_end:
+        query_end = timezone.now()
+
+    return _filter_open_periods_overlapping_range(
+        GroupOpenPeriod.objects.filter(group_id__in=group_ids),
+        query_start=query_start,
+        query_end=query_end,
+    )
+
+
+def _filter_open_periods_overlapping_range(
+    open_periods: BaseQuerySet[GroupOpenPeriod],
+    query_start: datetime,
+    query_end: datetime,
+) -> BaseQuerySet[GroupOpenPeriod]:
     started_before_query_ends = Q(date_started__lte=query_end)
     ended_after_query_starts = Q(date_ended__gte=query_start)
     still_open = Q(date_ended__isnull=True)
 
-    return (
-        GroupOpenPeriod.objects.filter(
-            group=group,
-        )
-        .filter(started_before_query_ends & (ended_after_query_starts | still_open))
-        .order_by("-date_started")
-    )
+    return open_periods.filter(
+        started_before_query_ends & (ended_after_query_starts | still_open)
+    ).order_by("-date_started")
 
 
 def create_open_period(group: Group, start_time: datetime, event_id: str | None = None) -> None:
@@ -204,11 +237,9 @@ def create_open_period(group: Group, start_time: datetime, event_id: str | None 
             project=group.project,
             date_started=start_time,
             date_ended=None,
-            resolution_activity=None,
         )
 
-        # If we care about this group's activity, create activity entry
-        if get_group_type_by_type_id(group.type).detector_settings is not None:
+        if should_record_open_period_activity(group.type):
             GroupOpenPeriodActivity.objects.create(
                 date_added=start_time,
                 group_open_period=open_period,
@@ -222,15 +253,13 @@ def update_group_open_period(
     group: Group,
     new_status: int,
     resolution_time: datetime | None = None,
-    resolution_activity: Activity | None = None,
 ) -> None:
     """
     Update an existing open period when the group is resolved or unresolved.
 
-    On resolution, we set the date_ended to the resolution time and link the activity to the open period.
-    On unresolved, we clear the date_ended and resolution_activity fields. This is only done if the group
-    is unresolved manually without a regression. If the group is unresolved due to a regression, the
-    open periods will be updated during ingestion.
+    On resolution, we set the date_ended to the resolution time. On unresolved, we clear date_ended. This
+    is only done if the group is unresolved manually without a regression. If the group is unresolved due
+    to a regression, the open periods will be updated during ingestion.
     """
     # if the group does not track open periods, this is a no-op
     if not should_create_open_periods(group.type):
@@ -247,17 +276,14 @@ def update_group_open_period(
         return
 
     if new_status == GroupStatus.RESOLVED:
-        if resolution_activity is None or resolution_time is None:
+        if resolution_time is None:
             logger.warning(
                 "Missing information to close open period",
                 extra={"group_id": group.id},
             )
             return
 
-        open_period.close_open_period(
-            resolution_activity=resolution_activity,
-            resolution_time=resolution_time,
-        )
+        open_period.close_open_period(resolution_time=resolution_time)
     elif new_status == GroupStatus.UNRESOLVED:
         open_period.reopen_open_period()
 

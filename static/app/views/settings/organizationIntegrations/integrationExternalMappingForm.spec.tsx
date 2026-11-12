@@ -10,14 +10,25 @@ import {
   ModalFooter,
 } from '@sentry/scraps/modal';
 
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+
 import {IntegrationExternalMappingForm} from './integrationExternalMappingForm';
 
 describe('IntegrationExternalMappingForm', () => {
-  const membersEndpoint = '/organizations/org-slug/members/';
+  const membersEndpoint = getApiUrl('/organizations/$organizationIdOrSlug/members/', {
+    path: {organizationIdOrSlug: 'org-slug'},
+  });
   const teamsEndpoint = '/organizations/org-slug/teams/';
+  const memberEndpoint = (memberId: string) =>
+    getApiUrl('/organizations/$organizationIdOrSlug/members/$memberId/', {
+      path: {organizationIdOrSlug: 'org-slug', memberId},
+    });
   const baseProps = {
     integration: GitHubIntegrationFixture(),
-    getBaseFormEndpoint: jest.fn(_mapping => membersEndpoint),
+    // Callers own the whole url, so an existing mapping resolves to its own resource.
+    getBaseFormEndpoint: jest.fn(mapping =>
+      mapping && 'id' in mapping ? memberEndpoint(mapping.id) : membersEndpoint
+    ),
   } satisfies Partial<React.ComponentProps<typeof IntegrationExternalMappingForm>>;
 
   const closeModal = jest.fn();
@@ -74,7 +85,7 @@ describe('IntegrationExternalMappingForm', () => {
       body: {},
     });
     putResponse = MockApiClient.addMockResponse({
-      url: `${membersEndpoint}1/`,
+      url: memberEndpoint('1'),
       method: 'PUT',
       body: {},
     });

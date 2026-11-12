@@ -23,9 +23,6 @@ from sentry.constants import ObjectStatus
 from sentry.exceptions import HashDiscarded
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
-from sentry.incidents.logic import create_alert_rule, create_alert_rule_trigger, create_incident
-from sentry.incidents.models.alert_rule import AlertRuleThresholdType
-from sentry.incidents.models.incident import IncidentType
 from sentry.ingest.consumer.processors import (
     process_attachment_chunk,
     process_individual_attachment,
@@ -62,6 +59,7 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorStatus,
 )
+from sentry.services.eventstore.models import Event
 from sentry.services.organization import organization_provisioning_service
 from sentry.signals import mocks_loaded
 from sentry.similarity import features
@@ -106,13 +104,13 @@ DB::Exception: String is too long for DateTime: 2018-10-26T19:14:18+00:00. Stack
 17. clickhouse-server(DB::executeQuery(std::__cxx11::basic..."""
 
 
-def make_sentence(words=None):
+def make_sentence(words: int | None = None) -> str:
     if words is None:
         words = int(random.weibullvariate(8, 3))
     return " ".join(random.choice(loremipsum.words) for _ in range(words))
 
 
-def create_sample_event(*args, **kwargs):
+def create_sample_event(*args: Any, **kwargs: Any) -> Event | None:
     try:
         event = _create_sample_event(*args, **kwargs)
     except HashDiscarded as e:
@@ -121,10 +119,11 @@ def create_sample_event(*args, **kwargs):
         if event is not None:
             features.record([event])
             return event
+    return None
 
 
-def generate_commit_data(user):
-    commits = []
+def generate_commit_data(user: User) -> list[Mapping[str, object]]:
+    commits: list[Mapping[str, object]] = []
     for i in range(random.randint(1, 20)):
         if i == 1:
             filename = "raven/base.py"
@@ -149,7 +148,7 @@ def generate_commit_data(user):
     return commits
 
 
-def generate_tombstones(project, user):
+def generate_tombstones(project: Project, user: User) -> None:
     # attempt to create a high enough previous_group_id
     # that it won't conflict with any group ids
     prev_group_id = 100000
@@ -173,59 +172,12 @@ def generate_tombstones(project, user):
         prev_group_id += 1
 
 
-def create_system_time_series():
-    now = datetime.now(timezone.utc)
-
-    for _ in range(60):
-        count = randint(1, 10)
-        tsdb.backend.incr_multi(
-            (
-                (TSDBModel.internal, "client-api.all-versions.responses.2xx"),
-                (TSDBModel.internal, "client-api.all-versions.requests"),
-            ),
-            now,
-            int(count * 0.9),
-        )
-        tsdb.backend.incr_multi(
-            ((TSDBModel.internal, "client-api.all-versions.responses.4xx"),),
-            now,
-            int(count * 0.05),
-        )
-        tsdb.backend.incr_multi(
-            ((TSDBModel.internal, "client-api.all-versions.responses.5xx"),),
-            now,
-            int(count * 0.1),
-        )
-        now = now - timedelta(seconds=1)
-
-    for _ in range(24 * 30):
-        count = randint(100, 1000)
-        tsdb.backend.incr_multi(
-            (
-                (TSDBModel.internal, "client-api.all-versions.responses.2xx"),
-                (TSDBModel.internal, "client-api.all-versions.requests"),
-            ),
-            now,
-            int(count * 4.9),
-        )
-        tsdb.backend.incr_multi(
-            ((TSDBModel.internal, "client-api.all-versions.responses.4xx"),),
-            now,
-            int(count * 0.05),
-        )
-        tsdb.backend.incr_multi(
-            ((TSDBModel.internal, "client-api.all-versions.responses.5xx"),),
-            now,
-            int(count * 0.1),
-        )
-        now = now - timedelta(hours=1)
-
-
-def create_sample_time_series(event, release=None):
+def create_sample_time_series(event: Event | None, release: Release | None = None) -> None:
     if event is None:
         return
 
     group = event.group
+    assert group is not None
     project = group.project
     key = project.key_set.all()[0]
 
@@ -240,7 +192,7 @@ def create_sample_time_series(event, release=None):
             project=project, release=release, environment=environment, datetime=now
         )
 
-        grouprelease = GroupRelease.get_or_create(
+        GroupRelease.get_or_create(
             group=group, release=release, environment=environment, datetime=now
         )
 
@@ -261,12 +213,6 @@ def create_sample_time_series(event, release=None):
             now,
             int(count * 1.1),
         )
-        tsdb.backend.incr(
-            TSDBModel.project_total_forwarded,
-            project.id,
-            now,
-            int(count * 1.1),
-        )
         tsdb.backend.incr_multi(
             (
                 (TSDBModel.organization_total_rejected, project.organization_id),
@@ -276,17 +222,6 @@ def create_sample_time_series(event, release=None):
             now,
             int(count * 0.1),
         )
-
-        frequencies = [
-            (TSDBModel.frequent_issues_by_project, {project.id: {group.id: count}}),
-            (TSDBModel.frequent_environments_by_group, {group.id: {environment.id: count}}),
-        ]
-        if release:
-            frequencies.append(
-                (TSDBModel.frequent_releases_by_group, {group.id: {grouprelease.id: count}})
-            )
-
-        tsdb.backend.record_frequency_multi(frequencies, now)
 
         now = now - timedelta(seconds=1)
 
@@ -316,17 +251,6 @@ def create_sample_time_series(event, release=None):
             now,
             int(count * 0.1),
         )
-
-        frequencies = [
-            (TSDBModel.frequent_issues_by_project, {project.id: {group.id: count}}),
-            (TSDBModel.frequent_environments_by_group, {group.id: {environment.id: count}}),
-        ]
-        if release:
-            frequencies.append(
-                (TSDBModel.frequent_releases_by_group, {group.id: {grouprelease.id: count}})
-            )
-
-        tsdb.backend.record_frequency_multi(frequencies, now)
 
         now = now - timedelta(hours=1)
 
@@ -450,8 +374,6 @@ def create_monitor(project: Project, environment: Environment) -> None:
     )
 
     MonitorCheckIn.objects.create(
-        project_id=monitor.project_id,
-        monitor=monitor,
         monitor_environment=monitor_env,
         status=CheckInStatus.OK if monitor_env.status == MonitorStatus.OK else CheckInStatus.ERROR,
     )
@@ -645,6 +567,7 @@ def generate_events(
         )
         generated_events.append(event1)
 
+        assert event1 is not None
         EventAttachment.objects.create(
             project_id=project.id,
             event_id=event1.event_id,
@@ -711,6 +634,7 @@ def generate_events(
             user=generate_user(),
         )
     if event5:
+        assert event5.group is not None
         Commit.objects.get_or_create(
             organization_id=project.organization_id,
             repository_id=repository.id,
@@ -728,6 +652,7 @@ def generate_events(
     create_sample_event(project=project, environment=next(ENVIRONMENTS), platform="csp")
 
     if event3:
+        assert event3.group is not None
         UserReport.objects.create(
             project_id=project.id,
             event_id=event3.event_id,
@@ -740,32 +665,12 @@ def generate_events(
     return generated_events
 
 
-def create_metric_alert_rule(organization: Organization, project: Project) -> None:
-    # Metric alerts
-    alert_rule = create_alert_rule(
-        organization,
-        [project],
-        "My Alert Rule",
-        "level:error",
-        "count()",
-        10,
-        AlertRuleThresholdType.ABOVE,
-        1,
-    )
-    create_alert_rule_trigger(alert_rule, "critical", 10)
-    create_incident(
-        organization,
-        incident_type=IncidentType.ALERT_TRIGGERED,
-        title="My Incident",
-        date_started=datetime.now(timezone.utc),
-        alert_rule=alert_rule,
-        projects=[project],
-    )
-
-
 def create_mock_transactions(
-    project_map, load_trends=False, load_performance_issues=False, slow=False
-):
+    project_map: Mapping[str, Project],
+    load_trends: bool = False,
+    load_performance_issues: bool = False,
+    slow: bool = False,
+) -> None:
     backend_project = project_map["Earth"]
     frontend_project = project_map["Fire"]
     service_projects = [
@@ -914,7 +819,7 @@ def create_mock_transactions(
 
     if load_performance_issues:
 
-        def load_n_plus_one_issue():
+        def load_n_plus_one_issue() -> None:
             trace_id = uuid4().hex
             transaction_user = generate_user()
             frontend_root_span_id = uuid4().hex[:16]
@@ -934,7 +839,7 @@ def create_mock_transactions(
                 "hash": "858fea692d4d93e8",
             }
 
-            def make_repeating_span(duration):
+            def make_repeating_span(duration: int) -> dict[str, object]:
                 nonlocal n_plus_one_db_current_offset
                 nonlocal n_plus_one_db_duration
                 n_plus_one_db_duration += timedelta(milliseconds=duration) + timedelta(
@@ -1034,7 +939,7 @@ def create_mock_transactions(
                 ],
             )
 
-        def load_uncompressed_asset_issue():
+        def load_uncompressed_asset_issue() -> None:
             time.sleep(1.0)
             transaction_user = generate_user()
             trace_id = uuid4().hex
@@ -1080,7 +985,7 @@ def create_mock_transactions(
                 spans=[parent_span] + spans,
             )
 
-        def load_consecutive_db_issue():
+        def load_consecutive_db_issue() -> None:
             time.sleep(1.0)
             transaction_user = generate_user()
             trace_id = uuid4().hex
@@ -1139,7 +1044,7 @@ def create_mock_transactions(
                 spans=[parent_span] + spans,
             )
 
-        def load_render_blocking_asset_issue():
+        def load_render_blocking_asset_issue() -> None:
             transaction_user = generate_user()
             trace_id = uuid4().hex
             parent_span_id = uuid4().hex[:16]
@@ -1173,14 +1078,14 @@ def create_mock_transactions(
                 },
             )
 
-        def load_m_n_plus_one_issue():
+        def load_m_n_plus_one_issue() -> None:
             trace_id = uuid4().hex
             transaction_user = generate_user()
 
             parent_span_id = uuid4().hex[:16]
             duration = 200
 
-            def make_repeating_span(i):
+            def make_repeating_span(i: int) -> dict[str, object]:
                 start_timestamp = timestamp + timedelta(milliseconds=i * (duration + 1))
                 end_timestamp = start_timestamp + timedelta(milliseconds=duration)
                 op = "http" if i % 2 == 0 else "db"
@@ -1223,7 +1128,7 @@ def create_mock_transactions(
                 spans=[parent_span] + repeating_spans,
             )
 
-        def generate_performance_issues():
+        def generate_performance_issues() -> None:
             click.echo(f"    > Loading performance issues data")  # NOQA
             click.echo(f"    > Loading n plus one issue")  # NOQA
             load_n_plus_one_issue()
@@ -1239,7 +1144,7 @@ def create_mock_transactions(
         generate_performance_issues()
 
 
-def create_mock_attachment(event_id, project):
+def create_mock_attachment(event_id: str, project: Project) -> None:
     attachment_id = str(uuid.uuid4())
     file_dir = os.path.dirname(os.path.abspath(__file__))
     attachment_path = os.path.join(file_dir, "../../static/sentry/images/favicon.png")
@@ -1273,7 +1178,7 @@ def create_mock_attachment(event_id, project):
     process_individual_attachment(attachment_event, project)
 
 
-def create_mock_user_feedback(project, has_attachment=True):
+def create_mock_user_feedback(project: Project, has_attachment: bool = True) -> None:
     # Get an existing release for this project instead of creating a new one
     release = Release.objects.filter(projects=project).first()
 
@@ -1316,17 +1221,19 @@ def create_mock_user_feedback(project, has_attachment=True):
     create_feedback_issue(event, project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     if has_attachment:
-        create_mock_attachment(event["event_id"], project)
+        event_id = event["event_id"]
+        assert isinstance(event_id, str)
+        create_mock_attachment(event_id, project)
 
 
 def main(
-    skip_default_setup=False,
-    num_events=1,
-    extra_events=False,
-    load_trends=False,
-    load_performance_issues=False,
-    slow=False,
-):
+    skip_default_setup: bool = False,
+    num_events: int = 1,
+    extra_events: bool = False,
+    load_trends: bool = False,
+    load_performance_issues: bool = False,
+    slow: bool = False,
+) -> None:
     owner = get_superuser()
     user = create_user()
     create_broadcast()
@@ -1354,7 +1261,6 @@ def main(
                 user=user,
                 commits=raw_commits,
             )
-            create_metric_alert_rule(organization, project)
             events = generate_events(
                 project=project,
                 release=release,
@@ -1374,4 +1280,3 @@ def main(
 
     create_mock_user_feedback(project_map["Wind"])
     create_mock_transactions(project_map, load_trends, load_performance_issues, slow)
-    create_system_time_series()

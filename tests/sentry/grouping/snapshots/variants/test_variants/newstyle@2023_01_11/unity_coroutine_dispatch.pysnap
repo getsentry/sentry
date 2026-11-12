@@ -1,0 +1,90 @@
+---
+source: tests/sentry/grouping/test_variants.py::test_variants
+---
+app:
+  hash: "c0dd63bbc946a04d1c23e3de5b704cb0"
+  contributing component: exception
+  hint: None
+  root_component:
+    app*
+      exception*
+        stacktrace*
+          frame* (marked in-app by the client)
+            module*
+              "GameBootstrap"
+            filename (ignored because module takes precedence)
+              "gamebootstrap.cs"
+            function*
+              "Start"
+          frame (marked out of app by the client)
+            module*
+              "UnityEngine.MonoBehaviour"
+            function*
+              "StartCoroutine"
+          frame (marked out of app by the client)
+            module*
+              "UnityEngine.SetupCoroutine"
+            function*
+              "InvokeMoveNext"
+          frame* (marked in-app by the client)
+            module*
+              "EnemySpawner+<SpawnWaves>d__4"
+            filename (ignored because module takes precedence)
+              "enemyspawner.cs"
+            function*
+              "MoveNext"
+          frame* (marked in-app by the client)
+            module*
+              "CombatSystem"
+            filename (ignored because module takes precedence)
+              "combatsystem.cs"
+            function*
+              "ApplyDamage"
+        type*
+          "System.NullReferenceException"
+        value (ignored because stacktrace takes precedence)
+          "Object reference not set to an instance of an object"
+--------------------------------------------------------------------------
+system:
+  hash: "c717cb04db34bd54f07fcea7897bff32"
+  contributing component: exception
+  hint: None
+  root_component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "GameBootstrap"
+            filename (ignored because module takes precedence)
+              "gamebootstrap.cs"
+            function*
+              "Start"
+          frame*
+            module*
+              "UnityEngine.MonoBehaviour"
+            function*
+              "StartCoroutine"
+          frame*
+            module*
+              "UnityEngine.SetupCoroutine"
+            function*
+              "InvokeMoveNext"
+          frame*
+            module*
+              "EnemySpawner+<SpawnWaves>d__4"
+            filename (ignored because module takes precedence)
+              "enemyspawner.cs"
+            function*
+              "MoveNext"
+          frame*
+            module*
+              "CombatSystem"
+            filename (ignored because module takes precedence)
+              "combatsystem.cs"
+            function*
+              "ApplyDamage"
+        type*
+          "System.NullReferenceException"
+        value (ignored because stacktrace takes precedence)
+          "Object reference not set to an instance of an object"

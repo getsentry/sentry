@@ -94,6 +94,11 @@ class AppService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
+    def get_sentry_apps_by_ids(self, *, ids: list[int]) -> list[RpcSentryApp]:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
     def get_installation_by_id(self, *, id: int) -> RpcSentryAppInstallation | None:
         pass
 
@@ -118,6 +123,15 @@ class AppService(RpcService):
     @rpc_method
     @abc.abstractmethod
     def get_installation_token(self, *, organization_id: int, provider: str) -> str | None:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def get_proxy_user_id_for_provider(self, *, organization_id: int, provider: str) -> int | None:
+        """
+        Get the proxy user id of the sentry app installed for `provider` in an organization,
+        e.g. the SCIM internal integration for an auth provider.
+        """
         pass
 
     @rpc_method

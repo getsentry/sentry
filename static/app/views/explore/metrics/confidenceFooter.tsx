@@ -16,7 +16,6 @@ interface ConfidenceFooterProps {
   hasUserQuery: boolean;
   isLoading: boolean;
   rawMetricCounts: RawCounts;
-  disabled?: boolean;
 }
 
 export function ConfidenceFooter({
@@ -24,7 +23,6 @@ export function ConfidenceFooter({
   hasUserQuery,
   isLoading,
   rawMetricCounts,
-  disabled,
 }: ConfidenceFooterProps) {
   return (
     <Container>
@@ -36,7 +34,6 @@ export function ConfidenceFooter({
         isSampled={chartInfo.isSampled}
         sampleCount={chartInfo.sampleCount}
         topEvents={chartInfo.topEvents}
-        disabled={disabled}
       />
     </Container>
   );
@@ -47,7 +44,6 @@ interface ConfidenceMessageProps {
   isLoading: boolean;
   rawMetricCounts: RawCounts;
   dataScanned?: 'full' | 'partial';
-  disabled?: boolean;
   isSampled?: boolean | null;
   sampleCount?: number;
   topEvents?: number;
@@ -57,16 +53,11 @@ function ConfidenceMessage({
   rawMetricCounts,
   sampleCount,
   dataScanned,
-  disabled,
   topEvents,
   hasUserQuery,
   isLoading,
   isSampled,
 }: ConfidenceMessageProps) {
-  if (disabled) {
-    return <Placeholder width={0} />;
-  }
-
   if (isLoading || !defined(sampleCount)) {
     return <Placeholder width={180} />;
   }

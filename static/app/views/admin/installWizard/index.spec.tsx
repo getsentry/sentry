@@ -28,8 +28,8 @@ describe('InstallWizard', () => {
       body: InstallWizardFixture({
         'beacon.anonymous': {
           field: {
-            disabledReason: null,
-            default: false,
+            key: '',
+            label: '',
             required: true,
             disabled: false,
             allowEmpty: true,
@@ -59,8 +59,8 @@ describe('InstallWizard', () => {
       body: InstallWizardFixture({
         'beacon.anonymous': {
           field: {
-            disabledReason: null,
-            default: false,
+            key: '',
+            label: '',
             required: true,
             disabled: false,
             allowEmpty: true,

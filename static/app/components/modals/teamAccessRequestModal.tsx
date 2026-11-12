@@ -1,46 +1,39 @@
-import {Fragment, useState} from 'react';
-import styled from '@emotion/styled';
+import {Fragment} from 'react';
+import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {
-  ModalRenderProps,
-  TeamAccessRequestModalOptions,
-} from 'sentry/actionCreators/modal';
-import type {Client} from 'sentry/api';
+import type {TeamAccessRequestModalOptions} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
-import {withApi} from 'sentry/utils/withApi';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 
 export interface CreateTeamAccessRequestModalProps
   extends ModalRenderProps, TeamAccessRequestModalOptions {
-  api: Client;
   memberId: string;
   orgId: string;
   teamId: string;
 }
 
 function CreateTeamAccessRequestModal(props: CreateTeamAccessRequestModalProps) {
-  const [createBusy, setCreateBusy] = useState(false);
-  const {api, memberId, orgId, teamId, closeModal, Body, Footer} = props;
+  const {memberId, orgId, teamId, closeModal, Body, Footer} = props;
 
-  const handleClick = async () => {
-    setCreateBusy(true);
-
-    try {
-      await api.requestPromise(
-        `/organizations/${orgId}/members/${memberId}/teams/${teamId}/`,
-        {
-          method: 'POST',
-        }
-      );
-      addSuccessMessage(t('Team request sent for approval'));
-    } catch (err) {
-      addErrorMessage(t('Unable to send team request'));
-    }
-    setCreateBusy(false);
-    closeModal();
-  };
+  const {mutate: createRequest, isPending} = useMutation({
+    mutationFn: () =>
+      fetchMutation({
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/members/$memberId/teams/$teamIdOrSlug/',
+          {path: {organizationIdOrSlug: orgId, memberId, teamIdOrSlug: teamId}}
+        ),
+        method: 'POST',
+      }),
+    onSuccess: () => toast.success(t('Team request sent for approval')),
+    onError: () => toast.error(t('Unable to send team request')),
+    onSettled: () => closeModal(),
+  });
 
   return (
     <Fragment>
@@ -51,21 +44,20 @@ function CreateTeamAccessRequestModal(props: CreateTeamAccessRequestModalProps) 
         )}
       </Body>
       <Footer>
-        <ButtonGroup>
+        <Grid gap="md" columns="max-content max-content">
           <Button onClick={closeModal}>{t('Cancel')}</Button>
-          <Button variant="primary" onClick={handleClick} busy={createBusy} autoFocus>
+          <Button
+            variant="primary"
+            onClick={() => createRequest()}
+            busy={isPending}
+            autoFocus
+          >
             {t('Continue')}
           </Button>
-        </ButtonGroup>
+        </Grid>
       </Footer>
     </Fragment>
   );
 }
 
-const ButtonGroup = styled('div')`
-  display: grid;
-  grid-template-columns: max-content max-content;
-  gap: ${p => p.theme.space.md};
-`;
-
-export default withApi(CreateTeamAccessRequestModal);
+export default CreateTeamAccessRequestModal;

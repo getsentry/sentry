@@ -28,9 +28,10 @@ Use `AvatarButton` when the avatar itself should be the clickable control.
 
 ## Avatar Definitions
 
-The `avatar` prop accepts a typed avatar descriptor. Only the data fields are used —
-`type`, `identifier`, `name`, and any type-specific fields (`uploadUrl`, `gravatarId`).
-Style props such as `suggested` or `round` are controlled by the button itself.
+The `avatar` prop accepts a typed avatar descriptor. `type`, `identifier`, `name`, and
+any type-specific fields (`uploadUrl`, `gravatarId`) select what to render. `round` and
+`suggested` control the button's shape and suggested-assignee treatment — see below.
+`avatar` itself is optional; omit it to render an empty/unassigned placeholder.
 
 <Storybook.Demo>
   <AvatarButton
@@ -197,3 +198,83 @@ automatically inset with padding.
     />
   ))}
 </Storybook.Demo>
+
+## Shape
+
+Individuals (e.g. users) are typically round; groups (e.g. teams) are square. Pass
+`round` on the `avatar` descriptor, or set the `round` prop on `AvatarButton` directly
+to override it.
+
+<Storybook.Demo>
+  <AvatarButton
+    aria-label="User (round)"
+    avatar={{
+      type: 'letter_avatar',
+      identifier: 'round-user',
+      name: 'Round User',
+      round: true,
+    }}
+  />
+  <AvatarButton
+    aria-label="Team (square)"
+    avatar={{type: 'letter_avatar', identifier: 'square-team', name: 'Square Team'}}
+  />
+</Storybook.Demo>
+```jsx
+<AvatarButton
+  aria-label="User (round)"
+  avatar={{
+    type: 'letter_avatar',
+    identifier: 'round-user',
+    name: 'Round User',
+    round: true,
+  }}
+/>
+<AvatarButton
+  aria-label="Team (square)"
+  avatar={{type: 'letter_avatar', identifier: 'square-team', name: 'Square Team'}}
+/>
+```
+
+## Suggested Assignee
+
+Set `suggested` on the `avatar` descriptor for a tentative/suggested assignee. The
+button renders a dashed neutral border and a grayscale avatar instead of sampling a
+color from the avatar itself.
+
+<Storybook.Demo>
+  <AvatarButton
+    aria-label="Suggested assignee"
+    avatar={{
+      type: 'letter_avatar',
+      identifier: 'suggested-user',
+      name: 'Suggested User',
+      suggested: true,
+    }}
+  />
+</Storybook.Demo>
+```jsx
+<AvatarButton
+  aria-label="Suggested assignee"
+  avatar={{
+    type: 'letter_avatar',
+    identifier: 'suggested-user',
+    name: 'Suggested User',
+    suggested: true,
+  }}
+/>
+```
+
+## Empty / Unassigned State
+
+Omit `avatar` entirely to render a placeholder for "no assignee yet" — a solid neutral
+border around a muted person icon.
+
+<Storybook.Demo>
+  <AvatarButton aria-label="Unassigned" />
+  <AvatarButton aria-label="Unassigned (round)" round />
+</Storybook.Demo>
+```jsx
+<AvatarButton aria-label="Unassigned" />
+<AvatarButton aria-label="Unassigned (round)" round />
+```

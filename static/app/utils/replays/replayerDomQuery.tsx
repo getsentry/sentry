@@ -1,8 +1,7 @@
-import {type Replayer} from '@sentry-internal/rrweb';
-
-import type {RecordingFrame, ReplayFrame} from 'sentry/utils/replays/types';
+import {type Replayer} from '@sentry/rrweb';
 
 import {createHiddenPlayer} from './createHiddenPlayer';
+import type {RecordingFrame, ReplayFrame} from './types';
 
 interface DomQueryArgs<Frame extends ReplayFrame | RecordingFrame, CollectionData> {
   onVisitFrame: (

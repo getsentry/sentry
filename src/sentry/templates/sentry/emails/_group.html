@@ -6,7 +6,7 @@
       <h3>
         {% if metadata.type %}
           {%if rule %}
-            <a href="{{group.get_absolute_url}}{{extra_params|get_item:rule.id}}">{{metadata.type|truncatechars:40}}</a>
+            <a href="{{group.get_absolute_url}}{{extra_params|get_item:rule_id}}">{{metadata.type|truncatechars:40}}</a>
           {% else %}
             <a href="{{group.get_absolute_url}}">{{metadata.type|truncatechars:40}}</a>
           {% endif %}
@@ -19,7 +19,7 @@
           {% endif %}
           {% else %}
           {%if rule %}
-            <a href="{{group.get_absolute_url}}{{extra_params|get_item:rule.id}}">{{metadata.value|truncatechars:40}}</a>
+            <a href="{{group.get_absolute_url}}{{extra_params|get_item:rule_id}}">{{metadata.value|truncatechars:40}}</a>
           {% else %}
             <a href="{{group.get_absolute_url}}">{{metadata.value|truncatechars:40}}</a>
           {% endif %}
@@ -34,7 +34,7 @@
     <div class="event-type csp">
       <h3>
         {%if rule %}
-          <a href="{{group.get_absolute_url}}{{extra_params|get_item:rule.id}}">{{metadata.directive|truncatechars:40}}</a>
+          <a href="{{group.get_absolute_url}}{{extra_params|get_item:rule_id}}">{{metadata.directive|truncatechars:40}}</a>
         {% else %}
           <a href="{{group.get_absolute_url}}">{{metadata.directive|truncatechars:40}}</a>
         {% endif %}
@@ -48,7 +48,7 @@
     <div class="event-type default">
       <h3>
         {%if rule %}
-          <a href="{{group.get_absolute_url}}{{extra_params|get_item:rule.id}}">{{group.title|truncatechars:40}}</a>
+          <a href="{{group.get_absolute_url}}{{extra_params|get_item:rule_id}}">{{group.title|truncatechars:40}}</a>
         {% else %}
           <a href="{{group.get_absolute_url}}">{{group.title|truncatechars:40}}</a>
         {% endif %}

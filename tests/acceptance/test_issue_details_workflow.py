@@ -38,6 +38,7 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
             project_id=self.project.id,
             assert_no_errors=False,
         )
+        assert event.group is not None
         event.group.update(
             first_seen=datetime(2015, 8, 13, 3, 8, 25, tzinfo=timezone.utc),
             last_seen=datetime(2016, 1, 13, 3, 8, 25, tzinfo=timezone.utc),
@@ -93,9 +94,10 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         assert event.group is not None
         self.page.visit_issue_activity(self.org.slug, event.group.id)
 
-        form = self.page.find_comment_form()
-        form.find_element(by=By.TAG_NAME, value="textarea").send_keys("this looks bad")
-        form.submit()
+        editor = self.page.find_comment_editor()
+        editor.send_keys("this looks bad")
+        form = editor.find_element(by=By.XPATH, value="ancestor::form")
+        form.find_element(by=By.CSS_SELECTOR, value='button[type="submit"]').click()
 
         assert self.page.has_comment("this looks bad")
 

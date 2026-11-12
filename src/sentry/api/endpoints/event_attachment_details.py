@@ -1,9 +1,13 @@
 import posixpath
+from collections.abc import Iterator
+from typing import Any, cast
 
-from django.http import StreamingHttpResponse
+import sentry_sdk
+from django.http import HttpResponseRedirect, StreamingHttpResponse
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from sentry import features, roles
 from sentry.api.api_owners import ApiOwner
@@ -12,18 +16,30 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.eventattachment import EventAttachmentSerializerResponse
+from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.event_attachment_examples import EventAttachmentExamples
 from sentry.apidocs.parameters import EventParams, GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.auth.superuser import superuser_has_permission
 from sentry.auth.system import is_system_auth
 from sentry.constants import ATTACHMENTS_ROLE_DEFAULT
+from sentry.issues.action_log import (
+    action_context_scope,
+)
+from sentry.issues.action_log.request import resolve_action_actor, resolve_action_source
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.objectstore import parse_accept_encoding
+from sentry.organizations.services.organization import (
+    RpcOrganization,
+    RpcUserOrganizationContext,
+)
+from sentry.service_accounts.auth import is_service_account_auth
 from sentry.services import eventstore
 from sentry.types.activity import ActivityType
 
@@ -43,13 +59,21 @@ DOWNLOAD_PARAM = OpenApiParameter(
     description=(
         "If this parameter is present, the response will be a binary file download "
         "instead of JSON metadata. The value does not matter — any value (including "
-        "empty) triggers the download."
+        "empty) triggers the download. Depending on where the attachment is stored, "
+        "the response may be a redirect to the storage service, so clients must follow "
+        "redirects."
     ),
 )
 
 
 class EventAttachmentDetailsPermission(ProjectPermission):
-    def has_object_permission(self, request: Request, view, project):
+    def has_object_permission(
+        self,
+        request: Request,
+        view: APIView,
+        project: Project | Organization | RpcOrganization | RpcUserOrganizationContext,
+    ) -> bool:
+        project = cast(Project, project)
         result = super().has_object_permission(request, view, project)
 
         if not result:
@@ -66,13 +90,13 @@ class EventAttachmentDetailsPermission(ProjectPermission):
             organization.get_option("sentry:attachments_role") or ATTACHMENTS_ROLE_DEFAULT
         )
 
-        try:
-            om = OrganizationMember.objects.get(organization=organization, user_id=request.user.id)
-        except OrganizationMember.DoesNotExist:
-            return False
+        role = request.access.role
+        if role is None:
+            # A service account has no role: it can read attachments only where any member can.
+            return is_service_account_auth(request.auth) and required_role == roles.get_default().id
 
         required_role = roles.get(required_role)
-        om_role = roles.get(om.role)
+        om_role = roles.get(role)
         return om_role.priority >= required_role.priority
 
 
@@ -86,12 +110,24 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
     }
     permission_classes = (EventAttachmentDetailsPermission,)
 
-    def download(self, attachment: EventAttachment, request: Request) -> StreamingHttpResponse:
+    def convert_args(
+        self, request: Request, attachment_id: str, *args: Any, **kwargs: Any
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        args, kwargs = super().convert_args(request, *args, **kwargs)
+        kwargs["attachment_id"] = to_valid_int_id("attachment_id", attachment_id, raise_404=True)
+        return args, kwargs
+
+    def download(
+        self, attachment: EventAttachment, request: Request
+    ) -> HttpResponseRedirect | StreamingHttpResponse:
+        if attachment.uses_objectstore():
+            return HttpResponseRedirect(attachment.get_objectstore_presigned_url(request))
+
         name = posixpath.basename(" ".join(attachment.name.split()))
         accept_encoding = parse_accept_encoding(request.headers.get("Accept-Encoding", ""))
         blob_stream = attachment.get_blob_stream(accept_encoding)
 
-        def stream_attachment():
+        def stream_attachment() -> Iterator[bytes]:
             with blob_stream.payload as payload:
                 while chunk := payload.read(4096):
                     yield chunk
@@ -99,7 +135,7 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         response = StreamingHttpResponse(stream_attachment(), content_type=attachment.content_type)
         if blob_stream.encoding:
             response["Content-Encoding"] = blob_stream.encoding
-        else:
+        elif attachment.size is not None:
             response["Content-Length"] = attachment.size
         response["Content-Disposition"] = f'attachment; filename="{name}"'
         return response
@@ -125,11 +161,12 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         examples=EventAttachmentExamples.EVENT_ATTACHMENT_DETAILS,
     )
     def get(
-        self, request: Request, project, event_id, attachment_id
+        self, request: Request, project: Project, event_id: str, attachment_id: int
     ) -> (
         Response[EventAttachmentSerializerResponse]
         | Response[None]
         | Response[DetailResponse]
+        | HttpResponseRedirect
         | StreamingHttpResponse
     ):
         """
@@ -147,6 +184,8 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         if event is None:
             return self.respond({"detail": "Event not found"}, status=404)
 
+        sentry_sdk.set_attribute("event.type", event.get_event_type())
+
         try:
             attachment = EventAttachment.objects.filter(
                 project_id=project.id, event_id=event.event_id, id=attachment_id
@@ -159,7 +198,9 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
 
         return self.respond(serialize(attachment, request.user))
 
-    def delete(self, request: Request, project, event_id, attachment_id) -> Response:
+    def delete(
+        self, request: Request, project: Project, event_id: str, attachment_id: int
+    ) -> Response:
         """
         Delete an Event Attachment by ID
         ````````````````````````````````
@@ -184,12 +225,15 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
 
         # an activity with no group cannot be associated with an issue or displayed in an issue details page
         if attachment.group_id is not None:
-            Activity.objects.create(
-                group_id=attachment.group_id,
-                project=project,
-                type=ActivityType.DELETED_ATTACHMENT.value,
-                user_id=request.user.id,
-                data={},
-            )
+            with action_context_scope(
+                source=resolve_action_source(request), actor=resolve_action_actor(request)
+            ):
+                Activity.objects.create(
+                    group_id=attachment.group_id,
+                    project=project,
+                    type=ActivityType.DELETED_ATTACHMENT.value,
+                    user_id=acting_user_id(request.user),
+                    data={},
+                )
         attachment.delete()
         return self.respond(status=204)

@@ -1,13 +1,16 @@
 import logging
+from collections.abc import Sequence
 from datetime import datetime, timedelta
+from typing import Any, TypedDict, Unpack
 from unittest import mock
+from unittest.mock import MagicMock
 from uuid import uuid4
 
 from django.conf import settings
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
-from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
+from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
 
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.issues.grouptype import (
@@ -17,7 +20,11 @@ from sentry.issues.grouptype import (
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
+from sentry.services.eventstore.models import Event
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import _run_errors_query_eap
 from sentry.testutils.cases import OccurrenceTestCase, SnubaTestCase, UptimeResultEAPTestCase
@@ -30,6 +37,24 @@ from tests.snuba.api.endpoints.test_organization_events_trace import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+class UptimeResultKwargs(TypedDict, total=False):
+    organization: Organization | None
+    project: Project | None
+    trace_id: str | None
+    guid: str | None
+    subscription_id: str | None
+    check_id: str | None
+    check_status: str
+    http_status_code: int
+    request_sequence: int
+    request_url: str
+    scheduled_check_time: datetime | None
+    check_duration_us: int | None
+    request_body_size_bytes: int | None
+    response_body_size_bytes: int | None
+
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeValue as ProtoAttributeValue,
@@ -64,7 +89,7 @@ class TestSerializeColumnarUptimeItem(TestCase):
         self.snuba_params = mock.MagicMock(spec=SnubaParams)
         self.snuba_params.project_ids = [1]
 
-    def test_basic_uptime_item_serialization(self):
+    def test_basic_uptime_item_serialization(self) -> None:
         """Test basic serialization with all required fields."""
         row_dict = {
             "sentry.item_id": ProtoAttributeValue(val_str="check-123"),
@@ -111,7 +136,7 @@ class TestSerializeColumnarUptimeItem(TestCase):
         assert "organization.id" not in attrs
         assert "timestamp" not in attrs
 
-    def test_redirect_chain_serialization(self):
+    def test_redirect_chain_serialization(self) -> None:
         """Test serialization of redirect chain with different URLs."""
         row_dict = {
             "sentry.item_id": ProtoAttributeValue(val_str="check-789"),
@@ -136,7 +161,7 @@ class TestSerializeColumnarUptimeItem(TestCase):
         assert result["additional_attributes"]["original_url"] == "https://example.com"
         assert result["additional_attributes"]["request_sequence"] == 1
 
-    def test_null_and_missing_fields(self):
+    def test_null_and_missing_fields(self) -> None:
         """Test handling of null and missing optional fields."""
         row_dict = {
             "sentry.item_id": ProtoAttributeValue(val_str="check-null"),
@@ -163,7 +188,7 @@ class TestSerializeColumnarUptimeItem(TestCase):
         assert attrs["dns_lookup_duration_us"] == 50000
         assert "tcp_connection_duration_us" not in attrs
 
-    def test_region_name_mapping(self):
+    def test_region_name_mapping(self) -> None:
         """Test that region codes are properly mapped to region names."""
         test_cases = [
             ("us-east-1", "US East (N. Virginia)"),
@@ -195,7 +220,7 @@ class OrganizationEventsTraceEndpointTest(
 ):
     url_name = "sentry-api-0-organization-trace"
 
-    def assert_event(self, result, event_data, message):
+    def assert_event(self, result: dict[str, Any], event_data: Event, message: str) -> None:
         assert result["transaction"] == event_data.transaction, message
         assert result["event_id"] == event_data.data["contexts"]["trace"]["span_id"], message
         assert result["start_timestamp"] == event_data.data["start_timestamp"], message
@@ -203,7 +228,7 @@ class OrganizationEventsTraceEndpointTest(
         assert result["sdk_name"] == event_data.data["sdk"]["name"], message
         assert result["transaction_id"] == event_data.event_id, message
 
-    def get_transaction_children(self, event):
+    def get_transaction_children(self, event: dict[str, Any]) -> list[dict[str, Any]]:
         """Assumes that the test setup only gives each event 1 txn child"""
         children = []
         for child in event["children"]:
@@ -213,7 +238,7 @@ class OrganizationEventsTraceEndpointTest(
                 children.extend(child["children"])
         return sorted(children, key=lambda event: event["description"])
 
-    def assert_trace_data(self, root, gen2_no_children=True):
+    def assert_trace_data(self, root: dict[str, Any], gen2_no_children: bool = True) -> None:
         """see the setUp docstring for an idea of what the response structure looks like"""
         self.assert_event(root, self.root_event, "root")
         assert root["parent_span_id"] is None
@@ -254,17 +279,8 @@ class OrganizationEventsTraceEndpointTest(
             elif gen2_no_children:
                 assert len(gen2["children"]) == 0
 
-    def assert_performance_issues(self, root):
+    def assert_performance_issues(self, root: dict[str, Any]) -> None:
         """Broken in the non-spans endpoint, but we're not maintaining that anymore"""
-
-    def client_get(self, data, url=None):
-        if url is None:
-            url = self.url
-        return self.client.get(
-            url,
-            data,
-            format="json",
-        )
 
     def test_no_projects(self) -> None:
         user = self.create_user()
@@ -276,10 +292,7 @@ class OrganizationEventsTraceEndpointTest(
             kwargs={"organization_id_or_slug": org.slug, "trace_id": uuid4().hex},
         )
 
-        response = self.client.get(
-            url,
-            format="json",
-        )
+        response = self.client_get(url=url)
 
         assert response.status_code == 404, response.content
 
@@ -361,7 +374,14 @@ class OrganizationEventsTraceEndpointTest(
             "app.vitals.ttid.value": 1200.0,
             "app.vitals.ttfd.value": 2400.0,
         }
-        assert span["measurements"]["measurements.app_start_cold"] == 0.0
+        # TODO(mjq): This works around a chicken-and-egg problem where a Snuba
+        # fix causes this value to change, but we can't merge it because
+        # Sentry's assertion here would fail. Temporarily allow either value.
+        # Current buggy value: 0.0
+        # Fixed value after Snuba PR is merged: 1600.0
+        # Once https://github.com/getsentry/snuba/pull/8217 is merged, this can
+        # be updated to assert `== 1600.0` alone.
+        assert span["measurements"]["measurements.app_start_cold"] in (0.0, 1600.0)
 
     def test_with_mobile_frames_rate_vitals(self) -> None:
         self.load_trace()
@@ -466,7 +486,7 @@ class OrganizationEventsTraceEndpointTest(
         assert error_event_1["event_id"] != error_event_2["event_id"]
 
     @mock.patch("sentry.snuba.trace.metrics")
-    def test_emits_metric_for_error_on_ok_span(self, mock_metrics) -> None:
+    def test_emits_metric_for_error_on_ok_span(self, mock_metrics: MagicMock) -> None:
         self.load_trace()
         _, start = self.get_start_end_from_day_ago(123)
         root_span_id = self.root_event.data["contexts"]["trace"]["span_id"]
@@ -484,8 +504,21 @@ class OrganizationEventsTraceEndpointTest(
 
         original_run_trace_query = Spans.run_trace_query
 
-        def patched_run_trace_query(**kwargs):
-            spans = original_run_trace_query(**kwargs)
+        def patched_run_trace_query(
+            *,
+            trace_id: str,
+            params: SnubaParams,
+            referrer: str,
+            config: SearchResolverConfig,
+            additional_attributes: list[str] | None = None,
+        ) -> list[dict[str, Any]]:
+            spans = original_run_trace_query(
+                trace_id=trace_id,
+                params=params,
+                referrer=referrer,
+                config=config,
+                additional_attributes=additional_attributes,
+            )
             for span in spans:
                 if span["id"] == root_span_id:
                     span["span.status"] = "ok"
@@ -500,11 +533,15 @@ class OrganizationEventsTraceEndpointTest(
             )
         assert response.status_code == 200, response.content
 
-        mock_metrics.incr.assert_any_call(
-            "performance.trace.span_with_errors_ok_status",
-            sample_rate=mock.ANY,
-            tags=mock.ANY,
-        )
+        tags = [
+            call.kwargs["tags"]
+            for call in mock_metrics.incr.call_args_list
+            if call.args[0] == "performance.trace.span_with_errors_ok_status"
+        ]
+        assert tags, "expected the span.status inconsistency metric to be emitted"
+        # Project identifiers are unbounded and would explode the stored series count.
+        for tag in tags:
+            assert set(tag) == {"sdk_name", "sdk_version", "origin"}
 
     def test_with_performance_issues(self) -> None:
         self.load_trace()
@@ -659,7 +696,7 @@ class OrganizationEventsTraceEndpointTest(
             orphan = data[1]
         self.assert_event(orphan, orphan_event, "orphan")
 
-    def _find_uptime_checks(self, data):
+    def _find_uptime_checks(self, data: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Helper to find all uptime checks in the response data"""
         uptime_checks = []
         for item in data:
@@ -667,31 +704,38 @@ class OrganizationEventsTraceEndpointTest(
                 uptime_checks.append(item)
         return uptime_checks
 
-    def _create_uptime_result_with_original_url(self, original_url=None, **kwargs):
+    def _create_uptime_result_with_original_url(
+        self, original_url: str | None = None, **kwargs: Unpack[UptimeResultKwargs]
+    ) -> TraceItem:
         """Helper to create uptime result with original_url attribute"""
         if original_url is None:
-            original_url = kwargs.get("request_url", "https://example.com")
-        kwargs["original_url"] = original_url
+            request_url = kwargs.get("request_url", "https://example.com")
+            assert isinstance(request_url, str)
+            original_url = request_url
         kwargs.setdefault("request_body_size_bytes", None)
         kwargs.setdefault("response_body_size_bytes", None)
-        return self.create_eap_uptime_result(**kwargs)
+        return self.create_eap_uptime_result(original_url=original_url, **kwargs)
 
-    def assert_expected_results(self, response_data, input_trace_items, expected_children_ids=None):
+    def assert_expected_results(
+        self,
+        response_data: list[dict[str, Any]],
+        input_trace_items: Sequence[TraceItem],
+        expected_children_ids: list[str] | None = None,
+    ) -> None:
         """Assert that API response matches expected results from input trace items."""
         uptime_checks = [item for item in response_data if item.get("event_type") == "uptime_check"]
 
-        def sort_key(item):
-            guid = (
-                item.attributes.get("guid", ProtoAttributeValue(val_str="")).string_value
-                if hasattr(item, "attributes")
-                else item.get("additional_attributes", {}).get("guid", "")
+        def sort_key(item: dict[str, Any] | TraceItem) -> tuple[str, int]:
+            if isinstance(item, TraceItem):
+                guid = item.attributes.get("guid", AnyValue(string_value=""))
+                assert isinstance(guid, AnyValue)
+                seq = item.attributes.get("request_sequence", AnyValue(int_value=0))
+                assert isinstance(seq, AnyValue)
+                return guid.string_value, seq.int_value
+            return (
+                item.get("additional_attributes", {}).get("guid", ""),
+                item.get("additional_attributes", {}).get("request_sequence", 0),
             )
-            seq = (
-                item.attributes.get("request_sequence", ProtoAttributeValue(val_int=0)).int_value
-                if hasattr(item, "attributes")
-                else item.get("additional_attributes", {}).get("request_sequence", 0)
-            )
-            return guid, seq
 
         sorted_items = sorted(input_trace_items, key=sort_key)
         uptime_checks.sort(key=lambda s: sort_key(s))
@@ -720,7 +764,9 @@ class OrganizationEventsTraceEndpointTest(
                     f"Expected '{expected_id}' transaction in children"
                 )
 
-    def _trace_item_to_api_span(self, trace_item: TraceItem, children=None) -> dict:
+    def _trace_item_to_api_span(
+        self, trace_item: TraceItem, children: list[dict[str, Any]] | None = None
+    ) -> dict[str, Any]:
         """Convert a TraceItem to the exact format returned by the API."""
         attrs = trace_item.attributes
         row_dict = {}
@@ -750,7 +796,7 @@ class OrganizationEventsTraceEndpointTest(
 
         return span
 
-    def test_with_uptime_results(self):
+    def test_with_uptime_results(self) -> None:
         """Test that uptime results are included when include_uptime=1"""
         self.load_trace()
 
@@ -797,7 +843,7 @@ class OrganizationEventsTraceEndpointTest(
             data, [redirect_result, final_result], expected_children_ids=["root"]
         )
 
-    def test_without_uptime_results(self):
+    def test_without_uptime_results(self) -> None:
         """Test that uptime results are not queried when include_uptime is not set"""
         self.load_trace()
         uptime_result = self._create_uptime_result_with_original_url(
@@ -828,7 +874,7 @@ class OrganizationEventsTraceEndpointTest(
         uptime_checks = self._find_uptime_checks(data)
         assert len(uptime_checks) == 0
 
-    def test_uptime_root_tree_with_orphaned_spans(self):
+    def test_uptime_root_tree_with_orphaned_spans(self) -> None:
         """Test that orphaned spans are parented to the final uptime request"""
         self.load_trace()
 
@@ -883,7 +929,7 @@ class OrganizationEventsTraceEndpointTest(
             expected_children_ids=["root", "/transaction/orphan"],
         )
 
-    def test_uptime_root_tree_without_orphans(self):
+    def test_uptime_root_tree_without_orphans(self) -> None:
         """Test uptime results when there are no orphaned spans"""
         self.load_trace()
 
@@ -914,7 +960,7 @@ class OrganizationEventsTraceEndpointTest(
 
         self.assert_expected_results(data, [uptime_result], expected_children_ids=["root"])
 
-    def test_uptime_occurrences(self):
+    def test_uptime_occurrences(self) -> None:
         """Test that uptime occurrences are included in the response"""
         self.load_trace()
 
@@ -968,7 +1014,7 @@ class OrganizationEventsTraceEndpointTest(
         assert occurrence["transaction"] == "uptime.check"
         assert occurrence["level"] == "error"
 
-    def _count_occurrences_by_type(self, data: list[dict]) -> tuple[int, dict[int, int]]:
+    def _count_occurrences_by_type(self, data: list[dict[str, Any]]) -> tuple[int, dict[int, int]]:
         """Count occurrences from trace children, grouped by issue type."""
         counts: dict[int, int] = {}
         for child in data[0].get("children", []):

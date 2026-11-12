@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 from django.urls import reverse
 from django.utils import timezone
+from rest_framework.response import Response
 
 from sentry.constants import ObjectStatus
 from sentry.db.pending_deletion import build_pending_deletion_key
@@ -39,6 +40,15 @@ class OrganizationRepositoryGetTest(APITestCase):
         org = self.create_organization(owner=self.user, name="baz")
 
         url = reverse("sentry-api-0-organization-repository-details", args=[org.slug, 99999])
+        response = self.client.get(url)
+
+        assert response.status_code == 404
+
+    def test_get_repository_with_non_integer_id(self) -> None:
+        self.login_as(user=self.user)
+        org = self.create_organization(owner=self.user, name="baz")
+        url = reverse("sentry-api-0-organization-repository-details", args=[org.slug, "invalid"])
+
         response = self.client.get(url)
 
         assert response.status_code == 404
@@ -94,7 +104,9 @@ class OrganizationRepositoryGetTest(APITestCase):
 
 
 class OrganizationRepositoryDeleteTest(APITestCase):
-    def assert_rename_pending_delete(self, response, repo, external_id=None):
+    def assert_rename_pending_delete(
+        self, response: Response, repo: Repository, external_id: str | None = None
+    ) -> None:
         assert response.data["status"] == "pending_deletion"
         assert response.data["name"] == "example"  # name displayed matches what the user expects
 
@@ -131,6 +143,18 @@ class OrganizationRepositoryDeleteTest(APITestCase):
             object_id=repo.id, model_name="Repository", date_scheduled__lte=timezone.now()
         ).exists()
         self.assert_rename_pending_delete(response, repo)
+
+    def test_delete_repository_with_out_of_range_id(self) -> None:
+        self.login_as(user=self.user)
+        org = self.create_organization(owner=self.user, name="baz")
+        url = reverse(
+            "sentry-api-0-organization-repository-details",
+            args=[org.slug, "999999999999999999999"],
+        )
+
+        response = self.client.delete(url)
+
+        assert response.status_code == 404
 
     def test_delete_with_commits(self) -> None:
         self.login_as(user=self.user)

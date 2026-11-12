@@ -1,15 +1,20 @@
 import {Fragment, useCallback, useMemo} from 'react';
-import {mutationOptions, useMutation, useQueryClient} from '@tanstack/react-query';
-import {parseAsStringLiteral, useQueryState} from 'nuqs';
+import {
+  mutationOptions,
+  useMutation,
+  useQueryClient,
+  useQuery,
+} from '@tanstack/react-query';
+import {parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -19,11 +24,15 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
-import type {ObjectStatus} from 'sentry/types/core';
-import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
+import type {
+  Integration,
+  IntegrationProvider,
+  OrganizationIntegration,
+} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getSlackUpgradeModalParams} from 'sentry/utils/integrations/slackUpgradeModalParams';
 import {
   openGithubPermissionsUpdateModal,
   useAutoOpenPermissionsModal,
@@ -36,25 +45,18 @@ import {
   isScmProvider,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
-import {
-  fetchMutation,
-  getApiQueryData,
-  setApiQueryData,
-  useApiQuery,
-} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
-import type {
-  AlertType,
-  IntegrationTab,
-} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
-import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
-import {InstalledIntegration} from 'sentry/views/settings/organizationIntegrations/installedIntegration';
-import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationButton';
-import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
+
+import type {AlertType, IntegrationTab} from './detailedView/integrationLayout';
+import {IntegrationLayout} from './detailedView/integrationLayout';
+import {AddIntegrationButton} from './addIntegrationButton';
+import {InstalledIntegration} from './installedIntegration';
+import {IntegrationButton} from './integrationButton';
+import {IntegrationContext} from './integrationContext';
 
 // Show the features tab if the org has features for the integration
 const integrationFeatures = ['slack'];
@@ -68,6 +70,70 @@ const FirstPartyIntegrationAdditionalCTA = OverrideOrDefault({
   overrideName: 'component:first-party-integration-additional-cta',
   defaultComponent: () => null,
 });
+
+function IntegrationUpgradeButton({
+  onInstall,
+  onSelectConfigurations,
+  organization,
+  outdatedConfigurations,
+  provider,
+}: {
+  onInstall: (integration: Integration) => void;
+  onSelectConfigurations: () => void;
+  organization: Organization;
+  outdatedConfigurations: OrganizationIntegration[];
+  provider?: IntegrationProvider;
+}) {
+  if (!canManageIntegrations(organization)) {
+    return (
+      <Tooltip title={t('You must be an organization owner, manager or admin to update')}>
+        <Button size="xs" variant="primary" disabled>
+          {t('Update')}
+        </Button>
+      </Tooltip>
+    );
+  }
+
+  const [outdatedConfiguration] = outdatedConfigurations;
+
+  if (outdatedConfigurations.length !== 1 || !provider || !outdatedConfiguration) {
+    return (
+      <Button size="xs" variant="primary" onClick={onSelectConfigurations}>
+        {t('Update')}
+      </Button>
+    );
+  }
+
+  return provider.key === 'github' ? (
+    <Button
+      size="xs"
+      variant="primary"
+      onClick={() => openGithubPermissionsUpdateModal(outdatedConfiguration)}
+      data-test-id="integration-upgrade-button"
+    >
+      {t('Update now')}
+    </Button>
+  ) : (
+    <AddIntegrationButton
+      provider={provider}
+      organization={organization}
+      onAddIntegration={onInstall}
+      modalParams={
+        provider.key === 'slack'
+          ? getSlackUpgradeModalParams(outdatedConfiguration.missingFeatures)
+          : undefined
+      }
+      analyticsParams={{
+        view: 'integrations_directory_integration_detail',
+        already_installed: true,
+      }}
+      buttonText={t('Update now')}
+      variant="primary"
+      size="xs"
+      data-test-id="integration-upgrade-button"
+    />
+  );
+}
 
 const slackFeaturesSchema = z.object({
   issueAlertsThreadFlag: z.boolean(),
@@ -89,27 +155,33 @@ export type IntegrationInformation = {
   providers: IntegrationProvider[];
 };
 
-function makeIntegrationQueryKey({
+function makeIntegrationApiOptions({
   orgSlug,
   integrationSlug,
 }: {
   integrationSlug: string;
   orgSlug: string;
-}): ApiQueryKey {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
-      path: {organizationIdOrSlug: orgSlug},
-    }),
+}) {
+  return apiOptions.as<OrganizationIntegration[]>()(
+    '/organizations/$organizationIdOrSlug/integrations/',
     {
+      path: {organizationIdOrSlug: orgSlug},
       query: {
         provider_key: integrationSlug,
         includeConfig: 0,
       },
-    },
-  ];
+      staleTime: 0,
+    }
+  );
 }
 
 const tabs: IntegrationTab[] = ['overview', 'configurations', 'features'];
+const tabsWithoutFeatures = tabs.filter(tab => tab !== 'features');
+const tabTitles: Record<IntegrationTab, string> = {
+  overview: t('Overview'),
+  configurations: t('Configurations'),
+  features: t('Features'),
+};
 
 export default function IntegrationDetailedView() {
   const queryClient = useQueryClient();
@@ -117,8 +189,8 @@ export default function IntegrationDetailedView() {
     'tab',
     parseAsStringLiteral(tabs).withDefault('overview').withOptions({history: 'push'})
   );
+  const [referrer] = useQueryState('referrer', parseAsString);
   const navigate = useNavigate();
-  const location = useLocation();
   const organization = useOrganization();
   const {integrationSlug} = useParams<{integrationSlug: string}>();
 
@@ -126,38 +198,37 @@ export default function IntegrationDetailedView() {
     data: information,
     isPending: isInformationPending,
     isError: isInformationError,
-  } = useApiQuery<IntegrationInformation>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  } = useQuery({
+    ...apiOptions.as<IntegrationInformation>()(
+      '/organizations/$organizationIdOrSlug/config/integrations/',
       {
+        path: {organizationIdOrSlug: organization.slug},
         query: {
           provider_key: integrationSlug,
         },
-      },
-    ],
-    {
-      staleTime: Infinity,
-      retry: false,
-    }
-  );
+        staleTime: Infinity,
+      }
+    ),
+
+    retry: false,
+  });
 
   const {
     data: configurations = [],
     isPending: isConfigurationsPending,
     isFetching: isConfigurationsFetching,
     isError: isConfigurationsError,
-  } = useApiQuery<Integration[]>(
-    makeIntegrationQueryKey({orgSlug: organization.slug, integrationSlug}),
-    {
-      staleTime: 0,
-      retry: false,
-    }
-  );
+  } = useQuery({
+    ...makeIntegrationApiOptions({orgSlug: organization.slug, integrationSlug}),
+    retry: false,
+  });
 
   const integrationType = 'first_party';
   const provider = information?.providers[0];
+  const displayTabs =
+    !provider || integrationFeatures.includes(provider.key) ? tabs : tabsWithoutFeatures;
+  const displayedTab = displayTabs.includes(activeTab) ? activeTab : 'overview';
+
   const description = provider?.metadata.description ?? '';
   const author = provider?.metadata.author ?? '';
   const resourceLinks = useMemo(() => {
@@ -209,6 +280,7 @@ export default function IntegrationDetailedView() {
     return 'Not Installed';
   }, [configurations]);
   const integrationName = provider?.name ?? '';
+  const navigationTabTitle = <BreadcrumbTitle title={tabTitles[displayedTab]} />;
   const featureData = useMemo(() => {
     return provider?.metadata.features ?? [];
   }, [provider]);
@@ -229,18 +301,14 @@ export default function IntegrationDetailedView() {
   );
 
   const renderTabs = useCallback(() => {
-    const displayTabs = integrationFeatures.includes(provider?.key ?? '')
-      ? tabs
-      : tabs.filter(tab => tab !== 'features');
-
     return (
       <IntegrationLayout.Tabs
         tabs={displayTabs}
-        activeTab={activeTab}
+        activeTab={displayedTab}
         onTabChange={onTabChange}
       />
     );
-  }, [provider, activeTab, onTabChange]);
+  }, [displayTabs, displayedTab, onTabChange]);
 
   useAutoOpenPermissionsModal({
     provider,
@@ -253,10 +321,10 @@ export default function IntegrationDetailedView() {
     (integration: Integration) => {
       if (provider?.features.includes('coding-agent')) {
         queryClient.invalidateQueries({
-          queryKey: makeIntegrationQueryKey({
+          queryKey: makeIntegrationApiOptions({
             orgSlug: organization.slug,
             integrationSlug,
-          }),
+          }).queryKey,
         });
         queryClient.invalidateQueries({
           queryKey: [
@@ -274,57 +342,62 @@ export default function IntegrationDetailedView() {
   );
 
   const {mutate: onRemove} = useMutation({
-    mutationFn: (integration: Integration) =>
+    mutationFn: (integration: OrganizationIntegration) =>
       fetchMutation({
         method: 'DELETE',
-        url: `/organizations/${organization.slug}/integrations/${integration.id}/`,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
+          {path: {organizationIdOrSlug: organization.slug, integrationId: integration.id}}
+        ),
       }),
     onMutate: async integration => {
-      const queryKey = makeIntegrationQueryKey({
+      const queryKey = makeIntegrationApiOptions({
         orgSlug: organization.slug,
         integrationSlug,
-      });
+      }).queryKey;
       // Cancel in-flight refetches so they can't clobber the optimistic update.
       await queryClient.cancelQueries({queryKey});
 
-      const previousConfigurations = getApiQueryData<Integration[]>(
-        queryClient,
-        queryKey
-      );
+      const previousConfigurations = queryClient.getQueryData(queryKey);
 
-      setApiQueryData<Integration[]>(queryClient, queryKey, current =>
-        (current ?? []).map(config =>
-          config.id === integration.id
-            ? {
-                ...config,
-                organizationIntegrationStatus: 'pending_deletion' as ObjectStatus,
-              }
-            : config
-        )
-      );
+      queryClient.setQueryData(queryKey, previous => {
+        const current = previous?.json;
+        return {
+          ...previous,
+          headers: previous?.headers ?? {},
+          json: (current ?? []).map((config): OrganizationIntegration =>
+            config.id === integration.id
+              ? {
+                  ...config,
+                  organizationIntegrationStatus: 'pending_deletion',
+                }
+              : config
+          ),
+        };
+      });
 
       return {previousConfigurations};
     },
     onError: (_error, _integration, context) => {
       if (context?.previousConfigurations) {
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
-        setApiQueryData<Integration[]>(
-          queryClient,
-          makeIntegrationQueryKey({orgSlug: organization.slug, integrationSlug}),
+        queryClient.setQueryData(
+          makeIntegrationApiOptions({orgSlug: organization.slug, integrationSlug})
+            .queryKey,
           context.previousConfigurations
         );
       }
-      addErrorMessage(t('Failed to remove Integration'));
+      toast.error(t('Failed to remove Integration'));
     },
     onSettled: () => {
       // Resync with the server once the delete settles.
       queryClient.invalidateQueries({
-        queryKey: makeIntegrationQueryKey({orgSlug: organization.slug, integrationSlug}),
+        queryKey: makeIntegrationApiOptions({orgSlug: organization.slug, integrationSlug})
+          .queryKey,
       });
     },
   });
 
-  const onDisable = useCallback((integration: Integration) => {
+  const onDisable = useCallback((integration: OrganizationIntegration) => {
     let url: string;
 
     if (!integration.domainName) {
@@ -343,9 +416,6 @@ export default function IntegrationDetailedView() {
 
   const renderTopButton = useCallback(
     (disabledFromFeatures: boolean, userHasAccess: boolean) => {
-      const queryParams = new URLSearchParams(location.search);
-      const referrer = queryParams.get('referrer');
-
       const buttonProps = {
         size: 'sm',
         priority: 'primary',
@@ -364,6 +434,8 @@ export default function IntegrationDetailedView() {
               provider,
               type: integrationType,
               installStatus: installationStatus,
+              // Auto-open must wait for fresh workspaces, not consume stale cache data.
+              configurations: isConfigurationsFetching ? undefined : configurations,
               analyticsParams: {
                 view: 'integrations_directory_integration_detail',
                 already_installed: installationStatus !== 'Not Installed',
@@ -397,7 +469,9 @@ export default function IntegrationDetailedView() {
       onInstall,
       organization,
       integrationSlug,
-      location.search,
+      referrer,
+      configurations,
+      isConfigurationsFetching,
     ]
   );
 
@@ -529,70 +603,22 @@ export default function IntegrationDetailedView() {
   }, [organization, provider, configurations, orgMutationOptions]);
 
   if (isInformationPending || isConfigurationsPending) {
-    return <LoadingIndicator />;
+    return (
+      <Fragment>
+        {navigationTabTitle}
+        <LoadingIndicator />
+      </Fragment>
+    );
   }
 
   if (isInformationError || isConfigurationsError) {
     return <LoadingError message={t('There was an error loading this integration.')} />;
   }
 
-  const renderUpgradeButton = () => {
-    if (!canManageIntegrations(organization)) {
-      return (
-        <Tooltip
-          title={t('You must be an organization owner, manager or admin to update')}
-        >
-          <Button size="xs" variant="primary" disabled>
-            {t('Update')}
-          </Button>
-        </Tooltip>
-      );
-    }
-
-    const [outdatedConfiguration] = outdatedConfigurations;
-
-    if (outdatedConfigurations.length !== 1 || !provider || !outdatedConfiguration) {
-      return (
-        <Button
-          size="xs"
-          variant="primary"
-          onClick={() => setActiveTab('configurations')}
-        >
-          {t('Update')}
-        </Button>
-      );
-    }
-
-    return provider.key === 'github' ? (
-      <Button
-        size="xs"
-        variant="primary"
-        onClick={() => openGithubPermissionsUpdateModal(outdatedConfiguration)}
-        data-test-id="integration-upgrade-button"
-      >
-        {t('Update now')}
-      </Button>
-    ) : (
-      <AddIntegrationButton
-        provider={provider}
-        organization={organization}
-        onAddIntegration={onInstall}
-        analyticsParams={{
-          view: 'integrations_directory_integration_detail',
-          already_installed: true,
-        }}
-        buttonText={t('Update now')}
-        variant="primary"
-        size="xs"
-        data-test-id="integration-upgrade-button"
-      />
-    );
-  };
-
   return (
     <SentryDocumentTitle title={integrationName}>
       <IntegrationLayout.Body
-        integrationName={integrationName}
+        title={tabTitles[displayedTab]}
         alert={<FirstPartyIntegrationAlert integrations={configurations} hideCTA />}
         topSection={
           <IntegrationLayout.TopSection
@@ -615,7 +641,7 @@ export default function IntegrationDetailedView() {
         }
         tabs={renderTabs()}
         content={
-          activeTab === 'overview' ? (
+          displayedTab === 'overview' ? (
             <IntegrationLayout.InformationCard
               integrationSlug={integrationSlug}
               description={description}
@@ -623,7 +649,18 @@ export default function IntegrationDetailedView() {
               upgradeAlert={
                 alertText && (
                   <Alert.Container>
-                    <Alert variant="warning" trailingItems={renderUpgradeButton()}>
+                    <Alert
+                      variant="warning"
+                      trailingItems={
+                        <IntegrationUpgradeButton
+                          onInstall={onInstall}
+                          onSelectConfigurations={() => setActiveTab('configurations')}
+                          organization={organization}
+                          outdatedConfigurations={outdatedConfigurations}
+                          provider={provider}
+                        />
+                      }
+                    >
                       {alertText}
                     </Alert>
                   </Alert.Container>
@@ -634,7 +671,7 @@ export default function IntegrationDetailedView() {
               resourceLinks={resourceLinks}
               permissions={null}
             />
-          ) : activeTab === 'configurations' ? (
+          ) : displayedTab === 'configurations' ? (
             renderConfigurations()
           ) : (
             renderFeatures()

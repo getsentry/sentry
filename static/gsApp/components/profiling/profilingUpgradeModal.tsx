@@ -3,13 +3,15 @@ import {useEffect} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {useMutation} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {closeModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {closeModal} from 'sentry/actionCreators/modal';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {HighlightModalContainer} from 'sentry/components/highlightModalContainer';
 import {List} from 'sentry/components/list';
@@ -21,8 +23,9 @@ import {
   OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {PlanTable} from 'getsentry/components/upgradeNowModal/planTable';
@@ -68,11 +71,12 @@ function UpsellModal(props: Props) {
       // We want to track analytics right away, cannot wait for the network.
       has_price_change: loading ? undefined : previewData?.billedAmount !== 0,
     });
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [organization, subscription]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <HighlightModalContainer>
-      <ModalLayout>
+      <Grid columns={{zero: '1fr', xl: '1fr auto'}} gap={{xl: '2xl'}} marginBottom="xl">
         <UpsellContent>
           <SubheaderPrimary>{t('Updates to Sentry')}</SubheaderPrimary>
           <Header>{t('Performance Monitoring and Profiling that scales')}</Header>
@@ -119,7 +123,7 @@ function UpsellModal(props: Props) {
             )}
           </ErrorBoundary>
         </div>
-      </ModalLayout>
+      </Grid>
     </HighlightModalContainer>
   );
 }
@@ -140,17 +144,6 @@ const Header = styled('h1')`
   font-size: ${p => p.theme.font.size.xl};
   font-weight: bold;
   margin: ${p => p.theme.space.md} 0;
-`;
-
-const ModalLayout = styled('div')`
-  display: grid;
-  font-size: ${p => p.theme.font.size.md};
-  margin-bottom: ${p => p.theme.space.xl};
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 1fr auto;
-    gap: ${p => p.theme.space['2xl']};
-  }
 `;
 
 const UpsellContent = styled('div')`
@@ -181,38 +174,43 @@ type ActionButtonsProps = {
   hasPriceChange: boolean;
   organization: Organization;
   subscription: Subscription;
-  isActionDisabled?: boolean;
   onComplete?: () => void;
 };
 
 function ActionButtons({
   hasPriceChange,
-  isActionDisabled,
   onComplete,
   organization,
   subscription,
 }: ActionButtonsProps) {
-  const api = useApi();
   const navigate = useNavigate();
   const {plan, reservations} = useUpgradeNowParams({organization, subscription});
 
-  const onUpdatePlan = async () => {
-    try {
-      await api.requestPromise(`/customers/${organization.slug}/subscription/`, {
+  const {mutateAsync: updateSubscription} = useMutation({
+    mutationFn: () =>
+      fetchMutation({
+        url: getApiUrl('/customers/$organizationIdOrSlug/subscription/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         method: 'PUT',
         data: {
           ...reservations,
           plan: plan?.id,
           referrer: 'profiling-am2-update-modal',
         },
-      });
+      }),
+  });
+
+  const onUpdatePlan = async () => {
+    try {
+      await updateSubscription();
 
       SubscriptionStore.loadData(organization.slug, () => {
         if (onComplete) {
           onComplete();
         }
         closeModal();
-        addSuccessMessage(t('Subscription Updated!'));
+        toast.success(t('Subscription Updated!'));
 
         OnboardingDrawerStore.open(OnboardingDrawerKey.PROFILING_ONBOARDING);
 
@@ -251,11 +249,7 @@ function ActionButtons({
 
   return hasBillingAccess ? (
     <ButtonRow>
-      <Button
-        variant="primary"
-        onClick={onUpdatePlan}
-        disabled={isActionDisabled === true}
-      >
+      <Button variant="primary" onClick={onUpdatePlan}>
         {t('Update Now')}
       </Button>
       <LinkButton

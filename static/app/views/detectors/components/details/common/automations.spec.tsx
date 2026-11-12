@@ -1,5 +1,6 @@
 import {AutomationFixture} from 'sentry-fixture/automations';
 import {
+  AllProjectsDetectorFixture,
   IssueStreamDetectorFixture,
   UptimeDetectorFixture,
 } from 'sentry-fixture/detectors';
@@ -288,7 +289,7 @@ describe('DetectorDetailsAutomations', () => {
     });
 
     // Mock the drawer's all automations query (no detector param)
-    MockApiClient.addMockResponse({
+    const allAutomationsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
       method: 'GET',
       body: [automation1],
@@ -313,6 +314,11 @@ describe('DetectorDetailsAutomations', () => {
     expect(
       await within(allAutomationsList).findByText(automation1.name)
     ).toBeInTheDocument();
+    // All Alerts must ask for every project, or alerts without a monitor are left out.
+    expect(allAutomationsRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/workflows/',
+      expect.objectContaining({query: expect.objectContaining({project: [-1]})})
+    );
 
     await userEvent.click(within(drawer).getByRole('button', {name: 'Connect'}));
 
@@ -428,6 +434,22 @@ describe('DetectorDetailsAutomations', () => {
   });
 
   describe('permissions', () => {
+    it('allows org:write users to edit connections for a detector without a project', async () => {
+      const detector = AllProjectsDetectorFixture({workflowIds: []});
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/workflows/',
+        method: 'GET',
+        body: [],
+      });
+
+      render(<DetectorDetailsAutomations detector={detector} />, {
+        organization: OrganizationFixture({access: ['org:write']}),
+      });
+
+      expect(await screen.findByRole('button', {name: 'Edit Alerts'})).toBeEnabled();
+    });
+
     it('disables edit button when user lacks alerts:write permission', async () => {
       const orgWithoutAlertsWrite = OrganizationFixture({
         access: [],
@@ -455,7 +477,7 @@ describe('DetectorDetailsAutomations', () => {
       const editButton = await screen.findByRole('button', {
         name: 'Edit Alerts',
       });
-      expect(editButton).toBeDisabled();
+      expect(editButton).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('disables connect and create buttons in empty state when user lacks permission', async () => {
@@ -488,8 +510,8 @@ describe('DetectorDetailsAutomations', () => {
       });
       const createButton = screen.getByRole('button', {name: 'Create a New Alert'});
 
-      expect(connectButton).toBeDisabled();
-      expect(createButton).toBeDisabled();
+      expect(connectButton).toHaveAttribute('aria-disabled', 'true');
+      expect(createButton).toHaveAttribute('aria-disabled', 'true');
     });
   });
 });

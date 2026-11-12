@@ -1,38 +1,24 @@
+from typing import Any, cast
+
 import pytest
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.features.flagpole_context import (
     InvalidContextDataException,
     SentryContextData,
-    get_sentry_flagpole_context_builder,
     organization_context_transformer,
     project_context_transformer,
     user_context_transformer,
 )
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.project import Project
 from sentry.organizations.services.organization import organization_service
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.useremail import UserEmail
-
-
-class TestSentryFlagpoleContext(TestCase):
-    def test_sentry_flagpole_context_builder(self) -> None:
-        org = self.create_organization()
-        project = self.create_project(organization=org, platform="php")
-        sentry_flagpole_builder = get_sentry_flagpole_context_builder()
-
-        sentry_context = sentry_flagpole_builder.build(
-            SentryContextData(organization=org, project=project)
-        )
-
-        assert sentry_context.get("organization_slug") == org.slug
-        assert sentry_context.get("organization_slug") == org.slug
-        assert sentry_context.get("project_slug") == project.slug
-        assert sentry_context.get("project_id") == project.id
-        assert sentry_context.get("project_platform") == project.platform
 
 
 class TestSentryOrganizationContextTransformer(TestCase):
@@ -127,7 +113,9 @@ class TestProjectContextTransformer(TestCase):
             project_context_transformer(SentryContextData(project=123))  # type: ignore[arg-type]
 
         with pytest.raises(InvalidContextDataException):
-            project_context_transformer(SentryContextData(project=self.create_organization()))
+            project_context_transformer(
+                SentryContextData(project=cast("Project", self.create_organization()))
+            )
 
     def test_with_valid_project(self) -> None:
         project = self.create_project(slug="foobar", name="Foo Bar", platform="php")
@@ -147,12 +135,11 @@ class TestUserContextTransformer(TestCase):
         context_data = project_context_transformer(SentryContextData())
         assert context_data == {}
 
-    def test_with_invalid_user_passed(self) -> None:
-        with pytest.raises(InvalidContextDataException):
-            user_context_transformer(SentryContextData(actor=123))  # type: ignore[arg-type]
-
-        with pytest.raises(InvalidContextDataException):
-            user_context_transformer(SentryContextData(actor=self.create_organization()))
+    def test_with_service_account(self) -> None:
+        actor: Any = ServiceAccountPrincipal(
+            service_account_id=1, organization_id=1, name="deploy-bot"
+        )
+        assert user_context_transformer(SentryContextData(actor=actor)) == {}
 
     def test_with_valid_user(self) -> None:
         user = self.create_user(email="foobar@example.com")

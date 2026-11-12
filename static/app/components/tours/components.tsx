@@ -1,30 +1,33 @@
-import type {CSSProperties, HTMLAttributes} from 'react';
-import {Fragment, useContext, useEffect, useMemo} from 'react';
+import type {HTMLAttributes} from 'react';
+import {Fragment, useContext, useEffect, useMemo, useRef} from 'react';
 import {createPortal} from 'react-dom';
 import {ClassNames, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {mergeProps} from '@react-aria/utils';
+import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
 import {useHotkeys} from '@sentry/scraps/hotkey';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
+import {Text} from '@sentry/scraps/text';
+import {darkTheme} from '@sentry/scraps/theme';
+import {useOverlay, type UseOverlayProps} from '@sentry/scraps/useOverlay';
 
-import {Overlay, PositionWrapper} from 'sentry/components/overlay';
+import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
 import {
   useTourReducer,
   type TourContextType,
   type TourEnumType,
   type TourState,
   type TourStep,
-} from 'sentry/components/tours/tourContext';
-import {useMutateAssistant} from 'sentry/components/tours/useAssistant';
-import {IconClose} from 'sentry/icons/iconClose';
-import {t} from 'sentry/locale';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {defined} from 'sentry/utils/defined';
-import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
-import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {useOverlay, type UseOverlayProps} from 'sentry/utils/useOverlay';
+  type TourVariant,
+} from './tourContext';
+import {useMutateAssistant} from './useAssistant';
 
 export interface TourContextProviderProps<T extends TourEnumType> {
   /**
@@ -65,6 +68,11 @@ export interface TourContextProviderProps<T extends TourEnumType> {
    * The assistant guide key of the tour. Should be declared in `src/sentry/assistant/guides.py`.
    */
   tourKey?: string;
+  /**
+   * How the tour presents itself. Use `subtle` for pages users already know.
+   * @default 'spotlight'
+   */
+  variant?: TourVariant;
 }
 
 export function TourContextProvider<T extends TourEnumType>({
@@ -73,12 +81,13 @@ export function TourContextProvider<T extends TourEnumType>({
   tourKey,
   TourContext,
   orderedStepIds,
+  variant = 'spotlight',
   onEndTour,
   onStartTour,
   onStepChange,
   requireAllStepsRegistered,
 }: TourContextProviderProps<T>) {
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
   const {mutate} = useMutateAssistant();
   const options = useMemo(
     () => ({
@@ -101,12 +110,28 @@ export function TourContextProvider<T extends TourEnumType>({
   );
   const {endTour, previousStep, nextStep, currentStepId} = tourContextValue;
   const isTourActive = currentStepId !== null;
+  // Set when the user steps through a subtle tour from a focused guide, so the
+  // next guide can take focus over.
+  const focusHandoffRef = useRef(false);
+  const variantTourContextValue = {
+    ...tourContextValue,
+    variant,
+    focusHandoffRef: variant === 'subtle' ? focusHandoffRef : undefined,
+  };
 
+  useEffect(() => {
+    if (!isTourActive) {
+      focusHandoffRef.current = false;
+    }
+  }, [isTourActive]);
+
+  // Subtle tours leave the page usable, so their guides handle Escape only
+  // while focused instead.
   useHotkeys(
-    isTourActive
+    isTourActive && variant === 'spotlight'
       ? [
           {
-            match: 'Escape',
+            hotkey: 'Escape',
             callback: () => {
               if (tourKey) {
                 mutate({guide: tourKey, status: 'dismissed'});
@@ -114,16 +139,21 @@ export function TourContextProvider<T extends TourEnumType>({
               trackAnalytics('tour-guide.dismiss', {
                 organization,
                 id: `${currentStepId}`,
+                step_count: orderedStepIds.indexOf(currentStepId) + 1,
+                tour_key: tourKey,
               });
               endTour();
             },
           },
-          {match: ['left', 'h'], callback: () => previousStep()},
-          {match: ['right', 'l'], callback: () => nextStep()},
+          {hotkey: 'ArrowLeft', callback: () => previousStep()},
+          {hotkey: 'H', callback: () => previousStep()},
+          {hotkey: 'ArrowRight', callback: () => nextStep()},
+          {hotkey: 'L', callback: () => nextStep()},
         ]
       : []
   );
 
+  // A tour counts as seen once it is shown.
   useEffect(() => {
     if (isTourActive && tourKey) {
       mutate({guide: tourKey, status: 'viewed'});
@@ -131,8 +161,10 @@ export function TourContextProvider<T extends TourEnumType>({
   }, [isTourActive, mutate, tourKey]);
 
   return (
-    <TourContext value={tourContextValue}>
-      {isTourActive && <BlurWindow data-test-id="tour-blur-window" />}
+    <TourContext value={variantTourContextValue}>
+      {isTourActive && variant === 'spotlight' && (
+        <BlurWindow data-test-id="tour-blur-window" />
+      )}
       {children}
     </TourContext>
   );
@@ -202,6 +234,11 @@ export interface TourElementProps<T extends TourEnumType> extends Omit<
    * The position of the tour element.
    */
   position?: UseOverlayProps['position'];
+  /**
+   * Where focus goes when a subtle tour's guide closes while focused. Defaults
+   * to this element, which may no longer be on the page.
+   */
+  returnFocusRef?: React.RefObject<HTMLElement | null>;
 }
 
 export function TourElement<T extends TourEnumType>({
@@ -242,8 +279,9 @@ export function TourElementContent<T extends TourEnumType>({
   className,
   actions,
   margin,
+  returnFocusRef,
 }: TourElementContentProps<T>) {
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
   const {
     currentStepId,
     orderedStepIds,
@@ -252,6 +290,8 @@ export function TourElementContent<T extends TourEnumType>({
     previousStep,
     nextStep,
     endTour,
+    variant,
+    focusHandoffRef,
   } = tourContextValue;
   const stepCount = currentStepId ? orderedStepIds.indexOf(id) + 1 : 0;
   const stepTotal = orderedStepIds.length;
@@ -272,48 +312,55 @@ export function TourElementContent<T extends TourEnumType>({
     }
   }, [isOpen, id, organization, tourKey, stepCount]);
 
-  const defaultActions = useMemo(
-    () => (
-      <Grid flow="column" align="center" gap="md">
-        {hasPreviousStep && (
-          <TextTourAction size="xs" onClick={previousStep}>
-            {t('Previous')}
-          </TextTourAction>
-        )}
-        {hasNextStep ? (
-          <TourAction size="xs" onClick={nextStep}>
-            {t('Next')}
-          </TourAction>
-        ) : (
-          <TourAction
-            size="xs"
-            onClick={() => {
-              endTour();
-              trackAnalytics('tour-guide.finish', {
-                organization,
-                id: id.toString(),
-                step_count: stepCount,
-                tour_key: tourKey,
-              });
-            }}
-          >
-            {t('Finish tour')}
-          </TourAction>
-        )}
-      </Grid>
-    ),
-    [
-      hasPreviousStep,
-      hasNextStep,
-      previousStep,
-      nextStep,
-      endTour,
-      organization,
-      id,
-      stepCount,
-      tourKey,
-    ]
+  // Keyboard users keep their place when the step changes under them.
+  const withFocusHandoff = (changeStep: () => void) => (event: React.MouseEvent) => {
+    if (focusHandoffRef && event.currentTarget === document.activeElement) {
+      focusHandoffRef.current = true;
+    }
+    changeStep();
+  };
+  const defaultActions = (
+    <Grid flow="column" align="center" gap="md">
+      {hasPreviousStep && (
+        <TextTourAction size="xs" onClick={withFocusHandoff(previousStep)}>
+          {t('Previous')}
+        </TextTourAction>
+      )}
+      {hasNextStep ? (
+        <TourAction size="xs" onClick={withFocusHandoff(nextStep)}>
+          {t('Next')}
+        </TourAction>
+      ) : (
+        <TourAction
+          size="xs"
+          onClick={() => {
+            endTour();
+            trackAnalytics('tour-guide.finish', {
+              organization,
+              id: id.toString(),
+              step_count: stepCount,
+              tour_key: tourKey,
+            });
+          }}
+        >
+          {t('Done')}
+        </TourAction>
+      )}
+    </Grid>
   );
+
+  const dismiss = () => {
+    if (tourKey) {
+      mutate({guide: tourKey, status: 'dismissed'});
+      trackAnalytics('tour-guide.dismiss', {
+        organization,
+        id: id.toString(),
+        step_count: stepCount,
+        tour_key: tourKey,
+      });
+    }
+    endTour();
+  };
 
   return (
     <TourGuide
@@ -323,18 +370,22 @@ export function TourElementContent<T extends TourEnumType>({
       className={className}
       isOpen={isOpen}
       position={position}
-      handleDismiss={() => {
-        if (tourKey) {
-          mutate({guide: tourKey, status: 'dismissed'});
-          trackAnalytics('tour-guide.dismiss', {
-            organization,
-            id: id.toString(),
-            step_count: stepCount,
-            tour_key: tourKey,
-          });
-        }
-        endTour();
-      }}
+      handleDismiss={dismiss}
+      // Spotlight tours blur the page, so only subtle tours can be clicked away.
+      onClickOutside={variant === 'subtle' ? dismiss : undefined}
+      onKeyDown={
+        variant === 'subtle'
+          ? event => {
+              if (event.key === 'Escape') {
+                event.stopPropagation();
+                dismiss();
+              }
+            }
+          : undefined
+      }
+      focusHandoffRef={focusHandoffRef}
+      returnFocusRef={returnFocusRef}
+      variant={variant}
       stepCount={stepCount}
       stepTotal={stepTotal}
       id={`${id}`}
@@ -356,19 +407,38 @@ interface TourGuideProps extends Omit<
   description: React.ReactNode;
   isOpen: UseOverlayProps['isOpen'];
   /**
-   * The <TourGuide /> component is very opinionated on styles. It uses a black background on light
-   * mode and purple on dark mode. For best results, use `<TourAction />` and `<TourTextAction/>`
+   * The <TourGuide /> component is very opinionated on styles. It always uses the dark theme,
+   * whatever the user's theme is. For best results, use `<TourAction />` and `<TourTextAction/>`
    * instead of regular buttons, since it may cause readibility issues if we use the user's theme.
    */
   actions?: React.ReactNode;
+  /**
+   * When true as the guide opens, the guide takes focus and resets it.
+   */
+  focusHandoffRef?: React.RefObject<boolean>;
   handleDismiss?: (e: React.MouseEvent) => void;
   id?: string;
-  margin?: CSSProperties['margin'];
+  margin?: number;
   offset?: UseOverlayProps['offset'];
+  /**
+   * Called after a click outside the guide. The click still goes through.
+   */
+  onClickOutside?: () => void;
+  /**
+   * Handles keys pressed while focus is inside the guide. The guide can then be
+   * focused, and returns focus to the page when it closes.
+   */
+  onKeyDown?: (event: React.KeyboardEvent) => void;
   position?: UseOverlayProps['position'];
+  /**
+   * Where focus goes when the guide closes while focused. Defaults to the
+   * highlighted element.
+   */
+  returnFocusRef?: React.RefObject<HTMLElement | null>;
   stepCount?: number;
   stepTotal?: number;
   title?: React.ReactNode;
+  variant?: TourVariant;
 }
 
 const zIndex = {
@@ -376,6 +446,12 @@ const zIndex = {
   element: 10101,
   overlay: 10102,
 };
+
+/**
+ * Keep the guide inside the viewport even when that means overlapping its
+ * highlighted element, such as one that is taller than the viewport.
+ */
+const keepGuideInViewport = {crossAxis: true, tether: false};
 
 export function TourGuide({
   children,
@@ -390,33 +466,108 @@ export function TourGuide({
   stepTotal,
   offset,
   margin,
+  onClickOutside,
+  onKeyDown,
+  focusHandoffRef,
+  returnFocusRef,
+  variant,
 }: TourGuideProps) {
   const theme = useTheme();
-  const invertedTheme = useInvertedTheme();
 
   const isStepCountVisible = defined(stepCount) && defined(stepTotal) && stepTotal !== 1;
   const isDismissVisible = defined(handleDismiss);
   const isTopRowVisible = isStepCountVisible || isDismissVisible;
   const countText = isStepCountVisible ? `${stepCount}/${stepTotal}` : '';
-  const {triggerProps, overlayProps, arrowProps, update} = useOverlay({
+  const {triggerProps, triggerRef, overlayProps, overlayRef, arrowProps} = useOverlay({
     shouldApplyMinWidth: false,
     isOpen,
     position,
     offset,
+    strategy: 'fixed',
+    preventOverflowOptions: keepGuideInViewport,
+    // react-aria swallows the click that dismisses an overlay. Guides that handle
+    // outside clicks let the click through instead.
+    isDismissable: !onClickOutside,
   });
 
-  // Update the overlay positioning when the content changes
-  useEffectAfterFirstRender(() => {
-    if (isOpen && update && defined(title) && defined(description)) {
-      update();
+  useEffect(() => {
+    if (!isOpen || !onClickOutside) {
+      return;
     }
-  }, [isOpen, update, title, description]);
+    const handleClick = (event: MouseEvent) => {
+      const target = event.target;
+      if (target instanceof Node && !overlayRef.current?.contains(target)) {
+        onClickOutside();
+      }
+    };
+    // Runs after the page handles the click, so the click still goes through.
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [isOpen, onClickOutside, overlayRef]);
+
+  // Scroll the highlighted element rather than the guide. The element may live in
+  // a nested scroll container (e.g. the issue details sidebar, which stacks below
+  // the content at narrow widths); the guide is portaled to the body and can't
+  // scroll that container.
+  useEffect(() => {
+    if (isOpen) {
+      triggerRef.current?.scrollIntoView?.({
+        block: 'nearest',
+        behavior: 'smooth',
+      });
+    }
+  }, [isOpen, triggerRef]);
+
+  const isFocusable = defined(onKeyDown);
+  useEffect(() => {
+    const overlay = overlayRef.current;
+    // The guide's element attaches after it opens, and this runs again then.
+    if (!isOpen || !isFocusable || !overlay) {
+      return;
+    }
+    if (focusHandoffRef?.current) {
+      focusHandoffRef.current = false;
+      overlay.focus();
+    }
+    const returnFocusTarget = returnFocusRef?.current ?? triggerRef.current;
+    let hasFocus = overlay.contains(document.activeElement);
+    const handleFocusIn = () => {
+      hasFocus = true;
+    };
+    const handleFocusOut = (event: FocusEvent) => {
+      // A guide removed while focused can still blur; the cleanup handles it.
+      const focusTarget = event.relatedTarget;
+      const staysInGuide = focusTarget instanceof Node && overlay.contains(focusTarget);
+      if (overlay.isConnected && !staysInGuide) {
+        hasFocus = false;
+      }
+    };
+    overlay.addEventListener('focusin', handleFocusIn);
+    overlay.addEventListener('focusout', handleFocusOut);
+    return () => {
+      overlay.removeEventListener('focusin', handleFocusIn);
+      overlay.removeEventListener('focusout', handleFocusOut);
+      // Leave focus alone when the next guide takes it over, or when something
+      // else, like a modal, has already moved it.
+      const isFocusLost =
+        !document.activeElement || document.activeElement === document.body;
+      if (hasFocus && isFocusLost && !focusHandoffRef?.current) {
+        if (returnFocusTarget?.isConnected) {
+          returnFocusTarget.focus();
+        }
+      }
+    };
+  }, [isOpen, isFocusable, overlayRef, triggerRef, focusHandoffRef, returnFocusRef]);
+
+  const focusProps: HTMLAttributes<HTMLElement> = isFocusable
+    ? {tabIndex: -1, onKeyDown}
+    : {};
 
   return (
     <Fragment>
       <ClassNames>
         {({css, cx}) => {
-          const tourStyles = getTourElementStyles(theme, !!isOpen, margin);
+          const tourStyles = getTourElementStyles(theme, !!isOpen, margin, variant);
           const tourClassName = tourStyles ? css(tourStyles) : undefined;
 
           return children({
@@ -428,11 +579,14 @@ export function TourGuide({
       </ClassNames>
       {isOpen && defined(title) && defined(description)
         ? createPortal(
-            <PositionWrapper zIndex={zIndex.overlay} {...overlayProps}>
-              <ThemeProvider theme={invertedTheme}>
+            <PositionWrapper
+              zIndex={zIndex.overlay}
+              {...mergeProps(overlayProps, focusProps)}
+            >
+              <ThemeProvider theme={darkTheme}>
                 <ClassNames>
                   {({css, theme: currentTheme}) => (
-                    <TourOverlay
+                    <Overlay
                       animated
                       arrowProps={{
                         ...arrowProps,
@@ -447,10 +601,22 @@ export function TourGuide({
                         `,
                       }}
                     >
-                      <TourBody ref={scrollToElement}>
+                      <Stack
+                        background="primary"
+                        radius="md"
+                        width="395px"
+                        maxWidth={TOUR_GUIDE_MAX_WIDTH}
+                        padding="md xl"
+                      >
                         {isTopRowVisible && (
-                          <TopRow>
-                            <div>{countText}</div>
+                          <Flex
+                            justify="between"
+                            align="center"
+                            minHeight={theme.form.sm.height}
+                          >
+                            <Text size="sm" variant="muted" bold>
+                              {countText}
+                            </Text>
                             {isDismissVisible && (
                               <Button
                                 variant="transparent"
@@ -460,17 +626,29 @@ export function TourGuide({
                                 size="zero"
                               />
                             )}
-                          </TopRow>
+                          </Flex>
                         )}
-                        {title && <TitleRow>{title}</TitleRow>}
-                        {description && <DescriptionRow>{description}</DescriptionRow>}
+                        {title && (
+                          <Container padding="xs 0">
+                            <Text as="div" size="xl" bold density="comfortable">
+                              {title}
+                            </Text>
+                          </Container>
+                        )}
+                        {description && (
+                          <Container padding="xs 0">
+                            <Text as="div" size="md" density="comfortable">
+                              {description}
+                            </Text>
+                          </Container>
+                        )}
                         {actions && (
-                          <Flex justify="end" marginTop="md">
+                          <Flex justify="end" padding="md 0">
                             {actions}
                           </Flex>
                         )}
-                      </TourBody>
-                    </TourOverlay>
+                      </Stack>
+                    </Overlay>
                   )}
                 </ClassNames>
               </ThemeProvider>
@@ -482,55 +660,8 @@ export function TourGuide({
   );
 }
 
-function scrollToElement(element: HTMLDivElement | null) {
-  element?.scrollIntoView?.({block: 'center', behavior: 'smooth'});
-}
-
-/* XXX: For compatibility with Guides, we need to style 'a' tags which are often docs links */
-const TourBody = styled('div')`
-  display: flex;
-  flex-direction: column;
-  background: ${p => p.theme.tokens.background.primary};
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
-  color: ${p => p.theme.tokens.content.primary};
-  border-radius: ${p => p.theme.radius.md};
-  width: 360px;
-  a {
-    color: ${p => p.theme.tokens.content.primary};
-    text-decoration: underline;
-  }
-`;
-
-const TourOverlay = styled(Overlay)`
-  width: 360px;
-  box-shadow: none;
-`;
-
-const TopRow = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.sm};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const TitleRow = styled('div')`
-  color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.font.size.xl};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  line-height: 1.4;
-  white-space: wrap;
-`;
-
-const DescriptionRow = styled('div')`
-  color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.font.size.md};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  line-height: 1.4;
-  white-space: wrap;
-  opacity: 0.9;
-`;
+// useOverlay keeps 16px between the guide and each edge of the viewport.
+const TOUR_GUIDE_MAX_WIDTH = 'calc(100vw - 32px)';
 
 export function TourAction(props: React.ComponentProps<typeof Button>) {
   return <Button {...props} variant="primary" size="sm" />;
@@ -555,9 +686,14 @@ const BlurWindow = styled('div')`
 function getTourElementStyles(
   theme: ReturnType<typeof useTheme>,
   isOpen: boolean,
-  margin?: CSSProperties['margin']
+  margin?: number,
+  variant?: TourVariant
 ) {
-  if (!isOpen) {
+  // Return no styles, which leaves the element as it is, when the step is closed.
+  // A subtle tour also leaves it alone: it has no outline, is not raised above the
+  // page and stays clickable, because the guide's arrow is the only thing that
+  // points at it.
+  if (!isOpen || variant === 'subtle') {
     return;
   }
 
@@ -574,7 +710,7 @@ function getTourElementStyles(
       inset: 0;
       border-radius: ${theme.radius.md};
       box-shadow: inset 0 0 0 3px ${theme.tokens.border.accent.vibrant};
-      ${defined(margin) ? `margin: ${margin};` : ''}
+      ${defined(margin) ? `margin: ${margin}px;` : ''}
     }
   `;
 }

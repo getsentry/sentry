@@ -3,10 +3,11 @@ from __future__ import annotations
 import re
 from collections.abc import MutableMapping, Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, Annotated, Any, TypedDict
 
-import sentry_sdk
+from sentry_sdk import traces
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.grouping.component import ContributingComponent, RootGroupingComponent
 from sentry.grouping.context import GroupingContext
@@ -63,8 +64,10 @@ NULL_GROUPHASH_INFO = GroupHashInfo(NULL_GROUPING_CONFIG, {}, [], [], None)
 
 
 class GroupingConfig(TypedDict):
-    id: str
-    enhancements: str
+    id: Annotated[str, ApiDescription("ID of the grouping config, such as newstyle:2026-01-20")]
+    enhancements: Annotated[
+        str, ApiDescription("Stack trace rules of the project, as an encoded string")
+    ]
 
 
 class GroupingConfigLoader:
@@ -127,11 +130,12 @@ class ProjectGroupingConfigLoader(GroupingConfigLoader):
     option_name: str  # Set in subclasses
 
     def _get_config_id(self, project: Project) -> str:
-        return project.get_option(
+        config_id = project.get_option(
             self.option_name,
             validate=lambda x: isinstance(x, str) and x in GROUPING_CONFIG_CLASSES,
             default=DEFAULT_GROUPING_CONFIG,
         )
+        return config_id
 
 
 class PrimaryGroupingConfigLoader(ProjectGroupingConfigLoader):
@@ -148,7 +152,7 @@ class SecondaryGroupingConfigLoader(ProjectGroupingConfigLoader):
     cache_prefix = "secondary-grouping-enhancements:"
 
 
-@sentry_sdk.tracing.trace
+@traces.trace
 def get_grouping_config_dict_for_project(project: Project) -> GroupingConfig:
     """Fetches all the information necessary for grouping from the project
     settings.  The return value of this is persisted with the event on

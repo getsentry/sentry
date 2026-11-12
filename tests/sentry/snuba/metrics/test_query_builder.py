@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import re
 import types
+from collections.abc import Callable
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 
 import pytest
@@ -67,7 +68,7 @@ from sentry.snuba.metrics.fields.snql import (
 )
 from sentry.snuba.metrics.naming_layer import SessionMetricKey
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
-from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.metrics.query import MetricConditionField, MetricField, MetricGroupByField
 from sentry.snuba.metrics.query_builder import QUERY_PROJECT_LIMIT, QueryDefinition
 from sentry.snuba.metrics.utils import MetricEntity
@@ -94,7 +95,7 @@ ORG_ID = 1
 USE_CASE_ID = UseCaseID.SESSIONS
 
 
-def get_entity_of_metric_mocked(_, metric_name, use_case_id):
+def get_entity_of_metric_mocked(_: object, metric_name: str, use_case_id: UseCaseID) -> str:
     return {
         "sentry.sessions.session": EntityKey.MetricsCounters,
         SessionMRI.RAW_SESSION.value: EntityKey.MetricsCounters,
@@ -248,7 +249,7 @@ def get_entity_of_metric_mocked(_, metric_name, use_case_id):
         ),
     ],
 )
-def test_parse_conditions(query_string, expected) -> None:
+def test_parse_conditions(query_string: str, expected: Callable[[], object]) -> None:
     org_id = ORG_ID
     use_case_id = UseCaseID.SESSIONS
     for s in ("myapp@2.0.0", "/bar/:orgId/"):
@@ -297,14 +298,19 @@ def test_round_range() -> None:
         ("2022-10-01 09:20:00", "2h", {"timeframe": "91d"}, ("08:00:00 07-02", "10:00:00 10-01")),
     ],
 )
-def test_get_date_range(now, interval, parameters, expected) -> None:
-    def _to_datetimestring(d):
+def test_get_date_range(
+    now: str,
+    interval: str | None,
+    parameters: dict[str, str],
+    expected: tuple[str, str],
+) -> None:
+    def _to_datetimestring(d: datetime) -> str:
         return d.strftime("%H:%M:%S %m-%d")
 
     if interval is not None:
         parameters["interval"] = interval
     with freeze_time(now):
-        start, end, interval = get_date_range(parameters)
+        start, end, _rollup = get_date_range(parameters)
 
         start_actual = _to_datetimestring(start)
         end_actual = _to_datetimestring(end)
@@ -375,11 +381,16 @@ def test_build_snuba_query(mock_now: mock.MagicMock, mock_now2: mock.MagicMock) 
     org_id = 1
     use_case_id = UseCaseID.SESSIONS
 
-    def expected_query(match, select, extra_groupby, metric_name):
+    def expected_query(
+        match: str,
+        select: tuple[str, str, str],
+        extra_groupby: list[Column],
+        metric_name: str,
+    ) -> Query:
         function, column, alias = select
 
         select_function = Function(
-            OP_TO_SNUBA_FUNCTION[match][alias],
+            cast("dict[str, dict[str, str]]", OP_TO_SNUBA_FUNCTION)[match][alias],
             [
                 Column("value"),
                 Function(
@@ -483,7 +494,7 @@ def test_build_snuba_query(mock_now: mock.MagicMock, mock_now2: mock.MagicMock) 
 @mock.patch(
     "sentry.snuba.metrics.fields.base._get_entity_of_metric_mri", get_entity_of_metric_mocked
 )
-def test_build_snuba_query_mri(mock_now, mock_now2) -> None:
+def test_build_snuba_query_mri(mock_now: mock.MagicMock, mock_now2: mock.MagicMock) -> None:
     org_id = 1
     use_case_id = UseCaseID.SESSIONS
     # Your typical release health query querying everything
@@ -566,7 +577,9 @@ def test_build_snuba_query_mri(mock_now, mock_now2) -> None:
 @mock.patch(
     "sentry.snuba.metrics.fields.base._get_entity_of_metric_mri", get_entity_of_metric_mocked
 )
-def test_build_snuba_query_derived_metrics(mock_now, mock_now2) -> None:
+def test_build_snuba_query_derived_metrics(
+    mock_now: mock.MagicMock, mock_now2: mock.MagicMock
+) -> None:
     org_id = 1
     use_case_id = UseCaseID.SESSIONS
     # Your typical release health query querying everything
@@ -970,7 +983,7 @@ def test_translate_results_derived_metrics(_1: mock.MagicMock, _2: mock.MagicMoc
         }
     )
     query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
-    fields_in_entities: dict[MetricEntity, list[tuple[str | None, str, str]]] = {
+    fields_in_entities: dict[MetricEntity, list[tuple[MetricOperationType | None, str, str]]] = {
         "metrics_counters": [
             (
                 None,
@@ -997,7 +1010,7 @@ def test_translate_results_derived_metrics(_1: mock.MagicMock, _2: mock.MagicMoc
     intervals = list(
         get_intervals(query_definition.start, query_definition.end, query_definition.rollup)
     )
-    results = {
+    results: dict[str, dict[str, dict[str, list[dict[str, Any]]]]] = {
         "metrics_counters": {
             "totals": {
                 "data": [
@@ -1091,13 +1104,13 @@ def test_translate_results_missing_slots(_1: mock.MagicMock, _2: mock.MagicMock)
         }
     )
     query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
-    fields_in_entities: dict[MetricEntity, list[tuple[str | None, str, str]]] = {
+    fields_in_entities: dict[MetricEntity, list[tuple[MetricOperationType | None, str, str]]] = {
         "metrics_counters": [
             ("sum", SessionMRI.RAW_SESSION.value, "sum(sentry.sessions.session)"),
         ],
     }
 
-    results = {
+    results: dict[str, dict[str, dict[str, list[dict[str, Any]]]]] = {
         "metrics_counters": {
             "totals": {
                 "data": [
@@ -1151,7 +1164,7 @@ def test_translate_results_missing_slots(_1: mock.MagicMock, _2: mock.MagicMock)
 
 def test_translate_meta_results() -> None:
     meta = [
-        {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Float64"},
+        {"name": "p50(d:spans/duration@millisecond)", "type": "Float64"},
         {"name": "team_key_transaction", "type": "UInt8"},
         {"name": "transaction", "type": "UInt64"},
         {"name": "project_id", "type": "UInt64"},
@@ -1163,10 +1176,10 @@ def test_translate_meta_results() -> None:
     assert translate_meta_results(
         meta,
         {
-            "p50(transaction.measurements.lcp)": MetricField(
+            "p50(span.duration)": MetricField(
                 op="p50",
-                metric_mri=TransactionMRI.MEASUREMENTS_LCP.value,
-                alias="p50(transaction.measurements.lcp)",
+                metric_mri="d:spans/duration@millisecond",
+                alias="p50(span.duration)",
             ),
         },
         {
@@ -1174,7 +1187,7 @@ def test_translate_meta_results() -> None:
             "team_key_transaction": MetricGroupByField(
                 field=MetricField(
                     op="team_key_transaction",
-                    metric_mri=TransactionMRI.DURATION.value,
+                    metric_mri="c:transactions/count_per_root_project@none",
                     alias="team_key_transaction",
                 )
             ),
@@ -1183,7 +1196,7 @@ def test_translate_meta_results() -> None:
         },
     ) == sorted(
         [
-            {"name": "p50(transaction.measurements.lcp)", "type": "Float64"},
+            {"name": "p50(span.duration)", "type": "Float64"},
             {"name": "team_key_transaction", "type": "boolean"},
             {"name": "transaction", "type": "string"},
             {"name": "project_id", "type": "UInt64"},
@@ -1198,8 +1211,8 @@ def test_translate_meta_results() -> None:
 
 def test_translate_meta_results_with_duplicates() -> None:
     meta = [
-        {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Float64"},
-        {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Float64"},
+        {"name": "p50(d:spans/duration@millisecond)", "type": "Float64"},
+        {"name": "p50(d:spans/duration@millisecond)", "type": "Float64"},
         {"name": "transaction", "type": "UInt64"},
         {"name": "transaction", "type": "UInt64"},
         {"name": "project_id", "type": "UInt64"},
@@ -1208,16 +1221,16 @@ def test_translate_meta_results_with_duplicates() -> None:
     assert translate_meta_results(
         meta,
         {
-            "p50(transaction.measurements.lcp)": MetricField(
+            "p50(span.duration)": MetricField(
                 op="p50",
-                metric_mri=TransactionMRI.MEASUREMENTS_LCP.value,
-                alias="p50(transaction.measurements.lcp)",
+                metric_mri="d:spans/duration@millisecond",
+                alias="p50(span.duration)",
             )
         },
         {"transaction": MetricGroupByField("transaction")},
     ) == sorted(
         [
-            {"name": "p50(transaction.measurements.lcp)", "type": "Float64"},
+            {"name": "p50(span.duration)", "type": "Float64"},
             {"name": "transaction", "type": "string"},
             {"name": "project_id", "type": "UInt64"},
         ],
@@ -1228,10 +1241,10 @@ def test_translate_meta_results_with_duplicates() -> None:
 @mock.patch(
     "sentry.snuba.metrics.query_builder.get_metric_object_from_metric_field",
     return_value=SingularEntityDerivedMetric(
-        metric_mri=TransactionMRI.FAILURE_RATE.value,
+        metric_mri="e:transactions/failure_rate@ratio",
         metrics=[
-            TransactionMRI.FAILURE_COUNT.value,
-            TransactionMRI.ALL.value,
+            "e:transactions/failure_count@none",
+            "e:transactions/all@none",
         ],
         unit="transactions",
         snql=lambda failure_count, tx_count, org_id, metric_ids, alias=None: division_float(
@@ -1251,7 +1264,7 @@ def test_translate_meta_result_type_singular_entity_derived_metric(_: mock.Magic
         {
             "transaction.failure_rate": MetricField(
                 op=None,
-                metric_mri=TransactionMRI.FAILURE_RATE.value,
+                metric_mri="e:transactions/failure_rate@ratio",
                 alias="transaction.failure_rate",
             )
         },
@@ -1324,25 +1337,31 @@ def test_translate_meta_result_type_composite_entity_derived_metric(_: mock.Magi
         ),
         pytest.param(
             [
-                MetricField("count", TransactionMRI.DURATION.value),
+                MetricField("count", "d:transactions/duration@millisecond"),
             ],
             [
-                MetricGroupByField(MetricField("count", TransactionMRI.DURATION.value)),
+                MetricGroupByField(MetricField("count", "d:transactions/duration@millisecond")),
             ],
             UseCaseID.TRANSACTIONS,
             re.escape("Cannot group by metrics expression count(transaction.duration)"),
             id="invalid grouping by metric expression - performance",
+            marks=pytest.mark.skip(
+                reason="Generic metrics sets, gauges, and distributions are no longer queryable"
+            ),
         ),
         pytest.param(
             [
-                MetricField(None, TransactionMRI.FAILURE_RATE.value),
+                MetricField(None, "e:transactions/failure_rate@ratio"),
             ],
             [
-                MetricGroupByField(MetricField(None, TransactionMRI.FAILURE_RATE.value)),
+                MetricGroupByField(MetricField(None, "e:transactions/failure_rate@ratio")),
             ],
             UseCaseID.TRANSACTIONS,
             "Cannot group by metric transaction.failure_rate",
             id="invalid grouping by derived metric - release_health",
+            marks=pytest.mark.skip(
+                reason="Generic metrics sets, gauges, and distributions are no longer queryable"
+            ),
         ),
         pytest.param(
             [
@@ -1359,7 +1378,7 @@ def test_translate_meta_result_type_composite_entity_derived_metric(_: mock.Magi
             [
                 MetricField(
                     "team_key_transaction",
-                    TransactionMRI.DURATION.value,
+                    "d:transactions/duration@millisecond",
                     params={"team_key_condition_rhs": [(1, "foo")]},
                 ),
             ],
@@ -1367,7 +1386,7 @@ def test_translate_meta_result_type_composite_entity_derived_metric(_: mock.Magi
                 MetricGroupByField(
                     MetricField(
                         "team_key_transaction",
-                        TransactionMRI.DURATION.value,
+                        "d:transactions/duration@millisecond",
                         params={"team_key_condition_rhs": [(1, "foo")]},
                     )
                 ),
@@ -1375,12 +1394,18 @@ def test_translate_meta_result_type_composite_entity_derived_metric(_: mock.Magi
             UseCaseID.TRANSACTIONS,
             "",
             id="valid grouping by metrics expression",
+            marks=pytest.mark.skip(
+                reason="Generic metrics sets, gauges, and distributions are no longer queryable"
+            ),
         ),
     ],
 )
 def test_only_can_groupby_operations_can_be_added_to_groupby(
-    select, groupby, usecase, error_string
-):
+    select: list[MetricField],
+    groupby: list[MetricGroupByField] | None,
+    usecase: UseCaseID,
+    error_string: str,
+) -> None:
     query_definition = DeprecatingMetricsQuery(
         org_id=1,
         project_ids=[1],
@@ -1419,27 +1444,35 @@ def test_only_can_groupby_operations_can_be_added_to_groupby(
         ),
         pytest.param(
             [
-                MetricField("count", TransactionMRI.DURATION.value),
+                MetricField("count", "d:transactions/duration@millisecond"),
             ],
             [
-                MetricConditionField(MetricField("count", TransactionMRI.DURATION.value), Op.LT, 2),
+                MetricConditionField(
+                    MetricField("count", "d:transactions/duration@millisecond"), Op.LT, 2
+                ),
             ],
             UseCaseID.TRANSACTIONS,
             re.escape("Cannot filter by metrics expression count(transaction.duration)"),
             id="invalid filtering by metric expression - performance",
+            marks=pytest.mark.skip(
+                reason="Generic metrics sets, gauges, and distributions are no longer queryable"
+            ),
         ),
         pytest.param(
             [
-                MetricField(None, TransactionMRI.FAILURE_RATE.value),
+                MetricField(None, "e:transactions/failure_rate@ratio"),
             ],
             [
                 MetricConditionField(
-                    MetricField(None, TransactionMRI.FAILURE_RATE.value), Op.EQ, 0.5
+                    MetricField(None, "e:transactions/failure_rate@ratio"), Op.EQ, 0.5
                 ),
             ],
             UseCaseID.TRANSACTIONS,
             "Cannot filter by metric transaction.failure_rate",
             id="invalid filtering by derived metric - release_health",
+            marks=pytest.mark.skip(
+                reason="Generic metrics sets, gauges, and distributions are no longer queryable"
+            ),
         ),
         pytest.param(
             [
@@ -1456,7 +1489,7 @@ def test_only_can_groupby_operations_can_be_added_to_groupby(
             [
                 MetricField(
                     "team_key_transaction",
-                    TransactionMRI.DURATION.value,
+                    "d:transactions/duration@millisecond",
                     params={"team_key_condition_rhs": [(1, "foo")]},
                 ),
             ],
@@ -1464,7 +1497,7 @@ def test_only_can_groupby_operations_can_be_added_to_groupby(
                 MetricConditionField(
                     MetricField(
                         "team_key_transaction",
-                        TransactionMRI.DURATION.value,
+                        "d:transactions/duration@millisecond",
                         params={"team_key_condition_rhs": [(1, "foo")]},
                     ),
                     Op.EQ,
@@ -1474,11 +1507,17 @@ def test_only_can_groupby_operations_can_be_added_to_groupby(
             UseCaseID.TRANSACTIONS,
             "",
             id="valid filtering by metrics expression",
+            marks=pytest.mark.skip(
+                reason="Generic metrics sets, gauges, and distributions are no longer queryable"
+            ),
         ),
     ],
 )
 def test_only_can_filter_operations_can_be_added_to_where(
-    select, where, usecase, error_string
+    select: list[MetricField],
+    where: list[MetricConditionField],
+    usecase: UseCaseID,
+    error_string: str,
 ) -> None:
     query_definition = DeprecatingMetricsQuery(
         org_id=1,
@@ -2013,7 +2052,7 @@ def test_timestamp_operators(op: MetricOperationType, clickhouse_op: str) -> Non
         [False, True],
     ],
 )
-def test_having_clause(include_totals, include_series) -> None:
+def test_having_clause(include_totals: bool, include_series: bool) -> None:
     """
     Tests that the having clause ends up in the snql queries in the expected form
     """

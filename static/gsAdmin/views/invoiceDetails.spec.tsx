@@ -10,8 +10,11 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
+import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 
 import {InvoiceDetails} from 'admin/views/invoiceDetails';
+
+jest.mock('sentry/utils/downloadFromHref');
 
 describe('InvoiceDetails', () => {
   const mockOrg = OrganizationFixture();
@@ -196,6 +199,75 @@ describe('InvoiceDetails', () => {
       expect(await screen.findByTestId('retryPayment')).toHaveAttribute(
         'aria-disabled',
         'true'
+      );
+    });
+  });
+
+  describe('Download PDF', () => {
+    it('downloads the receipt from the cell that owns the invoice', async () => {
+      const invoice = InvoiceFixture();
+      MockApiClient.addMockResponse({
+        url: `/_admin/cells/de/admin-invoices/${invoice.id}/`,
+        body: invoice,
+        host: 'https://de.sentry.io',
+      });
+
+      render(<InvoiceDetails />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${mockOrg.slug}/invoices/de/${invoice.id}/`,
+          },
+          route: '/organizations/:orgId/invoices/:region/:invoiceId/',
+        },
+      });
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Invoices Actions'})
+      );
+      await userEvent.click(screen.getByText('Download PDF'));
+
+      expect(downloadFromHref).toHaveBeenCalledWith(
+        `sentry-invoice-${invoice.id}.pdf`,
+        `https://de.sentry.io/api/0/_admin/cells/de/payments/${invoice.id}/pdf/`
+      );
+    });
+
+    it('stays available when the organization is deleted', async () => {
+      const invoice = InvoiceFixture({
+        customer: {id: '42', slug: null, isDeleted: true},
+      });
+      MockApiClient.addMockResponse({
+        url: `/_admin/cells/us/admin-invoices/${invoice.id}/`,
+        body: invoice,
+        host: 'https://us.sentry.io',
+      });
+
+      render(<InvoiceDetails />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${mockOrg.slug}/invoices/us/${invoice.id}/`,
+          },
+          route: '/organizations/:orgId/invoices/:region/:invoiceId/',
+        },
+      });
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Invoices Actions'})
+      );
+
+      // The two mutating actions are disabled for a deleted org, but the
+      // receipt is rendered from billing records that outlive it.
+      expect(await screen.findByTestId('closeInvoice')).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+      expect(screen.getByTestId('downloadPdf')).not.toHaveAttribute('aria-disabled');
+
+      await userEvent.click(screen.getByText('Download PDF'));
+
+      expect(downloadFromHref).toHaveBeenCalledWith(
+        `sentry-invoice-${invoice.id}.pdf`,
+        `https://us.sentry.io/api/0/_admin/cells/us/payments/${invoice.id}/pdf/`
       );
     });
   });

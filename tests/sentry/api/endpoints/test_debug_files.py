@@ -1,17 +1,28 @@
+import os
 import zipfile
 from io import BytesIO
+from unittest.mock import patch
 from uuid import uuid4
 
+import requests
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.http import HttpResponse
 from django.urls import reverse
+from rest_framework.response import Response
+from symbolic.debuginfo import Archive
 
-from sentry.models.debugfile import ProjectDebugFile
+from sentry.models.debugfile import (
+    DifMeta,
+    ProjectDebugFile,
+    create_dif_from_file,
+)
 from sentry.models.files.file import File
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.objectstore import debug_files_test_both_backends
+from sentry.testutils.skips import requires_objectstore
 
 # This is obviously a freely generated UUID and not the checksum UUID.
 # This is permissible if users want to send different UUIDs
@@ -35,13 +46,13 @@ class DebugFilesTestCases(APITestCase):
         )
         self.login_as(user=self.user)
 
-    def _upload_proguard(self, url, uuid):
+    def _upload_proguard(self, url: str, uuid: str) -> Response:
         out = BytesIO()
         f = zipfile.ZipFile(out, "w")
         f.writestr("proguard/%s.txt" % uuid, PROGUARD_SOURCE)
         f.close()
 
-        return self.client.post(
+        response: Response = self.client.post(
             url,
             {
                 "file": SimpleUploadedFile(
@@ -50,6 +61,76 @@ class DebugFilesTestCases(APITestCase):
             },
             format="multipart",
         )
+        return response
+
+    def _upload_wasm(self) -> Response:
+        """Uploads a WASM fixture."""
+
+        out = BytesIO()
+        with open(
+            os.path.join(os.path.dirname(__file__), "../../models/fixtures/index.wasm"), "rb"
+        ) as wasm:
+            f = zipfile.ZipFile(out, "w")
+            f.writestr("index.wasm", wasm.read())
+            f.close()
+
+        response: Response = self.client.post(
+            self.url,
+            {
+                "file": SimpleUploadedFile(
+                    "symbols.zip", out.getvalue(), content_type="application/zip"
+                )
+            },
+            format="multipart",
+        )
+        return response
+
+    def _upload_wasm_legacy(self) -> None:
+        """
+        Uploads the same WASM fixture as `_upload_wasm`, but
+        with its legacy code and debug IDs.
+
+        This means we can't use the endpoint, but have to finagle
+        this manually.
+        """
+        wasm_path = os.path.join(os.path.dirname(__file__), "../../models/fixtures/index.wasm")
+        obj = Archive.open(wasm_path)._get_object(0)
+        meta = DifMeta.from_object(obj, wasm_path, name="index.wasm")
+
+        # Replace code and debug ID with their legacy values and clear
+        # those out, simulating an old upload.
+        meta.debug_id = meta.legacy_debug_id  # type: ignore[assignment]
+        meta.code_id = meta.legacy_code_id
+        meta.legacy_debug_id = None
+        meta.legacy_code_id = None
+
+        file = self.create_file(name="index.wasm")
+        file.size = 17
+        file.checksum = "foobar"
+        create_dif_from_file(self.project, meta, file)
+
+    def _assert_successful_download(
+        self, response: HttpResponse, content: bytes, filename: str | None = None
+    ) -> None:
+        if response.status_code == 302:
+            location = response["Location"]
+            # In dev/test the host may be rewritten to the Docker-internal `objectstore` hostname
+            # (so Symbolicator can reach it); rewrite it back so this host-side test can follow it.
+            location = location.replace("://objectstore:", "://127.0.0.1:")
+            download = requests.get(location)
+            assert download.status_code == 200, download.text
+            assert download.content == content
+            if filename is not None:
+                assert (
+                    download.headers["Content-Disposition"] == f'attachment; filename="{filename}"'
+                )
+        else:
+            assert response.status_code == 200, response.content
+            if filename is not None:
+                assert response.get("Content-Disposition") == f'attachment; filename="{filename}"'
+                assert response.get("Content-Length") == str(len(content))
+            assert response.get("Content-Type") == "application/octet-stream"
+            assert content == close_streaming_response(response)
 
 
 @debug_files_test_both_backends
@@ -113,7 +194,63 @@ class DebugFilesTest(DebugFilesTestCases):
             ],
         )
 
-    def _do_test_dsyms_by_debugid_and_codeid(self, query, files):
+    def test_wasm_legacy_ids(self) -> None:
+        self._upload_wasm()
+
+        debug_ids = [
+            "da03eb5d-63d7-50fa-ab0f-b8e7cc12a1c3",
+            "10da03eb-5d63-d750-faab-0fb8e7cc12a1",
+        ]
+        code_ids = [
+            "da03eb5d63d750faab0fb8e7cc12a1c3",
+            "10da03eb5d63d750faab0fb8e7cc12a1c3",
+        ]
+
+        # Try every combination of debug_id/code_id for the query.
+        for query in (
+            [f"debug_id={id}" for id in debug_ids]
+            + [f"query={id}" for id in debug_ids]
+            + [f"code_id={id}" for id in code_ids]
+            + [f"debug_id={did}&code_id={cid}" for did in debug_ids for cid in code_ids]
+            + [f"query={did}&code_id={cid}" for did in debug_ids for cid in code_ids]
+        ):
+            response = self.client.get(f"{self.url}?{query}")
+
+            assert response.status_code == 200, response.content
+
+            # The file that we find should have the correct debug ID.
+            assert response.data[0]["debugId"] == "da03eb5d-63d7-50fa-ab0f-b8e7cc12a1c3"
+
+    def test_wasm_legacy_ids_old_upload(self) -> None:
+        self._upload_wasm_legacy()
+
+        debug_ids = [
+            "da03eb5d-63d7-50fa-ab0f-b8e7cc12a1c3",
+            "10da03eb-5d63-d750-faab-0fb8e7cc12a1",
+        ]
+        code_ids = [
+            "da03eb5d63d750faab0fb8e7cc12a1c3",
+            "10da03eb5d63d750faab0fb8e7cc12a1c3",
+        ]
+
+        # Try every combination of debug_id/code_id for the query.
+        for query in (
+            [f"debug_id={id}" for id in debug_ids]
+            + [f"query={id}" for id in debug_ids]
+            + [f"code_id={id}" for id in code_ids]
+            + [f"debug_id={did}&code_id={cid}" for did in debug_ids for cid in code_ids]
+            + [f"query={did}&code_id={cid}" for did in debug_ids for cid in code_ids]
+        ):
+            response = self.client.get(f"{self.url}?{query}")
+
+            assert response.status_code == 200, response.content
+
+            # The file that we find should have the legacy debug ID.
+            assert response.data[0]["debugId"] == "10da03eb-5d63-d750-faab-0fb8e7cc12a1"
+
+    def _do_test_dsyms_by_debugid_and_codeid(
+        self, query: tuple[str, ...], files: list[tuple[bool, str, str]]
+    ) -> None:
         for _, debug_id, code_id in files:
             self.create_dif_file(debug_id=debug_id, code_id=code_id)
 
@@ -137,8 +274,7 @@ class DebugFilesTest(DebugFilesTestCases):
 
         # `self.user` has access to these files
         response = self.client.get(f"{self.url}?id={download_id}")
-        assert response.status_code == 200, response.content
-        assert PROGUARD_SOURCE == close_streaming_response(response)
+        self._assert_successful_download(response, PROGUARD_SOURCE)
 
         # with another user on a different org
         other_user = self.create_user()
@@ -177,21 +313,13 @@ class DebugFilesTest(DebugFilesTestCases):
         # Download as a user with sufficient role
         self.organization.update_option("sentry:debug_files_role", "admin")
         response = self.client.get(self.url + "?id=" + download_id)
-        assert response.status_code == 200, response.content
-        assert (
-            response.get("Content-Disposition")
-            == 'attachment; filename="' + PROGUARD_UUID + '.txt"'
-        )
-        assert response.get("Content-Length") == str(len(PROGUARD_SOURCE))
-        assert response.get("Content-Type") == "application/octet-stream"
-        assert PROGUARD_SOURCE == close_streaming_response(response)
+        self._assert_successful_download(response, PROGUARD_SOURCE, filename=f"{PROGUARD_UUID}.txt")
 
         # Download as a superuser
         superuser = self.create_user(is_superuser=True)
         self.login_as(user=superuser, superuser=True)
         response = self.client.get(self.url + "?id=" + download_id)
-        assert response.get("Content-Type") == "application/octet-stream"
-        close_streaming_response(response)
+        self._assert_successful_download(response, PROGUARD_SOURCE)
 
         # Download as a user without sufficient role
         self.organization.update_option("sentry:debug_files_role", "owner")
@@ -284,9 +412,7 @@ class DebugFilesTest(DebugFilesTestCases):
         self.login_as(team_admin)
         # Team admin with project access can download
         response = self.client.get(self.url + "?id=" + download_id)
-        assert response.status_code == 200, response.content
-        assert response.get("Content-Type") == "application/octet-stream"
-        close_streaming_response(response)
+        self._assert_successful_download(response, PROGUARD_SOURCE)
 
         # Team admin with project access can delete
         response = self.client.delete(self.url + "?id=" + download_id)
@@ -315,9 +441,7 @@ class DebugFilesTest(DebugFilesTestCases):
         # Set project debug_files_role to "member" - member should now be able to download
         self.project.update_option("sentry:debug_files_role", "member")
         response = self.client.get(f"{self.url}?id={download_id}")
-        assert response.status_code == 200, response.content
-        assert response.get("Content-Type") == "application/octet-stream"
-        close_streaming_response(response)
+        self._assert_successful_download(response, PROGUARD_SOURCE)
 
         # Remove project option - should fall back to organization setting (owner)
         self.project.delete_option("sentry:debug_files_role")
@@ -327,9 +451,133 @@ class DebugFilesTest(DebugFilesTestCases):
         # Set organization to "member" - member should be able to download
         self.organization.update_option("sentry:debug_files_role", "member")
         response = self.client.get(f"{self.url}?id={download_id}")
-        assert response.status_code == 200, response.content
-        assert response.get("Content-Type") == "application/octet-stream"
-        close_streaming_response(response)
+        self._assert_successful_download(response, PROGUARD_SOURCE)
+
+    def test_dsyms_download_as_sentry_app(self) -> None:
+        response = self._upload_proguard(self.url, PROGUARD_UUID)
+        assert response.status_code == 201, response.content
+        url = f"{self.url}?id={response.data[0]['id']}"
+
+        read_app = self.create_internal_integration(
+            name="Read", organization=self.organization, scopes=("project:read",)
+        )
+        write_app = self.create_internal_integration(
+            name="Write",
+            organization=self.organization,
+            scopes=("project:read", "project:write"),
+        )
+        read_token = self.create_internal_integration_token(
+            user=self.user, internal_integration=read_app
+        )
+        write_token = self.create_internal_integration_token(
+            user=self.user, internal_integration=write_app
+        )
+        read_auth = f"Bearer {read_token.token}"
+        write_auth = f"Bearer {write_token.token}"
+
+        # The member role lets integrations with read access download
+        self.organization.update_option("sentry:debug_files_role", "member")
+        response = self.client.get(url, HTTP_AUTHORIZATION=read_auth)
+        self._assert_successful_download(response, PROGUARD_SOURCE)
+        response = self.client.get(url, HTTP_AUTHORIZATION=write_auth)
+        self._assert_successful_download(response, PROGUARD_SOURCE)
+
+        # Any stricter role requires write access
+        self.organization.update_option("sentry:debug_files_role", "admin")
+        response = self.client.get(url, HTTP_AUTHORIZATION=read_auth)
+        assert response.status_code == 403, response.content
+        response = self.client.get(url, HTTP_AUTHORIZATION=write_auth)
+        self._assert_successful_download(response, PROGUARD_SOURCE)
+
+        self.organization.update_option("sentry:debug_files_role", "manager")
+        response = self.client.get(url, HTTP_AUTHORIZATION=read_auth)
+        assert response.status_code == 403, response.content
+        response = self.client.get(url, HTTP_AUTHORIZATION=write_auth)
+        self._assert_successful_download(response, PROGUARD_SOURCE)
+
+        self.organization.update_option("sentry:debug_files_role", "owner")
+        response = self.client.get(url, HTTP_AUTHORIZATION=read_auth)
+        assert response.status_code == 403, response.content
+        response = self.client.get(url, HTTP_AUTHORIZATION=write_auth)
+        self._assert_successful_download(response, PROGUARD_SOURCE)
+
+    def test_dsyms_download_as_published_sentry_app(self) -> None:
+        response = self._upload_proguard(self.url, PROGUARD_UUID)
+        assert response.status_code == 201, response.content
+        url = f"{self.url}?id={response.data[0]['id']}"
+
+        app = self.create_sentry_app(
+            name="Third Party",
+            organization=self.create_organization(),
+            scopes=("project:read",),
+            published=True,
+        )
+        install = self.create_sentry_app_installation(
+            organization=self.organization, slug=app.slug, user=self.user
+        )
+        token = self.create_internal_integration_token(user=self.user, install=install)
+        auth = f"Bearer {token.token}"
+
+        # A read-only integration from another organization can't download by default
+        response = self.client.get(url, HTTP_AUTHORIZATION=auth)
+        assert response.status_code == 403, response.content
+
+        self.organization.update_option("sentry:debug_files_role", "member")
+        response = self.client.get(url, HTTP_AUTHORIZATION=auth)
+        self._assert_successful_download(response, PROGUARD_SOURCE)
+
+
+@requires_objectstore
+class DebugFileObjectstoreRedirectTest(DebugFilesTestCases):
+    """Explicit coverage of both redirect branches for Objectstore-backed debug files."""
+
+    def _upload_and_get_download_id(self) -> str:
+        with self.feature({"organizations:objectstore-debugfiles-write": True}):
+            response = self._upload_proguard(self.url, PROGUARD_UUID)
+        assert response.status_code == 201, response.content
+        download_response: Response = self.client.get(self.url)
+        download_id = download_response.data[0]["id"]
+        if not isinstance(download_id, str):
+            raise TypeError("Debug file download has no id")
+        return download_id
+
+    def test_internal_request_redirects_to_objectstore(self) -> None:
+        download_id = self._upload_and_get_download_id()
+
+        with (
+            self.feature("organizations:objectstore-debugfiles-read"),
+            patch("sentry.auth.system.is_internal_ip", return_value=True),
+        ):
+            response = self.client.get(f"{self.url}?id={download_id}")
+
+        assert response.status_code == 302
+        # Internal callers are redirected straight to Objectstore, not through the cell proxy.
+        assert "/organizations/" not in response["Location"]
+        self._assert_successful_download(response, PROGUARD_SOURCE)
+
+    def test_external_request_redirects_to_cell_proxy(self) -> None:
+        download_id = self._upload_and_get_download_id()
+
+        with (
+            self.feature("organizations:objectstore-debugfiles-read"),
+            patch("sentry.auth.system.is_internal_ip", return_value=False),
+        ):
+            response = self.client.get(f"{self.url}?id={download_id}")
+
+        assert response.status_code == 302
+        location = response["Location"]
+        assert (
+            f"/organizations/{self.organization.id}/objectstore/v1/objects/debug_files/" in location
+        )
+        assert "os_auth=" in location
+
+    def test_redirect_requires_read_gate(self) -> None:
+        download_id = self._upload_and_get_download_id()
+
+        response = self.client.get(f"{self.url}?id={download_id}")
+
+        assert response.status_code == 200
+        assert close_streaming_response(response) == PROGUARD_SOURCE
 
 
 @debug_files_test_both_backends
@@ -487,9 +735,7 @@ class SourceMapsEndpointTest(APITestCase):
         assert response.data["error"] == "You can either sort via 'date_added' or '-date_added'"
 
     def test_source_maps_delete_archive(self) -> None:
-        release = Release.objects.create(
-            organization_id=self.project.organization_id, version="1", id=1
-        )
+        release = Release.objects.create(organization_id=self.project.organization_id, version="1")
         release.add_project(self.project)
 
         ReleaseFile.objects.create(

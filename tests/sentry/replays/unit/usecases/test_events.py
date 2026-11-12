@@ -1,4 +1,5 @@
 import time
+from datetime import datetime, timezone
 
 from sentry.replays.usecases.events import archive_event, viewed_event
 from sentry.utils import json
@@ -6,7 +7,9 @@ from sentry.utils import json
 
 def test_archive_event() -> None:
     """Test archive event generator."""
-    event = archive_event(1, "2")
+    # An old timestamp: the archive row has to land in the replay's own date range, not today's.
+    ts = datetime(2023, 6, 21, tzinfo=timezone.utc)
+    event = archive_event(1, "2", ts)
 
     parsed_event = json.loads(event)
     assert parsed_event["type"] == "replay_event"
@@ -23,7 +26,9 @@ def test_archive_event() -> None:
     assert parsed_event["payload"]["urls"] == []
     assert parsed_event["payload"]["is_archived"] is True
     assert parsed_event["payload"]["platform"] == ""
-    assert isinstance(parsed_event["payload"]["timestamp"], float)
+    assert parsed_event["payload"]["timestamp"] == ts.timestamp()
+    # "now" belongs to the envelope, which only feeds consumer latency metrics.
+    assert parsed_event["start_time"] != int(ts.timestamp())
 
 
 def test_viewed_event() -> None:

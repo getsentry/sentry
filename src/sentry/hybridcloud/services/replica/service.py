@@ -5,36 +5,16 @@ from sentry.auth.services.orgauthtoken.model import RpcOrgAuthToken
 from sentry.hybridcloud.rpc.resolvers import ByCellName
 from sentry.hybridcloud.rpc.service import RpcService, cell_rpc_method, rpc_method
 from sentry.hybridcloud.services.project_key_mapping import RpcProjectKeyMapping
-from sentry.notifications.services import RpcExternalActor
-from sentry.organizations.services.organization import RpcOrganizationMemberTeam, RpcTeam
+from sentry.service_accounts.services.service_account.model import (
+    RpcServiceAccount,
+    RpcServiceAccountToken,
+)
 from sentry.silo.base import SiloMode
 
 
 class ControlReplicaService(RpcService):
     key = "control_replica"
     local_mode = SiloMode.CONTROL
-
-    @rpc_method
-    @abc.abstractmethod
-    def upsert_replicated_team(self, *, team: RpcTeam) -> None:
-        pass
-
-    @rpc_method
-    @abc.abstractmethod
-    def upsert_replicated_organization_member_team(self, *, omt: RpcOrganizationMemberTeam) -> None:
-        pass
-
-    @rpc_method
-    @abc.abstractmethod
-    def remove_replicated_organization_member_team(
-        self, *, organization_id: int, organization_member_team_id: int
-    ) -> None:
-        pass
-
-    @rpc_method
-    @abc.abstractmethod
-    def upsert_external_actor_replica(self, *, external_actor: RpcExternalActor) -> None:
-        pass
 
     @rpc_method
     @abc.abstractmethod
@@ -129,6 +109,26 @@ class CellReplicaService(RpcService):
         self,
         *,
         token: RpcOrgAuthToken,
+        cell_name: str,
+    ) -> None:
+        pass
+
+    @cell_rpc_method(resolve=ByCellName())
+    @abc.abstractmethod
+    def upsert_replicated_service_account(
+        self,
+        *,
+        service_account: RpcServiceAccount,
+        cell_name: str,
+    ) -> None:
+        pass
+
+    @cell_rpc_method(resolve=ByCellName())
+    @abc.abstractmethod
+    def upsert_replicated_service_account_token(
+        self,
+        *,
+        token: RpcServiceAccountToken,
         cell_name: str,
     ) -> None:
         pass

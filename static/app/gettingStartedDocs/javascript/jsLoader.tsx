@@ -1,5 +1,3 @@
-import beautify from 'js-beautify';
-
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {tracePropagationBlock} from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
@@ -39,10 +37,10 @@ export const feedbackOnboardingJsLoader: OnboardingConfig = {
         {
           type: 'code',
           language: 'html',
-          code: beautify.html(
-            `<script src="${params.dsn.cdn}" crossorigin="anonymous"></script>`,
-            {indent_size: 2, wrap_attributes: 'force-expand-multiline'}
-          ),
+          code: `<script
+  src="${params.dsn.cdn}"
+  crossorigin="anonymous"
+></script>`,
         },
       ],
     },
@@ -113,10 +111,10 @@ export const replayOnboardingJsLoader: OnboardingConfig = {
         {
           type: 'code',
           language: 'html',
-          code: beautify.html(
-            `<script src="${params.dsn.cdn}" crossorigin="anonymous"></script>`,
-            {indent_size: 2, wrap_attributes: 'force-expand-multiline'}
-          ),
+          code: `<script
+  src="${params.dsn.cdn}"
+  crossorigin="anonymous"
+></script>`,
         },
         {
           type: 'alert',

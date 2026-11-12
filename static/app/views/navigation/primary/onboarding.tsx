@@ -1,29 +1,26 @@
-import {useEffect} from 'react';
+import {Fragment, useEffect} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/checkmark';
 
-import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
+import {useOnboardingSidebar} from 'sentry/components/onboarding/useOnboardingSidebar';
 import {OnboardingSidebarContent} from 'sentry/components/onboardingWizard/content';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
 import {ProgressRing} from 'sentry/components/progressRing';
-import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {t} from 'sentry/locale';
 import {
   OnboardingDrawerKey,
   OnboardingDrawerStore,
+  useIsOnboardingDrawerOpen,
 } from 'sentry/stores/onboardingDrawerStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OnboardingTask} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  PrimaryNavigation,
-  usePrimaryNavigationButtonOverlay,
-} from 'sentry/views/navigation/primary/components';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
-import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
+
+import {PrimaryNavigation, usePrimaryNavigationButtonOverlay} from './components';
 
 function OnboardingItem({
   allTasks,
@@ -66,7 +63,7 @@ function OnboardingItem({
   });
 
   return (
-    <GuideAnchor target="onboarding_sidebar" position="right">
+    <Fragment>
       <PrimaryNavigation.Button
         analyticsKey="onboarding"
         buttonProps={{
@@ -108,13 +105,12 @@ function OnboardingItem({
           <OnboardingSidebarContent onClose={OnboardingDrawerStore.close} />
         </PrimaryNavigation.ButtonOverlay>
       )}
-    </GuideAnchor>
+    </Fragment>
   );
 }
 
 export function PrimaryNavigationOnboarding() {
-  const currentPanel = useLegacyStore(OnboardingDrawerStore);
-  const isActive = currentPanel === OnboardingDrawerKey.ONBOARDING_WIZARD;
+  const isActive = useIsOnboardingDrawerOpen(OnboardingDrawerKey.ONBOARDING_WIZARD);
   const organization = useOrganization();
   const [quickStartCompleted, setQuickStartCompleted] = useLocalStorageState(
     `quick-start:${organization.slug}:completed`,

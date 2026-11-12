@@ -2,9 +2,10 @@ import type {SelectOption} from '@sentry/scraps/compactSelect';
 
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {classifyTagKey, FieldKind, prettifyTagKey} from 'sentry/utils/fields';
-import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails';
-import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {AttributeDetails} from './attributeDetails';
+import {TypeBadge} from './typeBadge';
 
 export function optionFromTag(tag: Tag, traceItemType: TraceItemDataset) {
   return {
@@ -30,6 +31,11 @@ interface BuildAttributeOptionsParams {
   stringTags: TagCollection;
   traceItemType: TraceItemDataset;
   /**
+   * Array attributes. Empty unless the caller opts in (gated behind the array
+   * feature flag upstream), so callers that don't support arrays are unaffected.
+   */
+  arrayTags?: TagCollection;
+  /**
    * How to determine the kind for extra columns. Pass a concrete `FieldKind`
    * to hardcode one, or a function to derive it per column. Defaults to
    * `classifyTagKey`.
@@ -46,6 +52,7 @@ export function buildAttributeOptions({
   booleanTags,
   numberTags,
   stringTags,
+  arrayTags = {},
   traceItemType,
   extraColumns = [],
   extraColumnKind = classifyTagKey,
@@ -57,18 +64,21 @@ export function buildAttributeOptions({
   // the first occurrence by `option.value`. Number/MEASUREMENT comes before
   // string/TAG and boolean/BOOLEAN so that a key present in multiple typed
   // collections preserves its measurement variant, matching the hand-rolled
-  // ordering before this helper was extracted.
+  // ordering before this helper was extracted. Array keys are deduped against
+  // their string twins upstream, so they can safely trail the scalar types.
   return [
     ...Object.values(numberTags).map(tag => optionFromTag(tag, traceItemType)),
     ...Object.values(stringTags).map(tag => optionFromTag(tag, traceItemType)),
     ...Object.values(booleanTags).map(tag => optionFromTag(tag, traceItemType)),
+    ...Object.values(arrayTags).map(tag => optionFromTag(tag, traceItemType)),
     ...extraColumns
       .filter(
         column =>
           column &&
           !(column in stringTags) &&
           !(column in numberTags) &&
-          !(column in booleanTags)
+          !(column in booleanTags) &&
+          !(column in arrayTags)
       )
       .map(column =>
         optionFromTag(

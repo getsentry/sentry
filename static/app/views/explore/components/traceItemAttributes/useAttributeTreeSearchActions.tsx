@@ -1,0 +1,55 @@
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+
+import {t} from 'sentry/locale';
+import {useAddSearchFilter} from 'sentry/views/explore/queryParams/context';
+
+import type {AttributesTreeContent} from './attributesTree';
+import {isNumericAttribute} from './utils';
+
+export function useAttributeTreeSearchActions() {
+  const addSearchFilter = useAddSearchFilter();
+
+  return (content: AttributesTreeContent) => {
+    if (!content.original) {
+      return [];
+    }
+
+    const key = content.original.original_attribute_key;
+    const value = content.value;
+    const isNumeric = isNumericAttribute({
+      value,
+      type: content.original.type,
+      key,
+    });
+
+    const items: MenuItemProps[] = [
+      {
+        key: 'search-for-value',
+        label: t('Add to filter'),
+        onAction: () => addSearchFilter({key, value: String(value)}),
+      },
+      {
+        key: 'search-for-negated-value',
+        label: t('Exclude this value'),
+        onAction: () => addSearchFilter({key, value: String(value), negated: true}),
+      },
+    ];
+
+    if (isNumeric && value !== null) {
+      items.push(
+        {
+          key: 'search-for-greater-than',
+          label: t('Show values greater than'),
+          onAction: () => addSearchFilter({key, value, op: '>'}),
+        },
+        {
+          key: 'search-for-less-than',
+          label: t('Show values less than'),
+          onAction: () => addSearchFilter({key, value, op: '<'}),
+        }
+      );
+    }
+
+    return items;
+  };
+}

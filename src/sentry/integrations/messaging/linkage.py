@@ -15,6 +15,7 @@ from rest_framework.request import Request
 
 from sentry import analytics
 from sentry.api.helpers.teams import is_team_admin
+from sentry.auth.principal import acting_user_id
 from sentry.constants import ObjectStatus
 from sentry.identity.services.identity import identity_service
 from sentry.integrations.messaging.spec import MessagingIntegrationSpec
@@ -176,7 +177,7 @@ class IdentityLinkageView(LinkageView, ABC):
         dispatch_kwargs = {k: v for (k, v) in dispatch_kwargs.items() if v is not None}
         return super().dispatch(request, **dispatch_kwargs)
 
-    def get(self, request: Request, *args, **kwargs) -> HttpResponse:
+    def get(self, request: Request, *args: object, **kwargs: Any) -> HttpResponse:
         params = kwargs["params"]
         context = {"organization": params["organization"]}
         integration = params.get("integration")
@@ -210,7 +211,9 @@ class IdentityLinkageView(LinkageView, ABC):
 
         self.notify_on_success(external_id, params_dict, integration)
         self.capture_metric("success.post")
-        self.record_analytic(request.user.id)
+        user_id = acting_user_id(request.user)
+        if user_id is not None:
+            self.record_analytic(user_id)
 
         if organization is not None:
             self._send_nudge_notification(organization, request)
@@ -220,7 +223,7 @@ class IdentityLinkageView(LinkageView, ABC):
         )
         return render_to_response(success_template, request=request, context=success_context)
 
-    def _send_nudge_notification(self, organization: RpcOrganization, request: Request):
+    def _send_nudge_notification(self, organization: RpcOrganization, request: Request) -> None:
         # TODO: Delete this if no longer needed
 
         user: User = request.user  # type: ignore[assignment]
@@ -300,11 +303,6 @@ class UnlinkIdentityView(IdentityLinkageView, ABC):
         return None
 
     @property
-    def filter_by_user_id(self) -> bool:
-        # TODO: Is it okay to just make this True everywhere?
-        return False
-
-    @property
     def metrics_operation_key(self) -> str:
         return "unlink_identity_view"
 
@@ -312,16 +310,23 @@ class UnlinkIdentityView(IdentityLinkageView, ABC):
         self, idp: IdentityProvider | None, external_id: str, request: HttpRequest
     ) -> HttpResponse | None:
         if isinstance(request.user, AnonymousUser):
-            raise TypeError("Cannot link identity without a logged-in user")
+            raise TypeError("Cannot unlink identity without a logged-in user")
         try:
-            identities = Identity.objects.filter(external_id=external_id)
+            identities = Identity.objects.filter(external_id=external_id, user_id=request.user.id)
             if idp is not None:
                 identities = identities.filter(idp=idp)
-            if self.filter_by_user_id:
-                identities = identities.filter(user_id=request.user.id)
-            if self.no_identity_template and not identities:
-                return render_to_response(self.no_identity_template, request=request, context={})
-            identities.delete()
+            else:
+                # MS Teams signs no integration_id, so the provider type is the narrowest
+                # scope left. Only here: a resolved idp may be a variant such as
+                # `slack_staging`, which the view's spec slug would not match.
+                identities = identities.filter(idp__type=self.provider_slug)
+            deleted_count, _ = identities.delete()
+            if deleted_count == 0:
+                if self.no_identity_template:
+                    return render_to_response(
+                        self.no_identity_template, request=request, context={}
+                    )
+                raise Http404
         except IntegrityError:
             tag = f"{self.provider_slug}.unlink.integrity-error"
             logger.warning(tag)
@@ -398,6 +403,7 @@ class LinkTeamView(TeamLinkageView, ABC):
             SUCCESS_LINKED_MESSAGE,
             SUCCESS_LINKED_TITLE,
             SelectTeamForm,
+            build_team_linked_message,
         )
 
         user = serialize_generic_user(request.user)
@@ -513,11 +519,7 @@ class LinkTeamView(TeamLinkageView, ABC):
             types=[NotificationSettingEnum.ISSUE_ALERTS],
         )
 
-        message = SUCCESS_LINKED_MESSAGE.format(
-            slug=team.slug,
-            workflow_addon="",
-            channel_name=channel_name,
-        )
+        message = build_team_linked_message(team=team, channel_id=channel_id)
         self.notify_on_success(channel_id, integration, message)
 
         self.capture_metric("success")
@@ -527,7 +529,11 @@ class LinkTeamView(TeamLinkageView, ABC):
             request=request,
             context={
                 "heading_text": SUCCESS_LINKED_TITLE,
-                "body_text": message,
+                # Web confirmation page stays plain text; Slack markup is only for chat.
+                "body_text": SUCCESS_LINKED_MESSAGE.format(
+                    team=team.slug,
+                    channel=channel_name,
+                ),
                 "channel_id": channel_id,
                 "team_id": integration.external_id,
             },

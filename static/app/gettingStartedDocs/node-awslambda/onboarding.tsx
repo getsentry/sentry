@@ -2,12 +2,15 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {AwsLambdaArn} from 'sentry/gettingStartedDocs/node-awslambda/awslambdaArnSelector';
-import {InstallationMethod} from 'sentry/gettingStartedDocs/node-awslambda/utils';
+import {
+  getDataCollectionStep,
+  getUploadSourceMapsStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {getInstallCodeBlock} from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
 
+import {AwsLambdaArn} from './awslambdaArnSelector';
+import {InstallationMethod} from './utils';
 import type {Params, PlatformOptions} from './utils';
 
 const getEnvSetupSnippet = (params: Params) => `
@@ -56,6 +59,10 @@ const commonOnboarding = {
         }
       ),
       ...params,
+    }),
+    getDataCollectionStep({
+      docsLink:
+        'https://docs.sentry.io/platforms/javascript/guides/aws-lambda/configuration/options/#dataCollection',
     }),
   ],
   verify: params => [

@@ -1,8 +1,9 @@
 import {useMutation} from '@tanstack/react-query';
 
+import {toast} from '@sentry/scraps/toast';
+
 import type {EventQuery} from 'sentry/actionCreators/events';
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {createExportFilename} from 'sentry/components/exports/createExportFilename';
+import type {StatsPeriodRange} from 'sentry/components/pageFilters/types';
 import {t} from 'sentry/locale';
 import type {ApiResult, ResponseMeta} from 'sentry/types/api';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -12,6 +13,8 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {createExportFilename} from './createExportFilename';
 
 // NOTE: Coordinate with other ExportQueryType (src/sentry/data_export/base.py)
 export enum ExportQueryType {
@@ -32,7 +35,7 @@ interface IssuesByTagQueryInfo {
 
 export type DiscoverQueryInfo = EventQuery & LocationQuery;
 
-type EventsQuerySamplingMode =
+export type EventsQuerySamplingMode =
   | 'NORMAL'
   | 'HIGHEST_ACCURACY'
   | 'HIGHEST_ACCURACY_FLEX_TIME';
@@ -43,11 +46,12 @@ export interface ExploreQueryInfo {
   project: number[];
   query: string;
   sort: string[];
+  caseInsensitive?: '1';
   end?: string;
   environment?: string[];
   sampling?: EventsQuerySamplingMode;
   start?: string;
-  statsPeriod?: string;
+  statsPeriod?: string | StatsPeriodRange;
 }
 
 interface DataExportPayloadBase {
@@ -92,14 +96,14 @@ function handleDataExportResponse(
   organizationSlug: string
 ) {
   if (response?.status !== 201) {
-    addSuccessMessage(
+    toast.success(
       t("It looks like we're already working on it. Sit tight, we'll email you.")
     );
     return;
   }
 
   if (!data.fileName) {
-    addSuccessMessage(
+    toast.success(
       t("Sit tight. We'll shoot you an email when your data is ready for download.")
     );
     return;
@@ -110,7 +114,25 @@ function handleDataExportResponse(
     filename,
     `/api/0/organizations/${organizationSlug}/data-export/${data.id}/?download=true`
   );
-  addSuccessMessage(t("Downloading '%s' to your browser.", data.fileName));
+  toast.success(t("Downloading '%s' to your browser.", data.fileName));
+}
+
+function isStatsPeriodRange(value: unknown): value is StatsPeriodRange {
+  return typeof value === 'object' && value !== null && 'statsPeriodStart' in value;
+}
+
+export function flattenStatsPeriod<T>(statsPeriod: T | StatsPeriodRange) {
+  return isStatsPeriodRange(statsPeriod)
+    ? {statsPeriod: undefined, ...statsPeriod}
+    : {statsPeriod, statsPeriodStart: undefined, statsPeriodEnd: undefined};
+}
+
+function serializeQueryInfo(queryInfo: DataExportPayload['queryInfo']) {
+  const statsPeriod = 'statsPeriod' in queryInfo ? queryInfo.statsPeriod : undefined;
+
+  return isStatsPeriodRange(statsPeriod)
+    ? {...queryInfo, ...flattenStatsPeriod(statsPeriod)}
+    : queryInfo;
 }
 
 export function useDataExport() {
@@ -134,7 +156,7 @@ export function useDataExport() {
         data: {
           format,
           limit,
-          query_info: queryInfo,
+          query_info: serializeQueryInfo(queryInfo),
           query_type: queryType,
         },
       });
@@ -149,9 +171,9 @@ export function useDataExport() {
         error instanceof RequestError &&
         typeof error.responseJSON?.detail === 'string'
       ) {
-        addErrorMessage(error.responseJSON.detail);
+        toast.error(error.responseJSON.detail);
       } else {
-        addErrorMessage(
+        toast.error(
           t(
             "We tried our hardest, but we couldn't export your data. Try waiting a minute then giving it another go."
           )

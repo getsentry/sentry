@@ -1,9 +1,11 @@
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {Client} from 'sentry/api';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
@@ -59,9 +61,9 @@ function addProductMessage(
   const isEnabled = products.includes(toggledProduct);
 
   if (isError) {
-    addErrorMessage(isEnabled ? messages.enableError : messages.disableError);
+    toast.error(isEnabled ? messages.enableError : messages.disableError);
   } else {
-    addSuccessMessage(isEnabled ? messages.enabled : messages.disabled);
+    toast.success(isEnabled ? messages.enabled : messages.disabled);
   }
 }
 
@@ -81,20 +83,29 @@ export async function updateDynamicSdkLoaderOptions({
   previousProducts?: ProductSolution[];
 }) {
   try {
-    await api.requestPromise(`/projects/${orgSlug}/${projectSlug}/keys/${projectKey}/`, {
-      method: 'PUT',
-      data: {
-        dynamicSdkLoaderOptions: {
-          hasPerformance: products.includes(ProductSolution.PERFORMANCE_MONITORING),
-          hasReplay: products.includes(ProductSolution.SESSION_REPLAY),
-          hasDebug: false,
-          hasFeedback: false,
-          hasLogsAndMetrics:
-            products.includes(ProductSolution.LOGS) ||
-            products.includes(ProductSolution.METRICS),
+    await api.requestPromise(
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/', {
+        path: {
+          organizationIdOrSlug: orgSlug,
+          projectIdOrSlug: projectSlug,
+          keyId: projectKey,
         },
-      },
-    });
+      }),
+      {
+        method: 'PUT',
+        data: {
+          dynamicSdkLoaderOptions: {
+            hasPerformance: products.includes(ProductSolution.PERFORMANCE_MONITORING),
+            hasReplay: products.includes(ProductSolution.SESSION_REPLAY),
+            hasDebug: false,
+            hasFeedback: false,
+            hasLogsAndMetrics:
+              products.includes(ProductSolution.LOGS) ||
+              products.includes(ProductSolution.METRICS),
+          },
+        },
+      }
+    );
 
     addProductMessage(products, previousProducts);
   } catch (error) {

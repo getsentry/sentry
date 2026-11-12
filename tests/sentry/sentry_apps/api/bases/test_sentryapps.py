@@ -1,15 +1,23 @@
+from typing import Any
+from unittest.mock import Mock, patch
+
 import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.test.utils import override_settings
 from rest_framework.views import APIView
 
+from sentry.api.permissions import SentryPermission
+from sentry.auth import access
+from sentry.auth.scope_declaration import bind_endpoint_scope_declaration
 from sentry.sentry_apps.api.bases.sentryapps import (
     IntegrationPlatformEndpoint,
     SentryAppAndStaffPermission,
+    SentryAppAuthorizationsPermission,
     SentryAppBaseEndpoint,
     SentryAppInstallationBaseEndpoint,
     SentryAppInstallationPermission,
     SentryAppPermission,
+    SentryInternalAppTokenPermission,
 )
 from sentry.sentry_apps.utils.errors import (
     SentryAppError,
@@ -34,6 +42,70 @@ class SentryAppPermissionTest(TestCase):
 
     def test_request_user_is_app_owner_succeeds(self) -> None:
         assert self.permission.has_object_permission(self.request, APIView(), self.sentry_app)
+
+    def test_missing_organization_returns_not_found(self) -> None:
+        installation = self.create_sentry_app_installation(
+            slug=self.sentry_app.slug, organization=self.organization, user=self.user
+        )
+        checks: tuple[tuple[SentryPermission, Any], ...] = (
+            (SentryAppPermission(), self.sentry_app),
+            (SentryAppAuthorizationsPermission(), installation),
+            (SentryInternalAppTokenPermission(), self.sentry_app),
+        )
+        for permission, obj in checks:
+            with (
+                self.subTest(permission=type(permission).__name__),
+                patch("sentry.auth.access.get_organization_access_context", return_value=None),
+                pytest.raises(SentryAppError) as exc,
+            ):
+                permission.has_object_permission(self.request, APIView(), obj)
+            assert exc.value.status_code == 404
+
+    @patch("sentry.auth.scope_declaration.capture_message")
+    @patch("sentry.auth.scope_declaration.logger.warning")
+    @override_options({"api.permission-scope-audit.enabled": True})
+    def test_unpublished_app_uses_runtime_scope_declaration(
+        self, warning: Mock, capture_message: Mock
+    ) -> None:
+        with bind_endpoint_scope_declaration(
+            endpoint="test.Endpoint",
+            method="GET",
+            permission_classes=(SentryAppPermission,),
+        ):
+            assert self.permission.has_object_permission(self.request, APIView(), self.sentry_app)
+            assert not access.DEFAULT.has_scope("org:admin")
+            warning.assert_not_called()
+            capture_message.assert_not_called()
+            assert not access.DEFAULT.has_scope("event:read")
+
+        assert warning.call_count == 1
+        assert warning.call_args.kwargs["extra"]["scope"] == "event:read"
+        assert capture_message.call_count == 1
+
+    @patch("sentry.auth.scope_declaration.capture_message")
+    @patch("sentry.auth.scope_declaration.logger.warning")
+    @override_options({"api.permission-scope-audit.enabled": True})
+    def test_unpublished_app_uses_runtime_scope_declaration_for_superuser(
+        self, warning: Mock, capture_message: Mock
+    ) -> None:
+        request = drf_request_from_request(
+            self.make_request(user=self.superuser, method="GET", is_superuser=True)
+        )
+
+        with bind_endpoint_scope_declaration(
+            endpoint="test.Endpoint",
+            method="GET",
+            permission_classes=(SentryAppPermission,),
+        ):
+            assert self.permission.has_object_permission(request, APIView(), self.sentry_app)
+            assert not access.DEFAULT.has_scope("org:admin")
+            warning.assert_not_called()
+            capture_message.assert_not_called()
+            assert not access.DEFAULT.has_scope("event:read")
+
+        assert warning.call_count == 1
+        assert warning.call_args.kwargs["extra"]["scope"] == "event:read"
+        assert capture_message.call_count == 1
 
     def test_request_user_is_not_app_owner_fails(self) -> None:
         non_owner = self.create_user()
@@ -236,6 +308,7 @@ class IntegrationPlatformEndpointTest(TestCase):
     def test_handle_sentry_app_error(self) -> None:
         error = SentryAppError(message="cool", status_code=400)
         response = self.endpoint._handle_sentry_app_exception(error)
+        assert response is not None
 
         assert response.status_code == 400
         assert response.exception is True
@@ -250,6 +323,7 @@ class IntegrationPlatformEndpointTest(TestCase):
             status_code=400,
         )
         response = self.endpoint._handle_sentry_app_exception(error)
+        assert response is not None
 
         assert response.status_code == 400
         assert response.exception is True
@@ -261,6 +335,7 @@ class IntegrationPlatformEndpointTest(TestCase):
             message="bruh", webhook_context={"bruh": "bruhhh"}, public_context=public_context
         )
         response = self.endpoint._handle_sentry_app_exception(error)
+        assert response is not None
 
         assert response.status_code == 500
         assert response.data == {

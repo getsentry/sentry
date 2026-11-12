@@ -1,10 +1,11 @@
 import {useEffect} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
-import {useFeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
-import {useMutateFeedback} from 'sentry/components/feedback/useMutateFeedback';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
+
+import {useFeedbackApiOptions} from './useFeedbackApiOptions';
+import {useMutateFeedback} from './useMutateFeedback';
 
 interface Props {
   feedbackId: string;

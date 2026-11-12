@@ -1,28 +1,29 @@
 import moment from 'moment-timezone';
 
+import {ResultGrid} from 'sentry/components/resultGrid';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {Truncate} from 'sentry/components/truncate';
 
 import type {BeaconData} from 'admin/components/beacons/beaconOverview';
-import {ResultGrid} from 'admin/components/resultGrid';
 
 type Props = {
   data: BeaconData;
 };
 
 const getRow = (row: any) => [
-  <td key="id">{moment(row.dateCreated).fromNow()}</td>,
-  <td key="version" style={{textAlign: 'center'}}>
+  <SimpleTable.RowCell key="id">{moment(row.dateCreated).fromNow()}</SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="version" justify="center" overflow="visible">
     <Truncate maxLength={100} value={row.version} />
-  </td>,
-  <td key="events" style={{textAlign: 'center'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="events" justify="center">
     {row.events24h === null ? '' : row.events24h.toLocaleString()}
-  </td>,
-  <td key="users" style={{textAlign: 'center'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="users" justify="center">
     {row.totalUsers === null ? '' : row.totalUsers.toLocaleString()}
-  </td>,
-  <td key="projects" style={{textAlign: 'center'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="projects" justify="center">
     {row.totalProjects === null ? '' : row.totalProjects.toLocaleString()}
-  </td>,
+  </SimpleTable.RowCell>,
 ];
 
 export function BeaconCheckins({data}: Props) {
@@ -32,21 +33,12 @@ export function BeaconCheckins({data}: Props) {
       panelTitle="Beacon Checkins"
       path={`/_admin/beacons/${data.id}/`}
       endpoint={`/beacons/${data.id}/checkins/`}
-      method="GET"
       columns={[
-        <th key="id">Checkin</th>,
-        <th key="version" style={{width: 100, textAlign: 'center'}}>
-          Version
-        </th>,
-        <th key="events" style={{width: 120, textAlign: 'center'}}>
-          Events (24h)
-        </th>,
-        <th key="users" style={{width: 100, textAlign: 'center'}}>
-          Users
-        </th>,
-        <th key="projects" style={{width: 100, textAlign: 'center'}}>
-          Projects
-        </th>,
+        {key: 'id', label: 'Checkin'},
+        {key: 'version', label: 'Version', width: 100, align: 'center'},
+        {key: 'events', label: 'Events (24h)', width: 120, align: 'center'},
+        {key: 'users', label: 'Users', width: 100, align: 'center'},
+        {key: 'projects', label: 'Projects', width: 100, align: 'center'},
       ]}
       columnsForRow={getRow}
       defaultParams={{per_page: 10}}

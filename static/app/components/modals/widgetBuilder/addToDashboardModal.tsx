@@ -6,28 +6,22 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Grid, type GridProps, Container} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Select} from '@sentry/scraps/select';
 import type {SelectValue} from '@sentry/scraps/select';
+import {toast} from '@sentry/scraps/toast';
 
 import {
   fetchDashboard,
   fetchDashboards,
   updateDashboard,
 } from 'sentry/actionCreators/dashboards';
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import {t, tct, tn} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
-import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -54,7 +48,6 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {
-  eventViewFromWidget,
   getMergedDashboardFilters,
   getSavedFiltersAsPageFilters,
   getSavedPageFilters,
@@ -68,12 +61,10 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/utils';
 import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
-import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
-import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 export type AddToDashboardModalActions =
   | 'add-and-open-dashboard'
@@ -187,6 +178,7 @@ function AddToDashboardModal({
     let unmounted = false;
 
     if (selectedDashboardId === NEW_DASHBOARD_ID || selectedDashboardId === null) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setSelectedDashboard(null);
     } else {
       fetchDashboard(api, organization.slug, selectedDashboardId).then(response => {
@@ -276,7 +268,7 @@ function AddToDashboardModal({
   async function handleAddAndStayOnCurrentPage() {
     try {
       await handleAddWidgetsToExistingDashboard();
-      addSuccessMessage(
+      toast.success(
         tn(
           'Successfully added widget to dashboard',
           'Successfully added widgets to dashboard',
@@ -285,7 +277,7 @@ function AddToDashboardModal({
       );
       closeModal();
     } catch (error) {
-      addErrorMessage(
+      toast.error(
         tn(
           'Failed to add widget to dashboard',
           'Failed to add widgets to dashboard',
@@ -315,7 +307,7 @@ function AddToDashboardModal({
 
     // For existing dashboards, add widgets via API first, then navigate
     try {
-      addLoadingMessage(
+      toast.loading(
         tn(
           'Adding widget to dashboard...',
           'Adding widgets to dashboard...',
@@ -323,7 +315,7 @@ function AddToDashboardModal({
         )
       );
       await handleAddWidgetsToExistingDashboard();
-      addSuccessMessage(
+      toast.success(
         tn(
           'Successfully added widget to dashboard',
           'Successfully added widgets to dashboard',
@@ -334,7 +326,7 @@ function AddToDashboardModal({
       // Navigate to dashboard (widgets already saved, no location state needed)
       goToDashboard('preview');
     } catch (error) {
-      addErrorMessage(
+      toast.error(
         tn(
           'Failed to add widget to dashboard',
           'Failed to add widgets to dashboard',
@@ -363,7 +355,7 @@ function AddToDashboardModal({
       widgets: [...selectedDashboard.widgets, ...normalizeWidgets(widgetsWithLayouts)],
     };
 
-    await updateDashboard(api, organization.slug, newDashboard);
+    await updateDashboard(organization.slug, newDashboard);
   }
 
   const canSubmit = selectedDashboardId !== null;
@@ -384,7 +376,7 @@ function AddToDashboardModal({
           value: 'new',
           disabled: hasReachedDashboardLimit || isLoading,
           tooltip: hasReachedDashboardLimit ? limitMessage : undefined,
-          tooltipOptions: {position: 'right', isHoverable: true},
+          tooltipOptions: {position: 'right'},
         } satisfies SelectValue<string>,
         ...dashboards
           .filter(dashboard =>
@@ -480,75 +472,44 @@ function AddToDashboardModal({
               )}
         </Container>
         {!hasMultipleWidgets && (
-          <MetricsCardinalityProvider organization={organization} location={location}>
-            <MetricsDataSwitcher
-              organization={organization}
-              eventView={eventViewFromWidget(
-                newWidgetTitle,
-                widget.displayType === DisplayType.TEXT
-                  ? {
-                      name: '',
-                      fields: [],
-                      aggregates: [],
-                      columns: [],
-                      orderby: '',
-                      conditions: '',
-                    }
-                  : widget.queries[0]!,
-                selection
+          <WidgetCardWrapper>
+            <WidgetCard
+              showContextMenu={false}
+              widgetLimitReached={false}
+              selection={
+                selectedDashboard
+                  ? getSavedFiltersAsPageFilters(selectedDashboard)
+                  : selection
+              }
+              dashboardFilters={getMergedDashboardFilters(
+                selectedDashboard?.filters,
+                location
               )}
-              location={location}
-              hideLoadingIndicator
-            >
-              {metricsDataSide => (
-                <DashboardsMEPProvider>
-                  <MEPSettingProvider
-                    location={location}
-                    forceTransactions={metricsDataSide.forceTransactionsOnly}
-                  >
-                    <WidgetCardWrapper>
-                      <WidgetCard
-                        showContextMenu={false}
-                        widgetLimitReached={false}
-                        selection={
-                          selectedDashboard
-                            ? getSavedFiltersAsPageFilters(selectedDashboard)
-                            : selection
-                        }
-                        dashboardFilters={getMergedDashboardFilters(
-                          selectedDashboard?.filters,
-                          location
-                        )}
-                        widget={{
-                          ...widget,
-                          title: newWidgetTitle,
-                          tableWidths,
-                          queries: getUpdatedWidgetQueries(),
-                        }}
-                        shouldResize
-                        widgetLegendState={widgetLegendState}
-                        onLegendSelectChanged={() => {}}
-                        legendOptions={
-                          widgetLegendState.widgetRequiresLegendUnselection(widget)
-                            ? {selected: unselectedReleasesForCharts}
-                            : undefined
-                        }
-                        disableFullscreen
-                        onWidgetTableResizeColumn={handleWidgetTableColumnResize}
-                        onWidgetTableSort={handleWidgetTableSort}
-                        disableTableActions
-                      />
-                    </WidgetCardWrapper>
-                  </MEPSettingProvider>
-                </DashboardsMEPProvider>
-              )}
-            </MetricsDataSwitcher>
-          </MetricsCardinalityProvider>
+              widget={{
+                ...widget,
+                title: newWidgetTitle,
+                tableWidths,
+                queries: getUpdatedWidgetQueries(),
+              }}
+              shouldResize
+              widgetLegendState={widgetLegendState}
+              onLegendSelectChanged={() => {}}
+              legendOptions={
+                widgetLegendState.widgetRequiresLegendUnselection(widget)
+                  ? {selected: unselectedReleasesForCharts}
+                  : undefined
+              }
+              disableFullscreen
+              onWidgetTableResizeColumn={handleWidgetTableColumnResize}
+              onWidgetTableSort={handleWidgetTableSort}
+              disableTableActions
+            />
+          </WidgetCardWrapper>
         )}
       </Body>
 
       <Footer>
-        <StyledButtonBar gap="lg">
+        <Flex gap="lg" justify="end">
           {actions.includes('add-and-stay-on-current-page') && (
             <Button
               onClick={handleAddAndStayOnCurrentPage}
@@ -580,27 +541,13 @@ function AddToDashboardModal({
                 : t('Open in Widget Builder')}
             </Button>
           )}
-        </StyledButtonBar>
+        </Flex>
       </Footer>
     </Fragment>
   );
 }
 
 export default AddToDashboardModal;
-
-const StyledButtonBar = styled((props: GridProps) => (
-  <Grid flow="column" align="center" gap="md" {...props} />
-))`
-  @media (max-width: ${props => props.theme.breakpoints.sm}) {
-    grid-template-rows: repeat(2, 1fr);
-    gap: ${p => p.theme.space.lg};
-    width: 100%;
-
-    > button {
-      width: 100%;
-    }
-  }
-`;
 
 const WidgetCardWrapper = styled('div')`
   height: ${WIDGET_PREVIEW_HEIGHT};

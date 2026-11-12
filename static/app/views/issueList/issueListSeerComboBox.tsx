@@ -1,8 +1,10 @@
 import {useCallback} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
-import omit from 'lodash/omit';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import type {
@@ -10,6 +12,7 @@ import type {
   SeerRawResponse,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {
+  buildSeerDateTimeSelection,
   buildSeerMutationResult,
   mapSeerResponseItem,
   transformSeerResponse,
@@ -19,16 +22,33 @@ import {
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getUtcDateString} from 'sentry/utils/dates';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export function IssueListSeerComboBox() {
+const seerQueryParsers = {
+  cursor: parseAsString,
+  end: parseAsString,
+  page: parseAsString,
+  pageEnd: parseAsString,
+  pageStart: parseAsString,
+  pageStatsPeriod: parseAsString,
+  pageUtc: parseAsString,
+  period: parseAsString,
+  project: parseAsStringArray,
+  query: parseAsString,
+  referrer: parseAsString,
+  sort: parseAsString,
+  start: parseAsString,
+  statsPeriod: parseAsString,
+  utc: parseAsString,
+};
+
+export function IssueListSeerComboBox({className}: {className?: string}) {
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [, setQueryParams] = useQueryStates(seerQueryParsers, {history: 'replace'});
+  const pageFilters = usePageFilters();
   const {setRunId} = useAiQueryContext();
   const analyticsArea = useAnalyticsArea();
   const {enableAISearch, askSeerSuggestedQueryRef} = useSearchQueryBuilderAI();
@@ -50,7 +70,9 @@ export function IssueListSeerComboBox() {
   const issueListAskSeerMutationOptions = mutationOptions({
     mutationFn: async (queryToSubmit: string) => {
       const data = await fetchMutation<SeerRawResponse>({
-        url: `/organizations/${organization.slug}/search-agent/translate/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/search-agent/translate/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         method: 'POST',
         data: {
           natural_language_query: queryToSubmit,
@@ -80,12 +102,18 @@ export function IssueListSeerComboBox() {
         expandedProjectIds,
       } = result;
 
+      const dt = buildSeerDateTimeSelection(
+        resultStart,
+        resultEnd,
+        statsPeriod,
+        pageFilters.selection.datetime
+      );
+      const timeParams = normalizeDateTimeParams(dt, {allowEmptyPeriod: true});
+
       askSeerSuggestedQueryRef.current = JSON.stringify({
         query: queryToUse,
         sort,
-        statsPeriod,
-        start: resultStart,
-        end: resultEnd,
+        ...timeParams,
       });
 
       trackAnalytics('ai_query.applied', {
@@ -94,56 +122,34 @@ export function IssueListSeerComboBox() {
         query: queryToUse,
       });
 
-      let timeParams: Record<string, string | undefined> = {};
-
-      if (resultStart && resultEnd) {
-        timeParams = {
-          start: getUtcDateString(resultStart),
-          end: getUtcDateString(resultEnd),
-          statsPeriod: undefined,
-          // Seer returns absolute ranges as UTC, so display them in UTC to match
-          // the suggestion preview the user accepted.
-          utc: 'true',
-        };
-      } else if (statsPeriod) {
-        timeParams = {
-          statsPeriod,
-          start: undefined,
-          end: undefined,
-          // Clear any utc flag left over from a prior absolute range; a relative
-          // window has no UTC display semantics to preserve.
-          utc: undefined,
-        };
-      }
-
-      const queryParams = {
-        ...omit(location.query, ['page', 'cursor']),
-        ...(expandedProjectIds ? {project: expandedProjectIds.map(String)} : {}),
-        referrer: 'issue-list',
-        query: queryToUse,
-        ...(sort ? {sort} : {}),
-        ...timeParams,
-      };
-
       if (runId !== undefined) {
         setRunId(runId);
       }
 
-      navigate(
-        {
-          pathname: location.pathname,
-          query: queryParams,
-        },
-        {replace: true, preventScrollReset: true}
-      );
+      setQueryParams({
+        cursor: null,
+        page: null,
+        pageEnd: null,
+        pageStart: null,
+        pageStatsPeriod: null,
+        pageUtc: null,
+        period: null,
+        ...(expandedProjectIds ? {project: expandedProjectIds.map(String)} : {}),
+        referrer: 'issue-list',
+        query: queryToUse,
+        ...(sort ? {sort} : {}),
+        start: timeParams.start ?? null,
+        end: timeParams.end ?? null,
+        statsPeriod: timeParams.statsPeriod ?? null,
+        utc: timeParams.utc ?? null,
+      });
     },
     [
       analyticsArea,
       askSeerSuggestedQueryRef,
-      location.pathname,
-      location.query,
-      navigate,
       organization,
+      pageFilters.selection.datetime,
+      setQueryParams,
       setRunId,
     ]
   );
@@ -154,6 +160,7 @@ export function IssueListSeerComboBox() {
 
   return (
     <AskSeerPollingComboBox<AskSeerSearchQuery>
+      className={className}
       initialQuery={initialSeerQuery}
       projectIds={selectedProjectIds}
       strategy="Issues"

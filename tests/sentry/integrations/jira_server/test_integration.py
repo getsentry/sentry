@@ -5,6 +5,7 @@ import orjson
 import pytest
 import responses
 from django.urls import reverse
+from requests import PreparedRequest
 
 from fixtures.integrations.jira.stub_client import StubJiraApiClient
 from fixtures.integrations.stub_service import StubService
@@ -21,6 +22,7 @@ from sentry.shared_integrations.exceptions import (
     ApiUnauthorized,
     IntegrationConfigurationError,
     IntegrationError,
+    IntegrationFormError,
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -39,7 +41,7 @@ DEFAULT_PROJECT_ID = 10000
 DEFAULT_ISSUE_TYPE_ID = 10000
 
 
-def get_client():
+def get_client() -> StubJiraApiClient:
     return StubJiraApiClient()
 
 
@@ -85,6 +87,16 @@ class JiraServerIntegrationBaseTest(APITestCase):
 
 
 class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
+    def test_issue_url_with_context_path(self) -> None:
+        self.installation.model.metadata["base_url"] = "https://jira.example.org/jira"
+        assert self.installation.get_issue_link_data(
+            "https://jira.example.org/jira/projects/ABC/issues/ABC-123"
+        ) == {"externalIssue": "ABC-123"}
+        with pytest.raises(IntegrationFormError):
+            self.installation.get_issue_link_data(
+                "https://jira.example.org/jira-archive/browse/ABC-123"
+            )
+
     def test_get_create_issue_config(self) -> None:
         event = self.store_event(
             data={
@@ -663,6 +675,8 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
                         "title": "example summary",
                         "description": "example bug report",
                         "key": "APP-123",
+                        # Jira's immutable id, kept so a project move can be followed.
+                        "metadata": {"provider_issue_id": "10305"},
                     }
                     mock_create_issue.assert_called_once_with(
                         {
@@ -688,6 +702,8 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
                     "title": "example summary",
                     "description": "example bug report",
                     "key": "APP-123",
+                    # Jira's immutable id, kept so a project move can be followed.
+                    "metadata": {"provider_issue_id": "10305"},
                 }
                 mock_create_issue.assert_called_once_with(
                     {
@@ -713,7 +729,10 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
             content_type="json",
         )
 
-        def responder(request):
+        def responder(
+            request: PreparedRequest,
+        ) -> tuple[int, dict[str, str], str]:
+            assert request.body is not None
             body = orjson.loads(request.body)
             assert body["fields"]["labels"] == ["fuzzy", "bunnies"]
             assert body["fields"]["customfield_10200"] == {"value": "sad"}

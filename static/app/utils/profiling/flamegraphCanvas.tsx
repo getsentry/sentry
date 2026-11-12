@@ -1,15 +1,15 @@
 import type {vec2} from 'gl-matrix';
 import {mat3} from 'gl-matrix';
 
-import {transformMatrixBetweenRect} from 'sentry/utils/profiling/gl/utils';
-import {Rect} from 'sentry/utils/profiling/speedscope';
+import {transformMatrixBetweenRect} from './gl/utils';
+import {Rect} from './speedscope';
 
 export class FlamegraphCanvas {
   canvas: HTMLCanvasElement;
   origin: vec2;
 
-  physicalSpace: Rect = Rect.Empty();
-  logicalSpace: Rect = Rect.Empty();
+  physicalSpace: Rect = Rect.empty();
+  logicalSpace: Rect = Rect.empty();
 
   physicalToLogicalSpace: mat3 = mat3.create();
   logicalToPhysicalSpace: mat3 = mat3.create();

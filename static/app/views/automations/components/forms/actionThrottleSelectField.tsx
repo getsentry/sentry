@@ -16,12 +16,7 @@ const FREQUENCY_OPTIONS = [
   {value: 43200, label: t('30 days')},
 ];
 
-type ActionIntervalSelectFieldProps = {
-  help?: string;
-  label?: string;
-};
-
-export function ActionThrottleSelectField(props: ActionIntervalSelectFieldProps) {
+export function ActionThrottleSelectField() {
   return (
     <EmbeddedSelectField
       required
@@ -30,7 +25,6 @@ export function ActionThrottleSelectField(props: ActionIntervalSelectFieldProps)
       clearable={false}
       options={FREQUENCY_OPTIONS}
       label={t('Action Throttle')}
-      {...props}
     />
   );
 }

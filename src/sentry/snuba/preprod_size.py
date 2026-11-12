@@ -1,7 +1,7 @@
 import logging
 
-import sentry_sdk
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
+from sentry_sdk import traces
 
 from sentry.search.eap.preprod_size.definitions import PREPROD_SIZE_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
@@ -24,7 +24,7 @@ class PreprodSize(rpc_dataset_common.RPCBase):
     DEFINITIONS = PREPROD_SIZE_DEFINITIONS
 
     @classmethod
-    @sentry_sdk.trace
+    @traces.trace
     def run_table_query(
         cls,
         *,

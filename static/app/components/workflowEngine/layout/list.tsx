@@ -1,8 +1,8 @@
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {OnboardingBanner} from 'sentry/components/workflowEngine/ui/alertsMonitorsOnboardingBanner';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TopBar} from 'sentry/views/navigation/topBar';
@@ -32,17 +32,23 @@ export function WorkflowEngineListLayout({
   return (
     <Stack flex={1}>
       <NoProjectMessage organization={organization}>
-        <TopBar.Slot name="title">
-          {title}
-          <PageHeadingQuestionTooltip docsUrl={docsUrl} title={description} />
-        </TopBar.Slot>
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{
+            type: 'page-title',
+            label: title,
+            labelTooltip: (
+              <DocumentationHint docsUrl={docsUrl}>{description}</DocumentationHint>
+            ),
+          }}
+        />
         <TopBar.Slot name="actions">{actions}</TopBar.Slot>
         <Layout.Body>
           <Layout.Main width="full">
-            <Flex direction="column" gap="lg">
+            <Stack gap="lg">
               <OnboardingBanner />
               {children}
-            </Flex>
+            </Stack>
           </Layout.Main>
         </Layout.Body>
       </NoProjectMessage>

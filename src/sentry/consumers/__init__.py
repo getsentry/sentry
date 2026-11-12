@@ -8,12 +8,13 @@ from typing import Any, Union, get_args, get_origin, get_type_hints
 import click
 from arroyo.backends.abstract import Consumer
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
-from arroyo.backends.kafka.consumer import KafkaConsumer
+from arroyo.backends.kafka.consumer import KafkaConsumer, KafkaPayload
 from arroyo.commit import ONCE_PER_SECOND
 from arroyo.dlq import DlqPolicy
 from arroyo.processing.processor import StreamProcessor
 from arroyo.processing.strategies import Healthcheck
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
+from arroyo.types import Commit, Partition
 from arroyo.types import Topic as ArroyoTopic
 from django.conf import settings
 
@@ -100,7 +101,7 @@ def apply_processor_args_overrides(
     return base_args
 
 
-def convert_max_batch_time(ctx, param, value):
+def convert_max_batch_time(ctx: click.Context, param: click.Parameter, value: int) -> int:
     if value <= 0:
         raise click.BadParameter("--max-batch-time must be greater than 0")
 
@@ -145,16 +146,6 @@ def issue_occurrence_options() -> list[click.Option]:
     ]
 
 
-def ingest_replay_recordings_options() -> list[click.Option]:
-    """Return a list of ingest-replay-recordings options."""
-    options = multiprocessing_options(default_max_batch_size=10)
-    options.append(click.Option(["--threads", "num_threads"], type=int, default=4))
-    options.append(
-        click.Option(["--max-pending-futures", "max_pending_futures"], type=int, default=100)
-    )
-    return options
-
-
 def ingest_monitors_options() -> list[click.Option]:
     """Return a list of ingest-monitors options."""
     options = [
@@ -175,6 +166,37 @@ def ingest_monitors_options() -> list[click.Option]:
             type=int,
             default=1,
             help="Maximum time spent batching check-ins to batch before processing in parallel.",
+        ),
+        click.Option(
+            ["--max-workers", "max_workers"],
+            type=int,
+            default=None,
+            help="The maximum number of threads to spawn in parallel mode.",
+        ),
+    ]
+    return options
+
+
+def clock_tasks_options() -> list[click.Option]:
+    """Return a list of monitors-clock-tasks options."""
+    options = [
+        click.Option(
+            ["--mode", "mode"],
+            type=click.Choice(["serial", "batched-parallel"]),
+            default="serial",
+            help="The mode to process clock tasks in. Parallel uses multithreading.",
+        ),
+        click.Option(
+            ["--max-batch-size", "max_batch_size"],
+            type=int,
+            default=500,
+            help="Maximum number of clock tasks to batch before processing in parallel.",
+        ),
+        click.Option(
+            ["--max-batch-time", "max_batch_time"],
+            type=int,
+            default=1,
+            help="Maximum time spent batching clock tasks before processing in parallel.",
         ),
         click.Option(
             ["--max-workers", "max_workers"],
@@ -224,15 +246,27 @@ def ingest_events_options() -> list[click.Option]:
     """
     Options for the "events"-like consumers: `events`, `attachments`, `transactions`.
 
-    This adds a `--reprocess-only-stuck-events`option. If that option is specified, *only* events
-    that were already persisted in the `processing_store` will be processed.
-    Events that never made it to the store, and ones that already made it out of the store are skipped,
-    same as attachments (which are not idempotent, and we would rather not duplicate them).
+    Options added:
+        `--reprocess-only-stuck-events`: *only* events that were already persisted in the `processing_store`
+        will be processed. Events that never made it to the store, and ones that already made it out of the store are skipped,
+        same as attachments (which are not idempotent, and we would rather not duplicate them).
+
+        `--reprocess-only-events-not-in-nodestore`: *only* events whose payload is missing from `nodestore` are processed.
+        This works similarly to `--reprocess-only-stuck-events`, but can be used to reprocess events that were stuck
+        in redis, but then purged.
     """
     options = multiprocessing_options(default_max_batch_size=100)
     options.append(
         click.Option(
             ["--reprocess-only-stuck-events", "reprocess_only_stuck_events"],
+            type=bool,
+            is_flag=True,
+            default=False,
+        )
+    )
+    options.append(
+        click.Option(
+            ["--reprocess-only-events-not-in-nodestore", "reprocess_only_events_not_in_nodestore"],
             type=bool,
             is_flag=True,
             default=False,
@@ -303,11 +337,6 @@ _POST_PROCESS_FORWARDER_OPTIONS = multiprocessing_options(
 
 # consumer name -> consumer definition
 KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
-    "ingest-replay-recordings": {
-        "topic": Topic.INGEST_REPLAYS_RECORDINGS,
-        "strategy_factory": "sentry.replays.consumers.recording.ProcessReplayRecordingStrategyFactory",
-        "click_options": ingest_replay_recordings_options(),
-    },
     "ingest-monitors": {
         "topic": Topic.INGEST_MONITORS,
         "strategy_factory": "sentry.monitors.consumers.monitor_consumer.StoreMonitorCheckInStrategyFactory",
@@ -320,6 +349,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "monitors-clock-tasks": {
         "topic": Topic.MONITORS_CLOCK_TASKS,
         "strategy_factory": "sentry.monitors.consumers.clock_tasks_consumer.MonitorClockTasksStrategyFactory",
+        "click_options": clock_tasks_options(),
     },
     "monitors-incident-occurrences": {
         "topic": Topic.MONITORS_INCIDENT_OCCURRENCES,
@@ -330,10 +360,6 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "strategy_factory": "sentry.uptime.consumers.results_consumer.UptimeResultsStrategyFactory",
         "click_options": uptime_options(),
         "pass_consumer_group": True,
-    },
-    "billing-metrics-consumer": {
-        "topic": Topic.SNUBA_GENERIC_METRICS,
-        "strategy_factory": "sentry.ingest.billing_metrics_consumer.BillingMetricsConsumerStrategyFactory",
     },
     # Known differences to 'sentry run occurrences-ingest-consumer':
     # - ingest_consumer_types metric tag is missing. Use the kafka_topic and
@@ -386,23 +412,6 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
             "ingest_profile": "release-health",
         },
         "dlq_topic": Topic.INGEST_METRICS_DLQ,
-    },
-    "ingest-generic-metrics": {
-        "topic": Topic.INGEST_PERFORMANCE_METRICS,
-        "strategy_factory": "sentry.sentry_metrics.consumers.indexer.parallel.MetricsConsumerStrategyFactory",
-        "click_options": _METRICS_INDEXER_OPTIONS,
-        "static_args": {
-            "ingest_profile": "performance",
-        },
-        "dlq_topic": Topic.INGEST_GENERIC_METRICS_DLQ,
-    },
-    "generic-metrics-last-seen-updater": {
-        "topic": Topic.SNUBA_GENERIC_METRICS,
-        "strategy_factory": "sentry.sentry_metrics.consumers.last_seen_updater.LastSeenUpdaterStrategyFactory",
-        "click_options": _METRICS_LAST_SEEN_UPDATER_OPTIONS,
-        "static_args": {
-            "ingest_profile": "performance",
-        },
     },
     "metrics-last-seen-updater": {
         "topic": Topic.SNUBA_METRICS,
@@ -457,19 +466,6 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         ],
         "pass_kafka_slice_id": True,
     },
-    "process-segments": {
-        "topic": Topic.BUFFERED_SEGMENTS,
-        "dlq_topic": Topic.BUFFERED_SEGMENTS_DLQ,
-        "strategy_factory": "sentry.spans.consumers.process_segments.factory.DetectPerformanceIssuesStrategyFactory",
-        "click_options": [
-            click.Option(
-                ["--skip-produce", "skip_produce"],
-                is_flag=True,
-                default=False,
-            ),
-            *multiprocessing_options(default_max_batch_size=100),
-        ],
-    },
     **settings.SENTRY_KAFKA_CONSUMERS,
 }
 
@@ -496,7 +492,7 @@ def get_stream_processor(
     add_global_tags: bool = False,
     profile_consumer_join: bool = False,
     arroyo_args: Sequence[str] | None = None,
-) -> StreamProcessor:
+) -> StreamProcessor[KafkaPayload]:
     from sentry.utils import kafka_config
 
     try:
@@ -540,7 +536,9 @@ def get_stream_processor(
         **extra_kwargs,
     )
 
-    def build_consumer_config(group_id: str, topic: Topic | None = consumer_topic):
+    def build_consumer_config(
+        group_id: str, topic: Topic | None = consumer_topic
+    ) -> dict[str, object]:
         consumer_config = build_kafka_consumer_configuration(
             kafka_config.get_kafka_consumer_cluster_options(
                 cluster_from_config,
@@ -566,7 +564,7 @@ def get_stream_processor(
 
         return consumer_config
 
-    consumer: Consumer = KafkaConsumer(build_consumer_config(group_id))
+    consumer: Consumer[KafkaPayload] = KafkaConsumer(build_consumer_config(group_id))
 
     if synchronize_commit_group is None:
         synchronize_commit_group = consumer_definition.get("synchronize_commit_group_default")
@@ -672,35 +670,44 @@ def get_stream_processor(
     return StreamProcessor(**processor_args)
 
 
-class ValidateSchemaStrategyFactoryWrapper(ProcessingStrategyFactory):
+class ValidateSchemaStrategyFactoryWrapper(ProcessingStrategyFactory[KafkaPayload]):
     """
     This wrapper is used to validate the schema of the event before
     passing to the rest of the pipeline. Since the message is currently decoded
     twice, it should only be run in dev or on a small fraction of prod data.
     """
 
-    def __init__(self, topic: str, enforce_schema: bool, inner: ProcessingStrategyFactory) -> None:
+    def __init__(
+        self,
+        topic: str,
+        enforce_schema: bool,
+        inner: ProcessingStrategyFactory[KafkaPayload],
+    ) -> None:
         self.topic = topic
         self.enforce_schema = enforce_schema
         self.inner = inner
 
-    def create_with_partitions(self, commit, partitions) -> ProcessingStrategy:
+    def create_with_partitions(
+        self, commit: Commit, partitions: Mapping[Partition, int]
+    ) -> ProcessingStrategy[KafkaPayload]:
         rv = self.inner.create_with_partitions(commit, partitions)
 
         return ValidateSchema(self.topic, self.enforce_schema, rv)
 
 
-class MinPartitionMetricTagWrapper(ProcessingStrategyFactory):
+class MinPartitionMetricTagWrapper(ProcessingStrategyFactory[KafkaPayload]):
     """
     A wrapper that tracks the minimum partition index being processed by the consumer
     and adds it as a global metric tag. This helps with monitoring partition distribution
     and debugging partition-specific issues.
     """
 
-    def __init__(self, inner: ProcessingStrategyFactory):
+    def __init__(self, inner: ProcessingStrategyFactory[KafkaPayload]) -> None:
         self.inner = inner
 
-    def create_with_partitions(self, commit, partitions):
+    def create_with_partitions(
+        self, commit: Commit, partitions: Mapping[Partition, int]
+    ) -> ProcessingStrategy[KafkaPayload]:
         from sentry.metrics.middleware import add_global_tags
 
         # Update the min_partition global tag based on current partition assignment
@@ -711,20 +718,26 @@ class MinPartitionMetricTagWrapper(ProcessingStrategyFactory):
         return self.inner.create_with_partitions(commit, partitions)
 
 
-class HealthcheckStrategyFactoryWrapper(ProcessingStrategyFactory):
-    def __init__(self, healthcheck_file_path: str, inner: ProcessingStrategyFactory):
+class HealthcheckStrategyFactoryWrapper(ProcessingStrategyFactory[KafkaPayload]):
+    def __init__(
+        self, healthcheck_file_path: str, inner: ProcessingStrategyFactory[KafkaPayload]
+    ) -> None:
         self.healthcheck_file_path = healthcheck_file_path
         self.inner = inner
 
-    def create_with_partitions(self, commit, partitions):
+    def create_with_partitions(
+        self, commit: Commit, partitions: Mapping[Partition, int]
+    ) -> ProcessingStrategy[KafkaPayload]:
         rv = self.inner.create_with_partitions(commit, partitions)
         return Healthcheck(self.healthcheck_file_path, rv)
 
 
-class JoinProfilerStrategyFactoryWrapper(ProcessingStrategyFactory):
-    def __init__(self, inner: ProcessingStrategyFactory):
+class JoinProfilerStrategyFactoryWrapper(ProcessingStrategyFactory[KafkaPayload]):
+    def __init__(self, inner: ProcessingStrategyFactory[KafkaPayload]) -> None:
         self.inner = inner
 
-    def create_with_partitions(self, commit, partitions):
+    def create_with_partitions(
+        self, commit: Commit, partitions: Mapping[Partition, int]
+    ) -> ProcessingStrategy[KafkaPayload]:
         rv = self.inner.create_with_partitions(commit, partitions)
         return JoinProfiler(rv)

@@ -2,16 +2,20 @@ import logging
 from collections import defaultdict
 from typing import Any, TypedDict, cast
 
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import TraceItemAttributeNamesRequest
 from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
+    AttributeDistribution,
     AttributeDistributionsRequest,
     StatsType,
     TraceItemStatsRequest,
+    TraceItemStatsResponse,
 )
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, ExtrapolationMode
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 
 from sentry import options
 from sentry.api.api_owners import ApiOwner
@@ -19,15 +23,31 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_trace_item_attributes import adjust_start_end_window
+from sentry.api.endpoints.organization_trace_item_attributes_types import (
+    AttributeBucket,
+    RankedAttribute,
+    RankedAttributesResponse,
+)
 from sentry.api.utils import handle_query_errors
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.examples.trace_item_attribute_examples import TraceItemAttributeExamples
+from sentry.apidocs.parameters import GlobalParams, OrganizationParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.attributes import SPANS_STATS_EXCLUDED_ATTRIBUTES
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
-from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
+from sentry.search.eap.types import EAPResponse, SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import can_expose_attribute, translate_internal_to_public_alias
 from sentry.search.events import fields
+from sentry.search.events.types import SnubaParams
 from sentry.seer.endpoints.compare import compare_distributions
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.snuba.referrer import Referrer
@@ -41,6 +61,7 @@ logger = logging.getLogger(__name__)
 PARALLELIZATION_FACTOR = 2
 
 
+@extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
@@ -48,7 +69,81 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
     }
     owner = ApiOwner.DATA_BROWSING
 
-    def get(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="listOrganizationTraceItemRankedAttributes",
+        summary="Rank Span Attributes by Cohort Difference",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OrganizationParams.PROJECT,
+            GlobalParams.ENVIRONMENT,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            OpenApiParameter(
+                name="query_1",
+                location="query",
+                required=False,
+                type=str,
+                description=(
+                    "[Search query](https://docs.sentry.io/concepts/search/) selecting the "
+                    "suspect cohort of spans."
+                ),
+            ),
+            OpenApiParameter(
+                name="query_2",
+                location="query",
+                required=False,
+                type=str,
+                description=(
+                    "[Search query](https://docs.sentry.io/concepts/search/) selecting all "
+                    "spans to compare against. The baseline cohort is these spans minus the "
+                    "suspect cohort. Returns no attributes when equal to `query_1`."
+                ),
+            ),
+            OpenApiParameter(
+                name="function",
+                location="query",
+                required=False,
+                type=str,
+                description=(
+                    "The aggregate the comparison is focused on. Percentile and `avg` "
+                    "functions narrow the suspect cohort to spans above or below the "
+                    "function's value. `failure_rate` and `failure_count` narrow it to failed "
+                    "spans. Defaults to `count(span.duration)`."
+                ),
+            ),
+            OpenApiParameter(
+                name="above",
+                location="query",
+                required=False,
+                type=str,
+                enum=["0", "1"],
+                description=(
+                    "Pass `1` to keep suspect spans at or above the function's value, "
+                    "otherwise spans at or below it are kept. Only used with percentile and "
+                    "`avg` functions."
+                ),
+            ),
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "RankedAttributesResponse", RankedAttributesResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=TraceItemAttributeExamples.LIST_RANKED_ATTRIBUTES,
+    )
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[RankedAttributesResponse]:
+        """
+        Compare the string attribute distributions of a suspect cohort of spans against a
+        baseline cohort, and return the attributes ranked by how much they differ, most
+        different first. Use it to find what sets a slow or failing set of spans apart.
+        """
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
@@ -62,13 +157,14 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
         if query_1 == query_2:
             return Response({"rankedAttributes": []})
 
-        distributions_result = query_attribute_distributions(
-            snuba_params=snuba_params,
-            function_string=function_string,
-            above=above,
-            query_1=query_1,
-            query_2=query_2,
-        )
+        with handle_query_errors():
+            distributions_result = query_attribute_distributions(
+                snuba_params=snuba_params,
+                function_string=function_string,
+                above=above,
+                query_1=query_1,
+                query_2=query_2,
+            )
 
         cohort_2_distribution = distributions_result["cohort_2_distribution"]
         cohort_2_distribution_map = distributions_result["cohort_2_distribution_map"]
@@ -79,7 +175,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
         total_outliers = distributions_result["total_cohort_1"]
         function_value = distributions_result["cohort_1_function_value"]
 
-        ranked_distribution: dict[str, Any] = {
+        ranked_distribution: RankedAttributesResponse = {
             "rankedAttributes": [],
             "rankingInfo": {
                 "function": function_string,
@@ -105,10 +201,12 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
             {"referrer": Referrer.API_TRACE_EXPLORER_STATS.value},
         )
 
-        viewer_context = SeerViewerContext(organization_id=organization.id, user_id=request.user.id)
+        viewer_context = SeerViewerContext(
+            organization_id=organization.id, user_id=acting_user_id(request.user)
+        )
         scored_attrs_rrr = compare_distributions(
-            baseline=cohort_2_distribution,
-            outliers=cohort_1_distribution,
+            baseline=cast("list[dict[str, Any]]", cohort_2_distribution),
+            outliers=cast("list[dict[str, Any]]", cohort_1_distribution),
             total_outliers=total_outliers,
             total_baseline=total_baseline,
             config={
@@ -135,7 +233,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
                 not public_alias.startswith("sentry.")
                 or public_alias == "sentry.normalized_description"
             ):
-                distribution = {
+                distribution: RankedAttribute = {
                     "attributeName": public_alias,
                     "cohort1": cohort_1_distribution_map.get(attr),
                     "cohort2": cohort_2_distribution_map.get(attr),
@@ -158,19 +256,17 @@ class AttributeDistributionsResponse(TypedDict):
     """
 
     cohort_2_distribution: list[tuple[str, str, float]]  # list of (attribute_name, label, value)
-    # map of attribute_name to list of {label: str, value: float}
-    cohort_2_distribution_map: dict[str, list[dict[str, Any]]]
+    cohort_2_distribution_map: dict[str, list[AttributeBucket]]
     total_cohort_2: int
 
     cohort_1_distribution: list[tuple[str, str, float]]  # list of (attribute_name, label, value)
-    # map of attribute_name to list of {label: str, value: float}
-    cohort_1_distribution_map: dict[str, list[dict[str, Any]]]
+    cohort_1_distribution_map: dict[str, list[AttributeBucket]]
     total_cohort_1: int
     cohort_1_function_value: float | None
 
 
 def query_attribute_distributions(
-    snuba_params,
+    snuba_params: SnubaParams,
     function_string: str,
     above: bool,
     query_1: str,
@@ -297,7 +393,9 @@ def query_attribute_distributions(
             AttributeKey(name=attr_proto.name, type=AttributeKey.TYPE_STRING)
         )
 
-    def run_stats_request_with_error_handling(filter, attributes):
+    def run_stats_request_with_error_handling(
+        filter: TraceItemFilter | None, attributes: list[AttributeKey]
+    ) -> TraceItemStatsResponse:
         with handle_query_errors():
             request = TraceItemStatsRequest(
                 filter=filter,
@@ -313,7 +411,7 @@ def query_attribute_distributions(
             )
             return trace_item_stats_rpc(request)
 
-    def run_table_query_with_error_handling(query_string):
+    def run_table_query_with_error_handling(query_string: str) -> EAPResponse:
         with handle_query_errors():
             return Spans.run_table_query(
                 params=snuba_params,
@@ -344,14 +442,14 @@ def query_attribute_distributions(
         totals_2_future = query_thread_pool.submit(run_table_query_with_error_handling, query_2)
 
         # Merge cohort 1 results
-        cohort_1_data = []
+        cohort_1_data: list[AttributeDistribution] = []
         for future in cohort_1_futures:
             result = future.result()
             if result.results:
                 cohort_1_data.extend(result.results[0].attribute_distributions.attributes)
 
         # Merge cohort 2 results
-        cohort_2_data = []
+        cohort_2_data: list[AttributeDistribution] = []
         for future in cohort_2_futures:
             result = future.result()
             if result.results:
@@ -360,11 +458,11 @@ def query_attribute_distributions(
         totals_1_result = totals_1_future.result()
         totals_2_result = totals_2_future.result()
 
-    cohort_1_distribution = []
-    cohort_1_distribution_map = defaultdict(list)
+    cohort_1_distribution: list[tuple[str, str, float]] = []
+    cohort_1_distribution_map: defaultdict[str, list[AttributeBucket]] = defaultdict(list)
 
-    cohort_2_distribution = []
-    cohort_2_distribution_map = defaultdict(list)
+    cohort_2_distribution: list[tuple[str, str, float]] = []
+    cohort_2_distribution_map: defaultdict[str, list[AttributeBucket]] = defaultdict(list)
     processed_cohort_2_buckets = set()
 
     for attribute in cohort_2_data:
@@ -389,7 +487,7 @@ def query_attribute_distributions(
             # If a value exists in the suspect, but not the baseline we should clip the value to 0
             for cohort_2_bucket in cohort_2_distribution_map[attribute.attribute_name]:
                 if cohort_2_bucket["label"] == bucket.label:
-                    baseline_value = max(0, cast(float, cohort_2_bucket["value"]) - bucket.value)
+                    baseline_value = max(0, cohort_2_bucket["value"] - bucket.value)
                     cohort_2_bucket["value"] = baseline_value
                     cohort_2_distribution.append(
                         (attribute.attribute_name, bucket.label, baseline_value)
@@ -400,7 +498,7 @@ def query_attribute_distributions(
     # Add remaining cohort_2 buckets that weren't in cohort_1 (exist only in baseline)
     cohort_2_distribution.extend(
         [
-            (attribute_name, cast(str, bucket["label"]), cast(float, bucket["value"]))
+            (attribute_name, bucket["label"], bucket["value"])
             for attribute_name, buckets in cohort_2_distribution_map.items()
             for bucket in buckets
             if (attribute_name, bucket["label"]) not in processed_cohort_2_buckets

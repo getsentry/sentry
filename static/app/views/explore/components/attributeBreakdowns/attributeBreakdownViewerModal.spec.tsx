@@ -6,12 +6,10 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {closeModal} from 'sentry/actionCreators/modal';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {closeModal} from '@sentry/scraps/modal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 
 import AttributeBreakdownViewerModal from './attributeBreakdownViewerModal';
-
-jest.mock('sentry/actionCreators/modal');
 
 jest.mock('echarts-for-react/lib/core', () => {
   return jest.fn(({style}) => {
@@ -170,6 +168,7 @@ describe('AttributeBreakdownViewerModal', () => {
 
       expect(screen.getByRole('heading', {name: 'empty.attribute'})).toBeInTheDocument();
       expect(screen.queryByText('echarts mock')).not.toBeInTheDocument();
+      expect(screen.getByRole('heading', {name: 'No data to plot.'})).toBeInTheDocument();
     });
   });
 
@@ -317,6 +316,7 @@ describe('AttributeBreakdownViewerModal', () => {
 
       expect(screen.getByRole('heading', {name: 'empty.attribute'})).toBeInTheDocument();
       expect(screen.queryByText('echarts mock')).not.toBeInTheDocument();
+      expect(screen.getByRole('heading', {name: 'No data to plot.'})).toBeInTheDocument();
     });
   });
 
@@ -346,6 +346,9 @@ describe('AttributeBreakdownViewerModal', () => {
       // First cell should be the Value column (Chrome)
       const valueCell = cells[0]!;
       const valueCellButton = within(valueCell).getByRole('button');
+      await userEvent.click(within(valueCell).getByText('Chrome'));
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+      expect(valueCellButton).not.toHaveTextContent('Chrome');
       await userEvent.click(valueCellButton);
 
       // Verify all expected menu items are present
@@ -420,6 +423,25 @@ describe('AttributeBreakdownViewerModal', () => {
       expect(router.location.query.table).toBe('attribute_breakdowns');
       expect(router.location.query.query).toContain('browser.name:Chrome');
       expect(mockCloseModal).toHaveBeenCalled();
+    });
+
+    it('keeps the case setting it was opened with when ADD action is triggered', async () => {
+      const {router} = render(
+        <AttributeBreakdownViewerModal
+          {...stubProps}
+          mode="single"
+          attributeDistribution={mockAttributeDistribution}
+          cohortCount={mockCohortCount}
+          query=""
+          caseInsensitive
+        />
+      );
+
+      await userEvent.click(within(screen.getAllByRole('cell')[0]!).getByRole('button'));
+      await userEvent.click(await screen.findByText('Add to filter'));
+
+      await waitFor(() => expect(router.location.pathname).toContain('/explore/traces/'));
+      expect(router.location.query.caseInsensitive).toBe('1');
     });
 
     it('navigates with negated filter when EXCLUDE action is triggered', async () => {
@@ -521,3 +543,8 @@ describe('AttributeBreakdownViewerModal', () => {
     });
   });
 });
+
+jest.mock('@sentry/scraps/modal', () => ({
+  ...jest.requireActual('@sentry/scraps/modal'),
+  closeModal: jest.fn(),
+}));

@@ -1,4 +1,5 @@
 import pytest
+from django.http import HttpRequest
 from rest_framework.response import Response
 
 from sentry.silo.base import SiloMode
@@ -8,14 +9,16 @@ from sentry.web.frontend.base import BaseView, ViewSiloLimit
 
 
 class ViewSiloLimitTest(APITestCase):
-    def _test_active_on(self, endpoint_mode, active_mode, expect_to_be_active):
+    def _test_active_on(
+        self, endpoint_mode: SiloMode, active_mode: SiloMode, expect_to_be_active: bool
+    ) -> None:
         @ViewSiloLimit([endpoint_mode])
-        def view_func(request):
+        def view_func(request: HttpRequest) -> None:
             pass
 
         @ViewSiloLimit([endpoint_mode])
         class DummyView(BaseView):
-            def get(self, request):
+            def get(self, request: HttpRequest, *args: object, **kwargs: object) -> Response:
                 return Response("dummy-view", 200)
 
         view_class_func = DummyView.as_view()
@@ -46,7 +49,7 @@ class ViewSiloLimitTest(APITestCase):
 
     def test_sets_silo_limit_on_function(self) -> None:
         @ViewSiloLimit([SiloMode.CONTROL])
-        def view_func(request):
+        def view_func(request: HttpRequest) -> None:
             pass
 
         assert view_func.silo_limit, "Should have silo_limit set"
@@ -55,7 +58,7 @@ class ViewSiloLimitTest(APITestCase):
 
     def test_internal_attribute(self) -> None:
         @ViewSiloLimit([SiloMode.CELL], internal=True)
-        def view_func(request):
+        def view_func(request: HttpRequest) -> None:
             pass
 
         assert view_func.silo_limit, "Should have silo_limit set"

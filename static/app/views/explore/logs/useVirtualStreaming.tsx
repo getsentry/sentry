@@ -12,16 +12,11 @@ import {
   useLogsRefreshInterval,
   useSetLogsAutoRefresh,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import {
-  MAX_LOG_INGEST_DELAY,
-  VIRTUAL_STREAMED_INTERVAL_MS,
-} from 'sentry/views/explore/logs/constants';
-import type {
-  EventsLogsResult,
-  OurLogsResponseItem,
-} from 'sentry/views/explore/logs/types';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import {useLogsApiOptionsWithInfinite} from 'sentry/views/explore/logs/useLogsQuery';
+
+import {MAX_LOG_INGEST_DELAY, VIRTUAL_STREAMED_INTERVAL_MS} from './constants';
+import type {EventsLogsResult, OurLogsResponseItem} from './types';
+import {OurLogKnownFieldKey} from './types';
+import {useLogsApiOptionsWithInfinite} from './useLogsApiOptions';
 /**
  * Virtual Streaming
  *
@@ -78,6 +73,7 @@ export function useVirtualStreaming({
   const queryKeyString = JSON.stringify(logsQueryKey);
   const previousQueryKeyString = usePrevious(queryKeyString);
   const boxedVirtualTimestamp = useRef(virtualTimestamp);
+  // oxlint-disable-next-line react/refs
   boxedVirtualTimestamp.current = virtualTimestamp;
 
   const organizationRef = useRef(organization);
@@ -86,6 +82,7 @@ export function useVirtualStreaming({
   useEffect(() => {
     if (previousQueryKeyString !== queryKeyString) {
       // We reset the virtual timestamp when the query key changes.
+      // oxlint-disable-next-line react/set-state-in-effect
       setVirtualTimestamp(undefined);
     }
   }, [queryKeyString, previousQueryKeyString]);
@@ -130,6 +127,7 @@ export function useVirtualStreaming({
   // Reset the virtual timestamp when toggling auto-refresh
   useEffect(() => {
     if (!autoRefresh) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setVirtualTimestamp(undefined);
       return;
     }
@@ -215,6 +213,7 @@ export function useVirtualStreaming({
   }, [data]);
 
   // We only want to warn once per session, also warning shouldn't add to the dependencies of the RAF useEffect.
+  // oxlint-disable-next-line react/refs
   warnRef.current = () => {
     if (hasWarnedRef.current) {
       return;

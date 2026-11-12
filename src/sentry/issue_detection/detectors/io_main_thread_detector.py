@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 from collections import defaultdict
 from typing import Any
 
-from symbolic.proguard import ProguardMapper
+from sentry_ophio.proguard import ProguardMapper
+from sentry_sdk import traces
 
 from sentry.issues.grouptype import (
     GroupType,
@@ -15,16 +17,19 @@ from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.lang.java.proguard import open_proguard_mapper
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.project import Project
-from sentry.utils.tracing import start_span
+from sentry.utils import json
 
 from ..base import DetectorType, PerformanceDetector
 from ..detectors.utils import (
     get_notification_attachment_body,
+    get_span_description,
     get_span_evidence_value,
     total_span_time,
 )
 from ..performance_problem import PerformanceProblem
 from ..types import Span
+
+logger = logging.getLogger(__name__)
 
 
 class BaseIOMainThreadDetector(PerformanceDetector):
@@ -137,8 +142,9 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
 
             for image in images:
                 if image.get("type") == "proguard":
-                    with start_span(
-                        op="proguard.fetch_debug_files", name="proguard.fetch_debug_files"
+                    with traces.start_span(
+                        name="proguard.fetch_debug_files",
+                        attributes={"sentry.op": "proguard.fetch_debug_files"},
                     ):
                         uuid = image.get("uuid")
                         dif_paths = ProjectDebugFile.difcache.fetch_difs(
@@ -167,7 +173,8 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
             )
             return ".".join([func.method for func in functions])
         else:
-            return frame.get("function", "")
+            function = frame.get("function", "")
+            return function
 
     def _fingerprint(self, span_list: list[Span]) -> str:
         call_stack_strings = []
@@ -178,14 +185,30 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
             data = span.get("data")
             if data is None:
                 continue
-            for item in data.get("call_stack", []):
-                module = self._deobfuscate_module(item.get("module", ""))
-                function = self._deobfuscate_function(item)
-                call_stack_strings.append(f"{module}.{function}")
-            # Use set to remove dupes, and list index to preserve order
-            overall_stack.append(
-                ".".join(sorted(set(call_stack_strings), key=lambda c: call_stack_strings.index(c)))
-            )
+
+            callstack = data.get("call_stack", [])
+            # Spans from the new span buffer (which can land here via the shim in `process_segment`)
+            # contain stringified callstacks, so if we need to reinflate the callstack value, do
+            # that now
+            if isinstance(callstack, str):
+                try:
+                    callstack = json.loads(callstack)
+                except Exception:
+                    logger.exception(
+                        "issue_detectors.io_main_thread_detector.callstack_json_parse_error"
+                    )
+                    callstack = []
+            if isinstance(callstack, list):  # Insurance - by this point should always be true
+                for item in callstack:
+                    module = self._deobfuscate_module(item.get("module", ""))
+                    function = self._deobfuscate_function(item)
+                    call_stack_strings.append(f"{module}.{function}")
+                # Use set to remove dupes, and list index to preserve order
+                overall_stack.append(
+                    ".".join(
+                        sorted(set(call_stack_strings), key=lambda c: call_stack_strings.index(c))
+                    )
+                )
         call_stack = "-".join(sorted(set(overall_stack), key=lambda s: overall_stack.index(s)))
         hashed_stack = hashlib.sha1(call_stack.encode("utf8")).hexdigest()
         return f"1-{PerformanceFileIOMainThreadGroupType.type_id}-{hashed_stack}"
@@ -226,7 +249,12 @@ class DBMainThreadDetector(BaseIOMainThreadDetector):
     def _fingerprint(self, span_list: list[Span]) -> str:
         description_strings = []
         for span in span_list:
-            description_strings.append(span.get("description", ""))
+            description_strings.append(
+                # TODO: Check the `issue_detection.description_stripping` metric to determine if we
+                # can apply stripping here (IOW, how often it would change the value and thereby
+                # mess up existing fingerprints).
+                get_span_description(span, strip=False, caller="io_main_thread")
+            )
         # Use set to remove dupes, and list index to preserve order
         joined_queries = "-".join(
             sorted(set(description_strings), key=lambda c: description_strings.index(c))

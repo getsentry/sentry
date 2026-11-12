@@ -2,7 +2,7 @@ import {Fragment, useCallback} from 'react';
 import type {DraggableAttributes} from '@dnd-kit/core';
 import type {SyntheticListenerMap} from '@dnd-kit/core/dist/hooks/utilities';
 
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
@@ -16,18 +16,19 @@ import {
   useSetMetricVisualize,
   useSetTraceMetric,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
-import {AggregateDropdown} from 'sentry/views/explore/metrics/metricToolbar/aggregateDropdown';
-import {DeleteMetricButton} from 'sentry/views/explore/metrics/metricToolbar/deleteMetricButton';
-import {Filter} from 'sentry/views/explore/metrics/metricToolbar/filter';
-import {GroupBySelector} from 'sentry/views/explore/metrics/metricToolbar/groupBySelector';
-import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricSelector';
-import {VisualizeLabel} from 'sentry/views/explore/metrics/metricToolbar/visualizeLabel';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {
   isVisualizeEquation,
   isVisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+import {MetricSelector} from './metricSelector/metricSelector';
+import {AggregateDropdown} from './aggregateDropdown';
+import {DeleteMetricButton} from './deleteMetricButton';
+import {Filter} from './filter';
+import {GroupBySelector} from './groupBySelector';
+import {VisualizeLabel} from './visualizeLabel';
 
 interface MetricToolbarProps {
   queryLabel: string;
@@ -61,7 +62,7 @@ export function MetricToolbar({
   const setTraceMetric = useSetTraceMetric();
   const isHeatmap = visualize.chartType === ChartType.HEATMAP;
   const disabledReason = isHeatmap
-    ? t('Not configurable for Heat Map visualizations')
+    ? t('Not configurable for Heatmap visualizations')
     : undefined;
 
   const hasUnresolvedMetrics = metricQueries.some(
@@ -110,8 +111,7 @@ export function MetricToolbar({
     : `${dndGrid}auto 1fr ${removeMetric}`;
 
   return (
-    <Flex
-      direction="column"
+    <Stack
       gap="md"
       width="100%"
       paddingLeft="xl"
@@ -196,6 +196,6 @@ export function MetricToolbar({
           disabled={isVisualizeEquation(visualize) && hasUnresolvedMetrics}
         />
       )}
-    </Flex>
+    </Stack>
   );
 }

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Collection
+from collections.abc import Collection, Mapping
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Final
 
@@ -60,6 +60,7 @@ class SeerActionType(SentryAppActionType):
     CODING_STARTED = "coding_started"
     CODING_COMPLETED = "coding_completed"
     PR_CREATED = "pr_created"
+    PR_READY_FOR_REVIEW = "pr_ready_for_review"
     ITERATION_STARTED = "iteration_started"
     ITERATION_COMPLETED = "iteration_completed"
 
@@ -108,6 +109,7 @@ EVENT_EXPANSION: Final[dict[SentryAppResourceType, list[SentryAppEventType]]] = 
         SentryAppEventType.SEER_CODING_STARTED,
         SentryAppEventType.SEER_CODING_COMPLETED,
         SentryAppEventType.SEER_PR_CREATED,
+        SentryAppEventType.SEER_PR_READY_FOR_REVIEW,
         SentryAppEventType.SEER_ITERATION_STARTED,
         SentryAppEventType.SEER_ITERATION_COMPLETED,
     ],
@@ -124,27 +126,43 @@ EVENT_TO_RESOURCE: Final[dict[str, SentryAppResourceType]] = {
     event: resource for resource, events in EVENT_EXPANSION.items() for event in events
 }
 
+# Renamed events were never migrated in stored subscriptions, so old and new
+# names are equivalent when matching an exact subscription.
+_LEGACY_EVENT_ALIASES: Final[dict[str, str]] = {
+    SentryAppEventType.ISSUE_IGNORED: SentryAppEventType.ISSUE_ARCHIVED,
+}
+
 
 def resource_of(event: str) -> SentryAppResourceType | None:
     """The resource a subscribable event belongs to ("issue.resolved" -> ISSUE), else None."""
     return EVENT_TO_RESOURCE.get(event)
 
 
+def has_error_events(events: Collection[str] | None) -> bool:
+    """Whether any entry subscribes to error webhooks, as the whole resource or a single event."""
+    return any(
+        event == SentryAppResourceType.ERROR or resource_of(event) is SentryAppResourceType.ERROR
+        for event in events or ()
+    )
+
+
 def is_subscribed(stored_events: Collection[str], event: str) -> bool:
     """
     Whether a stored subscription covers a fired event.
 
-    Matched at the resource level: subscribing to any event of a resource
-    subscribes to all of that resource's events.
+    Only the exact event matches (plus its legacy alias, for installs that
+    stored the pre-rename name). Subscribing to a whole resource stores every
+    event it expands to, so resource-level subscriptions match all of that
+    resource's events by construction.
     """
-    resource = resource_of(event)
-    if resource is None:
+    if resource_of(event) is None:
         return False
-    return any(e in stored_events for e in EVENT_EXPANSION[resource])
+    alias = _LEGACY_EVENT_ALIASES.get(event)
+    return event in stored_events or (alias is not None and alias in stored_events)
 
 
 def find_alert_rule_action_ui_component(
-    app_platform_event: AppPlatformEvent[dict[str, Any]],
+    app_platform_event: AppPlatformEvent[Mapping[str, Any]],
 ) -> bool:
     """
     Returns True if the metric alert event contains a sentry app action with UI component settings.

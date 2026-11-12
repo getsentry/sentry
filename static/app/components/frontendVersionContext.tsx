@@ -1,10 +1,10 @@
 import {createContext, useContext, useEffect, useState} from 'react';
+import {useQuery} from '@tanstack/react-query';
+import {useStore} from 'zustand';
 
 import {DEPLOY_PREVIEW_CONFIG, NODE_ENV} from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 /**
  * Delay before starting to check for new versions. This prevents users from
@@ -63,11 +63,6 @@ interface Props {
    * constant. Should be in the format `package@<commit-sha>`.
    */
   releaseVersion: string | null;
-  /**
-   * Force the status for testing purposes. When enabled, disables the API
-   * query and sets the forced state.
-   */
-  force?: State;
 }
 
 const FrontendVersionContext = createContext<VersionStatus>({
@@ -80,12 +75,12 @@ const FrontendVersionContext = createContext<VersionStatus>({
  * Context provider that polls the frontend version endpoint every 5 minutes
  * and on tab focus to detect if the frontend version has changed.
  */
-export function FrontendVersionProvider({children, force, releaseVersion}: Props) {
-  const {sentryMode} = useLegacyStore(ConfigStore);
+export function FrontendVersionProvider({children, releaseVersion}: Props) {
+  const sentryMode = useStore(ConfigStore, state => state.sentryMode);
 
   // Version checking only applies to production SAAS builds
   const isSaas = sentryMode === 'SAAS';
-  const canCheckVersion = !force && IS_PRODUCTION_BUILD && isSaas;
+  const canCheckVersion = IS_PRODUCTION_BUILD && isSaas;
 
   const [delayElapsed, setDelayElapsed] = useState(false);
 
@@ -103,24 +98,20 @@ export function FrontendVersionProvider({children, force, releaseVersion}: Props
 
   const enabled = canCheckVersion && delayElapsed;
 
-  const {data: frontendVersionData} = useApiQuery<FrontendVersionResponse>(
-    [getApiUrl('/internal/frontend-version/')],
-    {
+  const {data: frontendVersionData} = useQuery({
+    ...apiOptions.as<FrontendVersionResponse>()('/internal/frontend-version/', {
       staleTime: 5 * 60 * 1000,
-      refetchInterval: 5 * 60 * 1000,
-      refetchIntervalInBackground: false,
-      refetchOnWindowFocus: true,
-      enabled,
-    }
-  );
+    }),
+    refetchInterval: 5 * 60 * 1000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    enabled,
+  });
 
   const runningVersion = releaseVersion?.split('@').at(1) ?? null;
   const deployedVersion = frontendVersionData?.version ?? null;
 
   function getState(): State {
-    if (force) {
-      return force;
-    }
     if (!enabled) {
       return 'disabled';
     }

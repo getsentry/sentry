@@ -2,12 +2,9 @@ import type {ReactNode} from 'react';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {getNextDirection} from 'sentry/components/tables/getNextSort';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {
-  StyledSimpleTableHeader,
-  StyledSimpleTableHeaderCell,
-} from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
 import {
   DEFAULT_METRICS_SAMPLES_TABLE_SOURCE,
   isEmbeddedMetricsSamplesTableSource,
@@ -22,6 +19,11 @@ import {
   useQueryParamsSortBys,
   useSetQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
+
+import {
+  StyledSimpleTableHeader,
+  StyledSimpleTableHeaderCell,
+} from './metricInfoTabStyles';
 
 interface MetricsSamplesTableHeaderProps {
   columns: SampleTableColumnKey[];
@@ -79,8 +81,7 @@ function FieldHeaderCellWrapper({
     !isEmbeddedMetricsSamplesTableSource(source) && SORTABLE_SAMPLE_COLUMNS.has(field);
 
   function handleSortClick() {
-    const kind = sort === 'desc' ? 'asc' : 'desc';
-    setSorts([{field, kind}]);
+    setSorts([{field, kind: getNextDirection(sort)}]);
   }
 
   if (columnType === 'metric_value') {

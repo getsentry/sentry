@@ -1,7 +1,8 @@
 import type {QueryClient} from '@tanstack/react-query';
 import omit from 'lodash/omit';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {Client} from 'sentry/api';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
@@ -28,10 +29,12 @@ import {getResultsLimit} from 'sentry/views/dashboards/widgetBuilder/utils';
 export function fetchDashboards(
   api: Client,
   orgSlug: string,
-  query?: {filter?: DashboardFilter; sort?: string}
+  query?: {filter?: DashboardFilter}
 ) {
   const promise: Promise<DashboardListItem[]> = api.requestPromise(
-    `/organizations/${orgSlug}/dashboards/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
     {
       method: 'GET',
       query: {sort: 'myDashboardsAndRecentlyViewed', ...query},
@@ -44,9 +47,9 @@ export function fetchDashboards(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]!] as string);
+      toast.error(errors[Object.keys(errors)[0]!] as string);
     } else {
-      addErrorMessage(t('Unable to fetch dashboards'));
+      toast.error(t('Unable to fetch dashboards'));
     }
   });
 
@@ -58,11 +61,23 @@ export function createDashboard(
   orgSlug: string,
   newDashboard: DashboardDetails
 ): Promise<DashboardDetails> {
-  const {title, widgets, projects, environment, period, start, end, filters, utc} =
-    newDashboard;
+  const {
+    title,
+    widgets,
+    projects,
+    environment,
+    period,
+    start,
+    end,
+    filters,
+    utc,
+    queryPriority,
+  } = newDashboard;
 
   const promise: Promise<DashboardDetails> = api.requestPromise(
-    `/organizations/${orgSlug}/dashboards/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
     {
       method: 'POST',
       data: {
@@ -75,6 +90,7 @@ export function createDashboard(
         end,
         filters,
         utc,
+        ...(queryPriority ? {queryPriority} : {}),
       },
       query: {
         project: projects,
@@ -89,9 +105,9 @@ export function createDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]!] as string);
+      toast.error(errors[Object.keys(errors)[0]!] as string);
     } else {
-      addErrorMessage(t('Unable to create dashboard'));
+      toast.error(t('Unable to create dashboard'));
     }
   });
 
@@ -139,7 +155,9 @@ export function updateDashboardVisit(
   dashboardId: string | string[]
 ): Promise<void> {
   const promise = api.requestPromise(
-    `/organizations/${orgId}/dashboards/${dashboardId}/visit/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/visit/', {
+      path: {organizationIdOrSlug: orgId, dashboardId: String(dashboardId)},
+    }),
     {
       method: 'POST',
     }
@@ -157,28 +175,36 @@ export async function updateDashboardFavorite(
 ): Promise<void> {
   try {
     await api.requestPromise(
-      `/organizations/${organization.slug}/dashboards/${dashboardId}/favorite/`,
+      getApiUrl(
+        '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/favorite/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            dashboardId: String(dashboardId),
+          },
+        }
+      ),
       {
         method: 'PUT',
         data: {
-          isFavorited,
+          shouldFavorite: isFavorited,
         },
       }
     );
     queryClient.invalidateQueries({
       queryKey: getStarredDashboardsQueryKey(organization),
     });
-    addSuccessMessage(isFavorited ? t('Added as favorite') : t('Removed as favorite'));
+    toast.success(isFavorited ? t('Added as favorite') : t('Removed as favorite'));
   } catch (response) {
     const errorResponse =
       response instanceof RequestError ? response?.responseJSON : null;
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]!]! as string);
+      toast.error(errors[Object.keys(errors)[0]!]! as string);
     } else if (isFavorited) {
-      addErrorMessage(t('Unable to favorite dashboard'));
+      toast.error(t('Unable to favorite dashboard'));
     } else {
-      addErrorMessage(t('Unable to unfavorite dashboard'));
+      toast.error(t('Unable to unfavorite dashboard'));
     }
     throw response;
   }
@@ -190,7 +216,9 @@ export function fetchDashboard(
   dashboardId: string
 ): Promise<DashboardDetails> {
   const promise: Promise<DashboardDetails> = api.requestPromise(
-    `/organizations/${orgId}/dashboards/${dashboardId}/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+      path: {organizationIdOrSlug: orgId, dashboardId},
+    }),
     {
       method: 'GET',
     }
@@ -202,16 +230,26 @@ export function fetchDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]!] as string);
+      toast.error(errors[Object.keys(errors)[0]!] as string);
     } else {
-      addErrorMessage(t('Unable to load dashboard'));
+      toast.error(t('Unable to load dashboard'));
     }
   });
   return promise;
 }
 
+// The backend rejects a save whose payload references widgets or queries that
+// are no longer on the dashboard. This happens when the dashboard changed after
+// this page loaded — a save from another tab, a Seer edit, or a restored
+// revision deletes the existing rows and recreates them with new ids, leaving
+// this page holding ids that no longer exist. The raw messages read like a
+// permissions problem and don't tell the user that reloading fixes it.
+const STALE_DASHBOARD_ERRORS = [
+  'You cannot update widgets that are not part of this dashboard.',
+  'You cannot use a query not owned by this widget',
+];
+
 export function updateDashboard(
-  api: Client,
   orgId: string,
   dashboard: DashboardDetails,
   {revisionSource}: {revisionSource?: string} = {}
@@ -237,17 +275,19 @@ export function updateDashboard(
       .map(_enforceWidgetLimit);
   }
 
-  const promise: Promise<DashboardDetails> = api.requestPromise(
-    `/organizations/${orgId}/dashboards/${dashboard.id}/`,
-    {
-      method: 'PUT',
-      data,
+  const promise = fetchMutation<DashboardDetails>({
+    url: getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+      path: {organizationIdOrSlug: orgId, dashboardId: dashboard.id},
+    }),
+    method: 'PUT',
+    data,
+    options: {
       query: {
         project: projects,
         environment,
       },
-    }
-  );
+    },
+  });
 
   // We let the callers of `updateDashboard` handle adding a success message, so
   // that it can be more specific than just "Dashboard updated," but do the
@@ -258,9 +298,16 @@ export function updateDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]!] as string);
+      const error = errors[Object.keys(errors)[0]!] as string;
+      toast.error(
+        STALE_DASHBOARD_ERRORS.includes(error)
+          ? t(
+              'This dashboard may have been updated somewhere else. Refresh the page and try again.'
+            )
+          : error
+      );
     } else {
-      addErrorMessage(t('Unable to update dashboard'));
+      toast.error(t('Unable to update dashboard'));
     }
   });
 
@@ -274,7 +321,9 @@ export function deleteDashboard(
   organization: Organization
 ): Promise<undefined> {
   const promise: Promise<undefined> = api.requestPromise(
-    `/organizations/${organization.slug}/dashboards/${dashboardId}/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+      path: {organizationIdOrSlug: organization.slug, dashboardId},
+    }),
     {
       method: 'DELETE',
     }
@@ -292,20 +341,16 @@ export function deleteDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]!] as string);
+      toast.error(errors[Object.keys(errors)[0]!] as string);
     } else {
-      addErrorMessage(t('Unable to delete dashboard'));
+      toast.error(t('Unable to delete dashboard'));
     }
   });
 
   return promise;
 }
 
-export function validateWidgetRequest(
-  orgId: string,
-  widget: Widget,
-  selection: PageFilters
-) {
+function validateWidgetRequest(orgId: string, widget: Widget, selection: PageFilters) {
   return [
     getApiUrl('/organizations/$organizationIdOrSlug/dashboards/widgets/', {
       path: {organizationIdOrSlug: orgId},
@@ -324,6 +369,42 @@ export function validateWidgetRequest(
   ] as const;
 }
 
+/**
+ * Renames a dashboard without touching anything else on it.
+ *
+ * Deliberately narrow: the endpoint only rewrites widgets when the payload
+ * carries a `widgets` key, so omitting it leaves them alone. Sending the whole
+ * dashboard instead would make a rename race any concurrent edit and risk
+ * clobbering widgets with a stale copy.
+ */
+export function updateDashboardTitle(
+  orgId: string,
+  dashboardId: string,
+  title: string
+): Promise<DashboardDetails> {
+  const promise = fetchMutation<DashboardDetails>({
+    url: getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+      path: {organizationIdOrSlug: orgId, dashboardId},
+    }),
+    method: 'PUT',
+    data: {title},
+  });
+
+  promise.catch(response => {
+    const errorResponse =
+      response instanceof RequestError ? response?.responseJSON : null;
+
+    if (errorResponse) {
+      const errors = flattenErrors(errorResponse, {});
+      toast.error(errors[Object.keys(errors)[0]!]! as string);
+    } else {
+      toast.error(t('Unable to rename dashboard'));
+    }
+  });
+
+  return promise;
+}
+
 export function updateDashboardPermissions(
   api: Client,
   orgId: string,
@@ -334,26 +415,29 @@ export function updateDashboardPermissions(
     permissions,
   };
   const promise: Promise<DashboardDetails> = api.requestPromise(
-    `/organizations/${orgId}/dashboards/${dashboard.id}/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+      path: {organizationIdOrSlug: orgId, dashboardId: dashboard.id},
+    }),
     {
       method: 'PUT',
       data,
     }
   );
 
-  promise.catch(response => {
-    const errorResponse =
-      response instanceof RequestError ? response?.responseJSON : null;
-
-    if (errorResponse) {
-      const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]!]! as string);
-    } else {
-      addErrorMessage(t('Unable to update dashboard permissions'));
-    }
-  });
+  promise.catch(showDashboardPermissionsError);
 
   return promise;
+}
+
+export function showDashboardPermissionsError(response: unknown) {
+  const errorResponse = response instanceof RequestError ? response?.responseJSON : null;
+
+  if (errorResponse) {
+    const errors = flattenErrors(errorResponse, {});
+    toast.error(errors[Object.keys(errors)[0]!]! as string);
+  } else {
+    toast.error(t('Unable to update dashboard permissions'));
+  }
 }
 
 export function validateWidget(

@@ -1,8 +1,9 @@
-import {parseAggregateExpression} from 'sentry/views/explore/metrics/parseAggregateExpression';
 import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+
+import {parseAggregateExpression} from './parseAggregateExpression';
 
 describe('parseAggregateExpression', () => {
   it('parses a single aggregate into one row with label A', () => {
@@ -118,6 +119,17 @@ describe('parseAggregateExpression', () => {
       })
     );
     expect(result.metricQueries[0]!.queryParams.query).toBe('status:ok');
+    expect(result.metricQueries[0]!.queryParams.aggregateFields).toEqual([
+      new VisualizeFunction('sum(value,requests,counter,none)'),
+    ]);
+  });
+
+  it('keeps an _if filter containing unquoted commas in one piece', () => {
+    const result = parseAggregateExpression(
+      'sum_if(`span.op:[db,http]`,value,requests,counter,none)'
+    );
+
+    expect(result.metricQueries[0]!.queryParams.query).toBe('span.op:[db,http]');
     expect(result.metricQueries[0]!.queryParams.aggregateFields).toEqual([
       new VisualizeFunction('sum(value,requests,counter,none)'),
     ]);

@@ -1,7 +1,8 @@
 import {t} from 'sentry/locale';
 import {IssueType} from 'sentry/types/group';
-import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 import {Tab} from 'sentry/views/issueDetails/types';
+
+import type {IssueCategoryConfigMapping} from './types';
 
 export const metricConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
@@ -60,8 +61,6 @@ export const metricConfig: IssueCategoryConfigMapping = {
       tagsTab: {enabled: false},
     },
     discover: {enabled: false},
-    regression: {enabled: true},
-    performanceDurationRegression: {enabled: true},
     stats: {enabled: false},
     tags: {enabled: false},
   },

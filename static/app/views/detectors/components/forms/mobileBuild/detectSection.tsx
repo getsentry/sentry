@@ -1,5 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {IconInfo} from '@sentry/icons/info';
 
 import {InlineCode} from '@sentry/scraps/code';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -9,17 +10,12 @@ import {NumberField} from 'sentry/components/forms/fields/numberField';
 import {SegmentedRadioField} from 'sentry/components/forms/fields/segmentedRadioField';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
-import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {
   DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {useProjects} from 'sentry/utils/useProjects';
-import {
-  PREPROD_DETECTOR_FORM_FIELDS,
-  usePreprodDetectorFormField,
-} from 'sentry/views/detectors/components/forms/mobileBuild/mobileBuildFormData';
 import {PriorityDot} from 'sentry/views/detectors/components/priorityDot';
 import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 import {
@@ -29,6 +25,11 @@ import {
   MEASUREMENT_OPTIONS,
   METRIC_OPTIONS,
 } from 'sentry/views/settings/project/preprod/types';
+
+import {
+  PREPROD_DETECTOR_FORM_FIELDS,
+  usePreprodDetectorFormField,
+} from './mobileBuildFormData';
 
 function getMetricOptions(platform: Platform | undefined): Array<[string, string]> {
   return METRIC_OPTIONS.map(({value}) => [
@@ -55,7 +56,7 @@ export function MobileBuildDetectSection() {
   const maybePlatform = project ? guessPlatformForProject(project) : undefined;
 
   const metricOptions = useMemo(() => getMetricOptions(maybePlatform), [maybePlatform]);
-  const thresholdTypeOptions = useMemo(getThresholdTypeOptions, []);
+  const thresholdTypeOptions = useMemo(() => getThresholdTypeOptions(), []);
 
   return (
     <Fragment>

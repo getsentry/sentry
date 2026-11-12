@@ -3,6 +3,7 @@ import {ConfigFixture} from 'sentry-fixture/config';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {ConfigStore} from 'sentry/stores/configStore';
+import type {User} from 'sentry/types/user';
 
 import {trackAmplitudeEvent} from 'getsentry/utils/trackAmplitudeEvent';
 
@@ -46,6 +47,13 @@ describe('trackAmplitudeEvent', () => {
   });
   it('organization id is undefined does not call track', () => {
     trackAmplitudeEvent(eventName, undefined, data);
+    expect(Amplitude.track).not.toHaveBeenCalled();
+  });
+  it('does not track for an anonymous user', () => {
+    ConfigStore.set('user', null as unknown as User);
+    trackAmplitudeEvent(eventName, null, data);
+    expect(Amplitude.setUserId).not.toHaveBeenCalled();
+    expect(Amplitude.setGroup).not.toHaveBeenCalled();
     expect(Amplitude.track).not.toHaveBeenCalled();
   });
   it('enableAnalytics is false', () => {

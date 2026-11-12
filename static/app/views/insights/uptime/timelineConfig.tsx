@@ -4,7 +4,10 @@ import {
   CheckStatus,
   CheckStatusReason,
   type UptimeCheck,
-} from 'sentry/views/alerts/rules/uptime/types';
+} from 'sentry/views/detectors/components/uptime/types';
+
+// The uptime stats endpoint can't bucket by more than a day.
+export const MAX_BUCKET_INTERVAL = 24 * 60 * 60;
 
 // Orders the status in terms of ascending precedence for showing to the user
 export const checkStatusPrecedent: CheckStatus[] = [

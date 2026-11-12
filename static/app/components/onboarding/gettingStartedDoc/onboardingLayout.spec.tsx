@@ -3,12 +3,9 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {OnboardingLayout} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
-import type {
-  Docs,
-  OnboardingConfig,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {OnboardingLayout} from './onboardingLayout';
+import type {Docs, OnboardingConfig} from './types';
+import {StepType} from './types';
 
 function makeDocsConfig(overrides: Partial<OnboardingConfig> = {}): Docs {
   const base: OnboardingConfig = {
@@ -75,22 +72,13 @@ function renderLayout(docsConfig: Docs, features: string[] = []) {
 
 describe('OnboardingLayout', () => {
   describe('hideInstructionsCopy', () => {
-    const COPY_FEATURE = 'onboarding-copy-setup-instructions-project-creation';
-
-    it('shows copy instructions button when feature flag is enabled', () => {
-      renderLayout(makeDocsConfig(), [COPY_FEATURE]);
+    it('shows copy instructions button', () => {
+      renderLayout(makeDocsConfig());
       expect(screen.getByRole('button', {name: 'Copy instructions'})).toBeInTheDocument();
     });
 
     it('hides copy instructions button when hideInstructionsCopy is set', () => {
-      renderLayout(makeDocsConfig({hideInstructionsCopy: true}), [COPY_FEATURE]);
-      expect(
-        screen.queryByRole('button', {name: 'Copy instructions'})
-      ).not.toBeInTheDocument();
-    });
-
-    it('hides copy instructions button when feature flag is not enabled', () => {
-      renderLayout(makeDocsConfig());
+      renderLayout(makeDocsConfig({hideInstructionsCopy: true}));
       expect(
         screen.queryByRole('button', {name: 'Copy instructions'})
       ).not.toBeInTheDocument();

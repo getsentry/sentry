@@ -1,12 +1,12 @@
 import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 import sortBy from 'lodash/sortBy';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Checkbox} from '@sentry/scraps/checkbox';
 import {
   defaultFormOptions,
   setFieldErrors,
@@ -14,12 +14,10 @@ import {
   useStore,
 } from '@sentry/scraps/form';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Tooltip} from '@sentry/scraps/tooltip';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -49,26 +47,18 @@ import {SourceField} from './form/sourceField';
 import {ErrorType, handleError} from './handleError';
 import {hasCaptureGroups, useSourceGroupData} from './utils';
 
-const dataScrubSchema = z
-  .object({
-    method: z.enum(MethodType),
-    pattern: z.string(),
-    placeholder: z.string(),
-    replaceCaptured: z.boolean(),
-    source: z.string().min(1, t('This field is required')),
-    type: z.enum(RuleType),
-    dataset: z.enum(AllowedDataScrubbingDatasets),
-    eventId: z.string(),
-  })
-  .superRefine((data, ctx) => {
-    if (data.type === RuleType.PATTERN && !data.pattern.trim()) {
-      ctx.addIssue({
-        code: 'custom',
-        message: t('This field is required'),
-        path: ['pattern'],
-      });
-    }
-  });
+// `pattern` is permissive here and carries its own validator on the field, so
+// it is only enforced when the regex-matches input is displayed.
+const dataScrubSchema = z.object({
+  method: z.enum(MethodType),
+  pattern: z.string(),
+  placeholder: z.string(),
+  replaceCaptured: z.boolean(),
+  source: z.string().min(1, t('This field is required')),
+  type: z.enum(RuleType),
+  dataset: z.enum(AllowedDataScrubbingDatasets),
+  eventId: z.string(),
+});
 
 export type DataScrubFormModalProps = ModalRenderProps & {
   api: Client;
@@ -162,7 +152,7 @@ export function DataScrubFormModal({
             });
             break;
           default:
-            addErrorMessage(parsedError.message);
+            toast.error(parsedError.message);
         }
       }
     },
@@ -239,32 +229,34 @@ export function DataScrubFormModal({
         <h5>{title}</h5>
       </Header>
       <Body>
-        <Stack gap={{'screen:xs': 'md', 'screen:sm': 'xl'}}>
+        <Stack gap={{sm: 'md', xl: 'xl'}}>
           {traceItemDatasetsEnabled && (
             <form.AppField name="dataset">
               {field => (
-                <field.Radio.Group
+                <field.RadioGroup
                   value={field.state.value}
                   onChange={value => {
-                    field.handleChange(value as AllowedDataScrubbingDatasets);
-                    setDataset(value as AllowedDataScrubbingDatasets);
+                    field.handleChange(value);
+                    setDataset(value);
                     form.setFieldValue('source', '');
                   }}
                 >
-                  <field.Layout.Stack
-                    label={t('Dataset')}
-                    hintText={t('The dataset targeted by the scrubbing rule')}
-                    variant="compact"
-                  >
-                    <Flex direction="column" gap="lg">
-                      {sortBy(enabledDatasets).map(value => (
-                        <field.Radio.Item key={value} value={value}>
-                          {getDatasetLabelLong(value)}
-                        </field.Radio.Item>
-                      ))}
-                    </Flex>
-                  </field.Layout.Stack>
-                </field.Radio.Group>
+                  {({Item}) => (
+                    <field.Layout.Stack
+                      label={t('Dataset')}
+                      hintText={t('The dataset targeted by the scrubbing rule')}
+                      variant="compact"
+                    >
+                      <Stack gap="lg">
+                        {sortBy(enabledDatasets).map(value => (
+                          <Item key={value} value={value}>
+                            {getDatasetLabelLong(value)}
+                          </Item>
+                        ))}
+                      </Stack>
+                    </field.Layout.Stack>
+                  )}
+                </field.RadioGroup>
               )}
             </form.AppField>
           )}
@@ -273,11 +265,9 @@ export function DataScrubFormModal({
             {method => (
               <Grid
                 columns={
-                  method === MethodType.REPLACE
-                    ? {'screen:xs': '1fr', 'screen:sm': '1fr 1fr'}
-                    : '1fr'
+                  method === MethodType.REPLACE ? {sm: '1fr', xl: '1fr 1fr'} : '1fr'
                 }
-                gap={{'screen:sm': 'md'}}
+                gap={{xl: 'md'}}
               >
                 <form.AppField
                   name="method"
@@ -300,7 +290,7 @@ export function DataScrubFormModal({
                         options={methodOptions}
                         value={methodField.state.value}
                         onChange={methodField.handleChange}
-                        isSearchable={false}
+                        searchable={false}
                       />
                     </methodField.Layout.Stack>
                   )}
@@ -328,12 +318,8 @@ export function DataScrubFormModal({
           </form.Subscribe>
 
           <Grid
-            columns={
-              type === RuleType.PATTERN
-                ? {'screen:xs': '1fr', 'screen:sm': '1fr 1fr'}
-                : '1fr'
-            }
-            gap={{'screen:sm': 'md'}}
+            columns={type === RuleType.PATTERN ? {sm: '1fr', xl: '1fr 1fr'} : '1fr'}
+            gap={{xl: 'md'}}
           >
             <form.AppField
               name="type"
@@ -359,7 +345,7 @@ export function DataScrubFormModal({
                     options={typeOptions}
                     value={typeField.state.value}
                     onChange={typeField.handleChange}
-                    isSearchable={false}
+                    searchable={false}
                   />
                 </typeField.Layout.Stack>
               )}
@@ -367,6 +353,9 @@ export function DataScrubFormModal({
             {type === RuleType.PATTERN && (
               <form.AppField
                 name="pattern"
+                validators={{
+                  onDynamic: z.string().trim().min(1, t('This field is required')),
+                }}
                 listeners={{
                   onChange: ({value}) => {
                     if (!hasCaptureGroups(value)) {
@@ -392,10 +381,15 @@ export function DataScrubFormModal({
                     </RegularExpressionWrapper>
                     <form.AppField name="replaceCaptured">
                       {replaceCapturedField => (
-                        <ReplaceCapturedCheckbox
-                          pattern={patternField.state.value}
+                        <replaceCapturedField.Checkbox
+                          label={t('Only replace first capture match')}
+                          disabled={
+                            hasCaptureGroups(patternField.state.value)
+                              ? undefined
+                              : t('This rule does not contain capture groups')
+                          }
                           checked={replaceCapturedField.state.value}
-                          onChange={val => replaceCapturedField.handleChange(val)}
+                          onChange={replaceCapturedField.handleChange}
                         />
                       )}
                     </form.AppField>
@@ -422,7 +416,7 @@ export function DataScrubFormModal({
                               onClick={() => setDisplayEventId(false)}
                             >
                               {t('Hide event ID field')}
-                              <IconChevron direction="up" size="xs" />
+                              <IconChevron size="xs" />
                             </Toggle>
                           ) : (
                             <Toggle
@@ -505,7 +499,7 @@ export function DataScrubFormModal({
                     {displayEventId ? (
                       <Toggle variant="link" onClick={() => setDisplayEventId(false)}>
                         {t('Hide event ID field')}
-                        <IconChevron direction="up" size="xs" />
+                        <IconChevron size="xs" />
                       </Toggle>
                     ) : (
                       <Toggle variant="link" onClick={() => setDisplayEventId(true)}>
@@ -553,37 +547,6 @@ export function DataScrubFormModal({
   );
 }
 
-function ReplaceCapturedCheckbox({
-  pattern,
-  checked,
-  onChange,
-}: {
-  checked: boolean;
-  onChange: (value: boolean) => void;
-  pattern: string;
-}) {
-  const disabled = !hasCaptureGroups(pattern);
-  return (
-    <Tooltip
-      title={disabled ? t('This rule does not contain capture groups') : undefined}
-      disabled={!disabled}
-    >
-      <Flex gap="xs" align="center">
-        <Checkbox
-          id="replace-captured"
-          name="replaceCaptured"
-          checked={checked}
-          disabled={disabled}
-          onChange={e => onChange(e.target.checked)}
-        />
-        <ReplaceCapturedLabel htmlFor="replace-captured" disabled={disabled}>
-          {t('Only replace first capture match')}
-        </ReplaceCapturedLabel>
-      </Flex>
-    </Tooltip>
-  );
-}
-
 const SourceGroupContainer = styled('div')<{isExpanded?: boolean}>`
   transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
   transition-property: height;
@@ -603,7 +566,7 @@ function SourceGroup({
 }: React.PropsWithChildren<{isExpanded?: boolean}>) {
   return (
     <SourceGroupContainer isExpanded={isExpanded}>
-      <Stack gap={{'screen:xs': 'md', 'screen:sm': 'xl'}}>{children}</Stack>
+      <Stack gap={{sm: 'md', xl: 'xl'}}>{children}</Stack>
     </SourceGroupContainer>
   );
 }
@@ -628,15 +591,4 @@ const Toggle = styled(Button)`
     grid-template-columns: repeat(2, max-content);
     align-items: center;
   }
-`;
-
-const ReplaceCapturedLabel = styled('label')<{disabled: boolean}>`
-  font-weight: normal;
-  margin-bottom: 0;
-  line-height: 1rem;
-  ${p =>
-    p.disabled &&
-    css`
-      color: ${p.theme.tokens.content.disabled};
-    `}
 `;

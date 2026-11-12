@@ -8,26 +8,17 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {BreadcrumbsDataSection} from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
+import {EntryType} from 'sentry/types/event';
+import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
+
+import {BreadcrumbsDataSection} from './breadcrumbsDataSection';
 import {
   MOCK_BREADCRUMBS,
   MOCK_DATA_SECTION_PROPS,
   MOCK_EXCEPTION_ENTRY,
-} from 'sentry/components/events/breadcrumbs/testUtils';
-import {EntryType} from 'sentry/types/event';
+} from './testUtils';
 
-// Needed to mock useVirtualizer lists.
-jest.spyOn(window.Element.prototype, 'getBoundingClientRect').mockImplementation(() => ({
-  x: 0,
-  y: 0,
-  width: 0,
-  height: 30,
-  left: 0,
-  top: 0,
-  right: 0,
-  bottom: 0,
-  toJSON: jest.fn(),
-}));
+mockElementSize({width: 0, height: 30});
 
 describe('BreadcrumbsDataSection', () => {
   it('renders a summary of breadcrumbs with a button to view them all', async () => {
@@ -85,13 +76,7 @@ describe('BreadcrumbsDataSection', () => {
         MOCK_EXCEPTION_ENTRY,
       ],
     });
-    render(
-      <BreadcrumbsDataSection
-        event={singleCrumbEvent}
-        group={MOCK_DATA_SECTION_PROPS.group}
-        project={MOCK_DATA_SECTION_PROPS.project}
-      />
-    );
+    render(<BreadcrumbsDataSection event={singleCrumbEvent} />);
 
     // From virtual crumb
     expect(screen.getByText('May 21, 2019 6:01:48.762 PM UTC')).toBeInTheDocument();

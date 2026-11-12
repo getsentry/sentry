@@ -16,7 +16,7 @@ export function AskSeerSearchListBox(props: SeerSearchListBoxProps) {
 
   return (
     <StyledUl {...listBoxProps} ref={listBoxRef}>
-      {[...state.collection].map(item => {
+      {Array.from(state.collection, item => {
         return (
           <SeerSearchOption
             key={item.key}
@@ -48,13 +48,19 @@ function SeerSearchOption({item, state, label}: SeerSearchOptionProps) {
 }
 
 const StyledUl = styled('ul')`
+  --ask-seer-option-interaction-background: ${p =>
+    p.theme.tokens.interactive.transparent.neutral.background.hover};
+
   width: 100%;
   max-height: 18rem;
   overflow: auto;
   outline: none;
   margin: 0;
   padding: 0;
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+
+  &:not(:first-child) {
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  }
 
   & > :not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
@@ -68,21 +74,20 @@ const StyledOption = styled('li')<{isFocused: boolean}>`
   transition: background-color 0.2s ease;
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
   background-color: ${p =>
-    p.isFocused ? p.theme.tokens.background.transparent.accent.muted : 'transparent'};
+    p.isFocused ? 'var(--ask-seer-option-interaction-background)' : 'transparent'};
 
   &:hover {
-    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+    background-color: var(--ask-seer-option-interaction-background);
   }
 
   &:focus {
-    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+    background-color: var(--ask-seer-option-interaction-background);
   }
 
   &[aria-selected='true'] {
-    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+    background-color: var(--ask-seer-option-interaction-background);
   }
 
-  &[data-is-none-of-these],
   &[data-is-example] {
     padding: ${p => p.theme.space.lg} ${p => p.theme.space['2xl']};
   }

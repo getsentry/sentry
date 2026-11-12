@@ -7,7 +7,7 @@ import type {DataCategory, IntervalPeriod} from 'sentry/types/core';
 import {Outcome} from 'sentry/types/core';
 
 import {getDateFromMoment} from './usageChart/utils';
-import {getReasonGroupName} from './getReasonGroupName';
+import {getReasonGroupName, VERBATIM_REASON_GROUP_NAMES} from './getReasonGroupName';
 import type {UsageSeries, UsageStat} from './types';
 import type {ChartStats} from './usageChart';
 import {SeriesTypes} from './usageChart';
@@ -96,6 +96,10 @@ export function mapSeriesToChart({
     orgStats.groups.forEach(group => {
       const {outcome, category} = group.by;
 
+      if (outcome === Outcome.CLIENT_DISCARD && group.by.reason === 'no_parent_span') {
+        return;
+      }
+
       // For spans, we additionally query for `span_indexed` data
       // to get the `accepted_stored` count
       if (category === 'span_indexed') {
@@ -123,7 +127,9 @@ export function mapSeriesToChart({
         // Function to handle chart sub-label updates
         const updateChartSubLabels = (
           parentLabel: SeriesTypes,
-          label = startCase(reason.replace(/-|_/g, ' '))
+          label = VERBATIM_REASON_GROUP_NAMES.has(reason)
+            ? reason
+            : startCase(reason.replace(/-|_/g, ' '))
         ) => {
           const existingSubLabel = chartSubLabels.find(
             subLabel => subLabel.label === label && subLabel.parentLabel === parentLabel

@@ -1,5 +1,6 @@
 from typing import Any
 
+from django.utils.crypto import constant_time_compare
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -10,6 +11,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
+from sentry.auth.principal import require_user
 from sentry.auth_v2.endpoints.base import AuthV2Endpoint
 from sentry.users.api.serializers.user import UserSerializerWithOrgMemberships
 from sentry.users.models.user import User
@@ -34,10 +36,7 @@ class AuthMergeUserAccountsEndpoint(AuthV2Endpoint):
     """
 
     def get(self, request: Request) -> Response:
-        user = request.user
-        if not user.is_authenticated:
-            return Response(status=401)
-
+        user = require_user(request)
         shared_email = user.email
         if not shared_email:
             return Response(
@@ -53,15 +52,14 @@ class AuthMergeUserAccountsEndpoint(AuthV2Endpoint):
         )
 
     def post(self, request: Request) -> Response:
-        if not request.user.is_authenticated:
-            return Response(status=401)
+        user = require_user(request)
 
         validator = AuthMergeUserAccountsValidator(data=request.data)
         if not validator.is_valid():
             return Response(validator.errors, status=400)
         result = validator.validated_data
 
-        primary_user = User.objects.get(id=request.user.id)
+        primary_user = User.objects.get(id=user.id)
         verification_code = UserMergeVerificationCode.objects.filter(
             user_id=primary_user.id
         ).first()
@@ -69,7 +67,7 @@ class AuthMergeUserAccountsEndpoint(AuthV2Endpoint):
         if (
             verification_code is None
             or not verification_code.is_valid()
-            or verification_code.token != result["verification_code"]
+            or not constant_time_compare(verification_code.token, result["verification_code"])
         ):
             return Response(
                 status=403,

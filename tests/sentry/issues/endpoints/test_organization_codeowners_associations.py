@@ -1,9 +1,11 @@
 from rest_framework import status
 
 from sentry.api.validators.project_codeowners import build_codeowners_associations
+from sentry.integrations.types import ExternalProviders
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
 class OrganizationCodeOwnersAssociationsEndpointTest(APITestCase):
@@ -65,7 +67,9 @@ class OrganizationCodeOwnersAssociationsEndpointTest(APITestCase):
         response = self.get_success_response(self.organization.slug, status=status.HTTP_200_OK)
         for code_owner in [code_owner_1, code_owner_2]:
             assert code_owner.project.slug in response.data.keys()
-            associations, errors = build_codeowners_associations(code_owner.raw, code_owner.project)
+            associations, errors = build_codeowners_associations(
+                code_owner.raw, code_owner.project, code_owner.repository_project_path_config
+            )
             assert "associations" in response.data[code_owner.project.slug].keys()
             assert response.data[code_owner.project.slug]["associations"] == associations
             assert "errors" in response.data[code_owner.project.slug].keys()
@@ -111,6 +115,24 @@ class OrganizationCodeOwnersAssociationsEndpointTest(APITestCase):
         self.login_as(member)
         self.get_success_response(self.organization.slug)
 
+    def test_org_ci_token_cannot_access(self) -> None:
+        token_str = generate_token(self.organization.slug, "")
+        self.create_org_auth_token(
+            name="ci",
+            organization_id=self.organization.id,
+            token_hashed=hash_token(token_str),
+            token_last_characters=token_str[-4:],
+            scope_list=["org:ci"],
+        )
+        self.create_codeowners(self.project_1, self.code_mapping_1, raw=self.data_1["raw"])
+
+        self.get_error_response(
+            self.organization.slug,
+            project="-1",
+            status_code=status.HTTP_403_FORBIDDEN,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token_str}"},
+        )
+
     def test_query_by_provider(self) -> None:
         """
         Tests that the provider query parameter filters the returned associations appropriately.
@@ -149,3 +171,53 @@ class OrganizationCodeOwnersAssociationsEndpointTest(APITestCase):
         # Ensure all associations are returned without the provider specified
         response = self.get_success_response(self.organization.slug, status=status.HTTP_200_OK)
         assert len(response.data.keys()) == 3
+
+    def test_cursor_origin_associations(self) -> None:
+        """
+        Tests that Cursor Origin external actors are properly resolved in CODEOWNERS.
+        """
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            origin_integration = self.create_provider_integration(
+                provider="cursor_origin", name="cursor-org"
+            )
+            origin_org_integration = origin_integration.add_organization(
+                self.organization, self.user
+            )
+
+        origin_project = self.create_project(
+            organization=self.organization, teams=[self.team_1, self.team_2]
+        )
+        origin_code_mapping = self.create_code_mapping(
+            project=origin_project, organization_integration=origin_org_integration
+        )
+
+        # Create external actors for Cursor Origin
+        self.create_external_user(
+            user=self.user_1,
+            external_name="@walter",
+            integration=origin_integration,
+            provider=ExternalProviders.CURSOR_ORIGIN.value,
+        )
+        self.create_external_team(
+            team=self.team_2,
+            external_name="@cursor-org/exec",
+            integration=origin_integration,
+            provider=ExternalProviders.CURSOR_ORIGIN.value,
+        )
+
+        raw = "src/*  @cursor-org/exec @walter\n"
+        self.create_codeowners(origin_project, origin_code_mapping, raw=raw)
+
+        response = self.get_success_response(
+            self.organization.slug, status=status.HTTP_200_OK, provider="cursor_origin"
+        )
+
+        assert len(response.data.keys()) == 1
+        assert origin_project.slug in response.data.keys()
+
+        # Verify associations are correctly mapped
+        associations = response.data[origin_project.slug]["associations"]
+        assert "@cursor-org/exec" in associations
+        assert associations["@cursor-org/exec"] == f"#{self.team_2.slug}"
+        assert "@walter" in associations
+        assert associations["@walter"] == self.user_1.email

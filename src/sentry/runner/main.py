@@ -1,15 +1,125 @@
+import importlib
+import importlib.util
 import logging
 import os
+import pkgutil
+import shutil
 import sys
+import sysconfig
+from collections.abc import Sequence
 
 import click
-import sentry_sdk
 
 import sentry
-from sentry.utils.imports import import_string
+from sentry.runner import commands
 
 
-@click.group(context_settings={"max_content_width": 150})
+# Command `foo-bar` is the click command of that name in
+# `sentry/runner/commands/foo_bar.py`. Looking it up by module name imports only
+# that module: importing them all costs about a second.
+def _command_module(cmd_name: str) -> str | None:
+    module = cmd_name.replace("-", "_")
+    if not module.isidentifier():
+        return None
+    return f"{commands.__name__}.{module}"
+
+
+def _module_commands(module_name: str) -> list[click.Command]:
+    module = importlib.import_module(module_name)
+    # Check with issubclass(type(...)): isinstance() would evaluate lazy module
+    # attributes such as django.conf.settings.
+    return [
+        value
+        for value in vars(module).values()
+        if issubclass(type(value), click.Command)
+        and value.name
+        and _command_module(value.name) == module_name
+    ]
+
+
+# Set on the Sentry CLI we exec, so a second server `sentry` on PATH can't hand
+# the command back and loop.
+_FALLBACK_ENV = "SENTRY_SERVER_CLI_FALLBACK"
+
+
+def _exec_sentry_cli(args: Sequence[str]) -> None:
+    """
+    Hand a command this CLI doesn't have to the Sentry CLI
+    (https://cli.sentry.dev), which is also called `sentry`. Inside a checkout
+    the virtualenv shadows it on PATH. Returns if there's no other `sentry`.
+    """
+    if os.environ.get(_FALLBACK_ENV):
+        return
+    own_bin = os.path.realpath(sysconfig.get_path("scripts"))
+    path = os.pathsep.join(
+        p
+        for p in os.environ.get("PATH", "").split(os.pathsep)
+        if p and os.path.realpath(p) != own_bin
+    )
+    other = shutil.which("sentry", path=path)
+    if other is None:
+        return
+    os.environ[_FALLBACK_ENV] = "1"
+    os.execv(other, ["sentry", *args])
+
+
+class _SentryGroup(click.Group):
+    def list_commands(self, ctx: click.Context) -> list[str]:
+        # Only --help, completion, and dump_cli_commands list commands, and
+        # --help needs every command's help text anyway, so this imports all.
+        names = set(self.commands)
+        for info in pkgutil.iter_modules(commands.__path__):
+            if not info.ispkg:
+                module = f"{commands.__name__}.{info.name}"
+                names.update(c.name for c in _module_commands(module) if c.name)
+        return sorted(names)
+
+    def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command | None:
+        if cmd_name not in self.commands:
+            module = _command_module(cmd_name)
+            if module is not None and importlib.util.find_spec(module) is not None:
+                for command in _module_commands(module):
+                    if command.name == cmd_name:
+                        self.add_command(command)
+        return super().get_command(ctx, cmd_name)
+
+    def parse_args(self, ctx: click.Context, args: list[str]) -> list[str]:
+        # The Sentry CLI takes global flags, like --verbose, before the command.
+        # Click would reject those here, before resolve_command can hand off.
+        options = {
+            opt: param
+            for param in self.get_params(ctx)
+            for opt in (*param.opts, *param.secondary_opts)
+        }
+        i = 0
+        while i < len(args) and args[i].startswith("-") and args[i] != "--":
+            name, has_value, _ = args[i].partition("=")
+            param = options.get(name)
+            if param is None:
+                if not ctx.resilient_parsing:
+                    _exec_sentry_cli(args[i:])
+                break
+            if param.is_eager:
+                break
+            takes_value = isinstance(param, click.Option) and not param.is_flag
+            i += 2 if takes_value and not has_value else 1
+        return super().parse_args(ctx, args)
+
+    def resolve_command(
+        self, ctx: click.Context, args: list[str]
+    ) -> tuple[str | None, click.Command | None, list[str]]:
+        # Shell completion parses resiliently. It must not exec anything.
+        if (
+            not ctx.resilient_parsing
+            and args
+            and not args[0].startswith("-")
+            and self.get_command(ctx, args[0]) is None
+        ):
+            _exec_sentry_cli(args)
+        return super().resolve_command(ctx, args)
+
+
+@click.group(cls=_SentryGroup, context_settings={"max_content_width": 150})
 @click.option(
     "--config",
     default="",
@@ -31,48 +141,6 @@ def cli(config: str) -> None:
     if config:
         os.environ["SENTRY_CONF"] = config
     os.environ.setdefault("SENTRY_CONF", "~/.sentry")
-
-
-# TODO(mattrobenolt): Autodiscover commands?
-for cmd in map(
-    import_string,
-    (
-        "sentry.runner.commands.backup.backup",
-        "sentry.runner.commands.backup.export",
-        "sentry.runner.commands.backup.import_",
-        "sentry.runner.commands.cleanup.cleanup",
-        "sentry.runner.commands.config.config",
-        "sentry.runner.commands.configoptions.configoptions",
-        "sentry.runner.commands.createflag.createflag",
-        "sentry.runner.commands.createflag.createissueflag",
-        "sentry.runner.commands.createorg.createorg",
-        "sentry.runner.commands.createproject.createproject",
-        "sentry.runner.commands.createuser.createuser",
-        "sentry.runner.commands.devserver.devserver",
-        "sentry.runner.commands.django.django",
-        "sentry.runner.commands.exec.exec_",
-        "sentry.runner.commands.sendmail.sendmail",
-        "sentry.runner.commands.execfile.execfile",
-        "sentry.runner.commands.files.files",
-        "sentry.runner.commands.help.help",
-        "sentry.runner.commands.init.init",
-        "sentry.runner.commands.migrations.migrations",
-        "sentry.runner.commands.repair.repair",
-        "sentry.runner.commands.rpcschema.rpcschema",
-        "sentry.runner.commands.run.run",
-        "sentry.runner.commands.start.start",
-        "sentry.runner.commands.tsdb.tsdb",
-        "sentry.runner.commands.upgrade.upgrade",
-        "sentry.runner.commands.permissions.permissions",
-        "sentry.runner.commands.devservices.devservices",
-        "sentry.runner.commands.performance.performance",
-        "sentry.runner.commands.spans.spans",
-        "sentry.runner.commands.spans.write_hashes",
-        "sentry.runner.commands.notifications.notifications",
-        "sentry.runner.commands.deletions.deletions",
-    ),
-):
-    cli.add_command(cmd)
 
 
 def _make_django_command(
@@ -126,6 +194,8 @@ def main() -> None:
     }
     # This variable is *only* set as part of direnv/.envrc, thus, we cannot affect production
     if os.environ.get("SENTRY_DEVSERVICES_DSN"):
+        import sentry_sdk
+
         # We do this here because `configure_structlog` executes later
         logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.INFO)
         logger = logging.getLogger(__name__)

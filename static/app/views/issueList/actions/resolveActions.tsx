@@ -55,7 +55,7 @@ export function ResolveActionsContainer({
       hasRelease={hasRelease}
       multipleProjectsSelected={!selectedProjectSlug}
       latestRelease={latestRelease}
-      projectSlug={project?.slug}
+      project={project ?? undefined}
       onUpdate={onUpdate}
       shouldConfirm={onShouldConfirm(ConfirmAction.RESOLVE)}
       confirmMessage={confirm({action: ConfirmAction.RESOLVE, canBeUndone: true})}

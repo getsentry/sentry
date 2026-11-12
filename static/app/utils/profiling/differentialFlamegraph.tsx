@@ -1,5 +1,4 @@
-import {makeColorBufferForNodes} from 'sentry/utils/profiling/colors/utils';
-
+import {makeColorBufferForNodes} from './colors/utils';
 import type {ColorChannels, FlamegraphTheme} from './flamegraph/flamegraphTheme';
 import {Profile} from './profile/profile';
 import {Flamegraph, sortFlamegraphAlphabetically} from './flamegraph';
@@ -142,7 +141,7 @@ export class DifferentialFlamegraph extends Flamegraph {
     differentialFlamegraph.colorBuffer = makeColorBufferForNodes(
       sourceFlamegraph.frames,
       colorMap,
-      theme.COLORS.FRAME_FALLBACK_COLOR as unknown as ColorChannels
+      theme.COLORS.FRAME_FALLBACK_COLOR
     );
 
     differentialFlamegraph.newFrames = newFrames;

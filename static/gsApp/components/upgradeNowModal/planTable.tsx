@@ -1,16 +1,15 @@
 import type {ReactNode} from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
 
 import {DateTime} from 'sentry/components/dateTime';
-import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 
 import type {PreviewData, Subscription} from 'getsentry/types';
-import {formatReservedWithUnits} from 'getsentry/utils/billing';
-import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
+import {displayPriceWithCents, formatReservedWithUnits} from 'getsentry/utils/billing';
 
 import type {Reservations} from './types';
 
@@ -34,6 +33,7 @@ export function PlanTable({
 
   const {billedAmount, creditApplied, effectiveAt} = previewData;
 
+  // oxlint-disable-next-line react/purity
   const effectiveNow = new Date(effectiveAt).getTime() <= Date.now() + 3600;
 
   return (

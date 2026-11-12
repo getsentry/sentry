@@ -14,7 +14,6 @@ class CellConfig(TypedDict):
 # Locality is a collection of cells
 class LocalityConfig(TypedDict):
     name: str
-    category: str
     cells: list[str]
     new_org_cell: str
     visible: NotRequired[bool]

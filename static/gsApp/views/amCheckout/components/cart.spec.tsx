@@ -69,10 +69,6 @@ describe('Cart', () => {
       body: billingConfig,
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/promotions/trigger-check/`,
-      method: 'POST',
-    });
-    MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/preview/`,
       method: 'GET',
       body: {
@@ -99,7 +95,7 @@ describe('Cart', () => {
   }
 
   it('renders with default selections', async () => {
-    render(<AMCheckout api={new MockApiClient()} {...props} />);
+    render(<AMCheckout {...props} />);
     const cart = await screen.findByTestId('cart');
     expect(cart).toHaveTextContent('Business Plan');
     expect(cart).toHaveTextContent('Pay-as-you-go spend limitup to $300/mo');
@@ -254,7 +250,10 @@ describe('Cart', () => {
       />
     );
 
-    expect(await screen.findByRole('button', {name: 'Confirm'})).toBeDisabled(); // not Confirm and pay because we don't know the billed total without preview data
+    expect(await screen.findByRole('button', {name: 'Confirm'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    ); // not Confirm and pay because we don't know the billed total without preview data
     expect(mockResponse).not.toHaveBeenCalled();
     expect(screen.getByText('Plan renews monthly.')).toBeInTheDocument(); // no renewal date specified
   });
@@ -285,7 +284,10 @@ describe('Cart', () => {
       />
     );
 
-    expect(await screen.findByRole('button', {name: 'Confirm'})).toBeDisabled(); // not Confirm and pay because we don't know the billed total without preview data
+    expect(await screen.findByRole('button', {name: 'Confirm'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    ); // not Confirm and pay because we don't know the billed total without preview data
     expect(mockResponse).not.toHaveBeenCalled();
     expect(screen.getByText('Plan renews monthly.')).toBeInTheDocument(); // no renewal date specified
   });

@@ -1,17 +1,13 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
-import {
-  MEPState,
-  METRIC_SEARCH_SETTING_PARAM,
-} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {
-  DEFAULT_STATS_PERIOD,
-  generatePerformanceEventView,
-} from 'sentry/views/performance/data';
+import {DEFAULT_STATS_PERIOD, generateGenericPerformanceEventView} from './data';
 
-describe('generatePerformanceEventView()', () => {
+describe('generateGenericPerformanceEventView()', () => {
   it('generates default values', () => {
-    const result = generatePerformanceEventView(LocationFixture({query: {}}), [], {});
+    const result = generateGenericPerformanceEventView(
+      LocationFixture({query: {}}),
+      false
+    );
 
     expect(result.id).toBeUndefined();
     expect(result.name).toBe('Performance');
@@ -23,10 +19,9 @@ describe('generatePerformanceEventView()', () => {
   });
 
   it('applies sort from location', () => {
-    const result = generatePerformanceEventView(
+    const result = generateGenericPerformanceEventView(
       LocationFixture({query: {sort: ['-p50', '-count']}}),
-      [],
-      {}
+      false
     );
 
     expect(result.sorts).toEqual([{kind: 'desc', field: 'p50'}]);
@@ -34,10 +29,9 @@ describe('generatePerformanceEventView()', () => {
   });
 
   it('does not override statsPeriod from location', () => {
-    const result = generatePerformanceEventView(
+    const result = generateGenericPerformanceEventView(
       LocationFixture({query: {statsPeriod: ['90d', '45d']}}),
-      [],
-      {}
+      false
     );
     expect(result.start).toBeUndefined();
     expect(result.end).toBeUndefined();
@@ -45,12 +39,11 @@ describe('generatePerformanceEventView()', () => {
   });
 
   it('does not apply range when start and end are present', () => {
-    const result = generatePerformanceEventView(
+    const result = generateGenericPerformanceEventView(
       LocationFixture({
         query: {start: '2020-04-25T12:00:00', end: '2020-05-25T12:00:00'},
       }),
-      [],
-      {}
+      false
     );
     expect(result.start).toBe('2020-04-25T12:00:00.000');
     expect(result.end).toBe('2020-05-25T12:00:00.000');
@@ -58,10 +51,9 @@ describe('generatePerformanceEventView()', () => {
   });
 
   it('converts bare query into transaction name wildcard', () => {
-    const result = generatePerformanceEventView(
+    const result = generateGenericPerformanceEventView(
       LocationFixture({query: {query: 'things.update'}}),
-      [],
-      {}
+      false
     );
     expect(result.query).toEqual(expect.stringContaining('transaction:*things.update*'));
     expect(result.getQueryWithAdditionalConditions()).toEqual(
@@ -70,10 +62,9 @@ describe('generatePerformanceEventView()', () => {
   });
 
   it('bare query overwrites transaction condition', () => {
-    const result = generatePerformanceEventView(
+    const result = generateGenericPerformanceEventView(
       LocationFixture({query: {query: 'things.update transaction:thing.gone'}}),
-      [],
-      {}
+      false
     );
     expect(result.query).toEqual(expect.stringContaining('transaction:*things.update*'));
     expect(result.getQueryWithAdditionalConditions()).toEqual(
@@ -83,10 +74,9 @@ describe('generatePerformanceEventView()', () => {
   });
 
   it('retains tag filter conditions', () => {
-    const result = generatePerformanceEventView(
+    const result = generateGenericPerformanceEventView(
       LocationFixture({query: {query: 'key:value tag:value'}}),
-      [],
-      {}
+      false
     );
     expect(result.query).toEqual(expect.stringContaining('key:value'));
     expect(result.query).toEqual(expect.stringContaining('tag:value'));
@@ -96,10 +86,9 @@ describe('generatePerformanceEventView()', () => {
   });
 
   it('gets the right column', () => {
-    const result = generatePerformanceEventView(
+    const result = generateGenericPerformanceEventView(
       LocationFixture({query: {query: 'key:value tag:value'}}),
-      [],
-      {}
+      false
     );
     expect(result.fields).toEqual(
       expect.arrayContaining([expect.objectContaining({field: 'user_misery()'})])
@@ -113,15 +102,13 @@ describe('generatePerformanceEventView()', () => {
   });
 
   it('removes unsupported tokens for limited search', () => {
-    const result = generatePerformanceEventView(
+    const result = generateGenericPerformanceEventView(
       LocationFixture({
         query: {
           query: 'tag:value transaction:*auth*',
-          [METRIC_SEARCH_SETTING_PARAM]: MEPState.METRICS_ONLY,
         },
       }),
-      [],
-      {withStaticFilters: true}
+      true
     );
     expect(result.query).toBe('transaction:*auth*');
   });

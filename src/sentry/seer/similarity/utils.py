@@ -1,6 +1,7 @@
 import logging
 import os
 import threading
+import time
 from collections.abc import Mapping, Sequence
 from enum import StrEnum
 from typing import Any, TypedDict, TypeVar
@@ -16,6 +17,7 @@ from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
 from sentry.grouping.variants import BaseVariant
 from sentry.killswitches import killswitch_matches_context
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
@@ -42,19 +44,6 @@ FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT = 20
 # multiple platforms, some supported and some not, and not worry about events from the unsupported
 # platforms getting sent to Seer during ingest.
 SEER_INELIGIBLE_EVENT_PLATFORMS = frozenset(["other"])  # We don't know what's in the event
-# Event platforms corresponding to project platforms which were backfilled before we started
-# filtering stacktraces by length. To keep new events matching with existing data, we bypass
-# length checks for these platforms (their stacktraces will be truncated instead).
-EVENT_PLATFORMS_BYPASSING_STACKTRACE_LENGTH_CHECK = frozenset(
-    [
-        "go",
-        "javascript",
-        "node",
-        "php",
-        "python",
-        "ruby",
-    ]
-)
 BASE64_ENCODED_PREFIXES = [
     "data:text/html;base64",
     "data:text/javascript;base64",
@@ -351,10 +340,7 @@ def stacktrace_exceeds_limits(
     """
     Check if a stacktrace exceeds length limits for Seer similarity analysis.
 
-    For V1, platforms that bypass length checks (to maintain consistency with backfilled data)
-    have all stacktraces pass through. For non-V1 models, all platforms are subject to length checks.
-
-    If we dont bypass length checks, we use a two-step approach:
+    All platforms use a two-step approach:
     1. First check raw string length - if shorter than token limit, pass immediately
     2. Only if string is long enough to potentially exceed limit, run expensive token count
     """
@@ -374,21 +360,6 @@ def stacktrace_exceeds_limits(
     ):
         # We don't bother to collect a metric on this outcome, because we shouldn't have called the
         # function in the first place
-        return False
-
-    # Certain platforms were backfilled before we added length filtering, so to keep new events
-    # matching with existing data, we bypass the filter for them (their stacktraces will be truncated).
-    # For V2 we apply length checks to all platforms since we're re-embedding everything anyway.
-    if (
-        model_version == GroupingVersion.V1
-        and platform in EVENT_PLATFORMS_BYPASSING_STACKTRACE_LENGTH_CHECK
-    ):
-        metrics.incr(
-            "grouping.similarity.stacktrace_length_filter",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={**shared_tags, "outcome": "bypass"},
-        )
-        report_token_count_metric(event, variants, "bypass")
         return False
 
     max_token_count = options.get("seer.similarity.max_token_count")
@@ -520,6 +491,32 @@ def _is_snipped_context_line(context_line: str) -> bool:
     return context_line.startswith("{snip}") or context_line.endswith("{snip}")
 
 
+def project_uses_seer_similarity(project: Project) -> bool:
+    """
+    Whether a project uses Seer embeddings similarity rather than the legacy MinHash index.
+
+    TODO: once the all-projects option is on for all of SaaS, drop the per-project option and
+    reduce this to that option check.
+    """
+    if options.get("similarity.seer_grouping.all_projects"):
+        return True
+    return bool(project.get_option("sentry:similarity_backfill_completed"))
+
+
+def projects_using_seer_similarity(projects: Sequence[Project]) -> dict[Project, bool]:
+    """
+    Batch form of ``project_uses_seer_similarity``: one option query for all projects.
+    """
+    if not projects:
+        return {}
+    if options.get("similarity.seer_grouping.all_projects"):
+        return {project: True for project in projects}
+    opted_in = ProjectOption.objects.get_value_bulk(
+        projects, "sentry:similarity_backfill_completed"
+    )
+    return {project: bool(opted_in.get(project)) for project in projects}
+
+
 def project_is_seer_eligible(project: Project) -> bool:
     """
     Return True if the project hasn't already been backfilled and the feature is enabled in the region.
@@ -528,6 +525,12 @@ def project_is_seer_eligible(project: Project) -> bool:
     is_region_enabled = options.get("similarity.new_project_seer_grouping.enabled")
 
     return not is_backfill_completed and is_region_enabled
+
+
+def set_default_project_similarity_grouping(project: Project) -> None:
+    """Called once at project creation time to opt the project into Seer similarity grouping."""
+    if project_is_seer_eligible(project):
+        project.update_option("sentry:similarity_backfill_completed", int(time.time()))
 
 
 def set_default_project_autofix_automation_tuning(

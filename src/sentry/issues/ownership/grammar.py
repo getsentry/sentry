@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections import namedtuple
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from typing import TYPE_CHECKING, Any, NamedTuple, TypedDict
+from typing import TYPE_CHECKING, Annotated, Any, NamedTuple, NotRequired, TypedDict
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
@@ -11,6 +11,7 @@ from parsimonious.nodes import Node
 from parsimonious.nodes import NodeVisitor as BaseNodeVisitor
 from rest_framework.serializers import ValidationError
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
@@ -32,15 +33,26 @@ else:
 
 VERSION = 1
 
+_CODEOWNERS_EMAIL_RE = re.compile(r"[^@]+@[^@]+\.[^@]+")
+_CODEOWNERS_SPLIT_RE = re.compile(r"(?<!\\)\s")
+
 
 class OwnershipRuleMatcher(TypedDict):
+    type: Annotated[
+        str, ApiDescription("What the rule matches on, path, module, url, codeowners or tags.<key>")
+    ]
+    pattern: Annotated[str, ApiDescription("Pattern the value is matched against")]
+
+
+class OwnershipRuleOwner(TypedDict):
     type: str
-    pattern: str
+    identifier: str
+    id: NotRequired[int]
 
 
 class OwnershipRule(TypedDict):
     matcher: OwnershipRuleMatcher
-    owners: list[dict[str, Any]]
+    owners: list[OwnershipRuleOwner]
 
 
 # $version is not a valid Python identifier, so we use the functional form.
@@ -261,7 +273,7 @@ class Owner(NamedTuple):
         return {"type": self.type, "identifier": self.identifier}
 
     @classmethod
-    def load(cls, data: Mapping[str, str]) -> Owner:
+    def load(cls, data: OwnershipRuleOwner) -> Owner:
         return cls(data["type"], data["identifier"])
 
 
@@ -370,13 +382,13 @@ def parse_code_owners(data: str) -> tuple[list[str], list[str], list[str]]:
             continue
 
         # Skip lines that are only empty space characters
-        if re.match(r"^\s*$", rule):
+        if rule.isspace():
             continue
 
         _, assignees = get_codeowners_path_and_owners(rule)
         for assignee in assignees:
             if "/" not in assignee:
-                if re.match(r"[^@]+@[^@]+\.[^@]+", assignee):
+                if _CODEOWNERS_EMAIL_RE.match(assignee):
                     emails.append(assignee)
                 else:
                     usernames.append(assignee)
@@ -388,16 +400,18 @@ def parse_code_owners(data: str) -> tuple[list[str], list[str], list[str]]:
 
 
 def get_codeowners_path_and_owners(rule: str) -> tuple[str, Sequence[str]]:
-    # Regex does a negative lookbehind for a backslash. Matches on whitespace without a preceding backslash.
-    pattern = re.compile(r"(?<!\\)\s")
-    path, *code_owners = (i for i in pattern.split(rule.strip()) if i)
+    # CODEOWNERS patterns follow gitignore syntax, so backslashes can escape spaces:
+    # https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners#codeowners-syntax
+    # Use a negative lookbehind for those uncommon rules and native split otherwise.
+    if "\\" in rule:
+        path, *code_owners = (i for i in _CODEOWNERS_SPLIT_RE.split(rule.strip()) if i)
+    else:
+        path, *code_owners = rule.split()
 
     # Find index of # in code_owners, assume everything after is a comment
-    try:
+    if "#" in code_owners:
         comment_index = code_owners.index("#")
         code_owners = code_owners[:comment_index]
-    except ValueError:
-        pass
 
     return path, code_owners
 
@@ -420,7 +434,7 @@ def convert_codeowners_syntax(
             continue
 
         # Skip lines that are only empty space characters
-        if re.match(r"^\s*$", rule):
+        if rule.isspace():
             continue
 
         path, code_owners = get_codeowners_path_and_owners(rule)
@@ -587,22 +601,18 @@ def get_invalid_owner_details(bad_owners: Sequence[Owner], project_id: int) -> l
 def remove_deleted_owners_from_schema(
     rules: list[OwnershipRule], owners_id: dict[str, int]
 ) -> None:
-    valid_rules = rules
-
+    valid_rules: list[OwnershipRule] = []
     for rule in rules:
+        # an ownerless rule is a CODEOWNERS exclusion, not a rule whose owners were all deleted
         if not rule["owners"]:
+            valid_rules.append(rule)
             continue
-        valid_owners = rule["owners"]
-        for rule_owner in rule["owners"]:
-            if rule_owner["identifier"] not in owners_id.keys():
-                valid_owners.remove(rule_owner)
-                if not valid_owners:
-                    valid_rules.remove(rule)
-                    break
+        rule["owners"] = [o for o in rule["owners"] if o["identifier"] in owners_id]
+        if rule["owners"]:
+            valid_rules.append(rule)
 
-        rule["owners"] = valid_owners
-
-    rules = valid_rules
+    # mutate in place: the caller keeps using schema["rules"] after this returns
+    rules[:] = valid_rules
 
 
 def add_owner_ids_to_schema(rules: list[OwnershipRule], owners_id: dict[str, int]) -> None:

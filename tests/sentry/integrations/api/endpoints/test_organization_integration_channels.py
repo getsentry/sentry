@@ -1,5 +1,5 @@
 from typing import cast
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
@@ -30,7 +30,7 @@ class OrganizationIntegrationChannelsSlackTest(OrganizationIntegrationChannelsTe
         )
 
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_list")
-    def test_slack_channels_list(self, mock_conversations_list):
+    def test_slack_channels_list(self, mock_conversations_list: MagicMock) -> None:
         channels = [
             {"id": "C123", "name": "general", "is_private": False},
             {"id": "C124", "name": "random", "is_private": True},
@@ -53,7 +53,7 @@ class OrganizationIntegrationChannelsSlackTest(OrganizationIntegrationChannelsTe
             }
 
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_list")
-    def test_large_slack_channel_list(self, mock_conversations_list):
+    def test_large_slack_channel_list(self, mock_conversations_list: MagicMock) -> None:
         mock_channels = [
             {"id": f"C{i:04}", "name": f"channel-{i}", "is_private": i % 2 == 0}
             for i in range(1, 1001)
@@ -83,7 +83,7 @@ class OrganizationIntegrationChannelsDiscordTest(OrganizationIntegrationChannels
         )
 
     @patch("sentry.integrations.discord.client.DiscordClient.get")
-    def test_discord_channels_list(self, mock_get):
+    def test_discord_channels_list(self, mock_get: MagicMock) -> None:
         mock_channels = [
             {"id": "123456", "name": "general", "type": 0},
             {"id": "789012", "name": "announcements", "type": 5},
@@ -129,32 +129,37 @@ class OrganizationIntegrationChannelsMsTeamsTest(OrganizationIntegrationChannels
         )
 
     @patch("sentry.integrations.msteams.client.MsTeamsClient.get")
-    def test_msteams_channels_list(self, mock_get):
-        mock_channels = {
+    def test_msteams_channels_list(self, mock_get: MagicMock) -> None:
+        # The Bot Framework returns `id`, `name` and `type` per channel. The
+        # General channel has no name, and its id is the team id.
+        mock_get.return_value = {
             "conversations": [
-                {"id": "19:channel1@thread.tacv2", "displayName": "Development"},
-                {"id": "19:channel2@thread.tacv2", "displayName": "General"},
-                {
-                    "id": "19:channel3@thread.tacv2",
-                    "displayName": "Testing",
-                    "membershipType": "private",
-                },
+                {"id": "19:team-id@thread.tacv2"},
+                {"id": "19:channel1@thread.tacv2", "name": "Development"},
+                {"id": "19:channel3@thread.tacv2", "name": "Testing", "type": "private"},
             ]
         }
-        mock_get.return_value = mock_channels
         response = self.get_success_response(self.organization.slug, self.integration.id)
-        results = response.data["results"]
-        expected = []
-        for ch in mock_channels["conversations"]:
-            expected.append(
-                {
-                    "id": ch["id"],
-                    "name": ch["displayName"],
-                    "display": ch["displayName"],
-                    "type": ch.get("membershipType", "standard"),
-                }
-            )
-        assert results == expected
+        assert response.data["results"] == [
+            {
+                "id": "19:team-id@thread.tacv2",
+                "name": "General",
+                "display": "General",
+                "type": "standard",
+            },
+            {
+                "id": "19:channel1@thread.tacv2",
+                "name": "Development",
+                "display": "Development",
+                "type": "standard",
+            },
+            {
+                "id": "19:channel3@thread.tacv2",
+                "name": "Testing",
+                "display": "Testing",
+                "type": "private",
+            },
+        ]
         mock_get.assert_called_once()
 
 

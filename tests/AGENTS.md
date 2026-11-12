@@ -1,6 +1,8 @@
 # Python Testing Guide
 
 > For test commands (`make test-selective`, `pytest`), see the "Command Execution Guide" section in `/AGENTS.md` in the repository root.
+>
+> This guide covers Python tests. For frontend React/TypeScript tests (`*.spec.tsx`, RTL, `MockApiClient`), use the **`react-testing`** skill.
 
 ## How to Determine Where to Add New Test Cases
 
@@ -11,7 +13,7 @@ When fixing errors or adding functionality, you MUST add test cases to existing 
 
 Notice that we prefix `tests/` to the path and prefix `test_` to the module name.
 
-**Exception**: Tests ensuring Snuba compatibility MUST be placed in `tests/snuba/`. The tests in this folder will also run in Snuba's CI.
+**Exception**: Tests ensuring Snuba compatibility MUST be placed in `tests/snuba/`. Snuba's CI runs Sentry tests by marker, not by folder: tests marked `@pytest.mark.snuba_ci` on every Snuba PR, and tests marked `snuba` (which `SnubaTestCase` and similar bases apply) when the Snuba API changes.
 
 ## Testing Best Practices
 
@@ -24,6 +26,7 @@ Notice that we prefix `tests/` to the path and prefix `test_` to the module name
 ```python
 # tests/sentry/core/endpoints/test_organization_details.py
 from sentry.testutils.cases import APITestCase
+
 
 class OrganizationDetailsTest(APITestCase):
     endpoint = "sentry-api-0-organization-details"
@@ -43,9 +46,23 @@ Notes:
 
 ## Date-stable tests (current or future year)
 
-Do not use the **current or future UTC calendar year** as a hardcoded test “now” at **module or class** scope (or in `freeze_time(datetime(...))`)—that date drifts into Snuba retention. Use **`before_now(...)`** (or `now - timedelta`) for relative time, or an older fixed year for intentional historical fixtures. Fixed timestamps in **function bodies** (fixtures, assertions) are fine.
+Flake8 **S015** rejects a current or future UTC year as a hardcoded test "now" at module or class scope, because that date drifts into Snuba retention. Use `before_now(...)` for relative time, or an older fixed year for an intentional historical fixture.
 
-Flake8 **S015** flags literals with year greater than or equal to the current UTC year in those scopes.
+## EAP / Snuba endpoint tests (30d retention)
+
+Snuba EAP outcomes routing defaults **standard retention to 30 days** and forces **tier 8** when the query start is older than that window. Sentry APIs still default unset windows to **90d**, so Snuba-integration tests that omit an explicit window under-count recent data (and rate functions like `epm()`/`eps()`/`tpm()` divide by the wrong window).
+
+Shared defaults:
+
+- `EAPClient` / `EAP_DEFAULT_STATS_PERIOD` (`src/sentry/testutils/helpers/eap.py`) inject `statsPeriod` of `EAP_DEFAULT_STATS_PERIOD_DAYS` (**29d**, one day under the limit to survive midnight-UTC rounding) for EAP datasets and known EAP paths.
+- Suites that inherit `OrganizationEventsEndpointTestBase` also default through `client_get()` / `do_request()` to that same **29d** window (covers paths EAPClient heuristics miss, e.g. some trace-meta routes).
+
+For those suites:
+
+- Use `client_get()` or `do_request()`. Flake8 **S020** rejects raw `self.client.get(...)` in these suites.
+- Keep query windows **≤30d** unless the test intentionally covers long-term retention / downsampling.
+- Rate assertions (`epm`/`eps`/`tpm`/…) must use the **actual request window** (usually `EAP_DEFAULT_STATS_PERIOD_DAYS`), not a shorter hardcoded period.
+- If you must query **>30d**, set the window **and** either send `standard_retention_days` (up to 90) or explicitly assert tier-8 / downsampled behavior. Do not weaken assertions just to make CI green.
 
 ## Use Factories Instead of Directly Calling `Model.objects.create`
 
@@ -85,17 +102,7 @@ For example, a diff that uses `pytest` instead of `unittest` would look like:
 
 ## Backup/Relocation Test Coverage for Models
 
-Every model with a `__relocation_scope__` other than `RelocationScope.Excluded` is automatically checked by the backup test suite in `tests/sentry/backup/`. When you add such a model (or add fields to one), CI will fail until you update the following:
-
-1. **Exhaustive fixtures** (`src/sentry/testutils/helpers/backups.py`): create at least one instance of the model in the appropriate `create_exhaustive_*` method (e.g. `create_exhaustive_organization` for org/project-scoped models, `create_exhaustive_user` for user-scoped ones). Without this, `tests/sentry/backup/test_exhaustive.py` and the `ScopingTests` in `tests/sentry/backup/test_exports.py` / `test_imports.py` fail with "Some `expected_models` entries were not found" or "models were not included in the export".
-
-2. **Comparators** (`get_default_comparators()` in `src/sentry/backup/comparators.py`): if the model has fields that change on import — e.g. `date_added`/`date_updated` from `DefaultFieldsModel` — register a comparator such as `DateUpdatedComparator("date_updated", "date_added")`. Without this, `test_exhaustive_dirty_pks` fails with `UnequalJSON` diffs on those fields.
-
-3. **Coverage checks** (`tests/sentry/backup/test_coverage.py`) may additionally require:
-   - a collision test in `tests/sentry/backup/test_imports.py` (`COLLISION_TESTED`) if the model has unique constraints not based on `Organization`/`Global`-scoped foreign keys;
-   - a dynamic relocation scope test in `tests/sentry/backup/test_models.py` (`DYNAMIC_RELOCATION_SCOPE_TESTED`) if `__relocation_scope__` is a set of scopes.
-
-See `tests/sentry/backup/README.md` for how the import/export/diff cycle and comparators work.
+Adding a model with a `__relocation_scope__` other than `RelocationScope.Excluded`, or adding fields to one, fails the backup suite in `tests/sentry/backup/` until you update its fixtures and comparators. The steps are in `tests/sentry/backup/README.md`.
 
 ## File Location Map
 
@@ -103,4 +110,4 @@ See `tests/sentry/backup/README.md` for how the import/export/diff cycle and com
 
 - **Python**: `tests/` mirrors `src/` structure
 - **Fixtures**: `fixtures/{type}/`
-- **Factories**: `tests/sentry/testutils/factories.py`
+- **Factories**: `src/sentry/testutils/factories.py`

@@ -1,13 +1,14 @@
 import {css} from '@emotion/react';
+import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Stack, Grid} from '@sentry/scraps/layout';
+import {openModal} from '@sentry/scraps/modal';
 import {Heading} from '@sentry/scraps/text';
 
-import {openModal} from 'sentry/actionCreators/modal';
-import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import {InstallDetailsContent} from 'sentry/views/preprod/components/installDetailsContent';
+
+import {InstallDetailsContent} from './installDetailsContent';
 
 interface InstallModalProps {
   artifactId: string;
@@ -17,7 +18,7 @@ interface InstallModalProps {
 
 function InstallModal({artifactId, closeModal, projectSlug}: InstallModalProps) {
   return (
-    <Flex direction="column">
+    <Stack>
       <Grid display="grid" columns="1fr auto 1fr" align="center">
         <Container />
         <Heading as="h2" style={{textAlign: 'center'}}>
@@ -34,13 +35,9 @@ function InstallModal({artifactId, closeModal, projectSlug}: InstallModalProps) 
         </Container>
       </Grid>
       <Container padding="xl">
-        <InstallDetailsContent
-          artifactId={artifactId}
-          size="sm"
-          projectSlug={projectSlug}
-        />
+        <InstallDetailsContent artifactId={artifactId} projectSlug={projectSlug} />
       </Container>
-    </Flex>
+    </Stack>
   );
 }
 

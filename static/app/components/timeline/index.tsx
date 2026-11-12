@@ -6,6 +6,14 @@ import {Flex, Container} from '@sentry/scraps/layout';
 
 export interface TimelineItemProps {
   title: React.ReactNode;
+  'aria-current'?: React.AriaAttributes['aria-current'];
+  /**
+   * Renders the row as another element — an `li`, when the timeline is a list.
+   * The row itself has to be the list item: `:first-child` and `:last-child`
+   * above decide the row's margin and whether the connecting line is masked,
+   * and a wrapping `li` would make every row match both.
+   */
+  as?: React.ElementType;
   children?: React.ReactNode;
   className?: string;
   colorConfig?: {
@@ -19,7 +27,6 @@ export interface TimelineItemProps {
   'data-index'?: number;
   icon?: React.ReactNode;
   isActive?: boolean;
-  marker?: React.ReactNode;
   onClick?: React.MouseEventHandler<HTMLDivElement>;
   onMouseEnter?: React.MouseEventHandler<HTMLDivElement>;
   onMouseLeave?: React.MouseEventHandler<HTMLDivElement>;
@@ -34,7 +41,6 @@ function Item({
   title,
   children,
   icon,
-  marker,
   colorConfig,
   timestamp,
   isActive = false,
@@ -44,11 +50,9 @@ function Item({
 }: TimelineItemProps) {
   const theme = useTheme();
   const config = colorConfig ?? makeDefaultColorConfig(theme);
-  const hasMarker = marker !== undefined;
 
   return (
-    <Row ref={ref} hasMarker={hasMarker} {...props}>
-      {hasMarker && <MarkerWrapper>{marker}</MarkerWrapper>}
+    <Row ref={ref} {...props}>
       {icon ? (
         <IconWrapper
           style={{
@@ -68,7 +72,7 @@ function Item({
       </TitleRow>
       {timestamp ?? <div />}
       <Container justifySelf="center" width="0" height="100%" column="span 1" />
-      <Content hasMarker={hasMarker}>{children}</Content>
+      <Content>{children}</Content>
     </Row>
   );
 }
@@ -81,15 +85,14 @@ function makeDefaultColorConfig(theme: Theme) {
   };
 }
 
-const Row = styled('div')<{hasMarker: boolean; showLastLine?: boolean}>`
+const Row = styled('div')<{showLastLine?: boolean}>`
   position: relative;
   color: ${p => p.theme.tokens.content.secondary};
   display: grid;
   align-items: start;
   grid-template-rows: auto auto;
-  grid-template-columns: ${p =>
-    p.hasMarker ? '22px 22px minmax(50px, 1fr) auto' : '22px minmax(50px, 1fr) auto'};
-  grid-column-gap: ${p => (p.hasMarker ? p.theme.space.xs : p.theme.space.md)};
+  grid-template-columns: 22px minmax(50px, 1fr) auto;
+  grid-column-gap: ${p => p.theme.space.md};
   margin: ${p => p.theme.space.md} 0;
   &:first-child {
     margin-top: 0;
@@ -100,14 +103,6 @@ const Row = styled('div')<{hasMarker: boolean; showLastLine?: boolean}>`
     background: ${p =>
       p.showLastLine ? 'transparent' : p.theme.tokens.background.primary};
   }
-`;
-
-const MarkerWrapper = styled('div')`
-  grid-column: span 1;
-  display: grid;
-  place-items: center;
-  min-width: 22px;
-  min-height: 22px;
 `;
 
 const IconWrapper = styled('div')`
@@ -130,9 +125,9 @@ const Title = styled('div')`
   font-size: ${p => p.theme.font.size.md};
 `;
 
-const Content = styled('div')<{hasMarker: boolean}>`
+const Content = styled('div')`
   text-align: left;
-  grid-column: ${p => (p.hasMarker ? '3 / -1' : 'span 2')};
+  grid-column: span 2;
   color: ${p => p.theme.tokens.content.secondary};
   margin: ${p => p.theme.space['2xs']} 0 0;
   font-size: ${p => p.theme.font.size.sm};
@@ -161,6 +156,24 @@ const Data = styled('div')`
   }
 `;
 
+/**
+ * A marker for an entry with no icon of its own: a plain point on the line.
+ *
+ * Passed as `icon`, so it sits in the same box an icon would and lands on the
+ * container's axis without the caller positioning anything. An icon marker is
+ * a 12px glyph inside 4px of margin; the dot is smaller, and its margin makes
+ * up the difference so the two share a centre. It takes its colour from
+ * `colorConfig.icon` like an icon does.
+ */
+const Dot = styled('span')`
+  display: block;
+  width: 8px;
+  height: 8px;
+  margin: 6px;
+  border-radius: 100%;
+  background: currentColor;
+`;
+
 const TimelineContainer = styled('div')`
   position: relative;
   /* vertical line connecting items */
@@ -171,13 +184,14 @@ const TimelineContainer = styled('div')`
     width: 1px;
     top: 0;
     bottom: 0;
-    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 `;
 
 export const Timeline = {
   Data,
+  Dot,
   Text,
   Title,
   TitleRow,

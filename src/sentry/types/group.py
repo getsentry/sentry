@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from enum import IntEnum
+from enum import IntEnum, StrEnum
 from typing import Literal
 
 
@@ -72,6 +72,23 @@ GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS = {
 
 
 GroupPriorityStr = Literal["low", "medium", "high"]
+
+
+class IssueBlocker(StrEnum):
+    NONE = "none"
+    APPROVE_ROOT_CAUSE = "approve_root_cause"
+    APPROVE_PLAN = "approve_plan"
+    APPROVE_CODE_CHANGES = "approve_code_changes"
+    MERGE_PR = "merge_pr"
+
+
+class IssueAutofixStep(StrEnum):
+    NONE = "none"
+    ROOT_CAUSE = "root_cause"
+    SOLUTION = "solution"
+    CODE_CHANGES = "code_changes"
+    PR_CREATED = "pr_created"
+    PR_ITERATION = "pr_iteration"
 
 
 class PriorityLevel(IntEnum):

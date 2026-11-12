@@ -14,7 +14,7 @@ from .constants import SALT
 from .utils import get_preinstall_client
 
 
-def build_unlinking_url(conversation_id, service_url, teams_user_id):
+def build_unlinking_url(conversation_id: str, service_url: str, teams_user_id: str) -> str:
     signed_params = sign(
         salt=SALT,
         conversation_id=conversation_id,
@@ -42,10 +42,6 @@ class MsTeamsUnlinkIdentityView(MsTeamsIdentityLinkageView, UnlinkIdentityView):
     @property
     def no_identity_template(self) -> str | None:
         return "sentry/integrations/msteams/no-identity.html"
-
-    @property
-    def filter_by_user_id(self) -> bool:
-        return True
 
     def notify_on_success(
         self, external_id: str, params: Mapping[str, Any], integration: Integration | None

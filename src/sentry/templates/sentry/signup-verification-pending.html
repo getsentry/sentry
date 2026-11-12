@@ -1,0 +1,26 @@
+{% extends "sentry/bases/auth.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Verify your email" %} | {{ block.super }}{% endblock %}
+
+{% block auth_main %}
+  <h3>{% trans "Verify your email" %}</h3>
+  <p>
+    {% blocktrans with email=email %}
+    We sent a link to <strong>{{ email }}</strong>. Open it to finish setting up your account.
+    {% endblocktrans %}
+  </p>
+  <p>
+    {% blocktrans with expiry_text=expiry_text %}
+    The link expires in {{ expiry_text }}.
+    {% endblocktrans %}
+  </p>
+  <p class="secondary m-t-1">
+    {% trans "Don't see it? Check your spam." %}
+    {# TODO: Add resend link once resend endpoint exists #}
+  </p>
+  <div class="auth-footer m-t-1">
+    <a class="btn btn-primary" href="{{ signup_url }}">{% trans "Start over" %}</a>
+  </div>
+{% endblock %}

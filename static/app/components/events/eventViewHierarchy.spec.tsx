@@ -3,7 +3,7 @@ import {EventAttachmentFixture} from 'sentry-fixture/eventAttachment';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {EventViewHierarchy} from './eventViewHierarchy';
 
@@ -102,5 +102,25 @@ describe('Event View Hierarchy', () => {
     rerender(<EventViewHierarchy project={mockProject} event={event} />);
 
     expect(await screen.findByText('Nested Container - nested')).toBeInTheDocument();
+  });
+
+  it('renders an error without automatically retrying when the download fails', async () => {
+    const downloadMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${mockProject.slug}/events/${mockAttachment.event_id}/attachments/${mockAttachment.id}/`,
+      body: {detail: 'View hierarchy attachment is unavailable.'},
+      statusCode: 500,
+      match: [MockApiClient.matchQuery({download: true})],
+    });
+
+    render(<EventViewHierarchy project={mockProject} event={event} />, {organization});
+
+    expect(
+      await screen.findByText('View hierarchy attachment is unavailable.')
+    ).toBeInTheDocument();
+    expect(downloadMock).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
+
+    await waitFor(() => expect(downloadMock).toHaveBeenCalledTimes(2));
   });
 });

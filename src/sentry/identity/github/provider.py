@@ -1,7 +1,9 @@
 import logging
-from typing import Any
+from collections.abc import Mapping
+from typing import Any, cast
 
 from django.core.exceptions import PermissionDenied
+from requests.exceptions import RequestException
 
 from sentry import http, options
 from sentry.constants import ObjectStatus
@@ -17,7 +19,7 @@ from sentry.organizations.services.organization import organization_service
 logger = logging.getLogger(__name__)
 
 
-def get_user_info(access_token):
+def get_user_info(access_token: str) -> dict[str, object]:
     from sentry.integrations.github.constants import GITHUB_API_ACCEPT_HEADER
 
     with http.build_session() as session:
@@ -26,7 +28,43 @@ def get_user_info(access_token):
             headers={"Accept": GITHUB_API_ACCEPT_HEADER, "Authorization": f"token {access_token}"},
         )
         resp.raise_for_status()
-    return resp.json()
+    data = resp.json()
+    return data
+
+
+def get_verified_primary_email(emails: list[Any]) -> str | None:
+    """Return the verified primary email from GitHub email records, else None."""
+    verified_primary = [
+        e["email"]
+        for e in emails
+        if isinstance(e, dict) and e.get("email") and e.get("verified") and e.get("primary")
+    ]
+    if not verified_primary:
+        return None
+    return verified_primary[0]
+
+
+def fetch_verified_primary_email(access_token: str) -> str | None:
+    """Fetch /user/emails and return the verified primary email, else None.
+
+    Degrades to None on fetch failure since this runs on the login critical path.
+    """
+    try:
+        with http.build_session() as session:
+            resp = session.get(
+                "https://api.github.com/user/emails",
+                headers={"Authorization": f"token {access_token}"},
+            )
+            resp.raise_for_status()
+            emails = resp.json()
+    except (RequestException, ValueError):
+        logger.exception("identity.github.user_emails_fetch_failed")
+        return None
+
+    if not isinstance(emails, list):
+        logger.warning("identity.github.user_emails_unexpected_shape")
+        return None
+    return get_verified_primary_email(emails)
 
 
 # GitHub has 2 types of apps -- GitHub apps and OAuth apps. SSO is implemented
@@ -44,15 +82,17 @@ class GitHubIdentityProvider(OAuth2Provider):
 
     oauth_scopes = ()
 
-    def get_oauth_client_id(self):
-        return options.get("github-app.client-id")
+    def get_oauth_client_id(self) -> str:
+        client_id = options.get("github-app.client-id")
+        return client_id
 
-    def get_oauth_client_secret(self):
-        return options.get("github-app.client-secret")
+    def get_oauth_client_secret(self) -> str:
+        client_secret = options.get("github-app.client-secret")
+        return client_secret
 
-    def build_identity(self, data):
-        data = data["data"]
-        access_token = data.get("access_token")
+    def build_identity(self, data: Mapping[str, object]) -> Mapping[str, object]:
+        identity_data = cast(Mapping[str, object], data["data"])
+        access_token = cast(str | None, identity_data.get("access_token"))
         if not access_token:
             raise PermissionDenied()
         user = get_user_info(access_token)
@@ -61,12 +101,12 @@ class GitHubIdentityProvider(OAuth2Provider):
             "type": "github",
             "id": user["id"],
             "email": user["email"],
-            "email_verified": bool(user["email"]),
+            "email_verified": False,
             "login": user["login"],
             "name": user["name"],
             "company": user["company"],
             "scopes": [],  # GitHub apps do not have user scopes
-            "data": self.get_oauth_data(data),
+            "data": self.get_oauth_data(identity_data),
         }
 
     def post_link_identity(self, identity: dict[str, Any], user_id: int) -> None:

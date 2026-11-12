@@ -2,11 +2,12 @@ import {Fragment, useMemo} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {closeModal, type ModalRenderProps} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {closeModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {t} from 'sentry/locale';
 import {transformTableToCategoricalSeries} from 'sentry/utils/categoricalTimeSeries/transformTableToCategoricalSeries';
@@ -19,6 +20,7 @@ import type {
   TabularColumn,
   TabularData,
 } from 'sentry/views/dashboards/widgets/common/types';
+import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import type {AttributeBreakdownsComparison} from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
@@ -37,6 +39,7 @@ type SingleModeOptions = {
   cohortCount: number;
   mode: 'single';
   query: string;
+  caseInsensitive?: CaseInsensitive;
 };
 
 type ComparisonModeOptions = {
@@ -45,6 +48,7 @@ type ComparisonModeOptions = {
   cohort2Total: number;
   mode: 'comparison';
   query: string;
+  caseInsensitive?: CaseInsensitive;
 };
 
 export type AttributeBreakdownViewerModalOptions =
@@ -247,7 +251,7 @@ function PopulationIndicatorComponent({
 }
 
 export default function AttributeBreakdownViewerModal(props: Props) {
-  const {Header, Body, mode, query} = props;
+  const {Header, Body, mode, query, caseInsensitive} = props;
   const {selection} = usePageFilters();
 
   const theme = useTheme();
@@ -281,12 +285,25 @@ export default function AttributeBreakdownViewerModal(props: Props) {
     return transformTableToCategoricalSeries(chartQuery, slicedTableData);
   }, [computedData.tableData, computedData.mode]);
 
-  const hasPlottableValues = useMemo(() => {
-    return chartSeries.some(series => series.values.some(value => value.value !== null));
-  }, [chartSeries]);
-  const singleSeries = chartSeries[0];
-  const selectedSeries = chartSeries[0];
-  const baselineSeries = chartSeries[1];
+  const plottables = useMemo(() => {
+    if (computedData.mode === 'comparison') {
+      const [selectedSeries, baselineSeries] = chartSeries;
+      if (!selectedSeries || !baselineSeries) {
+        return [];
+      }
+      return [
+        new Bars(selectedSeries, {color: primaryColor, alias: 'selected'}),
+        new Bars(baselineSeries, {color: secondaryColor, alias: 'baseline'}),
+      ];
+    }
+
+    const [singleSeries] = chartSeries;
+    if (!singleSeries) {
+      return [];
+    }
+    return [new Bars(singleSeries, {color: primaryColor})];
+    // oxlint-disable-next-line react/memo-dependencies
+  }, [computedData.mode, chartSeries, primaryColor, secondaryColor]);
 
   return (
     <Fragment>
@@ -325,26 +342,19 @@ export default function AttributeBreakdownViewerModal(props: Props) {
         </Flex>
       </Header>
       <Body>
-        <Flex direction="column" gap="2xl" height="600px">
+        <Stack gap="2xl" height="600px">
           <Container height={`${MODAL_CHART_HEIGHT}px`}>
             <Container height={`${MODAL_CHART_HEIGHT}px`} position="relative">
-              {computedData.mode === 'single' && singleSeries && hasPlottableValues ? (
+              {plottablesCanBeVisualized(plottables) ? (
                 <CategoricalSeriesWidgetVisualization
-                  plottables={[new Bars(singleSeries, {color: primaryColor})]}
-                  showLegend="never"
+                  plottables={plottables}
+                  showLegend={computedData.mode === 'comparison' ? 'always' : 'never'}
                 />
-              ) : computedData.mode === 'comparison' &&
-                selectedSeries &&
-                baselineSeries &&
-                hasPlottableValues ? (
-                <CategoricalSeriesWidgetVisualization
-                  plottables={[
-                    new Bars(selectedSeries, {color: primaryColor, alias: 'selected'}),
-                    new Bars(baselineSeries, {color: secondaryColor, alias: 'baseline'}),
-                  ]}
-                  showLegend="always"
-                />
-              ) : null}
+              ) : (
+                <Flex position="absolute" inset={0}>
+                  <CategoricalSeriesWidgetVisualization.NoData />
+                </Flex>
+              )}
             </Container>
           </Container>
 
@@ -362,6 +372,7 @@ export default function AttributeBreakdownViewerModal(props: Props) {
                       organization,
                       selection,
                       query: search.formatString(),
+                      caseInsensitive,
                     })
                   );
                   closeModal();
@@ -374,6 +385,7 @@ export default function AttributeBreakdownViewerModal(props: Props) {
                       selection,
                       table: 'attribute_breakdowns',
                       query: search.formatString(),
+                      caseInsensitive,
                     })
                   );
                   closeModal();
@@ -386,6 +398,7 @@ export default function AttributeBreakdownViewerModal(props: Props) {
                       selection,
                       table: 'attribute_breakdowns',
                       query: search.formatString(),
+                      caseInsensitive,
                     })
                   );
                   closeModal();
@@ -409,7 +422,7 @@ export default function AttributeBreakdownViewerModal(props: Props) {
               return [];
             }}
           />
-        </Flex>
+        </Stack>
       </Body>
     </Fragment>
   );

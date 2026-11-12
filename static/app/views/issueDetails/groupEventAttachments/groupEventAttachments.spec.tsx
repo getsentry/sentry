@@ -12,6 +12,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
   within,
   type RouterConfig,
 } from 'sentry-test/reactTestingLibrary';
@@ -20,6 +21,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 import {GroupEventAttachments} from './groupEventAttachments';
 
@@ -49,6 +51,7 @@ describe('GroupEventAttachments', () => {
 
   beforeEach(() => {
     project = ProjectFixture({platform: 'apple-ios'});
+    localStorageWrapper.removeItem(`issue-details-attachments-default-tab-${project.id}`);
     ProjectsStore.loadInitialData([project]);
     GroupStore.init();
 
@@ -87,6 +90,102 @@ describe('GroupEventAttachments', () => {
         },
       })
     );
+  });
+
+  it.each([
+    {label: 'Screenshots', filter: 'screenshot', filterQuery: {screenshot: '1'}},
+    {
+      label: 'Only Crash Reports',
+      filter: 'onlyCrash',
+      filterQuery: {types: ['event.minidump', 'event.applecrashreport']},
+    },
+  ])(
+    'restarts pagination when switching to $label',
+    async ({label, filter, filterQuery}) => {
+      const query = {
+        environment: 'production',
+        statsPeriod: '7d',
+        query: 'release:1.0',
+      };
+      const {router} = render(<GroupEventAttachments project={project} group={group} />, {
+        organization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            pathname: `/organizations/${organization.slug}/issues/${groupId}/attachments/`,
+            query: {...query, attachmentFilter: 'all', cursor: '2:0:0'},
+          },
+        },
+      });
+
+      await waitFor(() => {
+        expect(getAttachmentsMock).toHaveBeenLastCalledWith(
+          '/organizations/org-slug/issues/group-id/attachments/',
+          expect.objectContaining({
+            query: {...query, environment: ['production'], cursor: '2:0:0'},
+          })
+        );
+      });
+      await userEvent.click(screen.getByRole('radio', {name: label}));
+
+      await waitFor(() => {
+        expect(getAttachmentsMock).toHaveBeenLastCalledWith(
+          '/organizations/org-slug/issues/group-id/attachments/',
+          expect.objectContaining({
+            query: {...query, environment: ['production'], ...filterQuery},
+          })
+        );
+      });
+      expect(router.location.query).toEqual({...query, attachmentFilter: filter});
+      expect(router.historyAction).toBe('REPLACE');
+    }
+  );
+
+  it('drops the cursor when picking a filter while none is set', async () => {
+    const {router} = render(<GroupEventAttachments project={project} group={group} />, {
+      organization,
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          pathname: `/organizations/${organization.slug}/issues/${groupId}/attachments/`,
+          query: {cursor: '2:0:0', statsPeriod: '7d'},
+        },
+      },
+    });
+
+    await userEvent.click(await screen.findByRole('radio', {name: 'Screenshots'}));
+
+    await waitFor(() => {
+      expect(router.location.query).toEqual({
+        statsPeriod: '7d',
+        attachmentFilter: 'screenshot',
+      });
+    });
+  });
+
+  it('restores the previously used filter into the URL when none is set', async () => {
+    localStorageWrapper.setItem(
+      `issue-details-attachments-default-tab-${project.id}`,
+      JSON.stringify('screenshot')
+    );
+    const {router} = render(<GroupEventAttachments project={project} group={group} />, {
+      organization,
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          pathname: `/organizations/${organization.slug}/issues/${groupId}/attachments/`,
+          query: {statsPeriod: '7d'},
+        },
+      },
+    });
+
+    await waitFor(() => {
+      expect(router.location.query).toEqual({
+        statsPeriod: '7d',
+        attachmentFilter: 'screenshot',
+      });
+    });
+    expect(router.historyAction).toBe('REPLACE');
   });
 
   it('calls opens modal when clicking on panel body', async () => {
@@ -162,7 +261,6 @@ describe('GroupEventAttachments', () => {
   it('filters by date/query on issue details', () => {
     ConfigStore.init();
     const user = UserFixture();
-    user.options.prefersIssueDetailsStreamlinedUI = true;
     act(() => ConfigStore.set('user', user));
 
     render(<GroupEventAttachments project={project} group={group} />, {
@@ -189,5 +287,58 @@ describe('GroupEventAttachments', () => {
         },
       })
     );
+  });
+
+  describe('attachments quota exceeded', () => {
+    const quotaOrganization = OrganizationFixture({
+      ...organization,
+      features: [...organization.features, 'attachments-quota-exceeded-notice'],
+    });
+    const quotaExceededGroup = GroupFixture({
+      id: groupId,
+      metadata: {attachments_quota_exceeded: true},
+    });
+    const quotaExceededMessage =
+      'Some attachments may be missing from this list because your attachment quota was exceeded at the time the event was ingested.';
+
+    it('warns that attachments may be missing', async () => {
+      render(<GroupEventAttachments project={project} group={quotaExceededGroup} />, {
+        organization: quotaOrganization,
+        initialRouterConfig,
+      });
+
+      expect(await screen.findByText('12345678')).toBeInTheDocument();
+      expect(screen.getByText(quotaExceededMessage, {exact: false})).toBeInTheDocument();
+      expect(
+        screen.getByRole('link', {name: 'View your attachment usage'})
+      ).toHaveAttribute(
+        'href',
+        `/settings/org-slug/stats/?dataCategory=attachments&project=${project.id}`
+      );
+    });
+
+    it('does not warn on the screenshots tab', async () => {
+      render(<GroupEventAttachments project={project} group={quotaExceededGroup} />, {
+        organization: quotaOrganization,
+        initialRouterConfig: screenshotRouterConfig,
+      });
+
+      expect(await screen.findByRole('img')).toBeInTheDocument();
+      expect(
+        screen.queryByText(quotaExceededMessage, {exact: false})
+      ).not.toBeInTheDocument();
+    });
+
+    it('does not warn without the feature flag', async () => {
+      render(<GroupEventAttachments project={project} group={quotaExceededGroup} />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      expect(await screen.findByText('12345678')).toBeInTheDocument();
+      expect(
+        screen.queryByText(quotaExceededMessage, {exact: false})
+      ).not.toBeInTheDocument();
+    });
   });
 });

@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -8,8 +9,6 @@ from django.test import RequestFactory
 
 from sentry.charts.types import ChartType
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
-from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.models.incident import Incident
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
@@ -17,8 +16,12 @@ from sentry.integrations.slack.unfurl.dashboards import build_widget_timeseries_
 from sentry.integrations.slack.unfurl.explore import _build_heatmap_query, _heatmap_y_buckets
 from sentry.integrations.slack.unfurl.handlers import link_handlers, match_link
 from sentry.integrations.slack.unfurl.types import LinkType, UnfurlableUrl
-from sentry.models.dashboard_widget import DashboardWidgetDisplayTypes, DashboardWidgetTypes
-from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard_widget import (
+    DashboardWidget,
+    DashboardWidgetDisplayTypes,
+    DashboardWidgetTypes,
+)
 from sentry.search.eap.types import SupportedTraceItemType
 from sentry.snuba import discover, errors, transactions
 from sentry.testutils.cases import TestCase
@@ -26,9 +29,6 @@ from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
-from sentry.types.group import PriorityLevel
-from sentry.workflow_engine.migration_helpers.alert_rule import migrate_alert_rule
-from sentry.workflow_engine.models import IncidentGroupOpenPeriod
 
 pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 
@@ -208,7 +208,7 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
         ),
     ],
 )
-def test_match_link(url, expected) -> None:
+def test_match_link(url: str, expected: tuple[LinkType | None, Mapping[str, Any] | None]) -> None:
     assert match_link(url) == expected
 
 
@@ -220,7 +220,7 @@ class UnfurlTest(TestCase):
         # Sharing project ids across tests could result in some race conditions
         self.project = self.create_project()
         self._integration = install_slack(self.organization)
-        self.integration = serialize_integration(self._integration)
+        self.rpc_integration = serialize_integration(self._integration)
 
         self.request = RequestFactory().get("slack/event")
         self.frozen_time = freeze_time(datetime.now() - timedelta(days=1))
@@ -228,29 +228,6 @@ class UnfurlTest(TestCase):
 
     def tearDown(self) -> None:
         self.frozen_time.stop()
-
-    def _wire_workflow_engine_for_incident(self, alert_rule, incident: Incident) -> None:
-        """
-        Wire up the workflow engine fixtures so that the /incidents/ endpoint
-        (which always routes through _get_workflow_engine) returns this incident.
-        """
-        _, _, _, detector, _, _, _, _ = migrate_alert_rule(alert_rule)
-        group = self.create_group(
-            project=self.project,
-            type=MetricIssue.type_id,
-            priority=PriorityLevel.HIGH,
-            first_seen=incident.date_started,
-        )
-        self.create_detector_group(detector=detector, group=group)
-        gop = GroupOpenPeriod.objects.get(group=group)
-        # Align the open period's date_started with the incident's so the chart's
-        # time-window query (which truncates to seconds via strftime) includes it.
-        gop.update(date_started=incident.date_started)
-        IncidentGroupOpenPeriod.objects.create(
-            group_open_period=gop,
-            incident_id=incident.id,
-            incident_identifier=incident.identifier,
-        )
 
     def test_unfurl_issues(self) -> None:
         min_ago = before_now(minutes=1).isoformat()
@@ -271,7 +248,7 @@ class UnfurlTest(TestCase):
             ),
         ]
 
-        unfurls = link_handlers[LinkType.ISSUES].fn(self.integration, links)
+        unfurls = link_handlers[LinkType.ISSUES].fn(self.rpc_integration, links)
 
         assert unfurls[links[0].url] == SlackIssuesMessageBuilder(self.group).build()
         assert (
@@ -300,7 +277,7 @@ class UnfurlTest(TestCase):
             ),
         ]
 
-        unfurls = link_handlers[LinkType.ISSUES].fn(self.integration, links)
+        unfurls = link_handlers[LinkType.ISSUES].fn(self.rpc_integration, links)
 
         assert unfurls[links[0].url] == SlackIssuesMessageBuilder(self.group).build()
         assert (
@@ -325,7 +302,7 @@ class UnfurlTest(TestCase):
             ),
         ]
 
-        unfurls = link_handlers[LinkType.ISSUES].fn(self.integration, links)
+        unfurls = link_handlers[LinkType.ISSUES].fn(self.rpc_integration, links)
         assert unfurls[links[0].url]["blocks"][1]["text"]["text"] == "```" + escape_text + "```"
 
     @patch(
@@ -350,7 +327,7 @@ class UnfurlTest(TestCase):
         ]
 
         with self.feature(["organizations:discover-basic"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -362,6 +339,58 @@ class UnfurlTest(TestCase):
         chart_data = mock_generate_chart.call_args[0][1]
         assert chart_data["seriesName"] == "count()"
         assert len(chart_data["stats"]["data"]) == INTERVALS_PER_DAY
+
+    @patch("sentry.integrations.slack.unfurl.discover.client.get")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_discover_without_fields_or_saved_query(
+        self, mock_generate_chart: MagicMock, api_mock: MagicMock
+    ) -> None:
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?project={self.project.id}&statsPeriod=24h"
+
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(["organizations:discover-basic"]):
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
+
+        assert (
+            unfurls[url]
+            == SlackDiscoverMessageBuilder(title="Dashboards query", chart_url="chart-url").build()
+        )
+
+        assert len(mock_generate_chart.mock_calls) == 1
+        params = api_mock.call_args[1]["params"]
+        assert params.getlist("field") == []
+        assert params.getlist("name") == []
+        assert params.getlist("yAxis") == ["count()"]
+
+    @patch("sentry.integrations.slack.unfurl.discover.client.get")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_discover_top5_without_fields_or_saved_query(
+        self, mock_generate_chart: MagicMock, api_mock: MagicMock
+    ) -> None:
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?display=top5&project={self.project.id}&statsPeriod=24h"
+
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(["organizations:discover-basic"]):
+            link_handlers[link_type].fn(self.rpc_integration, links, self.user)
+
+        assert len(mock_generate_chart.mock_calls) == 1
+        assert api_mock.call_args[1]["params"].getlist("field") == []
 
     @patch(
         "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
@@ -389,7 +418,7 @@ class UnfurlTest(TestCase):
         ]
 
         with self.feature(["organizations:discover-basic"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -437,7 +466,7 @@ class UnfurlTest(TestCase):
         ]
 
         with self.feature(["organizations:discover-basic"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -475,7 +504,7 @@ class UnfurlTest(TestCase):
         ]
 
         with self.feature(["organizations:discover-basic"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -540,7 +569,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -605,7 +634,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -656,7 +685,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -723,7 +752,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -783,7 +812,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -809,8 +838,8 @@ class UnfurlTest(TestCase):
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_unfurl_discover_without_project_ids(
-        self, mock_generate_chart, mock_get_event_stats_data
-    ):
+        self, mock_generate_chart: MagicMock, mock_get_event_stats_data: MagicMock
+    ) -> None:
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?dataset=errors&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&query=&sort=-timestamp&statsPeriod=24h"
         link_type, args = match_link(url)
 
@@ -826,7 +855,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -883,13 +912,11 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
-            == SlackDiscoverMessageBuilder(
-                title=args["query"].get("name"), chart_url="chart-url"
-            ).build()
+            == SlackDiscoverMessageBuilder(title="Dashboards query", chart_url="chart-url").build()
         )
         assert len(mock_generate_chart.mock_calls) == 1
 
@@ -916,7 +943,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -952,7 +979,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -987,7 +1014,7 @@ class UnfurlTest(TestCase):
             version=2,
         )
         saved_query.set_projects([self.project.id])
-        api_mock.return_value.data = query
+        api_mock.return_value.data = {**query, "name": saved_query.name}
 
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?id={saved_query.id}&statsPeriod=24h"
         link_type, args = match_link(url)
@@ -1004,13 +1031,11 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
-            == SlackDiscoverMessageBuilder(
-                title=args["query"].get("name"), chart_url="chart-url"
-            ).build()
+            == SlackDiscoverMessageBuilder(title="Test query", chart_url="chart-url").build()
         )
 
         assert len(mock_generate_chart.mock_calls) == 1
@@ -1058,7 +1083,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1097,7 +1122,7 @@ class UnfurlTest(TestCase):
         ]
 
         with self.feature(["organizations:discover-basic"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1114,7 +1139,7 @@ class UnfurlTest(TestCase):
         dataset = mock_get_event_stats_data.mock_calls[0][2]["dataset"]
         assert dataset == discover
 
-    def _build_mock_timeseries_response(self, y_axis="avg(span.duration)"):
+    def _build_mock_timeseries_response(self, y_axis: str = "avg(span.duration)") -> dict[str, Any]:
         return {
             "timeSeries": [
                 {
@@ -1152,7 +1177,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1165,7 +1190,7 @@ class UnfurlTest(TestCase):
         chart_data = mock_generate_chart.call_args[0][1]
         assert "timeSeries" in chart_data
 
-    def _build_mock_heatmap_response(self):
+    def _build_mock_heatmap_response(self) -> dict[str, Any]:
         """A HeatMapSeries-shaped events-heatmap response. The Y axis is the
         generic `value` field, so the API returns no metric unit in the meta."""
         return {
@@ -1211,8 +1236,7 @@ class UnfurlTest(TestCase):
 
         links = [UnfurlableUrl(url=url, args=args)]
 
-        with self.feature("organizations:data-browsing-heat-map-widget"):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert len(unfurls) == 1
         assert mock_client_get.call_args[1]["path"].endswith("/events-heatmap/")
@@ -1257,8 +1281,7 @@ class UnfurlTest(TestCase):
 
         links = [UnfurlableUrl(url=url, args=args)]
 
-        with self.feature("organizations:data-browsing-heat-map-widget"):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert unfurls == {}
         assert mock_generate_chart.mock_calls == []
@@ -1320,7 +1343,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert len(unfurls) == 1
         assert len(mock_generate_chart.mock_calls) == 1
@@ -1351,7 +1374,7 @@ class UnfurlTest(TestCase):
             raise AssertionError("Missing link_type/args")
 
         links = [UnfurlableUrl(url=url, args=args)]
-        link_handlers[link_type].fn(self.integration, links, self.user)
+        link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         mock_view.assert_called_once()
         request = mock_view.call_args[0][0]
@@ -1377,7 +1400,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert len(unfurls) == 1
 
@@ -1405,7 +1428,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert len(unfurls) == 1
         assert len(mock_generate_chart.mock_calls) == 1
@@ -1432,7 +1455,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         # Should still unfurl with default yAxis
         assert len(unfurls) == 1
@@ -1467,7 +1490,7 @@ class UnfurlTest(TestCase):
 
         # Step 2: Run handler
         links = [UnfurlableUrl(url=url, args=args)]
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         # Step 3: Verify events-timeseries was called with correct args
         assert mock_client_get.call_count == 1
@@ -1527,7 +1550,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert len(unfurls) == 1
         assert len(mock_generate_chart.mock_calls) == 1
@@ -1553,7 +1576,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert len(unfurls) == 1
         chart_data = mock_generate_chart.call_args[0][1]
@@ -1579,7 +1602,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert unfurls == {}
         # Skip happens before the events-timeseries call, so neither the API
@@ -1608,7 +1631,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert len(unfurls) == 1
         chart_data = mock_generate_chart.call_args[0][1]
@@ -1850,7 +1873,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert len(unfurls) == 1
         call_kwargs = mock_client_get.call_args[1]
@@ -2000,7 +2023,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -2121,7 +2144,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert len(unfurls) == 1
         call_kwargs = mock_client_get.call_args[1]
@@ -2148,7 +2171,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -2192,7 +2215,7 @@ class UnfurlTest(TestCase):
 
         links = [UnfurlableUrl(url=url, args=args)]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -2228,7 +2251,7 @@ class UnfurlTest(TestCase):
 
         links = [UnfurlableUrl(url=url, args=args)]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert unfurls == {}
         assert mock_generate_chart.call_count == 0
@@ -2242,7 +2265,7 @@ class UnfurlTest(TestCase):
         conditions: str = "",
         orderby: str = "",
         title: str = "My Spans Widget",
-    ):
+    ) -> tuple[Dashboard, DashboardWidget]:
         dashboard = self.create_dashboard(organization=self.organization)
         widget = self.create_dashboard_widget(
             dashboard=dashboard,
@@ -2286,7 +2309,7 @@ class UnfurlTest(TestCase):
 
         links = [UnfurlableUrl(url=url, args=args)]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -2327,7 +2350,7 @@ class UnfurlTest(TestCase):
         assert args is not None
 
         links = [UnfurlableUrl(url=url, args=args)]
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert len(unfurls) == 1
         assert mock_generate_chart.call_count == 1
@@ -2362,7 +2385,7 @@ class UnfurlTest(TestCase):
         assert link_type is not None and args is not None
         links = [UnfurlableUrl(url=url, args=args)]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert len(unfurls) == 0
         assert mock_client_get.call_count == 0
@@ -2386,7 +2409,7 @@ class UnfurlTest(TestCase):
         assert link_type is not None and args is not None
         links = [UnfurlableUrl(url=url, args=args)]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert len(unfurls) == 0
         assert mock_client_get.call_count == 0
@@ -2407,7 +2430,7 @@ class UnfurlTest(TestCase):
         assert link_type is not None and args is not None
         links = [UnfurlableUrl(url=url, args=args)]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert len(unfurls) == 0
         assert mock_client_get.call_count == 0
@@ -2458,7 +2481,7 @@ class UnfurlTest(TestCase):
         assert link_type is not None and args is not None
         links = [UnfurlableUrl(url=url, args=args)]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert len(unfurls) == 1
         assert mock_client_get.call_count == 2
@@ -2515,7 +2538,7 @@ class UnfurlTest(TestCase):
         assert link_type is not None and args is not None
         links = [UnfurlableUrl(url=url, args=args)]
 
-        link_handlers[link_type].fn(self.integration, links, self.user)
+        link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         chart_data = mock_generate_chart.call_args[0][1]
         pairs = chart_data["timeSeries"]
@@ -2535,7 +2558,7 @@ class UnfurlTest(TestCase):
     def test_unfurl_dashboards_single_query_multi_series_share_query_index(
         self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
     ) -> None:
-        def grouped_response(group_value: str):
+        def grouped_response(group_value: str) -> dict[str, Any]:
             return {
                 "timeSeries": [
                     {
@@ -2573,7 +2596,7 @@ class UnfurlTest(TestCase):
         assert link_type is not None and args is not None
         links = [UnfurlableUrl(url=url, args=args)]
 
-        link_handlers[link_type].fn(self.integration, links, self.user)
+        link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         chart_data = mock_generate_chart.call_args[0][1]
         pairs = chart_data["timeSeries"]
@@ -2601,7 +2624,7 @@ class UnfurlTest(TestCase):
         assert link_type is not None and args is not None
         links = [UnfurlableUrl(url=url, args=args)]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert len(unfurls) == 1
         chart_data = mock_generate_chart.call_args[0][1]
@@ -2642,7 +2665,7 @@ class BuildWidgetTimeseriesParamsTest(TestCase):
         self,
         widget_type: int = DashboardWidgetTypes.SPANS,
         queries: list[dict[str, Any]] | None = None,
-    ):
+    ) -> DashboardWidget:
         dashboard = self.create_dashboard(organization=self.organization)
         widget = self.create_dashboard_widget(
             dashboard=dashboard,

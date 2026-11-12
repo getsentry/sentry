@@ -1,10 +1,12 @@
 from datetime import datetime, timedelta
+from typing import cast
 
 from sentry.api.serializers import serialize
 from sentry.auth import access
 from sentry.sentry_apps.api.serializers.sentry_app import SentryAppSerializer
 from sentry.sentry_apps.models.sentry_app import MASKED_VALUE
 from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
+from sentry.testutils.asserts import assert_no_organization_resource_hydration
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import control_silo_test, no_silo_test
@@ -24,7 +26,7 @@ class SentryAppSerializerTest(TestCase):
         result = serialize(sentry_app, None, SentryAppSerializer(), access=None)
 
         assert result["name"] == "Tesla App"
-        assert result["featureData"] == [
+        assert cast("list[dict[str, object]]", result["featureData"]) == [
             {
                 "featureId": 0,
                 "description": "Tesla App can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).",
@@ -33,6 +35,21 @@ class SentryAppSerializerTest(TestCase):
         ]
         assert result["scopes"] == ["org:write", "team:admin"]
         assert result.get("clientSecret") is None
+
+    def test_webhook_events_are_faithful(self) -> None:
+        user = self.create_user()
+        organization = self.create_organization(owner=user)
+        sentry_app = self.create_sentry_app(
+            name="Granular App",
+            organization=organization,
+            scopes=("event:read",),
+            events=["issue.resolved"],
+        )
+        result = serialize(sentry_app, None, SentryAppSerializer(), access=None)
+
+        # events consolidates to the resource; webhookEvents is the exact list.
+        assert result["events"] == {"issue"}
+        assert result["webhookEvents"] == ["issue.resolved"]
 
     def test_internal_app(self) -> None:
         user = self.create_user()
@@ -75,7 +92,6 @@ class SentryAppSerializerTest(TestCase):
         sentry_app.redirect_url = None
         sentry_app.webhook_url = None
         sentry_app.date_published = None
-        sentry_app.owner = None
 
         sentry_app.save()
         result = serialize(sentry_app, None, SentryAppSerializer(), access=None)
@@ -96,9 +112,11 @@ class SentryAppHiddenClientSecretSerializerTest(TestCase):
         sentry_app = self.create_sentry_app(
             name="Tesla App", organization=self.organization, published=True, scopes=("org:write",)
         )
+        self.create_project(organization=self.organization)
 
         acc = access.from_user(self.user, self.organization)
-        result = serialize(sentry_app, self.user, SentryAppSerializer(), access=acc)
+        with assert_no_organization_resource_hydration():
+            result = serialize(sentry_app, self.user, SentryAppSerializer(), access=acc)
         assert result["clientSecret"] is not None
 
         now = datetime.now()

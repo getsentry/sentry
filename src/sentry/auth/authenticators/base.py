@@ -23,15 +23,21 @@ class ActivationResult:
     type: str
 
 
+class ActivationRateLimited(Exception):
+    pass
+
+
 class ActivationMessageResult(ActivationResult):
     def __init__(
         self,
         message: str | _StrPromise,
         type: Literal["error", "warning", "info"] = "info",
+        expires_in: int | None = None,
     ) -> None:
         assert type in ("error", "warning", "info")
         self.type = type
         self.message = message
+        self.expires_in = expires_in
 
     def __str__(self) -> str:
         return str(self.message)
@@ -129,7 +135,8 @@ class AuthenticatorInterface:
         a new config is used on first access.
         """
         if self.authenticator is not None:
-            return self.authenticator.config
+            config = self.authenticator.config
+            return config
         rv = getattr(self, "_unbound_config", None)
         if rv is None:
             # Prevent bad recursion if stuff wants to access the default
@@ -211,7 +218,8 @@ class OtpMixin(AuthenticatorInterface):
 
     @property
     def secret(self) -> str:
-        return self.config["secret"]
+        secret = self.config["secret"]
+        return secret
 
     @secret.setter
     def secret(self, secret: str) -> None:

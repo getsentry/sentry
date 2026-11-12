@@ -1,0 +1,43 @@
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Literal
+
+from pydantic import BaseModel, Field
+
+from sentry.workflow_engine.caches.mapping import CacheMapping
+
+# Sliding TTL, refreshed whenever state is saved (any mark or hash change). Continuous
+# processing keeps state alive; once it goes quiet, expiry schedules a fresh discovery
+# that picks up rows left below marks and double-checks a clean result.
+_STATE_TTL_SECONDS = 12 * 60 * 60
+# Bump when the state shape changes; incompatible cached state is discarded on load.
+CURRENT_STATE_VERSION = 1
+
+
+class HealSchedulerState(BaseModel):
+    version: int = CURRENT_STATE_VERSION
+    # Most recently observed pipeline hash.
+    head_hash: str | None = None
+    # Non-NULL stale pipeline hash to the next group ID to schedule.
+    stale: dict[str, int] = Field(default_factory=dict)
+    # When stale hash discovery last completed for this state; None until it does.
+    discovered_at: datetime | None = None
+
+
+_state_cache = CacheMapping[Literal["state"], HealSchedulerState](
+    lambda key: key,
+    namespace="issues-derived-heal",
+    ttl_seconds=_STATE_TTL_SECONDS,
+)
+
+
+def load_state() -> HealSchedulerState | None:
+    state = _state_cache.get("state")
+    if not isinstance(state, HealSchedulerState) or state.version != CURRENT_STATE_VERSION:
+        return None
+    return state
+
+
+def save_state(state: HealSchedulerState) -> None:
+    _state_cache.set("state", state)

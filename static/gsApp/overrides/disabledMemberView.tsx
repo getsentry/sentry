@@ -1,20 +1,20 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import {useMutation} from '@tanstack/react-query';
-import {useQuery} from '@tanstack/react-query';
+import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {Grid, Stack, type GridProps} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
-import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageOverlay} from 'sentry/components/pageOverlay';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
@@ -80,13 +80,18 @@ function DisabledMemberView(props: Props) {
 
   const handleLeaveMutation = useMutation({
     mutationFn: () => {
-      return api.requestPromise(`/organizations/${organization?.slug}/members/me/`, {
-        method: 'DELETE',
-        data: {},
-      });
+      return api.requestPromise(
+        getApiUrl('/organizations/$organizationIdOrSlug/members/$memberId/', {
+          path: {organizationIdOrSlug: String(organization?.slug), memberId: 'me'},
+        }),
+        {
+          method: 'DELETE',
+          data: {},
+        }
+      );
     },
     onMutate: () => {
-      addLoadingMessage(t('Requesting\u2026'));
+      toast.loading(t('Requesting\u2026'));
     },
     onSuccess: () => {
       trackGetsentryAnalytics('disabled_member_view.clicked_leave_org', {
@@ -96,7 +101,7 @@ function DisabledMemberView(props: Props) {
       redirectToRemainingOrganization({navigate, orgId, removeOrg: true});
     },
     onError: () => {
-      addErrorMessage(t('Unable to leave organization'));
+      toast.error(t('Unable to leave organization'));
     },
   });
 

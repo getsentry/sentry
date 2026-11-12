@@ -12,14 +12,6 @@ interface ExploreExportConfigBase {
   estimatedRowCount: number;
   /** Base filename for local (browser) downloads, e.g. `'logs'` or `'Traces'`. */
   filenameBase: string;
-  /** Performs the immediate browser download of the first `limit` rows. */
-  localDownload: (args: {format: DataExportFormat; limit: number}) => void;
-  /**
-   * Number of rows the local (browser) download can actually serve — typically
-   * the loaded page length. A requested limit above this routes to the server
-   * export instead, so the user isn't silently given a truncated file.
-   */
-  localRowCount: number;
   title: string;
   /** Fired on submit so each area can emit its own analytics event. */
   trackExportSubmit: (args: {
@@ -28,6 +20,19 @@ interface ExploreExportConfigBase {
     isAllColumns: boolean;
     limit: number;
   }) => void;
+  /**
+   * Performs the immediate browser download of the first `limit` rows, bounded
+   * by `localRowCount`. Omit both when the loaded rows aren't faithful to the
+   * stored data — the logs samples table asks the API to truncate long values
+   * for display — so every export goes through the server instead.
+   */
+  localDownload?: (args: {format: DataExportFormat; limit: number}) => void;
+  /**
+   * Number of rows the local (browser) download can actually serve — typically
+   * the loaded page length. A requested limit above this routes to the server
+   * export instead, so the user isn't silently given a truncated file.
+   */
+  localRowCount?: number;
 }
 
 /**

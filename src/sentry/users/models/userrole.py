@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
-
-from django.conf import settings
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import models
 from django.utils import timezone
@@ -14,8 +11,6 @@ from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.hybridcloud.models.outbox import ControlOutboxBase
 from sentry.hybridcloud.outbox.base import ControlOutboxProducingModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
-from sentry.signals import post_upgrade
-from sentry.silo.base import SiloMode
 from sentry.types.cell import find_all_cell_names
 
 MAX_USER_ROLE_NAME_LENGTH = 32
@@ -29,6 +24,9 @@ class UserRole(OverwritableConfigMixin, ControlOutboxProducingModel):
 
     __relocation_scope__ = RelocationScope.Config
     __relocation_custom_ordinal__ = ["name"]
+
+    # outbox settings
+    default_flush = False
 
     date_updated = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now, null=True)
@@ -66,6 +64,9 @@ class UserRoleUser(ControlOutboxProducingModel):
     user = FlexibleForeignKey("sentry.User")
     role = FlexibleForeignKey("sentry.UserRole")
 
+    # outbox settings
+    default_flush = False
+
     def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
         cells = list(find_all_cell_names())
         return OutboxCategory.USER_UPDATE.as_control_outboxes(
@@ -79,21 +80,3 @@ class UserRoleUser(ControlOutboxProducingModel):
         db_table = "sentry_userrole_users"
 
     __repr__ = sane_repr("user", "role")
-
-
-# this must be idempotent because it executes on every upgrade
-def manage_default_super_admin_role(**kwargs: Any) -> None:
-    role, _ = UserRole.objects.get_or_create(
-        name="Super Admin", defaults={"permissions": settings.SENTRY_USER_PERMISSIONS}
-    )
-    if role.permissions != list(settings.SENTRY_USER_PERMISSIONS):
-        role.permissions = list(settings.SENTRY_USER_PERMISSIONS)
-        role.save(update_fields=["permissions"])
-
-
-post_upgrade.connect(
-    manage_default_super_admin_role,
-    dispatch_uid="manage_default_super_admin_role",
-    weak=False,
-    sender=SiloMode.MONOLITH,
-)

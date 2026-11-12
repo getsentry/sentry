@@ -1,9 +1,14 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
+from typing import Any
 
+import pytest
 from django.utils import timezone
 
+from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.artifact_search import (
+    apply_filters,
     artifact_matches_query,
     get_sequential_base_artifact,
     queryset_for_query,
@@ -11,6 +16,7 @@ from sentry.preprod.artifact_search import (
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactSizeMetrics,
+    PreprodBuildConfiguration,
     PreprodComparisonApproval,
     PreprodSnapshotMetrics,
 )
@@ -21,14 +27,14 @@ from sentry.testutils.cases import TestCase
 class GetSequentialBaseArtifactTest(TestCase):
     def _create_artifact_with_metrics(
         self,
-        app_id="com.example.app",
-        artifact_type=PreprodArtifact.ArtifactType.APK,
-        build_configuration=None,
-        date_added=None,
-        state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-        app_name=None,
-        **kwargs,
-    ):
+        app_id: str = "com.example.app",
+        artifact_type: int = PreprodArtifact.ArtifactType.APK,
+        build_configuration: PreprodBuildConfiguration | None = None,
+        date_added: datetime | None = None,
+        state: int = PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+        app_name: str | None = None,
+        **kwargs: Any,
+    ) -> PreprodArtifact:
         artifact = self.create_preprod_artifact(
             project=self.project,
             app_id=app_id,
@@ -337,7 +343,7 @@ class ArtifactMatchesQuerySnapshotStatusFilterTest(TestCase):
         feature_type: int = PreprodComparisonApproval.FeatureType.SNAPSHOTS,
         status: int = PreprodComparisonApproval.ApprovalStatus.APPROVED,
         with_approval_row: bool = True,
-        extras: dict | None = None,
+        extras: dict[str, object] | None = None,
     ) -> PreprodArtifact:
         artifact = self.create_preprod_artifact(project=self.project)
         if with_approval_row:
@@ -564,4 +570,98 @@ class ArtifactMatchesQuerySnapshotStatusFilterTest(TestCase):
         )
         assert not artifact_matches_query(
             success, "snapshot_status:[pending, failed]", self.organization
+        )
+
+
+class ArtifactMatchesQueryInstallGroupsFilterTest(TestCase):
+    def _create_artifact_with_install_groups(self, groups: list[str]) -> PreprodArtifact:
+        return self.create_preprod_artifact(project=self.project, extras={"install_groups": groups})
+
+    def test_single_value_match(self) -> None:
+        artifact = self._create_artifact_with_install_groups(["beta", "internal"])
+
+        assert artifact_matches_query(artifact, "install_groups:beta", self.organization)
+        assert artifact_matches_query(artifact, "install_groups:internal", self.organization)
+        assert not artifact_matches_query(artifact, "install_groups:production", self.organization)
+
+    def test_in_filter(self) -> None:
+        beta = self._create_artifact_with_install_groups(["beta"])
+        production = self._create_artifact_with_install_groups(["production"])
+
+        assert artifact_matches_query(beta, "install_groups:[beta, internal]", self.organization)
+        assert not artifact_matches_query(
+            production, "install_groups:[beta, internal]", self.organization
+        )
+
+    def test_negation_single(self) -> None:
+        artifact = self._create_artifact_with_install_groups(["beta"])
+
+        assert not artifact_matches_query(artifact, "!install_groups:beta", self.organization)
+        assert artifact_matches_query(artifact, "!install_groups:production", self.organization)
+
+    def test_negation_in_filter(self) -> None:
+        beta = self._create_artifact_with_install_groups(["beta"])
+        production = self._create_artifact_with_install_groups(["production"])
+
+        assert not artifact_matches_query(
+            beta, "!install_groups:[beta, internal]", self.organization
+        )
+        assert artifact_matches_query(
+            production, "!install_groups:[beta, internal]", self.organization
+        )
+
+    def test_null_extras(self) -> None:
+        artifact = self.create_preprod_artifact(project=self.project, extras=None)
+
+        assert not artifact_matches_query(artifact, "install_groups:beta", self.organization)
+        assert artifact_matches_query(artifact, "!install_groups:beta", self.organization)
+
+    def test_missing_key_in_extras(self) -> None:
+        artifact = self.create_preprod_artifact(
+            project=self.project, extras={"other_field": "value"}
+        )
+
+        assert not artifact_matches_query(artifact, "install_groups:beta", self.organization)
+        assert artifact_matches_query(artifact, "!install_groups:beta", self.organization)
+
+    def test_empty_array(self) -> None:
+        artifact = self._create_artifact_with_install_groups([])
+
+        assert not artifact_matches_query(artifact, "install_groups:beta", self.organization)
+
+    def test_has_filter_rejected(self) -> None:
+        artifact = self._create_artifact_with_install_groups(["beta"])
+
+        with pytest.raises(
+            InvalidSearchQuery,
+            match=r"Enter at least one install group\.",
+        ):
+            artifact_matches_query(artifact, "has:install_groups", self.organization)
+
+    def test_empty_quoted_value_rejected(self) -> None:
+        artifact = self._create_artifact_with_install_groups(["beta"])
+
+        with pytest.raises(
+            InvalidSearchQuery,
+            match=r"Enter at least one install group\.",
+        ):
+            artifact_matches_query(artifact, 'install_groups:""', self.organization)
+
+    def test_empty_in_filter_rejected(self) -> None:
+        empty_filter = SearchFilter(
+            key=SearchKey("install_groups"), operator="IN", value=SearchValue([])
+        )
+
+        with pytest.raises(InvalidSearchQuery, match=r"Enter at least one install group\."):
+            apply_filters(PreprodArtifact.objects.get_queryset(), [empty_filter], self.organization)
+
+    def test_multiple_groups_on_artifact(self) -> None:
+        artifact = self._create_artifact_with_install_groups(["beta", "internal", "qa"])
+
+        assert artifact_matches_query(artifact, "install_groups:internal", self.organization)
+        assert artifact_matches_query(
+            artifact, "install_groups:[qa, production]", self.organization
+        )
+        assert not artifact_matches_query(
+            artifact, "!install_groups:[beta, internal]", self.organization
         )

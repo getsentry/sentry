@@ -2,16 +2,16 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
-import {EventsRequest as _EventsRequest} from 'sentry/components/charts/eventsRequest';
+import {EventsRequest} from 'sentry/components/charts/eventsRequest';
 import {getInterval, getPreviousSeriesName} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
+import {useMEPSettingContext} from 'sentry/utils/performance/contexts/useMEPSettingContext';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import {withApi} from 'sentry/utils/withApi';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {Chart as DurationChart} from 'sentry/views/performance/charts/chart';
 import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
@@ -27,7 +27,8 @@ import {
   getMEPQueryParams,
   QUERY_LIMIT_PARAM,
 } from 'sentry/views/performance/landing/widgets/utils';
-import {EAP_QUERY_PARAMS} from 'sentry/views/performance/landing/widgets/widgets/settings';
+
+import {EAP_QUERY_PARAMS} from './settings';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
@@ -35,6 +36,7 @@ type DataType = {
 };
 
 export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
+  const api = useApi();
   const location = useLocation();
   const {InteractiveTitle} = props;
   const globalSelection = props.eventView.getPageFilters();
@@ -60,6 +62,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
       component: provided => (
         <EventsRequest
           {...pick(provided, eventsRequestQueryProps)}
+          api={api}
           includeAllArgs={false}
           limit={1}
           includePrevious
@@ -68,14 +71,11 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
           currentSeriesNames={[field!]}
           previousSeriesNames={[getPreviousSeriesName(field!)]}
           query={provided.eventView.getQueryWithAdditionalConditions()}
-          interval={getInterval(
-            {
-              start: provided.start,
-              end: provided.end,
-              period: provided.period,
-            },
-            'medium'
-          )}
+          interval={getInterval({
+            start: provided.start,
+            end: provided.end,
+            period: provided.period,
+          })}
           hideError
           onError={setPageDanger}
           queryExtras={queryExtras}
@@ -175,8 +175,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
   );
 }
 
-const EventsRequest = withApi(_EventsRequest);
-export const Subtitle = styled('span')`
+const Subtitle = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.md};
 `;

@@ -6,12 +6,13 @@ import {useRenderToString} from '@sentry/scraps/renderToString';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
-import {MarkLine} from 'sentry/components/charts/components/markLine';
+import {markLine as createMarkLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
-import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
+
+import {useIssueDetailsEventView} from './useIssueDetailsDiscoverQuery';
 
 function SeriesRow({
   color,
@@ -124,7 +125,7 @@ export function useCurrentEventMarklineSeries({
           default: theme.tokens.dataviz.semantic.neutral,
         };
 
-    const markLine = MarkLine({
+    const markLine = createMarkLine({
       animation: false,
       lineStyle: {
         color: theme.tokens.graphics.promotion.vibrant,
@@ -132,6 +133,11 @@ export function useCurrentEventMarklineSeries({
       },
       label: {
         show: false,
+      },
+      emphasis: {
+        label: {
+          show: false,
+        },
       },
       data: [
         {

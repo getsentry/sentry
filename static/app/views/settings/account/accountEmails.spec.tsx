@@ -8,9 +8,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import AccountEmails from 'sentry/views/settings/account/accountEmails';
-
-jest.mock('scroll-to-element', () => {});
+import AccountEmails from './accountEmails';
 
 const ENDPOINT = '/users/me/emails/';
 

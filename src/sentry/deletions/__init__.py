@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -33,7 +34,10 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     from sentry.incidents import models as incidents
     from sentry.integrations import models as integrations
     from sentry.monitors import models as monitors
+    from sentry.notebooks import models as notebooks
+    from sentry.notifications import models as notifications
     from sentry.preprod import models as preprod
+    from sentry.seer.models.run import SeerRun
     from sentry.sentry_apps import models as sentry_apps
     from sentry.snuba import models as snuba
     from sentry.uptime import models as uptime
@@ -71,7 +75,6 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(models.GroupRedirect, BulkModelDeletionTask)
     manager.register(models.GroupRelease, BulkModelDeletionTask)
     manager.register(models.GroupResolution, BulkModelDeletionTask)
-    manager.register(models.GroupRuleStatus, BulkModelDeletionTask)
     manager.register(models.GroupSeen, BulkModelDeletionTask)
     manager.register(models.GroupShare, BulkModelDeletionTask)
     manager.register(models.GroupSnooze, BulkModelDeletionTask)
@@ -85,6 +88,7 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(models.ProjectKey, BulkModelDeletionTask)
     manager.register(models.PullRequest, defaults.PullRequestDeletionTask)
     manager.register(models.PullRequestActivity, BulkModelDeletionTask)
+    manager.register(models.PullRequestActivityLog, BulkModelDeletionTask)
     manager.register(models.Release, defaults.ReleaseDeletionTask)
     manager.register(models.ReleaseCommit, BulkModelDeletionTask)
     manager.register(models.ReleaseEnvironment, BulkModelDeletionTask)
@@ -102,11 +106,18 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(discover.DiscoverSavedQuery, defaults.DiscoverSavedQueryDeletionTask)
     manager.register(discover.DiscoverSavedQueryProject, BulkModelDeletionTask)
     manager.register(incidents.AlertRule, defaults.AlertRuleDeletionTask)
-    manager.register(incidents.AlertRuleTrigger, defaults.AlertRuleTriggerDeletionTask)
-    manager.register(incidents.AlertRuleTriggerAction, defaults.AlertRuleTriggerActionDeletionTask)
-    manager.register(incidents.Incident, defaults.IncidentDeletionTask)
+    manager.register(notifications.InboxItem, defaults.InboxItemDeletionTask)
+    manager.register(notifications.InboxItemEvent, BulkModelDeletionTask)
     manager.register(integrations.OrganizationIntegration, defaults.OrganizationIntegrationDeletionTask)
     manager.register(integrations.RepositoryProjectPathConfig, defaults.RepositoryProjectPathConfigDeletionTask)
+    manager.register(notebooks.Notebook, defaults.NotebookDeletionTask)
+    manager.register(notebooks.NotebookBlock, defaults.NotebookBlockDeletionTask)
+    manager.register(notebooks.NotebookBlockExecution, defaults.NotebookBlockExecutionDeletionTask)
+    manager.register(notebooks.NotebookBlockExecutionProject, BulkModelDeletionTask)
+    manager.register(notebooks.NotebookComment, BulkModelDeletionTask)
+    manager.register(notebooks.NotebookFavoriteUser, BulkModelDeletionTask)
+    manager.register(notebooks.NotebookProject, BulkModelDeletionTask)
+    manager.register(notebooks.NotebookSeen, BulkModelDeletionTask)
     manager.register(monitors.Monitor, defaults.MonitorDeletionTask)
     manager.register(monitors.MonitorEnvironment, defaults.MonitorEnvironmentDeletionTask)
     manager.register(monitors.MonitorCheckIn, defaults.MonitorCheckInDeletionTask)
@@ -123,6 +134,7 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(workflow_engine.Workflow, defaults.WorkflowDeletionTask)
     manager.register(uptime.UptimeSubscription, defaults.UptimeSubscriptionDeletionTask)
     manager.register(uptime.UptimeResponseCapture, ModelDeletionTask)
+    manager.register(SeerRun, ModelDeletionTask)
     # fmt: on
 
 
@@ -172,7 +184,7 @@ def exec_sync(instance: Model) -> None:
     return get_manager().exec_sync(instance)
 
 
-def exec_sync_many(instances: list[Model]) -> None:
+def exec_sync_many(instances: Sequence[Model]) -> None:
     """
     Execute a deletion task for multiple records synchronously
 

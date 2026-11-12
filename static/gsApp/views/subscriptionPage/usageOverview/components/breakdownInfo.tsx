@@ -1,14 +1,13 @@
 import {Fragment} from 'react';
 
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {InfoTip} from '@sentry/scraps/info';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils/defined';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {UNLIMITED_RESERVED} from 'getsentry/constants';
 import type {
@@ -21,13 +20,14 @@ import type {
 import {
   checkIsAddOnChildCategory,
   displayBudgetName,
+  displayPriceWithCents,
   formatReservedWithUnits,
+  getLineItemUnitType,
   getSoftCapType,
   hasPaygBudgetForCategory,
   supportsPayg,
 } from 'getsentry/utils/billing';
 import {calculateSeerUserSpend} from 'getsentry/utils/dataCategory';
-import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 interface BaseProps {
   activeProductTrial: ProductTrial | null;
@@ -67,15 +67,15 @@ function UsageBreakdownField({
   help?: React.ReactNode;
 }) {
   return (
-    <Flex direction="column" gap="sm">
+    <Stack gap="sm">
       <Flex gap="sm">
         <Text variant="muted" bold uppercase size="sm">
           {field}
         </Text>
-        {help && <QuestionTooltip title={help} size="xs" />}
+        {help && <InfoTip title={help} size="xs" />}
       </Flex>
       <Text size="lg">{value}</Text>
-    </Flex>
+    </Stack>
   );
 }
 
@@ -119,7 +119,7 @@ function UsageBreakdownInfo({
   return (
     <Grid columns="repeat(2, 1fr)" gap="md lg" padding="xl">
       {shouldShowIncludedVolume && (
-        <Flex direction="column" gap="lg">
+        <Stack gap="lg">
           <Text bold>{t('Included volume')}</Text>
           {activeProductTrial && (
             <UsageBreakdownField field={t('Trial')} value={t('Unlimited')} />
@@ -139,10 +139,10 @@ function UsageBreakdownInfo({
           {formattedGifted && (
             <UsageBreakdownField field={t('Gifted')} value={formattedGifted} />
           )}
-        </Flex>
+        </Stack>
       )}
       {shouldShowAdditionalSpend && (
-        <Flex direction="column" gap="lg">
+        <Stack gap="lg">
           <Text bold>{t('Additional spend')}</Text>
           {formattedSoftCapType && (
             <UsageBreakdownField
@@ -184,7 +184,7 @@ function UsageBreakdownInfo({
             />
           )}
           {formattedOtherSpend}
-        </Flex>
+        </Stack>
       )}
     </Grid>
   );
@@ -196,7 +196,6 @@ function DataCategoryUsageBreakdownInfo({
   metricHistory,
   activeProductTrial,
 }: DataCategoryUsageBreakdownInfoProps) {
-  const organization = useOrganization();
   const {planDetails: plan} = subscription;
   const productCanUsePayg =
     plan.onDemandCategories.includes(category) &&
@@ -209,23 +208,27 @@ function DataCategoryUsageBreakdownInfo({
     : reserved;
   const platformReservedField = tct('[planName] plan', {planName: plan.name});
 
+  const unitType = getLineItemUnitType(plan, category);
   const additionalReserved = Math.max(0, reserved - platformReserved);
   const shouldShowAdditionalReserved = additionalReserved > 0;
   const formattedAdditionalReserved = shouldShowAdditionalReserved
-    ? formatReservedWithUnits(additionalReserved, category)
+    ? formatReservedWithUnits(additionalReserved, category, {unitType})
     : null;
   const formattedPlatformReserved =
     reserved > 0
       ? formatReservedWithUnits(
           shouldShowAdditionalReserved ? platformReserved : reserved,
-          category
+          category,
+          {unitType}
         )
       : reserved === UNLIMITED_RESERVED
         ? t('Unlimited')
         : null;
 
   const gifted = metricHistory.free ?? 0;
-  const formattedGifted = gifted ? formatReservedWithUnits(gifted, category) : null;
+  const formattedGifted = gifted
+    ? formatReservedWithUnits(gifted, category, {unitType})
+    : null;
 
   const paygSpend = metricHistory.onDemandSpendUsed ?? 0;
   const paygCategoryBudget = metricHistory.onDemandBudget ?? 0;
@@ -238,7 +241,6 @@ function DataCategoryUsageBreakdownInfo({
 
   const otherSpend = calculateSeerUserSpend(metricHistory);
 
-  const hasGitLabSupport = organization.features.includes('seer-gitlab-support');
   const formattedOtherSpend =
     otherSpend > 0 ? (
       <UsageBreakdownField
@@ -246,15 +248,9 @@ function DataCategoryUsageBreakdownInfo({
         value={displayPriceWithCents({
           cents: otherSpend,
         })}
-        help={
-          hasGitLabSupport
-            ? t(
-                'An active contributor is anyone who opens 2 or more PRs in a connected GitHub or GitLab repository. Count resets each month.'
-              )
-            : t(
-                'An active contributor is anyone who opens 2 or more PRs in a connected GitHub repository. Count resets each month.'
-              )
-        }
+        help={t(
+          'An active contributor is anyone who opens 2 or more PRs in a connected GitHub or GitLab repository. Count resets each month.'
+        )}
       />
     ) : undefined;
 

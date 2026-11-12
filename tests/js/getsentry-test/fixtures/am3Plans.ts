@@ -55,63 +55,6 @@ const AM3_CATEGORY_DISPLAY_NAMES = {
   },
 };
 
-const AM3_FREE_FEATURES = [
-  'advanced-search',
-  'event-attachments',
-  'performance-view',
-  'integrations-stacktrace-link',
-  'session-replay',
-  'monitor-seat-billing',
-  'spans-usage-tracking',
-  'continuous-profiling-stats',
-  'user-spend-notifications-settings',
-  'profiling-view',
-  'uptime',
-];
-
-const AM3_TEAM_FEATURES = [
-  ...AM3_FREE_FEATURES,
-  'crash-rate-alerts',
-  'discover-basic',
-  'incidents',
-  'integrations-issue-basic',
-  'integrations-issue-sync',
-  'integrations-alert-rule',
-  'integrations-chat-unfurl',
-  'integrations-incident-management',
-  'sso-basic',
-  'weekly-reports',
-  'seer-billing',
-];
-
-const AM3_BUSINESS_FEATURES = [
-  ...AM3_TEAM_FEATURES,
-  'anomaly-detection-alerts',
-  'baa',
-  'change-alerts',
-  'custom-inbound-filters',
-  'custom-symbol-sources',
-  'data-forwarding',
-  'discard-groups',
-  'discover-query',
-  'indexed-spans-extraction',
-  'insight-modules',
-  'integrations-codeowners',
-  'integrations-enterprise-alert-rule',
-  'integrations-enterprise-incident-management',
-  'integrations-event-hooks',
-  'integrations-ticket-rules',
-  'rate-limits',
-  'relay',
-  'sso-saml2',
-  'team-insights',
-  'team-roles',
-];
-
-const AM3_TRIAL_FEATURES = AM3_BUSINESS_FEATURES.filter(
-  feature => feature !== 'sso-saml2' && feature !== 'baa'
-);
-
 export const LEGACY_SEER_TIERS_DEVELOPER = {
   seerAutofix: [
     {
@@ -248,7 +191,6 @@ export const AM3_PLANS = {
     maxMembers: null,
     retentionDays: 90,
     userSelectable: true,
-    features: AM3_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
     allowOnDemand: true,
     dashboardLimit: -1,
@@ -975,7 +917,6 @@ export const AM3_PLANS = {
     maxMembers: null,
     retentionDays: 90,
     userSelectable: true,
-    features: AM3_BUSINESS_FEATURES,
     billingInterval: ANNUAL,
     allowOnDemand: true,
     planCategories: {
@@ -1486,7 +1427,6 @@ export const AM3_PLANS = {
     maxMembers: null,
     retentionDays: 90,
     userSelectable: false,
-    features: AM3_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
     allowOnDemand: true,
     planCategories: {
@@ -1595,7 +1535,6 @@ export const AM3_PLANS = {
     maxMembers: null,
     retentionDays: 90,
     userSelectable: false,
-    features: AM3_BUSINESS_FEATURES,
     billingInterval: ANNUAL,
     allowOnDemand: true,
     planCategories: {
@@ -1704,7 +1643,6 @@ export const AM3_PLANS = {
     maxMembers: 1,
     retentionDays: 30,
     userSelectable: true,
-    features: AM3_FREE_FEATURES,
     billingInterval: MONTHLY,
     allowOnDemand: false,
     planCategories: {
@@ -1813,7 +1751,6 @@ export const AM3_PLANS = {
     maxMembers: null,
     retentionDays: 90,
     userSelectable: false,
-    features: AM3_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
     allowOnDemand: false,
     planCategories: {
@@ -1922,7 +1859,6 @@ export const AM3_PLANS = {
     maxMembers: null,
     retentionDays: 90,
     userSelectable: true,
-    features: AM3_TEAM_FEATURES,
     billingInterval: MONTHLY,
     allowOnDemand: true,
     dashboardLimit: 20,
@@ -2433,7 +2369,6 @@ export const AM3_PLANS = {
     maxMembers: null,
     retentionDays: 90,
     userSelectable: true,
-    features: AM3_TEAM_FEATURES,
     billingInterval: ANNUAL,
     allowOnDemand: true,
     dashboardLimit: 20,
@@ -2944,7 +2879,6 @@ export const AM3_PLANS = {
     maxMembers: 20,
     retentionDays: 90,
     userSelectable: false,
-    features: AM3_TRIAL_FEATURES,
     billingInterval: MONTHLY,
     allowOnDemand: false,
     dashboardLimit: 20,

@@ -1,14 +1,12 @@
 import {Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
 
-import {AnnotatedValue} from 'sentry/components/structuredEventData/annotatedValue';
-import {CollapsibleValue} from 'sentry/components/structuredEventData/collapsibleValue';
-import {LinkHint} from 'sentry/components/structuredEventData/linkHint';
-import {
-  looksLikeStrippedValue,
-  naturalCaseInsensitiveSort,
-} from 'sentry/components/structuredEventData/utils';
 import {containsCRLF} from 'sentry/utils/string/containsCRLF';
+
+import {AnnotatedValue} from './annotatedValue';
+import {CollapsibleValue} from './collapsibleValue';
+import {LinkHint} from './linkHint';
+import {looksLikeStrippedValue, naturalCaseInsensitiveSort} from './utils';
 
 type Config = {
   isBoolean?: (value: unknown) => boolean;
@@ -57,29 +55,27 @@ export function RecursiveStructuredData({
       </Fragment>
     );
 
-  function Wrapper({children}: {children: React.ReactNode}) {
+  if (config?.isNull?.(value) || value === null) {
+    const nullValue = config?.renderNull?.(value) ?? String(value);
+    const metaEntry: Record<string, any> | undefined = meta?.[''] ?? meta;
+    const isRedacted = !!(
+      withAnnotatedText &&
+      metaEntry &&
+      (metaEntry.rem?.length || metaEntry.err?.length || metaEntry.chunks?.length)
+    );
+
     return (
       <Fragment>
         {formattedObjectKey}
-        {children}
-      </Fragment>
-    );
-  }
-
-  if (config?.isNull?.(value) || value === null) {
-    const nullValue = config?.renderNull?.(value) ?? String(value);
-
-    return (
-      <Wrapper>
         <ValueNull data-test-id="value-null">
           <AnnotatedValue
-            value={nullValue}
+            value={isRedacted ? null : nullValue}
             meta={meta}
             withAnnotatedText={withAnnotatedText}
             withOnlyFormattedText={withOnlyFormattedText}
           />
         </ValueNull>
-      </Wrapper>
+      </Fragment>
     );
   }
 
@@ -87,7 +83,8 @@ export function RecursiveStructuredData({
     const booleanValue = config?.renderBoolean?.(value) ?? String(value);
 
     return (
-      <Wrapper>
+      <Fragment>
+        {formattedObjectKey}
         <ValueBoolean data-test-id="value-boolean">
           <AnnotatedValue
             value={booleanValue}
@@ -96,13 +93,14 @@ export function RecursiveStructuredData({
             withOnlyFormattedText={withOnlyFormattedText}
           />
         </ValueBoolean>
-      </Wrapper>
+      </Fragment>
     );
   }
 
   if (typeof value === 'number' || config?.isNumber?.(value)) {
     return (
-      <Wrapper>
+      <Fragment>
+        {formattedObjectKey}
         <ValueNumber data-test-id="value-number">
           <AnnotatedValue
             value={value}
@@ -111,7 +109,7 @@ export function RecursiveStructuredData({
             withOnlyFormattedText={withOnlyFormattedText}
           />
         </ValueNumber>
-      </Wrapper>
+      </Fragment>
     );
   }
 
@@ -120,7 +118,8 @@ export function RecursiveStructuredData({
       const stringValue = config.renderString?.(value) ?? value;
 
       return (
-        <Wrapper>
+        <Fragment>
+          {formattedObjectKey}
           <ValueString data-test-id="value-string">
             {'"'}
             <AnnotatedValue
@@ -132,13 +131,14 @@ export function RecursiveStructuredData({
             {'"'}
             <LinkHint meta={meta} value={stringValue} />
           </ValueString>
-        </Wrapper>
+        </Fragment>
       );
     }
 
     if (looksLikeStrippedValue(value)) {
       return (
-        <Wrapper>
+        <Fragment>
+          {formattedObjectKey}
           <ValueStrippedString>
             <AnnotatedValue
               value={value}
@@ -147,13 +147,14 @@ export function RecursiveStructuredData({
               withOnlyFormattedText={withOnlyFormattedText}
             />
           </ValueStrippedString>
-        </Wrapper>
+        </Fragment>
       );
     }
 
     if (containsCRLF(value)) {
       return (
-        <Wrapper>
+        <Fragment>
+          {formattedObjectKey}
           <ValueMultiLineString data-test-id="value-multiline-string">
             <AnnotatedValue
               value={value}
@@ -162,12 +163,13 @@ export function RecursiveStructuredData({
               withOnlyFormattedText={withOnlyFormattedText}
             />
           </ValueMultiLineString>
-        </Wrapper>
+        </Fragment>
       );
     }
 
     return (
-      <Wrapper>
+      <Fragment>
+        {formattedObjectKey}
         <span data-test-id="value-unformatted">
           <AnnotatedValue
             value={value}
@@ -177,7 +179,7 @@ export function RecursiveStructuredData({
           />
           <LinkHint meta={meta} value={value} />
         </span>
-      </Wrapper>
+      </Fragment>
     );
   }
 
@@ -185,6 +187,7 @@ export function RecursiveStructuredData({
 
   if (Array.isArray(value)) {
     const containerLen = getTotalChildrenFromMeta(meta);
+    // oxlint-disable-next-line react/todo
     for (i = 0; i < value.length; i++) {
       children.push(
         <div key={i}>
@@ -218,6 +221,7 @@ export function RecursiveStructuredData({
 
   const keys = Object.keys(value);
   keys.sort(naturalCaseInsensitiveSort);
+  // oxlint-disable-next-line react/todo
   for (i = 0; i < keys.length; i++) {
     const key = keys[i]!;
 

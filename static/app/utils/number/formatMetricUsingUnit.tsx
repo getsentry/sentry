@@ -13,7 +13,8 @@ import {
   SECOND,
   WEEK,
 } from 'sentry/utils/formatters';
-import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
+
+import {formatNumberWithDynamicDecimalPoints} from './formatNumberWithDynamicDecimalPoints';
 
 function formatDuration(seconds: number): string {
   if (!seconds) {
@@ -87,8 +88,8 @@ const formattingSupportedMetricUnits = {
   bytes: 'B',
   kibibyte: 'KiB',
   kibibytes: 'KiB',
-  kilobyte: 'KB',
-  kilobytes: 'KB',
+  kilobyte: 'kB',
+  kilobytes: 'kB',
   mebibyte: 'MiB',
   mebibytes: 'MiB',
   megabyte: 'MB',

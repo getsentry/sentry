@@ -3,20 +3,19 @@ import {useQuery} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilters, PageFilterDatetime} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useHasMetricUnitsUI} from 'sentry/views/explore/metrics/hooks/useHasMetricUnitsUI';
 import {
   TraceMetricKnownFieldKey,
   type TraceMetricEventsResult,
 } from 'sentry/views/explore/metrics/types';
 
 interface UseMetricOptionsProps {
-  datetime?: PageFilters['datetime'];
+  datetime?: PageFilterDatetime;
   enabled?: boolean;
   environments?: PageFilters['environments'];
   orgSlug?: string;
@@ -30,18 +29,14 @@ function metricOptionsQueryKey({
   datetime,
   search,
   environments,
-  hasMetricUnitsUI,
-}: UseMetricOptionsProps & {hasMetricUnitsUI?: boolean} = {}) {
+}: UseMetricOptionsProps = {}) {
   const queryFields = [
     TraceMetricKnownFieldKey.METRIC_NAME,
     TraceMetricKnownFieldKey.METRIC_TYPE,
     `count(${TraceMetricKnownFieldKey.METRIC_NAME})`,
     `max(${TraceMetricKnownFieldKey.TIMESTAMP_PRECISE})`,
+    TraceMetricKnownFieldKey.METRIC_UNIT,
   ];
-
-  if (hasMetricUnitsUI) {
-    queryFields.push(TraceMetricKnownFieldKey.METRIC_UNIT);
-  }
 
   let searchValue: MutableSearch | undefined;
   if (search) {
@@ -90,7 +85,6 @@ export function useMetricOptions({
 }: UseMetricOptionsProps = {}) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const hasMetricUnitsUI = useHasMetricUnitsUI();
 
   const {
     data: result,
@@ -103,7 +97,6 @@ export function useMetricOptions({
       projectIds: projectIds ?? selection.projects,
       datetime: datetime ?? selection.datetime,
       environments: environments ?? selection.environments,
-      hasMetricUnitsUI,
     }),
 
     refetchOnWindowFocus: false,
@@ -123,7 +116,7 @@ export function useMetricOptions({
           b[TraceMetricKnownFieldKey.METRIC_NAME]
         )
       );
-  }, [result?.data]);
+  }, [result]);
 
   const isMetricOptionsEmpty =
     !isFetching && !isLoading && (!filteredData || filteredData.length === 0);

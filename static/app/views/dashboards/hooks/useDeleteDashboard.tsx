@@ -1,8 +1,9 @@
 import {useCallback} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 
+import {toast} from '@sentry/scraps/toast';
+
 import {deleteDashboard as deleteDashboardAction} from 'sentry/actionCreators/dashboards';
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApi} from 'sentry/utils/useApi';
@@ -19,7 +20,7 @@ export function useDeleteDashboard({onSuccess}: UseDeleteDashboardProps) {
   const queryClient = useQueryClient();
 
   const deleteDashboard = useCallback(
-    (dashboard: DashboardListItem, viewType: 'table' | 'grid') => {
+    (dashboard: DashboardListItem, viewType: 'table') => {
       deleteDashboardAction(api, dashboard.id, queryClient, organization)
         .then(() => {
           trackAnalytics('dashboards_manage.delete', {
@@ -28,10 +29,10 @@ export function useDeleteDashboard({onSuccess}: UseDeleteDashboardProps) {
             view_type: viewType,
           });
           onSuccess();
-          addSuccessMessage(t('Dashboard deleted'));
+          toast.success(t('Dashboard deleted'));
         })
         .catch(() => {
-          addErrorMessage(t('Error deleting Dashboard'));
+          toast.error(t('Error deleting Dashboard'));
         });
     },
     [api, organization, queryClient, onSuccess]

@@ -2,9 +2,10 @@ import {GroupFixture} from 'sentry-fixture/group';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {GroupTitle} from 'sentry/components/groupTitle';
 import {EventOrGroupType} from 'sentry/types/event';
 import {IssueCategory} from 'sentry/types/group';
+
+import {GroupTitle} from './groupTitle';
 
 describe('GroupTitle', () => {
   const data = {
@@ -54,6 +55,21 @@ describe('GroupTitle', () => {
     );
 
     expect(screen.getByText('metadata title')).toBeInTheDocument();
+  });
+
+  it('renders colored text without escape codes when given an ANSI title', () => {
+    const type = '\x1B[31mValueError\x1B[0m raised';
+
+    render(
+      <GroupTitle
+        data={GroupFixture({...data, type: EventOrGroupType.ERROR, metadata: {type}})}
+      />
+    );
+
+    expect(screen.getByText('ValueError').style.color).toContain('color-mix(in srgb,');
+    expect(screen.getByText('ValueError').parentElement).toHaveTextContent(
+      /^ValueError raised$/
+    );
   });
 
   it('does not render stack trace when issueCategory is performance', () => {

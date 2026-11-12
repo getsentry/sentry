@@ -1,5 +1,6 @@
 import uuid
 from dataclasses import asdict
+from typing import cast
 from unittest import mock
 
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
@@ -11,6 +12,7 @@ from sentry.incidents.typings.metric_detector import (
     OpenPeriodContext,
 )
 from sentry.models.activity import Activity
+from sentry.models.organization import Organization
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.metric_alert_registry import (
     OpsgenieMetricAlertHandler,
@@ -22,8 +24,15 @@ from tests.sentry.notifications.notification_action.test_metric_alert_registry_h
     MetricAlertHandlerBase,
 )
 
+_UnpackedSendAlert = tuple[
+    NotificationContext, AlertContext, MetricIssueContext, OpenPeriodContext, Organization, str
+]
+
 
 class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
+    def unpack_kwargs(self, mock_send_alert: mock.MagicMock) -> _UnpackedSendAlert:
+        return cast(_UnpackedSendAlert, super().unpack_kwargs(mock_send_alert))
+
     def setUp(self) -> None:
         self.create_models()
         self.action = self.create_action(
@@ -62,8 +71,8 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
             metric_issue_context=metric_issue_context,
             open_period_context=open_period_context,
             trigger_status=TriggerStatus.ACTIVE,
-            project=self.detector.project,
-            organization=self.detector.project.organization,
+            project=self.detector.linked_project,
+            organization=self.detector.linked_project.organization,
             notification_uuid=notification_uuid,
         )
 
@@ -71,7 +80,7 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
             notification_context=notification_context,
             alert_context=alert_context,
             metric_issue_context=metric_issue_context,
-            organization=self.detector.project.organization,
+            organization=self.detector.linked_project.organization,
             notification_uuid=notification_uuid,
         )
 
@@ -111,6 +120,8 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
             target_display=None,
             sentry_app_config={"priority": "P1"},
             sentry_app_id=None,
+            workflow_id=self.workflow.id,
+            workflow_name=self.workflow.name,
         )
 
         self.assert_alert_context(
@@ -141,7 +152,7 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
             date_closed=None,
         )
 
-        assert organization == self.detector.project.organization
+        assert organization == self.detector.linked_project.organization
         assert isinstance(notification_uuid, str)
 
     @mock.patch(
@@ -196,6 +207,8 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
             target_display=None,
             sentry_app_config={"priority": "P1"},
             sentry_app_id=None,
+            workflow_id=self.workflow.id,
+            workflow_name=self.workflow.name,
         )
 
         self.assert_alert_context(
@@ -226,5 +239,5 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
             date_closed=None,
         )
 
-        assert organization == self.detector.project.organization
+        assert organization == self.detector.linked_project.organization
         assert isinstance(notification_uuid, str)

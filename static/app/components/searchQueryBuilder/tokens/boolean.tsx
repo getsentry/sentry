@@ -5,30 +5,28 @@ import {useFocusWithin} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
+import {IconClose} from '@sentry/icons/close';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {
   useSearchQueryBuilderConfig,
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
-import {
-  BaseGridCell,
-  FilterWrapper,
-} from 'sentry/components/searchQueryBuilder/tokens/components';
-import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
-import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
-import {GridInvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
 import type {
   ParseResultToken,
   Token,
   TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
+
+import {UnstyledButton} from './filter/unstyledButton';
+import {useFilterButtonProps} from './filter/useFilterButtonProps';
+import {BaseGridCell, FilterWrapper} from './components';
+import {GridInvalidTokenTooltip} from './invalidTokenTooltip';
 
 type SearchQueryBuilderBooleanProps = {
   item: Node<ParseResultToken>;
@@ -88,6 +86,7 @@ export function SearchQueryBuilderBoolean({
     }
   };
 
+  // oxlint-disable-next-line react/refs
   const modifiedRowProps = mergeProps(rowProps, {
     tabIndex: item.key === state.selectionManager.focusedKey ? 0 : -1,
     onKeyDown,

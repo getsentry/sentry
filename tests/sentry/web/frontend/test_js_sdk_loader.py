@@ -2,6 +2,7 @@ from functools import cached_property
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
+import responses
 from django.test import override_settings
 from django.urls import reverse
 
@@ -21,8 +22,17 @@ from sentry.utils import json
 )
 class JavaScriptSdkLoaderTest(TestCase):
     @cached_property
+    def public_key(self) -> str:
+        assert self.projectkey.public_key is not None
+        return self.projectkey.public_key
+
+    @cached_property
     def path(self) -> str:
-        return reverse("sentry-js-sdk-loader", args=[self.projectkey.public_key])
+        return reverse("sentry-js-sdk-loader", args=[self.public_key])
+
+    @cached_property
+    def min_path(self) -> str:
+        return reverse("sentry-js-sdk-loader", args=[self.public_key, ".min"])
 
     def test_noop_no_pub_key(self) -> None:
         resp = self.client.get(reverse("sentry-js-sdk-loader", args=["abc"]))
@@ -31,7 +41,7 @@ class JavaScriptSdkLoaderTest(TestCase):
 
     @override_settings(JS_SDK_LOADER_DEFAULT_SDK_URL="")
     def test_noop(self) -> None:
-        resp = self.client.get(reverse("sentry-js-sdk-loader", args=[self.projectkey.public_key]))
+        resp = self.client.get(reverse("sentry-js-sdk-loader", args=[self.public_key]))
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/js-sdk-loader-noop.js.tmpl")
 
@@ -40,7 +50,7 @@ class JavaScriptSdkLoaderTest(TestCase):
         JS_SDK_LOADER_DEFAULT_SDK_URL="https://s3.amazonaws.com/getsentry-cdn/@sentry/browser/0.0.0/bundle.min.js",
     )
     def test_no_replace(self) -> None:
-        resp = self.client.get(reverse("sentry-js-sdk-loader", args=[self.projectkey.public_key]))
+        resp = self.client.get(reverse("sentry-js-sdk-loader", args=[self.public_key]))
         assert resp.status_code == 200
         assert (
             b"https://s3.amazonaws.com/getsentry-cdn/@sentry/browser/0.0.0/bundle.min.js"
@@ -52,18 +62,16 @@ class JavaScriptSdkLoaderTest(TestCase):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
-        assert self.projectkey.public_key.encode("utf-8") in resp.content
+        assert self.public_key.encode("utf-8") in resp.content
         assert b"bundle.min.js" in resp.content
 
     def test_minified(self) -> None:
         resp = self.client.get(self.path)
         assert resp.status_code == 200
-        min_resp = self.client.get(
-            reverse("sentry-js-sdk-loader", args=[self.projectkey.public_key, ".min"])
-        )
+        min_resp = self.client.get(reverse("sentry-js-sdk-loader", args=[self.public_key, ".min"]))
         assert min_resp.status_code == 200
         self.assertTemplateUsed(min_resp, "sentry/js-sdk-loader.min.js.tmpl")
-        assert self.projectkey.public_key.encode("utf-8") in min_resp.content
+        assert self.public_key.encode("utf-8") in min_resp.content
         assert b"bundle.min.js" in min_resp.content
         assert len(resp.content) > len(min_resp.content)
 
@@ -77,8 +85,8 @@ class JavaScriptSdkLoaderTest(TestCase):
         JS_SDK_LOADER_DEFAULT_SDK_URL="https://browser.sentry-cdn.com/%s/bundle%s.min.js"
     )
     def test_less_than_v7_returns_es6(
-        self, load_version_from_file, get_selected_browser_sdk_version
-    ):
+        self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
+    ) -> None:
         self.projectkey.data = {}
         self.projectkey.save()
         resp = self.client.get(self.path)
@@ -96,8 +104,8 @@ class JavaScriptSdkLoaderTest(TestCase):
         JS_SDK_LOADER_DEFAULT_SDK_URL="https://browser.sentry-cdn.com/%s/bundle%s.min.js"
     )
     def test_equal_to_v7_returns_es5(
-        self, load_version_from_file, get_selected_browser_sdk_version
-    ):
+        self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
+    ) -> None:
         self.projectkey.data = {}
         self.projectkey.save()
         resp = self.client.get(self.path)
@@ -113,8 +121,8 @@ class JavaScriptSdkLoaderTest(TestCase):
         JS_SDK_LOADER_DEFAULT_SDK_URL="https://browser.sentry-cdn.com/%s/bundle%s.min.js"
     )
     def test_greater_than_v7_returns_es5(
-        self, load_version_from_file, get_selected_browser_sdk_version
-    ):
+        self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
+    ) -> None:
         self.projectkey.data = {}
         self.projectkey.save()
         resp = self.client.get(self.path)
@@ -130,8 +138,8 @@ class JavaScriptSdkLoaderTest(TestCase):
         JS_SDK_LOADER_DEFAULT_SDK_URL="https://browser.sentry-cdn.com/%s/bundle%s.min.js"
     )
     def test_returns_es6_with_defaults(
-        self, load_version_from_file, get_selected_browser_sdk_version
-    ):
+        self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
+    ) -> None:
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
@@ -148,8 +156,8 @@ class JavaScriptSdkLoaderTest(TestCase):
         JS_SDK_LOADER_DEFAULT_SDK_URL="https://browser.sentry-cdn.com/%s/bundle%s.min.js"
     )
     def test_returns_latest_pre_v8_version_when_latest_is_selected(
-        self, load_version_from_file, get_selected_browser_sdk_version
-    ):
+        self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
+    ) -> None:
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
@@ -166,8 +174,8 @@ class JavaScriptSdkLoaderTest(TestCase):
         JS_SDK_LOADER_DEFAULT_SDK_URL="https://browser.sentry-cdn.com/%s/bundle%s.min.js"
     )
     def test_returns_latest_pre_v8_version_when_latest_is_selected_with_no_available_v7_version(
-        self, load_version_from_file, get_selected_browser_sdk_version
-    ):
+        self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
+    ) -> None:
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
@@ -184,8 +192,8 @@ class JavaScriptSdkLoaderTest(TestCase):
         JS_SDK_LOADER_DEFAULT_SDK_URL="https://browser.sentry-cdn.com/%s/bundle%s.min.js"
     )
     def test_returns_latest_pre_v8_version_when_latest_is_selected_various_v8_versions_available(
-        self, load_version_from_file, get_selected_browser_sdk_version
-    ):
+        self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
+    ) -> None:
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
@@ -202,8 +210,8 @@ class JavaScriptSdkLoaderTest(TestCase):
         JS_SDK_LOADER_DEFAULT_SDK_URL="https://browser.sentry-cdn.com/%s/bundle%s.min.js"
     )
     def test_equal_to_v8_returns_default_bundle(
-        self, load_version_from_file, get_selected_browser_sdk_version
-    ):
+        self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
+    ) -> None:
         self.projectkey.data = {}
         self.projectkey.save()
         resp = self.client.get(self.path)
@@ -222,8 +230,8 @@ class JavaScriptSdkLoaderTest(TestCase):
         JS_SDK_LOADER_DEFAULT_SDK_URL="https://browser.sentry-cdn.com/%s/bundle%s.min.js"
     )
     def test_returns_latest_v8_version_when_various_v8_versions_available(
-        self, load_version_from_file, get_selected_browser_sdk_version
-    ):
+        self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
+    ) -> None:
         self.projectkey.data = {}
         self.projectkey.save()
         resp = self.client.get(self.path)
@@ -435,6 +443,45 @@ class JavaScriptSdkLoaderTest(TestCase):
             self.projectkey.data = {}
             self.projectkey.save()
 
+    @mock.patch("sentry.loader.browsersdkversion.load_version_from_file", return_value=["7.120.3"])
+    @mock.patch(
+        "sentry.loader.browsersdkversion.get_selected_browser_sdk_version", return_value="7.x"
+    )
+    def test_queues_configure_scope_before_v8(
+        self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
+    ) -> None:
+        for path in (self.path, self.min_path):
+            resp = self.client.get(path)
+            assert resp.status_code == 200
+            assert b'"configureScope"' in resp.content
+            assert b'"captureException"' in resp.content
+
+    @mock.patch("sentry.loader.browsersdkversion.load_version_from_file", return_value=["8.0.0"])
+    @mock.patch(
+        "sentry.loader.browsersdkversion.get_selected_browser_sdk_version", return_value="8.x"
+    )
+    def test_does_not_queue_configure_scope_from_v8_0_0_on(
+        self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
+    ) -> None:
+        for path in (self.path, self.min_path):
+            resp = self.client.get(path)
+            assert resp.status_code == 200
+            assert b"configureScope" not in resp.content
+            assert b'"captureException"' in resp.content
+
+    @mock.patch("sentry.loader.browsersdkversion.load_version_from_file", return_value=["8.11.1"])
+    @mock.patch(
+        "sentry.loader.browsersdkversion.get_selected_browser_sdk_version", return_value="8.x"
+    )
+    def test_does_not_queue_configure_scope_from_in_v8(
+        self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
+    ) -> None:
+        for path in (self.path, self.min_path):
+            resp = self.client.get(path)
+            assert resp.status_code == 200
+            assert b"configureScope" not in resp.content
+            assert b'"captureException"' in resp.content
+
     @patch("sentry.loader.browsersdkversion.load_version_from_file")
     def test_headers(self, mock_load_version_from_file: MagicMock) -> None:
         #  We want to always load the major version here since otherwise we fall back to
@@ -458,12 +505,12 @@ class JavaScriptSdkLoaderTest(TestCase):
 
     def test_absolute_url(self) -> None:
         assert (
-            reverse("sentry-js-sdk-loader", args=[self.projectkey.public_key, ".min"])
+            reverse("sentry-js-sdk-loader", args=[self.public_key, ".min"])
             in self.projectkey.js_sdk_loader_cdn_url
         )
         with self.settings(JS_SDK_LOADER_CDN_URL="https://js.sentry-cdn.com/"):
             assert (
-                "https://js.sentry-cdn.com/%s.min.js" % self.projectkey.public_key
+                "https://js.sentry-cdn.com/%s.min.js" % self.public_key
             ) == self.projectkey.js_sdk_loader_cdn_url
 
     @mock.patch("sentry.loader.browsersdkversion.load_version_from_file", return_value=["10.0.0"])
@@ -642,6 +689,34 @@ class JavaScriptSdkLoaderTest(TestCase):
             self.projectkey.data = {}
             self.projectkey.save()
 
+    @mock.patch("sentry.loader.browsersdkversion.load_version_from_file", return_value=["11.0.0"])
+    @mock.patch(
+        "sentry.loader.browsersdkversion.get_selected_browser_sdk_version", return_value="11.x"
+    )
+    @override_settings(
+        JS_SDK_LOADER_DEFAULT_SDK_URL="https://browser.sentry-cdn.com/%s/bundle%s.min.js",
+        JS_SDK_LOADER_SDK_VERSION="11.0.0",
+    )
+    def test_v11_logs_and_metrics_omit_enable_logs(
+        self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
+    ) -> None:
+        for enabled, expected_bundle in [
+            (True, b"/11.0.0/bundle.logs.metrics.min.js"),
+            (False, b"/11.0.0/bundle.min.js"),
+        ]:
+            self.projectkey.data = {
+                "dynamicSdkLoaderOptions": {
+                    DynamicSdkLoaderOption.HAS_LOGS_AND_METRICS.value: enabled,
+                }
+            }
+            self.projectkey.save()
+
+            for path in (self.path, self.min_path):
+                resp = self.client.get(path)
+                assert resp.status_code == 200
+                assert expected_bundle in resp.content
+                assert b"enableLogs" not in resp.content
+
     @mock.patch("sentry.loader.browsersdkversion.load_version_from_file", return_value=["9.99.0"])
     @mock.patch(
         "sentry.loader.browsersdkversion.get_selected_browser_sdk_version", return_value="9.x"
@@ -713,16 +788,17 @@ class JavaScriptSdkLoaderProxyTest(ApiGatewayTestCase):
 
         return project_key
 
+    @responses.activate
     def test_proxy_js_sdk_loader(self) -> None:
         project_key = self._create_project_key_with_mapping()
-        self.httpx_router.add(
-            "GET",
+        responses.add(
+            responses.GET,
             f"{self.CELL.address}/js-sdk-loader/{project_key.public_key}.js",
-            json_data={"proxy": True, "public_key": project_key.public_key},
+            json={"proxy": True, "public_key": project_key.public_key},
         )
         with (
             override_settings(MIDDLEWARE=tuple(self.middleware), ROOT_URLCONF="sentry.web.urls"),
-            mock.patch("sentry.hybridcloud.apigateway_async.apigateway.metrics") as mock_metrics,
+            mock.patch("sentry.hybridcloud.apigateway.apigateway.metrics") as mock_metrics,
         ):
             resp = self.client.get(f"/js-sdk-loader/{project_key.public_key}.js")
             assert resp.status_code == 200
@@ -737,16 +813,17 @@ class JavaScriptSdkLoaderProxyTest(ApiGatewayTestCase):
                 },
             )
 
+    @responses.activate
     def test_proxy_js_sdk_loader_minified(self) -> None:
         project_key = self._create_project_key_with_mapping()
-        self.httpx_router.add(
-            "GET",
+        responses.add(
+            responses.GET,
             f"{self.CELL.address}/js-sdk-loader/{project_key.public_key}.min.js",
-            json_data={"proxy": True},
+            json={"proxy": True},
         )
         with (
             override_settings(MIDDLEWARE=tuple(self.middleware), ROOT_URLCONF="sentry.web.urls"),
-            mock.patch("sentry.hybridcloud.apigateway_async.apigateway.metrics") as mock_metrics,
+            mock.patch("sentry.hybridcloud.apigateway.apigateway.metrics") as mock_metrics,
         ):
             resp = self.client.get(f"/js-sdk-loader/{project_key.public_key}.min.js")
             assert resp.status_code == 200
@@ -761,16 +838,17 @@ class JavaScriptSdkLoaderProxyTest(ApiGatewayTestCase):
                 },
             )
 
+    @responses.activate
     def test_proxy_js_sdk_loader_no_mapping_falls_through_to_regionpin(self) -> None:
         unmapped_key = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"
-        self.httpx_router.add(
-            "GET",
+        responses.add(
+            responses.GET,
             f"{self.CELL.address}/js-sdk-loader/{unmapped_key}.js",
-            json_data={"proxy": True, "fallback": True},
+            json={"proxy": True, "fallback": True},
         )
         with (
             override_settings(MIDDLEWARE=tuple(self.middleware), ROOT_URLCONF="sentry.web.urls"),
-            mock.patch("sentry.hybridcloud.apigateway_async.apigateway.metrics") as mock_metrics,
+            mock.patch("sentry.hybridcloud.apigateway.apigateway.metrics") as mock_metrics,
         ):
             resp = self.client.get(f"/js-sdk-loader/{unmapped_key}.js")
             assert resp.status_code == 200
@@ -796,15 +874,16 @@ class JavaScriptSdkLoaderProxyTest(ApiGatewayTestCase):
                 ),
             ) not in incr_calls
 
+    @responses.activate
     def test_proxy_js_sdk_loader_invalid_key_falls_through_to_regionpin(self) -> None:
-        self.httpx_router.add(
-            "GET",
+        responses.add(
+            responses.GET,
             f"{self.CELL.address}/js-sdk-loader/nonexistent_key.js",
-            json_data={"proxy": True, "fallback": True},
+            json={"proxy": True, "fallback": True},
         )
         with (
             override_settings(MIDDLEWARE=tuple(self.middleware), ROOT_URLCONF="sentry.web.urls"),
-            mock.patch("sentry.hybridcloud.apigateway_async.apigateway.metrics") as mock_metrics,
+            mock.patch("sentry.hybridcloud.apigateway.apigateway.metrics") as mock_metrics,
         ):
             resp = self.client.get("/js-sdk-loader/nonexistent_key.js")
             assert resp.status_code == 200

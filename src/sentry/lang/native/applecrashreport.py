@@ -1,7 +1,8 @@
 import posixpath
 from collections.abc import Mapping
+from typing import Any
 
-import sentry_sdk
+from sentry_sdk import traces
 from symbolic.common import parse_addr
 
 from sentry.constants import NATIVE_UNKNOWN_STRING
@@ -21,13 +22,13 @@ REPORT_VERSION = "104"
 class AppleCrashReport:
     def __init__(
         self,
-        threads=None,
-        context=None,
-        debug_images=None,
-        symbolicated=False,
-        exceptions=None,
-        prioritized_thread_id=None,
-    ):
+        threads: list[dict[str, Any]] | None = None,
+        context: Mapping[str, Any] | None = None,
+        debug_images: list[dict[str, Any]] | None = None,
+        symbolicated: bool = False,
+        exceptions: list[dict[str, Any]] | None = None,
+        prioritized_thread_id: int | str | None = None,
+    ) -> None:
         """
         Create an Apple crash report from the provided data.
 
@@ -40,7 +41,7 @@ class AppleCrashReport:
         self.prioritized_thread_id = (
             str(prioritized_thread_id) if prioritized_thread_id is not None else None
         )
-        self.image_addrs_to_vmaddrs = {}
+        self.image_addrs_to_vmaddrs: dict[int, int] = {}
 
         # Remove frames that don't have an `instruction_addr` and convert
         # sundry addresses into numbers.
@@ -79,7 +80,7 @@ class AppleCrashReport:
             if new_image.get("image_vmaddr") is not None:
                 self.image_addrs_to_vmaddrs[new_image["image_addr"]] = new_image["image_vmaddr"]
 
-    @sentry_sdk.trace
+    @traces.trace
     def __str__(self) -> str:
         rv = []
         rv.append(self._get_meta_header())
@@ -90,8 +91,8 @@ class AppleCrashReport:
 
         return "\n\n".join(rv) + "\n\nEOF"
 
-    @sentry_sdk.trace
-    def _get_meta_header(self):
+    @traces.trace
+    def _get_meta_header(self) -> str:
         return "OS Version: {} {} ({})\nReport Version: {}".format(
             get_path(self.context, "os", "name"),
             get_path(self.context, "os", "version"),
@@ -136,8 +137,8 @@ class AppleCrashReport:
         except Exception:
             return value
 
-    @sentry_sdk.trace
-    def _get_crashed_thread_registers(self):
+    @traces.trace
+    def _get_crashed_thread_registers(self) -> str:
         rv = []
         exception = get_path(self.exceptions, 0)
         if not exception:
@@ -178,8 +179,8 @@ class AppleCrashReport:
 
         return "\n".join(rv)
 
-    @sentry_sdk.trace
-    def _get_exception_info(self):
+    @traces.trace
+    def _get_exception_info(self) -> str:
         rv = []
 
         # We only have one exception at a time
@@ -216,8 +217,8 @@ class AppleCrashReport:
 
         return "\n".join(rv)
 
-    @sentry_sdk.trace
-    def get_threads_apple_string(self):
+    @traces.trace
+    def get_threads_apple_string(self) -> str:
         rv = []
         exceptions = self.exceptions or []
         threads = self.threads or []
@@ -248,7 +249,7 @@ class AppleCrashReport:
 
         return "\n\n".join(thread_string for _, thread_string in rv)
 
-    def get_thread_apple_string(self, thread_info):
+    def get_thread_apple_string(self, thread_info: Mapping[str, Any]) -> str | None:
         rv = []
         stacktrace = get_path(thread_info, "stacktrace")
         if stacktrace is None:
@@ -278,7 +279,12 @@ class AppleCrashReport:
         thread_string = f"Thread {thread_id}{thread_name_string}{thread_crashed_thread}\n"
         return thread_string + "\n".join(rv)
 
-    def _convert_frame_to_apple_string(self, frame, next=None, number=0):
+    def _convert_frame_to_apple_string(
+        self,
+        frame: Mapping[str, Any],
+        next: Mapping[str, Any] | None = None,
+        number: int = 0,
+    ) -> str:
         frame_instruction_addr = frame["instruction_addr"]
         frame_image_addr = frame.get("image_addr", 0)
         slide_value = self._get_slide_value(frame_image_addr)
@@ -310,11 +316,11 @@ class AppleCrashReport:
             offset,
         )
 
-    def _get_slide_value(self, image_addr):
+    def _get_slide_value(self, image_addr: int) -> int:
         return self.image_addrs_to_vmaddrs.get(image_addr, 0)
 
-    @sentry_sdk.trace
-    def get_binary_images_apple_string(self):
+    @traces.trace
+    def get_binary_images_apple_string(self) -> str:
         # We don't need binary images on symbolicated crashreport
         if self.symbolicated or not self.debug_images:
             return ""
@@ -327,7 +333,7 @@ class AppleCrashReport:
         )
         return "Binary Images:\n" + "\n".join(binary_images)
 
-    def _convert_debug_meta_to_binary_image_row(self, debug_image):
+    def _convert_debug_meta_to_binary_image_row(self, debug_image: Mapping[str, Any]) -> str:
         slide_value = debug_image.get("image_vmaddr", 0)
         image_addr = debug_image["image_addr"] + slide_value
         image_size = debug_image.get("image_size")

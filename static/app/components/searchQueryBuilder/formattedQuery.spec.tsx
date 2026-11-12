@@ -1,11 +1,11 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+import {triggerResizeObservers} from 'sentry-test/resizeObserver';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {
-  FormattedQuery,
-  type FormattedQueryProps,
-} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import type {TagCollection} from 'sentry/types/group';
+import {getFieldDefinition} from 'sentry/utils/fields';
+
+import {FormattedQuery, type FormattedQueryProps} from './formattedQuery';
 
 const FILTER_KEYS: TagCollection = {
   lastSeen: {
@@ -14,8 +14,12 @@ const FILTER_KEYS: TagCollection = {
   },
 };
 
+let mockAllowRegexOperators = false;
+
 jest.mock('sentry/components/searchQueryBuilder/context', () => ({
   useSearchQueryBuilderConfig: () => ({
+    allowRegexOperators: mockAllowRegexOperators,
+    filterKeys: {},
     getFieldDefinition: () => null,
   }),
   useSearchQueryBuilderLayout: () => ({
@@ -28,10 +32,27 @@ describe('FormattedQuery', () => {
     filterKeys: FILTER_KEYS,
   };
 
+  beforeEach(() => {
+    mockAllowRegexOperators = false;
+  });
+
   it('renders aggregate filters correctly', () => {
     render(<FormattedQuery {...defaultProps} query="count():>1" />);
 
     expect(screen.getByText(textWithMarkupMatcher('count() > 1'))).toBeInTheDocument();
+  });
+
+  it('renders aggregate size filters when only the argument has a size definition', () => {
+    render(
+      <FormattedQuery
+        query="avg(http.response_content_length):>1kb"
+        fieldDefinitionGetter={key => getFieldDefinition(key, 'span')}
+      />
+    );
+
+    expect(
+      screen.getByText(textWithMarkupMatcher('avg(http.response_content_length) > 1kb'))
+    ).toBeInTheDocument();
   });
 
   it('renders filters with multiple values correctly', () => {
@@ -47,6 +68,34 @@ describe('FormattedQuery', () => {
 
     expect(
       screen.getByText(textWithMarkupMatcher('browser.name is not Firefox and Chrome'))
+    ).toBeInTheDocument();
+  });
+
+  it('renders "matches regex" when regex operators are allowed', () => {
+    mockAllowRegexOperators = true;
+
+    render(<FormattedQuery {...defaultProps} query="message://foo//" />);
+
+    expect(
+      screen.getByText(textWithMarkupMatcher('message matches regex /foo/'))
+    ).toBeInTheDocument();
+  });
+
+  it('renders "does not match regex" when a negated regex is allowed', () => {
+    mockAllowRegexOperators = true;
+
+    render(<FormattedQuery {...defaultProps} query="!message://foo//" />);
+
+    expect(
+      screen.getByText(textWithMarkupMatcher('message does not match regex /foo/'))
+    ).toBeInTheDocument();
+  });
+
+  it('renders a regex as a plain value when regex operators are not allowed', () => {
+    render(<FormattedQuery {...defaultProps} query="message://foo//" />);
+
+    expect(
+      screen.getByText(textWithMarkupMatcher('message is //foo//'))
     ).toBeInTheDocument();
   });
 
@@ -76,6 +125,7 @@ describe('FormattedQuery', () => {
     render(<FormattedQuery {...defaultProps} query="(a OR b)" />);
 
     expect(screen.getByText('OR')).toBeInTheDocument();
+    expect(screen.getByLabelText('OR')).toBeInTheDocument();
     expect(screen.getAllByTestId('icon-parenthesis')).toHaveLength(2);
   });
 
@@ -104,6 +154,7 @@ describe('FormattedQuery', () => {
   });
 
   it('renders an escaped asterisk with the escape visible', () => {
+    // oxlint-disable-next-line react/jsx-curly-brace-presence -- Preserve the escaped string exactly.
     render(<FormattedQuery {...defaultProps} query={'message:foo\\*bar'} />);
 
     expect(screen.getByText('foo\\*bar')).toBeInTheDocument();
@@ -113,5 +164,164 @@ describe('FormattedQuery', () => {
     render(<FormattedQuery {...defaultProps} query="message:foo*bar" />);
 
     expect(screen.getByText('foo*bar')).toBeInTheDocument();
+  });
+
+  it('middle-ellipsizes long path-like filter values', () => {
+    const path = '/api/0/organizations/{organization_id_or_slug}/events/';
+    render(<FormattedQuery {...defaultProps} query={`transaction:${path}`} />);
+
+    expect(screen.getByText('/api/0…{organization_id_or_slug}/events/')).toHaveAttribute(
+      'data-overflowing',
+      'true'
+    );
+    expect(screen.queryByText(path)).not.toBeInTheDocument();
+  });
+
+  it('shows the full filter value when it fits beyond the fallback length', () => {
+    const path = '/api/0/organizations/{organization_id_or_slug}/events/';
+    const clientWidthSpy = jest
+      .spyOn(Element.prototype, 'clientWidth', 'get')
+      .mockReturnValue(1000);
+    const scrollWidthSpy = jest
+      .spyOn(Element.prototype, 'scrollWidth', 'get')
+      .mockImplementation(function (this: Element) {
+        return (this.textContent?.length ?? 0) * 10 + 2;
+      });
+
+    try {
+      render(<FormattedQuery {...defaultProps} query={`transaction:${path}`} />);
+
+      expect(screen.getByText(path)).not.toHaveAttribute('data-overflowing');
+    } finally {
+      clientWidthSpy.mockRestore();
+      scrollWidthSpy.mockRestore();
+    }
+  });
+
+  it('preserves a short filter value that exactly fits its natural width', () => {
+    const clientWidthSpy = jest
+      .spyOn(Element.prototype, 'clientWidth', 'get')
+      .mockReturnValue(102);
+    const scrollWidthSpy = jest
+      .spyOn(Element.prototype, 'scrollWidth', 'get')
+      .mockImplementation(function (this: Element) {
+        // Approximate: treat each character as 10px wide, plus 2px end padding.
+        return (this.textContent?.length ?? 0) * 10 + 2;
+      });
+
+    try {
+      render(<FormattedQuery {...defaultProps} query="is:unresolved" />);
+
+      expect(screen.getByText('unresolved')).toBeInTheDocument();
+    } finally {
+      clientWidthSpy.mockRestore();
+      scrollWidthSpy.mockRestore();
+    }
+  });
+
+  it('leaves room after a middle-ellipsis candidate for glyph rendering', () => {
+    const clientWidthSpy = jest
+      .spyOn(Element.prototype, 'clientWidth', 'get')
+      .mockReturnValue(50);
+    const scrollWidthSpy = jest
+      .spyOn(Element.prototype, 'scrollWidth', 'get')
+      .mockImplementation(function (this: Element) {
+        // Approximate: treat each character as 10px wide, plus 2px end padding.
+        return (this.textContent?.length ?? 0) * 10 + 2;
+      });
+
+    try {
+      render(<FormattedQuery {...defaultProps} query="transaction:foo/bar" />);
+
+      const value = screen.getByText('…');
+      expect(value).toHaveAttribute('data-overflowing', 'true');
+      expect(value.scrollWidth).toBeLessThan(value.clientWidth);
+    } finally {
+      clientWidthSpy.mockRestore();
+      scrollWidthSpy.mockRestore();
+    }
+  });
+
+  it('does not let the temporary width lock collapse multi-value filters', () => {
+    const clientWidthSpy = jest
+      .spyOn(Element.prototype, 'clientWidth', 'get')
+      .mockImplementation(function (this: Element) {
+        return this instanceof HTMLElement && this.style.width ? 49 : 69;
+      });
+    const scrollWidthSpy = jest
+      .spyOn(Element.prototype, 'scrollWidth', 'get')
+      .mockImplementation(function (this: Element) {
+        // Approximate: treat each character as 10px wide, plus 2px end padding.
+        return (this.textContent?.length ?? 0) * 10 + 2;
+      });
+
+    try {
+      render(<FormattedQuery {...defaultProps} query="browser.name:[foo/bar,baz/qux]" />);
+
+      expect(screen.getByText('foo…ar').scrollWidth).toBeLessThan(69);
+      expect(screen.getByText('baz…ux').scrollWidth).toBeLessThan(69);
+    } finally {
+      clientWidthSpy.mockRestore();
+      scrollWidthSpy.mockRestore();
+    }
+  });
+
+  it('preserves distinguishing prefixes in truncated multi-value filters', () => {
+    const clientWidthSpy = jest
+      .spyOn(Element.prototype, 'clientWidth', 'get')
+      .mockReturnValue(69);
+    const scrollWidthSpy = jest
+      .spyOn(Element.prototype, 'scrollWidth', 'get')
+      .mockImplementation(function (this: Element) {
+        return (this.textContent?.length ?? 0) * 10 + 2;
+      });
+
+    try {
+      render(
+        <FormattedQuery
+          {...defaultProps}
+          query="browser.name:[/foo/shared,/bar/shared]"
+        />
+      );
+
+      expect(screen.getByText('/fo…ed')).toHaveAttribute('data-overflowing', 'true');
+      expect(screen.getByText('/ba…ed')).toHaveAttribute('data-overflowing', 'true');
+    } finally {
+      clientWidthSpy.mockRestore();
+      scrollWidthSpy.mockRestore();
+    }
+  });
+
+  it('tightens and restores middle-ellipsis as available width changes', () => {
+    const path = '/api/0/organizations/{organization_id_or_slug}/events/';
+    const capped = '/api/0…{organization_id_or_slug}/events/';
+    render(<FormattedQuery {...defaultProps} query={`transaction:${path}`} />);
+
+    // clientWidth 0 → fall through to the character cap.
+    const element = screen.getByText(capped);
+    let clientWidth = 120;
+    Object.defineProperty(element, 'clientWidth', {
+      configurable: true,
+      get() {
+        return clientWidth;
+      },
+    });
+    Object.defineProperty(element, 'scrollWidth', {
+      configurable: true,
+      get() {
+        // Approximate: treat each character as 10px wide, plus 2px end padding.
+        return (this.textContent?.length ?? 0) * 10 + 2;
+      },
+    });
+
+    act(triggerResizeObservers);
+
+    expect(screen.getByText('…events/')).toBeInTheDocument();
+    expect(screen.queryByText(capped)).not.toBeInTheDocument();
+
+    clientWidth = 1000;
+    act(triggerResizeObservers);
+
+    expect(screen.getByText(path)).toBeInTheDocument();
   });
 });

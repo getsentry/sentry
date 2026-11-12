@@ -1,38 +1,61 @@
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Any, TypedDict
 
 from django.db.models import Count
 from django.db.models.functions import TruncHour
 
-from sentry.api.serializers import Serializer
-from sentry.rules.history.base import TimeSeriesValue
+from sentry.api.endpoints.timeseries import Row, SeriesMeta, StatsMeta, StatsResponse, TimeSeries
 from sentry.workflow_engine.models import Workflow, WorkflowFireHistory
 
+HOUR_IN_MILLISECONDS = 60 * 60 * 1000
 
-class TimeSeriesValueResponse(TypedDict):
-    date: datetime
+
+@dataclass(frozen=True)
+class TimeSeriesValue:
+    bucket: datetime
     count: int
 
 
-class TimeSeriesValueSerializer(Serializer[TimeSeriesValueResponse]):
-    def serialize(
-        self, obj: TimeSeriesValue, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
-    ) -> TimeSeriesValueResponse:
-        return {
-            "date": obj.bucket,
-            "count": obj.count,
-        }
+def serialize_workflow_stats(
+    results: Sequence[TimeSeriesValue], start: datetime, end: datetime
+) -> StatsResponse:
+    return StatsResponse(
+        meta=StatsMeta(
+            dataset="workflow",
+            start=start.timestamp() * 1000,
+            end=end.timestamp() * 1000,
+        ),
+        timeSeries=[
+            TimeSeries(
+                yAxis="count()",
+                values=[
+                    Row(
+                        timestamp=result.bucket.timestamp() * 1000,
+                        value=result.count,
+                        incomplete=False,
+                    )
+                    for result in results
+                ],
+                meta=SeriesMeta(
+                    interval=HOUR_IN_MILLISECONDS,
+                    valueType="integer",
+                    valueUnit=None,
+                ),
+            )
+        ],
+    )
 
 
 def fetch_workflow_hourly_stats(
-    workflow: Workflow, start: datetime, end: datetime
+    workflow: Workflow, start: datetime, end: datetime, *, project_ids: Sequence[int]
 ) -> Sequence[TimeSeriesValue]:
     start = start.replace(tzinfo=timezone.utc)
     end = end.replace(tzinfo=timezone.utc)
     qs = (
         WorkflowFireHistory.objects.filter(
             workflow=workflow,
+            group__project_id__in=project_ids,
             date_added__gte=start,
             date_added__lt=end,
         )

@@ -3,9 +3,8 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -44,11 +43,9 @@ export function BreadcrumbDescription({
 
   return (
     <Flex gap="lg" justify="between" align="start">
-      <Tooltip title={description} showOnlyOnOverflow isHoverable skipWrapper>
-        <Text ellipsis size="xs" tabular variant="muted">
-          {description}
-        </Text>
-      </Tooltip>
+      <InfoText title={description} mode="overflowOnly" size="xs" tabular variant="muted">
+        {description}
+      </InfoText>
 
       {allowShowSnippet &&
         !showSnippet &&

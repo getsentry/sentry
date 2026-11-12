@@ -24,6 +24,9 @@ class UserPermission(OverwritableConfigMixin, ControlOutboxProducingModel):
     __relocation_scope__ = RelocationScope.Config
     __relocation_custom_ordinal__ = ["user", "permission"]
 
+    # outbox settings
+    default_flush = False
+
     user = FlexibleForeignKey("sentry.User")
     # permissions should be in the form of 'service-name.permission-name'
     permission = models.CharField(max_length=32)

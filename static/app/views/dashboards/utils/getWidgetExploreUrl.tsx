@@ -32,6 +32,8 @@ import {getExploreMultiQueryUrl, getExploreUrl} from 'sentry/views/explore/utils
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {SpanFields} from 'sentry/views/insights/types';
 
+import {withGlobalFilterFallback} from './withGlobalFilterFallback';
+
 function getTraceItemDatasetFromWidgetType(widgetType?: WidgetType): TraceItemDataset {
   switch (widgetType) {
     case WidgetType.LOGS:
@@ -76,7 +78,7 @@ const WIDGET_TRACE_ITEM_TO_URL_FUNCTION: Record<
       organization: Organization,
       preferMode?: Mode,
       referrer?: string
-    ) => string)
+    ) => string | null)
   | undefined
 > = {
   [TraceItemDataset.LOGS]: getWidgetExploreUrlWithDataset(TraceItemDataset.LOGS),
@@ -94,7 +96,7 @@ const WIDGET_TRACE_ITEM_TO_URL_FUNCTION: Record<
 /**
  * Returns whether the given widget type supports multiple queries in the Explore view.
  */
-export function widgetTypeSupportsExploreMultiQuery(
+function widgetTypeSupportsExploreMultiQuery(
   widgetType: WidgetType | undefined
 ): boolean {
   const traceItemDataset = getTraceItemDatasetFromWidgetType(widgetType);
@@ -211,7 +213,10 @@ function _getWidgetExploreUrl(
   traceItemDataset?: TraceItemDataset,
   referrer?: string
 ) {
-  const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
+  if (!widget.queries[0]) {
+    return null;
+  }
+  const eventView = eventViewFromWidget(widget.title, widget.queries[0], selection);
   const locationQueryParams = eventView.generateQueryStringObject();
 
   // Pull a max of 3 valid Y-Axis from the widget
@@ -339,11 +344,14 @@ function _getWidgetExploreUrl(
     visualize,
     groupBy: visualize.length > 0 ? groupBy : [],
     field: fields,
-    query: applyDashboardFilters(
-      overrideQuery?.formatString() ?? decodeScalar(locationQueryParams.query),
-      dashboardFilters,
-      widget.widgetType
-    ),
+    query: applyDashboardFilters({
+      baseQuery: overrideQuery?.formatString() ?? decodeScalar(locationQueryParams.query),
+      dashboardFilters: withGlobalFilterFallback(
+        dashboardFilters,
+        query.globalFilterFallback
+      ),
+      widgetType: widget.widgetType,
+    }),
     sort: sort || undefined,
     interval:
       decodeScalar(locationQueryParams.interval) ??
@@ -363,13 +371,17 @@ function _getWidgetExploreUrl(
         ? [OurLogKnownFieldKey.TIMESTAMP, ...queryParams.field]
         : queryParams.field;
 
+    const logsAggregateFields = [
+      ...queryParams.groupBy.map(g => ({groupBy: g})),
+      ...logsVisualize,
+    ];
+
     return getLogsUrl({
       organization: queryParams.organization,
       selection: queryParams.selection,
       query: queryParams.query,
       field: logsField,
-      groupBy: queryParams.groupBy,
-      aggregateFields: logsVisualize,
+      aggregateFields: logsAggregateFields,
       interval: queryParams.interval,
       mode: queryParams.mode,
       referrer: queryParams.referrer,
@@ -415,7 +427,14 @@ function _getWidgetExploreUrlForMultipleQueries(
     selection: currentSelection,
     queries: widget.queries.map(query => ({
       chartType: getChartType(widget.displayType),
-      query: applyDashboardFilters(query.conditions, dashboardFilters) ?? '',
+      query:
+        applyDashboardFilters({
+          baseQuery: query.conditions,
+          dashboardFilters: withGlobalFilterFallback(
+            dashboardFilters,
+            query.globalFilterFallback
+          ),
+        }) ?? '',
       sortBys: decodeSorts(query.orderby).filter(
         s => s.field !== SpanFields.IS_STARRED_TRANSACTION
       ),

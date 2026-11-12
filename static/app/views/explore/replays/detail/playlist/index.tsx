@@ -32,7 +32,7 @@ export function Playlist() {
   const {replays, currentReplayIndex, isLoading, pageLinks} = useReplayPlaylist();
   const location = useLocation();
 
-  const {allMobileProj} = useAllMobileProj({});
+  const {allMobileProj} = useAllMobileProj();
   const columns = allMobileProj ? MOBILE_COLUMNS : VISIBLE_COLUMNS;
 
   return (

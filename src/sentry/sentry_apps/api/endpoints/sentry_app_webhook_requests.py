@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from dateutil.parser import parse as parse_date
 from rest_framework import serializers, status
@@ -10,7 +11,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.sentry_apps.api.bases.sentryapps import SentryAppBaseEndpoint, SentryAppStatsPermission
+from sentry.sentry_apps.api.bases.sentryapps import (
+    SentryAppBaseEndpoint,
+    SentryAppWebhookRequestsPermission,
+)
 from sentry.sentry_apps.api.serializers.sentry_app_webhook_request import (
     SentryAppWebhookRequestSerializer,
 )
@@ -43,12 +47,12 @@ class IncomingRequestSerializer(serializers.Serializer):
         format=date_format, default=None, default_timezone=timezone.utc, required=False
     )
 
-    def validate(self, data):
+    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         if "start" in data and "end" in data and data["start"] > data["end"]:
             raise serializers.ValidationError("Invalid timestamp (start must be before end).")
         return data
 
-    def validate_end(self, end):
+    def validate_end(self, end: datetime | None) -> datetime:
         if end is None:
             end = datetime.now(tz=timezone.utc)
         return end
@@ -60,7 +64,7 @@ class SentryAppWebhookRequestsEndpoint(SentryAppBaseEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
-    permission_classes = (SentryAppStatsPermission,)
+    permission_classes = (SentryAppWebhookRequestsPermission,)
 
     def get(self, request: Request, sentry_app: SentryApp) -> Response:
         """

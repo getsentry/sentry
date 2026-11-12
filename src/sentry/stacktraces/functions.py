@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import Any
 from urllib.parse import urlparse
 
@@ -14,6 +14,31 @@ from sentry.utils.safe import setdefault_path
 
 _windecl_hash = re.compile(r"^@?(.*?)@[0-9]+$")
 _rust_hash = re.compile(r"::h[a-z0-9]{16}$")
+# Regex for the 40-character hash IL2CPP appends to every managed method name it emits, as in
+# `NativeButtons_DoSomeWorkHere_m7486FA1E8A228E806BA045D26ABECC87DFD436B4`,
+# `NativeButtons_DoSomeWorkHere_m7486FA1E8A228E806BA045D26ABECC87DFD436B4_inline`, etc.
+_il2cpp_method_hash = re.compile(
+    r"""
+    # The hash itself
+    _m[0-9a-fA-F]{40}
+    # Lookahead for descriptor suffixes which may be appended after the hash, in any combination;
+    # each names a distinct generated function rather than decorating one, so they're kept while the
+    # hash goes. Ends with `$` to ensure no trailing unrecognized suffixes are allowed.
+    (?=
+        (
+            _gshared
+            | _fshared
+            | _inline
+            | _AdjustorThunk
+            | _Multicast
+            | _Open(Static|Instance|Virtual|Interface|GenericVirtual|GenericInterface)(Invoker)?
+            | _gp(_\d+)+
+        )*
+        $
+    )
+    """,
+    re.VERBOSE,
+)
 _gnu_version = re.compile(r"@@?GLIBC_([0-9.]+)$")
 _cpp_trailer_re = re.compile(r"(\bconst\b|&)$")
 _rust_blanket_re = re.compile(r"^([A-Z] as )")
@@ -40,6 +65,7 @@ _anon_namespace_re = re.compile(
     \?A0x[a-f0-9]{8}::
     """
 )
+_function_token_break_re = re.compile(r"\s|[({<\[]")
 
 
 PAIRS = {"(": ")", "{": "}", "[": "]", "<": ">"}
@@ -74,7 +100,10 @@ def replace_enclosed_string(
     return "".join(rv)
 
 
-def split_func_tokens(s):
+def split_func_tokens(s: str) -> list[str]:
+    if s and _function_token_break_re.search(s) is None:
+        return [s]
+
     buf = []
     rv = []
     stack = []
@@ -103,7 +132,7 @@ def split_func_tokens(s):
     return ["".join(x) for x in rv]
 
 
-def trim_function_name(function, platform, normalize_lambdas=True):
+def trim_function_name(function: str, platform: str | None, normalize_lambdas: bool = True) -> str:
     """Given a function value from the frame's function attribute this returns
     a trimmed version that can be stored in `function_name`.  This is only used
     if the client did not supply a value itself already.
@@ -115,7 +144,7 @@ def trim_function_name(function, platform, normalize_lambdas=True):
     return function
 
 
-def trim_csharp_function_name(function):
+def trim_csharp_function_name(function: str) -> str:
     """This trims off signatures from C# frames.  This takes advantage of the
     Unity not emitting any return values and using a space before the argument
     list.
@@ -128,7 +157,9 @@ def trim_csharp_function_name(function):
     return function.split(" (", 1)[0]
 
 
-def trim_native_function_name(function, platform, normalize_lambdas=True):
+def trim_native_function_name(
+    function: str, platform: str | None, normalize_lambdas: bool = True
+) -> str:
     if function in ("<redacted>", "<unknown>"):
         return function
 
@@ -140,7 +171,7 @@ def trim_native_function_name(function, platform, normalize_lambdas=True):
         return function
 
     # Remove special `[clone .foo]` annotations for cloned/split functions
-    def process_brackets(value, start):
+    def process_brackets(value: str, start: int) -> str:
         if value.startswith("clone ."):
             return ""
         return "[%s]" % value
@@ -173,7 +204,7 @@ def trim_native_function_name(function, platform, normalize_lambdas=True):
     # something like `lambda_deadbeefeefffeeffeeff` whereas clang for
     # instance will name it `main::$_0` which will tell us in which outer
     # function it was declared.
-    if normalize_lambdas:
+    if normalize_lambdas and ("lambda" in function or "$_" in function):
         function = _lambda_re.sub("lambda", function)
 
     # Normalize MSVC anonymous namespaces from inline functions.  For inline
@@ -181,11 +212,11 @@ def trim_native_function_name(function, platform, normalize_lambdas=True):
     # their hash.  For regular functions,  "`anonymous namespace'" is used.
     # The regular expression matches the trailing "::" to avoid accidental
     # replacement in mangled function names.
-    if normalize_lambdas:
+    if normalize_lambdas and "?A0x" in function:
         function = _anon_namespace_re.sub("〔anonymousnamespace〕::", function)
 
     # Remove the arguments if there is one.
-    def process_args(value, start):
+    def process_args(value: str, start: int) -> str:
         value = value.strip()
         if value in ("anonymous namespace", "operator"):
             return "(%s)" % value
@@ -193,9 +224,13 @@ def trim_native_function_name(function, platform, normalize_lambdas=True):
 
     function = replace_enclosed_string(function, "(", ")", process_args)
 
+    # Must run after the argument list is gone: the hash is only recognisable at the end of a
+    # symbol, and PDB gives Symbolicator `Foo_Bar_m<hash>(args)` where DWARF gives the bare name.
+    function = _il2cpp_method_hash.sub("", function)
+
     # Resolve generic types, but special case rust which uses things like
     # <Foo as Bar>::baz to denote traits.
-    def process_generics(value, start):
+    def process_generics(value: str, start: int) -> str:
         # Special case for lambdas
         if value == "lambda" or _lambda_re.match(value):
             return "<%s>" % value
@@ -274,16 +309,20 @@ def trim_native_function_name(function, platform, normalize_lambdas=True):
         function = original_function
 
     # trim off rust markers
-    function = _rust_hash.sub("", function)
+    if "::h" in function:
+        function = _rust_hash.sub("", function)
 
     # trim off gnu symbol versioning info
-    function = _gnu_version.sub("", function)
+    if "@GLIBC_" in function:
+        function = _gnu_version.sub("", function)
 
     # trim off windows decl markers
-    return _windecl_hash.sub("\\1", function)
+    return _windecl_hash.sub("\\1", function) if "@" in function else function
 
 
-def get_function_name_for_frame(frame, platform=None):
+def get_function_name_for_frame(
+    frame: Frame | Mapping[str, Any], platform: str | None = None
+) -> str | None:
     """Given a frame object or dictionary this returns the actual function
     name trimmed.
     """
@@ -298,6 +337,7 @@ def get_function_name_for_frame(frame, platform=None):
     rv = frame.get("function")
     if rv:
         return trim_function_name(rv, frame.get("platform") or platform)
+    return None
 
 
 def get_source_link_for_frame(frame: Frame) -> str | None:

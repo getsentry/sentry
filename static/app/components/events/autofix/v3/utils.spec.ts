@@ -141,6 +141,15 @@ describe('artifactToMarkdown', () => {
         ['# Root Cause', '', 'Something broke'].join('\n')
       );
     });
+
+    it('includes the cause under the headline', () => {
+      const artifact = makeRootCauseArtifact({
+        data: {one_line_description: 'Something broke', cause: 'Why', five_whys: []},
+      });
+      expect(artifactToMarkdown(artifact)).toBe(
+        ['# Root Cause', '', 'Something broke', '', 'Why'].join('\n')
+      );
+    });
   });
 
   describe('solution artifact', () => {
@@ -226,6 +235,22 @@ describe('artifactToMarkdown', () => {
       const prs = [
         makeRepoPRState({pr_url: null}),
         makeRepoPRState({pr_number: null}),
+        makeRepoPRState(), // valid
+      ];
+      expect(artifactToMarkdown(prs)).toBe(
+        [
+          '# Pull Requests',
+          '',
+          '[getsentry/sentry#42](https://github.com/getsentry/sentry/pull/42)',
+        ].join('\n')
+      );
+    });
+
+    it('filters out a PR whose creation has not finished', () => {
+      // 'creating' carries the number of an already-open PR when it is an update.
+      const prs = [
+        makeRepoPRState({pr_creation_status: 'creating'}),
+        makeRepoPRState({pr_creation_status: 'error'}),
         makeRepoPRState(), // valid
       ];
       expect(artifactToMarkdown(prs)).toBe(

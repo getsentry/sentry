@@ -18,13 +18,14 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
 import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobileProj';
-import {BulkDeleteAlert} from 'sentry/views/explore/replays/list/bulkDeleteAlert';
-import {useReplayIndexTableColumns} from 'sentry/views/explore/replays/list/useReplayIndexTableColumns';
 import {
   DeadRageSelectorCards,
   DeadRageSelectorCardsPlaceholder,
 } from 'sentry/views/explore/replays/selectors/deadRageSelectorCards';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
+
+import {BulkDeleteAlert} from './bulkDeleteAlert';
+import {useReplayIndexTableColumns} from './useReplayIndexTableColumns';
 
 interface Props {
   error: Error | null | undefined;
@@ -53,12 +54,12 @@ export function ReplayIndexTable({
     selection: {projects},
   } = usePageFilters();
 
-  const tableRef = useRef<HTMLDivElement>(null);
+  const tableRef = useRef<HTMLTableElement>(null);
   const tableDimensions = useDimensions({elementRef: tableRef});
 
   const {onSortClick, sortType} = useReplayTableSort();
 
-  const {allMobileProj} = useAllMobileProj({});
+  const {allMobileProj} = useAllMobileProj();
   const columns = useReplayIndexTableColumns({allMobileProj, tableDimensions});
 
   const endpointOptions = safeParseQueryKey(queryKey)?.options;

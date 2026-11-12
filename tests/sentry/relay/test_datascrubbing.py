@@ -3,11 +3,13 @@ import copy
 import pytest
 
 from sentry.models.project import Project
-from sentry.relay.datascrubbing import scrub_data
+from sentry.relay.datascrubbing import _PIIConfig, scrub_data
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
-def merge_pii_configs(prefixes_and_configs):
+def merge_pii_configs(
+    prefixes_and_configs: list[tuple[str, _PIIConfig | None]],
+) -> _PIIConfig:
     from sentry.relay.datascrubbing import _merge_pii_configs as f
 
     prefixes_and_configs_bak = copy.deepcopy(prefixes_and_configs)
@@ -90,7 +92,7 @@ def test_merge_pii_configs_simple() -> None:
 
 
 def test_merge_pii_configs_rule_references() -> None:
-    my_rules = {
+    my_rules: dict[str, object] = {
         "remove_ips_alias": {
             "type": "alias",
             "rule": "@ip",
@@ -107,8 +109,14 @@ def test_merge_pii_configs_rule_references() -> None:
 
     assert merge_pii_configs(
         [
-            ("o:", {"rules": my_rules, "applications": {"$string": ["remove_ips_and_macs"]}}),
-            ("p:", {"rules": my_rules, "applications": {"$string": ["remove_ips_alias"]}}),
+            (
+                "o:",
+                _PIIConfig(rules=my_rules, applications={"$string": ["remove_ips_and_macs"]}),
+            ),
+            (
+                "p:",
+                _PIIConfig(rules=my_rules, applications={"$string": ["remove_ips_alias"]}),
+            ),
         ]
     ) == {
         "applications": {"$string": ["o:remove_ips_and_macs", "p:remove_ips_alias"]},

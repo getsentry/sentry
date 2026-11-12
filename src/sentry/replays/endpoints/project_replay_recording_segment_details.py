@@ -1,33 +1,38 @@
 from io import BytesIO
-from typing import TypedDict
+from typing import Annotated, TypedDict
 
 from django.http import StreamingHttpResponse
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
+from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.models.project import Project
 from sentry.replays.endpoints.project_replay_endpoint import ProjectReplayEndpoint
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, make_recording_filename
 from sentry.replays.usecases.reader import download_segment, fetch_segment_metadata
-from sentry.utils.tracing import start_span
 
 
 class _SegmentMetadataResponse(TypedDict):
-    replayId: str
-    segmentId: int
-    projectId: str
-    dateAdded: str | None
+    replayId: Annotated[str, ApiDescription("ID of the replay the segment belongs to")]
+    segmentId: Annotated[int, ApiDescription("ID of the segment within the replay")]
+    projectId: Annotated[str, ApiDescription("ID of the project the replay belongs to")]
+    dateAdded: Annotated[
+        str | None, ApiDescription("When the segment was stored (ISO 8601), or null if unknown")
+    ]
 
 
 class _SegmentDetailsResponse(TypedDict):
-    data: _SegmentMetadataResponse
+    data: Annotated[_SegmentMetadataResponse, ApiDescription("Metadata of the recording segment")]
 
 
 @cell_silo_endpoint
@@ -57,12 +62,13 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectReplayEndpoint):
         examples=ReplayExamples.GET_REPLAY_SEGMENT,
     )
     def get(
-        self, request: Request, project, replay_id, segment_id
+        self, request: Request, project: Project, replay_id: str, segment_id: str
     ) -> Response[_SegmentDetailsResponse] | Response[DetailResponse] | StreamingHttpResponse:
         """Return a replay recording segment."""
         self.check_replay_access(request, project)
 
-        segment = fetch_segment_metadata(project.id, replay_id, int(segment_id))
+        with handle_query_errors():
+            segment = fetch_segment_metadata(project.id, replay_id, int(segment_id))
         if not segment:
             return self.respond({"detail": "Replay recording segment not found."}, status=404)
 
@@ -84,9 +90,9 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectReplayEndpoint):
             return self.respond(body)
 
     def download(self, segment: RecordingSegmentStorageMeta) -> StreamingHttpResponse:
-        with start_span(
-            op="download_segment",
+        with traces.start_span(
             name="ProjectReplayRecordingSegmentDetailsEndpoint.download_segment",
+            attributes={"sentry.op": "download_segment"},
         ) as child_span:
             segment_bytes = download_segment(segment, span=child_span)
             segment_reader = BytesIO(segment_bytes)

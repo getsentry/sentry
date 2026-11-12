@@ -1,9 +1,9 @@
 import logging
 from collections.abc import Mapping
 
-import sentry_sdk
 from django.conf import settings
 from django.utils import timezone
+from sentry_sdk import traces
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
@@ -56,7 +56,7 @@ def make_similar_issues_request(
     )
 
 
-@sentry_sdk.tracing.trace
+@traces.trace
 def get_similarity_data_from_seer(
     similar_issues_request: SimilarIssuesEmbeddingsRequest,
     metric_tags: Mapping[str, str | int | bool] | None = None,

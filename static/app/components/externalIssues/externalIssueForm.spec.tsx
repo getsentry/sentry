@@ -11,28 +11,31 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {ExternalIssueForm} from 'sentry/components/externalIssues/externalIssueForm';
-
-jest.mock('sentry/actionCreators/indicator');
 import {
   makeClosableHeader,
   makeCloseButton,
   ModalBody,
   ModalFooter,
 } from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
+
+import type {IntegrationIssueConfig} from 'sentry/types/integrations';
+
+import {ExternalIssueForm} from './externalIssueForm';
 
 describe('ExternalIssueForm', () => {
   const group = GroupFixture();
   const integration = GitHubIntegrationFixture({externalIssues: []});
   const organization = OrganizationFixture();
 
-  let formConfig!: any;
+  let formConfig!: Pick<IntegrationIssueConfig, 'createIssueConfig' | 'linkIssueConfig'> &
+    Record<string, unknown>;
 
   const closeModal = jest.fn();
   const onChange = jest.fn();
 
   beforeEach(() => {
+    jest.spyOn(toast, 'error').mockClear();
     MockApiClient.clearMockResponses();
   });
 
@@ -123,6 +126,86 @@ describe('ExternalIssueForm', () => {
           })
         );
       });
+    });
+
+    it('prefetches repository, assignee, and label options before they are opened', async () => {
+      formConfig = {
+        createIssueConfig: [
+          {
+            label: 'Repository',
+            required: true,
+            type: 'select',
+            name: 'repo',
+            default: 'my-org/my-repo',
+            choices: [['my-org/my-repo', 'my-repo']],
+            url: '/search',
+            prefetch: true,
+            updatesForm: true,
+          },
+          {
+            label: 'Assignee',
+            required: false,
+            type: 'select',
+            name: 'assignee',
+            choices: [],
+            url: '/search',
+            prefetch: true,
+            dependsOn: ['repo'],
+          },
+          {
+            label: 'Labels',
+            required: false,
+            type: 'select',
+            name: 'labels',
+            multiple: true,
+            choices: [],
+            url: '/search',
+            prefetch: true,
+            dependsOn: ['repo'],
+          },
+        ],
+      };
+      const repoRequest = MockApiClient.addMockResponse({
+        url: '/search',
+        match: [MockApiClient.matchQuery({field: 'repo', query: ''})],
+        body: [{value: 'my-org/my-repo', label: 'my-repo'}],
+      });
+      const assigneeRequest = MockApiClient.addMockResponse({
+        url: '/search',
+        match: [
+          MockApiClient.matchQuery({
+            field: 'assignee',
+            query: '',
+            repo: 'my-org/my-repo',
+          }),
+        ],
+        body: [{value: 'octocat', label: 'octocat'}],
+      });
+      const labelsRequest = MockApiClient.addMockResponse({
+        url: '/search',
+        match: [
+          MockApiClient.matchQuery({
+            field: 'labels',
+            query: '',
+            repo: 'my-org/my-repo',
+          }),
+        ],
+        body: [{value: 'bug', label: 'bug'}],
+      });
+
+      await renderComponent();
+
+      await waitFor(() => {
+        expect(repoRequest).toHaveBeenCalled();
+        expect(assigneeRequest).toHaveBeenCalled();
+        expect(labelsRequest).toHaveBeenCalled();
+      });
+      expect(repoRequest).toHaveBeenCalledTimes(1);
+      expect(assigneeRequest).toHaveBeenCalledTimes(1);
+      expect(labelsRequest).toHaveBeenCalledTimes(1);
+
+      await userEvent.click(screen.getByRole('textbox', {name: 'Assignee'}));
+      expect(await screen.findByText('octocat')).toBeInTheDocument();
     });
 
     it('should submit the form and close the modal on success', async () => {
@@ -398,7 +481,7 @@ describe('ExternalIssueForm', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Create Issue'}));
 
-      await waitFor(() => expect(addErrorMessage).toHaveBeenCalled());
+      await waitFor(() => expect(toast.error).toHaveBeenCalled());
       expect(closeModal).not.toHaveBeenCalled();
     });
 
@@ -507,6 +590,10 @@ describe('ExternalIssueForm', () => {
 
       expect(screen.getByRole('textbox', {name: 'Summary'})).toBeInTheDocument();
       expect(screen.getByRole('textbox', {name: 'Reporter'})).toBeInTheDocument();
+
+      // jsdom keeps disabled inputs focused. Leave the project field before
+      // selecting it again so react-select receives a new focus event.
+      await userEvent.click(screen.getByRole('textbox', {name: 'Summary'}));
 
       // Swapping projects should refetch, and remove stale fields
       await selectEvent.select(

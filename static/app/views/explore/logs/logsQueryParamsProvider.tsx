@@ -3,13 +3,15 @@ import {createContext, useContext} from 'react';
 
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {LogsAutoRefreshProvider} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
+import {PersistedLogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
+
 import {
   LogsFrozenContextProvider,
   type LogsFrozenContextProviderProps,
-} from 'sentry/views/explore/logs/logsFrozenContext';
-import {LogsLocationQueryParamsProvider} from 'sentry/views/explore/logs/logsLocationQueryParamsProvider';
-import {LogsStateQueryParamsProvider} from 'sentry/views/explore/logs/logsStateQueryParamsProvider';
-import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
+} from './logsFrozenContext';
+import {LogsLocationQueryParamsProvider} from './logsLocationQueryParamsProvider';
+import {LogsStateQueryParamsProvider} from './logsStateQueryParamsProvider';
 
 const LogsAnalyticsPageSourceContext = createContext<LogsAnalyticsPageSource | undefined>(
   undefined
@@ -51,17 +53,20 @@ export function LogsQueryParamsProvider({
     throw new Error(`Unknown source for LogsQueryParamsProvider: ${source}`);
   }
 
-  const isTableFrozen = source === 'state';
+  const isTableFrozen =
+    source === 'state' || (!!freeze && Object.keys(freeze).length > 0);
 
   return (
     <LogsAnalyticsPageSourceContext value={analyticsPageSource}>
-      <LogsFrozenContextProvider {...freeze}>
-        <LogsQueryParamsProviderComponent frozenParams={frozenParams}>
-          <LogsAutoRefreshProvider isTableFrozen={isTableFrozen}>
-            {children}
-          </LogsAutoRefreshProvider>
-        </LogsQueryParamsProviderComponent>
-      </LogsFrozenContextProvider>
+      <PersistedLogsPageParamsProvider>
+        <LogsFrozenContextProvider {...freeze}>
+          <LogsQueryParamsProviderComponent frozenParams={frozenParams}>
+            <LogsAutoRefreshProvider isTableFrozen={isTableFrozen}>
+              {children}
+            </LogsAutoRefreshProvider>
+          </LogsQueryParamsProviderComponent>
+        </LogsFrozenContextProvider>
+      </PersistedLogsPageParamsProvider>
     </LogsAnalyticsPageSourceContext>
   );
 }

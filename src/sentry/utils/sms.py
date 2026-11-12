@@ -1,8 +1,8 @@
 import logging
 from urllib.parse import quote
 
-import phonenumbers
 import requests
+from django.conf import settings
 
 from sentry import options
 
@@ -15,6 +15,9 @@ class InvalidPhoneNumber(Exception):
 
 
 def validate_phone_number(phone_number: str) -> bool:
+    # Imported here so web workers do not load the phonenumbers metadata at boot.
+    import phonenumbers
+
     try:
         p = phonenumbers.parse(phone_number, "US")
     except phonenumbers.NumberParseException:
@@ -34,6 +37,8 @@ def phone_number_as_e164(num: str) -> str:
     :return: validated phone number in E.164 format
     :rtype: str
     """
+    import phonenumbers
+
     if validate_phone_number(num):
         p = phonenumbers.parse(num, "US")
         return phonenumbers.format_number(p, phonenumbers.PhoneNumberFormat.E164)
@@ -42,18 +47,31 @@ def phone_number_as_e164(num: str) -> str:
 
 
 def sms_available() -> bool:
-    return bool(options.get("sms.twilio-account"))
+    backend = options.get("sms.backend")
+    return (backend == "console" and settings.DEBUG) or (
+        backend == "twilio" and bool(options.get("sms.twilio-account"))
+    )
 
 
 def send_sms(body: str, to: str, from_: str | None = None) -> bool:
+    phone_number = phone_number_as_e164(to)
+    backend = options.get("sms.backend")
+
+    if backend == "console":
+        if not settings.DEBUG:
+            raise RuntimeError("Console SMS backend is only available in debug mode.")
+
+        logger.info("sms.console", extra={"phone_number": phone_number, "body": body})
+        return True
+    if backend != "twilio":
+        raise RuntimeError(f"Unknown SMS backend: {backend}")
+
     account = options.get("sms.twilio-account")
     if not account:
         raise RuntimeError("SMS backend is not configured.")
     if account[:2] != "AC":
         account = "AC" + account
     url = "https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json" % quote(account)
-
-    phone_number = phone_number_as_e164(to)
 
     rv = requests.post(
         url,

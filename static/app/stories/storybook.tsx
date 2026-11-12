@@ -22,7 +22,7 @@ type StoryRenderFunction = () => ReactNode | ReactNode[];
 type StoryContext = (storyName: string, story: StoryRenderFunction) => void;
 type SetupFunction = (
   story: StoryContext,
-  apiReference: (documentation: TypeLoader.ComponentDocWithFilename | undefined) => void
+  apiReference: (documentation: TypeLoader.ComponentDoc | undefined) => void
 ) => void;
 
 export function story(title: string, setup: SetupFunction): StoryRenderFunction {
@@ -30,15 +30,13 @@ export function story(title: string, setup: SetupFunction): StoryRenderFunction 
     name: string;
     render: StoryRenderFunction;
   }> = [];
-  const APIDocumentation: Array<TypeLoader.ComponentDocWithFilename | undefined> = [];
+  const APIDocumentation: Array<TypeLoader.ComponentDoc | undefined> = [];
 
   const storyFn: StoryContext = (name, render) => {
     stories.push({name, render});
   };
 
-  const apiReferenceFn = (
-    documentation: TypeLoader.ComponentDocWithFilename | undefined
-  ) => {
+  const apiReferenceFn = (documentation: TypeLoader.ComponentDoc | undefined) => {
     APIDocumentation.push(documentation);
   };
 
@@ -66,6 +64,10 @@ export function story(title: string, setup: SetupFunction): StoryRenderFunction 
 }
 
 function Story(props: {name: string; render: StoryRenderFunction}) {
+  // `render` calls hooks on this component's behalf. If the compiler memoizes
+  // the call on the stable `render` reference, every re-render skips those
+  // hooks and the story stays frozen on its first-render output.
+  'use no memo';
   const children = props.render();
   const isOneChild = Children.count(children) === 1;
 

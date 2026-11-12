@@ -1,10 +1,12 @@
 import uuid
 from datetime import timedelta
+from typing import Any
 
 import pytest
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from rest_framework.response import Response
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.models.group import Group
 from sentry.search.eap.occurrences.rollout_utils import (
@@ -25,9 +27,9 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
     def setUp(self) -> None:
         super().setUp()
 
-    def request_with_feature_flag(self, payload: dict) -> Response:
+    def request_with_feature_flag(self, payload: dict[str, Any]) -> Response:
         with self.options(
-            {EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION: self.callsite_name}
+            {EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION: [self.callsite_name]}
         ):
             response = self.do_request({**payload, "dataset": "occurrences"})
         assert response.status_code == 200, response.content
@@ -85,7 +87,7 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
 
         assert response.data["data"][0]["count()"] == 1
 
-    def _request_table_rate(self, field: str):
+    def _request_table_rate(self, field: str) -> Response:
         """Store two occurrences in a 2h window and request /events/ with the given rate field."""
         group = self.create_group(project=self.project)
         occurrences = [
@@ -239,7 +241,7 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
         expected_seconds = (base + timedelta(minutes=10)).timestamp()
         assert data[0]["last_seen()"] == pytest.approx(expected_seconds, abs=1)
 
-    def test_issue_filter(self):
+    def test_issue_filter(self) -> None:
         group1 = self.create_group(project=self.project)
         group2 = self.create_group(project=self.project)
         occurrences = [
@@ -366,7 +368,7 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["trace"] == trace_id
 
-    def test_sampled_vs_upsampled_eps(self):
+    def test_sampled_vs_upsampled_eps(self) -> None:
         group1 = self.create_group(project=self.project)
         group2 = self.create_group(project=self.project)
         occurrences = [
@@ -415,7 +417,7 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
         assert meta["fields"]["sample_eps()"] == "rate"
         assert meta["units"]["sample_eps()"] == "1/second"
 
-    def test_sample_vs_upsampled_count(self):
+    def test_sample_vs_upsampled_count(self) -> None:
         group1 = self.create_group(project=self.project)
         occurrences = [
             self.create_eap_occurrence(
@@ -519,22 +521,24 @@ class OrganizationEventsOccurrencesArrayQueryTest(
 ):
     callsite_name = "api.events.endpoints"
 
-    def request_with_feature_flag(self, payload: dict) -> Response:
+    def request_with_feature_flag(self, payload: dict[str, Any]) -> Response:
         # Array attributes are behind `organizations:trace-item-details-array-fields`.
         features = {
             "organizations:discover-basic": True,
             "organizations:trace-item-details-array-fields": True,
         }
         with self.options(
-            {EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION: self.callsite_name}
+            {EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION: [self.callsite_name]}
         ):
             response = self.do_request({**payload, "dataset": "occurrences"}, features=features)
         assert response.status_code == 200, response.content
         return response
 
-    def _create_occurrence_with_arrays(self, occurrence_count: int = 1) -> tuple[list, list[dict]]:
-        occurrences = []
-        expected: list[dict] = []
+    def _create_occurrence_with_arrays(
+        self, occurrence_count: int = 1
+    ) -> tuple[list[TraceItem], list[dict[str, Any]]]:
+        occurrences: list[TraceItem] = []
+        expected: list[dict[str, Any]] = []
         for i in range(occurrence_count):
             filenames = [f"sentry/module_{i}/urls.py", f"django/views_{i}/base.py"]
             http_url = f"https://example.com/items/{i}"
@@ -750,12 +754,15 @@ class OrganizationEventsOccurrencesArrayQueryTest(
         #   tags[array_tags] = ["eap_items", "occurrences"]
         self._create_occurrence_with_arrays(occurrence_count=2)
         field = "tags[array_tags, array]"
+        # The `[*]` membership operator sits on the attribute name, inside the
+        # bracket (`tags[name[*], array]`), while the selected column stays `field`.
+        member = "tags[array_tags[*], array]"
         cases = [
             # (description, query, value, expected_count, must_contain_in_each_match)
-            ("present value =", f"{field}[*]:eap_items", "eap_items", 2, True),
-            ("present value !=", f"!{field}[*]:eap_items", "eap_items", 0, False),
-            ("absent value =", f"{field}[*]:nonexistent", "nonexistent", 0, True),
-            ("absent value !=", f"!{field}[*]:nonexistent", "nonexistent", 2, False),
+            ("present value =", f"{member}:eap_items", "eap_items", 2, True),
+            ("present value !=", f"!{member}:eap_items", "eap_items", 0, False),
+            ("absent value =", f"{member}:nonexistent", "nonexistent", 0, True),
+            ("absent value !=", f"!{member}:nonexistent", "nonexistent", 2, False),
         ]
         for description, query, value, expected_count, must_contain in cases:
             response = self.request_with_feature_flag(
@@ -784,7 +791,7 @@ class OrganizationEventsOccurrencesArrayQueryTest(
         expected_http_url = expected[0]["http_url"]
 
         with self.options(
-            {EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION: self.callsite_name}
+            {EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION: [self.callsite_name]}
         ):
             response = self.do_request(
                 {

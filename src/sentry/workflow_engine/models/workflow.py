@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import replace
+from enum import StrEnum
 from typing import Any, ClassVar, TypedDict
 
 from django.conf import settings
@@ -19,7 +20,7 @@ from sentry.workflow_engine.models.data_condition_group import (
     DataConditionGroup,
     DataConditionGroupSnapshot,
 )
-from sentry.workflow_engine.processors.data_condition_group import TriggerResult
+from sentry.workflow_engine.processors.evaluations import DataConditionGroupEvaluation
 from sentry.workflow_engine.types import ConditionError, WorkflowEventData
 
 from .json_config import JSONConfigBase
@@ -29,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 class WorkflowSnapshot(TypedDict):
     id: int
+    type: Workflow.Type
     enabled: bool
     environment_id: int | None
     status: int
@@ -48,7 +50,12 @@ class WorkflowManager(BaseManager["Workflow"]):
 class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     """
     A workflow is a way to execute actions in a specified order.
-    Workflows are initiated after detectors have been processed, driven by changes to their state.
+
+    Workflows are triggered by other systems. For example, alert workflows are triggered
+    after detectors have been processed.
+
+    Not every workflow is user-facing. The `type` field says what the workflow is for, and the public
+    API only exposes workflows with a type in `VISIBLE_WORKFLOW_TYPES`
     """
 
     __relocation_scope__ = RelocationScope.Organization
@@ -56,8 +63,22 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     objects: ClassVar[WorkflowManager] = WorkflowManager()
     objects_for_deletion: ClassVar[BaseManager[Workflow]] = BaseManager()
 
+    class Type(StrEnum):
+        # A user-configured alert
+        ALERT = "alert"
+
+        # A hidden workflow to support inbox notifications
+        INBOX = "inbox"
+
     name = models.CharField(max_length=256)
     organization = FlexibleForeignKey("sentry.Organization")
+
+    type = models.CharField(
+        max_length=256,
+        choices=[(t.value, t.value) for t in Type],
+        default=Type.ALERT,
+        db_default=Type.ALERT,
+    )
 
     # If the workflow is not enabled, it will not be evaluated / invoke actions. This is how we "snooze" a workflow
     enabled = models.BooleanField(db_default=True)
@@ -103,9 +124,12 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
                 name="workflow_engine_workflow_when_condition_group_id_11d9ba05_uniq",
             ),
         ]
+        indexes = [
+            models.Index(fields=["type", "organization"], name="workflow_type_org_idx"),
+        ]
 
     def get_audit_log_data(self) -> dict[str, Any]:
-        return {"name": self.name}
+        return {"name": self.name, "type": self.type}
 
     def get_snapshot(self) -> WorkflowSnapshot:
         when_condition_group = None
@@ -118,6 +142,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
         return {
             "id": self.id,
+            "type": Workflow.Type(self.type),
             "enabled": self.enabled,
             "environment_id": environment_id,
             "status": self.status,
@@ -129,9 +154,9 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         event_data: WorkflowEventData,
         when_data_conditions: list[DataCondition] | None = None,
         group: DataConditionGroup | None = None,
-    ) -> tuple[TriggerResult, list[DataCondition]]:
+    ) -> tuple[DataConditionGroupEvaluation, list[DataCondition]]:
         """
-        Evaluate the conditions for the workflow trigger and return if the evaluation was successful.
+        Evaluate the conditions for the workflow trigger and return the group evaluation.
         If there aren't any workflow trigger conditions, the workflow is considered triggered.
         """
         # TODO - investigate circular import issue
@@ -140,7 +165,17 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         )
 
         if self.when_condition_group_id is None:
-            return TriggerResult.TRUE, []
+            return (
+                DataConditionGroupEvaluation(
+                    result=True,
+                    triggered=True,
+                    data={
+                        "condition_evaluations": [],
+                        "logic_type": DataConditionGroup.Type.ANY,
+                    },
+                ),
+                [],
+            )
 
         workflow_event_data = replace(event_data, workflow_env=self.environment)
 
@@ -157,7 +192,15 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
                     extra={"id": self.when_condition_group_id},
                 )
                 return (
-                    TriggerResult(False, ConditionError(msg="DataConditionGroup does not exist")),
+                    DataConditionGroupEvaluation(
+                        result=False,
+                        triggered=False,
+                        data={
+                            "condition_evaluations": [],
+                            "logic_type": DataConditionGroup.Type.ANY,
+                        },
+                        error=ConditionError(msg="DataConditionGroup does not exist"),
+                    ),
                     [],
                 )
         else:
@@ -168,7 +211,10 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         group_evaluation, remaining_conditions = process_data_condition_group(
             group, workflow_event_data, when_data_conditions
         )
-        return group_evaluation.logic_result, remaining_conditions
+        return group_evaluation, remaining_conditions
+
+
+VISIBLE_WORKFLOW_TYPES = frozenset({Workflow.Type.ALERT})
 
 
 def get_slow_conditions(workflow: Workflow) -> list[DataCondition]:

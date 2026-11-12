@@ -1,31 +1,22 @@
 import {useEffect} from 'react';
 import {useQuery} from '@tanstack/react-query';
+import {useQueryStates} from 'nuqs';
 
 import {useDrawer} from '@sentry/scraps/drawer';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 
-import {
-  cleanLocationQuery,
-  RELEASES_DRAWER_FIELD_MAP,
-  ReleasesDrawerFields,
-} from './utils';
+import {RELEASES_DRAWER_PARSERS, ReleasesDrawerFields} from './utils';
 
 export function useReleasesDrawer() {
-  const {rd} = useLocationQuery({
-    fields: RELEASES_DRAWER_FIELD_MAP,
-  });
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [{rd}, setDrawerQuery] = useQueryStates(RELEASES_DRAWER_PARSERS);
   const {openDrawer} = useDrawer();
   // Dynamically import the ReleasesDrawer component to avoid unnecessary bundle size + circular deps with version & versionHoverCard components
   const {data: ReleasesDrawer, isPending} = useQuery({
     queryKey: ['ReleasesDrawerComponent'],
     queryFn: async () => {
+      // oxlint-disable-next-line react/todo
       return (await import('sentry/views/explore/releases/drawer/releasesDrawer'))
         .ReleasesDrawer;
     },
@@ -42,12 +33,10 @@ export function useReleasesDrawer() {
           ariaLabel: t('Releases drawer'),
           drawerKey: 'releases-drawer',
           onClose: () => {
-            navigate({
-              query: cleanLocationQuery(location.query),
-            });
+            void setDrawerQuery(null, {history: 'replace'});
           },
         }
       );
     }
-  }, [rd, location.query, navigate, openDrawer, ReleasesDrawer, isPending]);
+  }, [rd, openDrawer, ReleasesDrawer, isPending, setDrawerQuery]);
 }

@@ -5,7 +5,7 @@ from typing import Any
 import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk import set_tag, start_span
+from sentry_sdk import set_tag, traces
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -39,7 +39,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
     permission_classes = (RelayPermission,)
     enforce_rate_limit = False
 
-    def post(self, request: Request):
+    def post(self, request: Request) -> Response:
         relay = request.relay
         assert relay is not None  # should be provided during Authentication
         response: dict[str, Any] = {}
@@ -69,7 +69,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         return Response(response, status=200)
 
-    def _should_post_or_schedule(self, version, request):
+    def _should_post_or_schedule(self, version: str, request: Request) -> bool:
         """Determine whether the `_post_or_schedule_by_key` function should be
         used for project configs.
 
@@ -115,11 +115,11 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         return post_or_schedule
 
-    def _post_or_schedule_by_key(self, request: Request):
-        public_keys = set(request.relay_request_data.get("publicKeys") or ())
+    def _post_or_schedule_by_key(self, request: Request) -> dict[str, object]:
+        public_keys: set[str] = set(request.relay_request_data.get("publicKeys") or ())
 
-        proj_configs = {}
-        pending = []
+        proj_configs: dict[str, ProjectConfig] = {}
+        pending: list[str] = []
         for key in public_keys:
             computed = self._get_cached_or_schedule(key)
             if not computed:
@@ -135,14 +135,14 @@ class RelayProjectConfigsEndpoint(Endpoint):
         metrics.incr("relay.project_configs.post_v3.fetched", amount=len(proj_configs))
         return {"configs": proj_configs, "pending": pending}
 
-    def _get_cached_or_schedule(self, public_key) -> dict | None:
+    def _get_cached_or_schedule(self, public_key: str) -> ProjectConfig | None:
         """
         Returns the config of a project if it's in the cache; else, schedules a
         task to compute and write it into the cache.
 
         Debouncing of the project happens after the task has been scheduled.
         """
-        cached_config = projectconfig_cache.backend.get(public_key)
+        cached_config: ProjectConfig | None = projectconfig_cache.backend.get(public_key)
         if cached_config:
             return cached_config
 
@@ -150,13 +150,14 @@ class RelayProjectConfigsEndpoint(Endpoint):
         return None
 
     def _post_by_key(self, request: Request) -> MutableMapping[str, ProjectConfig]:
-        public_keys = request.relay_request_data.get("publicKeys")
-        public_keys = set(public_keys or ())
+        public_keys: set[str] = set(request.relay_request_data.get("publicKeys") or ())
 
         project_keys: MutableMapping[str, ProjectKey] = {}
         project_ids: set[int] = set()
 
-        with start_span(op="relay_fetch_keys"):
+        with traces.start_span(
+            name="relay_fetch_keys", attributes={"sentry.op": "relay_fetch_keys"}
+        ):
             with metrics.timer("relay_project_configs.fetching_keys.duration"):
                 for key in ProjectKey.objects.get_many_from_cache(public_keys, key="public_key"):
                     if key.status != ProjectKeyStatus.ACTIVE:
@@ -168,7 +169,9 @@ class RelayProjectConfigsEndpoint(Endpoint):
         projects: MutableMapping[int, Project] = {}
         organization_ids: set[int] = set()
 
-        with start_span(op="relay_fetch_projects"):
+        with traces.start_span(
+            name="relay_fetch_projects", attributes={"sentry.op": "relay_fetch_projects"}
+        ):
             with metrics.timer("relay_project_configs.fetching_projects.duration"):
                 for project in Project.objects.get_many_from_cache(project_ids):
                     projects[project.id] = project
@@ -179,13 +182,17 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         orgs: MutableMapping[int, Organization] = {}
 
-        with start_span(op="relay_fetch_orgs"):
+        with traces.start_span(
+            name="relay_fetch_orgs", attributes={"sentry.op": "relay_fetch_orgs"}
+        ):
             with metrics.timer("relay_project_configs.fetching_orgs.duration"):
                 for org in Organization.objects.get_many_from_cache(organization_ids):
                     if request.relay.has_org_access(org):
                         orgs[org.id] = org
 
-        with start_span(op="relay_fetch_org_options"):
+        with traces.start_span(
+            name="relay_fetch_org_options", attributes={"sentry.op": "relay_fetch_org_options"}
+        ):
             with metrics.timer("relay_project_configs.fetching_org_options.duration"):
                 for org_id in orgs:
                     OrganizationOption.objects.get_all_values(org_id)
@@ -213,7 +220,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
             # Prevent organization from being fetched again in quotas.
             project.set_cached_field_value("organization", organization)
 
-            with start_span(op="get_config"):
+            with traces.start_span(name="get_config", attributes={"sentry.op": "get_config"}):
                 with metrics.timer("relay_project_configs.get_config.duration"):
                     project_config = config.get_project_config(
                         project,
@@ -229,14 +236,18 @@ class RelayProjectConfigsEndpoint(Endpoint):
     def _post_by_project(self, request: Request) -> MutableMapping[str, ProjectConfig]:
         project_ids = set(request.relay_request_data.get("projects") or ())
 
-        with start_span(op="relay_fetch_projects"):
+        with traces.start_span(
+            name="relay_fetch_projects", attributes={"sentry.op": "relay_fetch_projects"}
+        ):
             if project_ids:
                 with metrics.timer("relay_project_configs.fetching_projects.duration"):
                     projects = {p.id: p for p in Project.objects.get_many_from_cache(project_ids)}
             else:
                 projects = {}
 
-        with start_span(op="relay_fetch_orgs"):
+        with traces.start_span(
+            name="relay_fetch_orgs", attributes={"sentry.op": "relay_fetch_orgs"}
+        ):
             # Preload all organizations and their options to prevent repeated
             # database access when computing the project configuration.
             org_ids: set[int] = {project.organization_id for project in projects.values()}
@@ -251,7 +262,9 @@ class RelayProjectConfigsEndpoint(Endpoint):
                 for org_id in orgs.keys():
                     OrganizationOption.objects.get_all_values(org_id)
 
-        with start_span(op="relay_fetch_keys"):
+        with traces.start_span(
+            name="relay_fetch_keys", attributes={"sentry.op": "relay_fetch_keys"}
+        ):
             project_keys: MutableMapping[int, list[ProjectKey]] = {}
             for key in ProjectKey.objects.filter(project_id__in=project_ids):
                 project_keys.setdefault(key.project_id, []).append(key)
@@ -275,7 +288,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
             # Prevent organization from being fetched again in quotas.
             project.set_cached_field_value("organization", organization)
 
-            with start_span(op="get_config"):
+            with traces.start_span(name="get_config", attributes={"sentry.op": "get_config"}):
                 with metrics.timer("relay_project_configs.get_config.duration"):
                     project_config = config.get_project_config(
                         project,

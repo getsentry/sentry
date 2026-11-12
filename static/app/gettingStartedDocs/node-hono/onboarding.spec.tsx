@@ -50,26 +50,6 @@ describe('hono onboarding docs', () => {
       ).toBeInTheDocument();
     });
 
-    it('enables logs by setting enableLogs to true', () => {
-      renderWithOnboardingLayout(docs, {
-        selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
-      });
-
-      expect(
-        screen.getByText(textWithMarkupMatcher(/enableLogs: true/))
-      ).toBeInTheDocument();
-    });
-
-    it('does not enable logs when not selected', () => {
-      renderWithOnboardingLayout(docs, {
-        selectedProducts: [ProductSolution.ERROR_MONITORING],
-      });
-
-      expect(
-        screen.queryByText(textWithMarkupMatcher(/enableLogs: true/))
-      ).not.toBeInTheDocument();
-    });
-
     it('shows profiling info alert when profiling is selected', () => {
       renderWithOnboardingLayout(docs, {
         selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.PROFILING],
@@ -194,26 +174,6 @@ describe('hono onboarding docs', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('enables logs by setting enableLogs to true', () => {
-      renderWithOnboardingLayout(nodeDocs, {
-        selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
-      });
-
-      expect(
-        screen.getByText(textWithMarkupMatcher(/enableLogs: true/))
-      ).toBeInTheDocument();
-    });
-
-    it('does not enable logs when not selected', () => {
-      renderWithOnboardingLayout(nodeDocs, {
-        selectedProducts: [ProductSolution.ERROR_MONITORING],
-      });
-
-      expect(
-        screen.queryByText(textWithMarkupMatcher(/enableLogs: true/))
-      ).not.toBeInTheDocument();
-    });
-
     it('does not show profiling alert when profiling is selected', () => {
       renderWithOnboardingLayout(nodeDocs, {
         selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.PROFILING],
@@ -275,16 +235,6 @@ describe('hono onboarding docs', () => {
 
       expect(
         screen.getByText(textWithMarkupMatcher(/tracesSampleRate: 1\.0/))
-      ).toBeInTheDocument();
-    });
-
-    it('enables logs by setting enableLogs to true', () => {
-      renderWithOnboardingLayout(bunDocs, {
-        selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
-      });
-
-      expect(
-        screen.getByText(textWithMarkupMatcher(/enableLogs: true/))
       ).toBeInTheDocument();
     });
 
@@ -352,16 +302,6 @@ describe('hono onboarding docs', () => {
 
       expect(
         screen.getByText(textWithMarkupMatcher(/tracesSampleRate: 1\.0/))
-      ).toBeInTheDocument();
-    });
-
-    it('enables logs by setting enableLogs to true', () => {
-      renderWithOnboardingLayout(denoDocs, {
-        selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
-      });
-
-      expect(
-        screen.getByText(textWithMarkupMatcher(/enableLogs: true/))
       ).toBeInTheDocument();
     });
 

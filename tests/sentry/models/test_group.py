@@ -8,7 +8,8 @@ from django.core.cache import cache
 from django.db.models import ProtectedError
 from django.utils import timezone
 
-from sentry.issues.grouptype import FeedbackGroup, ProfileFileIOGroupType, ReplayHydrationErrorType
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
+from sentry.issues.grouptype import FeedbackGroup, ProfileFileIOGroupType
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus, get_group_with_redirect
 from sentry.models.groupopenperiod import GroupOpenPeriod
@@ -43,16 +44,6 @@ class GroupTest(TestCase, SnubaTestCase):
 
         group.status = GroupStatus.UNRESOLVED
         assert not group.is_resolved()
-
-        group.last_seen = timezone.now() - timedelta(hours=12)
-
-        group.project.update_option("sentry:resolve_age", 24)
-
-        assert not group.is_resolved()
-
-        group.project.update_option("sentry:resolve_age", 1)
-
-        assert group.is_resolved()
 
     def test_is_ignored_with_expired_snooze(self) -> None:
         group = self.create_group(status=GroupStatus.IGNORED)
@@ -103,6 +94,10 @@ class GroupTest(TestCase, SnubaTestCase):
         with pytest.raises(Group.DoesNotExist):
             get_group_with_redirect("12345678901234567890")
 
+    def test_get_group_with_redirect_id_with_too_many_digits(self) -> None:
+        with pytest.raises(Group.DoesNotExist):
+            get_group_with_redirect("1" * 10_000)
+
     def test_get_group_with_redirect_from_qualified_short_id(self) -> None:
         group = self.create_group()
         assert group.qualified_short_id
@@ -111,6 +106,7 @@ class GroupTest(TestCase, SnubaTestCase):
         ) == (group, False)
 
         duplicate_group = self.create_group()
+        assert duplicate_group.qualified_short_id
         duplicate_id = duplicate_group.id
         GroupRedirect.create_for_group(duplicate_group, group)
         Group.objects.filter(id=duplicate_id).delete()
@@ -136,6 +132,7 @@ class GroupTest(TestCase, SnubaTestCase):
         project = self.create_project(name="foo bar")
         group = self.create_group(project=project, short_id=project.next_short_id())
         short_id = group.qualified_short_id
+        assert short_id is not None
 
         assert short_id.startswith("FOO-BAR-")
 
@@ -162,6 +159,8 @@ class GroupTest(TestCase, SnubaTestCase):
         group_2 = self.create_group(project=project, short_id=project.next_short_id())
         group_short_id = group.qualified_short_id
         group_2_short_id = group_2.qualified_short_id
+        assert group_short_id is not None
+        assert group_2_short_id is not None
         assert [group] == Group.objects.by_qualified_short_id_bulk(
             group.organization.id, [group_short_id], project_ids=None
         )
@@ -194,6 +193,8 @@ class GroupTest(TestCase, SnubaTestCase):
 
         a_short_id = group_a.qualified_short_id
         b_short_id = group_b.qualified_short_id
+        assert a_short_id is not None
+        assert b_short_id is not None
 
         # Make PROJ-B-1 unresolvable while PROJ-A-1 still resolves to the colliding short_id.
         group_b.update(status=GroupStatus.PENDING_DELETION, substatus=None)
@@ -209,6 +210,8 @@ class GroupTest(TestCase, SnubaTestCase):
         group_a = self.create_group(project=project_a, short_id=project_a.next_short_id())
         group_b = self.create_group(project=project_b, short_id=project_b.next_short_id())
         org_id = self.organization.id
+        assert group_a.qualified_short_id
+        assert group_b.qualified_short_id
 
         # In-scope short id resolves.
         assert (
@@ -234,6 +237,8 @@ class GroupTest(TestCase, SnubaTestCase):
         group_a = self.create_group(project=project_a, short_id=project_a.next_short_id())
         group_b = self.create_group(project=project_b, short_id=project_b.next_short_id())
         org_id = self.organization.id
+        assert group_a.qualified_short_id
+        assert group_b.qualified_short_id
 
         assert Group.objects.by_qualified_short_id_bulk(
             org_id, [group_a.qualified_short_id], project_ids=[project_a.id]
@@ -257,6 +262,7 @@ class GroupTest(TestCase, SnubaTestCase):
         # Re-fetch to ensure updated relation is used when computing qualified_short_id
         group = Group.objects.get(id=group.id)
         short_id = group.qualified_short_id
+        assert short_id is not None
 
         # Should resolve via case-insensitive slug fallback
         resolved = Group.objects.by_qualified_short_id_bulk(
@@ -271,6 +277,7 @@ class GroupTest(TestCase, SnubaTestCase):
             data={"release": "a", "timestamp": self.min_ago}, project_id=project.id
         )
         group = event.group
+        assert group is not None
 
         release = Release.objects.get(version="a")
 
@@ -286,6 +293,7 @@ class GroupTest(TestCase, SnubaTestCase):
         )
 
         group = event.group
+        assert group is not None
 
         assert group.get_first_release() == "a"
         cache.delete(_get_cache_key(group.id, group.project_id, True))
@@ -349,6 +357,7 @@ class GroupTest(TestCase, SnubaTestCase):
             data={"fingerprint": ["group1"], "timestamp": self.min_ago}, project_id=project.id
         )
         group = event.group
+        assert group is not None
         url = f"http://testserver/organizations/{project.organization.slug}/issues/{group.id}/events/{event.event_id}/"
         assert url == group.get_absolute_url(event_id=event.event_id)
 
@@ -360,6 +369,7 @@ class GroupTest(TestCase, SnubaTestCase):
         )
         org = self.organization
         group = event.group
+        assert group is not None
         expected = f"http://{org.slug}.testserver/issues/{group.id}/events/{event.event_id}/"
         assert expected == group.get_absolute_url(event_id=event.event_id)
 
@@ -373,6 +383,7 @@ class GroupTest(TestCase, SnubaTestCase):
         )
         org = self.organization
         group = event.group
+        assert group is not None
 
         assert (
             group.get_absolute_api_url()
@@ -451,39 +462,6 @@ class GroupTest(TestCase, SnubaTestCase):
         for status, substatus in desired_status_substatus_pairs:
             group = self.create_group(status=status, substatus=substatus)
             assert group.substatus is substatus
-
-
-class GroupIsOverResolveAgeTest(TestCase):
-    def test_simple(self) -> None:
-        group = self.group
-        group.last_seen = timezone.now() - timedelta(hours=2)
-        group.project.update_option("sentry:resolve_age", 1)  # 1 hour
-        assert group.is_over_resolve_age() is True
-        group.last_seen = timezone.now()
-        assert group.is_over_resolve_age() is False
-
-    def test_respects_enable_auto_resolve_flag(self) -> None:
-        # Create a group and make it old enough to auto-resolve
-        group = self.group
-        group.last_seen = timezone.now() - timedelta(hours=2)
-        group.project.update_option("sentry:resolve_age", 1)  # 1 hour
-
-        # Test with a group type that has auto-resolve enabled
-        group.type = ReplayHydrationErrorType.type_id
-        group.save()
-
-        # Verify it would be auto-resolved
-        assert group.is_over_resolve_age() is True
-        assert group.get_status() == GroupStatus.RESOLVED
-
-        # Test with a group type that has auto-resolve disabled
-        group.type = FeedbackGroup.type_id
-        group.status = GroupStatus.UNRESOLVED  # Reset status
-        group.save()
-
-        # Verify it would NOT be auto-resolved, even though is_over_resolve_age is True
-        assert group.is_over_resolve_age() is True
-        assert group.get_status() == GroupStatus.UNRESOLVED
 
 
 class GroupGetLatestEventTest(TestCase, OccurrenceTestMixin):
@@ -600,6 +578,7 @@ class GroupReplaysCacheTest(SnubaTestCase, ReplaysSnubaTestCase):
             project_id=self.project.id,
         )
         group = event.group
+        assert group is not None
         assert group.has_replays() is False
 
     def test_no_replay_on_issue(self) -> None:
@@ -612,6 +591,7 @@ class GroupReplaysCacheTest(SnubaTestCase, ReplaysSnubaTestCase):
         )
 
         group = event.group
+        assert group is not None
         assert group.has_replays() is False
 
         # test caching
@@ -664,12 +644,32 @@ class GroupReplaysCacheTest(SnubaTestCase, ReplaysSnubaTestCase):
 
         after = timezone.now()
         group.refresh_from_db()
+        resolved_at = group.resolved_at
+        assert resolved_at is not None
 
         assert group.status == GroupStatus.RESOLVED
-        assert before <= group.resolved_at <= after
+        assert before <= resolved_at <= after
 
         activity = Activity.objects.filter(
             group=group, type=ActivityType.SET_RESOLVED.value
         ).first()
         assert activity is not None
         assert before <= activity.datetime <= after
+
+
+@patch("sentry.issues.attributes.produce_snapshot_to_kafka")
+class UpdateGroupStatusSnapshotTest(TestCase):
+    def test_emits_one_snapshot(self, produce_snapshot: MagicMock) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+
+        produce_snapshot.reset_mock()
+
+        with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+            Group.objects.update_group_status(
+                groups=[group],
+                status=GroupStatus.IGNORED,
+                substatus=GroupSubStatus.FOREVER,
+                activity_type=ActivityType.SET_IGNORED,
+            )
+
+        produce_snapshot.assert_called_once()

@@ -1,16 +1,15 @@
 import type {ReactNode} from 'react';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {useLogsTimeseries} from 'sentry/views/explore/logs/useLogsTimeseries';
 
-jest.mock('sentry/components/pageFilters/usePageFilters');
+import {LogsQueryParamsProvider} from './logsQueryParamsProvider';
+import {useLogsTimeseries} from './useLogsTimeseries';
 
 function Wrapper({children}: {children: ReactNode}) {
   return (
@@ -23,10 +22,14 @@ function Wrapper({children}: {children: ReactNode}) {
   );
 }
 
+afterEach(() => {
+  PageFiltersStore.reset();
+});
+
 describe('useLogsTimeseries', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
   });
 
   it('triggers the high accuracy request when there is no data and a partial scan', async () => {
@@ -84,6 +87,7 @@ describe('useLogsTimeseries', () => {
             isFetching: false,
             isPending: false,
             data: [],
+            routingHintsByRow: new Map(),
             meta: {
               fields: {},
               units: {},
@@ -94,6 +98,7 @@ describe('useLogsTimeseries', () => {
             fetchPreviousPage: () => Promise.resolve({} as any),
             refetch: () => Promise.resolve({} as any),
             hasNextPage: false,
+            canFetchNextPage: false,
             queryKey: [] as any,
             hasPreviousPage: false,
             isFetchingNextPage: false,
@@ -103,6 +108,9 @@ describe('useLogsTimeseries', () => {
             dataScanned: undefined,
             canResumeAutoFetch: false,
             resumeAutoFetch: () => {},
+            anchor: undefined,
+            anchorToLog: () => {},
+            clearAnchor: () => {},
           },
         }),
       {additionalWrapper: Wrapper}

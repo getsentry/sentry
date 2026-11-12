@@ -7,13 +7,15 @@ import {t} from 'sentry/locale';
 import type {PreprodDetector} from 'sentry/types/workflowEngine/detectors';
 import {
   DisableDetectorAction,
+  DuplicateDetectorAction,
   EditDetectorAction,
 } from 'sentry/views/detectors/components/details/common/actions';
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
 import {DisabledAlert} from 'sentry/views/detectors/components/details/common/disabledAlert';
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
 import {DetectorDetailsOpenPeriodIssues} from 'sentry/views/detectors/components/details/common/openPeriodIssues';
-import {MobileBuildDetectorDetailsSidebar} from 'sentry/views/detectors/components/details/mobileBuild/sidebar';
+
+import {MobileBuildDetectorDetailsSidebar} from './sidebar';
 
 type MobileBuildDetectorDetailsProps = {
   detector: PreprodDetector;
@@ -33,6 +35,7 @@ export function MobileBuildDetectorDetails({detector}: MobileBuildDetectorDetail
             <DatePageFilter />
             <Flex flex={1} justify="end" gap="md">
               <DisableDetectorAction detector={detector} />
+              <DuplicateDetectorAction detector={detector} />
               <EditDetectorAction detector={detector} />
             </Flex>
           </Flex>

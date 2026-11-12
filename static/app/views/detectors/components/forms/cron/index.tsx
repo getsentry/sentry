@@ -6,22 +6,24 @@ import {Stack} from '@sentry/scraps/layout';
 import {t} from 'sentry/locale';
 import type {CronDetector} from 'sentry/types/workflowEngine/detectors';
 import {AutomateSectionDeprecated} from 'sentry/views/detectors/components/forms/automateSection';
+import {useInitialDetectorDraft} from 'sentry/views/detectors/components/forms/common/detectorDraft';
 import {IssueOwnershipSection} from 'sentry/views/detectors/components/forms/common/issueOwnershipSection';
 import {ProjectSection} from 'sentry/views/detectors/components/forms/common/projectSection';
-import {CronDetectorFormDetectSection} from 'sentry/views/detectors/components/forms/cron/detect';
-import {
-  CRON_DEFAULT_SCHEDULE_TYPE,
-  cronFormDataToEndpointPayload,
-  cronSavedDetectorToFormData,
-} from 'sentry/views/detectors/components/forms/cron/fields';
-import {InstrumentationGuide} from 'sentry/views/detectors/components/forms/cron/instrumentationGuide';
-import {CronDetectorFormResolveSection} from 'sentry/views/detectors/components/forms/cron/resolve';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
 import {useCronsUpsertGuideState} from 'sentry/views/insights/crons/components/useCronsUpsertGuideState';
 
+import {CRON_DETECTOR_DRAFT_SCHEMA} from './cronDraftConfig';
 import {CronIssuePreview} from './cronIssuePreview';
+import {CronDetectorFormDetectSection} from './detect';
+import {
+  CRON_DEFAULT_SCHEDULE_TYPE,
+  cronFormDataToEndpointPayload,
+  cronSavedDetectorToFormData,
+} from './fields';
+import {InstrumentationGuide} from './instrumentationGuide';
 import {PreviewSection} from './previewSection';
+import {CronDetectorFormResolveSection} from './resolve';
 
 function useIsShowingPlatformGuide() {
   const {platformKey, guideKey} = useCronsUpsertGuideState();
@@ -69,14 +71,24 @@ const mapCronDetectorFormErrors = (error: unknown) => {
   return error;
 };
 
-function CronDetectorForm({detector}: {detector?: CronDetector}) {
+function CronDetectorForm({
+  detector,
+  hideInstrumentationGuide = false,
+  isDraft = false,
+}: {
+  detector?: CronDetector;
+  hideInstrumentationGuide?: boolean;
+  isDraft?: boolean;
+}) {
   const dataSource = detector?.dataSources[0];
   const theme = useTheme();
-  const showingPlatformGuide = useIsShowingPlatformGuide();
+  const showingPlatformGuide = useIsShowingPlatformGuide() && !hideInstrumentationGuide;
 
   return (
     <Stack gap="2xl" maxWidth={theme.breakpoints.xl}>
-      {!detector && <InstrumentationGuide />}
+      {!detector && !hideInstrumentationGuide && (
+        <InstrumentationGuide skipDetectionForInitialProject={isDraft} />
+      )}
       <Stack
         data-test-id="form-sections"
         style={showingPlatformGuide ? {display: 'none'} : undefined}
@@ -98,16 +110,25 @@ function CronDetectorForm({detector}: {detector?: CronDetector}) {
   );
 }
 
-export function NewCronDetectorForm() {
-  const showingPlatformGuide = useIsShowingPlatformGuide();
+export function NewCronDetectorForm({
+  duplicateDetector,
+}: {
+  duplicateDetector?: CronDetector;
+}) {
+  const hasDraft = Boolean(useInitialDetectorDraft());
+  const hideInstrumentationGuide = Boolean(duplicateDetector);
+  const showingPlatformGuide = useIsShowingPlatformGuide() && !hideInstrumentationGuide;
 
   return (
     <NewDetectorLayout
       detectorType="monitor_check_in_failure"
+      draftSchema={CRON_DETECTOR_DRAFT_SCHEMA}
       formDataToEndpointPayload={cronFormDataToEndpointPayload}
-      initialFormData={{
-        scheduleType: CRON_DEFAULT_SCHEDULE_TYPE,
-      }}
+      initialFormData={
+        duplicateDetector
+          ? cronSavedDetectorToFormData(duplicateDetector)
+          : {scheduleType: CRON_DEFAULT_SCHEDULE_TYPE}
+      }
       mapFormErrors={mapCronDetectorFormErrors}
       disabledCreate={
         showingPlatformGuide
@@ -117,7 +138,10 @@ export function NewCronDetectorForm() {
           : undefined
       }
     >
-      <CronDetectorForm />
+      <CronDetectorForm
+        hideInstrumentationGuide={hideInstrumentationGuide}
+        isDraft={hasDraft}
+      />
     </NewDetectorLayout>
   );
 }

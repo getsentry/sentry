@@ -7,8 +7,9 @@ import {Button} from '@sentry/scraps/button';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
-import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/context';
-import {FoldSection, getFoldSectionKey} from 'sentry/views/issueDetails/foldSection';
+
+import {SectionKey, useIssueDetails} from './context';
+import {FoldSection, getFoldSectionKey} from './foldSection';
 
 // Mock dependencies
 jest.mock('sentry/views/issueDetails/context');
@@ -21,8 +22,10 @@ describe('FoldSection', () => {
     sectionData: {},
     detectorDetails: {},
     eventCount: 0,
+    eventNavigationHeight: 0,
     isSidebarOpen: true,
     navScrollMargin: 64,
+    scrollContext: 'page' as const,
     dispatch: jest.fn(),
   };
 
@@ -58,6 +61,43 @@ describe('FoldSection', () => {
       );
 
       expect(screen.getByText('Custom Title')).toBeVisible();
+      expect(screen.getByRole('button')).toHaveAccessibleName('Collapse Section');
+    });
+
+    it('does not wrap a custom block title in inline typography', () => {
+      render(
+        <FoldSection
+          title={<div>Custom Block Title</div>}
+          sectionKey={SectionKey.HIGHLIGHTS}
+        >
+          <div>Test Content</div>
+        </FoldSection>,
+        {
+          organization: OrganizationFixture(),
+        }
+      );
+
+      expect(screen.getByText('Custom Block Title')).toBeVisible();
+    });
+
+    it('uses titleLabel for a custom JSX title', () => {
+      render(
+        <FoldSection
+          title={<span>Custom Title</span>}
+          titleLabel="Accessible Title"
+          sectionKey={SectionKey.HIGHLIGHTS}
+        >
+          <div>Test Content</div>
+        </FoldSection>,
+        {
+          organization: OrganizationFixture(),
+        }
+      );
+
+      expect(screen.getByRole('region', {name: 'Accessible Title'})).toBeInTheDocument();
+      expect(screen.getByRole('button')).toHaveAccessibleName(
+        'Collapse Accessible Title Section'
+      );
     });
 
     it('applies accessibility attributes to container', () => {
@@ -352,8 +392,6 @@ describe('FoldSection', () => {
       // Collapse section
       await userEvent.click(screen.getByRole('button'));
 
-      // Wait and verify localStorage was not updated
-      await new Promise(resolve => setTimeout(resolve, 100));
       expect(
         localStorageWrapper.getItem(getFoldSectionKey(SectionKey.HIGHLIGHTS))
       ).toBeNull();

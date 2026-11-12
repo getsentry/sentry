@@ -1,5 +1,6 @@
 import {TimeSince} from 'sentry/components/timeSince';
-import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
+
+import {EmptyCell} from './emptyCell';
 
 type TimeAgoCellProps = {
   date?: string | Date;

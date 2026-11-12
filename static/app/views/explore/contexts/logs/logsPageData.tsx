@@ -3,10 +3,8 @@ import {createContext, useContext, useMemo} from 'react';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
-import {
-  useInfiniteLogsQuery,
-  useLogsQueryHighFidelity,
-} from 'sentry/views/explore/logs/useLogsQuery';
+import {useInfiniteLogsQuery} from 'sentry/views/explore/logs/useLogsQuery';
+import {useLogsQueryHighFidelity} from 'sentry/views/explore/logs/useLogsQueryHighFidelity';
 import {useLogsTotalPayload} from 'sentry/views/explore/logs/useLogsTotalPayload';
 
 interface LogsPageData {

@@ -1,18 +1,19 @@
 import type {Location, Query} from 'history';
 
-import {openModal} from 'sentry/actionCreators/modal';
+import {openModal} from '@sentry/scraps/modal';
+
 import {ContextPickerModalContainer as ContextPickerModal} from 'sentry/components/contextPickerModal';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
 
 export function navigateTo(
   to: string | {pathname: string; query?: Query},
   navigate: ReactRouter3Navigate,
-  location: Location | undefined,
-  configQueryKey?: ApiQueryKey
+  location: Location | undefined
 ) {
   let pathname: string;
   if (typeof to === 'string') {
@@ -24,19 +25,13 @@ export function navigateTo(
   const needOrg = pathname.includes(':orgId');
   const needProject = pathname.includes(':projectId') || pathname.includes(':project');
   const needTeam = pathname.includes(':teamId');
-  const comingFromProjectId = location?.query?.project;
-  const needProjectId = !comingFromProjectId || Array.isArray(comingFromProjectId);
+  const projectIds = location
+    ? loadQueryParamsFromLocation(pageFilterParsers, location).project
+    : [];
+  const projectById =
+    projectIds.length === 1 ? ProjectsStore.getById(projectIds[0]) : undefined;
 
-  const projectById = ProjectsStore.getById(
-    typeof comingFromProjectId === 'string' ? comingFromProjectId : undefined
-  );
-
-  if (
-    needOrg ||
-    needTeam ||
-    (needProject && (needProjectId || !projectById)) ||
-    configQueryKey
-  ) {
+  if (needOrg || needTeam || (needProject && !projectById)) {
     openModal(
       modalProps => (
         <ContextPickerModal
@@ -45,7 +40,6 @@ export function navigateTo(
           needOrg={needOrg}
           needProject={needProject}
           needTeam={needTeam}
-          configQueryKey={configQueryKey}
           onFinish={path => {
             modalProps.closeModal();
             return window.setTimeout(() => navigate(normalizeUrl(path)), 0);

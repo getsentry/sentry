@@ -1,6 +1,5 @@
 import {useQuery} from '@tanstack/react-query';
 
-import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {detectorListApiOptions} from 'sentry/views/detectors/hooks/index';
 
@@ -22,7 +21,6 @@ export function useMetricDetectorLimit(): MetricDetectorLimitResponse {
   const subscription = useSubscription();
   const detectorLimit = subscription?.planDetails?.metricDetectorLimit ?? UNLIMITED_QUOTA;
 
-  const isWorkflowEngine = organization.features.includes('workflow-engine-ui');
   const hasFlag = organization.features.includes('workflow-engine-metric-detector-limit');
 
   const {
@@ -34,28 +32,14 @@ export function useMetricDetectorLimit(): MetricDetectorLimitResponse {
       query: 'type:metric',
       limit: 1,
     }),
-    enabled: hasFlag && isWorkflowEngine && detectorLimit !== UNLIMITED_QUOTA,
+    enabled: hasFlag && detectorLimit !== UNLIMITED_QUOTA,
     staleTime: 5 * 1000, // Set stale time to 5 sec to avoid unnecessary re-fetching
     select: data => data.headers['X-Hits'],
   });
 
-  const {
-    data: alertRulesXHits = NO_COUNT,
-    isLoading: isMetricRulesLoading,
-    isError: isMetricRulesError,
-  } = useQuery({
-    ...apiOptions.as<unknown[]>()('/organizations/$organizationIdOrSlug/alert-rules/', {
-      path: {organizationIdOrSlug: organization.slug},
-      staleTime: 5 * 1000, // Set stale time to 5 sec to avoid unnecessary re-fetching
-      query: {limit: 1},
-    }),
-    enabled: hasFlag && !isWorkflowEngine && detectorLimit !== UNLIMITED_QUOTA,
-    select: data => data.headers['X-Hits'],
-  });
-
-  const isLoading = isWorkflowEngine ? isDetectorsLoading : isMetricRulesLoading;
-  const isError = isWorkflowEngine ? isDetectorsError : isMetricRulesError;
-  const detectorCount = isWorkflowEngine ? detectorXHits : alertRulesXHits;
+  const isLoading = isDetectorsLoading;
+  const isError = isDetectorsError;
+  const detectorCount = detectorXHits;
 
   if (!hasFlag || detectorLimit === UNLIMITED_QUOTA) {
     return {

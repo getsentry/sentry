@@ -4,7 +4,8 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {Projects} from 'sentry/utils/projects';
+
+import {Projects} from './projects';
 
 describe('utils.projects', () => {
   const renderer = jest.fn(() => null);
@@ -462,9 +463,9 @@ describe('utils.projects', () => {
       );
     });
 
-    it('queries API for more projects and appends results', async () => {
+    it('does not duplicate projects when search is repeated', async () => {
       const myRenderer = jest.fn(({onSearch}) => (
-        <input onChange={({target}) => onSearch(target.value, {append: true})} />
+        <input onChange={({target}) => onSearch(target.value)} />
       ));
 
       createWrapper({children: myRenderer});
@@ -504,14 +505,6 @@ describe('utils.projects', () => {
             hasMore: false,
             projects: [
               expect.objectContaining({
-                id: '100',
-                slug: 'a',
-              }),
-              expect.objectContaining({
-                id: '101',
-                slug: 'b',
-              }),
-              expect.objectContaining({
                 id: '102',
                 slug: 'test1',
               }),
@@ -531,14 +524,6 @@ describe('utils.projects', () => {
         expect(myRenderer).toHaveBeenLastCalledWith(
           expect.objectContaining({
             projects: [
-              expect.objectContaining({
-                id: '100',
-                slug: 'a',
-              }),
-              expect.objectContaining({
-                id: '101',
-                slug: 'b',
-              }),
               expect.objectContaining({
                 id: '102',
                 slug: 'test1',

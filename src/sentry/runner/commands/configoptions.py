@@ -80,7 +80,7 @@ def _load_options(file: str | None) -> dict[str, Any]:
     small floats (0.00001) being converted to sci notation (1e-5) via repr(), getting parsed as strings
     because YAML 1.1 only parses to float if there's a decimal (1.0e-5 not 1e-5).
 
-    We fall back to YAML for hand-authored files (e.g. the local flagpole devloop).
+    We fall back to YAML for hand-authored files.
     """
     with open(file) if file is not None else sys.stdin as stream:
         content = stream.read()
@@ -90,7 +90,8 @@ def _load_options(file: str | None) -> dict[str, Any]:
         import yaml
 
         loaded = yaml.safe_load(content)
-    return loaded["options"]
+    options = loaded.get("options")
+    return options
 
 
 def _validate_options(
@@ -240,7 +241,8 @@ def _single_file(ctx: click.Context, command: str) -> str | None:
             f"{command} operates on a single file; pass one -f, "
             f"or use 'validate' to check multiple files at once."
         )
-    return files[0]
+    single_file = files[0]
+    return single_file
 
 
 @configoptions.command()

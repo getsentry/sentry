@@ -6,13 +6,13 @@ import pytest
 from django.utils import timezone
 from taskbroker_client.state import CurrentTaskState
 
+from sentry import nodestore
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.environment import Environment
+from sentry.models.event import EventDict
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.notifications.models.notificationaction import ActionTarget
-from sentry.rules.conditions.event_frequency import ComparisonType
-from sentry.rules.match import MatchType
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils import json
@@ -24,6 +24,8 @@ from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers im
     EventUniqueUserFrequencyQueryHandler,
     QueryResult,
 )
+from sentry.workflow_engine.handlers.condition.utils.event_frequency import ComparisonType
+from sentry.workflow_engine.handlers.condition.utils.match import MatchType
 from sentry.workflow_engine.models import (
     Action,
     DataCondition,
@@ -37,11 +39,8 @@ from sentry.workflow_engine.models.data_condition import (
     SLOW_CONDITIONS,
     Condition,
 )
-from sentry.workflow_engine.processors.data_condition_group import (
-    ProcessedDataConditionGroup,
-    TriggerResult,
-    get_slow_conditions_for_groups,
-)
+from sentry.workflow_engine.processors import DataConditionGroupEvaluation
+from sentry.workflow_engine.processors.data_condition_group import get_slow_conditions_for_groups
 from sentry.workflow_engine.processors.delayed_workflow import (
     EventInstance,
     EventKey,
@@ -58,6 +57,12 @@ from sentry.workflow_engine.processors.delayed_workflow import (
     get_condition_query_groups,
     get_group_to_groupevent,
     get_groups_to_fire,
+    is_retry,
+)
+from sentry.workflow_engine.processors.evaluations import (
+    EvaluationPhase,
+    EvaluationType,
+    WorkflowEvaluationOutcome,
 )
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
@@ -540,6 +545,41 @@ class TestGetSnubaResults(BaseWorkflowTest):
     def test_empty_condition_groups(self) -> None:
         assert get_condition_group_results({}) == {}
 
+    def test_is_retry(self) -> None:
+        task = Mock(spec=CurrentTaskState)
+        task.attempt = 0
+
+        assert not is_retry(None)
+        assert not is_retry(task)
+
+        task.attempt = 1
+        assert is_retry(task)
+
+    @patch("sentry.workflow_engine.processors.delayed_workflow.metrics.incr")
+    @patch("sentry.workflow_engine.processors.delayed_workflow.current_task")
+    def test_condition_query_metric_tracks_retry_load(
+        self, mock_current_task: MagicMock, mock_incr: MagicMock
+    ) -> None:
+        task = Mock(spec=CurrentTaskState)
+        task.attempt = 1
+        task.retries_remaining = True
+        mock_current_task.return_value = task
+        mock_handler = Mock(spec=BaseEventFrequencyQueryHandler)
+        mock_handler.get_rate_bulk.return_value = {}
+        mock_handler.intervals = {"1h": ("fake", timedelta(seconds=1))}
+        unique_query = UniqueConditionQuery(
+            handler=lambda: mock_handler,  # type: ignore[arg-type]
+            interval="1h",
+            environment_id=None,
+        )
+
+        get_condition_group_results({unique_query: GroupQueryParams(group_ids={1}, timestamp=None)})
+
+        mock_incr.assert_called_once_with(
+            "workflow_engine.delayed_workflow.condition_query",
+            tags={"is_retry": True},
+        )
+
     def test_count_comparison_condition(self) -> None:
         dc = self.create_event_frequency_condition()
         condition_groups, group_id, unique_queries = self.create_condition_groups([dc])
@@ -623,6 +663,7 @@ class TestGetSnubaResults(BaseWorkflowTest):
         self, mock_current_task: MagicMock
     ) -> None:
         mock_task = Mock(spec=CurrentTaskState)
+        mock_task.attempt = 1
         mock_task.retries_remaining = False
         mock_current_task.return_value = mock_task
 
@@ -727,6 +768,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             self.event_data,
             self.condition_group_results,
             self.dcg_to_slow_conditions,
+            project_id=self.project.id,
         )
 
         # NOTE: no WHEN DCGs. We only collect IF DCGs here to fire their actions in the fire_actions_for_groups function
@@ -739,6 +781,92 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
                 },  # WHEN DCG passed so we have the passing if dcg here. IF DCG with slow condition did not pass
             }
         )
+        assert len(eval_result.artifacts) == 2
+        artifact = eval_result.artifacts[0]
+        assert artifact.evaluation_type == EvaluationType.WORKFLOW
+        assert artifact.evaluation_phase == EvaluationPhase.DELAYED
+        assert artifact.workflow_id == self.workflow1.id
+        assert artifact.project_id == self.project.id
+        assert artifact.event_id == "test-event-1"
+        assert artifact.group_id == self.group1.id
+        assert artifact.outcome == WorkflowEvaluationOutcome.ACTIONS_TRIGGERED
+        assert len(artifact.filter_evaluations) == 1
+
+    def test_missing_when_dcg_creates_error_artifact(self) -> None:
+        missing_when_dcg_id = self.workflow1.when_condition_group_id
+        assert missing_when_dcg_id is not None
+        event_data = EventRedisData(
+            events={
+                EventKey(
+                    workflow_id=self.workflow1.id,
+                    group_id=self.group1.id,
+                    when_dcg_id=missing_when_dcg_id,
+                    if_dcg_ids=frozenset({self.workflow1_if_dcgs[0].id}),
+                    passing_dcg_ids=frozenset({self.workflow1_if_dcgs[1].id}),
+                    original_key="missing-when-dcg-event",
+                ): EventInstance(event_id="missing-when-dcg-event"),
+            }
+        )
+        data_condition_groups = [
+            dcg for dcg in self.data_condition_groups if dcg.id != missing_when_dcg_id
+        ]
+
+        eval_result = get_groups_to_fire(
+            data_condition_groups,
+            self.workflows_to_envs,
+            event_data,
+            self.condition_group_results,
+            get_slow_conditions_for_groups(list(event_data.dcg_ids)),
+            project_id=self.project.id,
+        )
+
+        assert eval_result.groups_to_fire == {}
+        assert eval_result.when_dcg_missing == {self.workflow1.id: [self.group1.id]}
+        assert len(eval_result.artifacts) == 1
+        artifact = eval_result.artifacts[0]
+        assert artifact.triggered is False
+        assert artifact.error == "DataConditionGroup does not exist"
+        assert artifact.outcome == WorkflowEvaluationOutcome.ERROR
+        assert artifact.trigger_evaluation.triggered is False
+        assert artifact.trigger_evaluation.error == "DataConditionGroup does not exist"
+        assert artifact.filter_evaluations == []
+
+    def test_outcome_does_not_leak_across_same_group_events(self) -> None:
+        when_dcg = self.workflow1.when_condition_group
+        assert when_dcg is not None
+        event_data = EventRedisData(
+            events={
+                EventKey(
+                    workflow_id=self.workflow1.id,
+                    group_id=self.group1.id,
+                    when_dcg_id=when_dcg.id,
+                    if_dcg_ids=frozenset(),
+                    passing_dcg_ids=frozenset({self.workflow1_if_dcgs[1].id}),
+                    original_key="triggering-event",
+                ): EventInstance(event_id="triggering-event"),
+                EventKey(
+                    workflow_id=self.workflow1.id,
+                    group_id=self.group1.id,
+                    when_dcg_id=when_dcg.id,
+                    if_dcg_ids=frozenset(),
+                    passing_dcg_ids=frozenset(),
+                    original_key="non-triggering-event",
+                ): EventInstance(event_id="non-triggering-event"),
+            }
+        )
+
+        eval_result = get_groups_to_fire(
+            self.data_condition_groups,
+            self.workflows_to_envs,
+            event_data,
+            self.condition_group_results,
+            get_slow_conditions_for_groups(list(event_data.dcg_ids)),
+        )
+
+        assert {artifact.event_id: artifact.outcome for artifact in eval_result.artifacts} == {
+            "triggering-event": WorkflowEvaluationOutcome.ACTIONS_TRIGGERED,
+            "non-triggering-event": WorkflowEvaluationOutcome.NO_ACTIONS,
+        }
 
     def test_missing_query_result_excludes_group(self) -> None:
         existing_query = UniqueConditionQuery(
@@ -984,6 +1112,152 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         )
         assert group_to_groupevent == self.group_to_groupevent
 
+    def test_get_group_to_groupevent__none_eligible(self) -> None:
+        self._push_base_events()
+        buffer_data = self.batch_client.for_project(self.project.id).get_hash_data(batch_key=None)
+        event_data = EventRedisData.from_redis_data(buffer_data, continue_on_error=False)
+
+        assert get_group_to_groupevent(event_data, {}, self.project) == {}
+        assert (
+            get_group_to_groupevent(
+                event_data,
+                {self.group1.id: {self.workflow2_if_dcgs[0]}},
+                self.project,
+            )
+            == {}
+        )
+
+    def test_get_group_to_groupevent__sparse_eligible(self) -> None:
+        self._push_base_events()
+        occurrence = self.build_occurrence(
+            project_id=self.project.id, event_id=self.event1.event_id
+        )
+        occurrence.save()
+        self.push_to_hash(
+            project_id=self.project.id,
+            workflow_id=self.workflow1.id,
+            group_id=self.group1.id,
+            when_dcg_id=self.workflow1.when_condition_group_id,
+            if_dcgs=[self.workflow1_if_dcgs[0]],
+            passing_dcgs=[self.workflow1_if_dcgs[1]],
+            event_id=self.event1.event_id,
+            occurrence_id=occurrence.id,
+            timestamp=FROZEN_TIME,
+        )
+        self.push_to_hash(
+            project_id=self.project.id,
+            workflow_id=self.workflow2.id,
+            group_id=self.group1.id,
+            when_dcg_id=None,
+            if_dcgs=[self.workflow2_if_dcgs[0]],
+            passing_dcgs=[],
+            event_id=self.event2.event_id,
+            timestamp=FROZEN_TIME + timedelta(seconds=1),
+        )
+        buffer_data = self.batch_client.for_project(self.project.id).get_hash_data(batch_key=None)
+        event_data = EventRedisData.from_redis_data(buffer_data, continue_on_error=False)
+
+        result = get_group_to_groupevent(
+            event_data,
+            {self.group1.id: {self.workflow1_if_dcgs[0]}},
+            self.project,
+        )
+
+        assert set(result) == {self.group1}
+        event, timestamp = result[self.group1]
+        assert event.event_id == self.event1.event_id
+        node_id = Event.generate_node_id(self.project.id, self.event1.event_id)
+        stored_payload = nodestore.backend.get_multi([node_id])[node_id]
+        assert stored_payload is not None
+        assert dict(event.data) == dict(EventDict(stored_payload))
+        self.assert_occurrences_identical(event.occurrence, occurrence)
+        assert timestamp == FROZEN_TIME
+
+    @patch("sentry.workflow_engine.tasks.actions.trigger_action.apply_async")
+    def test_get_group_to_groupevent__last_successful_event(self, mock_trigger: MagicMock) -> None:
+        later_event = self.create_event(
+            self.project.id, FROZEN_TIME, "group-1", self.environment.name
+        )
+        occurrence = self.build_occurrence(
+            project_id=self.project.id, event_id=later_event.event_id
+        )
+        occurrence.save()
+        later_timestamp = FROZEN_TIME + timedelta(seconds=1)
+        redis_data = {
+            f"{self.workflow1.id}:{self.group1.id}::{self.workflow1_if_dcgs[0].id}:": json.dumps(
+                {"event_id": self.event1.event_id, "timestamp": FROZEN_TIME}
+            ),
+            f"{self.workflow2.id}:{self.group1.id}::{self.workflow2_if_dcgs[0].id}:": json.dumps(
+                {
+                    "event_id": later_event.event_id,
+                    "occurrence_id": occurrence.id,
+                    "timestamp": later_timestamp,
+                }
+            ),
+            f"{self.workflow1.id}:{self.group1.id}:{self.workflow1.when_condition_group_id}::": json.dumps(
+                {"event_id": self.event2.event_id, "timestamp": later_timestamp}
+            ),
+        }
+        passing = {
+            self.group1.id: {self.workflow1_if_dcgs[0], *self.workflow2_if_dcgs},
+        }
+        event_data = EventRedisData.from_redis_data(redis_data, continue_on_error=False)
+
+        result = get_group_to_groupevent(event_data, passing, self.project)
+
+        assert set(result) == {self.group1}
+        event, timestamp = result[self.group1]
+        assert event.event_id == later_event.event_id
+        node_id = Event.generate_node_id(self.project.id, later_event.event_id)
+        stored_payload = nodestore.backend.get_multi([node_id])[node_id]
+        assert stored_payload is not None
+        expected_payload = dict(EventDict(stored_payload))
+        assert dict(event.data) == expected_payload
+        self.assert_occurrences_identical(event.occurrence, occurrence)
+        assert timestamp == later_timestamp
+
+        redis_data[f"{self.workflow2.id}:{self.group1.id}::{self.workflow2_if_dcgs[1].id}:"] = (
+            json.dumps(
+                {
+                    "event_id": "f" * 32,
+                    "occurrence_id": "e" * 32,
+                    "timestamp": later_timestamp + timedelta(seconds=1),
+                }
+            )
+        )
+        event_data = EventRedisData.from_redis_data(redis_data, continue_on_error=False)
+
+        fallback = get_group_to_groupevent(event_data, passing, self.project)
+
+        fallback_event, fallback_timestamp = fallback[self.group1]
+        assert dict(fallback_event.data) == expected_payload
+        assert fallback_event.event_id == later_event.event_id
+        self.assert_occurrences_identical(fallback_event.occurrence, occurrence)
+        assert fallback_timestamp == later_timestamp
+
+        fire_actions_for_groups(self.project.organization, passing, fallback)
+
+        assert set(
+            WorkflowFireHistory.objects.filter(group=self.group1).values_list(
+                "workflow_id", "event_id"
+            )
+        ) == {
+            (self.workflow1.id, later_event.event_id),
+            (self.workflow2.id, later_event.event_id),
+        }
+        assert {
+            (
+                call.kwargs["kwargs"]["workflow_id"],
+                call.kwargs["kwargs"]["group_id"],
+                call.kwargs["kwargs"]["event_id"],
+                call.kwargs["kwargs"]["occurrence_id"],
+            )
+            for call in mock_trigger.call_args_list
+        } == {
+            (self.workflow1.id, self.group1.id, later_event.event_id, occurrence.id),
+            (self.workflow2.id, self.group1.id, later_event.event_id, occurrence.id),
+        }
+
     @patch("sentry.workflow_engine.tasks.actions.trigger_action.apply_async")
     def test_fire_actions_for_groups__fire_actions(self, mock_trigger: MagicMock) -> None:
         fire_actions_for_groups(
@@ -1009,7 +1283,11 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
     @patch("sentry.workflow_engine.processors.workflow.process_data_condition_group")
     def test_fire_actions_for_groups__workflow_fire_history(self, mock_process: MagicMock) -> None:
         mock_process.return_value = (
-            ProcessedDataConditionGroup(logic_result=TriggerResult.TRUE, condition_results=[]),
+            DataConditionGroupEvaluation(
+                result=False,
+                triggered=False,
+                data={"condition_evaluations": [], "logic_type": DataConditionGroup.Type.ANY},
+            ),
             [],
         )
 
@@ -1043,7 +1321,11 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
     ) -> None:
         """Verify notification_uuid from WorkflowFireHistory is passed to triggered actions."""
         mock_process.return_value = (
-            ProcessedDataConditionGroup(logic_result=TriggerResult.TRUE, condition_results=[]),
+            DataConditionGroupEvaluation(
+                result=False,
+                triggered=False,
+                data={"condition_evaluations": [], "logic_type": DataConditionGroup.Type.ANY},
+            ),
             [],
         )
 

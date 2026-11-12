@@ -1,14 +1,13 @@
+import {IconDownload} from '@sentry/icons/download';
+
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {useModal} from '@sentry/scraps/modal';
 
-import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {ExploreExportModal} from 'sentry/views/explore/components/exports/exploreExportModal';
-import type {
-  ExploreExportConfig,
-  ExploreExportModalCloseReason,
-} from 'sentry/views/explore/components/exports/types';
 import {getExportDisabledTooltip} from 'sentry/views/explore/components/getExportDisabledTooltip';
+
+import {ExploreExportModal} from './exploreExportModal';
+import type {ExploreExportConfig, ExploreExportModalCloseReason} from './types';
 
 const GLOBAL_MODAL_DISMISS_TO_CLOSE_REASON = {
   'backdrop-click': 'backdrop_click',
@@ -77,7 +76,7 @@ export function ExploreExportModalButton({
           : t('Configure export options before starting your export.'),
       }}
     >
-      {t('Export Data')}
+      {t('Export')}
     </Button>
   );
 }

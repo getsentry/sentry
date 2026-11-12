@@ -4,10 +4,13 @@ import {Alert} from '@sentry/scraps/alert';
 
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
-import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
-import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
+import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
+import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useQueryParamsTopEventsLimit} from 'sentry/views/explore/queryParams/context';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+
+import type {UseInfiniteLogsQueryResult} from './useLogsQuery';
+import {useLogsQueryHighFidelity} from './useLogsQueryHighFidelity';
 
 interface LogsDownSamplingAlertProps {
   tableResult: UseInfiniteLogsQueryResult;
@@ -20,6 +23,8 @@ export function LogsDownSamplingAlert({
 }: LogsDownSamplingAlertProps) {
   const topEventsLimit = useQueryParamsTopEventsLimit();
   const isTopEvents = defined(topEventsLimit);
+  const highFidelity = useLogsQueryHighFidelity();
+  const autoRefreshEnabled = useLogsAutoRefreshEnabled();
 
   const timeseriesSamples = useMemo(() => {
     for (const series of Object.values(timeseriesResult.data || {})) {
@@ -41,6 +46,25 @@ export function LogsDownSamplingAlert({
 
   const tableDataScanned = tableResult.dataScanned;
   const tableSamples = tableResult.data.length;
+
+  if (
+    !highFidelity &&
+    (tableDataScanned === 'partial' || (!autoRefreshEnabled && tableResult.isEmpty))
+  ) {
+    return (
+      <Alert.Container>
+        <Alert variant="warning">
+          {autoRefreshEnabled
+            ? t(
+                "These results may be incomplete: we don't scan your full log volume while auto-refresh is on. Turn off auto-refresh to scan all logs in this date range."
+              )
+            : t(
+                'These results may be incomplete: we only scan your full log volume when sorting by timestamp in descending order. Try changing the sort, shortening the date range, or selecting fewer projects.'
+              )}
+        </Alert>
+      </Alert.Container>
+    );
+  }
 
   if (
     // It's possible that the timeseries data and table data are produced using

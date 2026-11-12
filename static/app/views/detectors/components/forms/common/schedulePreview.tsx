@@ -18,12 +18,13 @@ import type {
 } from 'sentry/components/checkInTimeline/types';
 import {LoadingError} from 'sentry/components/loadingError';
 import {t, tn} from 'sentry/locale';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {SchedulePreviewStatus} from 'sentry/views/detectors/hooks/useMonitorsScheduleSampleBuckets';
 import {
   useMonitorsScheduleSamples,
   type UseMonitorsScheduleSamplesOptions,
 } from 'sentry/views/detectors/hooks/useMonitorsScheduleSamples';
+import {TOP_BAR_HEIGHT_CSS_VAR} from 'sentry/views/navigation/constants';
 
 interface SchedulePreviewProps extends UseMonitorsScheduleSamplesOptions {
   statusToText: Record<SchedulePreviewStatus, string>;
@@ -119,7 +120,8 @@ export function SchedulePreview({statusToText, ...detectorFields}: SchedulePrevi
 
   if (errors.length > 0) {
     const badRequestError = errors.find(
-      (error): error is RequestError => error?.status === 400
+      (error): error is RequestError =>
+        error instanceof RequestError && error.status === 400
     );
 
     const message = badRequestError ? (
@@ -307,12 +309,13 @@ const OpenPeriodCountLabel = styled('div')`
 `;
 
 const StyledContainer = styled(Container)`
-  top: 8px;
+  top: calc(var(${TOP_BAR_HEIGHT_CSS_VAR}, 0px) + 8px);
   z-index: ${p => p.theme.zIndex.header};
   /*
     * Prevent seeing content beneath in the uncovered strip above the sticky element.
     * Use a solid, zero-blur shadow so we don't paint over the border.
     */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token -- The shadow fills the uncovered strip with the sticky element's background. */
   box-shadow: 0 -8px 0 0 ${p => p.theme.tokens.background.primary};
 `;
 

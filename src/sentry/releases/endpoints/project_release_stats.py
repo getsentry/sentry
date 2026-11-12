@@ -21,8 +21,11 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GlobalParams, ReleaseParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.release_health.base import is_overview_stat
+from sentry.releases.auto_creation import should_auto_create_releases
+from sentry.utils import metrics
 from sentry.utils.dates import get_rollup_from_request
 
 
@@ -42,7 +45,7 @@ class ProjectReleaseStatsResponse(TypedDict):
     usersBreakdown: list[ReleaseStatsUserBreakdown]
 
 
-def upsert_missing_release(project, version) -> datetime | None:
+def upsert_missing_release(project: Project, version: str) -> datetime | None:
     """This adds a release to postgres if it should exist but does not do yet."""
     try:
         return Release.objects.values_list("date_added", flat=True).get(
@@ -52,13 +55,20 @@ def upsert_missing_release(project, version) -> datetime | None:
         )
     except Release.DoesNotExist:
         rows = release_health.backend.get_oldest_health_data_for_releases([(project.id, version)])
-        if rows:
-            oldest = next(iter(rows.values()))
-            release = Release.get_or_create(project=project, version=version, date_added=oldest)
-            release.add_project(project)
-            return release.date_added
-        else:
+        if not rows:
             return None
+        oldest = next(iter(rows.values()))
+        release = Release.get_or_create(
+            project=project,
+            version=version,
+            date_added=oldest,
+            create=should_auto_create_releases(project),
+        )
+        if release is None:
+            metrics.incr("project_release_stats.release_autocreation_skipped")
+            return None
+        release.add_project(project)
+        return release.date_added
 
 
 @extend_schema(tags=["Releases"])
@@ -96,7 +106,7 @@ class ProjectReleaseStatsEndpoint(ProjectEndpoint):
         },
     )
     def get(
-        self, request: Request, project, version
+        self, request: Request, project: Project, version: str
     ) -> Response[ProjectReleaseStatsResponse] | Response[DetailResponse]:
         """
         Return crash-free session/user health stats and a per-day breakdown for a release

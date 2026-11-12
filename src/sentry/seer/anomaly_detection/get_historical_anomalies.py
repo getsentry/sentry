@@ -7,7 +7,7 @@ from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
 from sentry.net.http import connection_from_url
-from sentry.seer.anomaly_detection.store_data import get_start_index
+from sentry.seer.anomaly_detection.store_data import get_start_index, trim_leading_zeros
 from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionConfig,
     DetectAnomaliesResponse,
@@ -48,8 +48,15 @@ def make_detect_historical_anomalies_request(
     )
 
 
-def handle_seer_error_responses(response, config, context, log_params):
-    def log_statement(log_level, text, extra_data=None):
+def handle_seer_error_responses(
+    response: BaseHTTPResponse,
+    config: AnomalyDetectionConfig,
+    context: DetectHistoricalAnomaliesContext,
+    log_params: dict[str, object],
+) -> bool:
+    def log_statement(
+        log_level: str, text: str, extra_data: dict[str, object] | None = None
+    ) -> None:
         log_data = {**log_params}
         if extra_data:
             log_data.update(**extra_data)
@@ -103,13 +110,14 @@ def get_historical_anomaly_data_from_seer_preview(
     organization_id: int,
     project_id: int,
     config: AnomalyDetectionConfig,
-) -> list | None:
+) -> list[TimeSeriesPoint] | None:
     """
     Send current and historical timeseries data to Seer and return anomaly detection response on the current timeseries.
     Used for rendering the preview charts of anomaly detection alert rules.
     """
     # Check if historical data has at least seven days of data. Return early if not.
     MIN_DAYS = 7
+    historical_data = trim_leading_zeros(historical_data)
     data_start_index = get_start_index(historical_data)
     if data_start_index == -1:
         return []

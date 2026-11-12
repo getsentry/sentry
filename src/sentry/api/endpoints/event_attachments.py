@@ -1,3 +1,4 @@
+import sentry_sdk
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -15,6 +16,7 @@ from sentry.apidocs.examples.event_attachment_examples import EventAttachmentExa
 from sentry.apidocs.parameters import CursorQueryParam, EventParams, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.eventattachment import EventAttachment, event_attachment_screenshot_filter
+from sentry.models.project import Project
 from sentry.search.utils import tokenize_query
 from sentry.services import eventstore
 
@@ -59,7 +61,7 @@ class EventAttachmentsEndpoint(ProjectEndpoint):
         examples=EventAttachmentExamples.LIST_EVENT_ATTACHMENTS,
     )
     def get(
-        self, request: Request, project, event_id
+        self, request: Request, project: Project, event_id: str
     ) -> Response[list[EventAttachmentSerializerResponse]]:
         """
         Retrieve a list of attachments uploaded for a given event.
@@ -74,6 +76,8 @@ class EventAttachmentsEndpoint(ProjectEndpoint):
         event = eventstore.backend.get_event_by_id(project.id, event_id)
         if event is None:
             return self.respond({"detail": "Event not found"}, status=404)
+
+        sentry_sdk.set_attribute("event.type", event.get_event_type())
 
         queryset = EventAttachment.objects.filter(project_id=project.id, event_id=event.event_id)
 

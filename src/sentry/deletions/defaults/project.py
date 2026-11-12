@@ -14,7 +14,6 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
     def get_child_relations(self, instance: Project) -> list[BaseRelation]:
         from sentry.discover.models import DiscoverSavedQueryProject
         from sentry.incidents.models.alert_rule import AlertRule, AlertRuleProjects
-        from sentry.incidents.models.incident import IncidentProject
         from sentry.integrations.models.repository_project_path_config import (
             RepositoryProjectPathConfig,
         )
@@ -29,7 +28,6 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
         from sentry.models.groupemailthread import GroupEmailThread
         from sentry.models.groupopenperiod import GroupOpenPeriod
         from sentry.models.grouprelease import GroupRelease
-        from sentry.models.grouprulestatus import GroupRuleStatus
         from sentry.models.groupseen import GroupSeen
         from sentry.models.groupshare import GroupShare
         from sentry.models.groupsubscription import GroupSubscription
@@ -46,6 +44,7 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
         from sentry.models.userreport import UserReport
         from sentry.models.weeklyreportprojectexclusion import WeeklyReportProjectExclusion
         from sentry.monitors.models import Monitor
+        from sentry.notebooks.models import NotebookBlockExecutionProject, NotebookProject
         from sentry.replays.models import ReplayRecordingSegment
         from sentry.seer.models.project_repository import (
             SeerProjectRepository,
@@ -68,7 +67,6 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
             GroupBookmark,
             GroupEmailThread,
             GroupRelease,
-            GroupRuleStatus,
             GroupSeen,
             GroupShare,
             GroupSubscription,
@@ -91,7 +89,8 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
             ProjectArtifactBundle,
             ProguardArtifactRelease,
             DiscoverSavedQueryProject,
-            IncidentProject,
+            NotebookProject,
+            NotebookBlockExecutionProject,
         ):
             relations.append(ModelRelation(m1, {"project_id": instance.id}, BulkModelDeletionTask))
 

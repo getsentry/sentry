@@ -1,5 +1,6 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
+import {IconInfo} from '@sentry/icons/info';
 import * as Sentry from '@sentry/react';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
@@ -8,12 +9,6 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import {CommitLink} from 'sentry/components/commitLink';
-import {TextOverflow} from 'sentry/components/textOverflow';
-import {TimeSince} from 'sentry/components/timeSince';
-import {Version} from 'sentry/components/version';
-import {VersionHoverCard} from 'sentry/components/versionHoverCard';
-import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Commit} from 'sentry/types/integrations';
 import type {AvatarProject} from 'sentry/types/project';
@@ -21,6 +16,12 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {Divider} from 'sentry/views/issueDetails/divider';
+
+import {CommitLink} from './commitLink';
+import {TextOverflow} from './textOverflow';
+import {TimeSince} from './timeSince';
+import {Version} from './version';
+import {VersionHoverCard} from './versionHoverCard';
 
 export function formatCommitMessage(message: string | null) {
   if (!message) {
@@ -32,19 +33,12 @@ export function formatCommitMessage(message: string | null) {
 
 export interface CommitRowProps {
   commit: Commit;
-  customAvatar?: React.ReactNode;
   onCommitClick?: (commit: Commit) => void;
   onPullRequestClick?: () => void;
   project?: AvatarProject;
 }
 
-function CommitRow({
-  commit,
-  customAvatar,
-  onPullRequestClick,
-  onCommitClick,
-  project,
-}: CommitRowProps) {
+function CommitRow({commit, onPullRequestClick, onCommitClick, project}: CommitRowProps) {
   const user = useUser();
   const organization = useOrganization();
   const handleInviteClick = useCallback(() => {
@@ -87,11 +81,7 @@ function CommitRow({
         <Message>{formatCommitMessage(commit.message)}</Message>
       )}
       <MetaWrapper>
-        {customAvatar ? (
-          customAvatar
-        ) : commit.author ? (
-          <UserAvatar size={16} user={commit.author} />
-        ) : null}
+        {commit.author ? <UserAvatar size={16} user={commit.author} /> : null}
         <Meta>
           <Tooltip
             title={tct(
@@ -113,15 +103,12 @@ function CommitRow({
               }
             )}
             disabled={!commit.author || commit.author.id !== undefined}
-            overlayStyle={{maxWidth: '350px'}}
+            maxWidth={350}
             skipWrapper
-            isHoverable
           >
             <AuthorWrapper>
               {isUser ? t('You') : (commit.author?.name ?? t('Unknown author'))}
-              {commit.author && commit.author.id === undefined && (
-                <IconQuestion size="xs" />
-              )}
+              {commit.author && commit.author.id === undefined && <IconInfo size="xs" />}
             </AuthorWrapper>
           </Tooltip>
           {tct(' committed [commitLink]', {

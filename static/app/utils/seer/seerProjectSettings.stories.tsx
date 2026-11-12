@@ -1,11 +1,17 @@
 import {Fragment, useState} from 'react';
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import {infiniteQueryOptions, useInfiniteQuery} from '@tanstack/react-query';
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  infiniteQueryOptions,
+  useInfiniteQuery,
+} from '@tanstack/react-query';
 import {parseAsArrayOf, parseAsString, useQueryState} from 'nuqs';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
 import {InfiniteTable} from 'sentry/components/infiniteTable/infiniteTable';
@@ -23,30 +29,36 @@ import {defined} from 'sentry/utils/defined';
 import {ListItemSelectCheckbox} from 'sentry/utils/list/listItemSelectCheckbox';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {useProjectsById} from 'sentry/utils/project/useProjectsById';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+
 import {
   seerAgentIntegrationsSelectQueryOptions,
   knownAgentIntegrationsQueryOptions,
   coalesePreferredAgent,
-} from 'sentry/utils/seer/preferredAgent';
+} from './preferredAgent';
 import {
   getMutateSeerProjectSettingsOptions,
   getSeerProjectSettingsQueryOptions,
   getInfiniteSeerProjectsSettingsQueryOptions,
   getMutateSeerProjectsSettingsOptions,
   seerProjectSettingsSchema,
-} from 'sentry/utils/seer/seerProjectSettings';
-import {
-  coaleseStoppingPoint,
-  useStoppingPointSelectOptions,
-} from 'sentry/utils/seer/stoppingPoint';
+} from './seerProjectSettings';
+import {coaleseStoppingPoint, useStoppingPointSelectOptions} from './stoppingPoint';
 import type {
   AutofixAgentSelectOption,
   InternalAutomationTuning,
   SeerAutofixStoppingPoint,
   SeerProjectSettingResponse,
-} from 'sentry/utils/seer/types';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjects} from 'sentry/utils/useProjects';
+} from './types';
+
+const STORY_COLUMNS: TableColumnConfig[] = [
+  {key: 'select', width: 'max-content'},
+  {key: 'project', width: '2fr'},
+  {key: 'repos', width: 'max-content'},
+  {key: 'agent', width: '1fr'},
+  {key: 'stoppingPoint', width: '1fr'},
+];
 
 export default Storybook.story('SeerProjectSettings', story => {
   story('Autofix Project Settings', () => {
@@ -97,13 +109,17 @@ export default Storybook.story('SeerProjectSettings', story => {
             />
           </Flex>
 
-          <SimpleTable style={{gridTemplateColumns: '2fr max-content repeat(2, 1fr)'}}>
-            <SimpleTable.Header>
-              <SimpleTable.HeaderCell>{t('Project')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell>{t('Repos')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell>{t('Agent')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell>{t('Stopping Point')}</SimpleTable.HeaderCell>
-            </SimpleTable.Header>
+          <SimpleTable
+            style={{gridTemplateColumns: '2fr max-content repeat(2, 1fr)'}}
+            header={
+              <SimpleTable.HeaderRow>
+                <SimpleTable.HeaderCell>{t('Project')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>{t('Repos')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>{t('Agent')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>{t('Stopping Point')}</SimpleTable.HeaderCell>
+              </SimpleTable.HeaderRow>
+            }
+          >
             <SimpleTable.Row>
               <SimpleTable.RowCell>
                 <Text bold>{data.projectSlug}</Text>
@@ -137,7 +153,7 @@ export default Storybook.story('SeerProjectSettings', story => {
     const [projectSlug, setProjectSlug] = useQueryState('project', parseAsString);
 
     return (
-      <Flex direction="column" gap="lg">
+      <Stack gap="lg">
         <Storybook.SelectProject
           projectSlug={projectSlug}
           setProjectSlug={setProjectSlug}
@@ -149,7 +165,7 @@ export default Storybook.story('SeerProjectSettings', story => {
             <Text variant="muted">Select a project to view the story</Text>
           </Flex>
         )}
-      </Flex>
+      </Stack>
     );
   });
 
@@ -263,7 +279,7 @@ export default Storybook.story('SeerProjectSettings', story => {
     const [projectSlug, setProjectSlug] = useQueryState('project', parseAsString);
 
     return (
-      <Flex direction="column" gap="lg">
+      <Stack gap="lg">
         <Storybook.SelectProject
           projectSlug={projectSlug}
           setProjectSlug={setProjectSlug}
@@ -275,7 +291,7 @@ export default Storybook.story('SeerProjectSettings', story => {
             <Text variant="muted">Select a project to view the story</Text>
           </Flex>
         )}
-      </Flex>
+      </Stack>
     );
   });
 
@@ -316,84 +332,74 @@ export default Storybook.story('SeerProjectSettings', story => {
             />
           </Flex>
 
-          <InfiniteTable.Table columns="max-content 2fr max-content repeat(2, 1fr)">
-            <InfiniteTable.Header>
-              <InfiniteTable.HeaderCell />
-              <InfiniteTable.HeaderCell>{t('Project')}</InfiniteTable.HeaderCell>
-              <InfiniteTable.HeaderCell>{t('Repos')}</InfiniteTable.HeaderCell>
-              <InfiniteTable.HeaderCell>{t('Agent')}</InfiniteTable.HeaderCell>
-              <InfiniteTable.HeaderCell>{t('Stopping Point')}</InfiniteTable.HeaderCell>
-            </InfiniteTable.Header>
-            <InfiniteTable.Scrollable style={{minHeight: '400px'}}>
-              {isPending ? (
-                <Flex
-                  justify="center"
-                  align="center"
-                  padding="xl"
-                  style={{minHeight: 200}}
+          <InfiniteTable.Table columns={STORY_COLUMNS} style={{maxHeight: '400px'}}>
+            <InfiniteTable.Head sticky>
+              <InfiniteTable.Header>
+                <InfiniteTable.HeaderCell />
+                <InfiniteTable.HeaderCell>{t('Project')}</InfiniteTable.HeaderCell>
+                <InfiniteTable.HeaderCell>{t('Repos')}</InfiniteTable.HeaderCell>
+                <InfiniteTable.HeaderCell>{t('Agent')}</InfiniteTable.HeaderCell>
+                <InfiniteTable.HeaderCell>{t('Stopping Point')}</InfiniteTable.HeaderCell>
+              </InfiniteTable.Header>
+            </InfiniteTable.Head>
+            {isPending ? (
+              <InfiniteTable.Status>
+                <LoadingIndicator />
+              </InfiniteTable.Status>
+            ) : isError ? (
+              <InfiniteTable.Status>
+                <LoadingError message={error?.message} />
+              </InfiniteTable.Status>
+            ) : data.length === 0 ? (
+              <InfiniteTable.Empty>{t('No projects found')}</InfiniteTable.Empty>
+            ) : (
+              <Fragment>
+                <InfiniteTable.Body
+                  estimateSize={() => 41}
+                  queryResult={result}
+                  select={_ => _ ?? []}
                 >
-                  <LoadingIndicator />
-                </Flex>
-              ) : isError ? (
-                <Flex
-                  justify="center"
-                  align="center"
-                  padding="xl"
-                  style={{minHeight: 200}}
-                >
-                  <LoadingError message={error?.message} />
-                </Flex>
-              ) : data.length === 0 ? (
-                <InfiniteTable.Empty>{t('No projects found')}</InfiniteTable.Empty>
-              ) : (
-                <Fragment>
-                  <InfiniteTable.Body
-                    estimateSize={() => 41}
-                    queryResult={result}
-                    select={_ => _ ?? []}
-                  >
-                    {item => (
-                      <InfiniteTable.Row>
-                        <InfiniteTable.RowCell>
-                          <ListItemSelectCheckbox
-                            htmlPrefix="seer-project-settings"
-                            value={item.projectId}
-                          />
-                        </InfiniteTable.RowCell>
-                        <InfiniteTable.RowCell>
-                          <Text bold>{item.projectSlug}</Text>
-                        </InfiniteTable.RowCell>
-                        <InfiniteTable.RowCell>
-                          <Text>{item.reposCount}</Text>
-                        </InfiniteTable.RowCell>
-                        <InfiniteTable.RowCell>
-                          <Text>
-                            {showFormatted ? (
-                              <PreferredAgentLabel settings={item} />
-                            ) : (
-                              item.agent
-                            )}
-                          </Text>
-                        </InfiniteTable.RowCell>
-                        <InfiniteTable.RowCell>
-                          <Text>
-                            {showFormatted ? (
-                              <StoppingPointLabel
-                                stoppingPoint={item.stoppingPoint}
-                                automationTuning={item.automationTuning}
-                              />
-                            ) : (
-                              item.stoppingPoint
-                            )}
-                          </Text>
-                        </InfiniteTable.RowCell>
-                      </InfiniteTable.Row>
-                    )}
-                  </InfiniteTable.Body>
-                  <InfiniteTable.LoadingRow queryResult={result} />
-                </Fragment>
-              )}
-            </InfiniteTable.Scrollable>
+                  {item => (
+                    <InfiniteTable.Row>
+                      <InfiniteTable.RowCell>
+                        <ListItemSelectCheckbox
+                          htmlPrefix="seer-project-settings"
+                          value={item.projectId}
+                        />
+                      </InfiniteTable.RowCell>
+                      <InfiniteTable.RowCell>
+                        <Text bold>{item.projectSlug}</Text>
+                      </InfiniteTable.RowCell>
+                      <InfiniteTable.RowCell>
+                        <Text>{item.reposCount}</Text>
+                      </InfiniteTable.RowCell>
+                      <InfiniteTable.RowCell>
+                        <Text>
+                          {showFormatted ? (
+                            <PreferredAgentLabel settings={item} />
+                          ) : (
+                            item.agent
+                          )}
+                        </Text>
+                      </InfiniteTable.RowCell>
+                      <InfiniteTable.RowCell>
+                        <Text>
+                          {showFormatted ? (
+                            <StoppingPointLabel
+                              stoppingPoint={item.stoppingPoint}
+                              automationTuning={item.automationTuning}
+                            />
+                          ) : (
+                            item.stoppingPoint
+                          )}
+                        </Text>
+                      </InfiniteTable.RowCell>
+                    </InfiniteTable.Row>
+                  )}
+                </InfiniteTable.Body>
+                <InfiniteTable.LoadingRow queryResult={result} />
+              </Fragment>
+            )}
           </InfiniteTable.Table>
         </Stack>
       </ListItemCheckboxProvider>
@@ -468,7 +474,7 @@ export default Storybook.story('SeerProjectSettings', story => {
     );
 
     return (
-      <Flex direction="column" gap="lg">
+      <Stack gap="lg">
         <Storybook.SelectProjects
           projectSlugs={projectSlugs}
           setProjectSlugs={setProjectSlugs}
@@ -480,7 +486,7 @@ export default Storybook.story('SeerProjectSettings', story => {
             <Text variant="muted">Select a project to view the story</Text>
           </Flex>
         )}
-      </Flex>
+      </Stack>
     );
   });
 });

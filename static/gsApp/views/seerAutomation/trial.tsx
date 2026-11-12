@@ -1,8 +1,8 @@
 import {useEffect} from 'react';
-import {useNavigate} from 'react-router-dom';
+import {useNavigate} from 'react-router';
 import styled from '@emotion/styled';
+import {IconUpgrade} from '@sentry/icons/upgrade';
 import seerConfigBug1 from 'getsentry-images/spot/seer-config-bug-1.svg';
-import seerConfigCheck from 'getsentry-images/spot/seer-config-check.svg';
 import seerConfigConnect2 from 'getsentry-images/spot/seer-config-connect-2.svg';
 import seerConfigHand2 from 'getsentry-images/spot/seer-config-hand-2.svg';
 import seerConfigMain from 'getsentry-images/spot/seer-config-main.svg';
@@ -10,18 +10,19 @@ import seerConfigMain from 'getsentry-images/spot/seer-config-main.svg';
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {Image} from '@sentry/scraps/image';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {AnalyticsArea, useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {IconUpgrade} from 'sentry/icons';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {t, tct} from 'sentry/locale';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {orgNeedsSeerTrial} from 'sentry/utils/seer/orgNeedsSeerTrial';
 import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
 import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {hasAccessToSubscriptionOverview} from 'getsentry/utils/billing';
@@ -42,11 +43,6 @@ const BUTTONS = [
     imageSrc: seerConfigBug1,
     href: 'https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#code-generation',
   },
-  {
-    label: t('Review your code'),
-    imageSrc: seerConfigCheck,
-    href: 'https://docs.sentry.io/product/ai-in-sentry/seer/code-review/',
-  },
 ];
 
 export default function SeerAutomationTrial() {
@@ -60,21 +56,10 @@ export default function SeerAutomationTrial() {
   );
 
   useEffect(() => {
-    // If the org is on the old-seer plan then they shouldn't be here on this new settings page
-    // they need to goto the old settings page, or get downgraded off old seer.
-    if (!showNewSeer(organization)) {
+    if (!orgNeedsSeerTrial(organization)) {
       navigate(normalizeUrl(`/settings/${organization.slug}/seer/`));
-      return;
     }
-
-    // If you've already got Seer, then go to settings and you should see the new ones.
-    if (organization.features.includes('seat-based-seer-enabled')) {
-      navigate(normalizeUrl(`/settings/${organization.slug}/seer/`));
-      return;
-    }
-
-    // Else you don't yet have the new seer plan, then stay here and click to start a trial.
-  }, [navigate, organization.features, organization.slug, organization]);
+  }, [navigate, organization]);
 
   useRouteAnalyticsParams({
     showNewSeer: showNewSeer(organization),
@@ -84,6 +69,7 @@ export default function SeerAutomationTrial() {
 
   return (
     <AnalyticsArea name="trial">
+      <BreadcrumbTitle title={t('Seer')} />
       <Flex justify="center">
         <HeroImage src={seerConfigMain} aspectRatio="1119/526" alt="Seer hero image" />
       </Flex>
@@ -115,7 +101,7 @@ export default function SeerAutomationTrial() {
 
           <Text>
             {tct(
-              "With Seer, issues [em:almost] fix themselves. Choose your favorite coding agent and run Autofix on Issues as they're detected, and use Code Review to prevent bugs before they happen. [docs:Read the docs] for more.",
+              "With Seer, issues [em:almost] fix themselves. Choose your favorite coding agent and run Autofix on Issues as they're detected. [docs:Read the docs] for more.",
               {
                 em: <em />,
                 docs: (

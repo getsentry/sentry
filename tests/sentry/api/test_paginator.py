@@ -1,10 +1,10 @@
 import base64
 from datetime import UTC, datetime, timedelta
+from typing import Any
 from unittest import TestCase as SimpleTestCase
 
 import pytest
-from django.db.models import DateTimeField, IntegerField, OuterRef, Subquery, Value
-from django.db.models.functions import Coalesce
+from django.db.models import DateTimeField, IntegerField, Value
 from django.utils import timezone
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, TraceItemFilter
@@ -36,7 +36,6 @@ from sentry.api.paginator import (
     reverse_bisect_left,
 )
 from sentry.incidents.models.alert_rule import AlertRule
-from sentry.incidents.models.incident import Incident
 from sentry.models.rule import Rule
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.silo import control_silo_test
@@ -103,6 +102,14 @@ class PaginatorTest(TestCase):
         result3 = paginator.get_result(limit=1, cursor=result2.prev)
         assert len(result3) == 0, (result3, list(result3))
 
+    def test_negative_offset(self) -> None:
+        self.create_user("foo@example.com")
+        paginator = self.cls(User.objects.all(), "id")
+
+        for cursor in (Cursor(0, -1), Cursor(0, -1, True), Cursor(1, -5)):
+            with pytest.raises(BadPaginationError):
+                paginator.get_result(limit=1, cursor=cursor)
+
 
 @control_silo_test
 class OffsetPaginatorTest(TestCase):
@@ -152,9 +159,61 @@ class OffsetPaginatorTest(TestCase):
         with pytest.raises(BadPaginationError):
             paginator.get_result(cursor=cursor)
 
+        cursor = Cursor(0, -1)
+        with pytest.raises(BadPaginationError):
+            paginator.get_result(cursor=cursor)
+
+    def test_negative_limit(self) -> None:
+        self.create_user("baz@example.com")
+        queryset = User.objects.all()
+        paginator = OffsetPaginator(queryset)
         cursor = Cursor(-10, 1)
         with pytest.raises(BadPaginationError):
             paginator.get_result(cursor=cursor)
+
+        cursor = Cursor(-10, 0)
+        with pytest.raises(BadPaginationError):
+            paginator.get_result(cursor=cursor)
+
+    def test_non_integer_limit(self) -> None:
+        self.create_user("baz@example.com")
+        queryset = User.objects.all()
+        paginator = OffsetPaginator(queryset)
+        cursor = Cursor(1.5, 0)
+        with pytest.raises(BadPaginationError):
+            paginator.get_result(cursor=cursor)
+
+    def test_limit_too_large(self) -> None:
+        self.create_user("baz@example.com")
+        queryset = User.objects.all()
+        paginator = OffsetPaginator(queryset, max_limit=10)
+
+        result = paginator.get_result(limit=10, cursor=Cursor(10, 0))
+        assert len(result) == 1
+
+        cursor = Cursor(11, 0)
+        with pytest.raises(BadPaginationError):
+            paginator.get_result(limit=10, cursor=cursor)
+
+    def test_count_hits(self) -> None:
+        self.create_user("foo@example.com")
+        self.create_user("bar@example.com")
+        queryset = User.objects.all()
+        paginator = OffsetPaginator(queryset)
+
+        result = paginator.get_result(count_hits=True, max_hits=1)
+
+        assert result.hits == 1
+        assert result.max_hits == 1
+
+    def test_does_not_set_max_hits_without_counting_hits(self) -> None:
+        queryset = User.objects.all()
+        paginator = OffsetPaginator(queryset)
+
+        result = paginator.get_result()
+
+        assert result.hits is None
+        assert result.max_hits is None
 
     def test_order_by_multiple(self) -> None:
         res1 = self.create_user("foo@example.com")
@@ -272,6 +331,26 @@ class DateTimePaginatorTest(TestCase):
         assert result3[0] == res3
         assert result3.next
         assert not result3.prev
+
+    def test_prev_page_with_explicit_descending_queryset(self) -> None:
+        joined = timezone.now()
+
+        res1 = self.create_user("foo@example.com", date_joined=joined)
+        res2 = self.create_user("bar@example.com", date_joined=joined + timedelta(seconds=1))
+        res3 = self.create_user("baz@example.com", date_joined=joined + timedelta(seconds=2))
+
+        paginator = DateTimePaginator(
+            User.objects.order_by("-date_joined"), order_by="-date_joined"
+        )
+
+        result1 = paginator.get_result(limit=2, cursor=None)
+        assert list(result1) == [res3, res2]
+
+        result2 = paginator.get_result(limit=2, cursor=result1.next)
+        assert list(result2) == [res1]
+
+        result3 = paginator.get_result(limit=2, cursor=result2.prev)
+        assert list(result3) == [res3, res2]
 
     def test_prev_descending_with_new(self) -> None:
         joined = timezone.now()
@@ -544,7 +623,7 @@ class SequencePaginatorTestCase(SimpleTestCase):
 
 class GenericOffsetPaginatorTest(SimpleTestCase):
     def test_simple(self) -> None:
-        def data_fn(offset=None, limit=None):
+        def data_fn(offset: int, limit: int) -> list[int]:
             return [i for i in range(offset, limit)]
 
         paginator = GenericOffsetPaginator(data_fn=data_fn)
@@ -709,25 +788,9 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         rules = AlertRule.objects.all()
         far_past_date = Value(datetime.min.replace(tzinfo=UTC), output_field=DateTimeField())
         rules = rules.annotate(
-            date_triggered=Coalesce(
-                Subquery(
-                    Incident.objects.filter(alert_rule=OuterRef("pk"))
-                    .order_by("-date_started")
-                    .values("date_started")[:1]
-                ),
-                far_past_date,
-            ),
+            date_triggered=far_past_date,
         )
-        rules = rules.annotate(
-            incident_status=Coalesce(
-                Subquery(
-                    Incident.objects.filter(alert_rule=OuterRef("pk"))
-                    .order_by("-date_started")
-                    .values("status")[:1]
-                ),
-                Value(-1, output_field=IntegerField()),
-            )
-        )
+        rules = rules.annotate(incident_status=Value(-1, output_field=IntegerField()))
 
         alert_rule_intermediary = CombinedQuerysetIntermediary(
             rules, ["incident_status", "date_triggered"]
@@ -775,26 +838,12 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         far_past_date = Value(datetime.min.replace(tzinfo=UTC), output_field=DateTimeField())
         issue_alert_rules = issue_alert_rules.annotate(date_triggered=far_past_date)
         metric_alert_rules = metric_alert_rules.annotate(
-            date_triggered=Coalesce(
-                Subquery(
-                    Incident.objects.filter(alert_rule=OuterRef("pk"))
-                    .order_by("-date_started")
-                    .values("date_started")[:1]
-                ),
-                far_past_date,
-            ),
+            date_triggered=far_past_date,
         )
         incident_status_value = Value(-2, output_field=IntegerField())
         issue_alert_rules = issue_alert_rules.annotate(incident_status=incident_status_value)
         metric_alert_rules = metric_alert_rules.annotate(
-            incident_status=Coalesce(
-                Subquery(
-                    Incident.objects.filter(alert_rule=OuterRef("pk"))
-                    .order_by("-date_started")
-                    .values("status")[:1]
-                ),
-                Value(-1, output_field=IntegerField()),
-            )
+            incident_status=Value(-1, output_field=IntegerField())
         )
 
         alert_rule_intermediary = CombinedQuerysetIntermediary(
@@ -941,7 +990,9 @@ class TestChainPaginator(SimpleTestCase):
         assert third.next.has_results is False
 
 
-def dummy_snuba_request_method(limit, offset, org_id, proj_id, timestamp):
+def dummy_snuba_request_method(
+    limit: int, offset: int, org_id: int, proj_id: int, timestamp: datetime
+) -> list[Any]:
     referrer = "tests.sentry.api.test_paginator"
     query = Query(
         match=Entity("events"),
@@ -961,7 +1012,10 @@ def dummy_snuba_request_method(limit, offset, org_id, proj_id, timestamp):
         query=query,
         tenant_ids={"referrer": referrer, "organization_id": org_id},
     )
-    return raw_snql_query(request, referrer)["data"]
+    rows = raw_snql_query(request, referrer)["data"]
+    if not isinstance(rows, list):
+        raise TypeError("Snuba returned no data array")
+    return rows
 
 
 class CallbackPaginatorTest(APITestCase, SnubaTestCase):
@@ -1013,7 +1067,7 @@ class TestEAPPageTokenPaginator:
     cls = EAPPageTokenPaginator
 
     def test_first_page_empty(self) -> None:
-        def data_fn(limit, page_token):
+        def data_fn(limit: int, page_token: PageToken | None) -> dict[str, Any]:
             return {
                 "data": [],
                 "page_token": PageToken(end_pagination=True),
@@ -1026,7 +1080,7 @@ class TestEAPPageTokenPaginator:
         assert page.next.has_results is False
 
     def test_first_page_all_data(self) -> None:
-        def data_fn(limit, page_token):
+        def data_fn(limit: int, page_token: PageToken | None) -> dict[str, Any]:
             return {
                 "data": [1, 2, 3],
                 "page_token": PageToken(end_pagination=True),
@@ -1041,7 +1095,7 @@ class TestEAPPageTokenPaginator:
     def test_first_page_partial_data(self) -> None:
         expected_page_token = PageToken(filter_offset=TraceItemFilter(and_filter=AndFilter()))
 
-        def data_fn(limit, page_token):
+        def data_fn(limit: int, page_token: PageToken | None) -> dict[str, Any]:
             if page_token is None:
                 return {
                     "data": [1, 2, 3],
@@ -1060,7 +1114,7 @@ class TestEAPPageTokenPaginator:
         assert page.next.has_results is True
 
         actual_page_token = PageToken()
-        actual_page_token.ParseFromString(base64.b64decode(page.next.value.encode("utf-8")))
+        actual_page_token.ParseFromString(base64.b64decode(str(page.next.value).encode("utf-8")))
         assert actual_page_token == expected_page_token
 
         page = paginator.get_result(limit=3, cursor=page.next)

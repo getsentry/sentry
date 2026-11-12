@@ -1,8 +1,64 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum, StrEnum
-from typing import Generic, TypeVar
+from typing import Annotated, Generic, Literal, NotRequired, TypedDict, TypeVar
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.hybridcloud.rpc import ValueEqualityEnum
+
+# A text, select, multi-select or boolean field's value. Null when nothing is preselected.
+IntegrationIssueConfigFieldValue = str | int | bool | list[str] | None
+
+
+class IntegrationIssueConfigField(TypedDict):
+    """JSON form field returned by an issue integration."""
+
+    name: Annotated[str, ApiDescription("Name of the form field")]
+    label: Annotated[str, ApiDescription("Label of the form field")]
+    type: Annotated[
+        str, ApiDescription("Type of the form field, such as string, text, select or boolean")
+    ]
+    default: NotRequired[
+        Annotated[IntegrationIssueConfigFieldValue, ApiDescription("Default value of the field")]
+    ]
+    defaultValue: NotRequired[
+        Annotated[
+            IntegrationIssueConfigFieldValue,
+            ApiDescription("Default value of the field, for integrations that use this key"),
+        ]
+    ]
+    required: NotRequired[Annotated[bool, ApiDescription("Whether the field is required")]]
+    choices: NotRequired[
+        Annotated[
+            Sequence[tuple[str | int, str]],
+            ApiDescription("Options of a select field, as [value, label] pairs"),
+        ]
+    ]
+    url: NotRequired[
+        Annotated[str, ApiDescription("URL that returns the field's options as the user types")]
+    ]
+    updatesForm: NotRequired[
+        Annotated[bool, ApiDescription("Whether changing the field reloads the form")]
+    ]
+    multiple: NotRequired[
+        Annotated[bool, ApiDescription("Whether the field accepts more than one value")]
+    ]
+    autosize: NotRequired[
+        Annotated[bool, ApiDescription("Whether a text field grows with its content")]
+    ]
+    maxRows: NotRequired[Annotated[int, ApiDescription("Maximum number of rows of a text field")]]
+    maxLength: NotRequired[Annotated[int, ApiDescription("Maximum length of the value")]]
+    help: NotRequired[Annotated[str, ApiDescription("Help text of the field")]]
+    placeholder: NotRequired[Annotated[str, ApiDescription("Placeholder of the field")]]
+    prefetch: NotRequired[
+        Annotated[bool, ApiDescription("Whether the field's options load before the user types")]
+    ]
+    dependsOn: NotRequired[
+        Annotated[
+            Sequence[str],
+            ApiDescription("Names of the fields whose values the field's options depend on"),
+        ]
+    ]
 
 
 class ExternalProviders(ValueEqualityEnum):
@@ -19,6 +75,7 @@ class ExternalProviders(ValueEqualityEnum):
     GITHUB = 200
     GITHUB_ENTERPRISE = 201
     GITLAB = 210
+    CURSOR_ORIGIN = 211
     JIRA_SERVER = 300
     PERFORCE = 400
 
@@ -43,12 +100,15 @@ class IntegrationProviderSlug(StrEnum):
     GITLAB = "gitlab"
     BITBUCKET = "bitbucket"
     BITBUCKET_SERVER = "bitbucket_server"
+    CURSOR_ORIGIN = "cursor_origin"
     PAGERDUTY = "pagerduty"
     OPSGENIE = "opsgenie"
     PERFORCE = "perforce"
     DATADOG = "datadog"
     DATADOG_PAT = "datadog_pat"
     GCP = "gcp"
+    GRAFANA = "grafana"
+    LINEAR = "linear"
 
 
 MONITORING_PROVIDERS: frozenset[str] = frozenset(
@@ -78,6 +138,7 @@ class ExternalProviderEnum(StrEnum):
     GITHUB = IntegrationProviderSlug.GITHUB
     GITHUB_ENTERPRISE = IntegrationProviderSlug.GITHUB_ENTERPRISE
     GITLAB = IntegrationProviderSlug.GITLAB
+    CURSOR_ORIGIN = IntegrationProviderSlug.CURSOR_ORIGIN
     JIRA_SERVER = IntegrationProviderSlug.JIRA_SERVER
     PERFORCE = IntegrationProviderSlug.PERFORCE
 
@@ -93,6 +154,7 @@ EXTERNAL_PROVIDERS_REVERSE = {
     ExternalProviderEnum.GITHUB: ExternalProviders.GITHUB,
     ExternalProviderEnum.GITHUB_ENTERPRISE: ExternalProviders.GITHUB_ENTERPRISE,
     ExternalProviderEnum.GITLAB: ExternalProviders.GITLAB,
+    ExternalProviderEnum.CURSOR_ORIGIN: ExternalProviders.CURSOR_ORIGIN,
     ExternalProviderEnum.PERFORCE: ExternalProviders.PERFORCE,
     ExternalProviderEnum.CUSTOM: ExternalProviders.CUSTOM,
 }
@@ -110,6 +172,7 @@ EXTERNAL_PROVIDERS = {
     ExternalProviders.GITHUB: ExternalProviderEnum.GITHUB.value,
     ExternalProviders.GITHUB_ENTERPRISE: ExternalProviderEnum.GITHUB_ENTERPRISE.value,
     ExternalProviders.GITLAB: ExternalProviderEnum.GITLAB.value,
+    ExternalProviders.CURSOR_ORIGIN: ExternalProviderEnum.CURSOR_ORIGIN.value,
     ExternalProviders.JIRA_SERVER: ExternalProviderEnum.JIRA_SERVER.value,
     ExternalProviders.PERFORCE: ExternalProviderEnum.PERFORCE.value,
     ExternalProviders.CUSTOM: ExternalProviderEnum.CUSTOM.value,
@@ -155,4 +218,19 @@ class IntegrationResponse(Generic[T]):
     interaction_result: EventLifecycleOutcome
     response: T
     outcome_reason: str | Exception | None = None
-    context_data: dict | None = None
+    context_data: dict[str, object] | None = None
+
+
+HaltReason = Literal[
+    "configuration_error",
+    "connection_reset",
+    "host_timeout",
+    "host_unreachable",
+    "identity_not_found",
+    "identity_not_valid",
+    "installation_suspended",
+    "rate_limited",
+    "too_many_redirects",
+    "unauthorized",
+    "unsupported_response",
+]

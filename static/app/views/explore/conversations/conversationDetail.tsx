@@ -1,24 +1,36 @@
-import type React from 'react';
-import {useCallback, useEffect, useMemo} from 'react';
-import {parseAsString, useQueryStates} from 'nuqs';
+import {useCallback, useEffect, useMemo, type ReactNode} from 'react';
+import {parseAsString, parseAsStringLiteral, useQueryStates} from 'nuqs';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
 
+import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {parseAsUtcDateTime} from 'sentry/utils/url/parseAsUtcDateTime';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useProjects} from 'sentry/utils/useProjects';
 import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
-import {ConversationSummary} from 'sentry/views/explore/conversations/components/conversationSummary';
-import {ConversationViewContent} from 'sentry/views/explore/conversations/components/conversationView';
-import {ConversationDetailPageNew} from 'sentry/views/explore/conversations/conversationDetailNew';
-import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
-import {hasGenAiConversationsRedesignFeature} from 'sentry/views/explore/conversations/utils/features';
+
+import {ConversationsBreadcrumbs} from './components/conversationsBreadcrumbs';
+import {ConversationSummary} from './components/conversationSummary';
+import {
+  CONVERSATION_VIEW_TABS,
+  ConversationViewContent,
+  type ConversationViewTab,
+} from './components/conversationView';
+import {ExportTranscriptButton} from './components/exportTranscriptButton';
+import {useConversation} from './hooks/useConversation';
+import {extractMessagesFromNodes} from './utils/conversationMessages';
 
 function useConversationDetailQueryState() {
   return useQueryStates(
     {
       spanId: parseAsString,
       focusedTool: parseAsString,
+      start: parseAsUtcDateTime,
+      end: parseAsUtcDateTime,
+      tab: parseAsStringLiteral(CONVERSATION_VIEW_TABS).withDefault('transcript'),
     },
     {history: 'replace'}
   );
@@ -26,27 +38,41 @@ function useConversationDetailQueryState() {
 
 function ConversationDetailPage() {
   const organization = useOrganization();
-
-  if (hasGenAiConversationsRedesignFeature(organization)) {
-    return <ConversationDetailPageNew />;
-  }
-
-  return <ConversationDetailPageLegacy />;
-}
-
-function ConversationDetailPageLegacy() {
-  const organization = useOrganization();
   const {conversationId} = useParams<{conversationId: string}>();
   const [queryState, setQueryState] = useConversationDetailQueryState();
 
-  const conversation = useMemo(() => ({conversationId}), [conversationId]);
+  // Read the time window from the URL rather than the page filters: on in-app
+  // navigation from the list, the page filters still hold the list's selection
+  // when the first request is made.
+  const {start, end} = queryState;
+  const startTimestamp = start?.getTime();
+  const endTimestamp = end?.getTime();
+  const conversation = useMemo(
+    () => ({conversationId, startTimestamp, endTimestamp}),
+    [conversationId, startTimestamp, endTimestamp]
+  );
+  const {stats, nodes, nodeTraceMap, isLoading, hasNextPage, title} = useConversation({
+    ...conversation,
+    autoFetchAll: false,
+  });
 
-  const {nodes, nodeTraceMap, isLoading} = useConversation(conversation);
+  const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
+  const isInitialLoading = isLoading && nodes.length === 0;
+
+  const projectSlug = useMemo(
+    () => nodes.find(node => node.projectSlug)?.projectSlug,
+    [nodes]
+  );
+  const {projects} = useProjects({slugs: projectSlug ? [projectSlug] : []});
+  const project = projectSlug
+    ? (projects.find(p => p.slug === projectSlug) ?? {slug: projectSlug})
+    : undefined;
 
   useEffect(() => {
     trackAnalytics('conversations.detail.page-view', {
       organization,
     });
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [organization, conversationId]);
 
   const handleSelectSpan = useCallback(
@@ -56,22 +82,60 @@ function ConversationDetailPageLegacy() {
     [setQueryState]
   );
 
+  const handleDeselectSpan = useCallback(() => {
+    setQueryState({spanId: null, focusedTool: null});
+  }, [setQueryState]);
+
+  const handleTabChange = (tab: ConversationViewTab) => {
+    if (tab !== queryState.tab) {
+      trackAnalytics('conversations.detail.tab-switch', {
+        organization,
+        fromTab: queryState.tab,
+        toTab: tab,
+      });
+    }
+    setQueryState({tab});
+  };
+
+  const handleViewTimeline = useCallback(() => {
+    setQueryState({tab: 'timeline'});
+  }, [setQueryState]);
+
   return (
     <ViewportConstrainedPage background="secondary">
-      <Stack flex={1} minHeight="0" overflow="hidden" padding="md 2xl" gap="md">
-        <Flex direction="column" gap="md" flexShrink={0}>
-          <ConversationSummary
-            nodes={nodes}
-            nodeTraceMap={nodeTraceMap}
-            conversationId={conversationId}
-            isLoading={isLoading}
-          />
+      <ConversationsBreadcrumbs conversationId={conversationId} />
+      <Container flexShrink={0} background="primary" borderBottom="primary" padding="xl">
+        <ConversationSummary
+          stats={stats}
+          nodes={nodes}
+          nodeTraceMap={nodeTraceMap}
+          conversationId={conversationId}
+          title={title}
+          project={project}
+          hasMoreSpans={hasNextPage}
+          isLoading={isInitialLoading}
+        />
+      </Container>
+      <Stack flex={1} minHeight="0" overflow="hidden" padding="xl" gap="xl">
+        <Flex flexShrink={0} align="center" justify="between" gap="md">
+          <Tabs value={queryState.tab} onChange={handleTabChange}>
+            <TabList variant="floating">
+              <TabList.Item key="transcript">{t('Transcript')}</TabList.Item>
+              <TabList.Item key="timeline">{t('Timeline')}</TabList.Item>
+            </TabList>
+          </Tabs>
+          {queryState.tab === 'transcript' && messages.length > 0 && (
+            <ExportTranscriptButton conversation={conversation} />
+          )}
         </Flex>
         <ConversationViewContainer>
           <ConversationViewContent
             conversation={conversation}
+            activeTab={queryState.tab}
             selectedSpanId={queryState.spanId}
             onSelectSpan={handleSelectSpan}
+            onDeselectSpan={handleDeselectSpan}
+            onViewTimeline={handleViewTimeline}
             focusedTool={queryState.focusedTool}
           />
         </ConversationViewContainer>
@@ -80,22 +144,24 @@ function ConversationDetailPageLegacy() {
   );
 }
 
-export function ConversationViewContainer({children}: {children: React.ReactNode}) {
-  const organization = useOrganization();
-  const hasConversationsRedesign = hasGenAiConversationsRedesignFeature(organization);
-
+function ConversationViewContainer({children}: {children: ReactNode}) {
   return (
     <Container
       flex={1}
       minHeight="0"
       overflow="hidden"
-      border={hasConversationsRedesign ? undefined : 'primary'}
-      radius={hasConversationsRedesign ? undefined : 'md'}
-      maxWidth={hasConversationsRedesign ? '1340px' : undefined}
       background="primary"
       display="flex"
     >
-      <Flex flex={1} minWidth="0" minHeight="0" height="100%">
+      {/*
+       * No explicit `height: 100%` here: the parent Container is a flex row
+       * with the default `align-items: stretch`, so this pane already fills the
+       * available height. A `height: 100%` would resolve against the parent's
+       * height, which is indefinite when the app is in its mobile (column)
+       * layout — every browser then collapses this subtree to zero height,
+       * leaving the conversation detail view blank. (TET-2690)
+       */}
+      <Flex flex={1} minWidth="0" minHeight="0">
         {children}
       </Flex>
     </Container>

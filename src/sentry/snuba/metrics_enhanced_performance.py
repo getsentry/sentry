@@ -3,7 +3,7 @@ from __future__ import annotations
 import types
 from collections.abc import Sequence
 from datetime import timedelta
-from typing import Any
+from typing import Any, Literal, cast
 
 import sentry_sdk
 from snuba_sdk import Column, Condition
@@ -21,6 +21,14 @@ from sentry.snuba.metrics_performance import top_events_timeseries as metrics_to
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.types import DatasetQuery
 from sentry.utils.snuba import SnubaTSResult
+
+# Generic metrics performance data is deprecated for ordinary MEP queries.
+# Only keep the metrics path when on-demand metrics extraction is requested.
+DATASET_REASON = "generic metrics performance queries are disabled"
+
+
+def _should_use_metrics(on_demand_metrics_enabled: bool) -> bool:
+    return on_demand_metrics_enabled
 
 
 def query(
@@ -50,7 +58,7 @@ def query(
     *,
     referrer: str,
 ) -> EventsResponse:
-    metrics_compatible = not equations
+    metrics_compatible = _should_use_metrics(on_demand_metrics_enabled) and not equations
     dataset_reason = discover.DEFAULT_DATASET_REASON
 
     if metrics_compatible:
@@ -88,8 +96,10 @@ def query(
             sentry_sdk.set_attribute("performance.mep_incompatible", str(error))
             dataset_reason = str(error)
             metrics_compatible = False
+    else:
+        dataset_reason = DATASET_REASON
 
-    # Either metrics failed, or this isn't a query we can enhance with metrics
+    # Either metrics failed, metrics are disabled, or this isn't a query we can enhance with metrics
     if not metrics_compatible:
         dataset_query: DatasetQuery = discover.query
         if fallback_to_transactions:
@@ -136,12 +146,12 @@ def timeseries_query(
     rollup: int,
     referrer: str,
     zerofill_results: bool = True,
-    allow_metric_aggregates=True,
+    allow_metric_aggregates: bool = True,
     comparison_delta: timedelta | None = None,
     functions_acl: list[str] | None = None,
     has_metrics: bool = True,
     on_demand_metrics_enabled: bool = False,
-    on_demand_metrics_type=None,
+    on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
     transform_alias_to_input_format: bool = False,
@@ -151,7 +161,7 @@ def timeseries_query(
     this API should match that of sentry.snuba.discover.timeseries_query
     """
     equations, columns = categorize_columns(selected_columns)
-    metrics_compatible = not equations
+    metrics_compatible = _should_use_metrics(on_demand_metrics_enabled) and not equations
 
     if metrics_compatible:
         try:
@@ -189,18 +199,21 @@ def timeseries_query(
         else:
             sentry_sdk.set_tag("performance.dataset", "discover")
             sentry_sdk.set_attribute("performance.dataset", "discover")
-        return dataset.timeseries_query(
-            selected_columns,
-            query,
-            snuba_params,
-            rollup=rollup,
-            referrer=referrer,
-            zerofill_results=zerofill_results,
-            comparison_delta=comparison_delta,
-            functions_acl=functions_acl,
-            has_metrics=has_metrics,
-            query_source=query_source,
-            transform_alias_to_input_format=transform_alias_to_input_format,
+        return cast(
+            "SnubaTSResult",
+            dataset.timeseries_query(
+                selected_columns,
+                query,
+                snuba_params,
+                rollup=rollup,
+                referrer=referrer,
+                zerofill_results=zerofill_results,
+                comparison_delta=comparison_delta,
+                functions_acl=functions_acl,
+                has_metrics=has_metrics,
+                query_source=query_source,
+                transform_alias_to_input_format=transform_alias_to_input_format,
+            ),
         )
     return SnubaTSResult(
         {
@@ -241,10 +254,8 @@ def top_events_timeseries(
     *,
     referrer: str,
 ) -> SnubaTSResult | dict[str, Any]:
-    metrics_compatible = False
     equations, _ = categorize_columns(selected_columns)
-    if not equations:
-        metrics_compatible = True
+    metrics_compatible = _should_use_metrics(on_demand_metrics_enabled) and not equations
 
     if metrics_compatible:
         try:
@@ -288,24 +299,27 @@ def top_events_timeseries(
         else:
             sentry_sdk.set_tag("performance.dataset", "discover")
             sentry_sdk.set_attribute("performance.dataset", "discover")
-        return dataset.top_events_timeseries(
-            timeseries_columns,
-            selected_columns,
-            user_query,
-            snuba_params,
-            orderby,
-            rollup,
-            limit,
-            organization,
-            equations,
-            top_events,
-            allow_empty,
-            zerofill_results,
-            include_other,
-            functions_acl,
-            query_source=query_source,
-            transform_alias_to_input_format=transform_alias_to_input_format,
-            referrer=referrer,
+        return cast(
+            "SnubaTSResult | dict[str, Any]",
+            dataset.top_events_timeseries(
+                timeseries_columns,
+                selected_columns,
+                user_query,
+                snuba_params,
+                orderby,
+                rollup,
+                limit,
+                organization,
+                equations,
+                top_events,
+                allow_empty,
+                zerofill_results,
+                include_other,
+                functions_acl,
+                query_source=query_source,
+                transform_alias_to_input_format=transform_alias_to_input_format,
+                referrer=referrer,
+            ),
         )
     return SnubaTSResult(
         {
@@ -324,32 +338,32 @@ def top_events_timeseries(
 
 
 def histogram_query(
-    fields,
-    user_query,
-    snuba_params,
-    num_buckets,
-    precision=0,
-    min_value=None,
-    max_value=None,
-    data_filter=None,
-    group_by=None,
-    order_by=None,
-    limit_by=None,
-    histogram_rows=None,
-    extra_conditions=None,
-    normalize_results=True,
-    on_demand_metrics_enabled=False,
-    on_demand_metrics_type=None,
+    fields: list[str],
+    user_query: str,
+    snuba_params: SnubaParams,
+    num_buckets: int,
+    precision: int = 0,
+    min_value: float | None = None,
+    max_value: float | None = None,
+    data_filter: Literal["exclude_outliers"] | None = None,
+    group_by: list[str] | None = None,
+    order_by: list[str] | None = None,
+    limit_by: list[str] | None = None,
+    histogram_rows: int | None = None,
+    extra_conditions: list[Condition] | None = None,
+    normalize_results: bool = True,
+    on_demand_metrics_enabled: bool = False,
+    on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
     *,
     referrer: str,
-):
+) -> dict[str, object] | EventsResponse:
     """
     High-level API for doing arbitrary user timeseries queries against events.
     this API should match that of sentry.snuba.discover.histogram_query
     """
     # Must need to normalize results to be MEP
-    metrics_compatible = normalize_results
+    metrics_compatible = _should_use_metrics(on_demand_metrics_enabled) and normalize_results
     if metrics_compatible:
         try:
             return metrics_histogram_query(

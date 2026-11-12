@@ -1,15 +1,16 @@
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {openInsightInfoModal} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
-import {InlineCode} from 'sentry/views/preprod/buildDetails/main/insights/insightInfoModal';
+
+import {InlineCode} from './insightInfoModal';
 
 function getMainBinaryExportedSymbolsContent() {
   return (
-    <Flex direction="column" gap="2xl">
-      <Flex direction="column" gap="xl">
-        <Flex direction="column" gap="md">
+    <Stack gap="2xl">
+      <Stack gap="xl">
+        <Stack gap="md">
           <Text>
             {t(
               'Binaries that act as entrypoints for your app, such as your main app binary or watchOS app binary, are not linked against by other binaries. This means the export trie information is unnecessary and can be removed.'
@@ -20,9 +21,9 @@ function getMainBinaryExportedSymbolsContent() {
               'You can maintain a minimal allowlist so only required entry points stay exported:'
             )}
           </Text>
-        </Flex>
+        </Stack>
 
-        <Flex direction="column" gap="md">
+        <Stack gap="md">
           <ol>
             <li>
               <Text>
@@ -58,9 +59,9 @@ function getMainBinaryExportedSymbolsContent() {
             </li>
           </ol>
           <Text>{t('Xcode will now limit the export trie to just that allowlist.')}</Text>
-        </Flex>
-      </Flex>
-    </Flex>
+        </Stack>
+      </Stack>
+    </Stack>
   );
 }
 

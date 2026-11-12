@@ -1,36 +1,24 @@
-import {QueryClientProvider} from '@tanstack/react-query';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as modal from 'sentry/actionCreators/modal';
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType} from 'sentry/views/dashboards/types';
-import * as discoverUtils from 'sentry/views/discover/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {useSaveAsItems} from 'sentry/views/explore/logs/useSaveAsItems';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useNavigate');
-jest.mock('sentry/components/pageFilters/usePageFilters');
+import {LogsQueryParamsProvider} from './logsQueryParamsProvider';
+import {useSaveAsItems} from './useSaveAsItems';
+
 jest.mock('sentry/actionCreators/modal');
 
-const mockedUseLocation = jest.mocked(useLocation);
-const mockUseNavigate = jest.mocked(useNavigate);
-const mockUsePageFilters = jest.mocked(usePageFilters);
 const mockOpenSaveQueryModal = jest.mocked(modal.openSaveQueryModal);
 
 describe('useSaveAsItems', () => {
@@ -38,54 +26,38 @@ describe('useSaveAsItems', () => {
     features: ['ourlogs-enabled'],
   });
   const project = ProjectFixture({id: '1'});
-  const queryClient = makeTestQueryClient();
+  const initialLocation = {
+    pathname: '/mock-pathname/',
+    query: {
+      logsFields: ['timestamp', 'message', 'user.email'],
+      logsQuery: 'message:"test error"',
+      logsSortBys: ['-timestamp'],
+      aggregateField: [{groupBy: 'message.template'}, {yAxes: ['count(message)']}].map(
+        aggregateField => JSON.stringify(aggregateField)
+      ),
+      mode: 'aggregate',
+    },
+  };
   let saveQueryMock: jest.Mock;
-  ProjectsStore.loadInitialData([project]);
 
-  function createWrapper() {
-    return function ({children}: {children?: React.ReactNode}) {
-      return (
-        <OrganizationContext.Provider value={organization}>
-          <QueryClientProvider client={queryClient}>
-            <LogsQueryParamsProvider
-              analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-              source="location"
-            >
-              {children}
-            </LogsQueryParamsProvider>
-          </QueryClientProvider>
-        </OrganizationContext.Provider>
-      );
-    };
+  function Wrapper({children}: {children?: React.ReactNode}) {
+    return (
+      <LogsQueryParamsProvider
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        source="location"
+      >
+        {children}
+      </LogsQueryParamsProvider>
+    );
   }
 
   beforeEach(() => {
     jest.resetAllMocks();
     MockApiClient.clearMockResponses();
-    queryClient.clear();
-
-    mockedUseLocation.mockReturnValue(
-      LocationFixture({
-        query: {
-          logsFields: ['timestamp', 'message', 'user.email'],
-          logsQuery: 'message:"test error"',
-          logsSortBys: ['-timestamp'],
-          aggregateField: [
-            {groupBy: 'message.template'},
-            {
-              yAxes: ['count(message)'],
-            },
-          ].map(aggregateField => JSON.stringify(aggregateField)),
-          mode: 'aggregate',
-        },
-      })
-    );
-    mockUseNavigate.mockReturnValue(jest.fn());
-    mockUsePageFilters.mockReturnValue({
-      isReady: true,
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: PageFiltersFixture({
+    ProjectsStore.loadInitialData([project]);
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({
         projects: [1],
         environments: ['production'],
         datetime: {
@@ -94,8 +66,8 @@ describe('useSaveAsItems', () => {
           period: '1h',
           utc: false,
         },
-      }),
-    });
+      })
+    );
 
     saveQueryMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/explore/saved/`,
@@ -104,19 +76,25 @@ describe('useSaveAsItems', () => {
     });
   });
 
+  afterEach(() => {
+    PageFiltersStore.reset();
+    ProjectsStore.reset();
+  });
+
   it('should open save query modal when save as new query is clicked', () => {
-    const {result} = renderHookWithProviders(
-      () =>
-        useSaveAsItems({
-          visualizes: [new VisualizeFunction('count()')],
-          groupBys: ['message.template'],
-          interval: '5m',
-          mode: Mode.AGGREGATE,
-          search: new MutableSearch('message:"test error"'),
-          sortBys: [{field: 'timestamp', kind: 'desc'}],
-        }),
-      {additionalWrapper: createWrapper()}
-    );
+    const {result} = renderHookWithProviders(useSaveAsItems, {
+      additionalWrapper: Wrapper,
+      organization,
+      initialRouterConfig: {location: initialLocation},
+      initialProps: {
+        visualizes: [new VisualizeFunction('count()')],
+        groupBys: ['message.template'],
+        interval: '5m',
+        mode: Mode.AGGREGATE,
+        search: new MutableSearch('message:"test error"'),
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
+      },
+    });
 
     const saveAsItems = result.current;
     const saveAsQuery = saveAsItems.find(item => item.key === 'save-query') as {
@@ -152,29 +130,29 @@ describe('useSaveAsItems', () => {
       },
     });
 
-    mockedUseLocation.mockReturnValue(
-      LocationFixture({
-        query: {
-          id: 'test-query-id',
-          logsFields: ['timestamp', 'message'],
-          logsQuery: 'message:"test"',
-          mode: 'aggregate',
+    const {result} = renderHookWithProviders(useSaveAsItems, {
+      additionalWrapper: Wrapper,
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/mock-pathname/',
+          query: {
+            id: 'test-query-id',
+            logsFields: ['timestamp', 'message'],
+            logsQuery: 'message:"test"',
+            mode: 'aggregate',
+          },
         },
-      })
-    );
-
-    const {result} = renderHookWithProviders(
-      () =>
-        useSaveAsItems({
-          visualizes: [new VisualizeFunction('count()')],
-          groupBys: ['message.template'],
-          interval: '5m',
-          mode: Mode.AGGREGATE,
-          search: new MutableSearch('message:"test"'),
-          sortBys: [{field: 'timestamp', kind: 'desc'}],
-        }),
-      {additionalWrapper: createWrapper()}
-    );
+      },
+      initialProps: {
+        visualizes: [new VisualizeFunction('count()')],
+        groupBys: ['message.template'],
+        interval: '5m',
+        mode: Mode.AGGREGATE,
+        search: new MutableSearch('message:"test"'),
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
+      },
+    });
 
     await waitFor(() => {
       expect(result.current.some(item => item.key === 'update-query')).toBe(true);
@@ -185,28 +163,28 @@ describe('useSaveAsItems', () => {
   });
 
   it('should show only new query option when no saved query exists', () => {
-    mockedUseLocation.mockReturnValue(
-      LocationFixture({
-        query: {
-          logsFields: ['timestamp', 'message'],
-          logsQuery: 'message:"test"',
-          mode: 'aggregate',
+    const {result} = renderHookWithProviders(useSaveAsItems, {
+      additionalWrapper: Wrapper,
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/mock-pathname/',
+          query: {
+            logsFields: ['timestamp', 'message'],
+            logsQuery: 'message:"test"',
+            mode: 'aggregate',
+          },
         },
-      })
-    );
-
-    const {result} = renderHookWithProviders(
-      () =>
-        useSaveAsItems({
-          visualizes: [new VisualizeFunction('count()')],
-          groupBys: ['message.template'],
-          interval: '5m',
-          mode: Mode.AGGREGATE,
-          search: new MutableSearch('message:"test"'),
-          sortBys: [{field: 'timestamp', kind: 'desc'}],
-        }),
-      {additionalWrapper: createWrapper()}
-    );
+      },
+      initialProps: {
+        visualizes: [new VisualizeFunction('count()')],
+        groupBys: ['message.template'],
+        interval: '5m',
+        mode: Mode.AGGREGATE,
+        search: new MutableSearch('message:"test"'),
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
+      },
+    });
 
     const saveAsItems = result.current;
 
@@ -214,25 +192,79 @@ describe('useSaveAsItems', () => {
     expect(saveAsItems.some(item => item.key === 'save-query')).toBe(true);
   });
 
-  it('preserves the chart type when adding a dashboard widget', () => {
-    const handleAddQueryToDashboard = jest
-      .spyOn(discoverUtils, 'handleAddQueryToDashboard')
-      .mockImplementation(() => {});
+  it('enables the alert option when there are aggregates', () => {
+    const {result} = renderHookWithProviders(useSaveAsItems, {
+      additionalWrapper: Wrapper,
+      organization,
+      initialRouterConfig: {location: initialLocation},
+      initialProps: {
+        visualizes: [new VisualizeFunction('count()')],
+        groupBys: ['message.template'],
+        interval: '5m',
+        mode: Mode.AGGREGATE,
+        search: new MutableSearch('message:"test error"'),
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
+      },
+    });
 
-    const {result} = renderHookWithProviders(
-      () =>
-        useSaveAsItems({
-          visualizes: [
-            new VisualizeFunction('count(message)', {chartType: ChartType.LINE}),
-          ],
-          groupBys: ['message.template'],
-          interval: '5m',
-          mode: Mode.AGGREGATE,
-          search: new MutableSearch('message:"test error"'),
-          sortBys: [{field: 'timestamp', kind: 'desc'}],
-        }),
-      {additionalWrapper: createWrapper()}
-    );
+    const alertItem = result.current.find(item => item.key === 'create-alert') as
+      | {children: unknown[]; disabled: boolean}
+      | undefined;
+
+    expect(alertItem?.disabled).toBe(false);
+    expect(alertItem?.children).toHaveLength(1);
+  });
+
+  it('notes only the dashboard widget always matches case when ignoring case on a grouped view', () => {
+    const {result} = renderHookWithProviders(useSaveAsItems, {
+      additionalWrapper: Wrapper,
+      organization: OrganizationFixture({
+        features: ['ourlogs-enabled', 'explore-ignore-case-default'],
+      }),
+      initialRouterConfig: {
+        location: {
+          pathname: '/mock-pathname/',
+          query: {...initialLocation.query, logsQuery: '', caseInsensitive: '1'},
+        },
+      },
+      initialProps: {
+        visualizes: [new VisualizeFunction('count()')],
+        groupBys: ['message.template'],
+        interval: '5m',
+        mode: Mode.AGGREGATE,
+        search: new MutableSearch(''),
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
+      },
+    });
+
+    const getDetails = (key: string) => {
+      const item = result.current.find(saveAsItem => saveAsItem.key === key);
+      return item && 'details' in item ? item.details : undefined;
+    };
+
+    expect(getDetails('create-alert')).toBeNull();
+    expect(getDetails('add-to-dashboard')).toBe('Always matches case');
+  });
+
+  it('preserves the selected chart type and transformations when adding a dashboard widget', () => {
+    const {result, router} = renderHookWithProviders(useSaveAsItems, {
+      additionalWrapper: Wrapper,
+      organization,
+      initialRouterConfig: {location: initialLocation},
+      initialProps: {
+        visualizes: [
+          new VisualizeFunction('count(message)', {
+            chartType: ChartType.LINE,
+            transformations: ['fill(locf)', 'smooth(sma,5)'],
+          }),
+        ],
+        groupBys: ['message.template'],
+        interval: '5m',
+        mode: Mode.AGGREGATE,
+        search: new MutableSearch('message:"test error"'),
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
+      },
+    });
 
     const saveAsDashboard = result.current.find(
       item => item.key === 'add-to-dashboard'
@@ -240,28 +272,47 @@ describe('useSaveAsItems', () => {
 
     saveAsDashboard.children[0]!.onAction();
 
-    expect(handleAddQueryToDashboard).toHaveBeenCalledWith(
+    expect(router.location.pathname).toBe(initialLocation.pathname);
+    expect(router.location.query).toEqual(
       expect.objectContaining({
-        eventView: expect.objectContaining({display: DisplayType.LINE}),
+        logsFields: initialLocation.query.logsFields,
+        logsQuery: initialLocation.query.logsQuery,
+        logsSortBys: '-timestamp',
+      })
+    );
+    expect(modal.openAddToDashboardModal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        widgets: [
+          expect.objectContaining({
+            displayType: DisplayType.LINE,
+            queries: [
+              expect.objectContaining({
+                aggregates: ['count(message)'],
+                transformations: {0: ['fill(locf)', 'smooth(sma,5)']},
+              }),
+            ],
+          }),
+        ],
       })
     );
   });
 
   it('should call saveQuery with correct parameters when modal saves', async () => {
-    const {result} = renderHookWithProviders(
-      () =>
-        useSaveAsItems({
-          visualizes: [new VisualizeFunction('count()')],
-          groupBys: ['message.template'],
-          // Note: useSaveQuery uses the value returned by useChartInterval()
-          // not the interval passed in as options.
-          interval: '5m',
-          mode: Mode.AGGREGATE,
-          search: new MutableSearch('message:"test error"'),
-          sortBys: [{field: 'timestamp', kind: 'desc'}],
-        }),
-      {additionalWrapper: createWrapper()}
-    );
+    const {result} = renderHookWithProviders(useSaveAsItems, {
+      additionalWrapper: Wrapper,
+      organization,
+      initialRouterConfig: {location: initialLocation},
+      initialProps: {
+        visualizes: [new VisualizeFunction('count()')],
+        groupBys: ['message.template'],
+        // Note: useSaveQuery uses the value returned by useChartInterval()
+        // not the interval passed in as options.
+        interval: '5m',
+        mode: Mode.AGGREGATE,
+        search: new MutableSearch('message:"test error"'),
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
+      },
+    });
 
     const saveAsItems = result.current;
     const saveAsQuery = saveAsItems.find(item => item.key === 'save-query') as {
@@ -278,7 +329,7 @@ describe('useSaveAsItems', () => {
     }
     const saveQueryFn = modalCall[0].saveQuery;
 
-    await saveQueryFn('Test Query Title', true);
+    await saveQueryFn({name: 'Test Query Title', starred: true});
 
     await waitFor(() => {
       expect(saveQueryMock).toHaveBeenCalledWith(
@@ -291,7 +342,7 @@ describe('useSaveAsItems', () => {
             dataset: 'logs',
             start: '2024-01-01T00:00:00.000Z',
             end: '2024-01-01T01:00:00.000Z',
-            range: '1h',
+            statsPeriod: '1h',
             environment: ['production'],
             interval: '1m',
             query: [

@@ -19,7 +19,10 @@ from sentry.utils.snuba import bulk_snuba_queries
 
 # If we drop trace connected issues from similar issues we can stop using the group
 def trace_connected_analysis(
-    group: Group, event_id: str | None = None, project_id: int | None = None
+    group: Group,
+    projects: list[Project],
+    event_id: str | None = None,
+    project_id: int | None = None,
 ) -> tuple[list[int], dict[str, str]]:
     """Determine if the group has a trace connected to it and return other issues that were part of it."""
     issues: list[int] = []
@@ -38,7 +41,7 @@ def trace_connected_analysis(
         event = group.get_recommended_event_for_environments()
 
     if event:
-        issues, meta = trace_connected_issues(event)
+        issues, meta = trace_connected_issues(event, projects)
     else:
         meta["error"] = "No event found for group."
 
@@ -100,7 +103,9 @@ def _trace_connected_issues_eap(
     return group_ids
 
 
-def trace_connected_issues(event: Event | GroupEvent) -> tuple[list[int], dict[str, str]]:
+def trace_connected_issues(
+    event: Event | GroupEvent, projects: list[Project]
+) -> tuple[list[int], dict[str, str]]:
     meta = {"event_id": event.event_id}
     if event.trace_id:
         meta["trace_id"] = event.trace_id
@@ -110,9 +115,8 @@ def trace_connected_issues(event: Event | GroupEvent) -> tuple[list[int], dict[s
 
     assert event.group is not None
     group = event.group
-    org_id = group.project.organization_id
-    organization = Organization.objects.get(id=org_id)
-    projects = list(Project.objects.filter(organization_id=org_id))
+    organization = group.project.organization
+    org_id = organization.id
     project_ids = [p.id for p in projects]
 
     snuba_results = _trace_connected_issues_snuba(

@@ -1,6 +1,13 @@
+from uuid import uuid4
+
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
+
+from sentry import deletions
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.models.artifactbundle import (
     ArtifactBundle,
+    ArtifactBundleIndex,
     DebugIdArtifactBundle,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
@@ -44,3 +51,76 @@ class DeleteArtifactBundleTest(TransactionTestCase, HybridCloudTestMixin):
         assert not DebugIdArtifactBundle.objects.filter(artifact_bundle=artifact_bundle).exists()
         assert not ProjectArtifactBundle.objects.filter(artifact_bundle=artifact_bundle).exists()
         assert not File.objects.filter(id=artifact_bundle.file.id).exists()
+
+    def test_delete_when_file_already_deleted(self) -> None:
+        """Signal handler must not raise when the associated File is already gone."""
+        from sentry.models.artifactbundle import delete_file_for_artifact_bundle
+        from sentry.models.files.file import File
+
+        # Simulate an ArtifactBundle instance whose File no longer exists in the DB,
+        # which is what Django raises when accessing a FK whose row has been deleted.
+        class _MissingFile:
+            organization_id = None
+
+            @property
+            def file(self) -> None:
+                raise File.DoesNotExist("File matching query does not exist.")
+
+        # Must not raise File.DoesNotExist.
+        delete_file_for_artifact_bundle(_MissingFile())  # type: ignore[arg-type]
+
+    def test_indices_deleted_by_cascade(self) -> None:
+        org = self.create_organization()
+        artifact_bundle = self.create_artifact_bundle(org=org)
+        other_bundle = self.create_artifact_bundle(org=org)
+        DebugIdArtifactBundle.objects.bulk_create(
+            [
+                DebugIdArtifactBundle(
+                    organization_id=org.id,
+                    artifact_bundle=bundle,
+                    debug_id=uuid4(),
+                    source_file_type=SourceFileType.MINIFIED_SOURCE.value,
+                )
+                for bundle in (artifact_bundle, other_bundle)
+                for _ in range(3)
+            ]
+        )
+        ArtifactBundleIndex.objects.bulk_create(
+            [
+                ArtifactBundleIndex(
+                    organization_id=org.id,
+                    artifact_bundle=bundle,
+                    url=f"~/bundle-{index}.js",
+                )
+                for bundle in (artifact_bundle, other_bundle)
+                for index in range(3)
+            ]
+        )
+        bundle_id = artifact_bundle.id
+        file_id = artifact_bundle.file_id
+
+        with self.tasks(), CaptureQueriesContext(connection) as queries:
+            deletions.exec_sync(artifact_bundle)
+
+        debug_id_deletes = [
+            query["sql"]
+            for query in queries
+            if query["sql"].startswith('DELETE FROM "sentry_debugidartifactbundle"')
+        ]
+        assert len(debug_id_deletes) == 1
+        assert '"artifact_bundle_id" IN' in debug_id_deletes[0]
+        url_index_deletes = [
+            query["sql"]
+            for query in queries
+            if query["sql"].startswith('DELETE FROM "sentry_artifactbundleindex"')
+        ]
+        assert len(url_index_deletes) == 1
+        assert '"artifact_bundle_id" IN' in url_index_deletes[0]
+        assert not DebugIdArtifactBundle.objects.filter(artifact_bundle_id=bundle_id).exists()
+        assert not ArtifactBundleIndex.objects.filter(artifact_bundle_id=bundle_id).exists()
+        assert not ArtifactBundle.objects.filter(id=bundle_id).exists()
+        assert not File.objects.filter(id=file_id).exists()
+        assert DebugIdArtifactBundle.objects.filter(artifact_bundle=other_bundle).count() == 3
+        assert ArtifactBundleIndex.objects.filter(artifact_bundle=other_bundle).count() == 3
+        assert ArtifactBundle.objects.filter(id=other_bundle.id).exists()
+        assert File.objects.filter(id=other_bundle.file_id).exists()

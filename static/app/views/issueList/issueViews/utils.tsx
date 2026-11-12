@@ -1,12 +1,13 @@
-import {openConfirmModal} from 'sentry/components/confirm';
+import {openConfirmModal} from '@sentry/scraps/confirm';
+
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilterDatetime} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-export const DEFAULT_TIME_FILTERS: PageFilters['datetime'] = {
+export const DEFAULT_TIME_FILTERS: PageFilterDatetime = {
   start: null,
   end: null,
   period: '14d',
@@ -24,7 +25,7 @@ export interface IssueViewParams {
   projects: number[];
   query: string;
   querySort: IssueSortOptions;
-  timeFilters: PageFilters['datetime'];
+  timeFilters: PageFilterDatetime;
 }
 
 export function canEditIssueView({

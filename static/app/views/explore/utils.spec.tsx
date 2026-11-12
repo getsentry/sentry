@@ -1,4 +1,7 @@
+import qs from 'query-string';
+import {DiscoverSavedQueryFixture} from 'sentry-fixture/discover';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
@@ -6,15 +9,23 @@ import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
-import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+
+import {Mode} from './contexts/pageParamsContext/mode';
+import type {DiscoverSavedQuery, ReadableSavedQuery} from './hooks/useGetSavedQueries';
+import {SavedQuery, SavedQueryType} from './hooks/useGetSavedQueries';
+import {VisualizeFunction} from './queryParams/visualize';
 import {
   findSuggestedColumns,
+  getFirstSamplingWarning,
   getSamplingWarningReason,
+  getSavedQueryTraceItemUrl,
+  getYAxisDiscoverSavedQuery,
   isSamplingSensitiveAggregate,
+  prettifyAggregation,
   removeHiddenKeys,
   shouldWarnSamplingSensitive,
   viewSamplesTarget,
-} from 'sentry/views/explore/utils';
+} from './utils';
 
 describe('viewSamplesTarget', () => {
   const project = ProjectFixture();
@@ -45,6 +56,36 @@ describe('viewSamplesTarget', () => {
         sort: ['-span.duration'],
       },
     });
+  });
+
+  it('does not add a filter for an empty group by', () => {
+    const location = LocationFixture({
+      query: {
+        aggregateField: [
+          JSON.stringify({groupBy: ''}),
+          JSON.stringify({yAxes: ['count(span.duration)']}),
+        ],
+        aggregateSort: '-count(span.duration)',
+        groupBy: '',
+        visualize: JSON.stringify({yAxes: ['count(span.duration)']}),
+      },
+    });
+    const target = viewSamplesTarget({
+      location,
+      query: '',
+      fields: ['foo'],
+      groupBys: [''],
+      visualizes: [visualize],
+      sorts: [sort],
+      row: {},
+      projects,
+    });
+
+    expect(target.query.aggregateField).toEqual(location.query.aggregateField);
+    expect(target.query.aggregateSort).toBe('-count(span.duration)');
+    expect(target.query.groupBy).toBe('');
+    expect(target.query.visualize).toBe(location.query.visualize);
+    expect(target.query.query).toBe('');
   });
 
   it('simple drill down with single group by', () => {
@@ -173,6 +214,106 @@ describe('viewSamplesTarget', () => {
     });
   });
 
+  it('drill down with boolean group by value', () => {
+    const location = LocationFixture();
+    const target = viewSamplesTarget({
+      location,
+      query: '',
+      fields: ['foo'],
+      groupBys: ['tags[api_token_is_sentry_app,boolean]'],
+      visualizes: [visualize],
+      sorts: [sort],
+      row: {
+        'tags[api_token_is_sentry_app,boolean]': false,
+        'count(span.duration)': 10,
+      },
+      projects,
+    });
+    expect(target).toMatchObject({
+      query: {
+        field: ['foo', 'span.duration'],
+        mode: 'samples',
+        query: 'tags[api_token_is_sentry_app,boolean]:false',
+        sort: ['-span.duration'],
+      },
+    });
+  });
+
+  it('drill down with numeric group by value', () => {
+    const location = LocationFixture();
+    const target = viewSamplesTarget({
+      location,
+      query: '',
+      fields: ['foo'],
+      groupBys: ['org_id'],
+      visualizes: [visualize],
+      sorts: [sort],
+      row: {
+        org_id: 123,
+        'count(span.duration)': 10,
+      },
+      projects,
+    });
+    expect(target).toMatchObject({
+      query: {
+        field: ['foo', 'span.duration'],
+        mode: 'samples',
+        query: 'org_id:123',
+        sort: ['-span.duration'],
+      },
+    });
+  });
+
+  it('drill down replaces existing filter for the same key', () => {
+    const location = LocationFixture();
+    const target = viewSamplesTarget({
+      location,
+      query: 'bar:old_value',
+      fields: ['foo'],
+      groupBys: ['bar'],
+      visualizes: [visualize],
+      sorts: [sort],
+      row: {
+        bar: 'new_value',
+        'count(span.duration)': 10,
+      },
+      projects,
+    });
+    expect(target).toMatchObject({
+      query: {
+        field: ['foo', 'span.duration'],
+        mode: 'samples',
+        query: 'bar:new_value',
+        sort: ['-span.duration'],
+      },
+    });
+  });
+
+  it('drill down preserves existing filters for different keys', () => {
+    const location = LocationFixture();
+    const target = viewSamplesTarget({
+      location,
+      query: 'existing_key:existing_value',
+      fields: ['foo'],
+      groupBys: ['bar'],
+      visualizes: [visualize],
+      sorts: [sort],
+      row: {
+        bar: 'bar',
+        'count(span.duration)': 10,
+      },
+      projects,
+    });
+    expect(target).toMatchObject({
+      query: {
+        field: ['foo', 'span.duration'],
+        mode: 'samples',
+        query: 'existing_key:existing_value bar:bar',
+        sort: ['-span.duration'],
+      },
+    });
+  });
+
   it('drill down with no value group by uses !has filter', () => {
     const location = LocationFixture();
     const target = viewSamplesTarget({
@@ -193,6 +334,53 @@ describe('viewSamplesTarget', () => {
         field: ['foo', 'span.duration'],
         mode: 'samples',
         query: '!has:user.id',
+        sort: ['-span.duration'],
+      },
+    });
+  });
+
+  it('clears table param so it lands on span samples tab', () => {
+    const location = LocationFixture({
+      query: {table: 'attribute_breakdowns'},
+    });
+    const target = viewSamplesTarget({
+      location,
+      query: '',
+      fields: ['foo'],
+      groupBys: ['bar'],
+      visualizes: [visualize],
+      sorts: [sort],
+      row: {bar: 'bar_value', 'count(span.duration)': 10},
+      projects,
+    });
+    expect(target.query.table).toBeUndefined();
+    expect(target).toMatchObject({
+      query: {
+        field: ['foo', 'span.duration'],
+        mode: 'samples',
+        query: 'bar:bar_value',
+        sort: ['-span.duration'],
+      },
+    });
+  });
+
+  it('drill down on a conditional aggregate ignores the filter argument', () => {
+    const location = LocationFixture();
+    const target = viewSamplesTarget({
+      location,
+      query: '',
+      fields: ['foo'],
+      groupBys: [],
+      visualizes: [new VisualizeFunction('count_if(`span.op:db`,span.duration)')],
+      sorts: [{field: 'count_if(`span.op:db`,span.duration)', kind: 'desc' as const}],
+      row: {},
+      projects,
+    });
+    expect(target).toMatchObject({
+      query: {
+        field: ['foo', 'span.duration'],
+        mode: 'samples',
+        query: '',
         sort: ['-span.duration'],
       },
     });
@@ -339,7 +527,7 @@ describe('removeHiddenKeys', () => {
       project_id: {key: 'project_id', name: 'project_id', kind: FieldKind.TAG},
     };
 
-    expect(removeHiddenKeys(tags, ['project_id'])).toEqual({
+    expect(removeHiddenKeys(tags, new Set(['project_id']))).toEqual({
       'log.field': {key: 'log.field', name: 'log.field', kind: FieldKind.TAG},
     });
   });
@@ -360,7 +548,7 @@ describe('removeHiddenKeys', () => {
       },
     };
 
-    expect(removeHiddenKeys(tags, ['project_id'])).toEqual({
+    expect(removeHiddenKeys(tags, new Set(['project_id']))).toEqual({
       'log.duration': {
         key: 'log.duration',
         name: 'log.duration',
@@ -383,7 +571,33 @@ describe('removeHiddenKeys', () => {
       },
     };
 
-    expect(removeHiddenKeys(tags, ['project_id'])).toEqual(tags);
+    expect(removeHiddenKeys(tags, new Set(['project_id']))).toEqual(tags);
+  });
+
+  it('keeps user-sent attributes whose name collides with a hidden key', () => {
+    const tags: TagCollection = {
+      'organization.id': {
+        key: 'organization.id',
+        name: 'organization.id',
+        kind: FieldKind.TAG,
+        attributeSource: 'user',
+      },
+    };
+
+    expect(removeHiddenKeys(tags, new Set(['organization.id']))).toEqual(tags);
+  });
+
+  it('still hides Sentry-sourced attributes that match a hidden key', () => {
+    const tags: TagCollection = {
+      'organization.id': {
+        key: 'organization.id',
+        name: 'organization.id',
+        kind: FieldKind.TAG,
+        attributeSource: 'sentry',
+      },
+    };
+
+    expect(removeHiddenKeys(tags, new Set(['organization.id']))).toEqual({});
   });
 });
 
@@ -400,19 +614,26 @@ function seriesWithSampleRates(sampleRates: Array<number | null>): TimeSeries[] 
 }
 
 describe('isSamplingSensitiveAggregate', () => {
-  it.each(['count_unique(user)', 'failure_count()', 'failure_rate()'])(
-    'returns true for sampling-sensitive aggregate %s',
-    aggregate => {
-      expect(isSamplingSensitiveAggregate(aggregate)).toBe(true);
-    }
-  );
+  it.each([
+    'count_unique(user)',
+    'min(span.duration)',
+    'max(span.duration)',
+    'count_unique_if(`span.op:db`,user)',
+    'max_if(`span.op:db`,span.duration)',
+  ])('returns true for sampling-sensitive aggregate %s', aggregate => {
+    expect(isSamplingSensitiveAggregate(aggregate)).toBe(true);
+  });
 
-  it.each(['count()', 'avg(span.duration)', 'p50(span.duration)'])(
-    'returns false for non-sensitive aggregate %s',
-    aggregate => {
-      expect(isSamplingSensitiveAggregate(aggregate)).toBe(false);
-    }
-  );
+  it.each([
+    'count()',
+    'avg(span.duration)',
+    'p50(span.duration)',
+    'failure_count()',
+    'failure_rate()',
+    'count_if(`span.op:db`,span.duration)',
+  ])('returns false for non-sensitive aggregate %s', aggregate => {
+    expect(isSamplingSensitiveAggregate(aggregate)).toBe(false);
+  });
 });
 
 describe('shouldWarnSamplingSensitive', () => {
@@ -502,5 +723,200 @@ describe('getSamplingWarningReason', () => {
     expect(
       getSamplingWarningReason('count_unique(user)', seriesWithSampleRates([]), 'partial')
     ).toBeNull();
+  });
+});
+
+describe('getFirstSamplingWarning', () => {
+  it('returns the first sampling-sensitive yAxis that has a warning', () => {
+    expect(
+      getFirstSamplingWarning(
+        ['avg(span.duration)', 'max(span.duration)', 'count_unique(user)'],
+        {
+          'avg(span.duration)': seriesWithSampleRates([0.05]),
+          'max(span.duration)': seriesWithSampleRates([0.05]),
+          'count_unique(user)': seriesWithSampleRates([0.05]),
+        },
+        'full'
+      )
+    ).toEqual({yAxis: 'max(span.duration)', reason: 'lowSampleRate'});
+  });
+
+  it('skips sensitive yAxes without plotted data', () => {
+    expect(
+      getFirstSamplingWarning(
+        ['min(span.duration)', 'count_unique(user)'],
+        {'count_unique(user)': seriesWithSampleRates([1])},
+        'partial'
+      )
+    ).toEqual({yAxis: 'count_unique(user)', reason: 'partialData'});
+  });
+
+  it('returns null when no yAxis has a warning', () => {
+    expect(
+      getFirstSamplingWarning(
+        ['avg(span.duration)', 'max(span.duration)'],
+        {
+          'avg(span.duration)': seriesWithSampleRates([0.05]),
+          'max(span.duration)': seriesWithSampleRates([1]),
+        },
+        'full'
+      )
+    ).toBeNull();
+  });
+});
+
+describe('prettifyAggregation', () => {
+  it('prettifies typed tag keys inside conditional filters', () => {
+    expect(prettifyAggregation('avg_if(`tags[Limit,number]:>5`,span.duration)')).toBe(
+      'avg_if(`Limit:>5`,span.duration)'
+    );
+  });
+
+  it('prettifies typed tag keys in equation conditionals used as chart titles', () => {
+    expect(
+      prettifyAggregation(
+        'equation|avg_if(`tags[Limit,number]:>5`,span.duration) / p95(span.duration)'
+      )
+    ).toBe(' avg_if(`Limit:>5`,span.duration)  /  p95(span.duration) ');
+  });
+});
+
+describe('getYAxisDiscoverSavedQuery', () => {
+  it('falls back to the default y-axis when the query has none saved', () => {
+    const savedQuery: DiscoverSavedQuery = {
+      ...DiscoverSavedQueryFixture({fields: ['title', 'project']}),
+      queryType: SavedQueryType.DISCOVER,
+    };
+
+    expect(getYAxisDiscoverSavedQuery(savedQuery)).toEqual([{yAxes: ['count()']}]);
+  });
+
+  it('falls back to the first graphable aggregate in fields over count()', () => {
+    const savedQuery: DiscoverSavedQuery = {
+      ...DiscoverSavedQueryFixture({
+        fields: ['release', 'count_unique(release)'],
+      }),
+      queryType: SavedQueryType.DISCOVER,
+    };
+
+    expect(getYAxisDiscoverSavedQuery(savedQuery)).toEqual([
+      {yAxes: ['count_unique(release)']},
+    ]);
+  });
+});
+
+describe('getSavedQueryTraceItemUrl', () => {
+  const organization = OrganizationFixture();
+
+  const readableQuery = {
+    mode: Mode.SAMPLES,
+    query: 'span.op:DB',
+    fields: ['id', 'timestamp'],
+    orderby: '-timestamp',
+    aggregateField: [{yAxes: ['count(span.duration)']}],
+  };
+
+  function makeSavedQuery(
+    dataset: ReadableSavedQuery['dataset'],
+    query: ReadableSavedQuery['query']
+  ) {
+    return new SavedQuery({
+      id: 1,
+      interval: '5m',
+      name: 'test query',
+      projects: [],
+      dataset,
+      dateAdded: '2025-01-01T00:00:00.000000Z',
+      dateUpdated: '2025-01-01T00:00:00.000000Z',
+      lastVisited: '2025-01-01T00:00:00.000000Z',
+      starred: false,
+      position: null,
+      query,
+    });
+  }
+
+  function getCaseInsensitiveParam(savedQuery: SavedQuery) {
+    return qs.parseUrl(getSavedQueryTraceItemUrl({savedQuery, organization})).query
+      .caseInsensitive;
+  }
+
+  function getCompareCaseInsensitiveParams(savedQuery: SavedQuery) {
+    const {queries} = qs.parseUrl(
+      getSavedQueryTraceItemUrl({savedQuery, organization})
+    ).query;
+    return (queries as string[]).map(query => JSON.parse(query).caseInsensitive);
+  }
+
+  it('matches case when a spans query predates the case setting', () => {
+    const savedQuery = makeSavedQuery('spans', [readableQuery]);
+
+    expect(getCaseInsensitiveParam(savedQuery)).toBe('0');
+  });
+
+  it('ignores case when a spans query was saved ignoring case', () => {
+    const savedQuery = makeSavedQuery('spans', [
+      {...readableQuery, caseInsensitive: true},
+    ]);
+
+    expect(getCaseInsensitiveParam(savedQuery)).toBe('1');
+  });
+
+  it('matches case when a logs query was saved matching case', () => {
+    const savedQuery = makeSavedQuery('logs', [
+      {...readableQuery, query: 'message:Deleted', caseInsensitive: false},
+    ]);
+
+    expect(getCaseInsensitiveParam(savedQuery)).toBe('0');
+  });
+
+  it('ignores case when a logs query was saved ignoring case', () => {
+    const savedQuery = makeSavedQuery('logs', [
+      {...readableQuery, query: 'message:Deleted', caseInsensitive: true},
+    ]);
+
+    expect(getCaseInsensitiveParam(savedQuery)).toBe('1');
+  });
+
+  it('keeps each compare query case setting', () => {
+    const savedQuery = makeSavedQuery('spans', [
+      readableQuery,
+      {...readableQuery, caseInsensitive: true},
+    ]);
+
+    expect(getCompareCaseInsensitiveParams(savedQuery)).toEqual([false, '1']);
+  });
+
+  function conversationsSavedQuery(overrides: Partial<ReadableSavedQuery> = {}) {
+    return new SavedQuery({
+      id: 1,
+      name: 'Conversations',
+      dataset: 'ai_conversations',
+      projects: [1],
+      starred: false,
+      position: null,
+      interval: '',
+      lastVisited: '',
+      dateAdded: '',
+      dateUpdated: '',
+      statsPeriod: '24h',
+      query: [{fields: [], mode: Mode.SAMPLES, orderby: '', query: ''}],
+      ...overrides,
+    });
+  }
+
+  it('restores the errors only filter for conversations', () => {
+    const url = getSavedQueryTraceItemUrl({
+      organization,
+      savedQuery: conversationsSavedQuery({errorsOnly: true}),
+    });
+    expect(new URL(url, 'https://sentry.io').searchParams.get('errorsOnly')).toBe('true');
+  });
+
+  it('omits the errors only filter when it was not saved', () => {
+    const url = getSavedQueryTraceItemUrl({
+      organization,
+      savedQuery: conversationsSavedQuery(),
+    });
+    expect(new URL(url, 'https://sentry.io').searchParams.has('errorsOnly')).toBe(false);
   });
 });

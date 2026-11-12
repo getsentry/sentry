@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useEffect, useMemo} from 'react';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {LoadingContainer} from 'sentry/components/loading/loadingContainer';
@@ -23,6 +23,7 @@ import {useTransactionSummaryContext} from 'sentry/views/performance/transaction
 import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
 
 import {EAPSummaryContent} from './content';
+import {generateTransactionOverviewEventView} from './utils';
 
 // Used to cast the totals request to numbers
 // as string | number
@@ -62,7 +63,6 @@ function EAPCardinalityLoadingWrapper() {
 function EAPOverviewContentWrapper() {
   const {
     organization,
-    eventView,
     projectId,
     transactionName,
     transactionThreshold,
@@ -70,6 +70,10 @@ function EAPOverviewContentWrapper() {
   } = useTransactionSummaryContext();
 
   const location = useLocation();
+  const eventView = useMemo(
+    () => generateTransactionOverviewEventView({location, transactionName}),
+    [location, transactionName]
+  );
   const mepContext = useMEPDataContext();
 
   const queryData = useDiscoverQuery({

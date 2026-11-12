@@ -1,3 +1,4 @@
+import {IssueStreamDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -9,7 +10,8 @@ import {
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
-import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
+
+import {DetectorLink} from './detectorLink';
 
 describe('DetectorLink', () => {
   const organization = OrganizationFixture();
@@ -101,10 +103,11 @@ describe('DetectorLink', () => {
   });
 
   it('renders disabled detector without link for issue_stream type', () => {
-    const issueStreamDetector = {
-      ...mockDetector,
-      type: 'issue_stream' as const,
-    };
+    const issueStreamDetector = IssueStreamDetectorFixture({
+      id: mockDetector.id,
+      name: mockDetector.name,
+      projectId: mockDetector.projectId,
+    });
 
     render(<DetectorLink detector={issueStreamDetector} />, {
       organization,

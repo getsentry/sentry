@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
-import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {
   ActionType,
@@ -15,11 +15,12 @@ import type {
   DataCondition,
   DataConditionGroup,
 } from 'sentry/types/workflowEngine/dataConditions';
-import {FILTER_MATCH_OPTIONS} from 'sentry/views/automations/components/actionFilters/constants';
-import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
-import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
-import {TRIGGER_MATCH_OPTIONS} from 'sentry/views/automations/components/triggers/constants';
 import {useAvailableActionsQuery} from 'sentry/views/automations/hooks';
+
+import {FILTER_MATCH_OPTIONS} from './actionFilters/constants';
+import {TRIGGER_MATCH_OPTIONS} from './triggers/constants';
+import {actionNodesMap} from './actionNodes';
+import {dataConditionNodesMap} from './dataConditionNodes';
 
 type ConditionsPanelProps = {
   actionFilters: DataConditionGroup[];
@@ -32,17 +33,14 @@ export function ConditionsPanel({triggers, actionFilters}: ConditionsPanelProps)
       <ConditionGroupWrapper>
         <ConditionGroupHeader>
           {triggers?.conditions && triggers.conditions.length > 0
-            ? tct(
-                '[when:When] an issue event is captured and [logicType] of the following occur',
-                {
-                  when: <ConditionBadge />,
-                  logicType:
-                    TRIGGER_MATCH_OPTIONS.find(
-                      choice => choice.value === triggers?.logicType
-                    )?.label || t('any'),
-                }
-              )
-            : tct('[when:When] an issue event is captured', {
+            ? tct('[when:When] [logicType] of the following occur', {
+                when: <ConditionBadge />,
+                logicType:
+                  TRIGGER_MATCH_OPTIONS.find(
+                    choice => choice.value === triggers?.logicType
+                  )?.label || t('any'),
+              })
+            : tct('[when:When] an event or issue activity is captured', {
                 when: <ConditionBadge />,
               })}
         </ConditionGroupHeader>

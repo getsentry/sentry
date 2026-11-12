@@ -7,6 +7,7 @@ import importlib
 import inspect
 import logging
 import pkgutil
+import time
 from abc import abstractmethod
 from collections.abc import (
     Callable,
@@ -28,15 +29,16 @@ import requests
 import sentry_sdk
 from django.conf import settings
 from requests.adapters import HTTPAdapter, Retry
+from sentry_sdk import traces
 
 from sentry import options
 from sentry.hybridcloud.rpc import ArgumentDict, DelegatedBySiloMode, RpcModel
+from sentry.hybridcloud.rpc.circuit_breaker import RpcCircuitBreaker
 from sentry.hybridcloud.rpc.sig import SerializableFunctionSignature
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.types.cell import Cell, CellMappingNotFound
 from sentry.utils import json, metrics
 from sentry.utils.env import in_test_environment
-from sentry.utils.tracing import start_span
 from sentry.viewer_context import get_viewer_context
 
 if TYPE_CHECKING:
@@ -402,6 +404,7 @@ def list_all_service_method_signatures() -> Iterable[RpcMethodSignature]:
         "sentry.projects.services",
         "sentry.relocation.services",
         "sentry.sentry_apps.services",
+        "sentry.service_accounts.services",
         "sentry.users.services",
     )
     for package_name in service_packages:
@@ -590,7 +593,8 @@ class _RemoteSiloCall:
             # value set for the override is invalid
             sentry_sdk.capture_exception()
 
-        return options.get("hybridcloud.rpc.retries")
+        retries = options.get("hybridcloud.rpc.retries")
+        return retries
 
     def get_method_timeout(self) -> float:
         timeout_key = f"{self.service_name}.{self.method_name}"
@@ -637,7 +641,21 @@ class _RemoteSiloCall:
             if use_test_client:
                 response = self._fire_test_request(headers, data)
             else:
-                response = self._fire_request(headers, data)
+                destination = self.cell.name if self.cell else "control"
+                breaker = RpcCircuitBreaker(destination, self._metrics_tags())
+                if breaker.should_reject():
+                    raise RpcCircuitBreakerOpenException(
+                        self.service_name,
+                        self.method_name,
+                        f"Circuit breaker open for {destination}",
+                    )
+                start = time.monotonic()
+                try:
+                    response = self._fire_request(headers, data)
+                except RpcRemoteException:
+                    breaker.record_failure()
+                    raise
+                breaker.record_response(response.status_code, time.monotonic() - start)
             tags = self._metrics_tags(status=response.status_code)
             metrics.incr(
                 "hybrid_cloud.dispatch_rpc.response_code",
@@ -650,15 +668,29 @@ class _RemoteSiloCall:
                 unit="byte",
             )
             if response.status_code == 200:
-                return response.json()
+                try:
+                    return response.json()
+                except ValueError as e:
+                    # Handle the case where the response from the remote silo
+                    # is not valid JSON. This could arise if we receive errors
+                    # from the LB rather than the application.
+                    metrics.incr(
+                        "hybrid_cloud.dispatch_rpc.failure",
+                        tags=self._metrics_tags(kind="malformed_response"),
+                    )
+                    raise RpcResponseException(
+                        service_name=self.service_name,
+                        method_name=self.method_name,
+                        message=f"Received malformed 200 response of {len(response.content)} byte(s)",
+                    ) from e
             self._raise_from_response_status_error(response)
 
     @contextmanager
     def _open_request_context(self) -> Generator[None]:
         timer = metrics.timer("hybrid_cloud.dispatch_rpc.duration", tags=self._metrics_tags())
-        span = start_span(
-            op="hybrid_cloud.dispatch_rpc",
+        span = traces.start_span(
             name=f"rpc to {self.service_name}.{self.method_name}",
+            attributes={"sentry.op": "hybrid_cloud.dispatch_rpc"},
         )
         with span, timer:
             yield
@@ -764,6 +796,10 @@ class _RemoteSiloCall:
             service_method = f"{self.service_name}.{self.method_name}"
             if service_method in disabled_service_methods:
                 raise RpcDisabledException(f"RPC {service_method} disabled")
+
+
+class RpcCircuitBreakerOpenException(RpcRemoteException):
+    """Indicates that the destination's circuit breaker is open and a request has not been made."""
 
 
 class RpcDisabledException(Exception):

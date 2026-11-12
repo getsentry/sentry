@@ -1,22 +1,23 @@
 import {useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {FormContext} from 'sentry/components/forms/formContext';
 import {FormField} from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
 import {
-  METRIC_DETECTOR_FORM_FIELDS,
-  useMetricDetectorFormField,
-} from 'sentry/views/detectors/components/forms/metric/metricFormData';
-import {
   SectionLabel,
   SectionLabelSecondary,
 } from 'sentry/views/detectors/components/forms/sectionLabel';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
+
+import {
+  METRIC_DETECTOR_FORM_FIELDS,
+  useMetricDetectorFormField,
+} from './metricFormFields';
 
 export function DetectorQueryFilterBuilder() {
   const currentQuery = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.query);
@@ -50,7 +51,7 @@ export function DetectorQueryFilterBuilder() {
       disabled={dataset === DetectorDataset.TRANSACTIONS}
     >
       {({ref: _ref, ...fieldProps}) => (
-        <Flex direction="column" gap="xs" flex={1}>
+        <Stack gap="xs" flex={1}>
           <div>
             <Tooltip
               title={t(
@@ -73,7 +74,7 @@ export function DetectorQueryFilterBuilder() {
               {...fieldProps}
             />
           </QueryFieldRowWrapper>
-        </Flex>
+        </Stack>
       )}
     </NoPaddingFormField>
   );

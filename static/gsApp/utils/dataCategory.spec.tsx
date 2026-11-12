@@ -6,8 +6,7 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 
 import {DataCategory} from 'sentry/types/core';
 
-import {UNLIMITED_RESERVED} from 'getsentry/constants';
-import {MILLISECONDS_IN_HOUR} from 'getsentry/utils/billing';
+import {MILLISECONDS_IN_HOUR, UNLIMITED_RESERVED} from 'getsentry/constants';
 import {
   calculateSeerUserSpend,
   formatCategoryQuantityWithDisplayName,

@@ -9,8 +9,9 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {NotificationActionManager} from 'sentry/components/notificationActions/notificationActionManager';
 import type {NotificationAction} from 'sentry/types/notificationActions';
+
+import {NotificationActionManager} from './notificationActionManager';
 
 describe('Adds, deletes, and updates notification actions', () => {
   const {project, organization} = initializeOrg();
@@ -78,7 +79,6 @@ describe('Adds, deletes, and updates notification actions', () => {
     });
     render(
       <NotificationActionManager
-        updateAlertCount={jest.fn()}
         actions={notificationActions}
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
@@ -96,7 +96,6 @@ describe('Adds, deletes, and updates notification actions', () => {
     });
     render(
       <NotificationActionManager
-        updateAlertCount={jest.fn()}
         actions={[notificationActions[0]!]}
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
@@ -117,7 +116,6 @@ describe('Adds, deletes, and updates notification actions', () => {
     });
     render(
       <NotificationActionManager
-        updateAlertCount={jest.fn()}
         actions={[]}
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
@@ -169,7 +167,6 @@ describe('Adds, deletes, and updates notification actions', () => {
     });
     render(
       <NotificationActionManager
-        updateAlertCount={jest.fn()}
         actions={[notificationActions[0]!]}
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
@@ -194,7 +191,6 @@ describe('Adds, deletes, and updates notification actions', () => {
     });
     render(
       <NotificationActionManager
-        updateAlertCount={jest.fn()}
         actions={[]}
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
@@ -243,7 +239,6 @@ describe('Adds, deletes, and updates notification actions', () => {
     });
     render(
       <NotificationActionManager
-        updateAlertCount={jest.fn()}
         actions={[notificationActions[1]!]}
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
@@ -281,7 +276,6 @@ describe('Adds, deletes, and updates notification actions', () => {
     });
     render(
       <NotificationActionManager
-        updateAlertCount={jest.fn()}
         actions={[notificationActions[1]!]}
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
@@ -329,7 +323,6 @@ describe('Adds, deletes, and updates notification actions', () => {
     });
     render(
       <NotificationActionManager
-        updateAlertCount={jest.fn()}
         actions={[]}
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
@@ -392,7 +385,6 @@ describe('Adds, deletes, and updates notification actions', () => {
     });
     render(
       <NotificationActionManager
-        updateAlertCount={jest.fn()}
         actions={[notificationActions[2]!]}
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
@@ -434,7 +426,6 @@ describe('Adds, deletes, and updates notification actions', () => {
     });
     render(
       <NotificationActionManager
-        updateAlertCount={jest.fn()}
         actions={[]}
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
@@ -497,7 +488,6 @@ describe('Adds, deletes, and updates notification actions', () => {
     });
     render(
       <NotificationActionManager
-        updateAlertCount={jest.fn()}
         actions={[notificationActions[3]!]}
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}

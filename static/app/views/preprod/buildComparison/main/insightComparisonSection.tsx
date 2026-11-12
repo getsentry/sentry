@@ -1,24 +1,25 @@
 import {useMemo, useState} from 'react';
+import {IconCopy} from '@sentry/icons/copy';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Heading} from '@sentry/scraps/text';
 
-import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {FileInsightItemDiffTable} from 'sentry/views/preprod/buildComparison/main/insights/fileInsightDiffTable';
-import {GroupInsightItemDiffTable} from 'sentry/views/preprod/buildComparison/main/insights/groupInsightDiffTable';
-import {InsightDiffRow} from 'sentry/views/preprod/buildComparison/main/insights/insightDiffRow';
 import type {
   DiffItem,
   DiffType,
   InsightDiffItem,
   InsightStatus,
 } from 'sentry/views/preprod/types/appSizeTypes';
+
+import {FileInsightItemDiffTable} from './insights/fileInsightDiffTable';
+import {GroupInsightItemDiffTable} from './insights/groupInsightDiffTable';
+import {InsightDiffRow} from './insights/insightDiffRow';
 
 interface InsightComparisonSectionProps {
   insightDiffItems: InsightDiffItem[];

@@ -3,12 +3,12 @@
   // for the documentation about the extensions.json format
   "recommendations": [
     "charliermarsh.ruff",
-    "dbaeumer.vscode-eslint",
     "lextudio.restructuredtext",
     "mkhl.direnv",
     "ms-python.python",
     "oxc.oxc-vscode",
     "timonwong.shellcheck",
+    "TypeScriptTeam.native-preview",
     "tyriar.sort-lines",
     "webpro.vscode-knip",
     "ziyasal.vscode-open-in-github",

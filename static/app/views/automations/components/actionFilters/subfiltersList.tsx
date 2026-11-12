@@ -1,6 +1,8 @@
 import {createContext, Fragment, useContext} from 'react';
 import styled from '@emotion/styled';
 import {uuid4} from '@sentry/core';
+import {IconAdd} from '@sentry/icons/add';
+import {IconDelete} from '@sentry/icons/delete';
 
 import {Button} from '@sentry/scraps/button';
 import type {SelectValue} from '@sentry/scraps/select';
@@ -9,7 +11,6 @@ import {AutomationBuilderInput} from 'sentry/components/workflowEngine/form/auto
 import {RowLine} from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {PurpleTextButton} from 'sentry/components/workflowEngine/ui/purpleTextButton';
-import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {
   DataConditionType,
@@ -17,12 +18,10 @@ import {
   type Subfilter,
   type TagSubfilter,
 } from 'sentry/types/workflowEngine/dataConditions';
-import {
-  Attribute,
-  MatchType,
-} from 'sentry/views/automations/components/actionFilters/constants';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
-import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
+import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
+
+import {Attribute, MatchType} from './constants';
 
 function isAttributeSubfilter(subfilter: Subfilter): subfilter is AttributeSubfilter {
   return 'attribute' in subfilter;
@@ -181,7 +180,7 @@ function ComparisonTypeField() {
     <AutomationBuilderSelect
       name={`${subfilter_id}.type`}
       aria-label={t('Comparison type')}
-      value=""
+      value={null}
       placeholder={t('Select value type')}
       options={[
         {

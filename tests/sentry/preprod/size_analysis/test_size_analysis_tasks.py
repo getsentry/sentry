@@ -1,4 +1,5 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
+from typing import Any
 from unittest.mock import patch
 
 from django.utils import timezone
@@ -9,6 +10,7 @@ from sentry.preprod.models import (
     PreprodArtifactSizeMetrics,
 )
 from sentry.preprod.size_analysis.grouptype import (
+    PreprodSizeAnalysisDetectorHandler,
     PreprodSizeAnalysisGroupType,
     _artifact_to_tags,
 )
@@ -18,6 +20,7 @@ from sentry.preprod.size_analysis.tasks import (
     maybe_emit_issues_from_diff_size_results,
 )
 from sentry.testutils.cases import TestCase
+from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -27,12 +30,12 @@ class MaybeEmitIssuesFromDiffSizeResultsTest(TestCase):
 
     def _create_artifact_with_metrics(
         self,
-        max_install_size=5000000,
-        max_download_size=2000000,
-        date_added=None,
-        app_name=None,
-        **kwargs,
-    ):
+        max_install_size: int = 5000000,
+        max_download_size: int = 2000000,
+        date_added: datetime | None = None,
+        app_name: str | None = None,
+        **kwargs: Any,
+    ) -> PreprodArtifact:
         artifact = self.create_preprod_artifact(
             project=self.project,
             app_id="com.example.app",
@@ -50,7 +53,12 @@ class MaybeEmitIssuesFromDiffSizeResultsTest(TestCase):
         )
         return artifact
 
-    def _create_diff_detector(self, threshold_type="absolute_diff", comparison=500000, **kwargs):
+    def _create_diff_detector(
+        self,
+        threshold_type: str = "absolute_diff",
+        comparison: int = 500000,
+        **kwargs: Any,
+    ) -> Detector:
         condition_group = self.create_data_condition_group(
             organization=self.project.organization,
         )
@@ -81,24 +89,20 @@ class MaybeEmitIssuesFromDiffSizeResultsTest(TestCase):
         )
         self._create_diff_detector()
 
-        with patch(
-            "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
-        ) as mock_produce:
+        with patch.object(PreprodSizeAnalysisDetectorHandler, "on_complete") as mock_on_complete:
             maybe_emit_issues_from_diff_size_results(head, self.organization.id)
 
-        assert mock_produce.call_count == 1
+        assert mock_on_complete.call_count == 1
 
     def test_no_detectors(self) -> None:
         now = timezone.now()
         self._create_artifact_with_metrics(date_added=now - timedelta(hours=2))
         head = self._create_artifact_with_metrics(date_added=now - timedelta(hours=1))
 
-        with patch(
-            "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
-        ) as mock_produce:
+        with patch.object(PreprodSizeAnalysisDetectorHandler, "on_complete") as mock_on_complete:
             maybe_emit_issues_from_diff_size_results(head, self.organization.id)
 
-        assert mock_produce.call_count == 0
+        assert mock_on_complete.call_count == 0
 
     def test_populates_metadata(self) -> None:
         now = timezone.now()
@@ -157,34 +161,28 @@ class MaybeEmitIssuesFromDiffSizeResultsTest(TestCase):
             workflow_condition_group=condition_group,
         )
 
-        with patch(
-            "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
-        ) as mock_produce:
+        with patch.object(PreprodSizeAnalysisDetectorHandler, "on_complete") as mock_on_complete:
             maybe_emit_issues_from_diff_size_results(head, self.organization.id)
 
-        assert mock_produce.call_count == 0
+        assert mock_on_complete.call_count == 0
 
     def test_skips_when_no_base(self) -> None:
         head = self._create_artifact_with_metrics()
         self._create_diff_detector()
 
-        with patch(
-            "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
-        ) as mock_produce:
+        with patch.object(PreprodSizeAnalysisDetectorHandler, "on_complete") as mock_on_complete:
             maybe_emit_issues_from_diff_size_results(head, self.organization.id)
 
-        assert mock_produce.call_count == 0
+        assert mock_on_complete.call_count == 0
 
     def test_skips_when_no_head_metrics(self) -> None:
         head = self.create_preprod_artifact(project=self.project, app_id="com.example.app")
         self._create_diff_detector()
 
-        with patch(
-            "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
-        ) as mock_produce:
+        with patch.object(PreprodSizeAnalysisDetectorHandler, "on_complete") as mock_on_complete:
             maybe_emit_issues_from_diff_size_results(head, self.organization.id)
 
-        assert mock_produce.call_count == 0
+        assert mock_on_complete.call_count == 0
 
     def test_batches_queries(self) -> None:
         now = timezone.now()
@@ -254,12 +252,10 @@ class MaybeEmitIssuesFromSizeResultsTest(TestCase):
             workflow_condition_group=condition_group,
         )
 
-        with patch(
-            "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
-        ) as mock_produce:
+        with patch.object(PreprodSizeAnalysisDetectorHandler, "on_complete") as mock_on_complete:
             maybe_emit_issues_from_absolute_size_results(head_metric=metric)
 
-        assert mock_produce.call_count == 1
+        assert mock_on_complete.call_count == 1
 
     def test_skips_diff_detectors(self) -> None:
         """Diff-based detectors should not fire from the single-build path."""
@@ -290,12 +286,10 @@ class MaybeEmitIssuesFromSizeResultsTest(TestCase):
             workflow_condition_group=condition_group,
         )
 
-        with patch(
-            "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
-        ) as mock_produce:
+        with patch.object(PreprodSizeAnalysisDetectorHandler, "on_complete") as mock_on_complete:
             maybe_emit_issues_from_absolute_size_results(head_metric=metric)
 
-        assert mock_produce.call_count == 0
+        assert mock_on_complete.call_count == 0
 
     def test_populates_metadata_without_base(self) -> None:
         artifact = self.create_preprod_artifact(
@@ -356,16 +350,14 @@ class MaybeEmitIssuesFromSizeResultsTest(TestCase):
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
         )
 
-        with patch(
-            "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
-        ) as mock_produce:
+        with patch.object(PreprodSizeAnalysisDetectorHandler, "on_complete") as mock_on_complete:
             maybe_emit_issues_from_absolute_size_results(head_metric=metric)
 
-        assert mock_produce.call_count == 0
+        assert mock_on_complete.call_count == 0
 
 
 class GetPlatformTest(TestCase):
-    def _make_artifact(self, artifact_type):
+    def _make_artifact(self, artifact_type: int | None) -> PreprodArtifact:
         file = self.create_file(name="test", type="application/octet-stream")
         return self.create_preprod_artifact(
             project=self.project, file_id=file.id, artifact_type=artifact_type

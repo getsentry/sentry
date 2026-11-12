@@ -1,17 +1,19 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconStack} from '@sentry/icons/stack';
+import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AlertLink} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {defaultFormOptions, FormSearch, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {RequestOptions} from 'sentry/api';
-import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
@@ -19,15 +21,14 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconDelete, IconStack} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {UserEmail} from 'sentry/types/user';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+
+import {emailsOptions} from './emailsOptions';
 
 const ENDPOINT = getApiUrl('/users/$userId/emails/', {path: {userId: 'me'}});
 
@@ -46,18 +47,18 @@ function AccountEmails() {
         data,
       }),
     onSuccess: response => {
-      queryClient.invalidateQueries({queryKey: makeEmailsEndpointKey()});
+      queryClient.invalidateQueries({queryKey: emailsOptions.queryKey});
       if (response?.detail) {
-        addSuccessMessage(response.detail);
+        toast.success(response.detail);
       }
     },
     onError: error => {
       if (error instanceof RequestError) {
         const errorMessage = error.responseJSON?.detail;
         if (typeof errorMessage === 'string') {
-          addErrorMessage(errorMessage);
+          toast.error(errorMessage);
         } else {
-          addErrorMessage(errorMessage?.message ?? t('An unknown error occurred.'));
+          toast.error(errorMessage?.message ?? t('An unknown error occurred.'));
         }
       }
     },
@@ -124,10 +125,6 @@ function AccountEmails() {
 
 export default AccountEmails;
 
-function makeEmailsEndpointKey(): ApiQueryKey {
-  return [ENDPOINT];
-}
-
 export function EmailAddresses() {
   const api = useApi();
   const [isUpdating, setIsUpdating] = useState(false);
@@ -136,7 +133,7 @@ export function EmailAddresses() {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<UserEmail[]>(makeEmailsEndpointKey(), {staleTime: 0, gcTime: 0});
+  } = useQuery({...emailsOptions, gcTime: 0});
 
   if (isPending || isUpdating) {
     return (
@@ -159,7 +156,7 @@ export function EmailAddresses() {
       .requestPromise(endpoint, requestParams)
       .catch(err => {
         if (err instanceof RequestError && typeof err?.responseJSON?.email === 'string') {
-          addErrorMessage(err.responseJSON.email);
+          toast.error(err.responseJSON.email);
         }
       })
       .finally(() => {
@@ -218,7 +215,6 @@ type EmailRowProps = {
   email: string;
   onRemove: (email: string) => void;
   onVerify: (email: string) => void;
-  hideRemove?: boolean;
   isPrimary?: boolean;
   isVerified?: boolean;
   onSetPrimary?: (email: string) => void;
@@ -231,15 +227,14 @@ function EmailRow({
   onSetPrimary,
   isVerified,
   isPrimary,
-  hideRemove,
 }: EmailRowProps) {
   return (
     <EmailItem>
-      <EmailTags>
+      <Grid align="center" gap="md" flow="column">
         {email}
         {!isVerified && <Tag variant="warning">{t('Unverified')}</Tag>}
         {isPrimary && <Tag variant="success">{t('Primary')}</Tag>}
-      </EmailTags>
+      </Grid>
       <Grid flow="column" align="center" gap="md">
         {!isPrimary && isVerified && (
           <Button size="sm" onClick={() => onSetPrimary?.(email)}>
@@ -251,7 +246,7 @@ function EmailRow({
             {t('Resend verification')}
           </Button>
         )}
-        {!hideRemove && !isPrimary && (
+        {!isPrimary && (
           <Confirm
             onConfirm={() => onRemove(email)}
             priority="danger"
@@ -272,13 +267,6 @@ function EmailRow({
     </EmailItem>
   );
 }
-
-const EmailTags = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
-`;
 
 const EmailItem = styled(PanelItem)`
   justify-content: space-between;

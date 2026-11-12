@@ -82,7 +82,7 @@ describe('NewCronDetectorForm', () => {
     // Create Monitor button should be present but disabled
     const createButton = screen.getByRole('button', {name: 'Create Monitor'});
     expect(createButton).toBeInTheDocument();
-    expect(createButton).toBeDisabled();
+    expect(createButton).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('renders issue preview and updates title when name changes', async () => {

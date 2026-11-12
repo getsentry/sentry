@@ -5,6 +5,7 @@ from uuid import uuid4
 from django.urls import reverse
 
 from sentry.search.eap import constants
+from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 logger = logging.getLogger(__name__)
@@ -25,13 +26,56 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
         )
 
     def test_no_projects(self) -> None:
-        response = self.client.get(
-            self.url,
-            data={"traceId": uuid4().hex},
-            format="json",
-        )
+        response = self.client_get(data={"traceId": uuid4().hex}, url=self.url)
 
         assert response.status_code == 404, response.content
+
+    def test_routing_hint_metadata(self) -> None:
+        self.create_project(organization=self.organization)
+        routing_hint = " opaque+/== "
+        with patch("sentry.snuba.rpc_dataset_common.RPCBase._run_table_query") as mock_run_query:
+            mock_run_query.return_value = {
+                "data": [],
+                "meta": {
+                    "fields": {"message": "string"},
+                    "routing_hint": routing_hint,
+                },
+            }
+
+            response = self.client_get(data={"traceId": uuid4().hex}, url=self.url)
+
+        assert response.status_code == 200, response.content
+        assert response.data["meta"] == {
+            "fields": {"message": "string"},
+            "routingHint": routing_hint,
+        }
+
+    def test_missing_routing_hint_metadata(self) -> None:
+        self.create_project(organization=self.organization)
+        with patch("sentry.snuba.rpc_dataset_common.RPCBase._run_table_query") as mock_run_query:
+            mock_run_query.return_value = {
+                "data": [],
+                "meta": {"fields": {"message": "string"}},
+            }
+
+            response = self.client_get(data={"traceId": uuid4().hex}, url=self.url)
+
+        assert response.status_code == 200, response.content
+        assert response.data["meta"] == {"fields": {"message": "string"}}
+
+    def test_timestamp_outside_retention(self) -> None:
+        self.create_project(organization=self.organization)
+        with patch("sentry.quotas.backend.get_event_retention", return_value=30):
+            response = self.client_get(
+                data={
+                    "traceId": uuid4().hex,
+                    "statsPeriod": "90d",
+                    "timestamp": before_now(days=60).timestamp(),
+                },
+                url=self.url,
+            )
+
+        assert response.status_code == 400, response.content
 
     def test_invalid_trace_id(self) -> None:
         trace_id_1 = "1" * 32
@@ -49,11 +93,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
             ]
         )
         for trace_id in ["1" * 16, "test"]:
-            response = self.client.get(
-                self.url,
-                data={"traceId": trace_id},
-                format="json",
-            )
+            response = self.client_get(data={"traceId": trace_id}, url=self.url)
             assert response.status_code == 400, response.content
 
     def test_simple(self) -> None:
@@ -72,11 +112,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
             ]
         )
 
-        response = self.client.get(
-            self.url,
-            data={"traceId": trace_id_1},
-            format="json",
-        )
+        response = self.client_get(data={"traceId": trace_id_1}, url=self.url)
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 1
@@ -101,10 +137,9 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
             ]
         )
 
-        response = self.client.get(
-            self.url,
+        response = self.client_get(
             data={"traceId": [trace_id_1, trace_id_2]},
-            format="json",
+            url=self.url,
         )
         assert response.status_code == 200, response.content
         data = response.data["data"]
@@ -134,10 +169,9 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
             ]
         )
 
-        response = self.client.get(
-            self.url,
+        response = self.client_get(
             data={"traceId": [trace_id_1, trace_id_2], "sort": "timestamp"},
-            format="json",
+            url=self.url,
         )
         assert response.status_code == 200, response.content
         data = response.data["data"]
@@ -167,10 +201,9 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
             ]
         )
 
-        response = self.client.get(
-            self.url,
+        response = self.client_get(
             data={"traceId": [trace_id_1, trace_id_2], "sort": "foobar"},
-            format="json",
+            url=self.url,
         )
         assert response.status_code == 400, response.content
         assert "foobar must be one of" in response.data["detail"]
@@ -193,10 +226,9 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
             ]
         )
 
-        response = self.client.get(
-            self.url,
+        response = self.client_get(
             data={"traceId": [trace_id_1, trace_id_2]},
-            format="json",
+            url=self.url,
         )
         assert response.status_code == 200, response.content
         data = response.data["data"]
@@ -226,10 +258,9 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
             ]
         )
 
-        response = self.client.get(
-            self.url,
+        response = self.client_get(
             data={"traceId": [trace_id_1, trace_id_2], "query": "message:foo"},
-            format="json",
+            url=self.url,
         )
         assert response.status_code == 200, response.content
         data = response.data["data"]
@@ -247,25 +278,23 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
         )
         self.store_eap_items([log])
 
-        response = self.client.get(
-            self.url,
+        response = self.client_get(
             data={
                 "traceId": trace_id,
                 "per_page": "9999",
             },
-            format="json",
+            url=self.url,
         )
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["message"] == "test"
 
-        response = self.client.get(
-            self.url,
+        response = self.client_get(
             data={
                 "traceId": trace_id,
                 "per_page": "10000",
             },
-            format="json",
+            url=self.url,
         )
         assert response.status_code == 400
         assert response.data["detail"] == "Invalid per_page value. Must be between 1 and 9999."
@@ -290,10 +319,9 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
                 "meta": {"fields": {}, "units": {}},
             }
 
-            response = self.client.get(
-                self.url,
+            response = self.client_get(
                 data={"traceId": trace_id, "sort": "timestamp"},
-                format="json",
+                url=self.url,
             )
 
         assert response.status_code == 200, response.content
@@ -330,10 +358,9 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
                 "meta": {"fields": {}, "units": {}},
             }
 
-            response = self.client.get(
-                self.url,
+            response = self.client_get(
                 data={"traceId": trace_id, "sort": "-timestamp"},
-                format="json",
+                url=self.url,
             )
 
         assert response.status_code == 200, response.content
@@ -365,11 +392,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
             ]
         )
 
-        response = self.client.get(
-            self.url,
-            data={"replayId": replay_id},
-            format="json",
-        )
+        response = self.client_get(data={"replayId": replay_id}, url=self.url)
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 1
@@ -387,11 +410,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
             ]
         )
         for replay_id in ["1" * 16, "test"]:
-            response = self.client.get(
-                self.url,
-                data={"replayId": replay_id},
-                format="json",
-            )
+            response = self.client_get(data={"replayId": replay_id}, url=self.url)
             assert response.status_code == 400, response.content
 
     def test_trace_and_replay_id_combined(self) -> None:
@@ -414,10 +433,9 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
             ]
         )
 
-        response = self.client.get(
-            self.url,
+        response = self.client_get(
             data={"traceId": trace_id, "replayId": replay_id},
-            format="json",
+            url=self.url,
         )
         assert response.status_code == 200, response.content
         data = response.data["data"]
@@ -434,10 +452,6 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
                 ),
             ]
         )
-        response = self.client.get(
-            self.url,
-            data={"project": self.project.id},
-            format="json",
-        )
+        response = self.client_get(data={"project": self.project.id}, url=self.url)
         assert response.status_code == 400, response.content
         assert "Need to pass at least one traceId or replayId" in response.data["detail"]

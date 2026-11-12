@@ -7,6 +7,7 @@ export function SentryAppFixture(params: Partial<SentryApp> = {}): SentryApp {
     slug: 'sample-app',
     scopes: ['project:read'],
     events: [],
+    webhookEvents: [],
     status: 'unpublished',
     uuid: '123456123456123456123456',
     webhookUrl: 'https://example.com/webhook',

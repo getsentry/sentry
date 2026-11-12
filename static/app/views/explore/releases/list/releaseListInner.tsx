@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {IconSearch} from '@sentry/icons/search';
 import type {Location} from 'history';
 
 import {Pagination} from '@sentry/scraps/pagination';
@@ -10,21 +11,23 @@ import {Panel} from 'sentry/components/panels/panel';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {ReleasesSortOption} from 'sentry/constants/releases';
-import {IconSearch} from 'sentry/icons/iconSearch';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {HealthStatsPeriodOption, type Release} from 'sentry/types/release';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import {ReleaseCard} from 'sentry/views/explore/releases/list/releaseCard';
-import {ReleasesAdoptionChart} from 'sentry/views/explore/releases/list/releasesAdoptionChart';
-import {ReleasesDisplayOption} from 'sentry/views/explore/releases/list/releasesDisplayOptions';
-import {ReleasesPromo} from 'sentry/views/explore/releases/list/releasesPromo';
-import ReleasesRequest from 'sentry/views/explore/releases/list/releasesRequest';
-import {ReleasesStatusOption} from 'sentry/views/explore/releases/list/releasesStatusOptions';
 import {isMobileRelease} from 'sentry/views/explore/releases/utils';
+
+import {ReleaseCard} from './releaseCard';
+import {ReleasesAdoptionChart} from './releasesAdoptionChart';
+import {ReleasesDisplayOption} from './releasesDisplayOptions';
+import {ReleasesPromo} from './releasesPromo';
+import ReleasesRequest from './releasesRequest';
+import {ReleasesStatusOption} from './releasesStatusOptions';
+import {useReleasesSdkVersions} from './useReleasesSdkVersions';
 
 interface Props {
   activeDisplay: ReleasesDisplayOption;
@@ -53,9 +56,14 @@ export function ReleaseListInner({
 }: Props) {
   const location = useLocation();
   const hasReleasesSetup = selectedProject?.features.includes('releases');
-
   const shouldShowLoadingIndicator =
     (loading && !reloading) || (loading && !releases?.length);
+  const sdkVersionsByRelease = useReleasesSdkVersions({
+    enabled: !shouldShowLoadingIndicator && !shouldShowQuickstart,
+    organization,
+    releases,
+    selection,
+  });
 
   if (shouldShowLoadingIndicator) {
     return <LoadingIndicator />;
@@ -114,13 +122,14 @@ export function ReleaseListInner({
                 location={location}
                 selection={selection}
                 reloading={reloading}
+                sdkVersions={sdkVersionsByRelease.get(release) ?? []}
                 showHealthPlaceholders={isHealthLoading}
                 isTopRelease={index === 0}
                 getHealthData={getHealthData}
                 showReleaseAdoptionStages={showReleaseAdoptionStages}
               />
             ))}
-            <Pagination pageLinks={releasesPageLinks} />
+            <Pagination {...getPaginationProps(releasesPageLinks)} />
           </Fragment>
         );
       }}

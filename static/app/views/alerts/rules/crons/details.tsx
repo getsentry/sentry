@@ -1,9 +1,11 @@
-import {useCallback, useState, Fragment} from 'react';
+import {useCallback, useMemo, useState, Fragment} from 'react';
 import styled from '@emotion/styled';
-import {useQueryClient} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
+import {useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {DateTimeProvider, useClockDisplay, useTimezone} from '@sentry/scraps/datetime';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 import {updateMonitor} from 'sentry/actionCreators/monitors';
 import {SectionHeading} from 'sentry/components/charts/styles';
@@ -14,11 +16,10 @@ import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter'
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {TimezoneProvider, useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {getMonitorRefetchInterval, getNextCheckInEnv} from 'sentry/utils/monitor/cron';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useApi} from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {DetailsSidebar} from 'sentry/views/insights/crons/components/detailsSidebar';
@@ -32,9 +33,7 @@ import {StatusToggleButton} from 'sentry/views/insights/crons/components/statusT
 import {TimezoneOverride} from 'sentry/views/insights/crons/components/timezoneOverride';
 import type {Monitor, MonitorBucket} from 'sentry/views/insights/crons/types';
 import {useMonitorProcessingErrors} from 'sentry/views/insights/crons/useMonitorProcessingErrors';
-import {makeMonitorDetailsQueryKey} from 'sentry/views/insights/crons/utils';
-
-import {getMonitorRefetchInterval, getNextCheckInEnv} from './utils';
+import {monitorDetailsApiOptions} from 'sentry/views/insights/crons/utils';
 
 function hasLastCheckIn(monitor: Monitor) {
   return monitor.environments.some(e => e.lastCheckIn);
@@ -45,18 +44,17 @@ export default function MonitorDetails() {
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const params = useParams<{monitorSlug: string; projectId: string}>();
-  const location = useLocation();
+  const [environment] = useQueryState('environment', pageFilterParsers.environment);
 
-  const queryKey = makeMonitorDetailsQueryKey(
+  const monitorOptions = monitorDetailsApiOptions(
     organization,
     params.projectId,
     params.monitorSlug,
-    {
-      environment: location.query.environment,
-    }
+    {environment}
   );
 
-  const {data: monitor, isError} = useApiQuery<Monitor>(queryKey, {
+  const {data: monitor, isError} = useQuery({
+    ...monitorOptions,
     staleTime: 0,
     refetchOnWindowFocus: true,
     // Refetches while we are waiting for the user to send their first check-in
@@ -78,7 +76,7 @@ export default function MonitorDetails() {
     // Invalidate the query to refetch the monitor with updated environment data.
     // The PUT request doesn't return environments, so we need to refetch to get
     // the latest environment muting status and other environment data.
-    queryClient.invalidateQueries({queryKey});
+    queryClient.invalidateQueries({queryKey: monitorOptions.queryKey});
   }
 
   const handleUpdate = async (data: Partial<Monitor>) => {
@@ -90,7 +88,13 @@ export default function MonitorDetails() {
   };
 
   const userTimezone = useTimezone();
+  const clockDisplay = useClockDisplay();
   const [timezoneOverride, setTimezoneOverride] = useState(userTimezone);
+
+  const dateTime = useMemo(
+    () => ({timezone: timezoneOverride, clockDisplay}),
+    [timezoneOverride, clockDisplay]
+  );
 
   // Only display the unknown legend when there are visible unknown check-ins
   // in the timeline
@@ -122,7 +126,7 @@ export default function MonitorDetails() {
       <SentryDocumentTitle title={`${monitor.name} — Alerts`} />
       <MonitorHeader monitor={monitor} orgSlug={organization.slug} onUpdate={onUpdate} />
       <Layout.Body>
-        <TimezoneProvider timezone={timezoneOverride}>
+        <DateTimeProvider value={dateTime}>
           <Layout.Main>
             <Flex justify="between" align="center" gap="md">
               <StyledPageFilterBar condensed>
@@ -167,8 +171,12 @@ export default function MonitorDetails() {
             )}
             {hasLastCheckIn(monitor) ? (
               <Fragment>
-                <DetailsTimeline monitor={monitor} onStatsLoaded={checkHasUnknown} />
-                <MonitorIssues monitor={monitor} monitorEnvs={monitor.environments} />
+                <Stack gap="xl">
+                  <DetailsTimeline monitor={monitor} onStatsLoaded={checkHasUnknown} />
+                  <Container>
+                    <MonitorIssues monitor={monitor} monitorEnvs={monitor.environments} />
+                  </Container>
+                </Stack>
                 <SectionHeading>{t('Recent Check-Ins')}</SectionHeading>
                 <MonitorCheckIns
                   monitorSlug={monitor.slug}
@@ -187,7 +195,7 @@ export default function MonitorDetails() {
               showUnknownLegend={showUnknownLegend}
             />
           </Layout.Side>
-        </TimezoneProvider>
+        </DateTimeProvider>
       </Layout.Body>
     </Stack>
   );

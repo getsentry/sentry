@@ -3,6 +3,9 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
+from pydantic import ValidationError
+
 from sentry.dashboards.models.generate_dashboard_artifact import GeneratedDashboard
 from sentry.dashboards.on_completion_hook import (
     FIX_PROMPT,
@@ -18,7 +21,7 @@ from sentry.testutils.cases import TestCase
 
 def _make_state(
     status: str = "completed",
-    artifact_data: dict | None = None,
+    artifact_data: dict[str, Any] | None = None,
     previous_blocks: list[MemoryBlock] | None = None,
 ) -> SeerRunState:
     blocks: list[MemoryBlock] = list(previous_blocks or [])
@@ -109,6 +112,37 @@ def _make_artifact(**widget_overrides: Any) -> GeneratedDashboard:
         **widget_overrides,
     }
     return GeneratedDashboard(title="Dashboard", widgets=[widget])
+
+
+def test_generated_widget_rejects_height_below_display_type_minimum() -> None:
+    with pytest.raises(ValidationError, match="Height must be at least 2 for line widgets"):
+        _make_artifact(layout={"x": 0, "y": 0, "w": 3, "h": 1, "min_h": 1})
+
+
+def test_generated_widget_derives_min_height_from_display_type() -> None:
+    artifact = _make_artifact(
+        display_type="big_number",
+        layout={"x": 0, "y": 0, "w": 2, "h": 1, "min_h": 2},
+    )
+
+    assert artifact.widgets[0].layout.min_h == 1
+
+
+def test_generated_widget_rejects_unsupported_issue_chart_aggregate() -> None:
+    with pytest.raises(ValidationError, match=r"Unsupported aggregates \['count\(\)'\]"):
+        _make_artifact(widget_type="issue")
+
+
+def test_generated_widget_allows_supported_issue_chart_aggregates() -> None:
+    artifact = _make_artifact(
+        widget_type="issue",
+        queries=[{"aggregates": ["count(new_issues)", "count(resolved_issues)"]}],
+    )
+
+    assert artifact.widgets[0].queries[0].aggregates == [
+        "count(new_issues)",
+        "count(resolved_issues)",
+    ]
 
 
 class TestFormatSerializerErrors(TestCase):

@@ -1,5 +1,6 @@
 import type {Client} from 'sentry/api';
 import type {Member} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 
 type UpdateMemberOptions = {
   data: Member | null;
@@ -8,10 +9,15 @@ type UpdateMemberOptions = {
 };
 
 export function updateMember(api: Client, {orgId, memberId, data}: UpdateMemberOptions) {
-  return api.requestPromise(`/organizations/${orgId}/members/${memberId}/`, {
-    method: 'PUT',
-    data,
-  });
+  return api.requestPromise(
+    getApiUrl('/organizations/$organizationIdOrSlug/members/$memberId/', {
+      path: {organizationIdOrSlug: orgId, memberId},
+    }),
+    {
+      method: 'PUT',
+      data,
+    }
+  );
 }
 
 type ResendMemberInviteOptions = {
@@ -24,11 +30,16 @@ export function resendMemberInvite(
   api: Client,
   {orgId, memberId, regenerate}: ResendMemberInviteOptions
 ) {
-  return api.requestPromise(`/organizations/${orgId}/members/${memberId}/`, {
-    method: 'PUT',
-    data: {
-      regenerate,
-      reinvite: true,
-    },
-  });
+  return api.requestPromise(
+    getApiUrl('/organizations/$organizationIdOrSlug/members/$memberId/', {
+      path: {organizationIdOrSlug: orgId, memberId},
+    }),
+    {
+      method: 'PUT',
+      data: {
+        regenerate,
+        reinvite: true,
+      },
+    }
+  );
 }

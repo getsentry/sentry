@@ -1,13 +1,13 @@
 import {useCallback, useMemo} from 'react';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectStats} from 'sentry/types/project';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useAggregatedQueryKeys} from 'sentry/utils/api/useAggregatedQueryKeys';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
 const MAX_PROJECTS_TO_FETCH = 10;
 
@@ -66,7 +66,6 @@ export function useProjectStats({hasPerformance, organization}: Props) {
               statsPeriod: '24h',
               query: ids.map(id => `id:${id}`).join(' '),
               transactionStats: hasPerformance ? '1' : undefined,
-              dataset: DiscoverDatasets.METRICS_ENHANCED,
               sessionStats: '1',
             },
             staleTime: 0,
@@ -75,7 +74,7 @@ export function useProjectStats({hasPerformance, organization}: Props) {
       [hasPerformance, organization.slug]
     ),
     onError: useCallback(() => {
-      addErrorMessage(t('Unable to fetch all project stats'));
+      toast.error(t('Unable to fetch all project stats'));
     }, []),
     responseReducer: useCallback(
       (

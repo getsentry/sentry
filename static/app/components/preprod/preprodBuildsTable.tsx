@@ -4,9 +4,9 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getLabels} from 'sentry/views/preprod/utils/labelUtils';
@@ -70,11 +70,7 @@ export function PreprodBuildsTable({
   );
   let tableContent: React.ReactNode | undefined;
   if (isLoading) {
-    tableContent = (
-      <SimpleTable.Empty>
-        <LoadingIndicator />
-      </SimpleTable.Empty>
-    );
+    tableContent = <SimpleTable.Loading />;
   } else if (error) {
     tableContent = <SimpleTable.Empty>{getErrorMessage(error)}</SimpleTable.Empty>;
   } else if (builds.length === 0) {
@@ -127,7 +123,7 @@ export function PreprodBuildsTable({
           showProjectColumn={showProjectColumn}
         />
       )}
-      {pageLinks && <Pagination pageLinks={pageLinks} />}
+      {pageLinks && <Pagination {...getPaginationProps(pageLinks)} />}
     </Fragment>
   );
 }

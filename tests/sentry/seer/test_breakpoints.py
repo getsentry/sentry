@@ -1,10 +1,25 @@
+from collections.abc import Generator
 from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
+from django.test import override_settings
 from urllib3.response import HTTPResponse
 
 from sentry.seer.breakpoints import detect_breakpoints
 from sentry.utils import json
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
+
+
+@pytest.fixture(autouse=True)
+def _viewer_context() -> Generator[None]:
+    with (
+        override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret"),
+        viewer_context_scope(
+            ViewerContext(actor=Actor(type=ActorType.USER, actor_id=1), organization_id=1)
+        ),
+    ):
+        yield
 
 
 @pytest.mark.django_db
@@ -42,7 +57,9 @@ def test_detect_breakpoints(mock_urlopen: mock.MagicMock) -> None:
 )
 @mock.patch("sentry_sdk.capture_exception")
 @mock.patch("sentry.seer.breakpoints.seer_breakpoint_connection_pool.urlopen")
-def test_detect_breakpoints_errors(mock_urlopen, mock_capture_exception, body, status) -> None:
+def test_detect_breakpoints_errors(
+    mock_urlopen: MagicMock, mock_capture_exception: MagicMock, body: bytes, status: int
+) -> None:
     mock_urlopen.return_value = HTTPResponse(body, status=status)
 
     assert detect_breakpoints({"data": {}}) == {"data": []}

@@ -3,6 +3,7 @@ from urllib.parse import parse_qs, urlparse
 
 import orjson
 from django.core import mail
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry.models.options.organization_option import OrganizationOption
@@ -10,8 +11,10 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.testutils.cases import APITestCase, SlackActivityNotificationTest
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 class OrganizationInviteRequestListTest(APITestCase):
@@ -88,6 +91,30 @@ class OrganizationInviteRequestCreateTest(
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_cannot_request_invite(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["member:read", "member:invite"]
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        response = self.client.post(
+            self.url,
+            {"email": "eric@localhost", "role": "member"},
+            HTTP_X_VIEWER_CONTEXT=viewer_context,
+        )
+
+        assert response.status_code == 403, response.content
+        assert response.data["detail"]["code"] == "user-required"
+        assert not OrganizationMember.objects.filter(email="eric@localhost").exists()
+
     def test_simple(self) -> None:
         self.login_as(user=self.user)
 
@@ -116,19 +143,38 @@ class OrganizationInviteRequestCreateTest(
 
         self.assert_org_member_mapping(org_member=member)
 
-    def test_higher_role(self) -> None:
+    def test_team_roles(self) -> None:
+        self.login_as(user=self.user)
+
+        with self.tasks(), outbox_runner():
+            response = self.client.post(
+                self.url,
+                {
+                    "email": "eric@localhost",
+                    "role": "member",
+                    "teamRoles": [{"teamSlug": self.team.slug, "role": "admin"}],
+                },
+                format="json",
+            )
+
+        assert response.status_code == 201
+
+        member = OrganizationMember.objects.get(
+            organization=self.organization, email=response.data["email"]
+        )
+        teams = OrganizationMemberTeam.objects.filter(organizationmember=member)
+
+        # Team-roles are not set on invite requests
+        assert [(omt.team_id, omt.role) for omt in teams] == [(self.team.id, None)]
+
+    def test_cannot_request_higher_role(self) -> None:
         self.login_as(user=self.user)
         response = self.client.post(
             self.url, {"email": "eric@localhost", "role": "owner", "teams": [self.team.slug]}
         )
 
-        assert response.status_code == 201
-        assert response.data["email"] == "eric@localhost"
-
-        member = OrganizationMember.objects.get(
-            organization=self.organization, email=response.data["email"]
-        )
-        assert member.role == "owner"
+        assert response.status_code == 400
+        assert response.data["role"] == ["You do not have permission to set that org-level role"]
 
     def test_existing_member(self) -> None:
         self.login_as(user=self.user)
@@ -211,13 +257,13 @@ class OrganizationInviteRequestCreateTest(
             {
                 "type": "button",
                 "text": {"type": "plain_text", "text": "Approve"},
-                "action_id": "approve_request",
+                "action_id": f"approve_request::{self.organization.id}",
                 "value": "approve_member",
             },
             {
                 "type": "button",
                 "text": {"type": "plain_text", "text": "Reject"},
-                "action_id": "reject_request",
+                "action_id": f"reject_request::{self.organization.id}",
                 "value": "reject_member",
             },
             {
@@ -240,6 +286,32 @@ class OrganizationInviteRequestCreateTest(
             "member_id": member.id,
             "member_email": "eric@localhost",
         }
+
+    def test_invitations_capped_at_member_permissions(self) -> None:
+        manager_user = self.create_user("manager2@localhost")
+        self.create_member(user=manager_user, organization=self.organization, role="manager")
+        self.login_as(user=manager_user)
+
+        assert not OrganizationMember.objects.filter(inviter_id=manager_user.id).exists()
+
+        # invite owner — should be rejected
+        response = self.client.post(
+            self.url, {"email": "foo@example.com", "role": "owner", "teams": [self.team.slug]}
+        )
+        assert response.status_code == 400
+        assert response.data["role"] == ["You do not have permission to set that org-level role"]
+
+        # invite manager — allowed (same level as the inviter)
+        response = self.client.post(
+            self.url, {"email": "bar@example.com", "role": "manager", "teams": [self.team.slug]}
+        )
+        assert response.status_code == 201
+
+        # invite member — allowed (below the inviter's level)
+        response = self.client.post(
+            self.url, {"email": "baz@example.com", "role": "member", "teams": [self.team.slug]}
+        )
+        assert response.status_code == 201
 
     def test_disallow_when_sso_required(self) -> None:
         from sentry.models.authidentity import AuthIdentity

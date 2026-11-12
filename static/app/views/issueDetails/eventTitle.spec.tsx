@@ -3,8 +3,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/context';
-
+import {SectionKey, useIssueDetails} from './context';
 import {EventTitle} from './eventTitle';
 
 jest.mock('sentry/views/issueDetails/context');
@@ -38,8 +37,10 @@ describe('EventNavigation', () => {
       },
       detectorDetails: {},
       eventCount: 0,
+      eventNavigationHeight: 0,
       isSidebarOpen: true,
       navScrollMargin: 0,
+      scrollContext: 'page',
       dispatch: jest.fn(),
     });
     Object.assign(navigator, {
@@ -61,8 +62,10 @@ describe('EventNavigation', () => {
       sectionData: {},
       detectorDetails: {},
       eventCount: 0,
+      eventNavigationHeight: 0,
       isSidebarOpen: true,
       navScrollMargin: 0,
+      scrollContext: 'page',
       dispatch: jest.fn(),
     });
     render(<EventTitle {...defaultProps} />);

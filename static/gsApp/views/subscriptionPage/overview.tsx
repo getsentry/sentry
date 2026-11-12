@@ -1,24 +1,27 @@
 import {Fragment, useEffect} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
 import {openOnDemandBudgetEditModal} from 'getsentry/actionCreators/modal';
 import {withSubscription} from 'getsentry/components/withSubscription';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {CustomerUsage, Subscription} from 'getsentry/types';
 import {ContactBillingMembers} from 'getsentry/views/contactBillingMembers';
 import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 import {UsageOverview} from 'getsentry/views/subscriptionPage/usageOverview';
 
 import {TrialEnded} from './trial/trialEnded';
+import {BillingPlatformMigrationAlert} from './billingPlatformMigrationAlert';
 import {OnDemandDisabled} from './ondemandDisabled';
 import {RecurringCredits} from './recurringCredits';
 import {SubscriptionHeader} from './subscriptionHeader';
@@ -42,15 +45,11 @@ function Overview({subscription}: Props) {
     refetch: refetchUsage,
     isPending,
     isError,
-  } = useApiQuery<CustomerUsage>(
-    [
-      getApiUrl('/customers/$organizationIdOrSlug/usage/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    {
+  } = useQuery(
+    apiOptions.as<CustomerUsage>()('/customers/$organizationIdOrSlug/usage/', {
+      path: {organizationIdOrSlug: organization.slug},
       staleTime: 60_000,
-    }
+    })
   );
 
   useEffect(() => {
@@ -68,11 +67,27 @@ function Overview({subscription}: Props) {
     }
   }, [organization, subscription]);
 
+  // The customer endpoint returns 200 with an empty body when it cannot
+  // serialize the customer, so the subscription has no plan details.
+  if (!subscription.planDetails) {
+    return (
+      <SubscriptionPageContainer>
+        <BreadcrumbTitle title={t('Overview')} />
+        <LoadingError
+          onRetry={() => {
+            SubscriptionStore.loadData(organization.slug);
+          }}
+        />
+      </SubscriptionPageContainer>
+    );
+  }
+
   // Sales managed accounts do not allow members to view the billing page.
   // Whilst self-serve accounts do.
   if (!hasBillingPerms && !subscription.canSelfServe) {
     return (
       <SubscriptionPageContainer>
+        <BreadcrumbTitle title={t('Overview')} />
         <ContactBillingMembers />
       </SubscriptionPageContainer>
     );
@@ -80,6 +95,7 @@ function Overview({subscription}: Props) {
 
   return (
     <Fragment>
+      <BreadcrumbTitle title={t('Overview')} />
       <SubscriptionHeader organization={organization} subscription={subscription} />
       <SubscriptionPageContainer padding="0 2xl 3xl">
         {isPending ? (
@@ -87,7 +103,7 @@ function Overview({subscription}: Props) {
         ) : isError ? (
           <LoadingError onRetry={refetchUsage} />
         ) : (
-          <Flex direction="column" gap="xl" paddingTop="xl">
+          <Stack gap="xl" paddingTop="xl">
             {/**
              * It's important to separate the views for folks with billing permissions (org:billing) and those without.
              * Only owners and billing admins have the billing scope, everyone else including managers, admins, and members lack that scope.
@@ -118,6 +134,7 @@ function Overview({subscription}: Props) {
               </Fragment>
             ) : null}
             <OnDemandDisabled organization={organization} subscription={subscription} />
+            <BillingPlatformMigrationAlert subscription={subscription} />
             <UsageAlert subscription={subscription} usage={usage} />
             <UsageOverview
               subscription={subscription}
@@ -126,7 +143,7 @@ function Overview({subscription}: Props) {
             />
             <TrialEnded subscription={subscription} />
             <Footer subscription={subscription} />
-          </Flex>
+          </Stack>
         )}
       </SubscriptionPageContainer>
     </Fragment>
@@ -138,13 +155,7 @@ function Footer({subscription}: {subscription: Subscription}) {
     return null;
   }
   return (
-    <Flex
-      direction="column"
-      gap="sm"
-      padding="xl 0"
-      background="primary"
-      borderTop="primary"
-    >
+    <Stack gap="sm" padding="xl 0" background="primary" borderTop="primary">
       <Flex align="center" gap="sm">
         <Text bold>{t('Having trouble?')}</Text>
       </Flex>
@@ -162,7 +173,7 @@ function Footer({subscription}: {subscription: Subscription}) {
           ),
         })}
       </Text>
-    </Flex>
+    </Stack>
   );
 }
 

@@ -1,11 +1,11 @@
+import {IconLink} from '@sentry/icons/link';
+
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {useHasLinkedIssues} from 'sentry/components/feedback/list/useHasLinkedIssues';
 import type {
   IntegrationComponent,
   SentryAppIssueComponent,
 } from 'sentry/components/group/externalIssuesList/types';
-import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -13,6 +13,8 @@ import {
   getIntegrationDisplayName,
   getIntegrationIcon,
 } from 'sentry/utils/integrationUtil';
+
+import {useHasLinkedIssues} from './useHasLinkedIssues';
 
 interface Props {
   group: Group;

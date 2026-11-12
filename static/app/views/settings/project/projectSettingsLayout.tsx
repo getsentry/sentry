@@ -1,5 +1,6 @@
 import {useContext, useEffect, useEffectEvent} from 'react';
-import {Outlet, useOutletContext} from 'react-router-dom';
+import {Outlet, useOutletContext} from 'react-router';
+import {IconProject} from '@sentry/icons/project';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -7,7 +8,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
-import {IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject} from 'sentry/types/project';
@@ -21,7 +21,8 @@ import {
   ProjectRouteProvider,
 } from 'sentry/views/projects/projectRouteContext';
 import {SettingsLayout} from 'sentry/views/settings/components/settingsLayout';
-import {ProjectSettingsCommandPaletteActions} from 'sentry/views/settings/project/projectSettingsCommandPaletteActions';
+
+import {ProjectSettingsCommandPaletteActions} from './projectSettingsCommandPaletteActions';
 
 interface ProjectSettingsOutletContext {
   project: DetailedProject;

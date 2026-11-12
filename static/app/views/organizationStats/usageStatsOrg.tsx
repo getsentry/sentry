@@ -1,10 +1,14 @@
 import type {MouseEvent as ReactMouseEvent} from 'react';
 import React, {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {IconSettings} from '@sentry/icons/settings';
+import type {UseQueryResult} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {InfoTip} from '@sentry/scraps/info';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
 
@@ -15,10 +19,8 @@ import {InlineContainer, SectionHeading} from 'sentry/components/charts/styles';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import {NotAvailable} from 'sentry/components/notAvailable';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ScoreCard} from 'sentry/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {
   DataCategory,
@@ -28,13 +30,10 @@ import type {
 } from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {shouldUse24Hours} from 'sentry/utils/dates';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getUserTimezone, shouldUse24Hours} from 'sentry/utils/dates';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -125,7 +124,6 @@ export function getEndpointQuery({
 }
 
 export function getChartProps({
-  dataError,
   chartData,
   dataCategory,
   clientDiscard,
@@ -166,27 +164,20 @@ export function getChartProps({
   ) => void;
   loading: boolean;
   clientDiscard?: boolean;
-  dataError?: Error;
 }): UsageChartProps & {
   footer: React.ReactNode;
   title: React.ReactNode;
 } {
-  const errors =
-    error || dataError
-      ? {
-          ...(error ? {error} : {}),
-          ...(dataError ? {data: dataError} : {}),
-        }
-      : undefined;
+  const errors = error ? {error} : undefined;
 
   return {
     isLoading: loading,
-    isError: Boolean(error || !!dataError),
+    isError: Boolean(error),
     errors,
     title: (
       <Fragment>
         {t('Project(s) Stats')}
-        <QuestionTooltip
+        <InfoTip
           size="xs"
           title={tct(
             'You can find more information about each category in our [link:docs]',
@@ -199,7 +190,6 @@ export function getChartProps({
               ),
             }
           )}
-          isHoverable
         />
       </Fragment>
     ),
@@ -289,13 +279,12 @@ function ScoreCards({
       score={loading ? undefined : card.score}
       help={card.help}
       trend={card.trend}
-      isTooltipHoverable
     />
   ));
 }
 
 function ChartContainer({children}: {children: React.ReactNode}) {
-  return <ChartWrapper data-test-id="usage-stats-chart">{children}</ChartWrapper>;
+  return <Container column="1 / -1">{children}</Container>;
 }
 
 export interface UsageStatsOrganizationProps {
@@ -323,13 +312,11 @@ export interface UsageStatsOrganizationProps {
         | 'card-invalid'
         | 'chart-title'
     ) => void;
-    orgStats: UseApiQueryResult<UsageSeries | undefined, RequestError>;
+    orgStats: UseQueryResult<UsageSeries | undefined>;
     usageChart: React.ReactNode;
   }) => React.ReactNode;
   clientDiscard?: boolean;
-  clock24Hours?: boolean;
   endpointQuery?: ReturnType<typeof getEndpointQuery>;
-  projectDetails?: React.ReactNode[];
 }
 
 type CardMetadata = Record<
@@ -370,20 +357,17 @@ export function UsageStatsOrganization({
     );
   }, [endpointQuery, dataCategoryApiName, dataDatetime, organization, projectIds]);
 
-  const orgStatsReponse = useApiQuery<UsageSeries | undefined>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/stats_v2/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  const orgStatsReponse = useQuery({
+    ...apiOptions.as<UsageSeries | undefined>()(
+      '/organizations/$organizationIdOrSlug/stats_v2/',
       {
+        path: {organizationIdOrSlug: organization.slug},
         query: orgStatsQuery,
-      },
-    ],
-    {
-      staleTime: Infinity,
-      retry: false,
-    }
-  );
+        staleTime: Infinity,
+      }
+    ),
+    retry: false,
+  });
 
   const handleOnDocsClick = useCallback(
     (
@@ -463,8 +447,12 @@ export function UsageStatsOrganization({
 
     const xAxisStart = moment(startTime);
     const xAxisEnd = moment(endTime);
-    const displayStart = useUtc ? moment(startTime).utc() : moment(startTime).local();
-    const displayEnd = useUtc ? moment(endTime).utc() : moment(endTime).local();
+    const displayStart = useUtc
+      ? moment(startTime).utc()
+      : moment(startTime).tz(getUserTimezone() ?? moment.tz.guess());
+    const displayEnd = useUtc
+      ? moment(endTime).utc()
+      : moment(endTime).tz(getUserTimezone() ?? moment.tz.guess());
 
     if (intervalHours < 24) {
       displayEnd.add(intervalHours, 'h');
@@ -638,26 +626,17 @@ export function UsageStatsOrganization({
   );
 }
 
-const PageGrid = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: ${p => p.theme.space.xl};
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: repeat(5, 1fr);
-  }
-`;
+function PageGrid({children}: {children: React.ReactNode}) {
+  return (
+    <Grid columns={{zero: '1fr', sm: 'repeat(2, 1fr)', '4xl': 'repeat(5, 1fr)'}} gap="xl">
+      {children}
+    </Grid>
+  );
+}
 
 const StyledScoreCard = styled(ScoreCard)`
   grid-column: auto / span 1;
   margin: 0;
-`;
-
-const ChartWrapper = styled('div')`
-  grid-column: 1 / -1;
 `;
 
 const Footer = styled('div')`
@@ -697,13 +676,9 @@ const StyledSettingsButton = styled(LinkButton)`
   top: 2px;
 `;
 
-const StyledTextWrapper = styled('div')`
-  min-height: 22px;
-`;
-
 function SpansStored({organization, acceptedStored}: SpansStoredProps) {
   return (
-    <StyledTextWrapper>
+    <Container minHeight="22px">
       {t('%s stored', acceptedStored)}{' '}
       {organization.access.includes('org:read') &&
         hasDynamicSamplingCustomFeature(organization) && (
@@ -716,7 +691,7 @@ function SpansStored({organization, acceptedStored}: SpansStoredProps) {
             to={`/settings/${organization.slug}/dynamic-sampling/`}
           />
         )}
-    </StyledTextWrapper>
+    </Container>
   );
 }
 

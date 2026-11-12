@@ -1,6 +1,6 @@
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
-import {useAgentFilter} from 'sentry/views/insights/pages/agents/hooks/useAgentFilter';
+import {parseAsString, useQueryState} from 'nuqs';
+
+import {useAgentFilter} from './useAgentFilter';
 
 /**
  * Combines a base query with the agent filter from the URL and the search query from the URL.
@@ -11,11 +11,7 @@ import {useAgentFilter} from 'sentry/views/insights/pages/agents/hooks/useAgentF
  */
 export function useCombinedQuery(baseQuery = '') {
   const {agentQuery} = useAgentFilter();
-  const {query} = useLocationQuery({
-    fields: {
-      query: decodeScalar,
-    },
-  });
+  const [query] = useQueryState('query', parseAsString.withDefault(''));
 
   const baseWithAgent = [baseQuery, agentQuery].filter(Boolean).join(' ');
 

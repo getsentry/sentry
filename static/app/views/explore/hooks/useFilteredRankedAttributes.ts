@@ -1,6 +1,6 @@
 import {useEffect, useMemo, useState} from 'react';
 
-import type {AttributeBreakdownsComparison} from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
+import type {AttributeBreakdownsComparison} from './useAttributeBreakdownComparison';
 
 type RankedAttribute = AttributeBreakdownsComparison['rankedAttributes'][number];
 
@@ -28,7 +28,7 @@ export function useFilteredRankedAttributes({
       );
     }
 
-    return [...filtered].sort((a, b) => {
+    return filtered.toSorted((a, b) => {
       const aOrder = a.order.rrr;
       const bOrder = b.order.rrr;
       if (aOrder === null && bOrder === null) {
@@ -45,7 +45,9 @@ export function useFilteredRankedAttributes({
   }, [rankedAttributes, searchQuery]);
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setPage(0);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [filteredRankedAttributes]);
 
   const totalPages = Math.ceil(filteredRankedAttributes.length / pageSize);

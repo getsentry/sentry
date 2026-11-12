@@ -19,5 +19,6 @@ export function usePrevious<T>(value: T, skipUpdate?: boolean): T {
     }
   }, [value, skipUpdate]); // Only re-run if value changes
   // Return previous value (happens before update in useEffect above)
+  // oxlint-disable-next-line react/refs
   return ref.current;
 }

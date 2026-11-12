@@ -14,6 +14,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from django.apps import apps
 from django.db import connections, router
+from django.db.models import Model
 from django.utils import timezone
 from fido2.ctap2 import AuthenticatorData
 from fido2.utils import sha256
@@ -41,10 +42,14 @@ from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
 from sentry.db.models.paranoia import ParanoidModel
 from sentry.explore.models import (
+    ExploreSavedFormula,
     ExploreSavedQuery,
     ExploreSavedQueryLastVisited,
     ExploreSavedQueryProject,
     ExploreSavedQueryStarred,
+    ExploreSavedVariable,
+    KindItemTypes,
+    ParamItemTypes,
     TraceItemAttributeContext,
     TraceItemAttributeTypes,
     TraceItemAttributeValueContext,
@@ -52,7 +57,6 @@ from sentry.explore.models import (
     TraceMetricTypes,
 )
 from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.models.incident import IncidentActivity
 from sentry.insights.models import InsightsStarredSegment
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
@@ -68,10 +72,15 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.code_review_event import CodeReviewEvent, CodeReviewEventStatus
 from sentry.models.counter import Counter
-from sentry.models.custominboundfilter import CustomInboundFilter
+from sentry.models.custominboundfilter import (
+    CustomInboundFilter,
+    DataType,
+    LegacyFilter,
+)
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
+    DashboardLastVisited,
     DashboardRevision,
 )
 from sentry.models.dashboard_permissions import DashboardPermissions
@@ -105,7 +114,6 @@ from sentry.models.projectsdk import EventType, ProjectSDK
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
 from sentry.models.repositorysettings import CodeReviewTrigger
-from sentry.models.rule import RuleActivity, RuleActivityType
 from sentry.models.search_common import SearchType
 from sentry.monitors.models import Monitor, ScheduleType
 from sentry.replays.models import OrganizationMemberReplayAccess
@@ -113,15 +121,23 @@ from sentry.seer.models.project_repository import (
     SeerProjectRepository,
     SeerProjectRepositoryBranchOverride,
 )
+from sentry.seer.models.workflow import SeerWorkflowStrategy
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.service_accounts.models import ServiceAccount
 from sentry.services.nodestore.django.models import Node
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.snuba.models import QuerySubscriptionDataSourceHandler
+from sentry.telemetry_classifiers.models import TelemetryClassifier
+from sentry.telemetry_classifiers.types import (
+    Dataset,
+    TelemetryClassifierOutputType,
+    TelemetryClassifierStatus,
+)
 from sentry.tempest.models import TempestCredentials
 from sentry.testutils.cases import TestCase, TransactionTestCase
-from sentry.testutils.factories import get_fixture_path
+from sentry.testutils.factories import Factories, get_fixture_path
 from sentry.testutils.fixtures import Fixtures
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.token import AuthTokenType
@@ -278,12 +294,12 @@ def export_to_encrypted_tarball(
         )
 
 
-def is_control_model(model):
+def is_control_model(model: type[Model]) -> bool:
     meta = model._meta
     return not hasattr(meta, "silo_limit") or SiloMode.CONTROL in meta.silo_limit.modes
 
 
-def clear_model(model, *, reset_pks: bool):
+def clear_model(model: type[Model], *, reset_pks: bool) -> None:
     using = router.db_for_write(model)
     with unguarded_write(using=using):
         manager = model.with_deleted if issubclass(model, ParanoidModel) else model.objects
@@ -299,7 +315,7 @@ def clear_model(model, *, reset_pks: bool):
 
 
 @assume_test_silo_mode(SiloMode.CELL)
-def clear_database(*, reset_pks: bool = False):
+def clear_database(*, reset_pks: bool = False) -> None:
     """
     Deletes all models we care about from the database, in a sequence that ensures we get no
     foreign key errors.
@@ -507,21 +523,37 @@ class ExhaustiveFixtures(Fixtures):
         CustomInboundFilter.objects.create(
             project=project,
             name=f"custom-inbound-filter-{slug}",
-            conditions=[{"op": "eq", "name": "event.release", "value": ["1.0.0"]}],
+            data_type=DataType.ALL,
+            conditions=[{"type": "release", "value": ["1.0.0"]}],
+        )
+        CustomInboundFilter.objects.create(
+            project=project,
+            name=f"legacy-releases-{slug}",
+            data_type=DataType.ALL,
+            conditions=[{"type": "release", "value": ["2.0.0"]}],
+            legacy_filter=LegacyFilter.RELEASE_VERSION,
+        )
+        TelemetryClassifier.objects.create(
+            project=project,
+            name=f"conversation-classifier-{slug}",
+            result_attribute="result",
+            dataset=Dataset.CONVERSATION,
+            filter_query="",
+            status=TelemetryClassifierStatus.ENABLED,
+            natural_language_prompt="Is this conversation useful?",
+            compiled_prompt="Return yes when this conversation is useful.",
+            output_type=TelemetryClassifierOutputType.BINARY,
+            created_by_id=owner_id,
         )
 
         # Auth*
-        self.create_exhaustive_organization_auth(owner, org, project)
+        service_account = self.create_exhaustive_organization_auth(owner, org, project)
 
         # Integration*
         org_integration = self.create_exhaustive_organization_integration(org)
         integration_id = org_integration.integration.id
         # Rule*
-        rule = self.create_project_rule(project=project, owner_user_id=owner_id)
-        RuleActivity.objects.create(
-            rule=rule, type=RuleActivityType.CREATED.value, user_id=owner_id
-        )
-        self.snooze_rule(user_id=owner_id, owner_id=owner_id, rule=rule)
+        self.create_project_rule(project=project, owner_user_id=owner_id)
 
         # Environment*
         self.create_environment(project=project)
@@ -542,17 +574,6 @@ class ExhaustiveFixtures(Fixtures):
         )
         alert.user_id = owner_id
         alert.save()
-        trigger = self.create_alert_rule_trigger(alert_rule=alert)
-        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
-
-        # Incident*
-        incident = self.create_incident(org, [project])
-        IncidentActivity.objects.create(
-            incident=incident,
-            type=1,
-            comment=f"hello {slug}",
-            user_id=owner_id,
-        )
 
         # Dashboard
         dashboard = Dashboard.objects.create(
@@ -562,13 +583,18 @@ class ExhaustiveFixtures(Fixtures):
         )
         linked_dashboard = Dashboard.objects.create(
             title=f"Linked Dashboard 1 for {slug}",
-            created_by_id=owner_id,
+            created_by_service_account_id=service_account.id,
             organization=org,
         )
         DashboardFavoriteUser.objects.create(
             dashboard=dashboard,
             user_id=owner_id,
             organization=org,
+        )
+        DashboardLastVisited.objects.create(
+            user_id=owner_id,
+            dashboard=dashboard,
+            last_visited=timezone.now(),
         )
         permissions = DashboardPermissions.objects.create(
             is_editable_by_everyone=True, dashboard=dashboard
@@ -581,7 +607,11 @@ class ExhaustiveFixtures(Fixtures):
             widget_type=DashboardWidgetTypes.DISCOVER,
         )
         widget_query = DashboardWidgetQuery.objects.create(
-            widget=widget, order=1, name=f"Test Query for {slug}"
+            widget=widget,
+            order=1,
+            name=f"Test Query for {slug}",
+            aggregates=["count()"],
+            transformations={"0": ["fill(locf)", "smooth(sma,3)"]},
         )
         DashboardWidgetQueryOnDemand.objects.create(
             dashboard_widget_query=widget_query,
@@ -640,6 +670,13 @@ class ExhaustiveFixtures(Fixtures):
             tag_value="production",
             branch_name="release",
         )
+        seer_workflow_config = Factories.create_seer_workflow_config(
+            org,
+            service_account_id=service_account.id,
+            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            filters={"environments": ["production"]},
+        )
+        Factories.create_seer_workflow_config_project(seer_workflow_config, project)
 
         CodeReviewEvent.objects.create(
             organization=org,
@@ -701,6 +738,7 @@ class ExhaustiveFixtures(Fixtures):
 
         # Setup a test 'Issue Rule' and 'Automation'
         workflow = self.create_workflow(organization=org)
+        seer_workflow_config.update(backing_workflow=workflow)
         detector = self.create_detector(project=project, type=MetricIssue.slug)
         self.create_detector_workflow(detector=detector, workflow=workflow)
         self.create_detector_state(detector=detector)
@@ -751,8 +789,9 @@ class ExhaustiveFixtures(Fixtures):
         WorkflowActionGroupStatus.objects.create(
             action=send_notification_action, group=group, workflow=workflow
         )
+        # A synthetic historical ID exercises mapping backup without native trigger rows.
         DataConditionAlertRuleTrigger.objects.create(
-            data_condition=data_condition, alert_rule_trigger_id=trigger.id
+            data_condition=data_condition, alert_rule_trigger_id=alert.id
         )
 
         TempestCredentials.objects.create(
@@ -766,7 +805,7 @@ class ExhaustiveFixtures(Fixtures):
 
         explore_saved_query = ExploreSavedQuery.objects.create(
             organization=org,
-            created_by_id=owner_id,
+            created_by_service_account_id=service_account.id,
             name="saved query",
             query={"query": "test_query"},
         )
@@ -790,6 +829,23 @@ class ExhaustiveFixtures(Fixtures):
             last_visited=timezone.now(),
         )
 
+        explore_saved_formula = ExploreSavedFormula.objects.create(
+            organization=org,
+            created_by_service_account_id=service_account.id,
+            updated_by_id=owner_id,
+            name="formula.apdex",
+            formula="count()",
+        )
+        ExploreSavedVariable.objects.create(
+            organization=org,
+            explore_saved_formula=explore_saved_formula,
+            name="duration",
+            value="",
+            kind=KindItemTypes.PARAM,
+            param_type=ParamItemTypes.COLUMN,
+            order=0,
+        )
+
         TraceItemAttributeContext.objects.create(
             organization=org,
             project=project,
@@ -804,7 +860,6 @@ class ExhaustiveFixtures(Fixtures):
 
         TraceItemAttributeValueContext.objects.create(
             organization=org,
-            project=project,
             attribute_name="metric.name",
             attribute_value="my.custom.counter",
             attribute_type=TraceMetricTypes.COUNTER,
@@ -838,7 +893,9 @@ class ExhaustiveFixtures(Fixtures):
         return org
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_exhaustive_organization_auth(self, owner: User, org: Organization, project: Project):
+    def create_exhaustive_organization_auth(
+        self, owner: User, org: Organization, project: Project
+    ) -> ServiceAccount:
         ApiKey.objects.create(key=uuid4().hex, organization_id=org.id)
         auth_provider = AuthProvider.objects.create(organization_id=org.id, provider="sentry")
         AuthIdentity.objects.create(
@@ -862,9 +919,18 @@ class ExhaustiveFixtures(Fixtures):
             date_last_used=None,
             project_last_used_id=project.id,
         )
+        return Factories.create_service_account(
+            org,
+            name=f"service account for {org.slug}",
+            scope_list=["org:read", "project:read"],
+            created_by=owner,
+            project_ids=[project.id],
+        )
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_exhaustive_organization_integration(self, org: Organization):
+    def create_exhaustive_organization_integration(
+        self, org: Organization
+    ) -> OrganizationIntegration:
         integration = Integration.objects.create(
             provider="slack", name=f"Slack for {org.slug}", external_id=f"slack:{org.slug}"
         )
@@ -884,6 +950,8 @@ class ExhaustiveFixtures(Fixtures):
         )
 
         install = self.create_sentry_app_installation(slug=app.slug, organization=org, user=owner)
+        assert app.application is not None
+        assert app.proxy_user is not None
         updater = SentryAppUpdater(sentry_app=app)
         updater.schema = {"elements": [self.create_alert_rule_action_schema()]}
         updater.run(owner)
@@ -906,6 +974,7 @@ class ExhaustiveFixtures(Fixtures):
         ApiDeviceCode.objects.create(
             application=app.application,
             scope_list=["openid", "profile"],
+            login_hint=owner.email,
         )
 
         # ServiceHook
@@ -922,25 +991,26 @@ class ExhaustiveFixtures(Fixtures):
         return app
 
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_exhaustive_sentry_app_notification(self, app: SentryApp, org: Organization):
+    def create_exhaustive_sentry_app_notification(self, app: SentryApp, org: Organization) -> None:
         project = Project.objects.filter(organization=org).first()
+        assert project is not None
         self.create_notification_action(organization=org, sentry_app_id=app.id, projects=[project])
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_exhaustive_global_configs(self, owner: User):
+    def create_exhaustive_global_configs(self, owner: User) -> None:
         self.create_exhaustive_api_keys_for_user(owner)
         self.create_exhaustive_global_configs_regional()
         ControlOption.objects.create(key="bar", value="b")
 
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_exhaustive_global_configs_regional(self):
+    def create_exhaustive_global_configs_regional(self) -> None:
         _, public_key = generate_key_pair()
         relay = str(uuid4())
         Relay.objects.create(relay_id=relay, public_key=str(public_key), is_internal=True)
-        RelayUsage.objects.create(relay_id=relay, version="0.0.1", public_key=public_key)
+        RelayUsage.objects.create(relay_id=relay, version="0.0.1", public_key=str(public_key))
         Option.objects.create(key="foo", value="a")
 
-    def create_exhaustive_instance(self, *, is_superadmin: bool = False):
+    def create_exhaustive_instance(self, *, is_superadmin: bool = False) -> None:
         """
         Takes an empty Sentry instance's database, and populates it with an "exhaustive" version of
         every model. The end result is two users, in one organization, with one full set of
@@ -971,7 +1041,7 @@ class ExhaustiveFixtures(Fixtures):
         self.create_exhaustive_global_configs(owner)
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_exhaustive_api_keys_for_user(self, user: User):
+    def create_exhaustive_api_keys_for_user(self, user: User) -> None:
         ApiAuthorization.objects.create(user=user)
         ApiToken.objects.create(
             user=user,
@@ -980,7 +1050,7 @@ class ExhaustiveFixtures(Fixtures):
             token_type=AuthTokenType.USER,
         )
 
-    def import_export_then_validate(self, out_name, *, reset_pks: bool = True) -> Any:
+    def import_export_then_validate(self, out_name: str, *, reset_pks: bool = True) -> Any:
         return import_export_then_validate(out_name, reset_pks=reset_pks)
 
     def json_of_org_and_project(self) -> Any:
@@ -1034,7 +1104,7 @@ class ExhaustiveFixtures(Fixtures):
             if model_diff != 0:
                 return model_diff
 
-            return a["pk"] - b["pk"]
+            return int(a["pk"]) - int(b["pk"])
 
         return sorted(
             json_data,

@@ -88,10 +88,33 @@ describe('getReasonGroupName', () => {
 
     expect(getReasonGroupName(Outcome.RATE_LIMITED, 'key_quota')).toBe('DSN limit');
     expect(getReasonGroupName(Outcome.RATE_LIMITED, 'org_quota')).toBe('global limit');
+    expect(getReasonGroupName(Outcome.RATE_LIMITED, 'project_category_pause')).toBe(
+      'Manual Pause'
+    );
+    expect(
+      getReasonGroupName(Outcome.RATE_LIMITED, 'project_category_pause_growth_limits')
+    ).toBe('Pause (solutions.sentry.io)');
+    expect(
+      getReasonGroupName(Outcome.RATE_LIMITED, 'project_category_pause_cost_centers')
+    ).toBe('Pause (solutions.sentry.io)');
+    expect(getReasonGroupName(Outcome.RATE_LIMITED, 'organization_pause')).toBe(
+      'Manual Organization Pause'
+    );
+    expect(
+      getReasonGroupName(Outcome.RATE_LIMITED, 'organization_pause_growth_limits')
+    ).toBe('Organization Pause (solutions.sentry.io)');
+    expect(
+      getReasonGroupName(Outcome.RATE_LIMITED, 'organization_pause_cost_centers')
+    ).toBe('Organization Pause (solutions.sentry.io)');
+    expect(getReasonGroupName(Outcome.RATE_LIMITED, 'project_category_pause_other')).toBe(
+      'internal'
+    );
 
     expect(getReasonGroupName(Outcome.FILTERED, 'browser-extensions')).toBe(
       'Browser Extensions'
     );
+    expect(getReasonGroupName(Outcome.FILTERED, 'ip-address')).toBe('IP Address');
+    expect(getReasonGroupName(Outcome.FILTERED, 'invalid-csp')).toBe('Invalid CSP');
 
     expect(getReasonGroupName(Outcome.CLIENT_DISCARD, 'queue_overflow')).toBe(
       ClientDiscardReason.QUEUE_OVERFLOW
@@ -104,6 +127,10 @@ describe('getReasonGroupName', () => {
     expect(getReasonGroupName(Outcome.CLIENT_DISCARD, 'no_parent_span')).toBe(
       ClientDiscardReason.NO_PARENT_SPAN
     );
+
+    expect(getReasonGroupName(Outcome.CLIENT_DISCARD, 'callback_error')).toBe(
+      ClientDiscardReason.CALLBACK_ERROR
+    );
   });
 
   it('handles abuse limit reason types', () => {
@@ -113,6 +140,15 @@ describe('getReasonGroupName', () => {
     expect(getReasonGroupName(Outcome.ABUSE, 'org_abuse_limit')).toBe('org abuse limit');
     expect(getReasonGroupName(Outcome.ABUSE, 'global_abuse_limit')).toBe(
       'global abuse limit'
+    );
+  });
+
+  it('groups every custom inbound filter under one label', () => {
+    expect(getReasonGroupName(Outcome.FILTERED, 'custom-inbound-filter:1')).toBe(
+      'Custom Inbound Filter'
+    );
+    expect(getReasonGroupName(Outcome.FILTERED, 'custom-inbound-filter:2')).toBe(
+      'Custom Inbound Filter'
     );
   });
 

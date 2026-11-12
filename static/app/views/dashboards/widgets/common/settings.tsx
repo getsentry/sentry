@@ -30,8 +30,4 @@ export const NON_FINITE_NUMBER_MESSAGE = t('Value is not a finite number.');
 export const NUMBER_MAX_FRACTION_DIGITS = 4;
 export const NUMBER_MIN_VALUE = 10 ** -NUMBER_MAX_FRACTION_DIGITS;
 
-export const ALLOWED_CELL_ACTIONS = [
-  Actions.OPEN_INTERNAL_LINK,
-  Actions.COPY_TO_CLIPBOARD,
-  Actions.OPEN_EXTERNAL_LINK,
-];
+export const ALLOWED_CELL_ACTIONS = [Actions.COPY_TO_CLIPBOARD];

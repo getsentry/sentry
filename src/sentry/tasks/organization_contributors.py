@@ -41,7 +41,7 @@ def reset_num_actions_for_organization_contributors(organization_id: int) -> Non
     silo_mode=SiloMode.CELL,
     retry=Retry(times=3, delay=60),
 )
-def assign_seat_to_organization_contributor(contributor_id) -> None:
+def assign_seat_to_organization_contributor(contributor_id: int) -> None:
     try:
         organization_contributor = OrganizationContributors.objects.get(id=contributor_id)
     except OrganizationContributors.DoesNotExist:
@@ -56,7 +56,8 @@ def assign_seat_to_organization_contributor(contributor_id) -> None:
         extra={
             "organization_contributor_id": organization_contributor.id,
             "organization_id": organization_contributor.organization_id,
-            "integration_id": organization_contributor.integration_id,
+            "provider": organization_contributor.provider,
+            "hostname": organization_contributor.hostname,
             "external_identifier": organization_contributor.external_identifier,
         },
     )
@@ -69,7 +70,8 @@ def assign_seat_to_organization_contributor(contributor_id) -> None:
             extra={
                 "organization_contributor_id": organization_contributor.id,
                 "organization_id": organization_contributor.organization_id,
-                "integration_id": organization_contributor.integration_id,
+                "provider": organization_contributor.provider,
+                "hostname": organization_contributor.hostname,
                 "external_identifier": organization_contributor.external_identifier,
                 "outcome": outcome,
             },

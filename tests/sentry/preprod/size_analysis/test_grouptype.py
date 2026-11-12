@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 
 import pytest
@@ -12,14 +12,16 @@ from sentry.preprod.size_analysis.grouptype import (
     PreprodSizeAnalysisDetectorValidator,
     PreprodSizeAnalysisGroupType,
     SizeAnalysisDataPacket,
+    SizeAnalysisMetadata,
     SizeAnalysisValue,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
 from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.processors.detector import process_detectors
-from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 
 
 @cell_silo_test
@@ -88,7 +90,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
             },
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        evaluation_result = handler.evaluate(data_packet)
+        evaluation_result = handler._evaluate(data_packet)
 
         assert None in evaluation_result
         result = evaluation_result[None]
@@ -112,7 +114,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
             },
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        evaluation_result = handler.evaluate(data_packet)
+        evaluation_result = handler._evaluate(data_packet)
 
         assert evaluation_result == {}
 
@@ -149,7 +151,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
             },
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        evaluation_result = handler.evaluate(data_packet)
+        evaluation_result = handler._evaluate(data_packet)
 
         assert None in evaluation_result
         assert evaluation_result[None].priority == DetectorPriorityLevel.HIGH
@@ -187,7 +189,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
             },
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        evaluation_result = handler.evaluate(data_packet)
+        evaluation_result = handler._evaluate(data_packet)
 
         assert None in evaluation_result
         assert evaluation_result[None].priority == DetectorPriorityLevel.MEDIUM
@@ -208,7 +210,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
             },
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        evaluation_result = handler.evaluate(data_packet)
+        evaluation_result = handler._evaluate(data_packet)
 
         assert evaluation_result == {}
 
@@ -241,7 +243,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
             },
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        evaluation_result = handler.evaluate(data_packet)
+        evaluation_result = handler._evaluate(data_packet)
 
         assert None in evaluation_result
         assert evaluation_result[None].priority == DetectorPriorityLevel.HIGH
@@ -275,7 +277,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
             },
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        evaluation_result = handler.evaluate(data_packet)
+        evaluation_result = handler._evaluate(data_packet)
 
         assert evaluation_result == {}
 
@@ -309,7 +311,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
             },
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        evaluation_result = handler.evaluate(data_packet)
+        evaluation_result = handler._evaluate(data_packet)
 
         assert None in evaluation_result
         assert evaluation_result[None].priority == DetectorPriorityLevel.HIGH
@@ -344,7 +346,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
             },
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        evaluation_result = handler.evaluate(data_packet)
+        evaluation_result = handler._evaluate(data_packet)
 
         assert evaluation_result == {}
 
@@ -375,7 +377,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
         with pytest.raises(ValueError, match="Missing base value"):
-            handler.evaluate(data_packet)
+            handler._evaluate(data_packet)
 
 
 @cell_silo_test
@@ -435,7 +437,7 @@ class PreprodSizeAnalysisDetectorQueryFilterTest(TestCase):
             workflow_condition_group=self.condition_group,
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        result = handler.evaluate(self._make_data_packet())
+        result = handler._evaluate(self._make_data_packet())
 
         assert None in result
         assert result[None].priority == DetectorPriorityLevel.HIGH
@@ -449,7 +451,7 @@ class PreprodSizeAnalysisDetectorQueryFilterTest(TestCase):
             workflow_condition_group=self.condition_group,
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        result = handler.evaluate(self._make_data_packet())
+        result = handler._evaluate(self._make_data_packet())
 
         assert None in result
         assert result[None].priority == DetectorPriorityLevel.HIGH
@@ -463,7 +465,7 @@ class PreprodSizeAnalysisDetectorQueryFilterTest(TestCase):
             workflow_condition_group=self.condition_group,
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        result = handler.evaluate(self._make_data_packet())
+        result = handler._evaluate(self._make_data_packet())
 
         assert None in result
         assert result[None].priority == DetectorPriorityLevel.HIGH
@@ -481,7 +483,7 @@ class PreprodSizeAnalysisDetectorQueryFilterTest(TestCase):
             workflow_condition_group=self.condition_group,
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        result = handler.evaluate(self._make_data_packet())
+        result = handler._evaluate(self._make_data_packet())
 
         assert None in result
         assert result[None].priority == DetectorPriorityLevel.HIGH
@@ -499,7 +501,7 @@ class PreprodSizeAnalysisDetectorQueryFilterTest(TestCase):
             workflow_condition_group=self.condition_group,
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        result = handler.evaluate(self._make_data_packet())
+        result = handler._evaluate(self._make_data_packet())
 
         assert result == {}
 
@@ -518,7 +520,7 @@ class PreprodSizeAnalysisDetectorQueryFilterTest(TestCase):
         handler = PreprodSizeAnalysisDetectorHandler(detector)
 
         with mock.patch("sentry.preprod.size_analysis.grouptype.logger") as mock_logger:
-            result = handler.evaluate(self._make_data_packet())
+            result = handler._evaluate(self._make_data_packet())
 
         assert result == {}
         mock_logger.exception.assert_called_once_with(
@@ -547,7 +549,7 @@ class PreprodSizeAnalysisDetectorQueryFilterTest(TestCase):
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
         with pytest.raises(ValueError, match="missing metadata required to evaluate query filter"):
-            handler.evaluate(data_packet)
+            handler._evaluate(data_packet)
 
 
 @cell_silo_test
@@ -578,12 +580,12 @@ class PreprodSizeAnalysisDetectorHandlerIntegrationTest(TestCase):
             },
         )
 
-        with mock.patch(
-            "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
-        ) as mock_produce_occurrence_to_kafka:
+        with mock.patch.object(
+            PreprodSizeAnalysisDetectorHandler, "on_complete"
+        ) as mock_on_complete:
             process_detectors(packet, [detector])
 
-        assert mock_produce_occurrence_to_kafka.call_count == 1
+        assert mock_on_complete.call_count == 1
 
 
 @cell_silo_test
@@ -602,7 +604,9 @@ class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
             condition_result=DetectorPriorityLevel.HIGH,
         )
 
-    def _evaluate_with_metadata(self, measurement, metadata):
+    def _evaluate_with_metadata(
+        self, measurement: str, metadata: dict[str, Any]
+    ) -> dict[DetectorGroupKey, DetectorEvaluation]:
         detector = self.create_detector(
             name="test-detector",
             type=PreprodSizeAnalysisGroupType.slug,
@@ -615,11 +619,11 @@ class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
             packet={
                 "head_install_size_bytes": 5000000,
                 "head_download_size_bytes": 5000000,
-                "metadata": metadata,
+                "metadata": cast("SizeAnalysisMetadata", metadata),
             },
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        return handler.evaluate(data_packet)
+        return handler._evaluate(data_packet)
 
     def test_create_occurrence_install_size_with_metadata(self) -> None:
         commit_comparison = self.create_commit_comparison(
@@ -661,7 +665,7 @@ class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
 
         assert None in result
         occurrence = result[None].result
-        event_data = result[None].event_data
+        event_data = result[None].data["event_data"]
         assert isinstance(occurrence, IssueOccurrence)
         assert event_data is not None
 
@@ -730,7 +734,7 @@ class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
 
         assert None in result
         occurrence = result[None].result
-        event_data = result[None].event_data
+        event_data = result[None].data["event_data"]
         assert isinstance(occurrence, IssueOccurrence)
         assert event_data is not None
 
@@ -773,7 +777,7 @@ class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
         result = self._evaluate_with_metadata("install_size", metadata)
 
         assert None in result
-        event_data = result[None].event_data
+        event_data = result[None].data["event_data"]
         assert event_data is not None
 
         assert event_data["tags"]["head.preprod_artifact_id"] == str(head_artifact.id)
@@ -798,11 +802,11 @@ class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
             },
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        result = handler.evaluate(data_packet)
+        result = handler._evaluate(data_packet)
 
         assert None in result
         occurrence = result[None].result
-        event_data = result[None].event_data
+        event_data = result[None].data["event_data"]
         assert isinstance(occurrence, IssueOccurrence)
         assert event_data is not None
 
@@ -846,7 +850,7 @@ class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
             },
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        result = handler.evaluate(data_packet)
+        result = handler._evaluate(data_packet)
 
         assert None in result
         occurrence = result[None].result
@@ -868,7 +872,7 @@ class PreprodSizeAnalysisEvidenceTextTest(TestCase):
             organization=self.project.organization,
         )
 
-    def _create_condition(self, condition_type, comparison):
+    def _create_condition(self, condition_type: Condition, comparison: int) -> None:
         self.create_data_condition(
             condition_group=self.condition_group,
             type=condition_type,
@@ -878,14 +882,14 @@ class PreprodSizeAnalysisEvidenceTextTest(TestCase):
 
     def _evaluate(
         self,
-        threshold_type,
-        measurement,
-        head_install,
-        head_download,
-        metadata=None,
-        base_install=None,
-        base_download=None,
-    ):
+        threshold_type: str,
+        measurement: str,
+        head_install: int,
+        head_download: int,
+        metadata: dict[str, Any] | None = None,
+        base_install: int | None = None,
+        base_download: int | None = None,
+    ) -> IssueOccurrence:
         detector = self.create_detector(
             name="test-detector",
             type=PreprodSizeAnalysisGroupType.slug,
@@ -902,14 +906,14 @@ class PreprodSizeAnalysisEvidenceTextTest(TestCase):
         if base_download is not None:
             packet_data["base_download_size_bytes"] = base_download
         if metadata is not None:
-            packet_data["metadata"] = metadata
+            packet_data["metadata"] = cast("SizeAnalysisMetadata", metadata)
 
         data_packet: SizeAnalysisDataPacket = DataPacket(
             source_id="test-source",
             packet=packet_data,
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        result = handler.evaluate(data_packet)
+        result = handler._evaluate(data_packet)
         assert None in result
         occurrence = result[None].result
         assert isinstance(occurrence, IssueOccurrence)

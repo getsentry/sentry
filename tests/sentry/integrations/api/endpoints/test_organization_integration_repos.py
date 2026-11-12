@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock, patch
 
+from sentry.integrations.types import EventLifecycleOutcome
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import APITestCase
 
 
@@ -16,6 +18,23 @@ class OrganizationIntegrationReposTest(APITestCase):
         self.path = (
             f"/api/0/organizations/{self.org.slug}/integrations/{self.integration.id}/repos/"
         )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
+        side_effect=IntegrationError("Unable to retrieve repositories"),
+    )
+    def test_expected_error_halts_lifecycle(
+        self, _get_repositories: MagicMock, record_event: MagicMock
+    ) -> None:
+        response = self.client.get(self.path, format="json")
+
+        assert response.status_code == 400
+        assert response.data == {"detail": "Unable to retrieve repositories"}
+        assert [call.args[0] for call in record_event.call_args_list] == [
+            EventLifecycleOutcome.STARTED,
+            EventLifecycleOutcome.HALTED,
+        ]
 
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_repositories", return_value=[]
@@ -262,7 +281,9 @@ class OrganizationIntegrationReposTest(APITestCase):
         )
 
         assert response.status_code == 200, response.content
-        get_repositories.assert_called_once_with("rad", accessible_only=True, use_cache=True)
+        get_repositories.assert_called_once_with(
+            "rad", accessible_only=True, use_cache=True, parallel=True
+        )
         assert response.data == {
             "repos": [
                 {
@@ -293,7 +314,21 @@ class OrganizationIntegrationReposTest(APITestCase):
         response = self.client.get(self.path, format="json", data={"accessibleOnly": "true"})
 
         assert response.status_code == 200, response.content
-        get_repositories.assert_called_once_with(None, accessible_only=True, use_cache=False)
+        get_repositories.assert_called_once_with(
+            None, accessible_only=True, use_cache=False, parallel=True
+        )
+
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_repositories", return_value=[]
+    )
+    def test_passes_parallel(self, get_repositories: MagicMock) -> None:
+        """The endpoint opts into parallel pagination for its interactive callers."""
+        response = self.client.get(self.path, format="json")
+
+        assert response.status_code == 200, response.content
+        get_repositories.assert_called_once_with(
+            None, accessible_only=False, use_cache=False, parallel=True
+        )
 
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_repositories", return_value=[]
@@ -329,7 +364,9 @@ class OrganizationIntegrationReposTest(APITestCase):
         )
 
         assert response.status_code == 200, response.content
-        get_repositories.assert_called_once_with("Example", accessible_only=True, use_cache=True)
+        get_repositories.assert_called_once_with(
+            "Example", accessible_only=True, use_cache=True, parallel=True
+        )
         assert response.data == {
             "repos": [
                 {

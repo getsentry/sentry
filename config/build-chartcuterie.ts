@@ -9,7 +9,7 @@ import * as esbuild from 'esbuild';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.resolve(scriptDir, '..');
-const packageJsonPath = path.join(workspaceRoot, 'package.json');
+const packageJsonPath = path.join(workspaceRoot, 'static/app/package.json');
 const entryPoint = path.join(workspaceRoot, 'static/app/chartcuterie/config.tsx');
 const outfile = path.join(workspaceRoot, 'config/chartcuterie/config.js');
 
@@ -70,7 +70,6 @@ async function runEsbuild(commitHash: string): Promise<void> {
       'process.env.EXPERIMENTAL_SPA': JSON.stringify(false),
       'process.env.IS_ACCEPTANCE_TEST': JSON.stringify(false),
       'process.env.USE_TANSTACK_DEVTOOL': JSON.stringify(false),
-      'process.env.UI_DEV_ENABLE_PROFILING': JSON.stringify(false),
       'process.env.SPA_DSN': JSON.stringify(''),
       'process.env.SENTRY_RELEASE_VERSION': JSON.stringify(''),
     },

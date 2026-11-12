@@ -13,12 +13,11 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import UptimeDetectorsList from 'sentry/views/detectors/list/uptime';
+
+import UptimeDetectorsList from './uptime';
 
 describe('UptimeDetectorsList', () => {
-  const organization = OrganizationFixture({
-    features: ['workflow-engine-ui'],
-  });
+  const organization = OrganizationFixture();
 
   const initialRouterConfig: RouterConfig = {
     location: {
@@ -44,11 +43,12 @@ describe('UptimeDetectorsList', () => {
     // Ensure a project is selected for queries
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));
 
-    // Make elements report a non-zero size so timelines compute rollups and fetch
+    // Make elements report a non-zero size so timelines compute rollups and fetch,
+    // and so the table's container is wide enough for its detail columns.
     Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
       configurable: true,
       get() {
-        return 800;
+        return 1600;
       },
     });
     Object.defineProperty(HTMLElement.prototype, 'clientHeight', {

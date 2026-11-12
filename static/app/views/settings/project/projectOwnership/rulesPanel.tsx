@@ -1,4 +1,7 @@
 import styled from '@emotion/styled';
+import {IconGithub} from '@sentry/icons/github';
+import {IconGitlab} from '@sentry/icons/gitlab';
+import {IconSentry} from '@sentry/icons/sentry';
 
 import {Flex} from '@sentry/scraps/layout';
 import {TextArea} from '@sentry/scraps/textarea';
@@ -7,40 +10,31 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconGithub, IconGitlab, IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 type Props = {
   dateUpdated: string | null;
   raw: string;
   type: 'codeowners' | 'issueowners';
-  controls?: React.ReactNode[];
   'data-test-id'?: string;
-  placeholder?: string;
   provider?: string;
-  repoName?: string;
 };
 
 export function RulesPanel({
   raw,
   dateUpdated,
   provider,
-  repoName,
   type,
-  placeholder,
-  controls,
-  ['data-test-id']: dataTestId,
+  'data-test-id': dataTestId,
 }: Props) {
-  function renderIcon() {
-    switch (provider ?? '') {
-      case 'github':
-        return <IconGithub size="sm" />;
-      case 'gitlab':
-        return <IconGitlab size="sm" />;
-      default:
-        return <IconSentry size="sm" />;
-    }
-  }
+  const icon =
+    provider === 'github' ? (
+      <IconGithub size="sm" />
+    ) : provider === 'gitlab' ? (
+      <IconGitlab size="sm" />
+    ) : (
+      <IconSentry size="sm" />
+    );
 
   function renderTitle() {
     switch (type) {
@@ -57,9 +51,8 @@ export function RulesPanel({
     <Panel data-test-id={dataTestId}>
       <PanelHeader hasButtons>
         <Flex align="center" gap="sm">
-          {renderIcon()}
+          {icon}
           {renderTitle()}
-          {repoName && <div>{`- ${repoName}`}</div>}
         </Flex>
         <Flex align="center" gap="sm">
           {dateUpdated && (
@@ -68,7 +61,6 @@ export function RulesPanel({
               <TimeSince date={dateUpdated} />
             </SyncDate>
           )}
-          {controls}
         </Flex>
       </PanelHeader>
 
@@ -82,7 +74,6 @@ export function RulesPanel({
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="off"
-            placeholder={placeholder}
           />
         </InnerPanelBody>
       </PanelBody>

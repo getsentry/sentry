@@ -3,7 +3,7 @@ import {DetailedProjectFixture} from 'sentry-fixture/project';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ProjectReplays from 'sentry/views/settings/project/projectReplays';
+import ProjectReplays from './projectReplays';
 
 describe('ProjectReplays', () => {
   const {organization} = initializeOrg();
@@ -28,6 +28,56 @@ describe('ProjectReplays', () => {
       method: 'GET',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: getProjectEndpoint,
+      method: 'GET',
+      body: project,
+    });
+  });
+
+  it('renders the bulk delete tab when the user has write access', async () => {
+    const deleteJobsMock = MockApiClient.addMockResponse({
+      url: `${getProjectEndpoint}replays/jobs/delete/`,
+      body: {data: []},
+    });
+
+    render(<ProjectReplays />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig,
+    });
+
+    await userEvent.click(await screen.findByRole('tab', {name: 'Bulk Delete'}));
+
+    expect(await screen.findByText('No deletes found')).toBeInTheDocument();
+    expect(deleteJobsMock).toHaveBeenCalled();
+  });
+
+  it('hides the tabs when the user lacks write access', async () => {
+    const deleteJobsMock = MockApiClient.addMockResponse({
+      url: `${getProjectEndpoint}replays/jobs/delete/`,
+      body: {data: []},
+    });
+    const {organization: readOnlyOrganization} = initializeOrg({
+      organization: {access: ['org:read', 'project:read']},
+    });
+
+    render(<ProjectReplays />, {
+      organization: readOnlyOrganization,
+      outletContext: {project},
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          ...initialRouterConfig.location,
+          query: {replaySettingsTab: 'bulk-delete'},
+        },
+      },
+    });
+
+    expect(await screen.findByText('Create Rage Click Issues')).toBeInTheDocument();
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+    expect(screen.queryByText('Count Deleted')).not.toBeInTheDocument();
+    expect(deleteJobsMock).not.toHaveBeenCalled();
   });
 
   it('renders both replay issue fields', async () => {
@@ -48,15 +98,25 @@ describe('ProjectReplays', () => {
       initialRouterConfig,
     });
 
+    const updatedProject = {
+      ...project,
+      options: {...project.options, 'sentry:replay_rage_click_issues': true},
+    };
     const mock = MockApiClient.addMockResponse({
       url: getProjectEndpoint,
       method: 'PUT',
-      body: {},
+      body: updatedProject,
     });
 
-    await userEvent.click(
-      await screen.findByRole('checkbox', {name: 'Create Rage Click Issues'})
-    );
+    const checkbox = await screen.findByRole('checkbox', {
+      name: 'Create Rage Click Issues',
+    });
+    MockApiClient.addMockResponse({
+      url: getProjectEndpoint,
+      method: 'GET',
+      body: updatedProject,
+    });
+    await userEvent.click(checkbox);
 
     await waitFor(() =>
       expect(mock).toHaveBeenCalledWith(
@@ -69,6 +129,8 @@ describe('ProjectReplays', () => {
         })
       )
     );
+    await waitFor(() => expect(checkbox).toBeEnabled());
+    expect(checkbox).toBeChecked();
   });
 
   it('can toggle hydration error issue creation', async () => {
@@ -78,15 +140,25 @@ describe('ProjectReplays', () => {
       initialRouterConfig,
     });
 
+    const updatedProject = {
+      ...project,
+      options: {...project.options, 'sentry:replay_hydration_error_issues': true},
+    };
     const mock = MockApiClient.addMockResponse({
       url: getProjectEndpoint,
       method: 'PUT',
-      body: {},
+      body: updatedProject,
     });
 
-    await userEvent.click(
-      await screen.findByRole('checkbox', {name: 'Create Hydration Error Issues'})
-    );
+    const checkbox = await screen.findByRole('checkbox', {
+      name: 'Create Hydration Error Issues',
+    });
+    MockApiClient.addMockResponse({
+      url: getProjectEndpoint,
+      method: 'GET',
+      body: updatedProject,
+    });
+    await userEvent.click(checkbox);
 
     await waitFor(() =>
       expect(mock).toHaveBeenCalledWith(
@@ -99,5 +171,7 @@ describe('ProjectReplays', () => {
         })
       )
     );
+    await waitFor(() => expect(checkbox).toBeEnabled());
+    expect(checkbox).toBeChecked();
   });
 });

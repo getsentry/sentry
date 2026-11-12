@@ -1,33 +1,53 @@
 import {useCallback} from 'react';
+import {useMutation} from '@tanstack/react-query';
 
-import {useApi} from 'sentry/utils/useApi';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
 import {
+  SavedQueryType,
   useInvalidateSavedQueries,
   useInvalidateSavedQuery,
-} from 'sentry/views/explore/hooks/useGetSavedQueries';
+  type SavedQueryRef,
+} from './useGetSavedQueries';
 
 export function useStarQuery() {
-  const api = useApi();
   const organization = useOrganization();
   const invalidateSavedQueries = useInvalidateSavedQueries();
   const invalidateSavedQuery = useInvalidateSavedQuery();
 
+  const {mutateAsync} = useMutation({
+    mutationFn: ({queryId, queryType, starred}: SavedQueryRef & {starred: boolean}) =>
+      fetchMutation({
+        url:
+          queryType === SavedQueryType.EXPLORE
+            ? getApiUrl(
+                '/organizations/$organizationIdOrSlug/explore/saved/$id/starred/',
+                {
+                  path: {organizationIdOrSlug: organization.slug, id: String(queryId)},
+                }
+              )
+            : getApiUrl(
+                '/organizations/$organizationIdOrSlug/discover/saved/$id/starred/',
+                {
+                  path: {organizationIdOrSlug: organization.slug, id: String(queryId)},
+                }
+              ),
+        method: 'POST',
+        data: {
+          starred,
+        },
+      }),
+  });
+
   const starQuery = useCallback(
-    async (id: number, starred: boolean) => {
-      await api.requestPromise(
-        `/organizations/${organization.slug}/explore/saved/${id}/starred/`,
-        {
-          method: 'POST',
-          data: {
-            starred,
-          },
-        }
-      );
+    async ({queryId, queryType}: SavedQueryRef, starred: boolean) => {
+      await mutateAsync({queryId, queryType, starred});
       invalidateSavedQueries();
       invalidateSavedQuery();
     },
-    [api, organization.slug, invalidateSavedQueries, invalidateSavedQuery]
+    [mutateAsync, invalidateSavedQueries, invalidateSavedQuery]
   );
 
   return {starQuery};

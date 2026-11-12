@@ -1,20 +1,27 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Pagination} from '@sentry/scraps/pagination';
 
 import {useReplayTableSort} from 'sentry/components/replays/table/useReplayTableSort';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import {replayListApiOptions} from 'sentry/utils/replays/replayListApiOptions';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ReplayIndexTable} from 'sentry/views/explore/replays/list/replayIndexTable';
+
+import {ReplayIndexTable} from './replayIndexTable';
+
+const replayListParsers = {
+  ...pageFilterParsers,
+  cursor: parseAsString.withDefault(''),
+  query: parseAsString.withDefault(''),
+};
 
 interface Props {
   showDeadRageClickCards: boolean;
@@ -28,21 +35,9 @@ export function ReplayIndexContainer({
   widgetIsOpen,
 }: Props) {
   const organization = useOrganization();
-  const navigate = useNavigate();
 
   const {sortQuery} = useReplayTableSort();
-  const query = useLocationQuery({
-    fields: {
-      cursor: decodeScalar,
-      end: decodeScalar,
-      environment: decodeList,
-      project: decodeList,
-      query: decodeScalar,
-      start: decodeScalar,
-      statsPeriod: decodeScalar,
-      utc: decodeScalar,
-    },
-  });
+  const [query] = useQueryStates(replayListParsers);
   const replayListOptions = replayListApiOptions({
     options: {query: {...query, sort: sortQuery}},
     organization,
@@ -75,15 +70,11 @@ export function ReplayIndexContainer({
         widgetIsOpen={widgetIsOpen}
       />
       <PaginationNoMargin
-        pageLinks={pageLinks}
-        onCursor={(cursor, path, searchQuery) => {
+        {...getPaginationProps(pageLinks)}
+        onPageChange={(_cursor, delta) => {
           trackAnalytics('replay.list-paginated', {
             organization,
-            direction: cursor?.endsWith(':1') ? 'prev' : 'next',
-          });
-          navigate({
-            pathname: path,
-            query: {...searchQuery, cursor},
+            direction: delta === -1 ? 'prev' : 'next',
           });
         }}
       />

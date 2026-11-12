@@ -1,15 +1,15 @@
 import {Fragment, useMemo, useState} from 'react';
+import {IconArrow} from '@sentry/icons/arrow';
 
 import {AlertLink} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconArrow} from 'sentry/icons/iconArrow';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -17,19 +17,18 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {
-  useDataForwarders,
-  useMutateDataForwarder,
-} from 'sentry/views/settings/organizationDataForwarding/util/hooks';
-import {SegmentSetupForm} from 'sentry/views/settings/organizationDataForwarding/util/segmentForm';
-import {SplunkSetupForm} from 'sentry/views/settings/organizationDataForwarding/util/splunkForm';
-import {SQSSetupForm} from 'sentry/views/settings/organizationDataForwarding/util/sqsForm';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
+
+import {useDataForwarders, useMutateDataForwarder} from './util/hooks';
+import {SegmentSetupForm} from './util/segmentForm';
+import {SplunkSetupForm} from './util/splunkForm';
+import {SQSSetupForm} from './util/sqsForm';
 import {
   DATA_FORWARDING_FEATURES,
   DataForwarderProviderSlug,
   ProviderLabels,
   type DataForwarderPayload,
-} from 'sentry/views/settings/organizationDataForwarding/util/types';
+} from './util/types';
 
 export default function OrganizationDataForwardingSetup() {
   const navigate = useNavigate();
@@ -64,17 +63,18 @@ export default function OrganizationDataForwardingSetup() {
 
   return (
     <Fragment>
+      <BreadcrumbTitle title={t('Data Forwarding')} />
       <SentryDocumentTitle title={t('Setup Data Forwarding')} />
-      <Flex direction="column" gap="lg">
+      <Stack gap="lg">
         <Flex align="center" justify="between" gap="2xl">
-          <Flex direction="column" gap="sm">
+          <Stack gap="sm">
             <Flex align="center" gap="lg">
               <Heading as="h2">{t('Setup Data Forwarding')}</Heading>
             </Flex>
             <Text variant="muted">
               {t('Configure the global settings for your data forwarder.')}
             </Text>
-          </Flex>
+          </Stack>
           <LinkButton
             size="sm"
             to={`/settings/${organization.slug}/data-forwarding/`}
@@ -109,7 +109,7 @@ export default function OrganizationDataForwardingSetup() {
                   features={features}
                 />
               )}
-              <Tabs value={provider} onChange={setProvider} disableOverflow>
+              <Tabs value={provider} onChange={setProvider}>
                 <TabList variant="floating">
                   {Object.entries(ProviderLabels).map(([key, label]) => (
                     <TabList.Item
@@ -144,7 +144,7 @@ export default function OrganizationDataForwardingSetup() {
             </Fragment>
           )}
         </Feature>
-      </Flex>
+      </Stack>
     </Fragment>
   );
 }

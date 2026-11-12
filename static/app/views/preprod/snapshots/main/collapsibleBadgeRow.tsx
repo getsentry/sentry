@@ -42,6 +42,7 @@ export function CollapsibleBadgeRow({tags}: {tags: Record<string, string>}) {
           (buttonWidth > 0 &&
             el.offsetLeft + el.offsetWidth > containerWidth - buttonWidth)
         ) {
+          // oxlint-disable-next-line react/todo
           count++;
         }
       }
@@ -56,6 +57,7 @@ export function CollapsibleBadgeRow({tags}: {tags: Record<string, string>}) {
       cancelAnimationFrame(rafId);
       observer.disconnect();
     };
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [tags, expanded, overflowCount]);
 
   const entries = Object.entries(tags);

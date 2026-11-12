@@ -9,7 +9,7 @@ import Barcode from 'sentry-images/checkout/barcode.png';
 import SentryLogo from 'sentry-images/checkout/sentry-receipt-logo.png';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -28,6 +28,7 @@ import type {
 } from 'getsentry/types';
 import {
   displayBudgetName,
+  displayPrice,
   formatOnDemandDescription,
   formatReservedWithUnits,
   getCreditApplied,
@@ -115,12 +116,11 @@ function ScheduledChanges({
 }: ScheduledChangesProps) {
   const shortInterval = plan ? utils.getShortInterval(plan.billingInterval) : undefined;
   return (
-    <Flex
-      data-test-id="scheduled-changes"
-      direction="column"
+    <Stack
       gap="xl"
       padding="xl 0"
-      maxWidth="445px"
+      width="100%"
+      maxWidth={{zero: '100%', md: '445px'}}
       border="primary"
       radius="md"
     >
@@ -132,7 +132,7 @@ function ScheduledChanges({
         </Heading>
       </Container>
       {(planItem || reservedVolume.length > 0) && (
-        <Flex direction="column" gap="xs" padding="0 xl">
+        <Stack gap="xs" padding="0 xl">
           {planItem && (
             <ScheduledChangeItem
               firstItem={
@@ -146,7 +146,7 @@ function ScheduledChanges({
                 </Flex>
               }
               textItems={[
-                `${utils.displayPrice({cents: planItem.amount})}${shortInterval && `/${shortInterval}`}`,
+                `${displayPrice({cents: planItem.amount})}${shortInterval && `/${shortInterval}`}`,
               ]}
             />
           )}
@@ -155,7 +155,7 @@ function ScheduledChanges({
             if (!defined(category)) {
               return null;
             }
-            const quantity = item.data.quantity ?? 0;
+            const quantity = item.data?.quantity ?? 0;
             const reserved = isByteCategory(category) ? quantity / GIGABYTE : quantity;
             if (reserved <= 0) {
               return null;
@@ -183,13 +183,13 @@ function ScheduledChanges({
                 textItems={[
                   `${formattedReserved} ${formattedCategory}`,
                   item.amount > 0
-                    ? `${utils.displayPrice({cents: item.amount})} ${shortInterval && `/${shortInterval}`}`
+                    ? `${displayPrice({cents: item.amount})} ${shortInterval && `/${shortInterval}`}`
                     : null,
                 ]}
               />
             );
           })}
-        </Flex>
+        </Stack>
       )}
       {products.map(item => {
         const addOn = utils.reservedInvoiceItemTypeToAddOn(item.type);
@@ -209,7 +209,7 @@ function ScheduledChanges({
                 </Flex>
               }
               textItems={[
-                `${utils.displayPrice({cents: item.amount})}${shortInterval && `/${shortInterval}`}`,
+                `${displayPrice({cents: item.amount})}${shortInterval && `/${shortInterval}`}`,
               ]}
             />
           </Container>
@@ -221,7 +221,7 @@ function ScheduledChanges({
         return (
           <Container padding="0 xl" key={item.type}>
             <ScheduledChangeItem
-              textItems={[item.description, utils.displayPrice({cents: adjustedAmount})]}
+              textItems={[item.description, displayPrice({cents: adjustedAmount})]}
             />
           </Container>
         );
@@ -229,7 +229,7 @@ function ScheduledChanges({
       {creditApplied > 0 && (
         <Container padding="0 xl">
           <ScheduledChangeItem
-            textItems={[t('Credit applied'), utils.displayPrice({cents: creditApplied})]}
+            textItems={[t('Credit applied'), displayPrice({cents: creditApplied})]}
           />
         </Container>
       )}
@@ -239,7 +239,7 @@ function ScheduledChanges({
         return (
           <Container padding="0 xl" key={item.type}>
             <ScheduledChangeItem
-              textItems={[item.description, utils.displayPrice({cents: adjustedAmount})]}
+              textItems={[item.description, displayPrice({cents: adjustedAmount})]}
             />
           </Container>
         );
@@ -251,7 +251,7 @@ function ScheduledChanges({
         </Text>
         <div>
           <Text as="span" size="2xl" bold>
-            {utils.displayPrice({
+            {displayPrice({
               cents: total,
             })}
           </Text>
@@ -260,7 +260,7 @@ function ScheduledChanges({
           </Text>
         </div>
       </Flex>
-    </Flex>
+    </Stack>
   );
 }
 
@@ -328,7 +328,7 @@ function Receipt({
           }}
         >
           <ReceiptPaper background="primary" border="primary">
-            <Flex direction="column" gap="xl" padding="xl" align="center">
+            <Stack gap="xl" padding="xl" align="center">
               <img src={SentryLogo} alt={t('Sentry logo')} />
               <Grid columns="1fr 2fr 1fr" align="center" gap="sm">
                 <DateSeparator />
@@ -344,7 +344,7 @@ function Receipt({
                       tct('[planName] Plan', {
                         planName: planItem.description.replace('Subscription to ', ''),
                       }),
-                      utils.displayPrice({cents: planItem.amount}),
+                      displayPrice({cents: planItem.amount}),
                     ]}
                   />
                   {reservedVolume.map(item => {
@@ -352,7 +352,7 @@ function Receipt({
                     if (!defined(category)) {
                       return null;
                     }
-                    const quantity = item.data.quantity ?? 0;
+                    const quantity = item.data?.quantity ?? 0;
                     const reserved = isByteCategory(category)
                       ? quantity / GIGABYTE
                       : quantity;
@@ -384,9 +384,7 @@ function Receipt({
                         rowItems={[
                           formattedReserved,
                           formattedCategory,
-                          item.amount > 0
-                            ? utils.displayPrice({cents: item.amount})
-                            : null,
+                          item.amount > 0 ? displayPrice({cents: item.amount}) : null,
                         ]}
                       />
                     );
@@ -399,10 +397,7 @@ function Receipt({
                     return (
                       <ReceiptItem
                         key={item.type}
-                        rowItems={[
-                          item.description,
-                          utils.displayPrice({cents: item.amount}),
-                        ]}
+                        rowItems={[item.description, displayPrice({cents: item.amount})]}
                       />
                     );
                   })}
@@ -428,10 +423,7 @@ function Receipt({
                       <ReceiptItem
                         key={item.type}
                         isSubItem={false}
-                        rowItems={[
-                          cleanDescription,
-                          utils.displayPrice({cents: item.amount}),
-                        ]}
+                        rowItems={[cleanDescription, displayPrice({cents: item.amount})]}
                       />
                     );
                   })}
@@ -443,10 +435,7 @@ function Receipt({
                     return (
                       <ReceiptItem
                         key={item.type}
-                        rowItems={[
-                          item.description,
-                          utils.displayPrice({cents: item.amount}),
-                        ]}
+                        rowItems={[item.description, displayPrice({cents: item.amount})]}
                       />
                     );
                   })}
@@ -454,7 +443,7 @@ function Receipt({
                     <ReceiptItem
                       rowItems={[
                         t('Credit applied'),
-                        utils.displayPrice({cents: creditApplied}),
+                        displayPrice({cents: creditApplied}),
                       ]}
                     />
                   )}
@@ -462,19 +451,14 @@ function Receipt({
                     return (
                       <ReceiptItem
                         key={item.type}
-                        rowItems={[
-                          item.description,
-                          utils.displayPrice({cents: item.amount}),
-                        ]}
+                        rowItems={[item.description, displayPrice({cents: item.amount})]}
                       />
                     );
                   })}
                 </ReceiptSection>
               )}
               <ReceiptSection>
-                <ReceiptItem
-                  rowItems={[t('Total'), utils.displayPrice({cents: total})]}
-                />
+                <ReceiptItem rowItems={[t('Total'), displayPrice({cents: total})]} />
               </ReceiptSection>
               {(successfulCharge || renewalDate) && (
                 <ReceiptSection>
@@ -489,7 +473,7 @@ function Receipt({
                 </ReceiptSection>
               )}
               <img src={Barcode} alt={t('Barcode')} />
-            </Flex>
+            </Stack>
             <ZigZagEdge />
           </ReceiptPaper>
         </motion.div>
@@ -502,8 +486,8 @@ const checkoutSuccessFeedbackOptions = {
   formTitle: t('Give feedback'),
   messagePlaceholder: t('How can we make the checkout experience better for you?'),
   tags: {
-    ['feedback.source']: 'checkout_success',
-    ['feedback.owner']: 'billing',
+    'feedback.source': 'checkout_success',
+    'feedback.owner': 'billing',
   },
 };
 
@@ -519,7 +503,7 @@ export function CheckoutSuccess({
 
   const isImmediateCharge = !!invoice; // if they paid for something now, the changes are effective immediately
   const data = isImmediateCharge ? invoice : previewData;
-  const invoiceItems = isImmediateCharge
+  const invoiceItems: Array<InvoiceItem | PreviewInvoiceItem> = isImmediateCharge
     ? invoice.items
     : (previewData?.invoiceItems ?? []);
   const planItem = invoiceItems.find(item => item.type === 'subscription');
@@ -592,25 +576,21 @@ export function CheckoutSuccess({
       align="center"
       justify="between"
       gap="3xl"
-      direction={{'screen:sm': 'column', 'screen:md': 'row'}}
+      direction={{zero: 'column', '3xl': 'row'}}
     >
-      <Flex
-        direction="column"
-        align={{'screen:sm': 'center', 'screen:md': 'start'}}
-        maxWidth="500px"
-      >
-        <Title size="2xl" as="h1" align="left">
+      <Stack align={{zero: 'center', '3xl': 'start'}} maxWidth="500px">
+        <Heading size="2xl" as="h1" align={{zero: 'center', '3xl': 'left'}}>
           {contentTitle}
-        </Title>
-        <Flex
-          gap="2xl"
-          direction="column"
-          align={{'screen:sm': 'center', 'screen:md': 'start'}}
-        >
-          <Description variant="muted" size="lg" align="left">
+        </Heading>
+        <Stack gap="2xl" align={{zero: 'center', '3xl': 'start'}}>
+          <Text variant="muted" size="lg" align={{zero: 'center', '3xl': 'left'}}>
             {contentDescription}
-          </Description>
-          <Flex gap="sm">
+          </Text>
+          <Flex
+            gap="sm"
+            width={{zero: '100%', md: 'auto'}}
+            direction={{zero: 'column', md: 'row'}}
+          >
             <LinkButton
               variant="primary"
               aria-label={t('View your subscription')}
@@ -624,10 +604,14 @@ export function CheckoutSuccess({
             >
               {t('Edit plan')}
             </LinkButton>
-            <FeedbackButton feedbackOptions={checkoutSuccessFeedbackOptions} size="md" />
+            <FeedbackButton
+              variant="secondary"
+              feedbackOptions={checkoutSuccessFeedbackOptions}
+              size="md"
+            />
           </Flex>
-        </Flex>
-      </Flex>
+        </Stack>
+      </Stack>
       {isImmediateCharge ? (
         <Receipt
           {...commonChangesProps}
@@ -645,18 +629,6 @@ export function CheckoutSuccess({
     </Flex>
   );
 }
-
-const Title = styled(Heading)`
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    text-align: center;
-  }
-`;
-
-const Description = styled(Text)`
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    text-align: center;
-  }
-`;
 
 const StyledGrid = styled(Grid)`
   & > :last-child {
@@ -710,6 +682,7 @@ const ZigZagEdge = styled('div')`
   --s: 10px; /* size of the zig-zag */
   --b: 2px; /* control the thickness */
 
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token -- The masked background draws the zigzag border. */
   background: ${p => p.theme.tokens.border.primary};
   height: calc(var(--b) + var(--s) / (2 * tan(var(--a) / 2)));
   --_g: var(--s) repeat-x

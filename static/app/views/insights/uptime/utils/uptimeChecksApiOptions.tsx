@@ -1,7 +1,7 @@
 import {queryOptions} from '@tanstack/react-query';
 
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import type {UptimeCheck} from 'sentry/views/alerts/rules/uptime/types';
+import type {UptimeCheck} from 'sentry/views/detectors/components/uptime/types';
 
 interface UptimeChecksParameters {
   detectorId: string;

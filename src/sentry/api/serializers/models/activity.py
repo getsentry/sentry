@@ -1,10 +1,19 @@
+from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Annotated, TypeAlias, TypedDict, cast
+
+from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
+from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.formats import Email, email_address
+from sentry.auth.principal import RequestPrincipal
+from sentry.issues.action_log.types import ActionSource, GroupActionType
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
+from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.pullrequest import PullRequest
 from sentry.sentry_apps.api.serializers.sentry_app_avatar import (
@@ -14,30 +23,106 @@ from sentry.sentry_apps.api.serializers.sentry_app_avatar import (
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryApp
 from sentry.types.activity import ActivityType
+from sentry.users.api.serializers.user import UserSerializerResponse
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
+from sentry.utils.action_log.activity_translator import activity_action_idempotency_key
+from sentry.utils.http import LEGACY_MCP_CLIENT_FAMILY_ALIASES
+
+ActivityId: TypeAlias = int
 
 
 class _ActivitySentryAppEmbed(TypedDict):
-    id: str
-    name: str
-    slug: str
-    avatars: list[SentryAppAvatarSerializerResponse]
+    id: Annotated[str, ApiDescription("ID of the Sentry App")]
+    name: Annotated[str, ApiDescription("Name of the Sentry App")]
+    slug: Annotated[str, ApiDescription("Slug of the Sentry App")]
+    avatars: Annotated[
+        list[SentryAppAvatarSerializerResponse], ApiDescription("Avatars of the Sentry App")
+    ]
+
+
+class ResolvedMention(TypedDict):
+    """A Sentry user @mentioned by an activity, resolved from the stored id ref."""
+
+    name: Annotated[str, ApiDescription("Display name of the mentioned user")]
+    email: Annotated[Email, ApiDescription("Email of the mentioned user")]
+    username: Annotated[str, ApiDescription("Username of the mentioned user")]
 
 
 class ActivitySerializerResponse(TypedDict):
-    # Byte-identical envelope of ActivitySerializer.serialize() — always these six keys.
-    id: str
-    # The serialized acting user (a user serializer response), or null for
-    # system/integration activity. Left loose: the full user shape is out of scope.
-    user: dict[str, Any] | None
-    sentry_app: _ActivitySentryAppEmbed | None
-    type: str
-    # Polymorphic by activity type (note text, commit, pull request, unmerge
-    # fingerprints + source/destination, ...). Loose by design — describing every
-    # variant is out of scope.
-    data: dict[str, Any]
-    dateCreated: datetime
+    """
+    Matches the envelope of ActivitySerializer.serialize(). In an issue's activity feed, the
+    API schema is the union in activity_response_schemas, which pins `data` down for each
+    `type`.
+    """
+
+    id: Annotated[
+        str, ApiDescription("ID of the activity, or 0 for a first-seen item built from the issue")
+    ]
+    commentId: Annotated[
+        str | None,
+        ApiDescription("ID to pass to the notes endpoints for a comment, otherwise null"),
+    ]
+    user: Annotated[
+        UserSerializerResponse | None,
+        ApiDescription("User who acted, or null for Sentry, an integration or a Sentry App"),
+    ]
+    sentry_app: Annotated[
+        _ActivitySentryAppEmbed | None, ApiDescription("Sentry App that acted, if one did")
+    ]
+    type: Annotated[str, ApiDescription("Type of the activity, which decides the shape of data")]
+    data: Annotated[
+        dict[str, object], ApiDescription("Details of the activity, which depend on type")
+    ]
+    dateCreated: Annotated[datetime, ApiDescription("When the activity happened (ISO 8601)")]
+
+
+class GroupNoteSerializerResponse(ActivitySerializerResponse):
+    source: str | None
+
+
+def serialize_activity_source(source: str | None) -> str | None:
+    """Normalize historical MCP client name."""
+    if source is None:
+        return None
+    prefix, sep, family = source.partition(":")
+    if sep and prefix == ActionSource.MCP and family in LEGACY_MCP_CLIENT_FAMILY_ALIASES:
+        return f"{prefix}:{LEGACY_MCP_CLIENT_FAMILY_ALIASES[family]}"
+    return source
+
+
+def serialize_group_notes(
+    group: Group,
+    notes: Sequence[Activity],
+    user: RequestPrincipal | None,
+    *,
+    resolve_mentions: bool = False,
+) -> list[GroupNoteSerializerResponse]:
+    if not notes:
+        return []
+
+    # Activity owns current comment state. GAL only supplies source metadata.
+    # Merged entries can retain their original project_id, so scope by group.
+    sources = dict(
+        GroupActionLogEntry.objects.filter(
+            group_id=group.id,
+            type=GroupActionType.COMMENT.value,
+            idempotency_key__in=[activity_action_idempotency_key(note) for note in notes],
+        ).values_list("idempotency_key", "source")
+    )
+    serialized_notes: list[ActivitySerializerResponse] = serialize(
+        list(notes), user, serializer=ActivitySerializer(resolve_mentions=resolve_mentions)
+    )
+    return [
+        {
+            **item,
+            "data": {**item["data"], "comment_id": note.id},
+            "source": serialize_activity_source(sources.get(activity_action_idempotency_key(note))),
+        }
+        for note, item in zip(notes, serialized_notes)
+    ]
 
 
 COMMIT_ACTIVITY_TYPES = {
@@ -45,18 +130,72 @@ COMMIT_ACTIVITY_TYPES = {
     ActivityType.REFERENCED_IN_COMMIT.value,
 }
 
+ACTIVITY_TYPES_WITH_COMMIT_DATA = {
+    *COMMIT_ACTIVITY_TYPES,
+    ActivityType.SET_RESOLVED_IN_RELEASE.value,
+}
+
 PULL_REQUEST_ACTIVITY_TYPES = {
     ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
     ActivityType.PULL_REQUEST_CLOSED.value,
+    ActivityType.PULL_REQUEST_REOPENED.value,
+    ActivityType.PULL_REQUEST_MERGED.value,
+    ActivityType.PULL_REQUEST_UNLINKED.value,
 }
+
+
+def _resolve_mentioned_users(
+    activities: Sequence[Activity],
+) -> dict[ActivityId, list[ResolvedMention]]:
+    """The Sentry users each activity @mentions, keyed by activity id, resolved in one batch.
+
+    Returns shape:
+    { activity.id: [{ "name": "David Cramer", "email": "david@sentry.io", "username": "dcramer"}] }
+    """
+    activity_to_user_ids = {
+        activity.id: [
+            mention["id"]
+            for mention in (activity.data or {}).get("mentions") or []
+            if isinstance(mention, dict) and mention.get("actor_type") == "User"
+        ]
+        for activity in activities
+        if activity.type == ActivityType.NOTE.value
+    }
+    all_user_ids = {user_id for ids in activity_to_user_ids.values() for user_id in ids}
+    if not all_user_ids:
+        return {}
+
+    users = {u.id: u for u in user_service.get_many_by_id(ids=list(all_user_ids))}
+    return {
+        activity_id: [
+            {
+                "name": user.get_display_name(),
+                "email": email_address(user.email),
+                "username": user.username,
+            }
+            for user_id in user_ids
+            if (user := users.get(user_id))
+        ]
+        for activity_id, user_ids in activity_to_user_ids.items()
+    }
 
 
 @register(Activity)
 class ActivitySerializer(Serializer):
-    def __init__(self, environment_func=None):
+    def __init__(
+        self,
+        environment_func: Callable[[], Environment | None] | None = None,
+        resolve_mentions: bool = False,
+    ) -> None:
         self.environment_func = environment_func
+        self.resolve_mentions = resolve_mentions
 
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[Activity],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> dict[Activity, dict[str, object]]:
         from sentry.api.serializers.models.group import GroupSerializer
 
         # TODO(dcramer); assert on relations
@@ -84,7 +223,11 @@ class ActivitySerializer(Serializer):
             if app.proxy_user_id
         }
 
-        commit_ids = {i.data["commit"] for i in item_list if i.type in COMMIT_ACTIVITY_TYPES}
+        commit_ids = {
+            i.data["commit"]
+            for i in item_list
+            if i.type in ACTIVITY_TYPES_WITH_COMMIT_DATA and i.data and i.data.get("commit")
+        }
         if commit_ids:
             commit_list = list(Commit.objects.filter(id__in=commit_ids))
             commits_by_id = {
@@ -97,7 +240,7 @@ class ActivitySerializer(Serializer):
             commits = {
                 i: commits_by_id.get(i.data["commit"])
                 for i in item_list
-                if i.type in COMMIT_ACTIVITY_TYPES
+                if i.type in ACTIVITY_TYPES_WITH_COMMIT_DATA and i.data and i.data.get("commit")
             }
         else:
             commits = {}
@@ -134,10 +277,15 @@ class ActivitySerializer(Serializer):
             ).items()
         }
 
+        mentions: dict[ActivityId, list[ResolvedMention]] = (
+            _resolve_mentioned_users(item_list) if self.resolve_mentions else {}
+        )
+
         return {
             item: {
                 "user": users.get(str(item.user_id)) if item.user_id else None,
                 "sentry_app": sentry_apps.get(str(item.user_id)) if item.user_id else None,
+                "mentions": mentions.get(item.id) or [],
                 "source": (
                     groups.get(item.data["source_id"])
                     if item.type == ActivityType.UNMERGE_DESTINATION.value
@@ -154,8 +302,20 @@ class ActivitySerializer(Serializer):
             for item in item_list
         }
 
-    def serialize(self, obj: Activity, attrs, user, **kwargs):
-        if obj.type in COMMIT_ACTIVITY_TYPES:
+    def serialize(
+        self,
+        obj: Activity,
+        attrs: Mapping[str, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> ActivitySerializerResponse:
+        if (
+            obj.type == ActivityType.SET_RESOLVED_IN_RELEASE.value
+            and obj.data
+            and obj.data.get("commit")
+        ):
+            data = {**obj.data, "commit": attrs["commit"]}
+        elif obj.type in COMMIT_ACTIVITY_TYPES:
             data = {"commit": attrs["commit"]}
         elif obj.type in PULL_REQUEST_ACTIVITY_TYPES:
             data = {"pullRequest": attrs["pull_request"]}
@@ -163,18 +323,23 @@ class ActivitySerializer(Serializer):
             data = {"fingerprints": obj.data["fingerprints"], "source": attrs["source"]}
         elif obj.type == ActivityType.UNMERGE_SOURCE.value:
             data = {"fingerprints": obj.data["fingerprints"], "destination": attrs["destination"]}
-        else:
-            data = obj.data or {}
+        elif obj.type == ActivityType.NOTE.value:
+            data = dict(obj.data or {})
             # XXX: We had a problem where Users were embedded into the mentions
             # attribute of group notes which needs to be removed
             # While group_note update has been fixed there are still many skunky comments
             # in the database.
             data.pop("mentions", None)
+            if attrs["mentions"]:
+                data["mentions"] = attrs["mentions"]
+        else:
+            data = obj.data or {}
 
         return {
             "id": str(obj.id),
-            "user": attrs["user"],
-            "sentry_app": attrs["sentry_app"],
+            "commentId": str(obj.id) if obj.type == ActivityType.NOTE.value else None,
+            "user": cast(UserSerializerResponse | None, attrs["user"]),
+            "sentry_app": cast(_ActivitySentryAppEmbed | None, attrs["sentry_app"]),
             "type": obj.get_type_display(),
             "data": data,
             "dateCreated": obj.datetime,

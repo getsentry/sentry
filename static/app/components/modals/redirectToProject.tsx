@@ -1,10 +1,10 @@
 import {Fragment, useEffect, useState} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
@@ -46,8 +46,8 @@ function RedirectToProjectModal({slug, Header, Body}: Props) {
       <Header>{t('Redirecting to New Project...')}</Header>
 
       <Body>
-        <Flex direction="column" gap="lg">
-          <Flex direction="column" gap="sm">
+        <Stack gap="lg">
+          <Stack gap="sm">
             <Text>{t('The project slug has been changed.')}</Text>
             <Text variant="muted">
               {tct(
@@ -58,13 +58,13 @@ function RedirectToProjectModal({slug, Header, Body}: Props) {
                 }
               )}
             </Text>
-          </Flex>
+          </Stack>
           <Flex justify="end">
             <LinkButton variant="primary" href={newPath}>
               {t('Continue to %s', slug)}
             </LinkButton>
           </Flex>
-        </Flex>
+        </Stack>
       </Body>
     </Fragment>
   );

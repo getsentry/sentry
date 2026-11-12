@@ -1,11 +1,6 @@
-import abc
-from collections.abc import Sequence
-from datetime import datetime
 from typing import TypedDict
 
-from sentry.rules.base import EventState, RuleBase
-from sentry.services.eventstore.models import GroupEvent
-from sentry.types.condition_activity import ConditionActivity
+from sentry.rules.base import RuleBase
 
 
 class GenericCondition(TypedDict):
@@ -14,14 +9,5 @@ class GenericCondition(TypedDict):
     id: str
 
 
-class EventCondition(RuleBase, abc.ABC):
+class EventCondition(RuleBase):
     rule_type = "condition/event"
-
-    @abc.abstractmethod
-    def passes(self, event: GroupEvent, state: EventState) -> bool:
-        pass
-
-    def get_activity(
-        self, start: datetime, end: datetime, limit: int
-    ) -> Sequence[ConditionActivity]:
-        raise NotImplementedError

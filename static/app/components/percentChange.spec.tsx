@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {PercentChange} from 'sentry/components/percentChange';
+import {PercentChange} from './percentChange';
 
 describe('PercentChange', () => {
   it('renders negative percent change', () => {
@@ -22,7 +22,7 @@ describe('PercentChange', () => {
   });
 
   it('respects preferred positive polarity', () => {
-    render(<PercentChange value={0.0552} preferredPolarity="+" />);
+    render(<PercentChange value={0.0552} />);
 
     expect(screen.getByText('+5.52%')).toHaveAttribute('data-rating', 'good');
   });

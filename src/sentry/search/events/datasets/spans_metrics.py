@@ -87,8 +87,6 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         """While the final functions in clickhouse must have their -Merge combinators in order to function, we don't
         need to add them here since snuba has a FunctionMapper that will add it for us. Basically it turns expressions
         like quantiles(0.9)(value) into quantilesMerge(0.9)(percentiles)
-        Make sure to update METRIC_FUNCTION_LIST_BY_TYPE when adding functions here, can't be a dynamic list since the
-        Metric Layer will actually handle which dataset each function goes to
         """
         resolve_metric_id = {
             "name": "metric_id",
@@ -1321,7 +1319,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             ],
         )
 
-    def _resolve_count_publish(self, args, alias):
+    def _resolve_count_publish(self, args: Mapping[str, object], alias: str | None) -> SelectType:
         op = "queue.publish"
         operation_name = "publish"
         operation_type = "create"
@@ -1337,7 +1335,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _resolve_count_process(self, args, alias):
+    def _resolve_count_process(self, args: Mapping[str, object], alias: str | None) -> SelectType:
         op = "queue.process"
         operation_name = "process"
         operation_type = "process"
@@ -1353,7 +1351,9 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _resolve_avg_if_publish(self, args, alias):
+    def _resolve_avg_if_publish(
+        self, args: Mapping[str, str | Column | SelectType], alias: str | None
+    ) -> SelectType:
         op = "queue.publish"
         operation_name = "publish"
         operation_type = "create"
@@ -1378,7 +1378,9 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _resolve_avg_if_process(self, args, alias):
+    def _resolve_avg_if_process(
+        self, args: Mapping[str, str | Column | SelectType], alias: str | None
+    ) -> SelectType:
         op = "queue.process"
         operation_name = "process"
         operation_type = "process"
@@ -1403,7 +1405,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _resolve_sum(self, metric_name: str, alias: str | None = None):
+    def _resolve_sum(self, metric_name: str, alias: str | None = None) -> SelectType:
         return Function(
             "sumIf",
             [
@@ -1419,7 +1421,9 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _resolve_avg(self, args, alias):
+    def _resolve_avg(
+        self, args: Mapping[str, str | Column | SelectType], alias: str | None
+    ) -> SelectType:
         return Function(
             "avgIf",
             [
@@ -1429,7 +1433,9 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _resolve_avg_if(self, args, alias):
+    def _resolve_avg_if(
+        self, args: Mapping[str, str | Column | SelectType], alias: str | None
+    ) -> SelectType:
         return Function(
             "avgIf",
             [
@@ -1507,7 +1513,9 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _resolve_avg_compare(self, args, alias):
+    def _resolve_avg_compare(
+        self, args: Mapping[str, str | Column | SelectType], alias: str | None
+    ) -> SelectType:
         return function_aliases.resolve_avg_compare(self.builder.column, args, alias)
 
     def _resolve_trace_status_count(

@@ -3,17 +3,18 @@ from __future__ import annotations
 import logging
 import re
 import sys
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from operator import attrgetter
-from typing import Any, NoReturn, TypedDict
+from typing import Any, NamedTuple, NoReturn, TypedDict, cast
 
-import orjson
 import sentry_sdk
 from django.conf import settings
 from django.core.signing import BadSignature, SignatureExpired
+from django.db import router, transaction
 from django.db.models import QuerySet
 from django.http.request import HttpRequest
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.functional import classproperty
 from django.utils.translation import gettext as _
 from rest_framework import serializers
@@ -21,6 +22,8 @@ from rest_framework.fields import CharField
 
 from sentry import features
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
+from sentry.auth.principal import RequestPrincipal
+from sentry.constants import ObjectStatus
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -29,21 +32,26 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.jira.models.create_issue_metadata import JiraIssueTypeMetadata
-from sentry.integrations.jira.tasks import migrate_issues
 from sentry.integrations.jira.views import SALT
 from sentry.integrations.mixins.issues import (
     MAX_CHAR,
     IntegrationSyncTargetNotFound,
+    IssuePayload,
     IssueSyncIntegration,
     ResolveSyncAction,
 )
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.types import IntegrationIssueConfigField, IntegrationProviderSlug
+from sentry.integrations.utils.external_issue_key import PROVIDER_ISSUE_ID_KEY
+from sentry.integrations.utils.issue_url import parse_issue_url
+from sentry.integrations.utils.jira import parse_jira_issue_key
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.pipeline.types import PipelineStepResult
 from sentry.pipeline.views.base import ApiPipelineSteps
@@ -60,7 +68,6 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.silo.base import all_silo_function
 from sentry.users.models.identity import Identity
-from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.signing import unsign
@@ -149,6 +156,82 @@ CUSTOM_ERROR_MESSAGE_MATCHERS = [
 HIDDEN_ISSUE_FIELDS = ["issuelinks"]
 
 MAX_PER_PROJECT_QUERIES = 10
+_EXPLICIT_MAPPING_REMOVALS_FEATURE = "organizations:jira-explicit-mapping-removals"
+
+
+class _ProjectStatusMapping(TypedDict):
+    on_resolve: str
+    on_unresolve: str
+
+
+class _ProjectMappingDiff(NamedTuple):
+    upserts: dict[str, _ProjectStatusMapping]
+    removals: set[str]
+
+
+class _ProjectMappingAuditData(TypedDict):
+    added_count: int
+    updated_count: int
+    removed_count: int
+    added_project_mappings: list[dict[str, object]]
+    updated_project_mappings: list[dict[str, object]]
+    removed_project_mappings: list[dict[str, object]]
+
+
+def _stored_statuses(iep: IntegrationExternalProject) -> _ProjectStatusMapping:
+    """A stored mapping's statuses, in the same shape as the `sync_status_forward` payload."""
+    return {"on_resolve": iep.resolved_status, "on_unresolve": iep.unresolved_status}
+
+
+def _build_project_mapping_audit_data(
+    *,
+    additions: Sequence[str],
+    updates: Sequence[str],
+    removals: Sequence[str],
+    upserts: Mapping[str, _ProjectStatusMapping],
+    existing: Mapping[str, _ProjectStatusMapping],
+) -> _ProjectMappingAuditData | None:
+    if not additions and not updates and not removals:
+        return None
+
+    return {
+        "added_count": len(additions),
+        "updated_count": len(updates),
+        "removed_count": len(removals),
+        "added_project_mappings": [
+            {
+                "external_id": external_id,
+                "on_resolve": upserts[external_id]["on_resolve"],
+                "on_unresolve": upserts[external_id]["on_unresolve"],
+            }
+            for external_id in additions
+        ],
+        "updated_project_mappings": [
+            {
+                "external_id": external_id,
+                "on_resolve": upserts[external_id]["on_resolve"],
+                "on_unresolve": upserts[external_id]["on_unresolve"],
+                "previous_on_resolve": existing[external_id]["on_resolve"],
+                "previous_on_unresolve": existing[external_id]["on_unresolve"],
+            }
+            for external_id in updates
+        ],
+        "removed_project_mappings": [
+            {
+                "external_id": external_id,
+                "on_resolve": existing[external_id]["on_resolve"],
+                "on_unresolve": existing[external_id]["on_unresolve"],
+            }
+            for external_id in removals
+        ],
+    }
+
+
+class _MappingReconcileResult(NamedTuple):
+    # Detail for the audit log entry, or `None` when the payload asked for nothing at all.
+    audit: _ProjectMappingAuditData | None
+    # How many mappings left, used to see if we should turn off sync_status_forward.
+    remaining_count: int
 
 
 class JiraProjectMapping(TypedDict):
@@ -166,7 +249,7 @@ class JiraIntegration(IssueSyncIntegration):
     comment_key = "sync_comments"
 
     @classproperty
-    def use_email_scope(cls):
+    def use_email_scope(cls) -> bool:
         return settings.JIRA_USE_EMAIL_SCOPE
 
     def get_organization_config(self) -> list[dict[str, Any]]:
@@ -181,12 +264,40 @@ class JiraIntegration(IssueSyncIntegration):
                     JiraProjectMapping(value=p["id"], label=p["name"])
                     for p in projects_response.get("values", [])
                 ]
+                fetched_ids = {project["value"] for project in projects}
+
+                # For saved config mappings we need to fetch the project name if it's not already in the list
+                saved_ids_to_fetch = [
+                    external_id
+                    for external_id in self._get_configured_external_ids()
+                    if external_id not in fetched_ids
+                ]
+                if saved_ids_to_fetch:
+                    try:
+                        supplemental = client.get_projects_paginated(
+                            params={"id": saved_ids_to_fetch, "maxResults": len(saved_ids_to_fetch)}
+                        )
+                        projects.extend(
+                            JiraProjectMapping(value=p["id"], label=p["name"])
+                            for p in supplemental.get("values", [])
+                        )
+                    except ApiError:
+                        logger.info(
+                            "jira.get-organization-config.supplemental-fetch-failed",
+                            extra={
+                                "org_id": self.organization_id,
+                                "integration_id": self.model.id,
+                            },
+                        )
             else:
                 projects = [
                     JiraProjectMapping(value=p["id"], label=p["name"])
                     for p in client.get_projects_list()
                 ]
-            self._set_status_choices_in_organization_config(configuration, projects)
+            if features.has("organizations:jira-lazy-status-sync", self.organization):
+                configuration[0].update(self._get_lazy_status_config())
+            else:
+                self._set_status_choices_in_organization_config(configuration, projects)
             configuration[0]["addDropdown"]["items"] = projects
         except ApiError:
             configuration[0]["disabled"] = True
@@ -203,6 +314,13 @@ class JiraIntegration(IssueSyncIntegration):
                 )
 
         return configuration
+
+    def _get_configured_external_ids(self) -> list[str]:
+        return list(
+            IntegrationExternalProject.objects.filter(
+                organization_integration_id=self.org_integration.id
+            ).values_list("external_id", flat=True)
+        )
 
     def _set_status_choices_in_organization_config(
         self, configuration: list[dict[str, Any]], jira_projects: list[JiraProjectMapping]
@@ -262,6 +380,35 @@ class JiraIntegration(IssueSyncIntegration):
         }
 
         return configuration
+
+    def _get_lazy_status_config(self) -> dict[str, Any]:
+        """
+        Pre-load statuses only for already-configured projects.
+        """
+        client = self.get_client()
+
+        mapped_selectors: dict[str, Any] = {}
+        for external_id in self._get_configured_external_ids():
+            try:
+                project_statuses = client.get_project_statuses(external_id, paginate=True).get(
+                    "values", []
+                )
+            except ApiError:
+                continue
+            statuses = [(c["id"], c["name"]) for c in project_statuses]
+            mapped_selectors[external_id] = {
+                "on_resolve": {"choices": statuses},
+                "on_unresolve": {"choices": statuses},
+            }
+
+        return {
+            "mappedSelectors": mapped_selectors,
+            "perItemMapping": True,
+            "statusUrl": reverse(
+                "sentry-extensions-jira-search",
+                args=[self.organization.slug, self.model.id],
+            ),
+        }
 
     def _get_organization_config_default_values(self) -> list[dict[str, Any]]:
         return [
@@ -345,34 +492,35 @@ class JiraIntegration(IssueSyncIntegration):
             },
         ]
 
-    def update_organization_config(self, data):
+    def update_organization_config(
+        self, data: MutableMapping[str, Any]
+    ) -> Mapping[str, Any] | None:
         """
         Update the configuration field for an organization integration.
+
+        With explicit removals enabled, an object upserts, `null` removes, and absence is a
+        no-op. Otherwise, the payload replaces all stored project mappings.
         """
         config = self.org_integration.config
+        audit_data: dict[str, Any] = {}
 
-        if "sync_status_forward" in data:
-            project_mappings = data.pop("sync_status_forward")
+        if self.outbound_status_key in data:
+            supports_explicit_removals = features.has(
+                _EXPLICIT_MAPPING_REMOVALS_FEATURE, self.organization
+            )
+            raw_project_mappings = data.pop(self.outbound_status_key)
+            mapping_diff = self._validate_project_status_mapping_diff(
+                raw_project_mappings,
+                allow_explicit_removals=supports_explicit_removals,
+            )
+            result = self._reconcile_project_status_mappings(
+                mapping_diff,
+                remove_omitted=not supports_explicit_removals,
+            )
+            if result.audit is not None:
+                audit_data[self.outbound_status_key] = result.audit
 
-            if any(
-                not mapping["on_unresolve"] or not mapping["on_resolve"]
-                for mapping in project_mappings.values()
-            ):
-                raise IntegrationError("Resolve and unresolve status are required.")
-
-            data["sync_status_forward"] = bool(project_mappings)
-
-            IntegrationExternalProject.objects.filter(
-                organization_integration_id=self.org_integration.id
-            ).delete()
-
-            for project_id, statuses in project_mappings.items():
-                IntegrationExternalProject.objects.create(
-                    organization_integration_id=self.org_integration.id,
-                    external_id=project_id,
-                    resolved_status=statuses["on_resolve"],
-                    unresolved_status=statuses["on_unresolve"],
-                )
+            data[self.outbound_status_key] = result.remaining_count > 0
 
         if self.issues_ignored_fields_key in data:
             ignored_fields_text = data.pop(self.issues_ignored_fields_key)
@@ -395,7 +543,11 @@ class JiraIntegration(IssueSyncIntegration):
         if org_integration is not None:
             self.org_integration = org_integration
 
-    def _filter_active_projects(self, project_mappings: QuerySet[IntegrationExternalProject]):
+        return audit_data or None
+
+    def _filter_active_projects(
+        self, project_mappings: QuerySet[IntegrationExternalProject]
+    ) -> list[IntegrationExternalProject]:
         client = self.get_client()
         if features.has("organizations:jira-paginated-project-config", self.organization):
             project_ids = [pm.external_id for pm in project_mappings]
@@ -410,52 +562,215 @@ class JiraIntegration(IssueSyncIntegration):
         project_ids_set = {p["id"] for p in client.get_projects_list()}
         return [pm for pm in project_mappings if pm.external_id in project_ids_set]
 
-    def get_config_data(self):
-        config = self.org_integration.config
-        project_mappings = IntegrationExternalProject.objects.filter(
+    @staticmethod
+    def _validate_project_status_mapping_diff(
+        project_mappings: object,
+        allow_explicit_removals: bool,
+    ) -> _ProjectMappingDiff:
+        """
+        Validate and normalize the `sync_status_forward` payload into a mapping diff.
+
+        With explicit removals, keyed by Jira project id: an object upserts and `null` value removes.
+        Otherwise, keyed by Jira project id: an object upserts and absence deletes.
+        """
+        # Since the parent endpoint doesn't have a validator we have a guard
+        if not isinstance(project_mappings, Mapping):
+            raise IntegrationError("Sync Sentry Status to Jira must be a mapping of projects.")
+
+        upserts: dict[str, _ProjectStatusMapping] = {}
+        removals: set[str] = set()
+
+        for raw_external_id, statuses in project_mappings.items():
+            external_id = str(raw_external_id).strip()
+            if not external_id:
+                raise IntegrationError("A Jira project is required for each status mapping.")
+            if external_id in upserts or external_id in removals:
+                raise IntegrationError(
+                    f"Jira project {external_id} appears more than once in the status mappings."
+                )
+
+            if statuses is None:
+                if not allow_explicit_removals:
+                    raise IntegrationError("Resolve and unresolve status are required.")
+                removals.add(external_id)
+                continue
+
+            if not isinstance(statuses, Mapping) or not (
+                statuses.get("on_resolve") and statuses.get("on_unresolve")
+            ):
+                raise IntegrationError("Resolve and unresolve status are required.")
+
+            upserts[external_id] = {
+                "on_resolve": str(statuses["on_resolve"]),
+                "on_unresolve": str(statuses["on_unresolve"]),
+            }
+
+        return _ProjectMappingDiff(upserts=upserts, removals=removals)
+
+    def _reconcile_project_status_mappings(
+        self,
+        mapping_diff: _ProjectMappingDiff,
+        remove_omitted: bool,
+    ) -> _MappingReconcileResult:
+        """
+        Apply a mapping diff to create/update/delete `IntegrationExternalProject` rows.
+
+        Omitted mappings are removed in legacy replacement mode and preserved when explicit
+        removals are enabled. Returns the audit detail for the change plus the number of mappings
+        left behind, which is what the config bool is derived from.
+        """
+        upserts = mapping_diff.upserts
+        requested_removals = mapping_diff.removals
+
+        with transaction.atomic(router.db_for_write(IntegrationExternalProject)):
+            existing = {
+                iep.external_id: iep
+                for iep in IntegrationExternalProject.objects.filter(
+                    organization_integration_id=self.org_integration.id
+                )
+            }
+            existing_statuses = {
+                external_id: _stored_statuses(iep) for external_id, iep in existing.items()
+            }
+
+            if remove_omitted:
+                removals = [external_id for external_id in existing if external_id not in upserts]
+            else:
+                removals = [
+                    external_id for external_id in requested_removals if external_id in existing
+                ]
+            additions = [external_id for external_id in upserts if external_id not in existing]
+            updates = [
+                external_id
+                for external_id in upserts
+                if external_id in existing
+                and existing_statuses[external_id] != upserts[external_id]
+            ]
+
+            # only used for tracking rollout of feature
+            omitted_count = (
+                0
+                if remove_omitted
+                else sum(
+                    external_id not in upserts and external_id not in requested_removals
+                    for external_id in existing
+                )
+            )
+
+            # Built before the writes below, while the existing rows still hold their prior
+            # statuses, so a mapping removed or overwritten by mistake can be rebuilt from this.
+            audit_data = _build_project_mapping_audit_data(
+                additions=additions,
+                updates=updates,
+                removals=removals,
+                upserts=upserts,
+                existing=existing_statuses,
+            )
+
+            if removals:
+                IntegrationExternalProject.objects.filter(
+                    id__in=[existing[external_id].id for external_id in removals]
+                ).delete()
+
+            if additions:
+                IntegrationExternalProject.objects.bulk_create(
+                    IntegrationExternalProject(
+                        organization_integration_id=self.org_integration.id,
+                        external_id=external_id,
+                        resolved_status=upserts[external_id]["on_resolve"],
+                        unresolved_status=upserts[external_id]["on_unresolve"],
+                    )
+                    for external_id in additions
+                )
+
+            if updates:
+                now = timezone.now()
+                for external_id in updates:
+                    iep = existing[external_id]
+                    iep.resolved_status = upserts[external_id]["on_resolve"]
+                    iep.unresolved_status = upserts[external_id]["on_unresolve"]
+                    iep.date_updated = now
+                IntegrationExternalProject.objects.bulk_update(
+                    [existing[external_id] for external_id in updates],
+                    ["resolved_status", "unresolved_status", "date_updated"],
+                )
+
+            remaining_count = len(existing) - len(removals) + len(additions)
+
+        if omitted_count:
+            # only used for tracking rollout of feature
+            logger.info(
+                "jira.sync_status_forward.omits_existing_mappings",
+                extra={
+                    "organization_id": self.organization_id,
+                    "integration_id": self.model.id,
+                    "omitted_count": omitted_count,
+                    "upsert_count": len(upserts),
+                    "removal_count": len(requested_removals),
+                },
+            )
+
+        return _MappingReconcileResult(audit=audit_data, remaining_count=remaining_count)
+
+    def get_config_data(self) -> Mapping[str, Any]:
+        # Copied because the mapping dict assembled below is only for the response; the stored
+        # value of this key is a bool.
+        config = dict(self.org_integration.config)
+        project_mappings_query = IntegrationExternalProject.objects.filter(
             organization_integration_id=self.org_integration.id
         )
+        project_mappings: Iterable[IntegrationExternalProject] = project_mappings_query
         sync_status_forward = {}
 
-        project_mappings = self._filter_active_projects(project_mappings)
+        try:
+            project_mappings = self._filter_active_projects(project_mappings_query)
+        except ApiError as e:
+            logger.info(
+                "jira.get-config-data.filter-active-projects-failed",
+                extra={
+                    "org_id": self.organization_id,
+                    "integration_id": self.model.id,
+                    "error": str(e),
+                },
+            )
 
         for pm in project_mappings:
             sync_status_forward[pm.external_id] = {
                 "on_unresolve": pm.unresolved_status,
                 "on_resolve": pm.resolved_status,
             }
-        config["sync_status_forward"] = sync_status_forward
+        config[self.outbound_status_key] = sync_status_forward
         config[self.issues_ignored_fields_key] = ", ".join(
             config.get(self.issues_ignored_fields_key, "")
         )
         return config
 
-    def sync_metadata(self):
+    def sync_metadata(self) -> None:
         client = self.get_client()
 
-        server_info = {}
-        projects = []
         try:
             server_info = client.get_server_info()
             projects = client.get_projects_list()
         except ApiError as e:
             raise IntegrationError(self.message_from_error(e))
 
-        metadata = self.model.metadata.copy()
         name = server_info["serverTitle"]
 
-        # There is no Jira instance icon (there is a favicon, but it doesn't seem
-        # possible to query that with the API). So instead we just use the first
-        # project Icon.
-        if len(projects) > 0:
-            avatar = projects[0]["avatarUrls"]["48x48"]
-            metadata.update({"icon": avatar})
+        # Only the name and icon change here. Other writers store keys in the same
+        # metadata while the calls above run, so merge into the current row under a lock.
+        with transaction.atomic(router.db_for_write(Integration)):
+            integration = Integration.objects.select_for_update().get(id=self.model.id)
+            metadata = dict(integration.metadata)
+            # There is no Jira instance icon (there is a favicon, but it doesn't seem
+            # possible to query that with the API). So instead we just use the first
+            # project Icon.
+            if len(projects) > 0:
+                metadata["icon"] = projects[0]["avatarUrls"]["48x48"]
+            integration.update(name=name, metadata=metadata, date_updated=timezone.now())
 
-        integration_service.update_integration(
-            integration_id=self.model.id, name=name, metadata=metadata
-        )
-
-    def get_link_issue_config(self, group, **kwargs):
+    def get_link_issue_config(
+        self, group: Group, **kwargs: object
+    ) -> list[IntegrationIssueConfigField]:
         fields = super().get_link_issue_config(group, **kwargs)
         org = group.organization
         autocomplete_url = reverse("sentry-extensions-jira-search", args=[org.slug, self.model.id])
@@ -471,11 +786,12 @@ class JiraIntegration(IssueSyncIntegration):
     def get_persisted_default_config_fields(self) -> Sequence[str]:
         return ["project", "issuetype", "priority", "labels"]
 
-    def get_persisted_user_default_config_fields(self):
+    def get_persisted_user_default_config_fields(self) -> list[str]:
         return ["reporter"]
 
-    def get_persisted_ignored_fields(self):
-        return self.org_integration.config.get(self.issues_ignored_fields_key, [])
+    def get_persisted_ignored_fields(self) -> list[str]:
+        ignored = self.org_integration.config.get(self.issues_ignored_fields_key, [])
+        return ignored
 
     def get_feedback_issue_body(self, occurrence: IssueOccurrence) -> str:
         messages = [
@@ -495,17 +811,21 @@ class JiraIntegration(IssueSyncIntegration):
 
         return body.rstrip("\n")  # remove the last new line
 
-    def get_generic_issue_body(self, event):
+    def get_generic_issue_body(self, event: GroupEvent) -> str:
+        occurrence = event.occurrence
+        assert occurrence is not None
         body = ""
-        important = event.occurrence.important_evidence_display
+        important = occurrence.important_evidence_display
         if important:
             body = f"| *{important.name}* | {truncatechars(important.value, MAX_CHAR)} |\n"
-        for evidence in event.occurrence.evidence_display:
+        for evidence in occurrence.evidence_display:
             if evidence.important is False:
                 body += f"| *{evidence.name}* | {truncatechars(evidence.value, MAX_CHAR)} |\n"
         return body[:-2]  # chop off final newline
 
-    def get_group_description(self, group, event, **kwargs):
+    def get_group_description(
+        self, group: Group, event: GroupEvent | None, **kwargs: object
+    ) -> str:
         output = []
         if group.issue_category == GroupCategory.FEEDBACK:
             output = [
@@ -535,7 +855,7 @@ class JiraIntegration(IssueSyncIntegration):
                 output.extend(["", "{code}", body, "{code}"])
         return "\n".join(output)
 
-    def get_client(self):
+    def get_client(self) -> JiraCloudClient:
         logging_context = {"org_id": self.organization_id}
 
         if self.organization_id is not None:
@@ -551,13 +871,21 @@ class JiraIntegration(IssueSyncIntegration):
     def _get_debug_metadata_keys(self) -> list[str]:
         return ["base_url", "domain_name"]
 
-    def get_issue(self, issue_id, **kwargs):
+    def get_issue_link_data(self, url: str) -> dict[str, str]:
+        base_url = self.model.metadata["base_url"]
+        parse_issue_url(url)
+        key = parse_jira_issue_key(url, base_url)
+        if key is None:
+            raise IntegrationFormError({"externalIssue": "Invalid Jira issue URL"})
+        return {"externalIssue": key.upper()}
+
+    def get_issue(self, issue_id: str | int, **kwargs: object) -> IssuePayload:
         """
         Jira installation's implementation of IssueSyncIntegration's `get_issue`.
         """
         client = self.get_client()
         try:
-            issue = client.get_issue(issue_id)
+            issue = client.get_issue(cast(str, issue_id))
         except ApiError as e:
             self.raise_error(e)
 
@@ -566,9 +894,11 @@ class JiraIntegration(IssueSyncIntegration):
             "key": issue_id,
             "title": fields.get("summary"),
             "description": fields.get("description"),
+            # Jira reassigns the key when an issue moves projects; the id never changes.
+            "metadata": {PROVIDER_ISSUE_ID_KEY: issue.get("id")},
         }
 
-    def create_comment(self, issue_id, user_id, group_note):
+    def create_comment(self, issue_id: str, user_id: int, group_note: Activity) -> IssuePayload:
         # https://jira.atlassian.com/secure/WikiRendererHelpAction.jspa?section=texteffects
         comment = group_note.data["text"]
         quoted_comment = self.create_comment_attribution(user_id, comment)
@@ -583,14 +913,16 @@ class JiraIntegration(IssueSyncIntegration):
                 "There was an error creating a comment on the Jira issue."
             ) from e
 
-    def create_comment_attribution(self, user_id, comment_text):
+    def create_comment_attribution(self, user_id: int, comment_text: str) -> str:
         user = user_service.get_user(user_id=user_id)
         username = "Unknown User" if user is None else user.name
 
         attribution = f"{username} wrote:\n\n"
         return f"{attribution}{{quote}}{comment_text}{{quote}}"
 
-    def update_comment(self, issue_id, user_id, group_note):
+    def update_comment(
+        self, issue_id: str, user_id: int, group_note: Activity
+    ) -> IssuePayload | None:
         quoted_comment = self.create_comment_attribution(user_id, group_note.data["text"])
         try:
             return self.get_client().update_comment(
@@ -605,15 +937,15 @@ class JiraIntegration(IssueSyncIntegration):
                 "There was an error updating a comment on the Jira issue."
             ) from e
 
-    def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
+    def search_issues(self, query: str | None, **kwargs: object) -> dict[str, Any]:
         try:
-            resp = self.get_client().search_issues(query)
+            resp = self.get_client().search_issues(cast(str, query))
             assert isinstance(resp, dict)
             return resp
         except ApiError as e:
             self.raise_error(e)
 
-    def make_choices(self, values):
+    def make_choices(self, values: Sequence[Mapping[str, Any]]) -> list[tuple[str | int, str]]:
         if not values:
             return []
         results = []
@@ -631,27 +963,29 @@ class JiraIntegration(IssueSyncIntegration):
                 value = item["label"]
             else:
                 continue
-            results.append((key, value))
+            # Jira gives every allowed value that has a name an ID.
+            results.append((cast("str | int", key), cast("str", value)))
         return results
 
-    def error_message_from_json(self, data):
+    def error_message_from_json(self, data: Mapping[str, Any]) -> str:
         message = ""
         if data.get("errorMessages"):
             message = " ".join(data["errorMessages"])
-        if data.get("errors"):
+        errors = data.get("errors")
+        if errors:
             if message:
                 message += " "
-            message += " ".join(f"{k}: {v}" for k, v in data.get("errors").items())
+            message += " ".join(f"{k}: {v}" for k, v in errors.items())
         return message
 
-    def error_fields_from_json(self, data):
+    def error_fields_from_json(self, data: Mapping[str, Any]) -> dict[str, list[Any]] | None:
         errors = data.get("errors")
         error_messages = data.get("errorMessages")
 
         if not errors and not error_messages:
             return None
 
-        error_data = {}
+        error_data: dict[str, list[Any]] = {}
         if error_messages:
             # These may or may not contain field specific errors, so we manually
             # map them
@@ -661,7 +995,7 @@ class JiraIntegration(IssueSyncIntegration):
                         error_data[key] = [message]
 
         if errors:
-            for key, error in data.get("errors").items():
+            for key, error in (errors or {}).items():
                 error_data[key] = [error]
 
         if not error_data:
@@ -669,13 +1003,15 @@ class JiraIntegration(IssueSyncIntegration):
 
         return error_data
 
-    def search_url(self, org_slug):
+    def search_url(self, org_slug: str) -> str:
         """
         Hook method that varies in Jira Server
         """
         return reverse("sentry-extensions-jira-search", args=[org_slug, self.model.id])
 
-    def build_dynamic_field(self, field_meta, group=None):
+    def build_dynamic_field(
+        self, field_meta: Mapping[str, Any], group: Group | None = None
+    ) -> dict[str, Any] | None:
         """
         Builds a field based on Jira's meta field information
         """
@@ -690,7 +1026,7 @@ class JiraIntegration(IssueSyncIntegration):
             or schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES["select"]
         ):
             fieldtype = "select"
-            fkwargs["choices"] = self.make_choices(field_meta.get("allowedValues"))
+            fkwargs["choices"] = self.make_choices(field_meta.get("allowedValues") or [])
         elif (
             # Assignee and reporter fields
             field_meta.get("autoCompleteUrl")
@@ -720,14 +1056,14 @@ class JiraIntegration(IssueSyncIntegration):
             fkwargs.update(
                 {
                     "multiple": True,
-                    "choices": self.make_choices(field_meta.get("allowedValues")),
+                    "choices": self.make_choices(field_meta.get("allowedValues") or []),
                     "default": "",
                 }
             )
         elif schema["type"] == "option" and len(field_meta.get("allowedValues", [])):
             fieldtype = "select"
             fkwargs.update(
-                {"choices": self.make_choices(field_meta.get("allowedValues")), "default": ""}
+                {"choices": self.make_choices(field_meta.get("allowedValues") or []), "default": ""}
             )
 
         # break this out, since multiple field types could additionally
@@ -739,7 +1075,7 @@ class JiraIntegration(IssueSyncIntegration):
         fkwargs["type"] = fieldtype
         return fkwargs
 
-    def get_issue_type_meta(self, issue_type, meta):
+    def get_issue_type_meta(self, issue_type: str | None, meta: dict[str, Any]) -> dict[str, Any]:
         self.parse_jira_issue_metadata(meta)
         issue_types = meta["issuetypes"]
         issue_type_meta = None
@@ -753,7 +1089,12 @@ class JiraIntegration(IssueSyncIntegration):
 
         return issue_type_meta
 
-    def get_issue_create_meta(self, client, project_id, jira_projects):
+    def get_issue_create_meta(
+        self,
+        client: JiraCloudClient,
+        project_id: str | None,
+        jira_projects: Sequence[dict[str, Any]],
+    ) -> dict[str, Any]:
         meta = None
         if project_id:
             meta = self.fetch_issue_create_meta(client, project_id)
@@ -794,7 +1135,9 @@ class JiraIntegration(IssueSyncIntegration):
             "Ensure that your project permissions are correct."
         )
 
-    def fetch_issue_create_meta(self, client, project_id):
+    def fetch_issue_create_meta(
+        self, client: JiraCloudClient, project_id: str
+    ) -> dict[str, Any] | None:
         try:
             meta = client.get_create_meta_for_project(project_id)
         except ApiUnauthorized:
@@ -822,7 +1165,9 @@ class JiraIntegration(IssueSyncIntegration):
         return meta
 
     @all_silo_function
-    def get_create_issue_config(self, group: Group | None, user: RpcUser | User, **kwargs):
+    def get_create_issue_config(
+        self, group: Group | None, user: RequestPrincipal, **kwargs: object
+    ) -> list[IntegrationIssueConfigField]:
         """
         We use the `group` to get three things: organization_slug, project
         defaults, and default title and description. In the case where we're
@@ -840,7 +1185,7 @@ class JiraIntegration(IssueSyncIntegration):
         """
         kwargs = kwargs or {}
         kwargs["link_referrer"] = "jira_integration"
-        params = kwargs.get("params", {})
+        params = cast("Mapping[str, Any]", kwargs.get("params", {}))
         fields = []
         defaults = {}
         if group:
@@ -885,7 +1230,7 @@ class JiraIntegration(IssueSyncIntegration):
             if not any(c for c in issue_type_choices if c[0] == issue_type):
                 issue_type = issue_type_meta["id"]
 
-        projects_form_field = {
+        projects_form_field: IntegrationIssueConfigField = {
             "name": "project",
             "label": "Jira Project",
             "choices": [(p["id"], f"{p['key']} - {p['name']}") for p in jira_projects],
@@ -943,7 +1288,10 @@ class JiraIntegration(IssueSyncIntegration):
                 if mb_field["label"] in params.get("ignored", []):
                     continue
                 mb_field["name"] = field
-                fields.append(mb_field)
+                # Builder keys (label/required/type + optional
+                # choices/url/multiple/default) plus the caller-set name
+                # exactly match IntegrationIssueConfigField.
+                fields.append(cast(IntegrationIssueConfigField, mb_field))
 
         for field in fields:
             if field["name"] == "priority":
@@ -982,7 +1330,7 @@ class JiraIntegration(IssueSyncIntegration):
         return fields
 
     def _clean_and_transform_issue_data(
-        self, issue_metadata: JiraIssueTypeMetadata, data: dict[str, Any]
+        self, issue_metadata: JiraIssueTypeMetadata, data: Mapping[str, Any]
     ) -> Any:
         client = self.get_client()
         transformed_data = transform_fields(
@@ -990,7 +1338,7 @@ class JiraIntegration(IssueSyncIntegration):
         )
         return transformed_data
 
-    def create_issue(self, data, **kwargs):
+    def create_issue(self, data: IssuePayload, **kwargs: object) -> IssuePayload:
         client = self.get_client()
         # protect against mis-configured integration submitting a form without an
         # issuetype assigned.
@@ -1091,6 +1439,8 @@ class JiraIntegration(IssueSyncIntegration):
                     if email and email.lower() == ue.lower():
                         jira_user = possible_user
                         break
+                if jira_user is not None:
+                    break
             if jira_user is None:
                 # TODO(jess): do we want to email people about these types of failures?
                 logger.info(
@@ -1113,7 +1463,9 @@ class JiraIntegration(IssueSyncIntegration):
                 raise IntegrationSyncTargetNotFound("No matching Jira user found.")
         try:
             id_field = client.user_id_field()
-            client.assign_issue(external_issue.key, jira_user and jira_user.get(id_field))
+            client.assign_issue(
+                external_issue.key, cast("str", jira_user and jira_user.get(id_field))
+            )
         except ApiUnauthorized as e:
             raise IntegrationConfigurationError(
                 "Insufficient permissions to assign user to the Jira issue."
@@ -1151,6 +1503,8 @@ class JiraIntegration(IssueSyncIntegration):
             "integration_id": external_issue.integration_id,
             "is_resolved": is_resolved,
             "issue_key": external_issue.key,
+            "jira_project_id": jira_project["id"],
+            "jira_project_key": jira_project.get("key"),
         }
         if not external_project:
             logger.info("jira.external-project-not-found", extra=log_context)
@@ -1181,7 +1535,7 @@ class JiraIntegration(IssueSyncIntegration):
         except ApiInvalidRequestError as e:
             self.raise_error(e)
 
-    def _get_done_statuses(self):
+    def _get_done_statuses(self) -> set[str]:
         client = self.get_client()
         statuses = client.get_valid_statuses()
         return {s["id"] for s in statuses if s["statusCategory"]["key"] == "done"}
@@ -1193,14 +1547,6 @@ class JiraIntegration(IssueSyncIntegration):
         return ResolveSyncAction.from_resolve_unresolve(
             should_resolve=c_to in done_statuses and c_from not in done_statuses,
             should_unresolve=c_from in done_statuses and c_to not in done_statuses,
-        )
-
-    def migrate_issues(self):
-        migrate_issues.apply_async(
-            kwargs={
-                "integration_id": self.model.id,
-                "organization_id": self.organization_id,
-            }
         )
 
     def parse_jira_issue_metadata(
@@ -1218,24 +1564,25 @@ INSTALL_EXPIRATION_TIME = 60 * 60 * 24
 
 
 class JiraInstallParams(TypedDict):
-    """Decoded contents of the `signed_params` blob from a Marketplace install.
+    """Install params resolved from the `signed_params` blob of a Marketplace install.
 
-    The Jira UI hook (`JiraSentryInstallationView`) signs the integration's
-    `external_id` plus a JSON-encoded `metadata` payload into the configure
-    link. We decode `metadata` back into a dict here so it can be bound to
-    pipeline state and consumed by `build_integration`.
+    The Jira UI hook (`JiraSentryInstallationView`) signs only the integration's
+    `external_id` into the configure link. `metadata` is loaded from the
+    integration record the `installed` webhook already created, so it can be
+    bound to pipeline state and consumed by `build_integration`.
     """
 
     external_id: str
     metadata: dict[str, Any]
 
 
-class JiraInitialDataSerializer(CamelSnakeSerializer):
+class JiraInitialDataSerializer(CamelSnakeSerializer[JiraInstallParams]):
     """Initial pipeline data for Jira Cloud Marketplace installs.
 
-    The configure link carries a single `signed_params` blob. We unsign it and
-    bind `external_id` and the decoded `metadata` dict to top-level pipeline
-    state so the confirmation step and `build_integration` can read them.
+    The configure link carries a single `signed_params` blob. We unsign it,
+    look up the integration by `external_id`, and bind `external_id` and the
+    stored `metadata` to top-level pipeline state so the confirmation step and
+    `build_integration` can read them.
     """
 
     signed_params = CharField(required=True)
@@ -1248,13 +1595,23 @@ class JiraInitialDataSerializer(CamelSnakeSerializer):
         except BadSignature:
             raise serializers.ValidationError("Invalid installation link")
 
+        # Links minted before this change also carry `metadata`; ignore it so
+        # the stored record stays the only source for it.
+        integration = integration_service.get_integration(
+            provider=IntegrationProviderSlug.JIRA.value,
+            external_id=decoded["external_id"],
+            status=ObjectStatus.ACTIVE,
+        )
+        if integration is None:
+            raise serializers.ValidationError("Invalid installation link")
+
         return {
-            "external_id": decoded["external_id"],
-            "metadata": orjson.loads(decoded["metadata"]),
+            "external_id": integration.external_id,
+            "metadata": dict(integration.metadata),
         }
 
 
-class JiraConfirmSerializer(CamelSnakeSerializer):
+class JiraConfirmSerializer(CamelSnakeSerializer[dict[str, Any]]):
     state = CharField(required=True)
 
 
@@ -1327,21 +1684,26 @@ class JiraIntegrationProvider(IntegrationProvider):
         #  - the `installed` webhook passes the raw Atlassian payload
         #    (`clientKey`, `oauthClientId`, ...).
         if "external_id" in state and "metadata" in state:
-            external_id = state["external_id"]
-            metadata = state["metadata"]
-        else:
-            external_id = state["clientKey"]
-            metadata = {
+            # The `installed` webhook already created the integration. Linking
+            # an org must not rewrite it: the metadata in pipeline state is a
+            # snapshot from when the link was opened, and writing it back would
+            # undo anything stored since then and reset the site name.
+            return {
+                "external_id": state["external_id"],
+                "provider": IntegrationProviderSlug.JIRA.value,
+                "expect_exists": True,
+            }
+
+        return {
+            "external_id": state["clientKey"],
+            "provider": IntegrationProviderSlug.JIRA.value,
+            "name": "JIRA",
+            "metadata": {
                 "oauth_client_id": state["oauthClientId"],
                 # public key is possibly deprecated, so we can maybe remove this
                 "public_key": state["publicKey"],
                 "shared_secret": state["sharedSecret"],
                 "base_url": state["baseUrl"],
                 "domain_name": state["baseUrl"].replace("https://", ""),
-            }
-        return {
-            "external_id": external_id,
-            "provider": IntegrationProviderSlug.JIRA.value,
-            "name": "JIRA",
-            "metadata": metadata,
+            },
         }

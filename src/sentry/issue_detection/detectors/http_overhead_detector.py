@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import urllib.parse
+import logging
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any
@@ -9,15 +9,19 @@ from sentry.issue_detection.base import DetectorType, PerformanceDetector
 from sentry.issue_detection.detectors.utils import (
     does_overlap_previous_span,
     get_notification_attachment_body,
+    get_numeric_value_from_span,
+    get_span_description,
     get_span_evidence_value,
-    get_url_from_span,
-    is_filtered_url,
+    safer_urlparse,
+    span_has_obfuscated_hostname,
 )
 from sentry.issues.grouptype import PerformanceHTTPOverheadGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 
 from ..performance_problem import PerformanceProblem
 from ..types import Span
+
+logger = logging.getLogger("issue_detectors")
 
 
 @dataclass
@@ -66,7 +70,12 @@ class HTTPOverheadDetector(PerformanceDetector):
 
         url = span_data.get("url", "")
         span_start = span.get("start_timestamp", 0) * 1000
-        request_start = span_data.get("http.request.request_start", 0)
+        request_start = get_numeric_value_from_span(
+            span,
+            keys=["http.request.request_start"],
+            detector="http_overhead",
+            number_type=float,
+        )
 
         if not url or not span_start or not request_start:
             return
@@ -76,7 +85,7 @@ class HTTPOverheadDetector(PerformanceDetector):
         if url.startswith("/"):
             location = "/"
         else:
-            parsed_url = urllib.parse.urlparse(url)
+            parsed_url = safer_urlparse(url)
             location = parsed_url.netloc
 
         if not location:
@@ -118,9 +127,9 @@ class HTTPOverheadDetector(PerformanceDetector):
         if not span_op or not span_op == "http.client" or not protocol_version == "1.1":
             return False
 
-        # Check if any spans have filtered URLs
-        url = get_url_from_span(span)
-        if is_filtered_url(url):
+        # We match spans based on hostname, so make sure we have a value we can use (not one masked
+        # by data scurbbing or parameterization)
+        if span_has_obfuscated_hostname(span):
             return False
 
         return True
@@ -149,7 +158,7 @@ class HTTPOverheadDetector(PerformanceDetector):
 
         fingerprint = f"1-{PerformanceHTTPOverheadGroupType.type_id}-{location}"
         example_span = location_spans[-1]
-        desc: str = example_span.get("description", "")
+        desc = get_span_description(example_span)
 
         location_span_ids = [span["span_id"] for span in location_spans]
 
@@ -172,7 +181,7 @@ class HTTPOverheadDetector(PerformanceDetector):
             desc=desc,
             type=PerformanceHTTPOverheadGroupType,
             cause_span_ids=[],
-            parent_span_ids=None,
+            parent_span_ids=[],
             offender_span_ids=location_span_ids,
             evidence_data=evidence_data,
             evidence_display=[

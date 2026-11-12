@@ -1,14 +1,19 @@
 from __future__ import annotations
 
 import contextlib
+import os
+from collections.abc import Iterator
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
+import pytest
 import sentry_sdk.scope
 from django.conf import settings
 from django.db import OperationalError
 from django.http import HttpRequest
 from rest_framework.request import Request
 from sentry_sdk import Scope
+from sentry_sdk.types import Log
 
 from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
@@ -20,11 +25,12 @@ from sentry.utils.sdk import (
     check_current_scope_transaction,
     check_tag_for_scope_bleed,
     merge_context_into_scope,
+    sdk_logger,
 )
 
 
 @contextlib.contextmanager
-def patch_isolation_scope():
+def patch_isolation_scope() -> Iterator[Scope]:
     """
     Generates and yields new Scope object, and patches sentry.utils.sdk.Scope.get_isolation_scope to return the same
     scope within the context manager.
@@ -34,6 +40,89 @@ def patch_isolation_scope():
         mock_get_isolation_scope.return_value = scope
 
         yield scope
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/api/0/organizations/org-slug/ai-conversations/",
+        "/api/0/organizations/org-slug/ai-conversations/conversation-id/",
+        "/api/0/organizations/another-org/agents/conversations/",
+        "/api/0/organizations/another-org/agents/conversations/conversation-id/",
+    ],
+)
+def test_ai_conversation_routes_are_fully_sampled(path: str) -> None:
+    assert (
+        sdk.traces_sampler(
+            {
+                "wsgi_environ": {"PATH_INFO": path},
+                "parent_sampled": False,
+            }
+        )
+        == 1.0
+    )
+
+
+@pytest.mark.parametrize(
+    "attributes",
+    [
+        {"sentry.message.template": "New partitions assigned: %r"},
+        {"sentry.message.template": {"type": "string", "value": "New partitions assigned: %r"}},
+    ],
+)
+def test_before_send_log_filters_partition_assignments(attributes: dict[str, Any]) -> None:
+    log = cast(Log, {"attributes": attributes})
+    with patch("sentry.utils.sdk.in_random_rollout", return_value=True):
+        assert sdk.before_send_log(log, {}) is None
+
+
+def test_before_send_log_keeps_other_messages() -> None:
+    log = cast(Log, {"attributes": {"sentry.message.template": "Request processed"}})
+    with patch("sentry.utils.sdk.in_random_rollout", return_value=True):
+        assert sdk.before_send_log(log, {}) is log
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        (None, {}),
+        ("", {}),
+        (
+            "k8s.pod.name=web-abc,k8s.namespace.name=default,cloud.provider=gcp",
+            {"k8s.pod.name": "web-abc", "k8s.namespace.name": "default", "cloud.provider": "gcp"},
+        ),
+        (" k8s.node.name = node-1 , ", {"k8s.node.name": "node-1"}),
+        ("k8s.cluster.name=a%2Cb%3Dc", {"k8s.cluster.name": "a,b=c"}),
+        ("novalue,=nokey,empty=,k8s.job.name=job", {"k8s.job.name": "job"}),
+    ],
+)
+def test_parse_otel_resource_attributes(raw: str | None, expected: dict[str, str]) -> None:
+    assert sdk._parse_otel_resource_attributes(raw) == expected
+
+
+def test_set_resource_attributes_on_global_scope() -> None:
+    global_scope = Scope(ty=sentry_sdk.scope.ScopeType.GLOBAL)
+    with (
+        patch.dict(
+            os.environ,
+            {"OTEL_RESOURCE_ATTRIBUTES": "k8s.pod.name=web-abc,cloud.account.id=project"},
+        ),
+        patch("sentry_sdk.scope._global_scope", global_scope),
+    ):
+        sdk._set_resource_attributes()
+
+    assert global_scope._attributes == {"k8s.pod.name": "web-abc", "cloud.account.id": "project"}
+
+
+def test_set_resource_attributes_unset_is_noop() -> None:
+    global_scope = Scope(ty=sentry_sdk.scope.ScopeType.GLOBAL)
+    with (
+        patch.dict(os.environ, {"OTEL_RESOURCE_ATTRIBUTES": ""}),
+        patch("sentry_sdk.scope._global_scope", global_scope),
+    ):
+        sdk._set_resource_attributes()
+
+    assert global_scope._attributes == {}
 
 
 class SDKUtilsTest(TestCase):
@@ -154,7 +243,7 @@ class CheckTagForScopeBleedTest(TestCase):
 
     def test_overwriting_list_with_non_member_single_org_counts_as_mismatch(
         self, mock_logger_warning: MagicMock
-    ):
+    ) -> None:
         orgs = [self.create_organization() for _ in range(3)]
 
         with patch_isolation_scope() as mock_scope:
@@ -264,7 +353,7 @@ class CaptureExceptionWithScopeCheckTest(TestCase):
         self,
         mock_check_transaction: MagicMock,
         mock_sdk_capture_exception: MagicMock,
-    ):
+    ) -> None:
         capture_exception_with_scope_check(Exception())
 
         assert mock_check_transaction.call_count == 0
@@ -345,7 +434,7 @@ class CaptureExceptionWithScopeCheckTest(TestCase):
 
     def test_doesnt_overwrite_incoming_scope_bleed_context(
         self, mock_sdk_capture_exception: MagicMock
-    ):
+    ) -> None:
         existing_scope_bleed_data = {
             "previous_org.slug_tag": "good_dogs",
             "new_org.slug_tag": "squirrel_chasers",
@@ -515,100 +604,249 @@ class BindAmbiguousOrgContextTest(TestCase):
             assert slug_list_in_org_context[-1] == "... (3 more)"
 
 
-class ShouldDropS4STest(TestCase):
-    """Tests for the _should_drop_s4s method on MultiplexingTransport."""
+class SDKLoggerTest(TestCase):
+    def test_flatten_dict(self) -> None:
+        class Dog:
+            def __init__(self, name: str) -> None:
+                self.name = name
 
-    def _get_transport(self):
-        from sentry.utils.sdk import configure_sdk
+            def __str__(self) -> str:
+                return f"<Dog('{self.name}')>"
 
-        with (
-            patch("sentry.utils.sdk.get_project_key", return_value=None),
-            patch("sentry.utils.sdk.make_transport", return_value=MagicMock()),
-            patch("sentry.utils.sdk.sentry_sdk.init") as mock_init,
-        ):
-            configure_sdk()
-            transport_cls = mock_init.call_args.kwargs["transport"]
-            return transport_cls()
+        nested_dict = {
+            "aardvark": {
+                "bobcat": "chipmunk",
+                "dingo": {
+                    "elephant": "fox",
+                    "giraffe": [
+                        "hippo",
+                        "iguana",
+                    ],
+                },
+            },
+            "jackrabbit": [
+                "kangaroo",
+                {
+                    "lemur": "manatee",
+                    "narwhal": [
+                        {
+                            "otter": "porcupine",
+                        },
+                    ],
+                },
+            ],
+            "quokka": {},
+            "raccoon": [],
+            "squirrel": tuple(),
+            "tiger": set(),
+            "uakari": "",
+            "vaquita": "None",
+            "wolf": 11,
+            "xerus": 2.1,
+            "yak": True,
+            "zebra": Dog("maisey"),
+        }
 
-    def _make_envelope(self, is_transaction=True, trace_id="a" * 32):
-        envelope = MagicMock()
-        envelope.get_transaction_event.return_value = (
-            {"type": "transaction"} if is_transaction else None
+        assert sdk_logger.flatten_dict(nested_dict) == {
+            "aardvark.bobcat": "chipmunk",
+            "aardvark.dingo.elephant": "fox",
+            "aardvark.dingo.giraffe.0": "hippo",
+            "aardvark.dingo.giraffe.1": "iguana",
+            "jackrabbit.0": "kangaroo",
+            "jackrabbit.1.lemur": "manatee",
+            "jackrabbit.1.narwhal.0.otter": "porcupine",
+            "quokka": "{}",
+            "raccoon": "[]",
+            "squirrel": "()",
+            "tiger": "set()",
+            "uakari": '""',
+            "vaquita": "None",
+            "wolf": 11,
+            "xerus": 2.1,
+            "yak": True,
+            "zebra": "<Dog('maisey')>",
+        }
+
+    def test_flatten_dict_obeys_max_depth(self) -> None:
+        very_deep_dict = {
+            "armadillo": "baboon",
+            "coati": {
+                "dolphin": "elk",
+            },
+            "flamingo": {
+                "gorilla": {
+                    "hamster": "ibex",
+                }
+            },
+            "jaguar": {
+                "koala": {
+                    "loon": {
+                        "mongoose": "newt",
+                    }
+                }
+            },
+            "okapi": {
+                "panther": {
+                    "quail": {
+                        "rattlesnake": {
+                            "starfish": "tapir",
+                        }
+                    }
+                }
+            },
+            "unau": {
+                "vole": {
+                    "wombat": {
+                        "xeme": {
+                            "yabby": {
+                                "zokor": "anzu",
+                            }
+                        }
+                    }
+                }
+            },
+            "banshee": {
+                "chupacabra": {
+                    "dragon": {
+                        "elf": {
+                            "faun": {
+                                "gryphon": {
+                                    "hydra": "ipotane",
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "jackalope": {
+                "kraken": {
+                    "longma": {
+                        "manticore": {
+                            "naga": {
+                                "ogre": {
+                                    "pegasus": {
+                                        "quetzalcoatl": "roc",
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "sphinx": {
+                "troll": {
+                    "unicorn": {
+                        "valkyrie": {
+                            "wolpertinger": {
+                                "xiao": {
+                                    "yeti": {
+                                        "zombie": {
+                                            "amphiptere": "buraq",
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+        }
+
+        assert sdk_logger.flatten_dict(very_deep_dict) == {
+            "armadillo": "baboon",
+            "coati.dolphin": "elk",
+            "flamingo.gorilla.hamster": "ibex",
+            "jaguar.koala.loon.mongoose": "newt",
+            "okapi.panther.quail.rattlesnake.starfish": "tapir",
+            "unau.vole.wombat.xeme.yabby.zokor": "anzu",
+            "banshee.chupacabra.dragon.elf.faun.gryphon": '{"hydra":"ipotane"}',
+            "jackalope.kraken.longma.manticore.naga.ogre": '{"pegasus":{"quetzalcoatl":"roc"}}',
+            "sphinx.troll.unicorn.valkyrie.wolpertinger.xiao": '{"yeti":{"zombie":{"amphiptere":"buraq"}}}',
+        }
+
+        assert sdk_logger.flatten_dict(very_deep_dict, max_depth=3) == {
+            "armadillo": "baboon",
+            "coati.dolphin": "elk",
+            "flamingo.gorilla.hamster": "ibex",
+            "jaguar.koala.loon": '{"mongoose":"newt"}',
+            "okapi.panther.quail": '{"rattlesnake":{"starfish":"tapir"}}',
+            "unau.vole.wombat": '{"xeme":{"yabby":{"zokor":"anzu"}}}',
+            "banshee.chupacabra.dragon": '{"elf":{"faun":{"gryphon":{"hydra":"ipotane"}}}}',
+            "jackalope.kraken.longma": '{"manticore":{"naga":{"ogre":{"pegasus":{"quetzalcoatl":"roc"}}}}}',
+            "sphinx.troll.unicorn": '{"valkyrie":{"wolpertinger":{"xiao":{"yeti":{"zombie":{"amphiptere":"buraq"}}}}}}',
+        }
+
+        assert sdk_logger.flatten_dict(very_deep_dict, max_depth=10) == {
+            "armadillo": "baboon",
+            "coati.dolphin": "elk",
+            "flamingo.gorilla.hamster": "ibex",
+            "jaguar.koala.loon.mongoose": "newt",
+            "okapi.panther.quail.rattlesnake.starfish": "tapir",
+            "unau.vole.wombat.xeme.yabby.zokor": "anzu",
+            "banshee.chupacabra.dragon.elf.faun.gryphon.hydra": "ipotane",
+            "jackalope.kraken.longma.manticore.naga.ogre.pegasus.quetzalcoatl": "roc",
+            "sphinx.troll.unicorn.valkyrie.wolpertinger.xiao.yeti.zombie.amphiptere": "buraq",
+        }
+
+    @patch("sentry_sdk.logger.info")
+    def test_flattens_attributes(self, mock_sdk_logger_info: MagicMock) -> None:
+        sdk_logger.info("dogs are great", attributes={"adopt": ["don't", "shop"]})
+        mock_sdk_logger_info.assert_called_with(
+            "dogs are great", attributes={"adopt.0": "don't", "adopt.1": "shop"}
         )
-        envelope.headers = {"trace": {"trace_id": trace_id}}
-        return envelope
 
-    def test_default_rate_sends_everything(self) -> None:
-        transport = self._get_transport()
-        envelope = self._make_envelope()
-        assert transport._should_drop_s4s("capture_envelope", envelope) is False
+    @patch("sentry_sdk.logger.info")
+    def test_passes_kwargs_to_sdk_function(self, mock_sdk_logger_info: MagicMock) -> None:
+        sdk_logger.info("{animal} are {adj}", animal="dogs", adj="great")
+        mock_sdk_logger_info.assert_called_with("{animal} are {adj}", animal="dogs", adj="great")
 
-    def test_zero_rate_drops_all_transactions(self) -> None:
-        transport = self._get_transport()
-        with self.options({"store.s4s-transaction-sample-rate": 0.0}):
-            envelope = self._make_envelope()
-            assert transport._should_drop_s4s("capture_envelope", envelope) is True
+    @patch("sentry_sdk.logger.info")
+    @patch("sentry.utils.sdk.sdk_logger.flatten_dict", wraps=sdk_logger.flatten_dict)
+    def test_passes_max_depth_to_flatten_method_but_not_sdk_function(
+        self, mock_flatten_dict: MagicMock, mock_sdk_logger_info: MagicMock
+    ) -> None:
+        sdk_logger.info(
+            "{animal} are {adj}",
+            animal="dogs",
+            adj="great",
+            attributes={"adopt": "don't shop"},
+            max_attribute_depth=3,
+        )
 
-            event = {"type": "transaction", "contexts": {"trace": {"trace_id": "a" * 32}}}
-            assert transport._should_drop_s4s("capture_event", event) is True
+        mock_flatten_dict.assert_called_with({"adopt": "don't shop"}, max_depth=3)
+        mock_sdk_logger_info.assert_called_with(
+            "{animal} are {adj}", animal="dogs", adj="great", attributes={"adopt": "don't shop"}
+        )
 
-    def test_never_drops_error_envelopes(self) -> None:
-        transport = self._get_transport()
-        with self.options({"store.s4s-transaction-sample-rate": 0.0}):
-            envelope = self._make_envelope(is_transaction=False)
-            assert transport._should_drop_s4s("capture_envelope", envelope) is False
+    @patch("sentry_sdk.logger.trace")
+    def test_calls_sdk_trace_function(self, mock_sdk_logger_trace: MagicMock) -> None:
+        sdk_logger.trace("dogs are great")
+        mock_sdk_logger_trace.assert_called_with("dogs are great")
 
-    def test_never_drops_error_events(self) -> None:
-        transport = self._get_transport()
-        with self.options({"store.s4s-transaction-sample-rate": 0.0}):
-            event = {"type": "error", "contexts": {"trace": {"trace_id": "a" * 32}}}
-            assert transport._should_drop_s4s("capture_event", event) is False
+    @patch("sentry_sdk.logger.debug")
+    def test_calls_sdk_debug_function(self, mock_sdk_logger_debug: MagicMock) -> None:
+        sdk_logger.debug("dogs are great")
+        mock_sdk_logger_debug.assert_called_with("dogs are great")
 
-    def test_deterministic_by_trace_id(self) -> None:
-        transport = self._get_transport()
-        trace_id = "abcdef1234567890abcdef1234567890"
-        with self.options({"store.s4s-transaction-sample-rate": 0.5}):
-            envelope = self._make_envelope(trace_id=trace_id)
-            first = transport._should_drop_s4s("capture_envelope", envelope)
-            for _ in range(10):
-                assert transport._should_drop_s4s("capture_envelope", envelope) == first
+    @patch("sentry_sdk.logger.info")
+    def test_calls_sdk_info_function(self, mock_sdk_logger_info: MagicMock) -> None:
+        sdk_logger.info("dogs are great")
+        mock_sdk_logger_info.assert_called_with("dogs are great")
 
-    def test_no_trace_id_not_dropped(self) -> None:
-        transport = self._get_transport()
-        with self.options({"store.s4s-transaction-sample-rate": 0.0}):
-            envelope = MagicMock()
-            envelope.get_transaction_event.return_value = {"type": "transaction"}
-            envelope.headers = {}
-            assert transport._should_drop_s4s("capture_envelope", envelope) is False
+    @patch("sentry_sdk.logger.warning")
+    def test_calls_sdk_warning_function(self, mock_sdk_logger_warning: MagicMock) -> None:
+        sdk_logger.warning("dogs are great")
+        mock_sdk_logger_warning.assert_called_with("dogs are great")
 
-            event = {"type": "transaction", "contexts": {}}
-            assert transport._should_drop_s4s("capture_event", event) is False
+    @patch("sentry_sdk.logger.error")
+    def test_calls_sdk_error_function(self, mock_sdk_logger_error: MagicMock) -> None:
+        sdk_logger.error("dogs are great")
+        mock_sdk_logger_error.assert_called_with("dogs are great")
 
-    def _make_span_envelope(self, trace_id="a" * 32):
-        envelope = MagicMock()
-        envelope.get_transaction_event.return_value = None
-        envelope.headers = {"trace": {"trace_id": trace_id}}
-        span_item = MagicMock()
-        span_item.type = "span"
-        envelope.items = [span_item]
-        return envelope
-
-    def test_zero_rate_drops_span_envelopes(self) -> None:
-        transport = self._get_transport()
-        with self.options({"store.s4s-transaction-sample-rate": 0.0}):
-            envelope = self._make_span_envelope()
-            assert transport._should_drop_s4s("capture_envelope", envelope) is True
-
-    def test_never_drops_non_span_non_transaction_envelopes(self) -> None:
-        transport = self._get_transport()
-        with self.options({"store.s4s-transaction-sample-rate": 0.0}):
-            envelope = MagicMock()
-            envelope.get_transaction_event.return_value = None
-            envelope.headers = {"trace": {"trace_id": "a" * 32}}
-            error_item = MagicMock()
-            error_item.type = "event"
-            envelope.items = [error_item]
-            assert transport._should_drop_s4s("capture_envelope", envelope) is False
+    @patch("sentry_sdk.logger.fatal")
+    def test_calls_sdk_fatal_function(self, mock_sdk_logger_fatal: MagicMock) -> None:
+        sdk_logger.fatal("dogs are great")
+        mock_sdk_logger_fatal.assert_called_with("dogs are great")
 
 
 def test_before_send_error_level() -> None:
@@ -623,3 +861,22 @@ def test_before_send_error_level() -> None:
     event_with_before_send = sdk.before_send(event, hint)  # type: ignore[arg-type]
     assert event_with_before_send
     assert event_with_before_send["level"] == "warning"
+
+
+def test_before_send_adds_tags_when_event_has_none() -> None:
+    event = sdk.before_send({"level": "error"}, {})
+    assert event
+    assert event["tags"] == {
+        "silo_mode": str(settings.SILO_MODE),
+        "sentry_region": settings.SENTRY_LOCAL_CELL,
+    }
+
+
+def test_before_send_preserves_existing_tags() -> None:
+    event = sdk.before_send({"level": "error", "tags": {"foo": "bar"}}, {})
+    assert event
+    assert event["tags"] == {
+        "foo": "bar",
+        "silo_mode": str(settings.SILO_MODE),
+        "sentry_region": settings.SENTRY_LOCAL_CELL,
+    }

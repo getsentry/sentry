@@ -1,13 +1,15 @@
 import {css} from '@emotion/react';
 
-import type {ViewerProps} from 'sentry/components/events/attachmentViewers/utils';
-import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
 import {t} from 'sentry/locale';
+
+import type {ViewerProps} from './utils';
+import {getAttachmentUrl} from './utils';
 
 interface WebMViewerProps
   extends
     Pick<ViewerProps, 'attachment' | 'eventId' | 'orgSlug' | 'projectSlug'>,
     Partial<Pick<HTMLVideoElement, 'controls'>> {
+  className?: string;
   onCanPlay?: React.ReactEventHandler<HTMLVideoElement>;
 }
 
@@ -15,10 +17,12 @@ export function VideoViewer({
   controls = true,
   attachment,
   onCanPlay,
+  className,
   ...props
 }: WebMViewerProps) {
   return (
     <video
+      className={className}
       onCanPlay={onCanPlay}
       controls={controls}
       css={css`

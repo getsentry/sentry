@@ -3,21 +3,20 @@ import styled from '@emotion/styled';
 import type {Query} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Pagination} from '@sentry/scraps/pagination';
 
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import type {ReplayTableColumn} from 'sentry/components/replays/table/replayTableColumns';
-import {ReplayTableHeader} from 'sentry/components/replays/table/replayTableHeader';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {RequestError} from 'sentry/utils/requestError/requestError';
-import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {getPaginationProps} from 'sentry/utils/pagination';
+import {RequestError, ERROR_MAP} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
+
+import type {ReplayTableColumn} from './replayTableColumns';
+import {ReplayTableHeader} from './replayTableHeader';
 
 type SortProps =
   | {
@@ -28,14 +27,14 @@ type SortProps =
 
 type Props = SortProps & {
   columns: readonly ReplayTableColumn[];
-  error: Error | null | undefined;
   isPending: boolean;
   replays: ReplayListRecord[];
   showDropdownFilters: boolean;
+  error?: Error | null;
   highlightedRowIndex?: number;
   pageLinks?: string | null;
   query?: Query;
-  ref?: RefObject<HTMLDivElement | null>;
+  ref?: RefObject<HTMLTableElement | null>;
   stickyHeader?: boolean;
 };
 
@@ -57,25 +56,24 @@ export function ReplayTable({
   const gridTemplateColumns = columns.map(col => col.width ?? 'max-content').join(' ');
   const hasInteractiveColumn = columns.some(col => col.interactive);
   const organization = useOrganization();
-  const navigate = useNavigate();
 
   if (isPending) {
     return (
       <StyledSimpleTable
+        header={
+          <ReplayTableHeader
+            columns={columns}
+            replays={replays}
+            onSortClick={onSortClick}
+            sort={sort}
+            stickyHeader={stickyHeader}
+          />
+        }
         data-test-id="replay-table-loading"
         ref={ref}
         style={{gridTemplateColumns}}
       >
-        <ReplayTableHeader
-          columns={columns}
-          replays={replays}
-          onSortClick={onSortClick}
-          sort={sort}
-          stickyHeader={stickyHeader}
-        />
-        <SimpleTable.Empty>
-          <LoadingIndicator />
-        </SimpleTable.Empty>
+        <SimpleTable.Loading />
       </StyledSimpleTable>
     );
   }
@@ -83,18 +81,19 @@ export function ReplayTable({
   if (error) {
     return (
       <StyledSimpleTable
+        header={
+          <ReplayTableHeader
+            columns={columns}
+            replays={replays}
+            onSortClick={onSortClick}
+            sort={sort}
+            stickyHeader={stickyHeader}
+          />
+        }
         data-test-id="replay-table-errored"
         ref={ref}
         style={{gridTemplateColumns}}
       >
-        <ReplayTableHeader
-          columns={columns}
-          onSortClick={onSortClick}
-          replays={replays}
-          sort={sort}
-          stickyHeader={stickyHeader}
-        />
-
         <SimpleTable.Empty>
           <Alert variant="danger">
             {t('Sorry, the list of replays could not be loaded. ')}
@@ -107,17 +106,19 @@ export function ReplayTable({
 
   return (
     <StyledSimpleTable
+      header={
+        <ReplayTableHeader
+          columns={columns}
+          replays={replays}
+          onSortClick={onSortClick}
+          sort={sort}
+          stickyHeader={stickyHeader}
+        />
+      }
       data-test-id="replay-table"
       ref={ref}
       style={{gridTemplateColumns}}
     >
-      <ReplayTableHeader
-        columns={columns}
-        onSortClick={onSortClick}
-        replays={replays}
-        sort={sort}
-        stickyHeader={stickyHeader}
-      />
       {replays.length === 0 && (
         <SimpleTable.Empty>{t('No replays found')}</SimpleTable.Empty>
       )}
@@ -129,6 +130,7 @@ export function ReplayTable({
         >
           {hasInteractiveColumn ? (
             <InteractionStateLayer
+              as="td"
               isHovered={highlightedRowIndex === rowIndex ? true : undefined}
             />
           ) : null}
@@ -149,15 +151,9 @@ export function ReplayTable({
         </RowWithScrollIntoView>
       ))}
       {pageLinks ? (
-        <StyledPagination
-          pageLinks={pageLinks}
-          onCursor={(cursor, path, searchQuery) => {
-            navigate({
-              pathname: path,
-              query: {...searchQuery, cursor},
-            });
-          }}
-        />
+        <SimpleTable.FullWidthRow>
+          <StyledPagination {...getPaginationProps(pageLinks)} />
+        </SimpleTable.FullWidthRow>
       ) : null}
     </StyledSimpleTable>
   );
@@ -171,7 +167,7 @@ function RowWithScrollIntoView({
   children: React.ReactNode;
   scrollIntoView: boolean;
 } & React.ComponentProps<typeof SimpleTable.Row>) {
-  const rowRef = useRef<HTMLDivElement>(null);
+  const rowRef = useRef<HTMLTableRowElement>(null);
   useEffect(() => {
     if (scrollIntoView) {
       rowRef.current?.scrollIntoView({block: 'center'});
@@ -195,7 +191,7 @@ const StyledSimpleTable = styled(SimpleTable)`
 
 const StyledPagination = styled(Pagination)`
   margin: ${p => p.theme.space.md};
-  grid-column: 1 / -1;
+  width: 100%;
 `;
 
 function getErrorMessage(fetchError: Error | string) {

@@ -2,6 +2,7 @@ from typing import Any, Literal
 
 from django.db.models import Count, F, OuterRef, Q, Subquery
 from django.db.models.expressions import Combinable
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -10,12 +11,25 @@ from rest_framework.views import APIView
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.groupsearchview import GroupSearchViewSerializer
+from sentry.api.serializers.models.groupsearchview import (
+    GroupSearchViewSerializer,
+    GroupSearchViewSerializerResponse,
+)
 from sentry.api.serializers.rest_framework.groupsearchview import GroupSearchViewPostValidator
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
+from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import is_owned_by_acting_user, require_user
 from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewVisibility
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
@@ -25,8 +39,8 @@ from sentry.models.project import Project
 
 class MemberPermission(OrganizationPermission):
     scope_map = {
-        "GET": ["member:read", "member:write"],
-        "POST": ["member:read", "member:write"],
+        "GET": ["member:read", "member:write", "saved_query:read"],
+        "POST": ["member:read", "member:write", "saved_query:write"],
     }
 
     def has_object_permission(self, request: Request, view: APIView, obj: Any) -> bool:
@@ -60,43 +74,73 @@ class OrganizationGroupSearchViewGetSerializer(serializers.Serializer[None]):
     createdBy = serializers.ChoiceField(
         choices=("me", "others"),
         required=False,
+        help_text="Whether to return issue views created by the current user or other members.",
     )
     sort = serializers.ListField(
         child=serializers.ChoiceField(choices=list(SORT_MAP.keys())),
         required=False,
         default=["-visited"],
+        help_text="The fields used to sort issue views, in order of precedence.",
     )
-    query = serializers.CharField(required=False)
+    query = serializers.CharField(
+        required=False,
+        help_text="A case-insensitive search against issue view names and queries.",
+    )
 
     def validate_query(self, value: str | None) -> str | None:
         return value.strip() if value else None
 
 
+@extend_schema(tags=["Events"])
 @cell_silo_endpoint
 class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
-        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     permission_classes = (MemberPermission,)
 
-    def get(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="listOrganizationIssueViews",
+        summary="List Issue Views",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OrganizationGroupSearchViewGetSerializer,
+            CursorQueryParam,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationIssueViewList", list[GroupSearchViewSerializerResponse]
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization
+    ) -> (
+        Response[list[GroupSearchViewSerializerResponse]]
+        | Response[ValidationErrorResponse]
+        | Response[None]
+    ):
         """
-        List the current organization member's custom views
-        `````````````````````````````````````````
-
-        Retrieve a list of custom views for the current organization member.
+        Return the current organization member's issue views, with starred views first. Set
+        `createdBy=others` to list organization-visible views created by other members instead.
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         serializer = OrganizationGroupSearchViewGetSerializer(data=request.GET)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
         starred_view_ids = GroupSearchViewStarred.objects.filter(
-            organization=organization, user_id=request.user.id
+            is_owned_by_acting_user(request.user), organization=organization
         ).values_list("group_search_view_id", flat=True)
 
         createdBy: Literal["me", "others"] = serializer.validated_data.get("createdBy", "me")
@@ -113,8 +157,8 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
 
         last_visited_query = Subquery(
             GroupSearchViewLastVisited.objects.filter(
+                is_owned_by_acting_user(request.user),
                 organization=organization,
-                user_id=request.user.id,
                 group_search_view_id=OuterRef("id"),
             ).values("last_visited")[:1]
         )
@@ -122,18 +166,13 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
 
         if createdBy == "me":
             starred_query = (
-                base_queryset.filter(
-                    user_id=request.user.id,
-                    id__in=starred_view_ids,
-                )
+                base_queryset.filter(is_owned_by_acting_user(request.user), id__in=starred_view_ids)
                 .prefetch_related("projects")
                 .annotate(popularity=starred_count_query, last_visited=last_visited_query)
                 .order_by(*sorts)
             )
             non_starred_query = (
-                base_queryset.filter(
-                    user_id=request.user.id,
-                )
+                base_queryset.filter(is_owned_by_acting_user(request.user))
                 .exclude(id__in=starred_view_ids)
                 .prefetch_related("projects")
                 .annotate(popularity=starred_count_query, last_visited=last_visited_query)
@@ -145,7 +184,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                     visibility=GroupSearchViewVisibility.ORGANIZATION,
                     id__in=starred_view_ids,
                 )
-                .exclude(user_id=request.user.id)
+                .exclude(is_owned_by_acting_user(request.user))
                 .prefetch_related("projects")
                 .annotate(popularity=starred_count_query, last_visited=last_visited_query)
                 .order_by(*sorts)
@@ -154,7 +193,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                 base_queryset.filter(
                     visibility=GroupSearchViewVisibility.ORGANIZATION,
                 )
-                .exclude(user_id=request.user.id)
+                .exclude(is_owned_by_acting_user(request.user))
                 .exclude(id__in=starred_view_ids)
                 .prefetch_related("projects")
                 .annotate(popularity=starred_count_query, last_visited=last_visited_query)
@@ -163,20 +202,44 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         else:
             raise ValueError(f"Unexpected createdBy value: {createdBy}")
 
+        def serialize_views(
+            views: list[GroupSearchView],
+        ) -> list[GroupSearchViewSerializerResponse]:
+            return serialize(
+                views,
+                request.user,
+                serializer=GroupSearchViewSerializer(organization=organization),
+            )
+
         return self.paginate(
             request=request,
             sources=[starred_query, non_starred_query],
             paginator_cls=ChainPaginator,
-            on_results=lambda x: serialize(
-                x,
-                request.user,
-                serializer=GroupSearchViewSerializer(
-                    organization=organization,
-                ),
-            ),
+            on_results=serialize_views,
         )
 
-    def post(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="createOrganizationIssueView",
+        summary="Create an Issue View",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        request=GroupSearchViewPostValidator,
+        responses={
+            201: inline_sentry_response_serializer(
+                "OrganizationIssueView", GroupSearchViewSerializerResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def post(
+        self, request: Request, organization: Organization
+    ) -> (
+        Response[GroupSearchViewSerializerResponse]
+        | Response[ValidationErrorResponse]
+        | Response[None]
+    ):
         """
         Create a new custom view for the current organization member.
         """
@@ -191,7 +254,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         )
 
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
         validated_data = serializer.validated_data
 
@@ -202,10 +265,11 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         for project in projects:
             self.check_object_permissions(request, project)
 
+        user = require_user(request)
         # Create the new view
         view = GroupSearchView.objects.create(
             organization=organization,
-            user_id=request.user.id,
+            user_id=user.id,
             name=validated_data["name"],
             query=validated_data["query"],
             query_sort=validated_data["querySort"],
@@ -219,17 +283,15 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         if validated_data.get("starred"):
             GroupSearchViewStarred.objects.insert_starred_view(
                 organization=organization,
-                user_id=request.user.id,
+                user_id=user.id,
                 view=view,
             )
 
-        return Response(
-            serialize(
-                view,
-                request.user,
-                serializer=GroupSearchViewSerializer(
-                    organization=organization,
-                ),
+        serialized_view: GroupSearchViewSerializerResponse = serialize(
+            view,
+            request.user,
+            serializer=GroupSearchViewSerializer(
+                organization=organization,
             ),
-            status=status.HTTP_201_CREATED,
         )
+        return Response(serialized_view, status=status.HTTP_201_CREATED)

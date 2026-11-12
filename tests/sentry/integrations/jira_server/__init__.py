@@ -72,7 +72,11 @@ EXAMPLE_PAYLOAD: dict[str, Any] = {
         ],
         "id": 12345,
     },
-    "issue": {"project": {"key": "APP", "id": "10000"}, "key": "APP-1"},
+    "issue": {
+        "project": {"key": "APP", "id": "10000"},
+        "key": "APP-1",
+        "fields": {"updated": "2023-01-01T00:00:00.000+0000"},
+    },
 }
 
 

@@ -1,10 +1,11 @@
 import pytest
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry.api.serializers import serialize
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
-from sentry.testutils.cases import BaseMetricsTestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 from tests.snuba.api.endpoints.test_discover_saved_queries import DiscoverSavedQueryBase
 
 FEATURES = ("organizations:discover-query",)
@@ -43,6 +44,44 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
 
         assert response.status_code == 200, response.content
         assert response.data == serialize(saved_query)
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_has_no_homepage_query(self) -> None:
+        homepage = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Test query",
+            query=self.query,
+            is_homepage=True,
+        )
+        service_account = self.create_service_account(
+            organization=self.org, project_ids=self.project_ids
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.org.id,
+            ),
+            key="service-account-secret",
+        )
+
+        with self.feature(FEATURES):
+            get = self.client.get(self.url, HTTP_X_VIEWER_CONTEXT=viewer_context)
+            put = self.client.put(
+                self.url,
+                {"projects": self.project_ids, "fields": ["field1"]},
+                HTTP_X_VIEWER_CONTEXT=viewer_context,
+            )
+            delete = self.client.delete(self.url, HTTP_X_VIEWER_CONTEXT=viewer_context)
+
+        assert get.status_code == 204, get.content
+        assert put.status_code == 403, put.content
+        assert put.data["detail"]["code"] == "user-required"
+        assert delete.status_code == 404, delete.content
+        assert list(DiscoverSavedQuery.objects.filter(organization=self.org, is_homepage=True)) == [
+            homepage
+        ]
 
     def test_put_updates_existing_homepage_query_to_reflect_new_data(self) -> None:
         saved_query = DiscoverSavedQuery.objects.create(
@@ -170,46 +209,6 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
         assert not DiscoverSavedQuery.objects.filter(
             created_by_id=self.user.id, organization=self.org, is_homepage=True
         ).exists()
-
-    def test_put_allows_custom_measurements_in_equations_with_query(self) -> None:
-        # Having a custom measurement stored implies that a transaction with this measurement has been stored
-        BaseMetricsTestCase.store_metric(
-            self.org.id,
-            self.project_ids[0],
-            "d:transactions/measurements.custom_duration@millisecond",
-            {},
-            int(before_now(days=1).timestamp()),
-            1,
-        )
-
-        homepage_query_payload = {
-            "version": 2,
-            "name": "New Homepage Query",
-            "projects": [self.project_ids[0]],
-            "environment": ["alpha"],
-            "fields": [
-                "transaction.duration",
-                "measurements.custom_duration",
-                "equation|measurements.custom_duration / transaction.duration",
-            ],
-            "orderby": "-transaction.duration",
-            "query": "test",
-            "range": None,
-            "queryDataset": DiscoverSavedQueryTypes.get_type_name(
-                DiscoverSavedQueryTypes.TRANSACTION_LIKE
-            ),
-        }
-
-        with self.feature(FEATURES):
-            response = self.client.put(self.url, data=homepage_query_payload)
-
-        assert response.status_code == 201, response.content
-
-        new_query = DiscoverSavedQuery.objects.get(
-            created_by_id=self.user.id, organization=self.org, is_homepage=True
-        )
-        assert response.data == serialize(new_query)
-        assert list(new_query.projects.values_list("id", flat=True)) == [self.project_ids[0]]
 
     def test_put_success_is_filter(self) -> None:
         with self.feature(FEATURES):

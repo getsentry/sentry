@@ -1,10 +1,9 @@
-import styled from '@emotion/styled';
+import {Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import {PanelItem} from 'sentry/components/panels/panelItem';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import type {InternetProtocol} from 'sentry/types/user';
-
-import {tableLayout} from './utils';
 
 export function SessionRow({
   ipAddress,
@@ -14,39 +13,27 @@ export function SessionRow({
   regionCode,
 }: Omit<InternetProtocol, 'id'>) {
   return (
-    <SessionPanelItem>
-      <IpAndLocation>
-        <IpAddress>{ipAddress}</IpAddress>
-        {countryCode && regionCode && (
-          <CountryCode>{`${countryCode} (${regionCode})`}</CountryCode>
-        )}
-      </IpAndLocation>
-      <div>
-        <StyledTimeSince date={firstSeen} />
-      </div>
-      <div>
-        <StyledTimeSince date={lastSeen} />
-      </div>
-    </SessionPanelItem>
+    <SimpleTable.Row>
+      <SimpleTable.RowCell>
+        <Stack gap="xs">
+          <Text bold wordBreak="break-word">
+            {ipAddress}
+          </Text>
+          {countryCode && regionCode && (
+            <Text size="sm">{`${countryCode} (${regionCode})`}</Text>
+          )}
+        </Stack>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell>
+        <Text size="sm">
+          <TimeSince date={firstSeen} />
+        </Text>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell>
+        <Text size="sm">
+          <TimeSince date={lastSeen} />
+        </Text>
+      </SimpleTable.RowCell>
+    </SimpleTable.Row>
   );
 }
-
-const IpAddress = styled('div')`
-  margin-bottom: ${p => p.theme.space.xs};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-const CountryCode = styled('div')`
-  font-size: ${p => p.theme.font.size.sm};
-`;
-
-const StyledTimeSince = styled(TimeSince)`
-  font-size: ${p => p.theme.font.size.sm};
-`;
-
-const IpAndLocation = styled('div')`
-  flex: 1;
-`;
-
-const SessionPanelItem = styled(PanelItem)`
-  ${tableLayout};
-`;

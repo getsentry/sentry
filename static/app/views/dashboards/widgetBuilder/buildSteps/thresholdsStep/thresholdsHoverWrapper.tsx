@@ -7,11 +7,8 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {CircleIndicator} from 'sentry/components/circleIndicator';
 import {Hovercard} from 'sentry/components/hovercard';
 import {t} from 'sentry/locale';
-import {
-  NEGATIVE_POLARITY_COLOR_ORDER,
-  POSITIVE_POLARITY_COLOR_ORDER,
-} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/constants';
 
+import {NEGATIVE_POLARITY_COLOR_ORDER, POSITIVE_POLARITY_COLOR_ORDER} from './constants';
 import type {ThresholdsConfig} from './thresholds';
 
 type Props = {
@@ -21,10 +18,7 @@ type Props = {
 };
 
 export function ThresholdsHoverWrapper({children, thresholds, type}: Props) {
-  const {
-    unit,
-    max_values: {max1, max2},
-  } = thresholds;
+  const {unit, max_values: {max1, max2} = {}} = thresholds;
   const theme = useTheme();
   const formattedUnit =
     unit && (type === 'duration' ? `${unit}s` : `/${unit.split('/')[1]}`);

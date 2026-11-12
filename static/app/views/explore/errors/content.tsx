@@ -1,8 +1,5 @@
-import {Fragment} from 'react';
-
 import {FeatureBadge} from '@sentry/scraps/badge';
 
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -11,13 +8,11 @@ import {
   ExploreBodyContent,
   ExploreBodySearch,
 } from 'sentry/views/explore/components/styles';
-import {
-  ErrorsContentSection,
-  ErrorsControlSection,
-} from 'sentry/views/explore/errors/body';
-import {ErrorsFilterSection} from 'sentry/views/explore/errors/filterContent';
 import {useControlSectionExpanded} from 'sentry/views/explore/hooks/useControlSectionExpanded';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {ErrorsContentSection, ErrorsControlSection} from './body';
+import {ErrorsFilterSection} from './filterContent';
 
 export default function ErrorsContent() {
   const organization = useOrganization();
@@ -38,19 +33,14 @@ export default function ErrorsContent() {
 
 function ErrorsHeader() {
   return (
-    <Fragment>
-      <TopBar.Slot name="title">
-        {t('Errors')} <FeatureBadge type="alpha" />
-      </TopBar.Slot>
-      <TopBar.Slot name="feedback">
-        <FeedbackButton
-          aria-label={t('Give Feedback')}
-          tooltipProps={{title: t('Give Feedback')}}
-        >
-          {null}
-        </FeedbackButton>
-      </TopBar.Slot>
-    </Fragment>
+    <TopBar.Slot
+      name="breadcrumbs"
+      title={{
+        type: 'page-title',
+        label: t('Errors'),
+        trailingActions: {type: 'badge', element: <FeatureBadge type="alpha" />},
+      }}
+    />
   );
 }
 

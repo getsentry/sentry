@@ -2,6 +2,7 @@
   "files.exclude": {
     "*.egg-info": true,
     "*.log": false,
+    "*.tsbuildinfo": true,
     "**/*.js.map": true,
     "**/*.min.js": true,
     "**/*.pyc": true,
@@ -23,7 +24,7 @@
     "editor.insertSpaces": true,
     "editor.defaultFormatter": "oxc.oxc-vscode",
     "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": "explicit"
+      "source.fixAll.oxc": "explicit"
     }
   },
 
@@ -49,10 +50,7 @@
   },
 
   "[less]": {
-    "editor.formatOnSave": true,
-    "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": "explicit"
-    }
+    "editor.formatOnSave": true
   },
 
   "[json]": {
@@ -69,12 +67,6 @@
     "editor.tabSize": 2,
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "oxc.oxc-vscode"
-  },
-
-  "[markdown]": {
-    "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": "explicit"
-    }
   },
 
   "[dockerfile]": {

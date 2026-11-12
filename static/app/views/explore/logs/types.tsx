@@ -7,7 +7,8 @@ import type {
   PercentChangeUnit,
 } from 'sentry/utils/discover/fields';
 import type {AggregationKey} from 'sentry/utils/fields';
-import type {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
+
+import type {AlwaysPresentLogFields} from './constants';
 
 type OurLogCustomFieldKey = string; // We could brand this for nominal types.
 
@@ -25,6 +26,7 @@ export enum OurLogKnownFieldKey {
   SPAN_ID = 'span_id',
   TIMESTAMP = 'timestamp',
   TIMESTAMP_PRECISE = 'timestamp_precise',
+  TIMESTAMP_SEQUENCE = 'timestamp.sequence',
   OBSERVED_TIMESTAMP_PRECISE = 'observed_timestamp',
   LOGGER = 'logger.name',
 
@@ -53,6 +55,9 @@ export enum OurLogKnownFieldKey {
 
   // From the EAP dataset directly not using a column alias, should be hidden.
   ITEM_TYPE = 'sentry.item_type',
+
+  // Trace item details fall back to this when OBSERVED_TIMESTAMP_PRECISE can't be aliased.
+  OBSERVED_TIMESTAMP_NANOS = 'sentry.observed_timestamp_nanos',
 
   // Deprecated fields
   TIMESTAMP_NANOS = 'sentry.timestamp_nanos',
@@ -116,10 +121,11 @@ export type OurLogsAggregate =
   | AggregationKey.P95
   | AggregationKey.P99
   | AggregationKey.MIN
-  | AggregationKey.MAX;
+  | AggregationKey.MAX
+  | AggregationKey.ANY;
 
 type OurLogsAggregateKeys = `${OurLogsAggregate}(${OurLogFieldKey})`;
-type OurLogsAggregateResponseItem = Record<
+export type OurLogsAggregateResponseItem = Record<
   keyof OurLogsResponseItem | OurLogsAggregateKeys,
   string | number
 >;

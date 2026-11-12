@@ -1,42 +1,32 @@
-import type {Crumb} from 'sentry/components/breadcrumbs';
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {useLocation} from 'sentry/utils/useLocation';
+import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 interface Props {
   organization: Organization;
-  projectSlug: string;
   title: string;
-  alertName?: string;
 }
 
-export function BuilderBreadCrumbs({title, alertName, projectSlug, organization}: Props) {
-  const crumbs: Crumb[] = [
-    {
-      to: makeAlertsPathname({
-        path: '/rules/',
-        organization,
-      }),
-      label: t('Alerts'),
-      preservePageFilters: true,
-    },
-    {
-      label: title,
-      ...(alertName
-        ? {
-            to: makeAlertsPathname({
-              path: `/${projectSlug}/wizard/`,
-              organization,
-            }),
-            preservePageFilters: true,
-          }
-        : {}),
-    },
-  ];
-  if (alertName) {
-    crumbs.push({label: alertName});
-  }
+export function BuilderBreadCrumbs({title, organization}: Props) {
+  const location = useLocation();
 
-  return <Breadcrumbs crumbs={crumbs} />;
+  return (
+    <TopBar.Slot
+      name="breadcrumbs"
+      title={{type: 'page-title', label: title}}
+      items={[
+        {
+          type: 'link',
+          label: t('Monitors'),
+          to: {
+            pathname: makeMonitorBasePathname(organization.slug),
+            query: extractSelectionParameters(location.query),
+          },
+        },
+      ]}
+    />
+  );
 }

@@ -1,15 +1,16 @@
 import type {ReactNode} from 'react';
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconCursorArrow} from '@sentry/icons/cursorArrow';
+import {IconSearch} from '@sentry/icons/search';
 
-import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {InfoTip} from '@sentry/scraps/info';
+import {Container, Flex, Grid, Stack, type FlexProps} from '@sentry/scraps/layout';
 
 import {Accordion} from 'sentry/components/container/accordion';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {Placeholder} from 'sentry/components/placeholder';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {TextOverflow} from 'sentry/components/textOverflow';
-import {IconCursorArrow, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {useDeadRageSelectors} from 'sentry/utils/replays/hooks/useDeadRageSelectors';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -19,10 +20,11 @@ import {
   Subtitle,
   WidgetContainer,
 } from 'sentry/views/explore/profiling/landing/styles';
-import {ExampleReplaysList} from 'sentry/views/explore/replays/selectors/exampleReplaysList';
-import {ProjectInfo} from 'sentry/views/explore/replays/selectors/projectInfo';
-import {SelectorLink} from 'sentry/views/explore/replays/selectors/selectorLink';
-import {transformSelectorQuery} from 'sentry/views/explore/replays/selectors/utils';
+
+import {ExampleReplaysList} from './exampleReplaysList';
+import {ProjectInfo} from './projectInfo';
+import {SelectorLink} from './selectorLink';
+import {transformSelectorQuery} from './utils';
 
 type ClickType = 'count_dead_clicks' | 'count_rage_clicks';
 type DeadOrRage = 'dead' | 'rage';
@@ -73,7 +75,7 @@ function AccordionWidget({
       {isLoading ? (
         <SelectorCardPlaceholder />
       ) : isError || (!isLoading && filteredData.length === 0) ? (
-        <Flex flex="1 1 auto" direction="column" justify="center">
+        <Stack flex="1 1 auto" justify="center">
           <StyledEmptyStateWarning withIcon={false}>
             <EmptyHeader>
               <IconSearch size="sm" />
@@ -86,11 +88,10 @@ function AccordionWidget({
               )}
             </EmptySubtitle>
           </StyledEmptyStateWarning>
-        </Flex>
+        </Stack>
       ) : (
-        <Flex flex="1 1 auto" direction="column" justify="start">
+        <Stack flex="1 1 auto" justify="start">
           <Accordion
-            collapsible
             collapsedChevronDirection="right"
             expandedIndex={selectedListIndex}
             expandedChevronDirection="down"
@@ -120,7 +121,7 @@ function AccordionWidget({
               };
             })}
           />
-        </Flex>
+        </Stack>
       )}
     </WidgetFrame>
   );
@@ -152,7 +153,7 @@ function SelectorCardHeader({deadOrRage}: {deadOrRage: DeadOrRage}) {
       <StyledWidgetHeader>
         <Flex align="center" gap="md">
           {deadOrRage === 'dead' ? t('Most Dead Clicks') : t('Most Rage Clicks')}
-          <QuestionTooltip
+          <InfoTip
             size="xs"
             position="top"
             title={
@@ -164,7 +165,6 @@ function SelectorCardHeader({deadOrRage}: {deadOrRage: DeadOrRage}) {
                     'The top selectors your users have rage clicked on (i.e., 5 or more clicks on a dead element, which exhibits no page activity after 7 seconds).'
                   )
             }
-            isHoverable
           />
         </Flex>
       </StyledWidgetHeader>
@@ -222,14 +222,19 @@ function AccordionItemHeader({
   );
 }
 
-const SplitCardContainer = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: max-content;
-  grid-auto-flow: column;
-  gap: 0 ${p => p.theme.space.xl};
-  align-items: stretch;
-`;
+function SplitCardContainer({children}: {children: ReactNode}) {
+  return (
+    <Grid
+      align="stretch"
+      columns={{zero: '1fr', xl: '1fr 1fr'}}
+      flow={{zero: 'row', xl: 'column'}}
+      gap={{zero: 'xl', xl: '0 xl'}}
+      rows="max-content"
+    >
+      {children}
+    </Grid>
+  );
+}
 
 const ClickCount = styled(TextOverflow)`
   color: ${p => p.theme.colors.gray500};
@@ -282,7 +287,7 @@ const EmptySubtitle = styled('div')`
 `;
 
 const LoadingContainer = styled((props: FlexProps) => (
-  <Flex gap="2xs" flex="1 1 auto" direction="column" justify="start" {...props} />
+  <Stack gap="2xs" flex="1 1 auto" justify="start" {...props} />
 ))`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xs} 4px ${p => p.theme.space.xs};
 `;

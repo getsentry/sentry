@@ -24,7 +24,7 @@ from sentry.preprod.api.models.public.installable_builds import (
     create_latest_installable_build_response,
 )
 from sentry.preprod.api.validators import PreprodLatestInstallableBuildValidator
-from sentry.preprod.build_distribution_utils import find_current_and_latest
+from sentry.preprod.build_distribution_utils import ParsedBuildNumber, find_current_and_latest
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -53,55 +53,7 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
-            OpenApiParameter(
-                name="appId",
-                description="App identifier (exact match).",
-                required=True,
-                type=str,
-                location="query",
-            ),
-            OpenApiParameter(
-                name="platform",
-                description='Platform: "apple" or "android".',
-                required=True,
-                type=str,
-                location="query",
-            ),
-            OpenApiParameter(
-                name="buildVersion",
-                description="Current build version. When provided, enables check-for-updates mode.",
-                required=False,
-                type=str,
-                location="query",
-            ),
-            OpenApiParameter(
-                name="buildNumber",
-                description="Current build number. Either this or mainBinaryIdentifier must be provided when buildVersion is set.",
-                required=False,
-                type=int,
-                location="query",
-            ),
-            OpenApiParameter(
-                name="mainBinaryIdentifier",
-                description="UUID of the main binary (e.g. Mach-O UUID for Apple builds). Either this or buildNumber must be provided when buildVersion is set.",
-                required=False,
-                type=str,
-                location="query",
-            ),
-            OpenApiParameter(
-                name="buildConfiguration",
-                description="Filter by build configuration name (exact match).",
-                required=False,
-                type=str,
-                location="query",
-            ),
-            OpenApiParameter(
-                name="codesigningType",
-                description="Filter by code signing type.",
-                required=False,
-                type=str,
-                location="query",
-            ),
+            PreprodLatestInstallableBuildValidator,
             OpenApiParameter(
                 name="installGroups",
                 description="Filter by install group name (repeatable for multiple groups).",
@@ -141,7 +93,7 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
         app_id: str = params["appId"]
         platform: str = params["platform"]
         build_version: str | None = params.get("buildVersion")
-        build_number: int | None = params.get("buildNumber")
+        build_number: ParsedBuildNumber | None = params.get("buildNumber")
         main_binary_identifier: str | None = params.get("mainBinaryIdentifier")
         build_configuration: str | None = params.get("buildConfiguration")
         codesigning_type: str | None = params.get("codesigningType")

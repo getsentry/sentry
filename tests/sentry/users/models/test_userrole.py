@@ -1,15 +1,11 @@
-from django.conf import settings
-
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.users.models.userrole import UserRole, manage_default_super_admin_role
+from sentry.users.models.userrole import UserRole
 
 
 @control_silo_test
 class UserRoleTest(TestCase):
-    def setUp(self) -> None:
-        manage_default_super_admin_role()
-
-    def test_creates_super_admin_role(self) -> None:
-        role = UserRole.objects.get(name="Super Admin")
-        assert sorted(role.permissions) == sorted(settings.SENTRY_USER_PERMISSIONS)
+    def test_create_role(self) -> None:
+        role = UserRole.objects.create(name="test-role", permissions=["users.admin"])
+        assert role.name == "test-role"
+        assert role.permissions == ["users.admin"]

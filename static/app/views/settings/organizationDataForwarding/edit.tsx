@@ -1,20 +1,19 @@
-import {Fragment} from 'react';
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
+import {IconArrow} from '@sentry/icons/arrow';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {FieldGroup} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {Access} from 'sentry/components/acl/access';
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconArrow} from 'sentry/icons/iconArrow';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -23,21 +22,20 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
-import {ProjectOverrideForm} from 'sentry/views/settings/organizationDataForwarding/components/projectOverrideForm';
-import {
-  useDataForwarders,
-  useMutateDataForwarder,
-} from 'sentry/views/settings/organizationDataForwarding/util/hooks';
-import {SegmentEditForm} from 'sentry/views/settings/organizationDataForwarding/util/segmentForm';
-import {SplunkEditForm} from 'sentry/views/settings/organizationDataForwarding/util/splunkForm';
-import {SQSEditForm} from 'sentry/views/settings/organizationDataForwarding/util/sqsForm';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
+
+import {ProjectOverrideForm} from './components/projectOverrideForm';
+import {useDataForwarders, useMutateDataForwarder} from './util/hooks';
+import {SegmentEditForm} from './util/segmentForm';
+import {SplunkEditForm} from './util/splunkForm';
+import {SQSEditForm} from './util/sqsForm';
 import {
   DATA_FORWARDING_FEATURES,
   DataForwarderProviderSlug,
   ProviderLabels,
   type DataForwarder,
   type DataForwarderPayload,
-} from 'sentry/views/settings/organizationDataForwarding/util/types';
+} from './util/types';
 
 export default function OrganizationDataForwardingEditWrapper() {
   const organization = useOrganization();
@@ -48,11 +46,21 @@ export default function OrganizationDataForwardingEditWrapper() {
   const dataForwarder = dataForwarders?.find(df => df.id === dataForwarderId);
 
   if (isLoading) {
-    return <LoadingIndicator />;
+    return (
+      <Fragment>
+        <BreadcrumbTitle title={t('Data Forwarding')} />
+        <LoadingIndicator />
+      </Fragment>
+    );
   }
 
   if (!dataForwarder) {
-    return <NotFound />;
+    return (
+      <Fragment>
+        <BreadcrumbTitle title={t('Data Forwarding')} />
+        <NotFound />
+      </Fragment>
+    );
   }
 
   return <OrganizationDataForwardingEdit dataForwarder={dataForwarder} />;
@@ -68,12 +76,13 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
 
   return (
     <Fragment>
+      <BreadcrumbTitle title={t('Data Forwarding')} />
       <SentryDocumentTitle
         title={t('Edit your %s forwarder', ProviderLabels[provider])}
       />
-      <Flex direction="column" gap="lg">
+      <Stack gap="lg">
         <Flex align="center" justify="between" gap="2xl">
-          <Flex direction="column" gap="sm">
+          <Stack gap="sm">
             <Flex align="center" gap="lg">
               <Heading as="h2">{t('Edit your forwarder')}</Heading>
             </Flex>
@@ -83,7 +92,7 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
                 ProviderLabels[provider]
               )}
             </Text>
-          </Flex>
+          </Stack>
           <LinkButton
             size="sm"
             to={`/settings/${organization.slug}/data-forwarding/`}
@@ -113,7 +122,7 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
                   )}
                 />
               )}
-              <Tabs value={dataForwarder.provider} disableOverflow>
+              <Tabs value={dataForwarder.provider}>
                 <TabList variant="floating">
                   {Object.entries(ProviderLabels).map(([key, label]) => (
                     <TabList.Item
@@ -203,7 +212,7 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
             </Fragment>
           )}
         </Feature>
-      </Flex>
+      </Stack>
     </Fragment>
   );
 }

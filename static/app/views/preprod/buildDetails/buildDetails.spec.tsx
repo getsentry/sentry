@@ -1,10 +1,18 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {
+  PreprodAppInfoFixture,
   PreprodBuildDetailsWithSizeInfoFixture,
   PreprodVcsInfoFullFixture,
 } from 'sentry-fixture/preprod';
 
-import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {MetricsArtifactType} from 'sentry/views/preprod/types/appSizeTypes';
 import {BuildDetailsSizeAnalysisState} from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -67,6 +75,9 @@ describe('BuildDetails', () => {
     });
 
     expect(screen.getByRole('complementary')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {name: 'artifact-1', level: 1})
+    ).toBeInTheDocument();
 
     const loadingPlaceholders = screen.getAllByTestId('loading-placeholder');
     expect(loadingPlaceholders.length).toBeGreaterThan(0);
@@ -107,7 +118,69 @@ describe('BuildDetails', () => {
     expect(screen.queryByText('Search files')).not.toBeInTheDocument();
   });
 
-  it('shows success state when both queries succeed', async () => {
+  it.each(['1.0.0', undefined])(
+    'shows the loaded header with version %s',
+    async version => {
+      MockApiClient.clearMockResponses();
+
+      MockApiClient.addMockResponse({
+        url: QUOTA_STATE_URL,
+        method: 'GET',
+        body: {hasSizeQuota: true, hasDistributionQuota: true},
+      });
+
+      const buildDetailsMock = MockApiClient.addMockResponse({
+        url: BUILD_DETAILS_URL,
+        method: 'GET',
+        body: PreprodBuildDetailsWithSizeInfoFixture(
+          {
+            state: BuildDetailsSizeAnalysisState.COMPLETED,
+            size_metrics: [
+              {
+                metrics_artifact_type: MetricsArtifactType.MAIN_ARTIFACT,
+                install_size_bytes: 1024000,
+                download_size_bytes: 512000,
+              },
+            ],
+            base_size_metrics: [],
+          },
+          {
+            app_info: PreprodAppInfoFixture({version}),
+            vcs_info: PreprodVcsInfoFullFixture(),
+          }
+        ),
+      });
+
+      const appSizeMock = MockApiClient.addMockResponse({
+        url: SIZE_ANALYSIS_URL,
+        method: 'GET',
+        body: createMockSizeAnalysisData(),
+      });
+
+      render(<BuildDetails />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      await waitFor(() => expect(buildDetailsMock).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(appSizeMock).toHaveBeenCalledTimes(1));
+
+      expect(
+        await screen.findByRole('heading', {name: 'artifact-1', level: 1})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', {
+          name: version
+            ? 'Build version, v1.0.0 (123)'
+            : 'Build version, Unknown version',
+          level: 2,
+        })
+      ).toBeInTheDocument();
+      expect(await screen.findByText('Build Metadata')).toBeInTheDocument();
+    }
+  );
+
+  it('enables Install once the build reports itself installable', async () => {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
@@ -116,7 +189,46 @@ describe('BuildDetails', () => {
       body: {hasSizeQuota: true, hasDistributionQuota: true},
     });
 
-    const buildDetailsMock = MockApiClient.addMockResponse({
+    const installable = PreprodBuildDetailsWithSizeInfoFixture({
+      state: BuildDetailsSizeAnalysisState.COMPLETED,
+      size_metrics: [],
+      base_size_metrics: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: BUILD_DETAILS_URL,
+      method: 'GET',
+      body: {
+        ...installable,
+        distribution_info: {...installable.distribution_info, is_installable: true},
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: SIZE_ANALYSIS_URL,
+      method: 'GET',
+      body: createMockSizeAnalysisData(),
+    });
+
+    render(<BuildDetails />, {organization, initialRouterConfig});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Build Actions'}));
+
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Install'})
+    ).not.toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('shows the app metadata in the entity header and the actions in the more menu', async () => {
+    MockApiClient.clearMockResponses();
+
+    MockApiClient.addMockResponse({
+      url: QUOTA_STATE_URL,
+      method: 'GET',
+      body: {hasSizeQuota: true, hasDistributionQuota: true},
+    });
+
+    MockApiClient.addMockResponse({
       url: BUILD_DETAILS_URL,
       method: 'GET',
       body: PreprodBuildDetailsWithSizeInfoFixture(
@@ -132,12 +244,112 @@ describe('BuildDetails', () => {
           base_size_metrics: [],
         },
         {
+          app_info: PreprodAppInfoFixture({
+            name: 'Test App',
+            app_id: 'com.example.app',
+            build_configuration: 'release',
+            platform: 'android',
+          }),
           vcs_info: PreprodVcsInfoFullFixture(),
         }
       ),
     });
 
-    const appSizeMock = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
+      url: SIZE_ANALYSIS_URL,
+      method: 'GET',
+      body: createMockSizeAnalysisData(),
+    });
+
+    const {router} = render(<BuildDetails />, {
+      organization,
+      initialRouterConfig,
+    });
+
+    // Metadata that used to live in the sidebar aside now sits in the header.
+    const metadata = await screen.findByRole('list', {name: 'Build properties'});
+    expect(await within(metadata).findByText('Test App')).toBeInTheDocument();
+    expect(within(metadata).getByText('com.example.app')).toBeInTheDocument();
+    expect(screen.getByText('release')).toBeInTheDocument();
+
+    // Both kept the tooltip that explained them in the sidebar. The app id's
+    // copy doubles as its visually hidden key, so match the portalled one.
+    await userEvent.hover(within(metadata).getByText('com.example.app'));
+    await waitFor(() => {
+      expect(
+        screen.getAllByText('Package name').some(node => !metadata.contains(node))
+      ).toBe(true);
+    });
+
+    await userEvent.hover(screen.getByText('release'));
+    expect(await screen.findByText('Build configuration')).toBeInTheDocument();
+
+    // The platform graphic names both what it is and what it shows.
+    await userEvent.hover(screen.getByRole('img', {name: 'Platform, Android'}));
+    expect(await screen.findByText('Platform, Android')).toBeInTheDocument();
+
+    // The actions are no longer standalone buttons in the topbar.
+    expect(screen.queryByRole('button', {name: 'Compare Build'})).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Build Actions'}));
+
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Compare Build'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Install'})).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Delete Build'})).toBeInTheDocument();
+
+    // The fixture is not installable, so Install is offered but inert rather
+    // than opening a modal with nothing behind it.
+    expect(screen.getByRole('menuitemradio', {name: 'Install'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Compare Build'}));
+
+    await waitFor(() => {
+      expect(router.location.pathname).toBe(
+        `/organizations/${organization.slug}/preprod/size/compare/artifact-1/`
+      );
+    });
+  });
+
+  it('prefers build_number_raw over the synthesized build_number', async () => {
+    MockApiClient.clearMockResponses();
+
+    MockApiClient.addMockResponse({
+      url: QUOTA_STATE_URL,
+      method: 'GET',
+      body: {hasSizeQuota: true, hasDistributionQuota: true},
+    });
+
+    MockApiClient.addMockResponse({
+      url: BUILD_DETAILS_URL,
+      method: 'GET',
+      body: PreprodBuildDetailsWithSizeInfoFixture(
+        {
+          state: BuildDetailsSizeAnalysisState.COMPLETED,
+          size_metrics: [
+            {
+              metrics_artifact_type: MetricsArtifactType.MAIN_ARTIFACT,
+              install_size_bytes: 1024000,
+              download_size_bytes: 512000,
+            },
+          ],
+          base_size_metrics: [],
+        },
+        {
+          app_info: PreprodAppInfoFixture({
+            build_number: '1000002000003',
+            build_number_raw: '1.2.3',
+          }),
+          vcs_info: PreprodVcsInfoFullFixture(),
+        }
+      ),
+    });
+
+    MockApiClient.addMockResponse({
       url: SIZE_ANALYSIS_URL,
       method: 'GET',
       body: createMockSizeAnalysisData(),
@@ -148,11 +360,8 @@ describe('BuildDetails', () => {
       initialRouterConfig,
     });
 
-    await waitFor(() => expect(buildDetailsMock).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(appSizeMock).toHaveBeenCalledTimes(1));
-
-    expect(await screen.findByText('v1.0.0 (123)')).toBeInTheDocument();
-    expect(await screen.findByText('Build Metadata')).toBeInTheDocument();
+    expect(await screen.findByText('v1.0.0 (1.2.3)')).toBeInTheDocument();
+    expect(screen.queryByText('v1.0.0 (1000002000003)')).not.toBeInTheDocument();
   });
 
   it('shows "Your app is still being analyzed..." text when size analysis is processing', async () => {
@@ -175,7 +384,7 @@ describe('BuildDetails', () => {
     MockApiClient.addMockResponse({
       url: SIZE_ANALYSIS_URL,
       method: 'GET',
-      body: new Promise(() => {}), // Keep pending
+      body: createMockSizeAnalysisData(),
     });
 
     render(<BuildDetails />, {

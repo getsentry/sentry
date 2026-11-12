@@ -1,10 +1,12 @@
 import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {useDrawer} from '@sentry/scraps/drawer';
-import {Stack} from '@sentry/scraps/layout';
+import {Stack, Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {SelectValue} from '@sentry/scraps/select';
 
@@ -12,10 +14,7 @@ import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DeprecatedPlatformInfo} from 'sentry/components/onboarding/gettingStartedDoc/deprecatedPlatformInfo';
-import {
-  OnboardingCopyMarkdownButton,
-  useCopySetupInstructionsEnabled,
-} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
@@ -33,8 +32,8 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {
   OnboardingDrawerKey,
   OnboardingDrawerStore,
+  useIsOnboardingDrawerOpen,
 } from 'sentry/stores/onboardingDrawerStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -62,8 +61,7 @@ const PROFILING_ONBOARDING_STEPS = [
 
 export function useProfilingOnboardingDrawer() {
   const organization = useOrganization();
-  const currentPanel = useLegacyStore(OnboardingDrawerStore);
-  const isActive = currentPanel === OnboardingDrawerKey.PROFILING_ONBOARDING;
+  const isActive = useIsOnboardingDrawerOpen(OnboardingDrawerKey.PROFILING_ONBOARDING);
   const hasProjectAccess = organization.access.includes('project:read');
   const initialPathname = useRef<string | null>(null);
 
@@ -123,6 +121,7 @@ function SidebarContent() {
     // we'll only ever select an unsupportedProject if they do not have a supported project in their organization
     if (supportedProjects.length === 0 && unsupportedProjects.length > 0) {
       if (pageFilters.selection.projects[0] === ALL_ACCESS_PROJECTS) {
+        // oxlint-disable-next-line react/set-state-in-effect
         setCurrentProject(unsupportedProjects[0]);
         return;
       }
@@ -275,8 +274,10 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
 
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
-  const copyEnabled = useCopySetupInstructionsEnabled();
+  const {isSelfHosted, urlPrefix} = useStore(
+    ConfigStore,
+    useShallow(state => ({isSelfHosted: state.isSelfHosted, urlPrefix: state.urlPrefix}))
+  );
 
   if (isLoading) {
     return <LoadingIndicator />;
@@ -346,7 +347,6 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
       data: registryData,
     },
     platformOptions: PROFILING_ONBOARDING_STEPS,
-    newOrg: false,
     feedbackOptions: {},
     /**
      * Page where the docs will be rendered
@@ -366,7 +366,7 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
 
   return (
     <TabSelectionScope>
-      <Wrapper>
+      <Container marginTop="xl">
         {doc.introduction && <Introduction>{doc.introduction(docParams)}</Introduction>}
         <Steps>
           {steps.map((step, index) => {
@@ -376,7 +376,7 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
                 stepIndex={index}
                 {...step}
                 trailingItems={
-                  index === 0 && copyEnabled ? (
+                  index === 0 ? (
                     <OnboardingCopyMarkdownButton
                       borderless
                       steps={steps}
@@ -388,14 +388,10 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
             );
           })}
         </Steps>
-      </Wrapper>
+      </Container>
     </TabSelectionScope>
   );
 }
-
-const Wrapper = styled('div')`
-  margin-top: ${p => p.theme.space.xl};
-`;
 
 const Steps = styled('div')`
   display: flex;

@@ -1,4 +1,5 @@
 import copy
+from collections.abc import Callable, Sequence
 from functools import partial
 from unittest import mock
 from unittest.mock import patch
@@ -6,6 +7,7 @@ from unittest.mock import patch
 import pytest
 from snuba_sdk import Column, Direction, Function, OrderBy
 
+from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_tag_value, resolve_weak
@@ -42,7 +44,6 @@ from sentry.snuba.metrics.fields.snql import (
 from sentry.snuba.metrics.naming_layer import (
     SessionMRI,
     SpanMRI,
-    TransactionMRI,
     get_public_name_from_mri,
 )
 from sentry.testutils.cases import TestCase
@@ -60,14 +61,14 @@ perf_indexer_record = partial(indexer_record, UseCaseID.TRANSACTIONS)
 rh_indexer_record = partial(indexer_record, UseCaseID.SESSIONS)
 
 
-def get_entity_of_metric_mocked(_, metric_mri, use_case_id):
+def get_entity_of_metric_mocked(_: object, metric_mri: str, use_case_id: UseCaseID) -> str:
     return {
         SessionMRI.RAW_SESSION.value: EntityKey.MetricsCounters,
         SessionMRI.RAW_USER.value: EntityKey.MetricsSets,
         SessionMRI.RAW_ERROR.value: EntityKey.MetricsSets,
-        TransactionMRI.DURATION.value: EntityKey.MetricsDistributions,
-        TransactionMRI.USER.value: EntityKey.MetricsSets,
-        TransactionMRI.MEASUREMENTS_LCP.value: EntityKey.MetricsDistributions,
+        "d:transactions/duration@millisecond": EntityKey.MetricsDistributions,
+        "s:transactions/user@none": EntityKey.MetricsSets,
+        "d:transactions/measurements.lcp@millisecond": EntityKey.MetricsDistributions,
         SpanMRI.SELF_TIME.value: EntityKey.MetricsDistributions,
         SpanMRI.SELF_TIME_LIGHT.value: EntityKey.MetricsDistributions,
         SpanMRI.RESPONSE_CONTENT_LENGTH.value: EntityKey.MetricsDistributions,
@@ -97,7 +98,9 @@ MOCKED_DERIVED_METRICS.update(
 )
 
 
-def mocked_mri_resolver(metric_mris, mri_func):
+def mocked_mri_resolver(
+    metric_mris: Sequence[str], mri_func: Callable[[str], str]
+) -> Callable[[str], str]:
     return lambda x: x if x in metric_mris else mri_func(x)
 
 
@@ -663,3 +666,22 @@ class DerivedMetricAliasTestCase(TestCase):
 )
 def test_known_entity_of_metric_mri(metric_mri: str, expected_entity: str | None) -> None:
     assert _get_known_entity_of_metric_mri(metric_mri) == expected_entity
+
+
+@pytest.mark.parametrize(
+    "metric_mri",
+    [
+        "d:transactions/duration@millisecond",
+        "s:transactions/user@none",
+        "g:transactions/foo@none",
+        "d:spans/duration@millisecond",
+        "s:spans/user@none",
+        "g:spans/messaging.message.receive.latency@millisecond",
+        "d:custom/foo@none",
+        "s:custom/users@none",
+        "g:custom/gauge@none",
+    ],
+)
+def test_known_entity_rejects_leftover_generic_sgd(metric_mri: str) -> None:
+    with pytest.raises(InvalidParams, match="no longer supported"):
+        _get_known_entity_of_metric_mri(metric_mri)

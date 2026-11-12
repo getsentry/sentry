@@ -1,5 +1,5 @@
 import {LinkButton} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {Placeholder} from 'sentry/components/placeholder';
@@ -28,16 +28,11 @@ export function BillingInfoCard({
     <SubscriptionHeaderCard
       title={t('Billing information')}
       sections={[
-        <Flex
-          key="billing-info"
-          direction="column"
-          gap="md"
-          align="start"
-          maxWidth="100%"
-        >
-          <BillingDetailsInfo subscription={subscription} />
+        <Stack key="billing-info" gap="md" align="start" maxWidth="100%">
+          <AccountBalanceInfo subscription={subscription} />
+          <BillingDetailsInfo />
           <PaymentSourceInfo subscription={subscription} />
-        </Flex>,
+        </Stack>,
         <LinkButton
           key="edit-billing-information"
           aria-label={t('Edit billing information')}
@@ -54,17 +49,35 @@ export function BillingInfoCard({
   );
 }
 
-function BillingDetailsInfo({subscription}: {subscription: Subscription}) {
+function AccountBalanceInfo({subscription}: {subscription: Subscription}) {
+  const {accountBalance} = subscription;
+
+  if (!accountBalance) {
+    return null;
+  }
+
+  const isCredit = accountBalance < 0;
+
+  return (
+    <Text bold ellipsis size="sm">
+      {isCredit
+        ? tct('Account credits: [amount]', {amount: formatCurrency(0 - accountBalance)})
+        : tct('Balance due: [amount]', {amount: formatCurrency(accountBalance)})}
+    </Text>
+  );
+}
+
+function BillingDetailsInfo() {
   const {layout} = usePrimaryNavigation();
   const isMobile = layout === 'mobile';
   const {data: billingDetails, isLoading} = useBillingDetails();
 
   if (isLoading) {
     return (
-      <Flex direction="column" gap="sm">
+      <Stack gap="sm">
         <Placeholder height="14px" />
         <Placeholder height="14px" />
-      </Flex>
+      </Stack>
     );
   }
 
@@ -97,27 +110,8 @@ function BillingDetailsInfo({subscription}: {subscription: Subscription}) {
     secondaryDetails.push(`${taxFieldInfo.label}: ${billingDetails.taxNumber}`);
   }
 
-  const balance =
-    subscription.accountBalance < 0
-      ? tct('[credits] credit', {
-          credits: formatCurrency(0 - subscription.accountBalance),
-        })
-      : formatCurrency(subscription.accountBalance);
-
   return (
-    <Flex
-      overflow="hidden"
-      direction="column"
-      gap="sm"
-      maxWidth={isMobile ? MAX_WIDTH : '100%'}
-    >
-      {!!subscription.accountBalance && (
-        <Text ellipsis size="sm" variant="muted">
-          {tct('Account balance: [balance]', {
-            balance,
-          })}
-        </Text>
-      )}
+    <Stack overflow="hidden" gap="sm" maxWidth={isMobile ? MAX_WIDTH : '100%'}>
       <Text ellipsis size="sm" variant="muted">
         {primaryDetails.length > 0
           ? primaryDetails.join(', ')
@@ -128,7 +122,7 @@ function BillingDetailsInfo({subscription}: {subscription: Subscription}) {
           ? secondaryDetails.join('. ')
           : t('No billing email or tax number on file')}
       </Text>
-    </Flex>
+    </Stack>
   );
 }
 

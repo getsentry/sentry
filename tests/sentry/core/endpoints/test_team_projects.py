@@ -1,16 +1,22 @@
+from typing import cast
 from unittest import TestCase, mock
 from unittest.mock import MagicMock, Mock, patch
 
+from django.test import override_settings
+
 from sentry.constants import RESERVED_PROJECT_SLUGS
+from sentry.core.endpoints.organization_projects import DISABLED_FEATURE_ERROR_STRING
 from sentry.ingest import inbound_filters
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.rule import Rule
-from sentry.notifications.types import FallthroughChoiceType
 from sentry.signals import alert_rule_created, project_created
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.workflow_engine.defaults.workflows import DEFAULT_WORKFLOW_LABEL
+from sentry.workflow_engine.models import Workflow
 
 
 class TeamProjectsListTest(APITestCase):
@@ -135,15 +141,14 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         )
 
         project = Project.objects.get(id=response.data["id"])
-        rule = Rule.objects.get(project=project)
+        assert not Rule.objects.filter(project=project).exists()
+        assert Workflow.objects.filter(
+            organization=project.organization, name=DEFAULT_WORKFLOW_LABEL
+        ).exists()
 
-        assert (
-            rule.data["actions"][0]["fallthroughType"] == FallthroughChoiceType.ACTIVE_MEMBERS.value
-        )
-
-        # Ensure that creating the default alert rule does trigger the
+        # Ensure that creating the default workflow does not trigger the
         # alert_rule_created signal
-        assert signal_handler.call_count == 1
+        assert signal_handler.call_count == 0
         alert_rule_created.disconnect(signal_handler)
 
     def test_without_default_rules_disable_member_project_creation(self) -> None:
@@ -157,6 +162,139 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         project = Project.objects.get(id=response.data["id"])
         assert not Rule.objects.filter(project=project).exists()
 
+    @with_feature({"organizations:team-roles": False})
+    def test_member_can_create_project_on_team_without_team_roles(self) -> None:
+        organization = self.create_organization(flags=0)
+        team = self.create_team(organization=organization)
+        user = self.create_user(is_superuser=False)
+        self.create_member(user=user, organization=organization, role="member", teams=[team])
+        self.login_as(user=user)
+
+        self.get_success_response(
+            organization.slug,
+            team.slug,
+            **self.data,
+            status_code=201,
+        )
+
+    @with_feature("organizations:team-roles")
+    def test_member_can_create_project_on_team_with_team_roles(self) -> None:
+        organization = self.create_organization(flags=0)
+        team = self.create_team(organization=organization)
+        user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user,
+            organization=organization,
+            role="member",
+            team_roles=[(team, "contributor")],
+        )
+        self.login_as(user=user)
+
+        self.get_success_response(
+            organization.slug,
+            team.slug,
+            **self.data,
+            status_code=201,
+        )
+
+    def test_member_cannot_create_project_on_other_team(self) -> None:
+        user = self.create_user(is_superuser=False)
+        self.login_as(user=user)
+
+        organization = self.create_organization(flags=0)
+        team = self.create_team(organization=organization)
+        self.create_member(user=user, organization=organization, role="member", teams=[])
+        self.get_error_response(organization.slug, team.slug, **self.data, status_code=403)
+
+        # Open membership grants team access, not team membership.
+        open_organization = self.create_organization(flags=1)  # allow_joinleave
+        open_team = self.create_team(organization=open_organization)
+        self.create_member(user=user, organization=open_organization, role="member", teams=[])
+        self.get_error_response(
+            open_organization.slug, open_team.slug, **self.data, status_code=403
+        )
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    @override_options({"superuser.read-write.ga-rollout": True})
+    def test_readonly_superuser_cannot_create_project(self) -> None:
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(superuser, superuser=True)
+
+        self.get_error_response(
+            self.organization.slug,
+            self.team.slug,
+            **self.data,
+            status_code=403,
+        )
+
+    def test_integration_token_with_project_read_cannot_create_project(self) -> None:
+        # Integration access simulates membership of every team. The unchanged POST
+        # scope map rejects a read-only token before that membership is consulted.
+        organization = self.create_organization(flags=0)
+        team = self.create_team(organization=organization)
+        internal_integration = self.create_internal_integration(
+            name="read-only", organization=organization, scopes=("project:read",)
+        )
+        token = self.create_internal_integration_token(
+            user=self.user, internal_integration=internal_integration
+        )
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+        self.get_error_response(
+            organization.slug,
+            team.slug,
+            **self.data,
+            status_code=403,
+        )
+
+    @with_feature({"organizations:team-roles": False})
+    def test_team_admin_can_create_project_when_member_creation_disabled_without_team_roles(
+        self,
+    ) -> None:
+        organization = self.create_organization(flags=256)
+        team = self.create_team(organization=organization)
+        user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user,
+            organization=organization,
+            role="member",
+            team_roles=[(team, "admin")],
+        )
+        self.login_as(user=user)
+
+        self.get_success_response(
+            organization.slug,
+            team.slug,
+            **self.data,
+            status_code=201,
+        )
+
+    @with_feature({"organizations:team-roles": False})
+    def test_token_without_team_admin_scope_cannot_bypass_disabled_member_creation(
+        self,
+    ) -> None:
+        organization = self.create_organization(flags=256)
+        team = self.create_team(organization=organization)
+        user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user,
+            organization=organization,
+            role="member",
+            team_roles=[(team, "admin")],
+        )
+        token = self.create_user_auth_token(user=user, scope_list=["project:read", "project:write"])
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.plaintext_token}")
+
+        response = self.get_error_response(
+            organization.slug,
+            team.slug,
+            **self.data,
+            status_code=403,
+        )
+
+        assert response.data["detail"] == DISABLED_FEATURE_ERROR_STRING
+
+    @with_feature("organizations:team-roles")
     def test_disable_member_project_creation(self) -> None:
         test_org = self.create_organization(flags=256)
         test_team = self.create_team(organization=test_org)
@@ -258,7 +396,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         }
 
         assert javascript_filter_states["browser-extensions"]
-        assert set(javascript_filter_states["legacy-browsers"]) == {
+        assert set(cast(list[str], javascript_filter_states["legacy-browsers"])) == {
             "ie",
             "firefox",
             "chrome",
@@ -272,10 +410,10 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         assert javascript_filter_states["filtered-transaction"]
 
     @override_options({"similarity.new_project_seer_grouping.enabled": True})
-    def test_similarity_project_option_valid(self) -> None:
+    def test_similarity_project_option_region_enabled(self) -> None:
         """
-        Test that project option for similarity grouping is created when the project platform is
-        Seer-eligible.
+        Test that project option for similarity grouping is created when new-project Seer grouping
+        is enabled in the region.
         """
         response = self.get_success_response(
             self.organization.slug,
@@ -297,25 +435,20 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
             is not None
         )
 
-    def test_similarity_project_option_invalid(self) -> None:
+    @override_options({"similarity.new_project_seer_grouping.enabled": False})
+    def test_similarity_project_option_region_disabled(self) -> None:
         """
-        Test that project option for similarity grouping is not created when the project platform
-        is not seer eligible.
+        Test that project option for similarity grouping is not created when new-project Seer
+        grouping is disabled in the region.
         """
         response = self.get_success_response(
             self.organization.slug,
             self.team.slug,
-            name="foo",
-            slug="bar",
-            platform="php",
+            **self.data,
             status_code=201,
         )
 
         project = Project.objects.get(id=response.data["id"])
-        assert project.name == "foo"
-        assert project.slug == "bar"
-        assert project.platform == "php"
-        assert project.teams.first() == self.team
 
         assert (
             ProjectOption.objects.get_value(
@@ -391,6 +524,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
             "nuget",
             "unity",
             "nvidia",
+            "intel",
             "ubuntu",
         ]
 
@@ -413,7 +547,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         symbol_sources = ProjectOption.objects.get_value(
             project=unreal_project, key="sentry:builtin_symbol_sources"
         )
-        assert symbol_sources == ["ios", "microsoft", "android", "nvidia", "ubuntu"]
+        assert symbol_sources == ["ios", "microsoft", "android", "nvidia", "intel", "ubuntu"]
 
     def test_builtin_symbol_sources_godot(self) -> None:
         """
@@ -434,7 +568,15 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         symbol_sources = ProjectOption.objects.get_value(
             project=godot_project, key="sentry:builtin_symbol_sources"
         )
-        assert symbol_sources == ["ios", "microsoft", "android", "nuget", "nvidia", "ubuntu"]
+        assert symbol_sources == [
+            "ios",
+            "microsoft",
+            "android",
+            "nuget",
+            "nvidia",
+            "intel",
+            "ubuntu",
+        ]
 
     @patch("sentry.core.endpoints.team_projects.TeamProjectsEndpoint.create_audit_entry")
     def test_create_project_with_origin(self, create_audit_entry: MagicMock) -> None:
@@ -505,7 +647,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
 
     @patch("sentry.seer.similarity.utils.is_seer_seat_based_tier_enabled", return_value=True)
     def test_project_autofix_tuning_defaults_to_medium_with_seat_based_tier(
-        self, mock_seat_based_tier
+        self, mock_seat_based_tier: MagicMock
     ) -> None:
         # Ensure no org-level default is set
         self.organization.delete_option("sentry:default_autofix_automation_tuning")
@@ -525,7 +667,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
 
     @patch("sentry.seer.similarity.utils.is_seer_seat_based_tier_enabled", return_value=True)
     def test_project_autofix_tuning_respects_explicit_off_even_with_seat_based_tier(
-        self, mock_seat_based_tier
+        self, mock_seat_based_tier: MagicMock
     ) -> None:
         # Org explicitly sets "off" - should be respected even with seat-based tier
         self.organization.update_option("sentry:default_autofix_automation_tuning", "off")
@@ -545,7 +687,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
 
     @patch("sentry.seer.similarity.utils.is_seer_seat_based_tier_enabled", return_value=True)
     def test_project_autofix_tuning_seat_based_tier_overrides_non_off_org_default(
-        self, mock_seat_based_tier
+        self, mock_seat_based_tier: MagicMock
     ) -> None:
         # Org sets "high" but seat-based tier overrides to "medium"
         self.organization.update_option("sentry:default_autofix_automation_tuning", "high")

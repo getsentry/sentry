@@ -1,7 +1,7 @@
 import type {Organization} from 'sentry/types/organization';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
-const DISCOVER_BASE_PATHNAME = 'explore/discover';
+const ERRORS_BASE_PATHNAME = 'explore/errors';
 
 export function makeDiscoverPathname({
   path,
@@ -11,6 +11,6 @@ export function makeDiscoverPathname({
   path: '/' | `/${string}/`;
 }) {
   return normalizeUrl(
-    `/organizations/${organization.slug}/${DISCOVER_BASE_PATHNAME}${path}`
+    `/organizations/${organization.slug}/${ERRORS_BASE_PATHNAME}${path}`
   );
 }

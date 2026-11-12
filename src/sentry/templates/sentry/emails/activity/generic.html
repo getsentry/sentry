@@ -35,7 +35,7 @@
 
 {% block preheader %}
   {% if group and not enhanced_privacy %}
-    {% include "sentry/emails/_group.html" %}
+    {% include "sentry/emails/_group.html" with rule_id=rule.id %}
   {% else %}
     {{ block.super }}
   {% endif %}

@@ -13,10 +13,12 @@ import githubEnterprise from 'sentry-logos/logo-github-enterprise.svg';
 import github from 'sentry-logos/logo-github.svg';
 import gitlab from 'sentry-logos/logo-gitlab.svg';
 import google from 'sentry-logos/logo-google.svg';
+import grafana from 'sentry-logos/logo-grafana.svg';
 import heroku from 'sentry-logos/logo-heroku.svg';
 import jiraserver from 'sentry-logos/logo-jira-server.svg';
 import jira from 'sentry-logos/logo-jira.svg';
 import jumpcloud from 'sentry-logos/logo-jumpcloud.svg';
+import linear from 'sentry-logos/logo-linear.svg';
 import msteams from 'sentry-logos/logo-msteams.svg';
 import opsgenie from 'sentry-logos/logo-opsgenie.svg';
 import pagerduty from 'sentry-logos/logo-pagerduty.svg';
@@ -34,6 +36,8 @@ import vercel from 'sentry-logos/logo-vercel.svg';
 import victorops from 'sentry-logos/logo-victorops.svg';
 import visualstudio from 'sentry-logos/logo-visualstudio.svg';
 
+import codex from 'sentry-images/logo-codex.png';
+
 // Map of plugin id -> logo filename
 const PLUGIN_ICONS = {
   placeholder,
@@ -48,7 +52,9 @@ const PLUGIN_ICONS = {
   'amazon-sqs': aws,
   aws_lambda: aws,
   claude_code,
+  codex,
   cursor,
+  cursor_origin: cursor,
   datadog,
   datadog_pat: datadog,
   asana,
@@ -61,10 +67,12 @@ const PLUGIN_ICONS = {
   github_enterprise: githubEnterprise,
   gcp: google,
   gitlab,
+  grafana,
   heroku,
   jira,
   jira_server: jiraserver,
   jumpcloud,
+  linear,
   msteams,
   opsgenie,
   pagerduty,

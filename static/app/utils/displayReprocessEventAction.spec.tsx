@@ -3,7 +3,7 @@ import {
   EventStacktraceMessageFixture,
 } from 'sentry-fixture/eventStacktraceException';
 
-import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
+import {displayReprocessEventAction} from './displayReprocessEventAction';
 
 describe('DisplayReprocessEventAction', () => {
   it('returns false in case of no event', () => {

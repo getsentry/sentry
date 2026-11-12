@@ -1,17 +1,18 @@
 from __future__ import annotations
 
-import itertools
 import warnings
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
 from enum import Enum
-from typing import Any, TypedDict, cast
+from typing import Annotated, Any, Literal, NotRequired, TypedDict, cast
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
+from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.formats import HexId, NumericId, hex_id, numeric_id
 from sentry.app import env
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
@@ -27,41 +28,55 @@ from sentry.users.models.user_avatar import UserAvatar
 from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
 from sentry.users.models.userpermission import UserPermission
-from sentry.users.models.userrole import UserRoleUser
 from sentry.users.services.user import RpcUser
 from sentry.utils.avatar import get_gravatar_url
 from sentry.utils.serializers import manytoone_to_dict
 
+# The names of the avatar type choices of users, organizations and teams, as
+# get_avatar_type_display() returns them.
+AvatarTypeName = Literal["letter_avatar", "upload", "gravatar"]
+
 
 class SerializedAvatarFields(TypedDict, total=False):
-    avatarType: str
-    avatarUuid: str | None
-    avatarUrl: str | None
+    avatarType: Annotated[AvatarTypeName, ApiDescription("Avatar type")]
+    avatarUuid: Annotated[HexId | None, ApiDescription("ID of the uploaded avatar image, or null")]
+    avatarUrl: Annotated[
+        str | None, ApiDescription("URL of the avatar image, or null if none is set")
+    ]
 
 
 class _UserEmails(TypedDict):
-    id: str
-    email: str
-    is_verified: bool
+    id: Annotated[str, ApiDescription("Email ID")]
+    email: Annotated[str, ApiDescription("Email address")]
+    is_verified: Annotated[bool, ApiDescription("Whether the email address is verified")]
 
 
 class _Organization(TypedDict):
-    slug: str
-    name: str
+    slug: Annotated[str, ApiDescription("Organization slug")]
+    name: Annotated[str, ApiDescription("Organization name")]
 
 
 class _Provider(TypedDict):
-    id: str
-    name: str
+    id: Annotated[str, ApiDescription("Auth provider key, such as google or saml2")]
+    name: Annotated[str, ApiDescription("Display name of the auth provider")]
 
 
 class _Identity(TypedDict):
-    id: str
-    name: str
-    organization: _Organization
-    provider: _Provider
-    dateVerified: datetime
-    dateSynced: datetime
+    id: Annotated[str, ApiDescription("SSO identity ID")]
+    name: Annotated[str, ApiDescription("User's identifier at the auth provider")]
+    organization: Annotated[
+        _Organization, ApiDescription("Organization the auth provider belongs to")
+    ]
+    provider: Annotated[_Provider, ApiDescription("Auth provider of the identity")]
+    dateVerified: Annotated[
+        datetime,
+        ApiDescription(
+            "When the identity was last verified by signing in through the auth provider"
+        ),
+    ]
+    dateSynced: Annotated[
+        datetime, ApiDescription("When the identity was last synced from the auth provider")
+    ]
 
 
 class _SerializedStacktraceOrder(int, Enum):
@@ -71,13 +86,46 @@ class _SerializedStacktraceOrder(int, Enum):
 
 
 class _UserOptions(TypedDict):
-    theme: str  # TODO: enum/literal for theme options
-    language: str
-    stacktraceOrder: _SerializedStacktraceOrder
-    defaultIssueEvent: str
-    timezone: str
-    clock24Hours: bool
-    prefersIssueDetailsStreamlinedUI: bool | None
+    theme: Annotated[  # TODO: enum/literal for theme options
+        str, ApiDescription('UI theme: "light", "dark" or "system". Defaults to "system"')
+    ]
+    language: Annotated[str, ApiDescription("UI language code, such as `en`")]
+    stacktraceOrder: Annotated[
+        _SerializedStacktraceOrder,
+        ApiDescription(
+            "Stack trace frame order: -1 for the default (most recent first), 1 for most recent last, 2 for most recent first"
+        ),
+    ]
+    defaultIssueEvent: Annotated[
+        str,
+        ApiDescription(
+            'Event shown by default on issue details: "recommended", "latest" or "oldest"'
+        ),
+    ]
+    timezone: Annotated[str, ApiDescription("Time zone for displayed dates, such as `UTC`")]
+    clock24Hours: Annotated[bool, ApiDescription("Whether times are shown in 24-hour format")]
+    prefersIssueDetailsStreamlinedUI: Annotated[
+        bool | None,
+        ApiDescription(
+            "Whether the user prefers the streamlined issue details UI, or null if they haven't chosen"
+        ),
+    ]
+
+
+class _UserFlags(TypedDict):
+    newsletter_consent_prompt: Annotated[
+        bool, ApiDescription("Whether to ask the user for newsletter consent")
+    ]
+
+
+class _AuthenticatorSerializerResponse(TypedDict):
+    id: Annotated[str, ApiDescription("Authenticator ID")]
+    type: Annotated[str, ApiDescription("Authenticator type, such as totp, sms, u2f or recovery")]
+    name: Annotated[str, ApiDescription("Display name of the authenticator type")]
+    dateCreated: Annotated[datetime, ApiDescription("When the authenticator was added")]
+    dateUsed: Annotated[
+        datetime | None, ApiDescription("When the authenticator was last used, or null")
+    ]
 
 
 class UserSerializerResponseOptional(TypedDict, total=False):
@@ -85,35 +133,69 @@ class UserSerializerResponseOptional(TypedDict, total=False):
     # UserSerializerResponse and using NotRequired. "identities" is marked as
     # required for places where UserSerializerResponse is used as a field (e.g
     # OrganizationMemberResponse).
-    identities: list[_Identity]
-    avatar: SerializedAvatarFields
-    authenticators: list[Any]  # TODO: find out what type this is
-    canReset2fa: bool
+    identities: Annotated[
+        list[_Identity],
+        ApiDescription(
+            "SSO identities of the user. Only included for the requesting user, unless the request has active superuser or staff access"
+        ),
+    ]
+    avatar: Annotated[SerializedAvatarFields, ApiDescription("User avatar")]
+    authenticators: Annotated[
+        list[_AuthenticatorSerializerResponse],
+        ApiDescription(
+            "Two-factor authenticators of the user, without backup methods such as recovery codes"
+        ),
+    ]
+    canReset2fa: Annotated[
+        bool,
+        ApiDescription(
+            "Whether the organization can reset the user's two-factor authentication. True only if the user is a member of exactly one active organization"
+        ),
+    ]
 
 
 class UserSerializerResponse(UserSerializerResponseOptional):
-    id: str
-    name: str
-    username: str
-    email: str
-    avatarUrl: str
-    isActive: bool
-    isSuspended: bool
-    hasPasswordAuth: bool
-    isManaged: bool
-    dateJoined: datetime
-    lastLogin: datetime | None
-    has2fa: bool
-    lastActive: datetime | None
-    isSuperuser: bool
-    isStaff: bool
-    experiments: dict[str, Any]  # TODO
-    emails: list[_UserEmails]
+    id: Annotated[NumericId, ApiDescription("User ID")]
+    name: Annotated[
+        str,
+        ApiDescription(
+            "Display name: the user's name, or their email or username if no name is set"
+        ),
+    ]
+    username: Annotated[str, ApiDescription("Username")]
+    email: Annotated[str, ApiDescription("Primary email address")]
+    avatarUrl: Annotated[str, ApiDescription("Gravatar URL for the primary email address")]
+    isActive: Annotated[bool, ApiDescription("Whether the account is active")]
+    isSuspended: Annotated[
+        bool, ApiDescription("Whether the account is suspended. Suspended users can't sign in")
+    ]
+    hasPasswordAuth: Annotated[bool, ApiDescription("Whether the user has a password set")]
+    isManaged: Annotated[
+        bool,
+        ApiDescription(
+            "Whether the account is managed, which stops the user from changing their username, password and similar details"
+        ),
+    ]
+    dateJoined: Annotated[datetime, ApiDescription("When the account was created")]
+    lastLogin: Annotated[datetime | None, ApiDescription("When the user last signed in, or null")]
+    has2fa: Annotated[
+        bool, ApiDescription("Whether the user has two-factor authentication enabled")
+    ]
+    lastActive: Annotated[datetime | None, ApiDescription("When the user was last active, or null")]
+    isSuperuser: Annotated[bool, ApiDescription("Whether the user is a superuser")]
+    isStaff: Annotated[bool, ApiDescription("Whether the user has staff status")]
+    experiments: Annotated[dict[str, str], ApiDescription("Deprecated. Always an empty object")]
+    emails: Annotated[
+        list[_UserEmails],
+        ApiDescription(
+            "Email addresses of the user. Only included for the requesting user or superusers; empty otherwise"
+        ),
+    ]
 
 
 class UserSerializerResponseSelf(UserSerializerResponse):
-    options: _UserOptions
-    flags: Any  # TODO
+    options: Annotated[_UserOptions, ApiDescription("Preferences of the user")]
+    flags: Annotated[_UserFlags, ApiDescription("Account flags of the user")]
 
 
 @register(User)
@@ -169,7 +251,7 @@ class UserSerializer(Serializer):
         **kwargs: Any,
     ) -> UserSerializerResponse | UserSerializerResponseSelf:
         d: UserSerializerResponse = {
-            "id": str(obj.id),
+            "id": numeric_id(obj.id),
             "name": obj.get_display_name(),
             "username": obj.username,
             "email": obj.email,
@@ -229,7 +311,9 @@ class UserSerializer(Serializer):
         if attrs.get("avatar"):
             avatar: SerializedAvatarFields = {
                 "avatarType": attrs["avatar"].get_avatar_type_display(),
-                "avatarUuid": attrs["avatar"].ident if attrs["avatar"].get_file_id() else None,
+                "avatarUuid": (
+                    hex_id(attrs["avatar"].ident) if attrs["avatar"].get_file_id() else None
+                ),
                 "avatarUrl": attrs["avatar"].absolute_url(),
             }
         else:
@@ -335,7 +419,24 @@ class DetailedUserSerializer(UserSerializer):
 
 
 class DetailedSelfUserSerializerResponse(UserSerializerResponse):
-    permissions: Sequence[str]
+    permissions: Annotated[
+        Sequence[str],
+        ApiDescription(
+            "Sentry staff permissions granted to the user, such as users.admin. Empty for most users"
+        ),
+    ]
+    options: NotRequired[
+        Annotated[
+            _UserOptions,
+            ApiDescription("The user's preferences. Only included for the requesting user"),
+        ]
+    ]
+    flags: NotRequired[
+        Annotated[
+            _UserFlags,
+            ApiDescription("Account flags. Only included for the requesting user"),
+        ]
+    ]
 
 
 class UserSerializerWithOrgMembershipsResponse(UserSerializerResponse):
@@ -365,19 +466,10 @@ class DetailedSelfUserSerializer(UserSerializer):
         permissions = manytoone_to_dict(
             UserPermission.objects.filter(user_id__in=user_ids), "user_id"
         )
-        # XXX(dcramer): There is definitely a way to write this query using
-        #  Django's awkward ORM magic to cache it using `UserRole` but at least
-        #  someone can understand this direction of access/optimization.
-        roles = {
-            ur.user_id: ur.role.permissions
-            for ur in UserRoleUser.objects.filter(user_id__in=user_ids).select_related("role")
-        }
 
         for item in item_list:
             attrs[item]["authenticators"] = authenticators[item.id]
-            attrs[item]["permissions"] = {p.permission for p in permissions[item.id]} | set(
-                itertools.chain(roles.get(item.id, []))
-            )
+            attrs[item]["permissions"] = {p.permission for p in permissions[item.id]}
 
         return attrs
 

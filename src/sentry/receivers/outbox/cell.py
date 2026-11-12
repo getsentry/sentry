@@ -8,11 +8,13 @@ and perform RPC calls to propagate changes to Control Silo.
 
 from __future__ import annotations
 
+import contextlib
 import json  # noqa: S003 - urllib3 raises stdlib JSONDecodeError, not simplejson's
 import logging
+from datetime import datetime
 from typing import Any, assert_never, cast
 
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from django.dispatch import receiver
 
 from sentry.audit_log.services.log import AuditLogEvent, UserIpEvent, log_rpc_service
@@ -36,7 +38,7 @@ from sentry.models.project import Project
 from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.seer.agent.client import (
     _trigger_explorer_indexes_if_needed,
-    get_monitoring_provider_connections,
+    get_available_monitoring_providers,
 )
 from sentry.seer.agent.client_utils import (
     AgentChatRequest,
@@ -44,11 +46,29 @@ from sentry.seer.agent.client_utils import (
     make_agent_chat_request,
     make_feature_run_request,
 )
+from sentry.seer.agent.monitoring_providers import get_monitoring_provider_connections
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.signed_seer_api import SearchAgentStartRequest, make_search_agent_start_request
+from sentry.seer.workflows.workflow import SEER_WORKFLOW_SERVICE_ACCOUNT_OWNER
 from sentry.sentry_apps.services.app.service import app_service
+from sentry.service_accounts.outbox import (
+    ServiceAccountCreatePayload,
+    ServiceAccountGrantUpdatePayload,
+    ServiceAccountOwner,
+    ServiceAccountOwnerKind,
+    create_owned_service_account,
+    update_service_account_grant,
+)
+from sentry.service_accounts.services.service_account import service_account_service
 from sentry.types.cell import get_local_cell
 from sentry.utils.env import in_test_environment
+from sentry.viewer_context import (
+    Actor,
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+    viewer_context_scope,
+)
 from sentry.workflow_engine.models import Action
 
 logger = logging.getLogger(__name__)
@@ -59,7 +79,7 @@ def update_sentry_app_action_data(
     shard_identifier: int,
     object_identifier: int,
     **kwds: Any,
-):
+) -> None:
     try:
         action = Action.objects.get(
             id=shard_identifier,
@@ -174,34 +194,45 @@ def backfill_scm_integration_config(shard_identifier: int, payload: Any, **kwds:
 
 
 @receiver(process_cell_outbox, sender=OutboxCategory.AUDIT_LOG_EVENT)
-def process_audit_log_event(payload: Any, **kwds: Any):
+def process_audit_log_event(payload: Any, **kwds: Any) -> None:
     if payload is not None:
         log_rpc_service.record_audit_log(event=AuditLogEvent(**payload))
 
 
 @receiver(process_cell_outbox, sender=OutboxCategory.ORGAUTHTOKEN_UPDATE_USED)
-def process_orgauthtoken_update(payload: Any, **kwds: Any):
+def process_orgauthtoken_update(payload: Any, **kwds: Any) -> None:
     if payload is not None:
         orgauthtoken_rpc_service.update_orgauthtoken(**payload)
 
 
 @receiver(process_cell_outbox, sender=OutboxCategory.USER_IP_EVENT)
-def process_user_ip_event(payload: Any, **kwds: Any):
+def process_user_ip_event(payload: Any, **kwds: Any) -> None:
     if payload is not None:
         log_rpc_service.record_user_ip(event=UserIpEvent(**payload))
 
 
 @receiver(process_cell_outbox, sender=OutboxCategory.PROJECT_UPDATE)
-def process_project_updates(object_identifier: int, **kwds: Any):
+def process_project_updates(
+    object_identifier: int, shard_identifier: int, payload: Any, **kwds: Any
+) -> None:
     if (proj := maybe_process_tombstone(Project, object_identifier)) is None:
         return
-    proj
+    if not payload or "transferred_at" not in payload:
+        return
+    # Written by a transfer out of the shard's org. The project may have moved again since,
+    # so its current org alone doesn't say which links the transfer revoked.
+    service_account_service.remove_project_links_after_transfer(
+        project_id=proj.id,
+        organization_id=proj.organization_id,
+        previous_organization_id=shard_identifier,
+        transferred_at=datetime.fromisoformat(payload["transferred_at"]),
+    )
 
 
 @receiver(process_cell_outbox, sender=OutboxCategory.ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE)
 def process_organization_mapping_customer_id_update(
     object_identifier: int, payload: Any, **kwds: Any
-):
+) -> None:
     if (org := maybe_process_tombstone(Organization, object_identifier)) is None:
         return
 
@@ -213,10 +244,41 @@ def process_organization_mapping_customer_id_update(
 
 
 @receiver(process_cell_outbox, sender=OutboxCategory.DISABLE_AUTH_PROVIDER)
-def process_disable_auth_provider(object_identifier: int, shard_identifier: int, **kwds: Any):
+def process_disable_auth_provider(
+    object_identifier: int, shard_identifier: int, **kwds: Any
+) -> None:
     # Deprecated
     auth_service.disable_provider(provider_id=object_identifier)
     AuthProviderReplica.objects.filter(auth_provider_id=object_identifier).delete()
+
+
+def _service_account_owner(kind: ServiceAccountOwnerKind) -> ServiceAccountOwner:
+    match kind:
+        case ServiceAccountOwnerKind.SEER_WORKFLOW_CONFIG:
+            return SEER_WORKFLOW_SERVICE_ACCOUNT_OWNER
+        case _:
+            assert_never(kind)
+
+
+@receiver(process_cell_outbox, sender=OutboxCategory.SERVICE_ACCOUNT_CREATE)
+def handle_service_account_create(
+    shard_identifier: int, payload: ServiceAccountCreatePayload, **kwds: Any
+) -> None:
+    create_owned_service_account(
+        shard_identifier,
+        payload,
+        _service_account_owner(ServiceAccountOwnerKind(payload["owner_kind"])),
+    )
+
+
+@receiver(process_cell_outbox, sender=OutboxCategory.SERVICE_ACCOUNT_GRANT_UPDATE)
+def handle_service_account_grant_update(
+    shard_identifier: int,
+    object_identifier: int,
+    payload: ServiceAccountGrantUpdatePayload,
+    **kwds: Any,
+) -> None:
+    update_service_account_grant(shard_identifier, object_identifier, payload)
 
 
 @receiver(process_cell_outbox, sender=OutboxCategory.SEER_RUN_CREATE)
@@ -244,41 +306,72 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
         _mark_seer_run_failed(run, "seer_run_create.invalid_payload", error=str(e))
         return
 
-    match run_type:
-        case SeerRunType.EXPLORER:
-            if run.user_id is not None:
+    scope: contextlib.AbstractContextManager[None] = contextlib.nullcontext()
+    if get_viewer_context() is None:
+        scope = viewer_context_scope(
+            ViewerContext(
+                actor=Actor(
+                    type=ActorType.USER if run.user_id is not None else ActorType.SYSTEM,
+                    actor_id=run.user_id,
+                ),
+                organization_id=run.organization_id,
+            )
+        )
+
+    with scope:
+        match run_type:
+            case SeerRunType.EXPLORER:
                 try:
                     organization = Organization.objects.get_from_cache(id=run.organization_id)
                     monitoring_provider_connections = get_monitoring_provider_connections(
                         organization, run.user_id
                     )
                     if monitoring_provider_connections:
-                        body["monitoring_providers"] = monitoring_provider_connections
+                        body["monitoring_providers"] = [
+                            connection.dict() for connection in monitoring_provider_connections
+                        ]
+
+                    if run.user_id is not None:
+                        available_monitoring_providers = get_available_monitoring_providers(
+                            organization, run.user_id
+                        )
+                        if available_monitoring_providers:
+                            body["available_monitoring_providers"] = available_monitoring_providers
                 except Organization.DoesNotExist:
                     logger.warning(
                         "seer_run_create.organization_dne",
                         extra={"organization_id": run.organization_id, "run_id": run.id},
                     )
-            response = make_agent_chat_request(
-                cast(AgentChatRequest, body), viewer_context=viewer_context
-            )
-        case SeerRunType.PR_REVIEW:
-            # TODO(telkins): support PR review runs. Until then, mark the
-            # run FAILED rather than raising — the failure is permanent and
-            # raising would stall the org's outbox shard on every drain.
-            _mark_seer_run_failed(run, "seer_run_create.pr_review_unsupported")
-            return
-        case SeerRunType.ASSISTED_QUERY:
-            response = make_search_agent_start_request(
-                cast(SearchAgentStartRequest, body), viewer_context=viewer_context
-            )
-        case SeerRunType.FEATURE_RUN:
-            wire_body = {**body, "ref": str(run.uuid)}
-            response = make_feature_run_request(
-                cast(SeerFeatureRunWireRequest, wire_body), viewer_context=viewer_context
-            )
-        case unknown:
-            assert_never(unknown)
+                response = make_agent_chat_request(
+                    cast(AgentChatRequest, body), viewer_context=viewer_context
+                )
+            case SeerRunType.PR_REVIEW:
+                # TODO(telkins): support PR review runs. Until then, mark the
+                # run FAILED rather than raising — the failure is permanent and
+                # raising would stall the org's outbox shard on every drain.
+                _mark_seer_run_failed(run, "seer_run_create.pr_review_unsupported")
+                return
+            case SeerRunType.INVESTIGATION:
+                # Investigation orchestration runs are not started through this
+                # outbox. Seer creates its own run and Sentry adopts the id, so a
+                # SeerRun of this type is a mirror with nothing to dispatch. Nothing
+                # enqueues one today; log rather than drop it silently if that changes.
+                logger.warning(
+                    "seer_run_create.investigation_not_dispatched",
+                    extra={"organization_id": run.organization_id, "run_id": run.id},
+                )
+                return
+            case SeerRunType.ASSISTED_QUERY:
+                response = make_search_agent_start_request(
+                    cast(SearchAgentStartRequest, body), viewer_context=viewer_context
+                )
+            case SeerRunType.FEATURE_RUN:
+                wire_body = {**body, "ref": str(run.uuid)}
+                response = make_feature_run_request(
+                    cast(SeerFeatureRunWireRequest, wire_body), viewer_context=viewer_context
+                )
+            case unknown:
+                assert_never(unknown)
 
     if response.status >= 500:
         raise RuntimeError(f"Seer returned transient error {response.status}")
@@ -338,24 +431,32 @@ def process_group_action_log_event(payload: GroupActionLogPayload, **kwds: Any) 
     """Write a GroupActionLogEntry from the outbox payload, then trigger
     derived data processing."""
     try:
+        using = router.db_for_write(GroupActionLogEntry)
+
         group_id = payload["group_id"]
         force_async_derived = payload["force_async_derived"]
 
-        GroupActionLogEntry.objects.create(
-            group_id=group_id,
-            project_id=payload["project_id"],
-            type=payload["type"],
-            actor_type=payload["actor_type"],
-            actor_id=payload["actor_id"],
-            source=payload["source"],
-            data=payload["data"],
-        )
+        try:
+            with transaction.atomic(using=using):
+                GroupActionLogEntry.objects.create(
+                    group_id=group_id,
+                    project_id=payload["project_id"],
+                    type=payload["type"],
+                    actor_type=payload["actor_type"],
+                    actor_id=payload["actor_id"],
+                    source=payload["source"],
+                    data=payload["data"],
+                    idempotency_key=payload.get("idempotency_key"),
+                )
+        except IntegrityError:
+            # Idempotency conflict; we treat this as a no-op.
+            # Return to skip the trigger_group_log_processing call.
+            return
 
         # This receiver runs inside the outbox drain transaction
         # (process_shard → transaction.atomic), so the GALE is not yet committed.
         # Defer to on_commit so the GALE is visible to readers on other connections.
         strategy = ProcessingStrategy.ASYNC if force_async_derived else ProcessingStrategy.INLINE
-        using = router.db_for_write(GroupActionLogEntry)
         transaction.on_commit(
             lambda: trigger_group_log_processing(group_id, strategy=strategy), using=using
         )

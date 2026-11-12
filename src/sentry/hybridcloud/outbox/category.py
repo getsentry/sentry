@@ -1,10 +1,14 @@
 from __future__ import annotations
 
-from collections.abc import Collection, Mapping, Sequence
+import contextlib
+from collections.abc import Collection, Generator, Mapping, Sequence
 from enum import IntEnum
 from typing import TYPE_CHECKING, Any, cast
 
 from sentry.hybridcloud.outbox.signals import process_cell_outbox, process_control_outbox
+from sentry.silo.base import SiloMode
+from sentry.utils import metrics
+from sentry.utils.metrics import MutableTags
 
 if TYPE_CHECKING:
     from sentry.db.models import BaseModel
@@ -13,6 +17,27 @@ if TYPE_CHECKING:
 
 _outbox_categories_for_scope: dict[int, set[OutboxCategory]] = {}
 _used_categories: set[OutboxCategory] = set()
+
+
+@contextlib.contextmanager
+def _record_replication(category: OutboxCategory, direction: str) -> Generator[MutableTags]:
+    """
+    Time a replication receiver and count its outcome. The yielded tags are
+    the ones emitted, so the receiver can add ``action`` once it knows whether
+    it is replicating or deleting.
+    """
+    base_tags = {
+        "silo": SiloMode.get_current_mode().value.lower(),
+        "category": category.name,
+        "direction": direction,
+    }
+    # metrics.timer yields a copy of the tags and sets result=success|failure on
+    # exit; the counter reuses that dict so both carry the receiver's action.
+    try:
+        with metrics.timer("hybridcloud.replication.handler.duration", tags=base_tags) as tags:
+            yield tags
+    finally:
+        metrics.incr("hybridcloud.replication.processed", tags=tags)
 
 
 class OutboxCategory(IntEnum):
@@ -43,7 +68,7 @@ class OutboxCategory(IntEnum):
 
     AUTH_PROVIDER_UPDATE = 24
     AUTH_IDENTITY_UPDATE = 25
-    ORGANIZATION_MEMBER_TEAM_UPDATE = 26
+    UNUSED_EIGHT = 26  # was ORGANIZATION_MEMBER_TEAM_UPDATE, no longer in use
     ORGANIZATION_SLUG_RESERVATION_UPDATE = 27
     API_KEY_UPDATE = 28
     PARTNER_ACCOUNT_UPDATE = 29
@@ -52,7 +77,7 @@ class OutboxCategory(IntEnum):
     API_TOKEN_UPDATE = 32
     ORG_AUTH_TOKEN_UPDATE = 33
     ISSUE_COMMENT_UPDATE = 34
-    EXTERNAL_ACTOR_UPDATE = 35
+    UNUSED_SEVEN = 35  # was EXTERNAL_ACTOR_UPDATE, no longer in use
 
     UNUSED_FIVE = 36
     UNUSED_SIX = 37
@@ -70,10 +95,19 @@ class OutboxCategory(IntEnum):
     ORGANIZATION_AVATAR_UPDATE = 47
     SEER_RUN_CREATE = 48
     GROUP_ACTION_LOG_EVENT = 49
+    SERVICE_ACCOUNT_UPDATE = 50
+    ORGANIZATION_PROVISION_ANALYTICS = 51
+    SERVICE_ACCOUNT_CREATE = 52
+    SERVICE_ACCOUNT_TOKEN_UPDATE = 53
+    SERVICE_ACCOUNT_GRANT_UPDATE = 54
 
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, int]]:
         return [(i.value, i.value) for i in cls]
+
+    def is_non_coalescing(self) -> bool:
+        """True if messages in this category must not be coalesced."""
+        return self in {OutboxCategory.GROUP_ACTION_LOG_EVENT}
 
     def connect_cell_model_updates(self, model: type[ReplicatedCellModel]) -> None:
         def receiver(
@@ -85,15 +119,20 @@ class OutboxCategory(IntEnum):
         ) -> None:
             from sentry.receivers.outbox import maybe_process_tombstone
 
-            maybe_instance: ReplicatedCellModel | None = maybe_process_tombstone(
-                cast(Any, model), object_identifier, cell_name=None
-            )
-            if maybe_instance is None:
-                model.handle_async_deletion(
-                    identifier=object_identifier, shard_identifier=shard_identifier, payload=payload
+            with _record_replication(self, "cell_to_control") as tags:
+                maybe_instance: ReplicatedCellModel | None = maybe_process_tombstone(
+                    cast(Any, model), object_identifier, cell_name=None
                 )
-            else:
-                maybe_instance.handle_async_replication(shard_identifier=shard_identifier)
+                if maybe_instance is None:
+                    tags["action"] = "delete"
+                    model.handle_async_deletion(
+                        identifier=object_identifier,
+                        shard_identifier=shard_identifier,
+                        payload=payload,
+                    )
+                else:
+                    tags["action"] = "replicate"
+                    maybe_instance.handle_async_replication(shard_identifier=shard_identifier)
 
         process_cell_outbox.connect(receiver, weak=False, sender=self)
 
@@ -108,20 +147,23 @@ class OutboxCategory(IntEnum):
         ) -> None:
             from sentry.receivers.outbox import maybe_process_tombstone
 
-            maybe_instance: HasControlReplicationHandlers | None = maybe_process_tombstone(
-                cast(Any, model), object_identifier, cell_name=cell_name
-            )
-            if maybe_instance is None:
-                model.handle_async_deletion(
-                    identifier=object_identifier,
-                    cell_name=cell_name,
-                    shard_identifier=shard_identifier,
-                    payload=payload,
+            with _record_replication(self, "control_to_cell") as tags:
+                maybe_instance: HasControlReplicationHandlers | None = maybe_process_tombstone(
+                    cast(Any, model), object_identifier, cell_name=cell_name
                 )
-            else:
-                maybe_instance.handle_async_replication(
-                    shard_identifier=shard_identifier, cell_name=cell_name
-                )
+                if maybe_instance is None:
+                    tags["action"] = "delete"
+                    model.handle_async_deletion(
+                        identifier=object_identifier,
+                        cell_name=cell_name,
+                        shard_identifier=shard_identifier,
+                        payload=payload,
+                    )
+                else:
+                    tags["action"] = "replicate"
+                    maybe_instance.handle_async_replication(
+                        shard_identifier=shard_identifier, cell_name=cell_name
+                    )
 
         process_control_outbox.connect(receiver, weak=False, sender=self)
 
@@ -275,14 +317,17 @@ class OutboxScope(IntEnum):
             OutboxCategory.SEND_SIGNAL,
             OutboxCategory.ORGAUTHTOKEN_UPDATE_USED,
             OutboxCategory.POST_ORGANIZATION_PROVISION,
+            OutboxCategory.ORGANIZATION_PROVISION_ANALYTICS,
             OutboxCategory.DISABLE_AUTH_PROVIDER,
             OutboxCategory.ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE,
             OutboxCategory.TEAM_UPDATE,
             OutboxCategory.AUTH_PROVIDER_UPDATE,
-            OutboxCategory.ORGANIZATION_MEMBER_TEAM_UPDATE,
+            OutboxCategory.UNUSED_EIGHT,
             OutboxCategory.API_KEY_UPDATE,
             OutboxCategory.ORGANIZATION_SLUG_RESERVATION_UPDATE,
             OutboxCategory.ORG_AUTH_TOKEN_UPDATE,
+            OutboxCategory.SERVICE_ACCOUNT_UPDATE,
+            OutboxCategory.SERVICE_ACCOUNT_TOKEN_UPDATE,
             OutboxCategory.PARTNER_ACCOUNT_UPDATE,
             OutboxCategory.UNUSED_FOUR,
             OutboxCategory.ISSUE_COMMENT_UPDATE,
@@ -315,7 +360,7 @@ class OutboxScope(IntEnum):
     )
     INTEGRATION_SCOPE = scope_categories(
         5,
-        {OutboxCategory.INTEGRATION_UPDATE, OutboxCategory.EXTERNAL_ACTOR_UPDATE},
+        {OutboxCategory.INTEGRATION_UPDATE, OutboxCategory.UNUSED_SEVEN},
     )
     APP_SCOPE = scope_categories(
         6,
@@ -343,6 +388,10 @@ class OutboxScope(IntEnum):
     ACTION_SCOPE = scope_categories(12, {OutboxCategory.SENTRY_APP_NORMALIZE_ACTIONS})
     SEER_SCOPE = scope_categories(13, {OutboxCategory.SEER_RUN_CREATE})
     GROUP_SCOPE = scope_categories(14, {OutboxCategory.GROUP_ACTION_LOG_EVENT})
+    SERVICE_ACCOUNT_SCOPE = scope_categories(
+        15,
+        {OutboxCategory.SERVICE_ACCOUNT_CREATE, OutboxCategory.SERVICE_ACCOUNT_GRANT_UPDATE},
+    )
 
     def __str__(self) -> str:
         return self.name
@@ -369,6 +418,8 @@ class OutboxScope(IntEnum):
             return "seer_run_id"
         if scope == OutboxScope.GROUP_SCOPE:
             return "group_id"
+        if scope == OutboxScope.SERVICE_ACCOUNT_SCOPE:
+            return "organization_id"
 
         return "shard_identifier"
 
@@ -395,3 +446,4 @@ class WebhookProviderIdentifier(IntEnum):
     DISCORD = 12
     VERCEL = 13
     GOOGLE = 14
+    CURSOR_ORIGIN = 15

@@ -1,4 +1,3 @@
-import moment from 'moment-timezone';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
@@ -9,9 +8,8 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 import type {Organization} from 'sentry/types/organization';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 
-import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
-import {PlanFixture} from 'getsentry/__fixtures__/plan';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
+import {BillingType} from 'getsentry/types';
 import {SubscriptionHeader} from 'getsentry/views/subscriptionPage/subscriptionHeader';
 
 describe('SubscriptionHeader', () => {
@@ -30,10 +28,6 @@ describe('SubscriptionHeader', () => {
       url: '/customers/org-slug/',
       method: 'GET',
       body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/promotions/trigger-check/',
-      method: 'POST',
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
@@ -111,6 +105,51 @@ describe('SubscriptionHeader', () => {
       expect(hasBillingInfoCard).toBe(false);
     }
   }
+
+  function renderWithSeer({type, paidSeer}: {paidSeer: boolean; type: BillingType}) {
+    const organization = OrganizationFixture({access: ['org:billing']});
+    const baseSubscription = SubscriptionFixture({organization, plan: 'am3_business'});
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+      type,
+      addOns: {
+        ...baseSubscription.addOns,
+        seer: {...baseSubscription.addOns!.seer!, enabled: paidSeer},
+      },
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+    render(
+      <SubscriptionHeader organization={organization} subscription={subscription} />,
+      {
+        additionalWrapper: SecondaryNavigationContextProvider,
+      }
+    );
+  }
+
+  it('renders Seer pricing alert for a self-serve customer that pays for Seer', async () => {
+    renderWithSeer({type: BillingType.CREDIT_CARD, paidSeer: true});
+    expect(
+      await screen.findByText(/How we charge for Seer is changing/)
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Learn more'})).toBeInTheDocument();
+  });
+
+  it('does not render Seer pricing alert for a sales account that pays for Seer', async () => {
+    renderWithSeer({type: BillingType.INVOICED, paidSeer: true});
+    await screen.findByRole('heading', {name: 'Receipts & notifications'});
+    expect(
+      screen.queryByText(/How we charge for Seer is changing/)
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not render Seer pricing alert for a self-serve customer without paid Seer', async () => {
+    renderWithSeer({type: BillingType.CREDIT_CARD, paidSeer: false});
+    await screen.findByRole('heading', {name: 'Receipts & notifications'});
+    expect(
+      screen.queryByText(/How we charge for Seer is changing/)
+    ).not.toBeInTheDocument();
+  });
 
   it('renders header cards and manage plan button for self-serve free customers', async () => {
     const organization = OrganizationFixture({
@@ -320,7 +359,7 @@ describe('SubscriptionHeader', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am3_team',
-      isTrial: true,
+      trialPlan: 'am3_team',
     });
     SubscriptionStore.set(organization.slug, subscription);
     render(
@@ -377,147 +416,6 @@ describe('SubscriptionHeader', () => {
         'Automatic payment failed. Update your payment method to ensure uninterrupted access to Sentry.'
       )
     ).not.toBeInTheDocument();
-  });
-
-  it('renders partner plan ending banner for partner orgs with flag and ending contract', () => {
-    const organization = OrganizationFixture({
-      features: ['usage-log', 'partner-billing-migration'],
-      access: ['org:billing'],
-    });
-    const now = moment();
-    const subscription = SubscriptionFixture({
-      plan: 'am2_sponsored_team_auf',
-      planDetails: PlanFixture({}),
-      partner: {
-        externalId: 'x123x',
-        name: 'FOO Org',
-        partnership: {
-          id: 'FOO',
-          displayName: 'FOO',
-          supportNote: '',
-        },
-        isActive: true,
-      },
-      organization,
-      canSelfServe: true,
-      billingPeriodEnd: now.add(30, 'days').toISOString(),
-    });
-
-    SubscriptionStore.set(organization.slug, subscription);
-    render(
-      <SubscriptionHeader organization={organization} subscription={subscription} />,
-      {additionalWrapper: SecondaryNavigationContextProvider}
-    );
-    expect(screen.getByTestId('partner-plan-ending-banner')).toBeInTheDocument();
-  });
-
-  it('does not render partner plan ending banner for partner orgs with flag and ending contract greater than 30 days', () => {
-    const organization = OrganizationFixture({
-      features: ['usage-log', 'partner-billing-migration'],
-      access: ['org:billing'],
-    });
-    const now = moment();
-    const subscription = SubscriptionFixture({
-      plan: 'am2_sponsored_team_auf',
-      planDetails: PlanFixture({}),
-      partner: {
-        externalId: 'x123x',
-        name: 'FOO Org',
-        partnership: {
-          id: 'FOO',
-          displayName: 'FOO',
-          supportNote: '',
-        },
-        isActive: true,
-      },
-      organization,
-      canSelfServe: true,
-      billingPeriodEnd: now.add(50, 'days').toISOString(),
-    });
-
-    SubscriptionStore.set(organization.slug, subscription);
-    render(
-      <SubscriptionHeader organization={organization} subscription={subscription} />,
-      {additionalWrapper: SecondaryNavigationContextProvider}
-    );
-    expect(screen.queryByTestId('partner-plan-ending-banner')).not.toBeInTheDocument();
-  });
-
-  it('does not render partner plan ending banner for orgs with pending upgrade', () => {
-    const organization = OrganizationFixture({
-      features: ['usage-log', 'partner-billing-migration'],
-      access: ['org:billing'],
-    });
-    const now = moment();
-    const subscription = SubscriptionFixture({
-      plan: 'am2_sponsored_team_auf',
-      planDetails: PlanFixture({}),
-      partner: {
-        externalId: 'x123x',
-        name: 'FOO Org',
-        partnership: {
-          id: 'FOO',
-          displayName: 'FOO',
-          supportNote: '',
-        },
-        isActive: true,
-      },
-      pendingChanges: PendingChangesFixture({
-        plan: 'am3_business',
-        planDetails: PlanFixture({
-          name: 'Business',
-          totalPrice: 100,
-        }),
-      }),
-      organization,
-      canSelfServe: true,
-      billingPeriodEnd: now.add(30, 'days').toISOString(),
-    });
-
-    SubscriptionStore.set(organization.slug, subscription);
-    render(
-      <SubscriptionHeader organization={organization} subscription={subscription} />,
-      {additionalWrapper: SecondaryNavigationContextProvider}
-    );
-    expect(screen.queryByTestId('partner-plan-ending-banner')).not.toBeInTheDocument();
-  });
-
-  it('renders partner plan ending banner for orgs with pending downgrade', () => {
-    const organization = OrganizationFixture({
-      features: ['usage-log', 'partner-billing-migration'],
-      access: ['org:billing'],
-    });
-    const now = moment();
-    const subscription = SubscriptionFixture({
-      plan: 'am2_sponsored_team_auf',
-      planDetails: PlanFixture({}),
-      partner: {
-        externalId: 'x123x',
-        name: 'FOO Org',
-        partnership: {
-          id: 'FOO',
-          displayName: 'FOO',
-          supportNote: '',
-        },
-        isActive: true,
-      },
-      pendingChanges: PendingChangesFixture({
-        plan: 'am3_f',
-        planDetails: PlanFixture({
-          name: 'Developer',
-        }),
-      }),
-      organization,
-      canSelfServe: true,
-      billingPeriodEnd: now.add(30, 'days').toISOString(),
-    });
-
-    SubscriptionStore.set(organization.slug, subscription);
-    render(
-      <SubscriptionHeader organization={organization} subscription={subscription} />,
-      {additionalWrapper: SecondaryNavigationContextProvider}
-    );
-    expect(screen.getByTestId('partner-plan-ending-banner')).toBeInTheDocument();
   });
 
   it('renders managed note for non-self-serve subscriptions', () => {

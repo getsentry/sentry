@@ -9,7 +9,8 @@ import {EventView} from 'sentry/utils/discover/eventView';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {Table} from 'sentry/views/performance/table';
+
+import {Table} from './table';
 
 const FEATURES = ['performance-view'];
 
@@ -32,7 +33,10 @@ function WrappedComponent({data, ...rest}: any) {
       <MEPSettingProvider>
         <Table
           organization={data.organization}
-          location={LocationFixture({...data.initialRouterConfig.location})}
+          location={
+            // oxlint-disable-next-line react/capitalized-calls -- Test fixture factory, not a component.
+            LocationFixture({...data.initialRouterConfig.location})
+          }
           setError={jest.fn()}
           summaryConditions=""
           {...data}

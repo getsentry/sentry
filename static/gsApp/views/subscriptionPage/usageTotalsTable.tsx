@@ -2,17 +2,21 @@ import {Fragment} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {InfoTip} from '@sentry/scraps/info';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import type {TooltipProps} from '@sentry/scraps/tooltip';
 
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-import type {BillingStatTotal, Subscription} from 'getsentry/types';
+import type {
+  BilledDataCategoryInfo,
+  BillingStatTotal,
+  Subscription,
+} from 'getsentry/types';
 import {
   displayPercentage,
   formatUsageWithUnits,
@@ -52,10 +56,6 @@ type RowProps = {
    */
   bold?: boolean;
   /**
-   * Button to expand outcome section
-   */
-  expandButton?: React.ReactNode;
-  /**
    * If the row should be indented
    */
   indent?: boolean;
@@ -71,7 +71,6 @@ function OutcomeRow({
   category,
   totals,
   tooltipTitle,
-  expandButton,
   indent,
   barColor,
   bold,
@@ -83,7 +82,7 @@ function OutcomeRow({
 
   return (
     <tr>
-      <td>
+      <td aria-label={name}>
         <Flex
           gap="xs"
           align="center"
@@ -92,12 +91,9 @@ function OutcomeRow({
           {barColor && <OutcomeLegend color={barColor} />}
           <OutcomeType indent={!barColor && indent}>
             <TextWrapper>
-              {expandButton}
               <Text bold={bold}>{name}</Text>
             </TextWrapper>
-            {tooltipTitle && (
-              <QuestionTooltip size="xs" position="top" title={tooltipTitle} />
-            )}
+            {tooltipTitle && <InfoTip size="xs" position="top" title={tooltipTitle} />}
           </OutcomeType>
         </Flex>
       </td>
@@ -119,7 +115,6 @@ type OutcomeSectionProps = {
   name: string;
   quantity: number;
   totals: BillingStatTotal;
-  expanded?: boolean;
   isEventBreakdown?: boolean;
 };
 
@@ -197,7 +192,7 @@ function IngestionSummary({
     .reduce((acc, [_, value]) => acc + value, 0);
 
   return (
-    <Flex direction="column" gap="md">
+    <Stack gap="md">
       <Heading as="h4">{t('Total ingested')}</Heading>
       <Flex justify="between" align="center" gap="lg">
         <Text wrap="nowrap">
@@ -213,7 +208,7 @@ function IngestionSummary({
           outcomeToBarColor={outcomeToBarColor}
         />
       </Flex>
-    </Flex>
+    </Stack>
   );
 }
 
@@ -223,6 +218,59 @@ type Props = {
   totals: BillingStatTotal;
   isEventBreakdown?: boolean;
 };
+
+function OutcomeTable({
+  children,
+  category,
+  categoryInfo,
+  isEventBreakdown,
+  subscription,
+}: {categoryInfo: BilledDataCategoryInfo | null; children: React.ReactNode} & Pick<
+  Props,
+  'category' | 'isEventBreakdown' | 'subscription'
+>) {
+  const categoryName = isEventBreakdown
+    ? toTitleCase(category, {allowInnerUpperCase: true})
+    : getPlanCategoryName({
+        plan: subscription.planDetails,
+        category,
+        hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
+        title: true,
+      });
+
+  const testId = isEventBreakdown
+    ? `event-table-${category}`
+    : `category-table-${category}`;
+
+  return (
+    <StyledTable data-test-id={testId}>
+      <thead>
+        <tr>
+          <th>
+            {isEventBreakdown && (
+              <TextOverflow>
+                {isEventBreakdown
+                  ? tct('[singularName] Events', {
+                      singularName: toTitleCase(categoryInfo?.displayName ?? category, {
+                        allowInnerUpperCase: true,
+                      }),
+                    })
+                  : categoryName}
+              </TextOverflow>
+            )}
+          </th>
+          <th>
+            <TextOverflow>{t('Quantity')}</TextOverflow>
+          </th>
+          <th>
+            <TextOverflow>{tct('% of [categoryName]', {categoryName})}</TextOverflow>
+          </th>
+        </tr>
+      </thead>
+      <tbody>{children}</tbody>
+    </StyledTable>
+  );
+}
 
 export function UsageTotalsTable({
   category,
@@ -240,49 +288,6 @@ export function UsageTotalsTable({
     droppedOther: colorPalette[5],
   };
 
-  function OutcomeTable({children}: {children: React.ReactNode}) {
-    const categoryName = isEventBreakdown
-      ? toTitleCase(category, {allowInnerUpperCase: true})
-      : getPlanCategoryName({
-          plan: subscription.planDetails,
-          category,
-          hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
-          title: true,
-        });
-
-    const testId = isEventBreakdown
-      ? `event-table-${category}`
-      : `category-table-${category}`;
-
-    return (
-      <StyledTable data-test-id={testId}>
-        <thead>
-          <tr>
-            <th>
-              {isEventBreakdown && (
-                <TextOverflow>
-                  {isEventBreakdown
-                    ? tct('[singularName] Events', {
-                        singularName: toTitleCase(categoryInfo?.displayName ?? category, {
-                          allowInnerUpperCase: true,
-                        }),
-                      })
-                    : categoryName}
-                </TextOverflow>
-              )}
-            </th>
-            <th>
-              <TextOverflow>{t('Quantity')}</TextOverflow>
-            </th>
-            <th>
-              <TextOverflow>{tct('% of [categoryName]', {categoryName})}</TextOverflow>
-            </th>
-          </tr>
-        </thead>
-        <tbody>{children}</tbody>
-      </StyledTable>
-    );
-  }
   const totalDropped = isContinuousProfiling(category)
     ? t('Total Dropped (estimated)')
     : t('Total Dropped');
@@ -290,14 +295,19 @@ export function UsageTotalsTable({
   const hasSpikeProtection = categoryInfo?.hasSpikeProtection ?? false;
 
   return (
-    <Flex direction="column" gap="md" padding="md">
+    <Stack gap="md" padding="md">
       <IngestionSummary
         category={category}
         totals={totals}
         outcomeToBarColor={outcomeToBarColor}
       />
 
-      <OutcomeTable>
+      <OutcomeTable
+        category={category}
+        isEventBreakdown={isEventBreakdown}
+        subscription={subscription}
+        categoryInfo={categoryInfo}
+      >
         <OutcomeRow
           name={t('Accepted')}
           quantity={totals.accepted}
@@ -343,7 +353,7 @@ export function UsageTotalsTable({
           />
         </OutcomeSection>
       </OutcomeTable>
-    </Flex>
+    </Stack>
   );
 }
 

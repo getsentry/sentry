@@ -1,0 +1,48 @@
+{
+  "platform": "csharp",
+  "exception": {
+    "values": [
+      {
+        "type": "System.NullReferenceException",
+        "value": "Object reference not set to an instance of an object",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "Start",
+              "module": "GameBootstrap",
+              "package": "Assembly-CSharp",
+              "filename": "Assets/Scripts/GameBootstrap.cs",
+              "in_app": true
+            },
+            {
+              "function": "StartCoroutine",
+              "module": "UnityEngine.MonoBehaviour",
+              "package": "UnityEngine.CoreModule",
+              "in_app": false
+            },
+            {
+              "function": "InvokeMoveNext",
+              "module": "UnityEngine.SetupCoroutine",
+              "package": "UnityEngine.CoreModule",
+              "in_app": false
+            },
+            {
+              "function": "MoveNext",
+              "module": "EnemySpawner+<SpawnWaves>d__4",
+              "package": "Assembly-CSharp",
+              "filename": "Assets/Scripts/EnemySpawner.cs",
+              "in_app": true
+            },
+            {
+              "function": "ApplyDamage",
+              "module": "CombatSystem",
+              "package": "Assembly-CSharp",
+              "filename": "Packages/com.mystudio.combat/Runtime/CombatSystem.cs",
+              "in_app": true
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

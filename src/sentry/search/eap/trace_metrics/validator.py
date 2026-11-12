@@ -60,7 +60,9 @@ def validate_trace_metrics_aggregate(aggregate: str) -> None:
         serializers.ValidationError: If the aggregate is invalid
     """
     if is_equation(aggregate):
-        _, _, terms = parse_arithmetic(strip_equation(aggregate))
+        _, _, terms = parse_arithmetic(
+            strip_equation(aggregate), definitions=TRACE_METRICS_DEFINITIONS
+        )
     else:
         terms = [aggregate]
 
@@ -72,7 +74,7 @@ def validate_trace_metrics_aggregate(aggregate: str) -> None:
                     f"Trace metrics aggregate {term} must specify metric name, type, and unit"
                 )
         except InvalidSearchQuery as e:
-            logger.exception(f"Invalid trace metrics aggregate: {term} {e}")
+            logger.warning(f"Invalid trace metrics aggregate: {term} {e}")
             raise serializers.ValidationError(
                 {"aggregate": f"Invalid trace metrics aggregate: {term}"}
             )

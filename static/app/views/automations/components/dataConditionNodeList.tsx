@@ -1,11 +1,11 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Select} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {
@@ -13,16 +13,17 @@ import {
   DataConditionHandlerSubgroupType,
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
-import {useAutomationBuilderConflictContext} from 'sentry/views/automations/components/automationBuilderConflictContext';
-import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
-import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
-import {AutomationBuilderRow} from 'sentry/views/automations/components/automationBuilderRow';
+import {useDataConditionsQuery} from 'sentry/views/automations/hooks';
+
+import {useAutomationBuilderConflictContext} from './automationBuilderConflictContext';
+import {useAutomationBuilderContext} from './automationBuilderContext';
+import {useAutomationBuilderErrorContext} from './automationBuilderErrorContext';
+import {AutomationBuilderRow} from './automationBuilderRow';
 import {
   DataConditionNodeContext,
-  dataConditionNodesMap,
   useDataConditionNodeContext,
-} from 'sentry/views/automations/components/dataConditionNodes';
-import {useDataConditionsQuery} from 'sentry/views/automations/hooks';
+} from './dataConditionNodeContext';
+import {dataConditionNodesMap} from './dataConditionNodes';
 
 interface DataConditionNodeListProps {
   conditions: DataCondition[];
@@ -144,6 +145,10 @@ export function DataConditionNodeList({
     ];
   }, [dataConditionHandlers, handlerGroup, state.triggers.conditions]);
 
+  const shouldHideDeleteButton =
+    handlerGroup === DataConditionHandlerGroupType.WORKFLOW_TRIGGER &&
+    conditions.length === 1;
+
   return (
     <Fragment>
       {conditions.map(condition => {
@@ -152,6 +157,7 @@ export function DataConditionNodeList({
         return (
           <AutomationBuilderRow
             key={condition.id}
+            hideDeleteButton={shouldHideDeleteButton}
             onDelete={() => onDeleteRow(condition.id)}
             hasError={conflictingConditions?.has(condition.id) || !!error}
             errorMessage={error}
@@ -196,7 +202,15 @@ function Node() {
   const node = dataConditionNodesMap.get(condition.type);
 
   const Component = node?.dataCondition;
-  return Component ? <Component /> : node?.label;
+  return Component ? (
+    <Component getDefaultComparison={getDefaultComparison} />
+  ) : (
+    node?.label
+  );
+}
+
+function getDefaultComparison(type: DataConditionType) {
+  return dataConditionNodesMap.get(type)?.defaultComparison;
 }
 
 /**
@@ -216,4 +230,4 @@ const frequencyTypeMapping: Partial<Record<DataConditionType, DataConditionType>
 
 const StyledSelectControl = styled(Select)`
   width: 100%;
-`;
+` as typeof Select;

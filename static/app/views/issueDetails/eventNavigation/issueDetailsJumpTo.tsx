@@ -18,6 +18,7 @@ import {getFoldSectionKey} from 'sentry/views/issueDetails/foldSection';
 const sectionLabels: Partial<Record<SectionKey, string>> = {
   [SectionKey.HIGHLIGHTS]: t('Highlights'),
   [SectionKey.STACKTRACE]: t('Stack Trace'),
+  [SectionKey.GPU_CRASH_REPORT]: t('GPU Crash'),
   [SectionKey.EXCEPTION]: t('Stack Trace'),
   [SectionKey.THREADS]: t('Stack Trace'),
   [SectionKey.REPLAY]: t('Replay'),
@@ -152,7 +153,7 @@ function JumpToLink({config}: {config: JumpToSectionConfig}) {
 }
 
 const JumpToLabel = styled('div')`
-  margin-top: ${p => p.theme.space['2xs']};
+  line-height: ${p => p.theme.font.lineHeight.fixed};
 `;
 
 const JumpTo = styled('div')`
@@ -161,7 +162,7 @@ const JumpTo = styled('div')`
   flex-direction: row;
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.sm};
+  font-size: ${p => p.theme.form.xs.fontSize};
   white-space: nowrap;
   overflow: hidden;
 `;

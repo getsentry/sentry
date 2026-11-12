@@ -19,24 +19,19 @@ import type {
   SimpleGroup,
 } from 'sentry/types/group';
 import {GroupActivityType, IssueCategory, IssueType} from 'sentry/types/group';
-import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
-import {uniq} from 'sentry/utils/array/uniq';
-import {defined} from 'sentry/utils/defined';
-import {
-  getExceptionGroupHeight,
-  getExceptionGroupWidth,
-} from 'sentry/utils/eventExceptionGroup';
-import {getDaysSinceDate, getDaysSinceDatePrecise} from 'sentry/utils/getDaysSinceDate';
-import {isMobilePlatform} from 'sentry/utils/platform';
-import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
+
+import type {BaseEventAnalyticsParams} from './analytics/workflowAnalyticsEvents';
+import {uniq} from './array/uniq';
+import {getReplayIdFromEvent} from './replays/getReplayIdFromEvent';
+import {defined} from './defined';
+import {getExceptionGroupHeight, getExceptionGroupWidth} from './eventExceptionGroup';
+import {getDaysSinceDate, getDaysSinceDatePrecise} from './getDaysSinceDate';
+import {isMobilePlatform} from './platform';
 
 const EVENT_TYPES_WITH_LOG_LEVEL = new Set([
   EventOrGroupType.ERROR,
   EventOrGroupType.CSP,
-  EventOrGroupType.EXPECTCT,
   EventOrGroupType.DEFAULT,
-  EventOrGroupType.EXPECTSTAPLE,
-  EventOrGroupType.HPKP,
   EventOrGroupType.NEL,
 ]);
 
@@ -68,10 +63,6 @@ export function getMessage(
       return metadata.value;
     case EventOrGroupType.CSP:
       return metadata.message;
-    case EventOrGroupType.EXPECTCT:
-    case EventOrGroupType.EXPECTSTAPLE:
-    case EventOrGroupType.HPKP:
-      return '';
     case EventOrGroupType.GENERIC:
       return metadata.value;
     default:
@@ -94,7 +85,11 @@ export function getTitle(event: Event | BaseGroup | GroupTombstoneHelper | Simpl
 
       return {
         subtitle: culprit,
-        title: metadata.type || metadata.function || '<unknown>',
+        // A synthetic exception's type is a platform label, so the crash location identifies
+        // the issue better. Mirrors `ErrorEvent.compute_title` on the server.
+        title: metadata.synthetic
+          ? metadata.function || metadata.type || '<unknown>'
+          : metadata.type || metadata.function || '<unknown>',
       };
     }
     case EventOrGroupType.CSP:
@@ -102,16 +97,6 @@ export function getTitle(event: Event | BaseGroup | GroupTombstoneHelper | Simpl
       return {
         title: customTitle ?? metadata.directive ?? '',
         subtitle: metadata.uri ?? '',
-      };
-    case EventOrGroupType.EXPECTCT:
-    case EventOrGroupType.EXPECTSTAPLE:
-    case EventOrGroupType.HPKP:
-      // Due to a regression some reports did not have message persisted
-      // (https://github.com/getsentry/sentry/pull/19794) so we need to fall
-      // back to the computed title for these.
-      return {
-        title: customTitle ?? (metadata.message || title),
-        subtitle: metadata.origin ?? '',
       };
     case EventOrGroupType.DEFAULT:
       return {

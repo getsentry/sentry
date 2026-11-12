@@ -5,23 +5,30 @@ import {GroupStatsFixture} from 'sentry-fixture/groupStats';
 import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {SearchFixture} from 'sentry-fixture/search';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TagStore} from 'sentry/stores/tagStore';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import * as parseLinkHeaderModule from 'sentry/utils/parseLinkHeader';
-import IssueListOverview from 'sentry/views/issueList/overview';
+
+import IssueListOverview from './overview';
 import {
   DEFAULT_QUERY,
   getStoredIssueSort,
   IssueSortOptions,
-} from 'sentry/views/issueList/utils';
+  setStoredIssueSort,
+} from './utils';
 
 const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
@@ -96,18 +103,6 @@ describe('IssueList', () => {
       body: [{}],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/processingissues/',
-      method: 'GET',
-      body: [
-        {
-          project: 'test-project',
-          numIssues: 1,
-          hasIssues: true,
-          lastSeen: '2019-01-16T15:39:11.081Z',
-        },
-      ],
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
       body: tags,
@@ -137,7 +132,7 @@ describe('IssueList', () => {
       datetime: {period: '14d', start: null, end: null, utc: null},
     });
 
-    TagStore.init?.();
+    TagStore.reset();
   });
 
   afterEach(() => {
@@ -192,21 +187,17 @@ describe('IssueList', () => {
       expect(issuesRequest).toHaveBeenCalledTimes(1);
     });
 
-    it('loads with a query in URL', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/searches/',
-        body: [
-          SearchFixture({
-            id: '123',
-            name: 'Assigned to Me',
-            isPinned: false,
-            isGlobal: true,
-            query: 'assigned:me',
-            type: 0,
-          }),
-        ],
-      });
+    it('renders a header for each cell of an issue row', async () => {
+      render(<IssueListOverview />, {organization, initialRouterConfig});
 
+      const row = await screen.findByTestId('group');
+
+      expect(screen.getAllByRole('columnheader')).toHaveLength(
+        within(row).getAllByRole('cell').length
+      );
+    });
+
+    it('loads with a query in URL', async () => {
       render(<IssueListOverview />, {
         organization,
 
@@ -230,10 +221,44 @@ describe('IssueList', () => {
       expect(screen.getByRole('row', {name: 'level:error'})).toBeInTheDocument();
     });
 
+    it('requests derived data when the issue inbox flag is enabled', async () => {
+      render(<IssueListOverview />, {
+        organization: OrganizationFixture({
+          features: ['issue-inbox'],
+        }),
+        initialRouterConfig,
+      });
+
+      await waitFor(() => {
+        expect(issuesRequest).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: expect.stringContaining('expand=derivedData'),
+          })
+        );
+      });
+    });
+
+    it('does not request derived data when the issue inbox flag is disabled', async () => {
+      render(<IssueListOverview />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      await waitFor(() => {
+        expect(issuesRequest).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: expect.not.stringContaining('expand=derivedData'),
+          })
+        );
+      });
+    });
+
     it('caches the search results', async () => {
       issuesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
-        body: [...Array.from({length: 25})].map((_, i) =>
+        body: Array.from(Array.from({length: 5}), (_, i) =>
           GroupFixture({id: `${i}`, project})
         ),
         headers: {
@@ -256,7 +281,7 @@ describe('IssueList', () => {
       });
 
       expect(
-        await screen.findByText(textWithMarkupMatcher('1-25 of 500'))
+        await screen.findByText(textWithMarkupMatcher('1-5 of 500'))
       ).toBeInTheDocument();
       expect(issuesRequest).toHaveBeenCalledTimes(1);
       unmount();
@@ -269,10 +294,10 @@ describe('IssueList', () => {
       });
 
       expect(
-        await screen.findByText(textWithMarkupMatcher('1-25 of 500'))
+        await screen.findByText(textWithMarkupMatcher('1-5 of 500'))
       ).toBeInTheDocument();
       expect(issuesRequest).toHaveBeenCalledTimes(1);
-    }, 20_000);
+    });
 
     it('does not allow pagination to "previous" while on first page and resets cursors when navigating back to initial page', async () => {
       MockApiClient.addMockResponse({
@@ -304,9 +329,11 @@ describe('IssueList', () => {
       await waitFor(() => {
         expect(testRouter.location.query).toEqual({
           cursor: '1443575000:0:0',
+          groupStatsPeriod: 'auto',
           page: '1',
           project: '3559',
           query: DEFAULT_QUERY,
+          sort: IssueSortOptions.RECOMMENDED,
           statsPeriod: '14d',
           referrer: 'issue-list',
         });
@@ -322,9 +349,11 @@ describe('IssueList', () => {
       await waitFor(() => {
         expect(testRouter.location.query).toEqual({
           cursor: '1443574000:0:0',
+          groupStatsPeriod: 'auto',
           page: '2',
           project: '3559',
           query: DEFAULT_QUERY,
+          sort: IssueSortOptions.RECOMMENDED,
           statsPeriod: '14d',
           referrer: 'issue-list',
         });
@@ -336,9 +365,11 @@ describe('IssueList', () => {
       await waitFor(() => {
         expect(testRouter.location.query).toEqual({
           cursor: '1443575000:0:1',
+          groupStatsPeriod: 'auto',
           page: '1',
           project: '3559',
           query: DEFAULT_QUERY,
+          sort: IssueSortOptions.RECOMMENDED,
           statsPeriod: '14d',
           referrer: 'issue-list',
         });
@@ -355,41 +386,39 @@ describe('IssueList', () => {
   });
 
   describe('sort persistence', () => {
-    it('does not persist sort to localStorage without the recommended-sort feature', async () => {
+    it('persists sort to localStorage', async () => {
       render(<IssueListOverview />, {organization, initialRouterConfig});
-
-      await userEvent.click(await screen.findByRole('button', {name: 'Last Seen'}));
-      await userEvent.click(screen.getByRole('option', {name: 'Events'}));
-
-      // Writing while the feature is off would leave a stale value that overrides
-      // the Recommended default once the flag is enabled.
-      expect(getStoredIssueSort(organization.slug)).toBeNull();
-    });
-
-    it('persists sort to localStorage with the recommended-sort-default feature', async () => {
-      const featureOrg = OrganizationFixture({
-        ...organization,
-        features: ['issue-stream-recommended-sort-default'],
-      });
-      render(<IssueListOverview />, {organization: featureOrg, initialRouterConfig});
 
       await userEvent.click(await screen.findByRole('button', {name: /Recommended/}));
       await userEvent.click(screen.getByRole('option', {name: 'Events'}));
 
-      expect(getStoredIssueSort(featureOrg.slug)).toBe(IssueSortOptions.FREQ);
+      expect(getStoredIssueSort(organization.slug)).toBe(IssueSortOptions.FREQ);
     });
 
-    it('shows the new-feature badge next to the sort dropdown with the recommended-sort-default feature', async () => {
-      const featureOrg = OrganizationFixture({
-        ...organization,
-        features: ['issue-stream-recommended-sort-default'],
+    it('does not read or write the stored sort on a view page', async () => {
+      setStoredIssueSort(organization.slug, IssueSortOptions.FREQ);
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/group-search-views/1/',
+        body: GroupSearchViewFixture({querySort: IssueSortOptions.DATE}),
       });
-      render(<IssueListOverview />, {organization: featureOrg, initialRouterConfig});
 
-      expect(
-        await screen.findByRole('button', {name: /Recommended/})
-      ).toBeInTheDocument();
-      expect(screen.getByLabelText('new')).toBeInTheDocument();
+      render(<IssueListOverview />, {
+        organization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            pathname: '/organizations/org-slug/issues/views/1/',
+          },
+        },
+      });
+
+      // The view's saved sort applies, not the stored feed sort
+      await userEvent.click(await screen.findByRole('button', {name: 'Last Seen'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Users'}));
+
+      // Changing the sort within a view does not overwrite the feed's stored sort
+      expect(getStoredIssueSort(organization.slug)).toBe(IssueSortOptions.FREQ);
     });
   });
 
@@ -414,8 +443,10 @@ describe('IssueList', () => {
 
       await waitFor(() => {
         expect(testRouter.location.query).toEqual({
+          groupStatsPeriod: 'auto',
           project: project.id.toString(),
           query: 'is:ignored',
+          sort: IssueSortOptions.RECOMMENDED,
           statsPeriod: '14d',
           referrer: 'issue-list',
         });
@@ -534,7 +565,39 @@ describe('IssueList', () => {
         expect(fetchDataMock).toHaveBeenLastCalledWith(
           '/organizations/org-slug/issues/',
           expect.objectContaining({
-            data: 'collapse=stats&collapse=unhandled&expand=owners&expand=inbox&limit=25&project=99&query=is%3Aunresolved%20issue.priority%3A%5Bhigh%2C%20medium%5D&shortIdLookup=1&statsPeriod=14d',
+            data: 'collapse=stats&collapse=unhandled&expand=owners&expand=inbox&groupStatsPeriod=auto&limit=25&project=99&query=is%3Aunresolved%20issue.priority%3A%5Bhigh%2C%20medium%5D&shortIdLookup=1&sort=recommended&statsPeriod=14d',
+          })
+        );
+      });
+    });
+
+    it('defaults the row graph period to auto so it follows the global time range', async () => {
+      const {rerender} = render(<IssueListOverview />, {
+        initialRouterConfig: merge({}, initialRouterConfig, {
+          location: {
+            query: {
+              query: DEFAULT_QUERY,
+            },
+          },
+        }),
+      });
+
+      act(() =>
+        PageFiltersStore.onInitializeUrlState({
+          projects: [99],
+          environments: [],
+          datetime: {period: '14d', start: null, end: null, utc: null},
+        })
+      );
+
+      rerender(<IssueListOverview />);
+
+      await waitFor(() => {
+        expect(fetchDataMock).toHaveBeenNthCalledWith(
+          2,
+          '/organizations/org-slug/issues/',
+          expect.objectContaining({
+            data: 'collapse=stats&collapse=unhandled&expand=owners&expand=inbox&groupStatsPeriod=auto&limit=25&project=99&query=is%3Aunresolved%20issue.priority%3A%5Bhigh%2C%20medium%5D&shortIdLookup=1&sort=recommended&statsPeriod=14d',
           })
         );
       });
@@ -691,7 +754,7 @@ describe('IssueList', () => {
       });
     });
 
-    const createWrapper = async (moreProps: any) => {
+    const renderEmptyIssueList = async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         body: [],
@@ -700,9 +763,8 @@ describe('IssueList', () => {
         },
       });
 
-      render(<IssueListOverview {...moreProps} />, {
+      render(<IssueListOverview />, {
         organization,
-
         initialRouterConfig,
       });
 
@@ -711,188 +773,52 @@ describe('IssueList', () => {
       });
     };
 
-    it('displays when no projects selected and all projects user is member of, async does not have first event', async () => {
-      const projectsBody = [
-        ProjectFixture({
-          id: '1',
-          slug: 'foo',
-          isMember: true,
-          firstEvent: null,
-        }),
-        ProjectFixture({
-          id: '2',
-          slug: 'bar',
-          isMember: true,
-          firstEvent: null,
-        }),
-        ProjectFixture({
-          id: '3',
-          slug: 'baz',
-          isMember: true,
-          firstEvent: null,
-        }),
-      ];
+    it('displays when the issue list is empty and no project has a first event', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/sent-first-event/',
-        query: {
-          is_member: true,
-        },
         body: {sentFirstEvent: false},
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
-        body: projectsBody,
+        body: [ProjectFixture({slug: 'foo', firstEvent: null})],
       });
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/foo/issues/',
         body: [],
       });
 
-      await createWrapper({
-        organization: OrganizationFixture(),
-      });
+      await renderEmptyIssueList();
 
-      expect(await screen.findByTestId('awaiting-events')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('heading', {name: /waiting for events/i})
+      ).toBeInTheDocument();
     });
 
-    it('does not display when no projects selected and any projects have a first event', async () => {
-      const projectsBody = [
-        ProjectFixture({
-          id: '1',
-          slug: 'foo',
-          isMember: true,
-          firstEvent: null,
-        }),
-        ProjectFixture({
-          id: '2',
-          slug: 'bar',
-          isMember: true,
-          firstEvent: new Date().toISOString(),
-        }),
-        ProjectFixture({
-          id: '3',
-          slug: 'baz',
-          isMember: true,
-          firstEvent: null,
-        }),
-      ];
-      MockApiClient.addMockResponse({
+    it('checks first events for the selected projects', async () => {
+      PageFiltersStore.onInitializeUrlState({
+        projects: [1, 2],
+        environments: [],
+        datetime: {period: '14d', start: null, end: null, utc: null},
+      });
+      const sentFirstEvent = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/sent-first-event/',
-        query: {
-          is_member: true,
-        },
         body: {sentFirstEvent: true},
-      });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/projects/',
-        body: projectsBody,
-      });
-      await createWrapper({
-        organization: OrganizationFixture(),
+        match: [MockApiClient.matchQuery({project: [1, 2]})],
       });
 
-      expect(screen.queryByTestId('awaiting-events')).not.toBeInTheDocument();
-    });
+      await renderEmptyIssueList();
 
-    it('displays when all selected projects do not have first event', async () => {
-      const projectsBody = [
-        ProjectFixture({
-          id: '1',
-          slug: 'foo',
-          isMember: true,
-          firstEvent: null,
-        }),
-        ProjectFixture({
-          id: '2',
-          slug: 'bar',
-          isMember: true,
-          firstEvent: null,
-        }),
-        ProjectFixture({
-          id: '3',
-          slug: 'baz',
-          isMember: true,
-          firstEvent: null,
-        }),
-      ];
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/sent-first-event/',
-        query: {
-          project: [1, 2],
-        },
-        body: {sentFirstEvent: false},
-      });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/projects/',
-        body: projectsBody,
-      });
-      MockApiClient.addMockResponse({
-        url: '/projects/org-slug/foo/issues/',
-        body: [],
-      });
-
-      await createWrapper({
-        selection: {
-          projects: [1, 2],
-          environments: [],
-          datetime: {period: '14d'},
-        },
-        organization: OrganizationFixture(),
-      });
-
-      expect(await screen.findByTestId('awaiting-events')).toBeInTheDocument();
-    });
-
-    it('does not display when any selected projects have first event', async () => {
-      const projectsBody = [
-        ProjectFixture({
-          id: '1',
-          slug: 'foo',
-          isMember: true,
-          firstEvent: null,
-        }),
-        ProjectFixture({
-          id: '2',
-          slug: 'bar',
-          isMember: true,
-          firstEvent: new Date().toISOString(),
-        }),
-        ProjectFixture({
-          id: '3',
-          slug: 'baz',
-          isMember: true,
-          firstEvent: new Date().toISOString(),
-        }),
-      ];
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/sent-first-event/',
-        query: {
-          project: [1, 2],
-        },
-        body: {sentFirstEvent: true},
-      });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/projects/',
-        body: projectsBody,
-      });
-
-      await createWrapper({
-        selection: {
-          projects: [1, 2],
-          environments: [],
-          datetime: {period: '14d'},
-        },
-        organization: OrganizationFixture(),
-      });
-
-      expect(screen.queryByTestId('awaiting-events')).not.toBeInTheDocument();
+      await waitFor(() => expect(sentFirstEvent).toHaveBeenCalled());
+      expect(
+        screen.queryByRole('heading', {name: /waiting for events/i})
+      ).not.toBeInTheDocument();
     });
   });
 
   it('displays a count that represents the current page', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
-      body: [...Array.from({length: 25})].map((_, i) =>
+      body: Array.from(Array.from({length: 5}), (_, i) =>
         GroupFixture({id: `${i}`, project})
       ),
       headers: {
@@ -929,7 +855,7 @@ describe('IssueList', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText(textWithMarkupMatcher('1-25 of 500'))).toBeInTheDocument();
+      expect(screen.getByText(textWithMarkupMatcher('1-5 of 500'))).toBeInTheDocument();
     });
 
     parseLinkHeaderSpy.mockReturnValue({
@@ -947,34 +873,12 @@ describe('IssueList', () => {
     rerender(<IssueListOverview />);
 
     await waitFor(() => {
-      expect(screen.getByText(textWithMarkupMatcher('26-50 of 500'))).toBeInTheDocument();
-    });
-  }, 20_000);
-
-  describe('project low trends queue alert', () => {
-    beforeEach(() => {
-      act(() => ProjectsStore.reset());
-    });
-
-    it('does not render event processing alert', async () => {
-      act(() => ProjectsStore.loadInitialData([project]));
-
-      render(<IssueListOverview />, {
-        initialRouterConfig,
-      });
-
-      await waitFor(() => {
-        expect(screen.queryByText(/event processing/i)).not.toBeInTheDocument();
-      });
+      expect(screen.getByText(textWithMarkupMatcher('26-30 of 500'))).toBeInTheDocument();
     });
   });
 
   describe('new view page', () => {
     beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/searches/',
-        body: [],
-      });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/group-search-views/1/',
         body: GroupSearchViewFixture(),
@@ -1020,7 +924,9 @@ describe('IssueList', () => {
         expect(testRouter.location.query.query).toBe('is:unresolved timesSeen:>100');
       });
       // ?new=true should be removed
-      expect(testRouter.location.query.new).toBeUndefined();
+      await waitFor(() => {
+        expect(testRouter.location.query.new).toBeUndefined();
+      });
 
       expect(fetchDataMock).toHaveBeenCalled();
       expect(screen.queryByText('Suggested Queries')).not.toBeInTheDocument();

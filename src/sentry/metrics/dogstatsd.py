@@ -1,12 +1,16 @@
 import atexit
-from typing import Any
+from typing import Any, cast
 
 from datadog import initialize
-from datadog.dogstatsd.base import statsd
+from datadog.dogstatsd.base import statsd as _statsd
+from datadog.util.hostname import get_hostname
 
 from .base import MetricsBackend, Tags
+from .datadog_stats import DatadogStats
 
 __all__ = ["DogStatsdMetricsBackend"]
+
+statsd = cast("DatadogStats", _statsd)
 
 # Set the maximum number of packets to queue for the sender.
 # How may packets to queue before blocking or dropping the packet if the packet queue is already full.
@@ -24,6 +28,7 @@ class DogStatsdMetricsBackend(MetricsBackend):
     def __init__(self, prefix: str | None = None, **kwargs: Any) -> None:
         # TODO(dcramer): it'd be nice if the initialize call wasn't a global
         self.tags = kwargs.pop("tags", None)
+        self.host: str | None = kwargs.pop("host", None) or get_hostname(hostname_from_config=True)
         kwargs["statsd_disable_buffering"] = False
 
         initialize(**kwargs)
@@ -113,6 +118,25 @@ class DogStatsdMetricsBackend(MetricsBackend):
     ) -> None:
         # We keep the same implementation for Datadog.
         return self.timing(key, value, instance, tags, sample_rate)
+
+    def set(
+        self,
+        key: str,
+        value: str | int,
+        instance: str | None = None,
+        tags: Tags | None = None,
+        sample_rate: float = 1,
+        stacklevel: int = 0,
+    ) -> None:
+        tags = dict(tags or ())
+
+        if self.tags:
+            tags.update(self.tags)
+        if instance:
+            tags["instance"] = instance
+
+        tags_list = [f"{k}:{v}" for k, v in tags.items()]
+        statsd.set(self._get_key(key), value, tags=tags_list, sample_rate=sample_rate)
 
     def event(
         self,

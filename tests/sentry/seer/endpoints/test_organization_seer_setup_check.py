@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+from typing import Any
 from unittest.mock import MagicMock, patch
 
+from rest_framework.response import Response
+
+from sentry.constants import DataCategory
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 
 
@@ -12,9 +16,10 @@ class OrganizationSeerSetupCheckTestBase(APITestCase, SnubaTestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-    def get_response(self, organization_slug, **kwargs):
+    def get_response(self, organization_slug: str, **kwargs: Any) -> Response:
         url = f"/api/0/organizations/{organization_slug}/seer/setup-check/"
-        return self.client.get(url, format="json", **kwargs)
+        response: Response[Any] = self.client.get(url, format="json", **kwargs)
+        return response
 
 
 class OrganizationSeerSetupCheckSuccessTest(OrganizationSeerSetupCheckTestBase):
@@ -30,11 +35,22 @@ class OrganizationSeerSetupCheckSuccessTest(OrganizationSeerSetupCheckTestBase):
                 "orgHasAcknowledged": True,
                 "userHasAcknowledged": True,
             },
+            "hasFreeAutofixAccess": False,
             "billing": {
                 "hasAutofixQuota": True,
                 "hasScannerQuota": True,
             },
         }
+
+    @patch(
+        "sentry.seer.endpoints.organization_seer_setup_check.is_free_cohort_org",
+        return_value=True,
+    )
+    def test_free_autofix_access(self, _mock_is_free_cohort: MagicMock) -> None:
+        response = self.get_response(self.organization.slug)
+
+        assert response.status_code == 200
+        assert response.data["hasFreeAutofixAccess"] is True
 
     @patch("sentry.quotas.backend.check_seer_quota")
     def test_no_autofix_quota(self, mock_has_budget: MagicMock) -> None:
@@ -42,9 +58,7 @@ class OrganizationSeerSetupCheckSuccessTest(OrganizationSeerSetupCheckTestBase):
         Test when the organization has no autofix quota available.
         """
 
-        def side_effect(org_id, data_category):
-            from sentry.constants import DataCategory
-
+        def side_effect(org_id: int, data_category: DataCategory) -> bool:
             if data_category == DataCategory.SEER_AUTOFIX:
                 return False
             return True  # Scanner quota available
@@ -65,9 +79,7 @@ class OrganizationSeerSetupCheckSuccessTest(OrganizationSeerSetupCheckTestBase):
         Test when the organization has no scanner quota available.
         """
 
-        def side_effect(org_id, data_category):
-            from sentry.constants import DataCategory
-
+        def side_effect(org_id: int, data_category: DataCategory) -> bool:
             if data_category == DataCategory.SEER_SCANNER:
                 return False
             return True  # Autofix quota available

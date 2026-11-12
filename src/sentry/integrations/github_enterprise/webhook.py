@@ -5,6 +5,8 @@ import hmac
 import logging
 import re
 import time
+from collections.abc import Mapping
+from typing import cast
 
 import orjson
 import sentry_sdk
@@ -13,6 +15,7 @@ from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from sentry_sdk import traces
 
 from sentry import options
 from sentry.api.api_owners import ApiOwner
@@ -21,18 +24,27 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.github.client import GitHubBaseClient
 from sentry.integrations.github.webhook import (
+    CheckRunEventWebhook,
+    CheckSuiteWebhook,
     GitHubWebhook,
     InstallationEventWebhook,
     InstallationRepositoriesEventWebhook,
+    IssueCommentEventWebhook,
     IssuesEventWebhook,
     PullRequestEventWebhook,
+    PullRequestReviewCommentEventWebhook,
+    PullRequestReviewEventWebhook,
+    PullRequestReviewThreadEventWebhook,
     PushEventWebhook,
     get_github_external_id,
+    get_scm_stream_extra,
 )
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.github_enterprise.client import GitHubEnterpriseApiClient
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent
 from sentry.integrations.utils.scope import clear_organization_info
+from sentry.issues.action_log import ActionSource, action_context_scope
+from sentry.issues.action_log.request import resolve_action_actor
 from sentry.scm.private.stream_producer import produce_event_to_scm_stream
 from sentry.utils import metrics
 
@@ -41,7 +53,6 @@ from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
-from sentry.utils.tracing import set_span_tag, start_span
 
 SHA1_PATTERN = r"^sha1=[0-9a-fA-F]{40}$"
 SHA256_PATTERN = r"^sha256=[0-9a-fA-F]{64}$"
@@ -87,19 +98,23 @@ def get_host(request: HttpRequest) -> str | None:
     return None
 
 
-def get_installation_metadata(event, host):
+def get_installation_metadata(
+    event: Mapping[str, object], host: str | None
+) -> Mapping[str, object] | None:
     if not host:
-        return
+        return None
     external_id = get_github_external_id(event=event, host=host)
     integration = integration_service.get_integration(
         external_id=external_id,
         provider=IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
         status=ObjectStatus.ACTIVE,
+        using_replica=options.get("integration_service.get_integration.using_replica"),
     )
     if integration is None:
         metrics.incr("integrations.github_enterprise.does_not_exist")
-        return
-    return integration.metadata["installation"]
+        return None
+    installation = integration.metadata["installation"]
+    return installation
 
 
 class GitHubEnterpriseWebhook:
@@ -146,6 +161,36 @@ class GitHubEnterpriseIssuesEventWebhook(GitHubEnterpriseWebhook, IssuesEventWeb
     pass
 
 
+class GitHubEnterpriseIssueCommentEventWebhook(GitHubEnterpriseWebhook, IssueCommentEventWebhook):
+    pass
+
+
+class GitHubEnterpriseCheckRunEventWebhook(GitHubEnterpriseWebhook, CheckRunEventWebhook):
+    pass
+
+
+class GitHubEnterpriseCheckSuiteWebhook(GitHubEnterpriseWebhook, CheckSuiteWebhook):
+    pass
+
+
+class GitHubEnterprisePullRequestReviewEventWebhook(
+    GitHubEnterpriseWebhook, PullRequestReviewEventWebhook
+):
+    pass
+
+
+class GitHubEnterprisePullRequestReviewCommentEventWebhook(
+    GitHubEnterpriseWebhook, PullRequestReviewCommentEventWebhook
+):
+    pass
+
+
+class GitHubEnterprisePullRequestReviewThreadEventWebhook(
+    GitHubEnterpriseWebhook, PullRequestReviewThreadEventWebhook
+):
+    pass
+
+
 class GitHubEnterpriseWebhookBase(Endpoint):
     authentication_classes = ()
     permission_classes = ()
@@ -156,6 +201,12 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         "installation": GitHubEnterpriseInstallationEventWebhook,
         "installation_repositories": GitHubEnterpriseInstallationRepositoriesEventWebhook,
         "issues": GitHubEnterpriseIssuesEventWebhook,
+        "issue_comment": GitHubEnterpriseIssueCommentEventWebhook,
+        "check_run": GitHubEnterpriseCheckRunEventWebhook,
+        "check_suite": GitHubEnterpriseCheckSuiteWebhook,
+        "pull_request_review": GitHubEnterprisePullRequestReviewEventWebhook,
+        "pull_request_review_comment": GitHubEnterprisePullRequestReviewCommentEventWebhook,
+        "pull_request_review_thread": GitHubEnterprisePullRequestReviewThreadEventWebhook,
     }
 
     def _get_host(self, request: HttpRequest) -> str | None:
@@ -163,10 +214,10 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         return get_host(request)
 
     # https://developer.github.com/webhooks/
-    def get_handler(self, event_type):
+    def get_handler(self, event_type: str) -> type[GitHubWebhook] | None:
         return self._handlers.get(event_type)
 
-    def is_valid_signature(self, method, body, secret, signature):
+    def is_valid_signature(self, method: str, body: bytes, secret: str, signature: str) -> bool:
         if method != "sha1" and method != "sha256":
             raise UnsupportedSignatureAlgorithmError()
 
@@ -182,18 +233,23 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         return constant_time_compare(expected, signature)
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405)
 
         return super().dispatch(request, *args, **kwargs)
 
-    def get_secret(self, event, host):
+    def get_secret(self, event: Mapping[str, object], host: str | None) -> str | None:
         metadata = get_installation_metadata(event, host)
         if metadata:
-            return metadata.get("webhook_secret")
+            return cast("str | None", metadata.get("webhook_secret"))
         else:
             return None
+
+    @method_decorator(csrf_exempt)
+    def post(self, request: HttpRequest) -> HttpResponse:
+        with action_context_scope(ActionSource.GITHUB_ENTERPRISE, resolve_action_actor(request)):
+            return self._handle(request)
 
     def _handle(self, request: HttpRequest) -> HttpResponse:
         clear_organization_info()
@@ -340,11 +396,16 @@ class GitHubEnterpriseWebhookBase(Endpoint):
 
         # Create a new transaction for each webhook event to ensure separate traces
         transaction_name = f"github_enterprise.webhook.{github_event}"
-        with start_span(
-            op="webhook", name=transaction_name, source="component", transaction=True
-        ) as span:
-            set_span_tag(span, "github_event", github_event)
-
+        traces.new_trace()
+        with traces.start_span(
+            name=transaction_name,
+            attributes={
+                "sentry.op": "webhook",
+                "sentry.span.source": "component",
+                "github_event": github_event,
+            },
+            parent_span=None,
+        ):
             with IntegrationWebhookEvent(
                 interaction_type=event_handler.event_type,
                 domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
@@ -352,9 +413,9 @@ class GitHubEnterpriseWebhookBase(Endpoint):
             ).capture():
                 event_handler(event, host=host, github_event=webhook_type)
 
-        # Publish the request to the unified SCM (source control management) subscription's
-        # platform. This is a replacement for the handlers defined above. Handlers should be
-        # defined as consumers of the SCM subscriptions Kafka topic.
+        # Publish the request to the unified SCM event stream, which normalizes the event
+        # and dispatches a Taskbroker task for each registered listener. New handlers should
+        # register with scm_event_stream and be imported in sentry/scm/stream.py.
         #
         # NOTE: Publication of the event assumes the event has been properly authorized (as it has
         #       been above).
@@ -365,6 +426,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
                 "event_type_hint": request.headers.get("X-GitHub-Event"),
                 "event": request.body.decode("utf-8"),
                 "extra": {
+                    **get_scm_stream_extra(event),
                     "host": host,
                     "skipped-authentication": skipped_authentication,
                     "enterprise-version": request.headers.get("x-github-enterprise-version"),
@@ -389,15 +451,11 @@ class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
     }
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405)
 
         return super().dispatch(request, *args, **kwargs)
-
-    @method_decorator(csrf_exempt)
-    def post(self, request: HttpRequest) -> HttpResponse:
-        return self._handle(request)
 
 
 @cell_silo_endpoint
@@ -411,7 +469,7 @@ class GitHubEnterpriseGitHubComWebhookEndpoint(GitHubEnterpriseWebhookBase):
         return "github.com"
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405)
         return super().dispatch(request, *args, **kwargs)
@@ -422,4 +480,4 @@ class GitHubEnterpriseGitHubComWebhookEndpoint(GitHubEnterpriseWebhookBase):
             "integrations.github_enterprise.webhook.routed",
             tags={"variant": "github_com"},
         )
-        return self._handle(request)
+        return super().post(request)

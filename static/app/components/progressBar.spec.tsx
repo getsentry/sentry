@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {ProgressBar} from 'sentry/components/progressBar';
+import {ProgressBar} from './progressBar';
 
 describe('ProgressBar', () => {
   it('basic', () => {
@@ -12,10 +12,7 @@ describe('ProgressBar', () => {
     expect(elementProperties).toBeInTheDocument();
 
     // check aria attributes
-    expect(elementProperties).toHaveAttribute(
-      'aria-valuenow',
-      progressBarValue.toString()
-    );
+    expect(elementProperties).toHaveValue(progressBarValue);
     expect(elementProperties).toHaveAttribute('aria-valuemin', '0');
     expect(elementProperties).toHaveAttribute('aria-valuemax', '100');
   });

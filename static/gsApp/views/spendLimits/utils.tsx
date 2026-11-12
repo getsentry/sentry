@@ -139,13 +139,6 @@ export function hasOnDemandBudgetsFeature(
   );
 }
 
-export function getOnDemandBudget(budget: OnDemandBudgets, dataCategory: DataCategory) {
-  if (budget.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
-    return budget.budgets[dataCategory] ?? 0;
-  }
-  return getTotalBudget(budget);
-}
-
 export function exceedsInvoicedBudgetLimit(
   subscription: Subscription,
   budget: OnDemandBudgets

@@ -1,30 +1,39 @@
 import logging
+from dataclasses import dataclass
 from datetime import timedelta
-from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any, NotRequired, TypedDict
 
 from django.conf import settings
 from django.contrib.auth import logout
+from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
 from django.utils import timezone as django_timezone
-from django.utils.translation import gettext_lazy as _
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from sentry_sdk import capture_exception
 
 from sentry import analytics, audit_log, roles
 from sentry.analytics.events.user_removed import UserRemovedEvent
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.authentication import UserAuthTokenAuthentication
 from sentry.api.base import control_silo_endpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import CamelSnakeModelSerializer
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.examples.user_examples import UserExamples
 from sentry.audit_log.services.log import AuditLogEvent, log_service
 from sentry.auth.elevated_mode import has_elevated_mode
+from sentry.auth.principal import require_user
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.constants import LANGUAGES
 from sentry.core.endpoints.organization_details import post_org_pending_deletion
+from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_user
+from sentry.models.apitoken import is_api_token_auth
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
@@ -32,19 +41,38 @@ from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganizationDeleteState
 from sentry.security.utils import capture_security_activity
+from sentry.seer import agent_token
 from sentry.users.api.bases.user import UserAndStaffPermission, UserEndpoint
-from sentry.users.api.serializers.user import DetailedSelfUserSerializer
+from sentry.users.api.parsers.display_preference import (
+    DEFAULT_ISSUE_EVENT_CHOICES,
+    STACKTRACE_ORDER_CHOICES,
+    THEME_CHOICES,
+    TIMEZONE_CHOICES,
+    DisplayPreferencesData,
+    write_display_preferences,
+)
+from sentry.users.api.serializers.user import (
+    DetailedSelfUserSerializer,
+    DetailedSelfUserSerializerResponse,
+)
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
-from sentry.users.models.useremail import UserEmail
+from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.serial import serialize_generic_user
-from sentry.utils.dates import get_timezone_choices
 
 audit_logger = logging.getLogger("sentry.audit.user")
 delete_logger = logging.getLogger("sentry.deletions.api")
 
 
-TIMEZONE_CHOICES = get_timezone_choices()
+@dataclass(frozen=True)
+class DeletedAccountInfo:
+    """Stand-in for a User row that a hard delete already removed.
+
+    Satisfies `SecurityEmailAccount`, which is all the deletion email needs.
+    """
+
+    id: int
+    email: str
 
 
 def user_can_elevate(target_user: User) -> bool:
@@ -63,7 +91,9 @@ def user_can_elevate(target_user: User) -> bool:
     return org_member_exists
 
 
-def record_user_deactivation(*, user: User, actor: Any, ip_address: str) -> None:
+def record_user_deactivation(
+    *, user: User, actor: User | RpcUser | AnonymousUser, ip_address: str
+) -> None:
     deactivation_datetime = django_timezone.now()
     scheduled_deletion_datetime = deactivation_datetime + timedelta(days=30)
 
@@ -94,7 +124,7 @@ def record_user_deactivation(*, user: User, actor: Any, ip_address: str) -> None
 
 
 def record_hard_user_deletion(
-    *, user_id: int, user_email: str, actor: Any, ip_address: str
+    *, user_id: int, user_email: str, actor: User | RpcUser | AnonymousUser, ip_address: str
 ) -> None:
     deletion_datetime = django_timezone.now()
 
@@ -110,12 +140,12 @@ def record_hard_user_deletion(
     except Exception as e:
         capture_exception(e)
 
-    # We create a minimal object with id and email since the User was already deleted.
-    # This is only used for email template rendering.
-    account_info = SimpleNamespace(id=user_id, email=user_email)
+    # The User was already deleted, so pass a minimal stand-in. This is only used
+    # for logging and email template rendering.
+    account_info = DeletedAccountInfo(id=user_id, email=user_email)
 
     capture_security_activity(
-        account=cast(Any, account_info),
+        account=account_info,
         type="user.removed",
         actor=actor,
         ip_address=ip_address,
@@ -127,32 +157,11 @@ def record_hard_user_deletion(
 
 class UserOptionsSerializer(serializers.Serializer[UserOption]):
     language = serializers.ChoiceField(choices=LANGUAGES, required=False)
-    stacktraceOrder = serializers.ChoiceField(
-        choices=(
-            ("-1", _("Default (let Sentry decide)")),
-            ("1", _("Most recent call last")),
-            ("2", _("Most recent call first")),
-        ),
-        required=False,
-    )
+    stacktraceOrder = serializers.ChoiceField(choices=STACKTRACE_ORDER_CHOICES, required=False)
     timezone = serializers.ChoiceField(choices=TIMEZONE_CHOICES, required=False)
     clock24Hours = serializers.BooleanField(required=False)
-    theme = serializers.ChoiceField(
-        choices=(
-            ("light", _("Light")),
-            ("dark", _("Dark")),
-            ("system", _("Default to system")),
-        ),
-        required=False,
-    )
-    defaultIssueEvent = serializers.ChoiceField(
-        choices=(
-            ("recommended", _("Recommended")),
-            ("latest", _("Latest")),
-            ("oldest", _("Oldest")),
-        ),
-        required=False,
-    )
+    theme = serializers.ChoiceField(choices=THEME_CHOICES, required=False)
+    defaultIssueEvent = serializers.ChoiceField(choices=DEFAULT_ISSUE_EVENT_CHOICES, required=False)
     prefersIssueDetailsStreamlinedUI = serializers.BooleanField(required=False)
 
 
@@ -160,27 +169,10 @@ class BaseUserSerializer(CamelSnakeModelSerializer[User]):
     def validate_username(self, value: str) -> str:
         assert isinstance(self.instance, User), "Should be a single record not a sequence"
 
-        if (
-            User.objects.filter(username__iexact=value)
-            # Django throws an exception if `id` is `None`, which it will be when we're importing
-            # new users via the relocation logic on the `User` model. So we cast `None` to `0` to
-            # make Django happy here.
-            .exclude(id=self.instance.id if hasattr(self.instance, "id") else 0)
-            .exists()
-        ):
+        if not User.is_username_available(value, exclude_user_id=self.instance.id or 0):
             raise serializers.ValidationError("That username is already in use.")
+
         return value
-
-    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
-        attrs = super().validate(attrs)
-
-        assert isinstance(self.instance, User), "Should be a single record not a sequence"
-        if self.instance.email == self.instance.username:
-            if attrs.get("username", self.instance.email) != self.instance.email:
-                # ... this probably needs to handle newsletters and such?
-                attrs.setdefault("email", attrs["username"])
-
-        return attrs
 
     def update(self, instance: User, validated_data: dict[str, Any]) -> User:
         if "isActive" not in validated_data:
@@ -274,6 +266,13 @@ class PrivilegedUserSerializer(SuperuserUserSerializer):
         fields = ("name", "username", "is_active", "is_suspended", "is_staff", "is_superuser")
 
 
+class DeleteUserData(TypedDict):
+    """The validated body of a DELETE to this endpoint."""
+
+    organizations: list[str]
+    hardDelete: NotRequired[bool]
+
+
 class DeleteUserSerializer(serializers.Serializer[User]):
     organizations = serializers.ListField(
         child=serializers.CharField(required=False), required=True
@@ -281,27 +280,84 @@ class DeleteUserSerializer(serializers.Serializer[User]):
     hardDelete = serializers.BooleanField(required=False)
 
 
+class UserDetailsPermission(UserAndStaffPermission):
+    """Lets a user's personal or OAuth application token read that user's own details.
+
+    `GET /api/0/auth/` already returns the same body to any such token. Here,
+    `UserPermission` rejected every token, because the endpoint has no `scope_map` and no
+    scope fits: every Sentry scope describes an organization resource. As with
+    `UserDisplayPreferencesPermission`, a session needs no scope to read its own account,
+    so a token acting for the same user doesn't either. `has_object_permission` still
+    limits token callers to their own account.
+
+    Agent tokens and Sentry app tokens are still rejected, and writes and deletes keep
+    the session-only check.
+    """
+
+    def has_permission(self, request: Request, view: APIView) -> bool:
+        if request.method == "GET" and self._is_user_token(request):
+            # Mirrors DemoSafePermission, which this early return skips.
+            return not (is_demo_user(request.user) and not is_demo_mode_enabled())
+        return super().has_permission(request, view)
+
+    @staticmethod
+    def _is_user_token(request: Request) -> bool:
+        return (
+            isinstance(request.successful_authenticator, UserAuthTokenAuthentication)
+            and is_api_token_auth(request.auth)
+            and not agent_token.is_agent_auth(request.auth)
+            and not request.user.is_sentry_app
+        )
+
+
+@extend_schema(tags=["Users"])
 @control_silo_endpoint
 class UserDetailsEndpoint(UserEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PRIVATE,
     }
+    owner = ApiOwner.FOUNDATIONS
 
-    permission_classes = (UserAndStaffPermission,)
+    permission_classes = (UserDetailsPermission,)
 
-    def get(self, request: Request, user: User) -> Response:
+    @extend_schema(
+        operation_id="retrieveUserDetails",
+        summary="Retrieve a User's Details",
+        parameters=[
+            OpenApiParameter(
+                name="user_id",
+                location="path",
+                required=True,
+                type=str,
+                description="The ID of the user, or `me` for the authenticated user.",
+            )
+        ],
+        request=None,
+        responses={
+            200: DetailedSelfUserSerializer,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=UserExamples.GET_USER_DETAILS,
+    )
+    def get(self, request: Request, user: User) -> Response[DetailedSelfUserSerializerResponse]:
         """
-        Retrieve User Details
-        `````````````````````
+        Return the authenticated user's account details, including email addresses,
+        two-factor authenticators, SSO identities and preferences. Use `me` as the
+        `user_id`.
 
-        Return details for an account's details and options such as: full name, timezone, 24hr times, language,
-        stacktrace_order.
-
-        :auth: required
+        Any personal auth token or OAuth application token can call this endpoint for its
+        own user, and no scope is required. Tokens can't read other users: requesting
+        another user's ID returns 403. Org auth tokens and integration tokens have no user
+        and can't call it.
         """
-        return Response(serialize(user, request.user, DetailedSelfUserSerializer()))
+        body: DetailedSelfUserSerializerResponse = serialize(
+            user, request.user, DetailedSelfUserSerializer()
+        )
+        return Response(body)
 
     def put(self, request: Request, user: User) -> Response:
         """
@@ -319,17 +375,8 @@ class UserDetailsEndpoint(UserEndpoint):
         :param string default_issue_event: Event displayed by default, "recommended", "latest" or "oldest"
         :auth: required
         """
-        email = None
-        if "email" in request.data and len(request.data["email"]) > 0:
-            email = request.data["email"]
-        elif "username" in request.data and len(request.data["username"]) > 0:
-            email = request.data["username"]
-        if email:
-            verified_email_found = UserEmail.objects.filter(
-                user_id=user.id, email=email, is_verified=True
-            ).exists()
-            if not verified_email_found:
-                return Response({"detail": "Verified email address is not found."}, status=400)
+        # `email` is not writable here: primary email changes go through UserEmailsEndpoint
+        # `username` is only editable if it does not match `email`, changing `username` does not change `email`.
 
         # We want to prevent superusers from setting users to superuser or staff
         # because this is only done through _admin. This will always be enforced
@@ -376,9 +423,9 @@ class UserDetailsEndpoint(UserEndpoint):
         # The users have to also be a member of the default organization to be able to elevate
         # to superuser/staff.
         if settings.SENTRY_MODE == SentryMode.SAAS:
-            validated_data = serializer.validated_data
-            requested_superuser = validated_data.get("is_superuser")
-            requested_staff = validated_data.get("is_staff")
+            validated_data: dict[str, Any] = serializer.validated_data
+            requested_superuser: bool | None = validated_data.get("is_superuser")
+            requested_staff: bool | None = validated_data.get("is_staff")
 
             is_updating_superuser = requested_superuser is not None
             is_updating_staff = requested_staff is not None
@@ -397,24 +444,8 @@ class UserDetailsEndpoint(UserEndpoint):
                         status=status.HTTP_403_FORBIDDEN,
                     )
 
-        # map API keys to keys in model
-        key_map = {
-            "theme": "theme",
-            "language": "language",
-            "timezone": "timezone",
-            "stacktraceOrder": "stacktrace_order",
-            "defaultIssueEvent": "default_issue_event",
-            "clock24Hours": "clock_24_hours",
-            "prefersIssueDetailsStreamlinedUI": "prefers_issue_details_streamlined_ui",
-        }
-
-        options_result = serializer_options.validated_data
-
-        for key in key_map:
-            if key in options_result:
-                UserOption.objects.set_value(
-                    user=user, key=key_map.get(key, key), value=options_result.get(key)
-                )
+        options_result: DisplayPreferencesData = serializer_options.validated_data
+        write_display_preferences(user, options_result)
 
         with transaction.atomic(using=router.db_for_write(User)):
             user = serializer.save()
@@ -432,10 +463,13 @@ class UserDetailsEndpoint(UserEndpoint):
         :param list organizations: List of organization ids to remove
         :auth required:
         """
+        actor = require_user(request)
         serializer = DeleteUserSerializer(data=request.data)
 
         if not serializer.is_valid():
             return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        delete_data: DeleteUserData = serializer.validated_data
 
         # from `frontend/remove_account.py`
         org_mappings = OrganizationMapping.objects.filter(
@@ -459,7 +493,7 @@ class UserDetailsEndpoint(UserEndpoint):
             )
 
         avail_org_ids = {o["organization_id"] for o in org_results}
-        requested_org_slugs_to_remove = set(serializer.validated_data.get("organizations"))
+        requested_org_slugs_to_remove = set(delete_data.get("organizations"))
         requested_org_ids_to_remove = OrganizationMapping.objects.filter(
             slug__in=requested_org_slugs_to_remove
         ).values_list("organization_id", flat=True)
@@ -499,8 +533,8 @@ class UserDetailsEndpoint(UserEndpoint):
                         organization_id=member_mapping.organization_id,
                         date_added=django_timezone.now(),
                         event_id=audit_log.get_event_id("MEMBER_REMOVE"),
-                        actor_user_id=request.user.id,
-                        actor_label=request.user.username,
+                        actor_user_id=actor.id,
+                        actor_label=actor.username,
                         ip_address=request.META["REMOTE_ADDR"],
                         target_object_id=member_mapping.organizationmember_id,
                         target_user_id=user.id,
@@ -509,12 +543,12 @@ class UserDetailsEndpoint(UserEndpoint):
                 )
 
         logging_data = {
-            "actor_id": request.user.id,
+            "actor_id": actor.id,
             "ip_address": request.META["REMOTE_ADDR"],
             "user_id": user.id,
         }
 
-        hard_delete = serializer.validated_data.get("hardDelete", False)
+        hard_delete = delete_data.get("hardDelete", False)
         can_delete = has_elevated_mode(request) and request.access.has_permission("users.admin")
 
         # Only active superusers can hard delete accounts
@@ -526,7 +560,7 @@ class UserDetailsEndpoint(UserEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        is_current_user = request.user.id == user.id
+        is_current_user = actor.id == user.id
 
         if hard_delete:
             user_id = user.id
@@ -536,7 +570,7 @@ class UserDetailsEndpoint(UserEndpoint):
             record_hard_user_deletion(
                 user_id=user_id,
                 user_email=user_email,
-                actor=request.user,
+                actor=actor,
                 ip_address=request.META["REMOTE_ADDR"],
             )
         else:
@@ -546,7 +580,7 @@ class UserDetailsEndpoint(UserEndpoint):
             delete_logger.info("user.deactivate", extra=logging_data)
             record_user_deactivation(
                 user=user,
-                actor=request.user,
+                actor=actor,
                 ip_address=request.META["REMOTE_ADDR"],
             )
 

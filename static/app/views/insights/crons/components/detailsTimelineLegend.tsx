@@ -1,16 +1,15 @@
 import styled from '@emotion/styled';
 
+import {InfoTip} from '@sentry/scraps/info';
+import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t, tct, tn} from 'sentry/locale';
-import {
-  DEFAULT_CHECKIN_MARGIN,
-  DEFAULT_MAX_RUNTIME,
-} from 'sentry/views/insights/crons/components/monitorForm';
-import {MonitorIndicator} from 'sentry/views/insights/crons/components/monitorIndicator';
+import {DEFAULT_CHECKIN_MARGIN, DEFAULT_MAX_RUNTIME} from 'sentry/utils/monitor/cron';
 import {CheckInStatus} from 'sentry/views/insights/crons/types';
+
+import {MonitorIndicator} from './monitorIndicator';
 
 interface Props {
   checkInMargin: number | null;
@@ -28,7 +27,7 @@ export function DetailsTimelineLegend({
 }: Props) {
   return (
     <CheckInLegend>
-      <CheckInLegendItem>
+      <Grid as="li" align="center" column="1 / -1" columns="subgrid">
         <MonitorIndicator status={CheckInStatus.MISSED} size={12} />
         <Text>
           {tn(
@@ -37,12 +36,12 @@ export function DetailsTimelineLegend({
             checkInMargin ?? DEFAULT_CHECKIN_MARGIN
           )}
         </Text>
-      </CheckInLegendItem>
-      <CheckInLegendItem>
+      </Grid>
+      <Grid as="li" align="center" column="1 / -1" columns="subgrid">
         <MonitorIndicator status={CheckInStatus.ERROR} size={12} />
         <Text>{t('Check-in reported as failed')}</Text>
-      </CheckInLegendItem>
-      <CheckInLegendItem>
+      </Grid>
+      <Grid as="li" align="center" column="1 / -1" columns="subgrid">
         <MonitorIndicator status={CheckInStatus.TIMEOUT} size={12} />
         <Text>
           {tn(
@@ -51,15 +50,14 @@ export function DetailsTimelineLegend({
             maxRuntime ?? DEFAULT_MAX_RUNTIME
           )}
         </Text>
-      </CheckInLegendItem>
+      </Grid>
       {showUnknownLegend && (
-        <CheckInLegendItem>
+        <Grid as="li" align="center" column="1 / -1" columns="subgrid">
           <MonitorIndicator status={CheckInStatus.UNKNOWN} size={12} />
           <UnknownText>
             {t('Unknown Status')}
-            <QuestionTooltip
+            <InfoTip
               size="sm"
-              isHoverable
               title={tct(
                 'Sentry was unable to determine the check-in status. [link:Learn More].',
                 {
@@ -70,7 +68,7 @@ export function DetailsTimelineLegend({
               )}
             />
           </UnknownText>
-        </CheckInLegendItem>
+        </Grid>
       )}
     </CheckInLegend>
   );
@@ -82,13 +80,6 @@ const CheckInLegend = styled('ul')`
   margin-bottom: 0;
   padding: 0;
   gap: ${p => p.theme.space.md};
-`;
-
-const CheckInLegendItem = styled('li')`
-  display: grid;
-  grid-template-columns: subgrid;
-  align-items: center;
-  grid-column: 1 / -1;
 `;
 
 const UnknownText = styled(Text)`

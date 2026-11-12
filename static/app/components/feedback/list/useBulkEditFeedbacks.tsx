@@ -1,19 +1,16 @@
 import {useCallback, useMemo} from 'react';
+import {useQueryState} from 'nuqs';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
-import {openConfirmModal} from 'sentry/components/confirm';
+import {openConfirmModal} from '@sentry/scraps/confirm';
+import {toast} from '@sentry/scraps/toast';
+
 import {useDeleteFeedback} from 'sentry/components/feedback/useDeleteFeedback';
 import {useMutateFeedback} from 'sentry/components/feedback/useMutateFeedback';
 import {t, tct, tn} from 'sentry/locale';
 import {GroupStatus} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ListItemCheckboxState} from 'sentry/utils/list/useListItemCheckboxState';
-import {decodeList} from 'sentry/utils/queryString';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 const statusToButtonLabel: Record<string, string> = {
@@ -32,21 +29,17 @@ interface Props extends Pick<ListItemCheckboxState, 'deselectAll' | 'selectedIds
 
 export function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) {
   const organization = useOrganization();
-  const queryView = useLocationQuery({
-    fields: {
-      project: decodeList,
-    },
-  });
+  const [projectIds] = useQueryState('project', parseAsStringArray);
   const {markAsRead, resolve} = useMutateFeedback({
     feedbackIds: selectedIds,
     organization,
-    projectIds: queryView.project,
+    projectIds,
   });
   // TODO: should only be true if you're a member of some of the projects of the
   // selected feedbacks... which is not currently available
   const enableMarkAsRead = true;
 
-  const onDelete = useDeleteFeedback(selectedIds, queryView.project);
+  const onDelete = useDeleteFeedback(selectedIds, projectIds);
   const hasDelete = selectedIds !== 'all';
   const enableDelete = organization.access.includes('event:admin');
 
@@ -56,7 +49,7 @@ export function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) {
   const mutationOptions = useMemo(
     () => ({
       onError: () => {
-        addErrorMessage(
+        toast.error(
           tn(
             'An error occurred while updating the feedback item',
             'An error occurred while updating the feedback items',
@@ -65,7 +58,7 @@ export function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) {
         );
       },
       onSuccess: () => {
-        addSuccessMessage(
+        toast.success(
           tn('Updated feedback item', 'Updated feedback items', selectedIdsLength)
         );
         deselectAll();
@@ -86,7 +79,7 @@ export function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) {
               type: 'bulk',
             });
           }
-          addLoadingMessage(
+          toast.loading(
             tn(
               'Updating feedback item...',
               'Updating feedback items...',
@@ -119,7 +112,7 @@ export function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) {
       openConfirmModal({
         bypass: Array.isArray(selectedIds) && selectedIds.length === 1,
         onConfirm: () => {
-          addLoadingMessage(
+          toast.loading(
             tn(
               'Updating feedback item...',
               'Updating feedback items...',
@@ -143,7 +136,7 @@ export function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) {
       openConfirmModal({
         bypass: Array.isArray(selectedIds) && selectedIds.length === 1,
         onConfirm: () => {
-          addLoadingMessage(
+          toast.loading(
             tn(
               'Updating feedback item...',
               'Updating feedback items...',
@@ -152,7 +145,7 @@ export function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) {
           );
           markAsRead(false, {
             onError: () => {
-              addErrorMessage(
+              toast.error(
                 tn(
                   'An error occurred while updating the feedback item',
                   'An error occurred while updating the feedback items',
@@ -161,7 +154,7 @@ export function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) {
               );
             },
             onSuccess: () => {
-              addSuccessMessage(
+              toast.success(
                 tn('Updated feedback item', 'Updated feedback items', selectedIdsLength)
               );
               deselectAll();

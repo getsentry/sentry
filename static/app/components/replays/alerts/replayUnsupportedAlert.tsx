@@ -1,7 +1,8 @@
+import {IconInfo} from '@sentry/icons/info';
+
 import {Alert} from '@sentry/scraps/alert';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 
 interface Props {

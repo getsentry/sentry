@@ -7,7 +7,6 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import control_silo_test, create_test_cells
-from sentry.utils import json
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 
@@ -35,6 +34,8 @@ class TestRegionApp(TestCase):
                 ]
             },
         )
+        assert self.app.webhook_url is not None
+        self.webhook_url = self.app.webhook_url
 
     def test_get_buffer_requests_for_cell(self) -> None:
         buffer = SentryAppWebhookRequestsBuffer(self.app)
@@ -42,7 +43,7 @@ class TestRegionApp(TestCase):
             response_code=200,
             org_id=self.org.id,
             event="issue.assigned",
-            url=self.app.webhook_url,
+            url=self.webhook_url,
         )
         requests = app_request_service.get_buffer_requests_for_cell(
             sentry_app_id=self.app.id, cell_name="us"
@@ -77,11 +78,11 @@ class TestRegionApp(TestCase):
         assert requests and len(requests) == 1
         assert requests[0].error_id == "abc123"
         assert requests[0].project_id == 1
-        assert requests[0].request_body == json.dumps(mock_request.body)
+        assert requests[0].request_body == mock_request.body
         assert requests[0].request_headers == {
             "Content-Type": "application/json",
         }
-        assert requests[0].response_body == json.dumps(mock_response.content)
+        assert requests[0].response_body == mock_response.content
 
     def test_get_filtered_buffer_requests_for_cell(self) -> None:
         buffer = SentryAppWebhookRequestsBuffer(self.app)
@@ -89,13 +90,13 @@ class TestRegionApp(TestCase):
             response_code=200,
             org_id=self.org.id,
             event="issue.assigned",
-            url=self.app.webhook_url,
+            url=self.webhook_url,
         )
         buffer.add_request(
             response_code=200,
             org_id=self.org.id,
             event="issue.resolved",
-            url=self.app.webhook_url,
+            url=self.webhook_url,
         )
         filter: SentryAppRequestFilterArgs = {"event": "issue.assigned"}
         requests = app_request_service.get_buffer_requests_for_cell(

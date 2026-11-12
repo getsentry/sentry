@@ -1,16 +1,18 @@
 import styled from '@emotion/styled';
 
+import {InfoTip} from '@sentry/scraps/info';
+
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
   hasFlamegraphData,
   StacktraceFlamegraph,
 } from 'sentry/components/events/interfaces/crashContent/stackTrace/flamegraph';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
-import {SectionKey} from 'sentry/views/issueDetails/context';
-import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+
+import {SectionKey} from './context';
+import {FoldSection} from './foldSection';
 
 export interface HangProfileData {
   exceptionValue: string;
@@ -58,16 +60,24 @@ export function getHangProfileData(event: Event): HangProfileData | null {
   return null;
 }
 
-export function MetricKitHangProfileSection({data}: {data: HangProfileData}) {
+export function MetricKitHangProfileSection({
+  data,
+  initialCollapse,
+}: {
+  data: HangProfileData;
+  initialCollapse?: boolean;
+}) {
   return (
     <ErrorBoundary mini>
       <FoldSection
+        initialCollapse={initialCollapse}
+        disableCollapsePersistence={initialCollapse !== undefined}
         sectionKey={SectionKey.STACKTRACE_FLAMEGRAPH}
         title={
           <span>
             {t('Hang Profile')}
             &nbsp;
-            <QuestionTooltip
+            <InfoTip
               position="bottom"
               size="sm"
               title={t('This profile was reported by MetricKit during the app hang.')}

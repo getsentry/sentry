@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import logging
+from enum import StrEnum
 from typing import Any
 
+import sentry_sdk
 from django.conf import settings
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -13,16 +15,69 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
+from sentry.api.client_kind import ClientKind, get_client_kind
+from sentry.auth.principal import acting_user_id
+from sentry.middleware import is_frontend_request
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_utils import collect_user_org_context, enqueue_seer_run
-from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
-from sentry.seer.endpoints.utils import get_extra_seer_feature_flags
+from sentry.seer.assisted_query.capabilities import (
+    get_transformation_capabilities,
+    validate_search_agent_options,
+)
+from sentry.seer.endpoints.utils import OrganizationTraceExplorerAIPermission
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRun, SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
-from sentry.seer.signed_seer_api import SearchAgentStartRequest, SeerViewerContext
+from sentry.seer.signed_seer_api import (
+    SearchAgentStartRequest,
+    SeerViewerContext,
+    TransformationCapabilities,
+)
 
 logger = logging.getLogger(__name__)
+
+
+class SearchAgentResultTarget(StrEnum):
+    """Where the caller will use the translated query."""
+
+    UI_SEARCH = "ui_search"
+    AGENT_SEARCH = "agent_search"
+
+
+class SearchAgentReferrer(StrEnum):
+    """Allowlist of callers that may start a search agent run.
+
+    Forwarded to Seer as the run's source; every caller gets its own
+    `assisted_query.<source>.<strategy>` RPC referrer there. To add a caller, add a
+    value here and to Seer's `ASSISTED_QUERY_SOURCES`.
+    """
+
+    SEARCH_BAR = "search_bar"
+    MCP = "mcp"
+    # Web UI request that didn't declare which surface it came from
+    FRONTEND = "frontend"
+    UNKNOWN = "unknown"
+
+
+def resolve_referrer(request: Request, raw: str | None) -> SearchAgentReferrer:
+    client_kind = get_client_kind(request)
+    if client_kind == ClientKind.MCP:
+        return SearchAgentReferrer.MCP
+    if raw:
+        try:
+            return SearchAgentReferrer(raw)
+        except ValueError:
+            logger.warning("search_agent.unknown_referrer", extra={"referrer": raw})
+    if client_kind == ClientKind.FRONTEND:
+        return SearchAgentReferrer.FRONTEND
+    return SearchAgentReferrer.UNKNOWN
+
+
+def infer_result_target(request: Request) -> SearchAgentResultTarget:
+    """Classify web UI requests as ``ui_search`` and all other callers as ``agent_search``."""
+    if is_frontend_request(request):
+        return SearchAgentResultTarget.UI_SEARCH
+    return SearchAgentResultTarget.AGENT_SEARCH
 
 
 class SearchAgentStartSerializer(serializers.Serializer):
@@ -47,13 +102,15 @@ class SearchAgentStartSerializer(serializers.Serializer):
         allow_null=True,
         help_text="Optional configuration options.",
     )
+    referrer = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text="Which caller started the run (e.g. `search_bar`). Unknown values are ignored.",
+    )
 
     def validate_options(self, value: dict[str, Any] | None) -> dict[str, Any] | None:
-        if value is None:
-            return None
-        if "model_name" in value and not isinstance(value["model_name"], str):
-            raise serializers.ValidationError("model_name must be a string")
-        return value
+        return validate_search_agent_options(value)
 
 
 def send_search_agent_start_request(
@@ -67,7 +124,12 @@ def send_search_agent_start_request(
     model_name: str | None = None,
     metric_context: dict[str, Any] | None = None,
     viewer_context: SeerViewerContext | None = None,
-    extra_feature_flags: dict[str, bool] | None = None,
+    cross_event: bool = False,
+    reflection_step: bool = False,
+    code_mode: bool = False,
+    result_target: SearchAgentResultTarget | None = None,
+    referrer: SearchAgentReferrer | None = None,
+    transformation_capabilities: TransformationCapabilities | None = None,
 ) -> SeerRun:
     """Create the SeerRun mirror and enqueue the outbox that starts the agent in Seer."""
     body = SearchAgentStartRequest(
@@ -82,13 +144,22 @@ def send_search_agent_start_request(
     if timezone:
         body["timezone"] = timezone
 
-    options: dict[str, Any] = {}
+    options: dict[str, Any] = {
+        "cross_event": cross_event,
+        "reflection_step": reflection_step,
+        "code_mode": code_mode,
+    }
     if model_name is not None:
         options["model_name"] = model_name
     if metric_context is not None:
         options["metric_context"] = metric_context
-    extra_feature_flags = extra_feature_flags or {}
-    options["extra_feature_flags"] = extra_feature_flags
+    if code_mode and transformation_capabilities is not None:
+        options["transformation_capabilities"] = transformation_capabilities
+    if result_target is not None:
+        options["result_target"] = result_target.value
+    if referrer is not None:
+        # Seer combines this with the strategy to pick the RPC referrer.
+        options["source"] = referrer.value
     body["options"] = options
 
     return enqueue_seer_run(
@@ -134,34 +205,27 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
         options = validated_data.get("options") or {}
         model_name = options.get("model_name")
         metric_context = options.get("metric_context")
+        result_target = infer_result_target(request)
+        sentry_sdk.set_tag("search_agent.result_target", result_target.value)
+        referrer = resolve_referrer(request, validated_data.get("referrer"))
+        sentry_sdk.set_tag("referrer", referrer.value)
 
         projects = self.get_projects(
             request, organization, project_ids=set(validated_data["project_ids"])
         )
         project_ids = [project.id for project in projects]
 
-        has_feature = features.has(
-            "organizations:gen-ai-search-agent-translate", organization, actor=request.user
-        )
-        if strategy == "Metrics":
-            has_feature = has_feature and features.has(
-                "organizations:gen-ai-explore-metrics-search",
-                organization,
-                actor=request.user,
-            )
-        if strategy == "Issues":
-            has_feature = has_feature and features.has(
-                "organizations:gen-ai-issues-search",
-                organization,
-                actor=request.user,
-            )
-        if not has_feature:
+        if strategy == "Issues" and not features.has(
+            "organizations:gen-ai-issues-search",
+            organization,
+            actor=request.user,
+        ):
             return Response(
                 {"detail": "Feature flag not enabled"},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        has_seer_access, detail = has_seer_access_with_detail(organization, actor=request.user)
+        has_seer_access, detail = has_seer_access_with_detail(organization)
         if not has_seer_access:
             return Response(
                 {"detail": detail},
@@ -178,17 +242,12 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
         user_org_context = collect_user_org_context(request.user, organization)
         user_email = user_org_context.get("user_email")
         timezone = user_org_context.get("user_timezone")
-        extra_feature_flags = get_extra_seer_feature_flags(
-            organization=organization, user=request.user
-        )
-
+        user_id = acting_user_id(request.user)
         try:
-            viewer_context = SeerViewerContext(
-                organization_id=organization.id, user_id=request.user.id
-            )
+            viewer_context = SeerViewerContext(organization_id=organization.id, user_id=user_id)
             result = send_search_agent_start_request(
                 organization=organization,
-                user_id=request.user.id,
+                user_id=user_id,
                 project_ids=project_ids,
                 natural_language_query=natural_language_query,
                 strategy=strategy,
@@ -197,7 +256,26 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
                 model_name=model_name,
                 metric_context=metric_context,
                 viewer_context=viewer_context,
-                extra_feature_flags=extra_feature_flags,
+                cross_event=features.has(
+                    "organizations:seer-assisted-query-cross-event-explorer",
+                    organization,
+                    actor=request.user,
+                ),
+                reflection_step=features.has(
+                    "organizations:seer-assisted-query-reflection",
+                    organization,
+                    actor=request.user,
+                ),
+                code_mode=features.has(
+                    "organizations:seer-assisted-query-codemode",
+                    organization,
+                    actor=request.user,
+                ),
+                result_target=result_target,
+                referrer=referrer,
+                transformation_capabilities=get_transformation_capabilities(
+                    organization, actor=request.user
+                ),
             )
             return Response(
                 {

@@ -1,15 +1,15 @@
 import {Fragment} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {t} from 'sentry/locale';
+
+import {FeatureDisabled} from './featureDisabled';
 
 type Props = ModalRenderProps & {
   featureName: string;
   features: string | string[];
-  message?: string;
 };
 
 export function FeatureDisabledModal({
@@ -19,7 +19,6 @@ export function FeatureDisabledModal({
   CloseButton,
   features,
   featureName,
-  message,
 }: Props) {
   return (
     <Fragment>
@@ -28,7 +27,6 @@ export function FeatureDisabledModal({
         <FeatureDisabled
           featureName={featureName}
           features={features}
-          message={message}
           alert={false}
           hideHelpToggle
         />

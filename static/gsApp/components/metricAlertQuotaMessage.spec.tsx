@@ -14,7 +14,7 @@ jest.mock('getsentry/actionCreators/modal', () => ({
 
 describe('MetricAlertQuotaMessage', () => {
   const organization = OrganizationFixture({
-    features: ['workflow-engine-metric-detector-limit', 'workflow-engine-ui'],
+    features: ['workflow-engine-metric-detector-limit'],
   });
 
   beforeEach(() => {

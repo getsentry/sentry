@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 
 import {Container, type ContainerProps} from '@sentry/scraps/layout';
 
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
+
 const cellBackground = (p: CellProps & {theme: Theme}) => {
   if (p.isSelected) {
     return `background-color: ${p.theme.tokens.background.accent.vibrant};`;
@@ -26,20 +28,13 @@ const cellColor = (p: CellProps & {theme: Theme}) => {
 };
 
 type CellProps = {
-  align?: 'flex-start' | 'flex-end';
-  className?: string;
-  hasOccurred?: boolean;
   isSelected?: boolean;
   isStatusError?: boolean;
   isStatusWarning?: boolean;
   numeric?: boolean;
-  onClick?: undefined | (() => void);
 };
 
-export const Cell = styled('div')<CellProps>`
-  display: flex;
-  align-items: center;
-  font-size: ${p => p.theme.font.size.sm};
+export const Cell = styled(SimpleTable.RowCell)<CellProps>`
   cursor: ${p => (p.onClick ? 'pointer' : 'inherit')};
 
   ${cellBackground}
@@ -49,7 +44,7 @@ export const Cell = styled('div')<CellProps>`
     p.numeric &&
     css`
       font-variant-numeric: tabular-nums;
-      justify-content: ${p.align ?? 'flex-end'};
+      justify-content: flex-end;
     `}
 `;
 
@@ -57,7 +52,6 @@ export const Text = styled('div')`
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
-  padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
   display: flex;
   gap: ${p => p.theme.space.xs};
 `;
@@ -66,7 +60,6 @@ export function AvatarWrapper(props: ContainerProps) {
   return <Container alignSelf="center" {...props} />;
 }
 
-export const ButtonWrapper = styled('div')`
-  align-items: center;
-  padding-inline: ${p => p.theme.space.lg};
-`;
+export function ButtonWrapper(props: ContainerProps) {
+  return <Container {...props} />;
+}

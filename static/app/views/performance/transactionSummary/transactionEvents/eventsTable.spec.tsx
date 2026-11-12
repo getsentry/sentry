@@ -1,6 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
-import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
@@ -8,13 +7,9 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'sentry/utils/discover/fields';
-import {EventsTable} from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
-import {
-  EVENTS_TABLE_RESPONSE_FIELDS,
-  MOCK_EVENTS_TABLE_DATA,
-} from 'sentry/views/performance/transactionSummary/transactionEvents/testUtils';
 
-const theme = ThemeFixture();
+import {EventsTable} from './eventsTable';
+import {EVENTS_TABLE_RESPONSE_FIELDS, MOCK_EVENTS_TABLE_DATA} from './testUtils';
 
 type Data = {
   features?: string[];
@@ -42,7 +37,7 @@ function initializeData({features: additionalFeatures = []}: Data = {}) {
   return {...initialData, router};
 }
 
-describe('Performance GridEditable Table', () => {
+describe('Performance events table', () => {
   const transactionsListTitles = [
     'event id',
     'user',
@@ -153,7 +148,6 @@ describe('Performance GridEditable Table', () => {
 
     render(
       <EventsTable
-        theme={theme}
         eventView={eventView}
         organization={organization}
         location={initialData.router.location}
@@ -166,7 +160,7 @@ describe('Performance GridEditable Table', () => {
     expect(await screen.findAllByTestId('relative-ops-breakdown')).toHaveLength(2);
 
     expect(screen.getAllByRole('columnheader')).toHaveLength(6);
-    expect(screen.getByText('operation duration')).toBeInTheDocument();
+    expect(screen.getByText('Operation duration')).toBeInTheDocument();
     expect(screen.queryByTestId('grid-head-cell-static')).not.toBeInTheDocument();
   });
 
@@ -197,7 +191,6 @@ describe('Performance GridEditable Table', () => {
 
     render(
       <EventsTable
-        theme={theme}
         eventView={eventView}
         organization={organization}
         location={initialData.router.location}
@@ -230,7 +223,6 @@ describe('Performance GridEditable Table', () => {
 
     render(
       <EventsTable
-        theme={theme}
         eventView={eventView}
         organization={organization}
         location={initialData.router.location}
@@ -268,7 +260,6 @@ describe('Performance GridEditable Table', () => {
 
     render(
       <EventsTable
-        theme={theme}
         eventView={eventView}
         organization={organization}
         location={initialData.router.location}
@@ -311,7 +302,6 @@ describe('Performance GridEditable Table', () => {
 
     render(
       <EventsTable
-        theme={theme}
         eventView={eventView}
         organization={organization}
         location={initialData.router.location}
@@ -345,7 +335,6 @@ describe('Performance GridEditable Table', () => {
 
     render(
       <EventsTable
-        theme={theme}
         eventView={eventView}
         organization={organization}
         location={initialData.router.location}

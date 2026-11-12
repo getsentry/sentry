@@ -2,18 +2,32 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Confirm} from '@sentry/scraps/confirm';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
-import {Confirm} from 'sentry/components/confirm';
 import {SimilarSpectrum} from 'sentry/components/similarSpectrum';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
+import {getPaginationProps} from 'sentry/utils/pagination';
 
 import {SimilarStackTraceItem, SimilarStackTraceItemSkeleton} from './item';
 import type {SimilarItem} from './types';
+
+const SIMILAR_ISSUE_COLUMNS: TableColumnConfig[] = [
+  {key: 'merge', width: 'minmax(160px, 1fr)'},
+  {key: 'events', width: 'max-content', visible: {xs: true}},
+  {key: 'exception', width: 'max-content'},
+  {key: 'message', width: 'max-content', visible: {md: true}},
+  {key: 'actions', width: '80px', visible: {'2xs': true}},
+];
+
+const SIMILAR_ISSUE_COLUMNS_WITHOUT_MESSAGE = SIMILAR_ISSUE_COLUMNS.filter(
+  column => column.key !== 'message'
+);
 
 type Props = {
   busyIds: ReadonlySet<string>;
@@ -68,31 +82,42 @@ export function List({
         />
       </Flex>
 
-      <StyledSimpleTable hasMessageColumn={!hasSimilarityEmbeddingsFeature}>
-        <SimpleTable.Header>
-          <MergeHeaderCell>
-            <Confirm
-              disabled={mergeCount === 0}
-              message={tn(
-                'Merge %s issue into this one?',
-                'Merge %s issues into this one?',
-                mergeCount
-              )}
-              onConfirm={onMerge}
-            >
-              <Button size="xs">
-                {tn('Merge %s issue', 'Merge %s issues', mergeCount)}
-              </Button>
-            </Confirm>
-          </MergeHeaderCell>
-          <CenteredHeaderCell>{t('Events')}</CenteredHeaderCell>
-          <CenteredHeaderCell>{t('Exception')}</CenteredHeaderCell>
-          {!hasSimilarityEmbeddingsFeature && (
-            <CenteredHeaderCell>{t('Message')}</CenteredHeaderCell>
-          )}
-          <SimpleTable.HeaderCell />
-        </SimpleTable.Header>
-
+      <SimpleTable
+        columns={
+          hasSimilarityEmbeddingsFeature
+            ? SIMILAR_ISSUE_COLUMNS_WITHOUT_MESSAGE
+            : SIMILAR_ISSUE_COLUMNS
+        }
+        header={
+          <SimpleTable.HeaderRow>
+            <MergeHeaderCell>
+              <Confirm
+                disabled={mergeCount === 0}
+                message={tn(
+                  'Merge %s issue into this one?',
+                  'Merge %s issues into this one?',
+                  mergeCount
+                )}
+                onConfirm={onMerge}
+              >
+                <Button size="xs">
+                  {tn('Merge %s issue', 'Merge %s issues', mergeCount)}
+                </Button>
+              </Confirm>
+            </MergeHeaderCell>
+            <SimpleTable.HeaderCell align="center">{t('Events')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell align="center">
+              {t('Exception')}
+            </SimpleTable.HeaderCell>
+            {!hasSimilarityEmbeddingsFeature && (
+              <SimpleTable.HeaderCell align="center">
+                {t('Message')}
+              </SimpleTable.HeaderCell>
+            )}
+            <SimpleTable.HeaderCell />
+          </SimpleTable.HeaderRow>
+        }
+      >
         {loading &&
           Array.from({length: 3}).map((_, i) => (
             <SimilarStackTraceItemSkeleton
@@ -102,12 +127,12 @@ export function List({
           ))}
         {isError && (
           <SimpleTable.Empty>
-            <Flex direction="column" align="center" gap="sm">
+            <Stack align="center" gap="sm">
               <Text>{t("Couldn't load similar issues.")}</Text>
               <Button size="xs" onClick={onRetry}>
                 {t('Retry')}
               </Button>
-            </Flex>
+            </Stack>
           </SimpleTable.Empty>
         )}
         {isEmpty && <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>}
@@ -125,7 +150,7 @@ export function List({
               {...item}
             />
           ))}
-      </StyledSimpleTable>
+      </SimpleTable>
 
       {hasHiddenItems && !showAllItems && !hasSimilarityEmbeddingsFeature && (
         <Flex justify="center" padding="lg">
@@ -139,25 +164,11 @@ export function List({
         </Flex>
       )}
 
-      <Pagination pageLinks={pageLinks} />
+      <Pagination {...getPaginationProps(pageLinks)} />
     </Fragment>
   );
 }
 
-const StyledSimpleTable = styled(SimpleTable, {
-  shouldForwardProp: prop => prop !== 'hasMessageColumn',
-})<{hasMessageColumn: boolean}>`
-  grid-template-columns: ${p =>
-    p.hasMessageColumn
-      ? 'minmax(0, 1fr) 70px 90px 90px 80px'
-      : 'minmax(0, 1fr) 70px 90px 80px'};
-`;
-
-const CenteredHeaderCell = styled(SimpleTable.HeaderCell)`
-  justify-content: center;
-`;
-
 const MergeHeaderCell = styled(SimpleTable.HeaderCell)`
-  justify-content: flex-start;
   padding-left: ${p => p.theme.space.md};
 `;

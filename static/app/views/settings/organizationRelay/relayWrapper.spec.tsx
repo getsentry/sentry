@@ -5,7 +5,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {GlobalModal} from '@sentry/scraps/modal';
 
-import {RelayWrapper} from 'sentry/views/settings/organizationRelay/relayWrapper';
+import {RelayWrapper} from './relayWrapper';
 
 describe('RelayWrapper', () => {
   beforeEach(() => {
@@ -167,8 +167,6 @@ describe('RelayWrapper', () => {
         })
       );
 
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
       await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
       expect(
@@ -176,8 +174,6 @@ describe('RelayWrapper', () => {
           name: 'Ingest Through Trusted Relays Only',
         })
       ).not.toBeChecked();
-
-      consoleErrorSpy.mockRestore();
     });
 
     it('toggle is disabled when user lacks org:write permission', async () => {

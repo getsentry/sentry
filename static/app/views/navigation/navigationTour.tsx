@@ -1,22 +1,12 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import {createContext, useCallback, useContext, useEffect, useMemo, useRef} from 'react';
 
 import NavigationTourSvg from 'sentry-images/spot/stacked-nav-tour.svg';
 
 import {useModal} from '@sentry/scraps/modal';
 
 import {
-  TourAction,
   TourContextProvider,
   TourElement,
-  TourGuide,
   type TourElementProps,
 } from 'sentry/components/tours/components';
 import {StartTourModal, startTourModalCss} from 'sentry/components/tours/startTour';
@@ -33,7 +23,8 @@ import {useUser} from 'sentry/utils/useUser';
 import {DEFAULT_PREBUILT_SORT} from 'sentry/views/dashboards/manage/settings';
 import {DashboardFilter} from 'sentry/views/dashboards/types';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
-import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+
+import {usePrimaryNavigation} from './primaryNavigationContext';
 
 export const enum NavigationTour {
   ISSUES = 'issues',
@@ -132,8 +123,7 @@ function useNavigationTourCompleted() {
 }
 
 export function NavigationTourProvider({children}: {children: React.ReactNode}) {
-  const {setShowTourReminder} = useNavigationTourReminderContext();
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
   const isNavigationTourCompleted = useNavigationTourCompleted();
   const initialUrlRef = useRef<string | null>(null);
   const navigate = useNavigate();
@@ -150,8 +140,6 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
   }, [location.hash, location.pathname, location.search]);
 
   const onEndTour = useCallback(() => {
-    setShowTourReminder(true);
-
     // Restore the initial URL when the tour ends.
     if (initialUrlRef.current) {
       navigate(initialUrlRef.current, {replace: true});
@@ -160,10 +148,14 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
 
     // Unlock scrolling when the tour ends.
     document.documentElement.style.overflow = '';
-  }, [navigate, setShowTourReminder]);
+  }, [navigate]);
 
   const onStepChange = useCallback(
     (stepId: NavigationTour) => {
+      if (!organization) {
+        return;
+      }
+
       const prefix = `organizations/${organization.slug}`;
       switch (stepId) {
         case NavigationTour.ISSUES:
@@ -229,7 +221,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
   return (
     <TourContextProvider<NavigationTour>
       tourKey={NAVIGATION_TOUR_GUIDE_KEY}
-      isCompleted={isNavigationTourCompleted}
+      isCompleted={!organization || isNavigationTourCompleted}
       orderedStepIds={ORDERED_NAVIGATION_TOUR}
       TourContext={NavigationTourContext}
       onStartTour={onStartTour}
@@ -244,85 +236,15 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
   );
 }
 
-interface NavigationTourReminderContext {
-  setShowTourReminder: (value: boolean) => void;
-  showTourReminder: boolean;
-}
-
-const NavigationTourReminderContext = createContext<NavigationTourReminderContext>({
-  showTourReminder: false,
-  setShowTourReminder: () => {},
-});
-
-function useNavigationTourReminderContext(): NavigationTourReminderContext {
-  const context = useContext(NavigationTourReminderContext);
-  if (!context) {
-    throw new Error('Must be used within a NavigationTourReminderContextProvider');
-  }
-  return context;
-}
-
-interface NavigationTourReminderContextProviderProps {
-  children: React.ReactNode;
-}
-
-export function NavigationTourReminderContextProvider(
-  props: NavigationTourReminderContextProviderProps
-) {
-  const [showTourReminder, setShowTourReminder] = useState(false);
-
-  const contextValue = useMemo(
-    () => ({showTourReminder, setShowTourReminder}),
-    [showTourReminder, setShowTourReminder]
-  );
-
-  return (
-    <NavigationTourReminderContext.Provider value={contextValue}>
-      {props.children}
-    </NavigationTourReminderContext.Provider>
-  );
-}
-
-interface NavigationTourReminderProps {
-  children: React.ReactNode;
-}
-
-export function NavigationTourReminder(props: NavigationTourReminderProps) {
-  const {showTourReminder, setShowTourReminder} = useNavigationTourReminderContext();
-
-  if (!showTourReminder) {
-    return props.children;
-  }
-
-  return (
-    <TourGuide
-      title={t('Come back anytime')}
-      description={t(
-        'You can always use the help menu to take this tour again or share feedback with the team.'
-      )}
-      actions={
-        <TourAction size="xs" onClick={() => setShowTourReminder(false)}>
-          {t('Got it')}
-        </TourAction>
-      }
-      isOpen={showTourReminder}
-    >
-      {tourProps => <div {...tourProps}>{props.children}</div>}
-    </TourGuide>
-  );
-}
-
 // Displays the introductory tour modal when a user is entering the experience for the first time.
 export function useNavigationTourModal() {
   const {openModal} = useModal();
 
   const user = useUser();
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
   const hasOpenedTourModal = useRef(false);
   const {startTour, endTour} = useNavigationTour();
-  const {data: assistantData} = useAssistant({
-    notifyOnChangeProps: ['data'],
-  });
+  const {data: assistantData} = useAssistant();
   const {mutate: mutateAssistant} = useMutateAssistant();
   const [localTourState, setLocalTourState] = useLocalStorageState(
     NAVIGATION_TOUR_GUIDE_KEY,
@@ -334,6 +256,7 @@ export function useNavigationTourModal() {
     new Date(user?.dateJoined) > TOUR_MODAL_DATE_THRESHOLD;
 
   const shouldShowTourModal =
+    !!organization &&
     assistantData?.find(item => item.guide === NAVIGATION_TOUR_GUIDE_KEY)?.seen ===
       false &&
     !shouldSkipTourForNewUsers &&
@@ -382,6 +305,7 @@ export function useNavigationTourModal() {
   }, [
     shouldShowTourModal,
     startTour,
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     mutateAssistant,
     endTour,
     organization,

@@ -28,8 +28,11 @@ from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
+from sentry.notifications.models.inboxitem import InboxItem
 from sentry.notifications.models.notificationmessage import NotificationMessage
-from sentry.seer.models.night_shift import SeerNightShiftRunResult
+from sentry.seer.models.agentic_triage import SeerAgenticTriageRunResult
+from sentry.seer.models.autofix_issue_data import SeerAutofixIssueData
+from sentry.seer.similarity.utils import project_uses_seer_similarity
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.seer.delete_seer_grouping_records import (
@@ -71,7 +74,6 @@ DIRECT_GROUP_RELATED_MODELS = (
     models.GroupRelease,
     models.GroupRedirect,
     models.GroupResolution,
-    models.GroupRuleStatus,
     models.GroupSeen,
     models.GroupShare,
     models.GroupSnooze,
@@ -98,7 +100,8 @@ ADDITIONAL_GROUP_RELATED_MODELS = (
     models.UserReport,
     models.EventAttachment,
     NotificationMessage,
-    SeerNightShiftRunResult,
+    SeerAutofixIssueData,
+    SeerAgenticTriageRunResult,
 )
 _GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + ADDITIONAL_GROUP_RELATED_MODELS
 
@@ -133,7 +136,7 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
 
     @property
     def tenant_ids(self) -> Mapping[str, Any]:
-        result = {"referrer": self.referrer}
+        result: dict[str, str | int] = {"referrer": self.referrer}
         if self.groups:
             result["organization_id"] = self.groups[0].project.organization_id
         return result
@@ -214,7 +217,16 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         group_ids = [group.id for group in instance_list]
         project_id = instance_list[0].project_id  # All groups should have same project_id
         # Remove child relations for all groups first.
-        child_relations: list[BaseRelation] = []
+        child_relations: list[BaseRelation] = [
+            ModelRelation(
+                InboxItem,
+                {
+                    "organization_id": instance_list[0].project.organization_id,
+                    "subject_type": "issue",
+                    "subject_id__in": [str(group_id) for group_id in group_ids],
+                },
+            )
+        ]
         for model in _GROUP_RELATED_MODELS:
             if model == models.GroupHash:
                 # Using the composite index on (project_id, group_id) is very efficient compared to
@@ -258,7 +270,7 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         from sentry import similarity
 
         # Don't do MinHash work if we use embeddings-based similarity.
-        if not instance.project.get_option("sentry:similarity_backfill_completed"):
+        if not project_uses_seer_similarity(instance.project):
             similarity.delete(None, instance)
 
         return super().delete_instance(instance)

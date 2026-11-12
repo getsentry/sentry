@@ -1,3 +1,7 @@
+from collections.abc import Mapping
+
+from django.contrib.auth import REDIRECT_FIELD_NAME
+from django.http import HttpRequest, HttpResponseBase
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
@@ -6,7 +10,7 @@ from sentry.auth.helper import CHANNEL_PROVIDER_MAP
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.utils.auth import is_valid_redirect
+from sentry.utils.auth import construct_link_with_query, is_valid_redirect
 from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
 from sentry.web.frontend.base import control_silo_view
 
@@ -14,11 +18,13 @@ from sentry.web.frontend.base import control_silo_view
 @control_silo_view
 class AuthChannelLoginView(AuthOrganizationLoginView):
     @method_decorator(never_cache)
-    def handle(self, request, channel, resource_id):  # type: ignore[override]  # intentional signature change
+    def handle(  # type: ignore[override]  # intentional signature change
+        self, request: HttpRequest, channel: str, resource_id: str
+    ) -> HttpResponseBase:
         if request.subdomain is not None:
             return self.redirect(reverse("sentry-auth-organization", args=[request.subdomain]))
 
-        config_data = request.GET.get("config_data", "")
+        config_data: str | Mapping[str, object] = request.GET.get("config_data", "")
 
         if not config_data:
             # NOTE: This provider_config may differ per provider
@@ -47,7 +53,7 @@ class AuthChannelLoginView(AuthOrganizationLoginView):
         except OrganizationMapping.DoesNotExist:
             return self.redirect(reverse("sentry-login"))
 
-        next_uri = self.get_next_uri(request)
+        next_uri = request.GET.get(REDIRECT_FIELD_NAME, request.session.pop("_next", None))
         # If user has an active session within the same organization skip login
         if request.user.is_authenticated:
             if self.active_organization is not None:
@@ -60,7 +66,7 @@ class AuthChannelLoginView(AuthOrganizationLoginView):
         # organization in the url
         org_auth_url = reverse("sentry-auth-organization", args=[slug])
         redirect_url = (
-            org_auth_url + "?next=" + next_uri
+            construct_link_with_query(org_auth_url, {"next": next_uri})
             if is_valid_redirect(next_uri, allowed_hosts=(request.get_host()))
             else org_auth_url
         )

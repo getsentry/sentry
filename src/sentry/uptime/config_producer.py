@@ -18,7 +18,7 @@ from sentry.utils import redis
 logger = logging.getLogger(__name__)
 
 
-def produce_config(destination_region_slug: str, config: CheckConfig):
+def produce_config(destination_region_slug: str, config: CheckConfig) -> None:
     jsonschema.validate(config, CHECK_CONFIG_SCHEMA)
     _send_to_redis(
         destination_region_slug,
@@ -27,7 +27,7 @@ def produce_config(destination_region_slug: str, config: CheckConfig):
     )
 
 
-def produce_config_removal(destination_region_slug: str, subscription_id: str):
+def produce_config_removal(destination_region_slug: str, subscription_id: str) -> None:
     _send_to_redis(destination_region_slug, UUID(subscription_id), None)
 
 
@@ -35,10 +35,14 @@ def get_partition_from_subscription_id(subscription_id: UUID) -> int:
     return int(subscription_id) % settings.UPTIME_CONFIG_PARTITIONS
 
 
+def get_config_key(key_prefix: str, partition: int) -> str:
+    return f"{key_prefix}uptime:configs:{partition}"
+
+
 def get_partition_keys(subscription_id: UUID, config: UptimeRegionConfig) -> tuple[str, str]:
     partition = get_partition_from_subscription_id(subscription_id)
     return (
-        f"{config.config_redis_key_prefix}uptime:configs:{partition}",
+        get_config_key(config.config_redis_key_prefix, partition),
         f"{config.config_redis_key_prefix}uptime:updates:{partition}",
     )
 
@@ -56,7 +60,7 @@ def _send_to_redis(
 
     key = subscription_id.hex
     config_key, update_key = get_partition_keys(subscription_id, region_config)
-    cluster: RedisCluster | StrictRedis = redis.redis_clusters.get_binary(
+    cluster: RedisCluster[bytes] | StrictRedis[bytes] = redis.redis_clusters.get_binary(
         region_config.config_redis_cluster
     )
     pipe = cluster.pipeline()

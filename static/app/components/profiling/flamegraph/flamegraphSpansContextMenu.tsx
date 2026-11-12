@@ -1,4 +1,7 @@
 import {Fragment} from 'react';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconCopyId} from '@sentry/icons/copyId';
+import {IconOpen} from '@sentry/icons/open';
 
 import {
   ProfilingContextMenu,
@@ -7,7 +10,6 @@ import {
   ProfilingContextMenuItemButton,
   ProfilingContextMenuLayer,
 } from 'sentry/components/profiling/profilingContextMenu';
-import {IconCopy, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import type {SpanChartNode} from 'sentry/utils/profiling/spanChart';
@@ -74,7 +76,7 @@ export function SpansContextMenu(props: SpansContextMenuProps) {
                   props.contextMenu.setOpen(false);
                 },
               })}
-              icon={<IconCopy size="xs" />}
+              icon={<IconCopyId size="xs" />}
             >
               {tct('Copy Event ID', {type: title})}
             </ProfilingContextMenuItemButton>

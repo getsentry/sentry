@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
-import {Outlet, useMatches} from 'react-router-dom';
+import {Outlet, useMatches} from 'react-router';
 
-import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {ModuleName} from 'sentry/views/insights/types';
+
+import {BackendHeader} from './backendPageHeader';
 
 function BackendLayout() {
   const handle = useMatches().at(-1)?.handle as {module?: ModuleName} | undefined;

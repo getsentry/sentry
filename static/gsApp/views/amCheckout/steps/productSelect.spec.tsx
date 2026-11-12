@@ -8,16 +8,24 @@ import {
   SubscriptionWithLegacySeerFixture,
 } from 'getsentry-test/fixtures/subscription';
 import {PlanTier} from 'getsentry-test/planTier';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {AddOnCategory} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 
+async function findLegacySeerOption() {
+  await screen.findByText(/Includes \$25\/mo in credits/);
+  return screen.getByTestId('product-option-' + AddOnCategory.LEGACY_SEER);
+}
+
+function querySeerOption() {
+  return screen.queryByTestId('product-option-' + AddOnCategory.SEER);
+}
+
 // XXX(isabella): This tests with both legacy Seer and Seer
 // which wouldn't happen in production but is useful for testing
 describe('ProductSelect', () => {
-  const api = new MockApiClient();
   const organization = OrganizationFixture({features: ['seer-billing']});
   const subscription = SubscriptionFixture({organization});
 
@@ -49,11 +57,6 @@ describe('ProductSelect', () => {
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/promotions/trigger-check/`,
-      method: 'POST',
-      body: {},
-    });
-    MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
     });
@@ -67,16 +70,15 @@ describe('ProductSelect', () => {
     });
     SubscriptionStore.set(organization.slug, freeSubscription);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
-    expect(await screen.findByTestId('product-option-legacySeer')).toBeInTheDocument();
+    expect(await findLegacySeerOption()).toBeInTheDocument();
     expect(screen.getAllByTestId(/product-option-feature/)).toHaveLength(3); // each subcategory + included credits
-    expect(screen.getByTestId('product-option-seer')).toBeInTheDocument();
+    expect(querySeerOption()).toBeInTheDocument();
     expect(screen.getByTestId('product-option-description')).toBeInTheDocument();
-    expect(screen.getAllByRole('checkbox', {name: /Add Seer to plan/})).toHaveLength(4); // role is on entire box + checkbox within box; both options are named Seer
+    expect(screen.getAllByRole('checkbox', {name: 'Add Seer to plan'})).toHaveLength(2);
   });
 
   it('does not render products if unavailable', async () => {
@@ -92,22 +94,20 @@ describe('ProductSelect', () => {
     };
     SubscriptionStore.set(organization.slug, unavailableSubscription);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
-    expect(await screen.findByTestId('product-option-legacySeer')).toBeInTheDocument();
-    expect(screen.queryByTestId('product-option-seer')).not.toBeInTheDocument();
+    expect(await findLegacySeerOption()).toBeInTheDocument();
+    expect(querySeerOption()).not.toBeInTheDocument();
   });
 
   it('renders with correct monthly price and credits for products', async () => {
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
-    const seerProduct = await screen.findByTestId('product-option-legacySeer');
+    const seerProduct = await findLegacySeerOption();
     expect(seerProduct).toHaveTextContent('$20/mo');
     expect(seerProduct).toHaveTextContent('Includes $25/mo in credits');
   });
@@ -119,12 +119,11 @@ describe('ProductSelect', () => {
     });
     SubscriptionStore.set(organization.slug, annualSubscription);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
-    const seerProduct = await screen.findByTestId('product-option-legacySeer');
+    const seerProduct = await findLegacySeerOption();
     expect(seerProduct).toHaveTextContent('$216/yr');
     expect(seerProduct).toHaveTextContent('Includes $25/mo in credits');
   });
@@ -133,13 +132,12 @@ describe('ProductSelect', () => {
     const seerSubscription = SubscriptionWithLegacySeerFixture({organization});
     SubscriptionStore.set(organization.slug, seerSubscription);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
-    const legacySeerCheckbox = await screen.findByTestId('product-option-legacySeer');
-    expect(legacySeerCheckbox).toBeChecked();
+    const legacySeerCheckbox = await findLegacySeerOption();
+    expect(within(legacySeerCheckbox).getByRole('checkbox')).toBeChecked();
   });
 
   it('does not render with product selected based on current subscription if plan is trial', async () => {
@@ -147,12 +145,11 @@ describe('ProductSelect', () => {
     trialSubscription.reservedBudgets = [SeerReservedBudgetFixture({id: '2'})];
     SubscriptionStore.set(organization.slug, trialSubscription);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
-    const legacySeerCheckbox = await screen.findByTestId('product-option-legacySeer');
-    expect(legacySeerCheckbox).not.toBeChecked();
+    const legacySeerCheckbox = await findLegacySeerOption();
+    expect(within(legacySeerCheckbox).getByRole('checkbox')).not.toBeChecked();
   });
 });

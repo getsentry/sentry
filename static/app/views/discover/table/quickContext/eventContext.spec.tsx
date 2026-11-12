@@ -46,6 +46,13 @@ const renderEventContext = (location?: Location, eventView?: EventView) => {
 };
 
 describe('Quick Context Content: Event ID Column', () => {
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sentry-app-components/',
+      body: [],
+    });
+  });
+
   afterEach(() => {
     MockApiClient.clearMockResponses();
   });

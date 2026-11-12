@@ -1,0 +1,93 @@
+---
+title: UserMessage
+description: A single message bubble for the sender's own messages in an agent conversation.
+category: chat
+source: '@sentry/scraps/chat'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/chat/userMessage.tsx
+---
+
+import {useState} from 'react';
+
+import {Button} from '@sentry/scraps/button';
+import {MessageRow, UserMessage} from '@sentry/scraps/chat';
+import {Flex, Stack} from '@sentry/scraps/layout';
+
+import * as Storybook from 'sentry/stories';
+
+export const documentation = import('!!type-loader!@sentry/scraps/chat/userMessage');
+
+The `UserMessage` renders a single message bubble, styled for the
+sender's own messages in an agent conversation. It is presentation only —
+alignment within the conversation is the caller's responsibility.
+
+## Usage
+
+Wrap the bubble in a `MessageRow` with `from="user"` so it sits opposite the
+agent's responses.
+
+<Storybook.Demo>
+  <MessageRow from="user">
+    <UserMessage>How many errors happened in the last 24 hours?</UserMessage>
+  </MessageRow>
+</Storybook.Demo>
+
+```jsx
+<MessageRow from="user">
+  <UserMessage>How many errors happened in the last 24 hours?</UserMessage>
+</MessageRow>
+```
+
+## Width
+
+The bubble grows to fit its content up to `maxWidth` (default `80%`), so it
+never spans the full conversation width. Override `maxWidth` for narrower or
+wider surfaces.
+
+<Storybook.Demo>
+  <MessageRow from="user">
+    <UserMessage maxWidth="60%">
+      A longer question that wraps onto multiple lines once it reaches the max width of
+      the bubble.
+    </UserMessage>
+  </MessageRow>
+</Storybook.Demo>
+
+```jsx
+<UserMessage maxWidth="60%">…</UserMessage>
+```
+
+Whitespace and long unbroken tokens are preserved and wrapped, so pasted URLs
+or stack frames won't overflow the bubble.
+
+By default the bubble hugs its content. Pass `width="100%"` to fill up to
+`maxWidth` instead — useful for multiline or rich content that reads better in a
+wider bubble. Toggle the switch to compare:
+
+export function WidthDemo() {
+  const [fill, setFill] = useState(false);
+  return (
+    <Stack gap="md" width="100%">
+      <MessageRow from="user">
+        <UserMessage width={fill ? '100%' : undefined}>
+          {'Which of my issues are getting worse?\nAnd which ones are new this week?'}
+        </UserMessage>
+      </MessageRow>
+      <Flex justify="end" padding="xl">
+        <Button variant="primary" onClick={() => setFill(v => !v)}>
+          {fill ? 'Fit content' : 'Fill width'}
+        </Button>
+      </Flex>
+    </Stack>
+  );
+}
+
+<Storybook.Demo>
+  <WidthDemo />
+</Storybook.Demo>
+
+```jsx
+<UserMessage width="100%">
+  Which of my issues are getting worse? And which ones are new this week?
+</UserMessage>
+```

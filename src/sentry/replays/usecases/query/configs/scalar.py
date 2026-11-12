@@ -70,6 +70,7 @@ static_search_config["release"] = static_search_config["releases"]
 varying_search_config: dict[str, FieldProtocol] = {
     "error_ids": ComputedField(parse_uuid, ErrorIdScalar),
     "trace_ids": UUIDColumnField("trace_ids", parse_uuid, UUIDArray),
+    "segment_names": StringColumnField("segment_names", parse_str, StringArray),
     "urls": StringColumnField("urls", parse_str, StringArray),
 }
 

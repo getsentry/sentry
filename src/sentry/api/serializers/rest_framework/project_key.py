@@ -1,7 +1,9 @@
-from drf_spectacular.utils import extend_schema_serializer
+from collections.abc import Mapping
+
 from rest_framework import serializers
 
 from sentry.api.fields.empty_integer import EmptyIntegerField
+from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.loader.browsersdkversion import get_all_browser_sdk_version_choices
 from sentry.loader.dynamic_sdk_options import DynamicSdkLoaderOption
 from sentry.models.projectkey import UseCase
@@ -52,23 +54,24 @@ class DynamicSdkLoaderOptionSerializer(serializers.Serializer):
     hasFeedback = serializers.BooleanField(required=False)
     hasLogsAndMetrics = serializers.BooleanField(required=False)
 
-    def to_internal_value(self, data):
+    def to_internal_value(self, data: Mapping[str, object]) -> dict[str, object]:
         # Drop any fields that are not specified as a `DynamicSdkLoaderOption`.
         allowed = {option.value for option in DynamicSdkLoaderOption}
         existing = set(data)
 
-        new_data = {}
+        new_data: dict[str, object] = {}
         for field_name in existing.intersection(allowed):
             new_data[field_name] = data[field_name]
 
-        return super().to_internal_value(new_data)
+        validated: dict[str, object] = super().to_internal_value(new_data)
+        return validated
 
 
-@extend_schema_serializer(
-    exclude_fields=[
-        "public",
-        "secret",
-    ],
+@sentry_schema_serializer(
+    omit_from_public_schema={
+        "public": "Lets a caller supply existing DSN key material; used by relocation and import, not by general clients.",
+        "secret": "Lets a caller supply existing DSN key material; used by relocation and import, not by general clients.",
+    }
 )
 class ProjectKeyPostSerializer(serializers.Serializer):
     name = serializers.CharField(

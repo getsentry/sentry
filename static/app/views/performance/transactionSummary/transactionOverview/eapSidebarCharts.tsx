@@ -151,23 +151,18 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
     REFERRER
   );
 
-  const getFailureRateBadge = () => {
-    if (isFailureRateValuePending || isFailureRateValueError) {
-      return null;
-    }
-
-    return (
+  const failureRateBadge =
+    isFailureRateValuePending || isFailureRateValueError ? null : (
       <Tag key="failure-rate-value" variant="danger">
         {formatPercentage(failureRateValue[0]?.['failure_rate()'] ?? 0)}
       </Tag>
     );
-  };
 
   if (isFailureRateSeriesPending || isFailureRateSeriesError) {
     return (
       <Widget
         Title={<Widget.WidgetTitle title={t('Failure Rate')} />}
-        TitleBadges={getFailureRateBadge()}
+        TitleBadges={failureRateBadge}
         Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
         borderless
       />
@@ -181,7 +176,7 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
   return (
     <Widget
       Title={<Widget.WidgetTitle title={t('Failure Rate')} />}
-      TitleBadges={getFailureRateBadge()}
+      TitleBadges={failureRateBadge}
       Actions={
         <Widget.WidgetToolbar>
           <Widget.WidgetDescription

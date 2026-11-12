@@ -1,5 +1,7 @@
+import {useCallback, useEffect} from 'react';
+
 import {Alert} from '@sentry/scraps/alert';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
@@ -9,14 +11,20 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupOpenPeriod} from 'sentry/types/group';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {defined} from 'sentry/utils/defined';
+import {RequestError} from 'sentry/utils/requestError/requestError';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {limitDateTimeParamsToMaxPoints} from 'sentry/views/detectors/components/details/common/buildDetectorZoomQuery';
 import {useMetricDetectorChart} from 'sentry/views/detectors/components/details/metric/chart';
 import {useDetectorQuery} from 'sentry/views/detectors/hooks';
 import {
   useEventOpenPeriod,
+  useOpenPeriodCount,
   useOpenPeriods,
 } from 'sentry/views/detectors/hooks/useOpenPeriods';
+import {getOpenPeriodIssuePath} from 'sentry/views/detectors/utils/getOpenPeriodIssuePath';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
 
 interface MetricIssueChartProps {
@@ -26,11 +34,11 @@ interface MetricIssueChartProps {
 
 const CHART_HEIGHT = 180;
 
-function getDetectorErrorMessage(detectorError: RequestError): string {
-  if (detectorError.status === 404) {
+function getDetectorErrorMessage(detectorError: Error): string {
+  if (detectorError instanceof RequestError && detectorError.status === 404) {
     return t('The metric monitor which created this issue no longer exists.');
   }
-  if (detectorError.responseJSON?.detail) {
+  if (detectorError instanceof RequestError && detectorError.responseJSON?.detail) {
     return t(
       'The metric monitor could not be loaded: %s',
       detectorError.responseJSON.detail
@@ -39,9 +47,32 @@ function getDetectorErrorMessage(detectorError: RequestError): string {
   return t('The metric monitor could not be loaded.');
 }
 
+function useDispatchOpenPeriodCount(groupId: string) {
+  const {dispatch} = useIssueDetails();
+
+  const {selection} = usePageFilters();
+
+  const pageDateTimeParams = normalizeDateTimeParams(selection.datetime);
+
+  const {data: openPeriodCount} = useOpenPeriodCount({
+    groupId,
+    start: pageDateTimeParams.start,
+    end: pageDateTimeParams.end,
+    statsPeriod: pageDateTimeParams.statsPeriod,
+  });
+
+  useEffect(() => {
+    if (defined(openPeriodCount)) {
+      dispatch({type: 'UPDATE_EVENT_COUNT', count: openPeriodCount});
+    }
+  }, [openPeriodCount, dispatch]);
+}
+
 export function MetricIssueChart({group, event}: MetricIssueChartProps) {
   const {detectorDetails} = useIssueDetails();
   const detectorId = detectorDetails?.detectorId;
+
+  useDispatchOpenPeriodCount(group.id);
 
   const {
     data: detector,
@@ -87,6 +118,9 @@ function MetricIssueChartContent({
   group: Group;
   openPeriods: GroupOpenPeriod[];
 }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const organization = useOrganization();
   const {selection} = usePageFilters();
   const {data: openPeriod, isPending: isOpenPeriodPending} = useEventOpenPeriod({
     groupId: group.id,
@@ -100,6 +134,15 @@ function MetricIssueChartContent({
       intervalSeconds,
     });
 
+  const navigateToOpenPeriodIssue = useCallback(
+    (clickedOpenPeriod: GroupOpenPeriod) =>
+      navigate({
+        pathname: getOpenPeriodIssuePath(clickedOpenPeriod, organization.slug),
+        query: location.query,
+      }),
+    [navigate, organization.slug, location.query]
+  );
+
   const {
     chartProps,
     isLoading,
@@ -108,6 +151,7 @@ function MetricIssueChartContent({
     detector,
     openPeriods,
     highlightedOpenPeriodId: openPeriod?.id,
+    onOpenPeriodClick: navigateToOpenPeriodIssue,
     height: CHART_HEIGHT,
     enabled: !isOpenPeriodPending,
     ...cappedDateTimeParams,
@@ -129,7 +173,7 @@ function MetricIssueChartContent({
 
   return (
     <MetricChartSection>
-      <Flex direction="column" paddingTop="md">
+      <Stack paddingTop="md">
         {isRangeLimited ? (
           <Alert variant="warning">
             {t(
@@ -138,7 +182,7 @@ function MetricIssueChartContent({
           </Alert>
         ) : null}
         <AreaChart {...chartProps} />
-      </Flex>
+      </Stack>
     </MetricChartSection>
   );
 }

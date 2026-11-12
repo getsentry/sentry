@@ -1,6 +1,8 @@
 from collections.abc import Mapping
 from typing import Any
 
+from sentry.integrations.base import IntegrationInstallation
+from sentry.integrations.github.client import GitHubBaseClient
 from sentry.integrations.github.repository import GitHubRepositoryProvider
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
@@ -15,7 +17,12 @@ class GitHubEnterpriseRepositoryProvider(GitHubRepositoryProvider):
     name = "GitHub Enterprise"
     repo_provider = IntegrationProviderSlug.GITHUB_ENTERPRISE.value
 
-    def _validate_repo(self, client, installation, repo):
+    # github enterprise has non-unique repository IDs so we'll have to handle transfers differently
+    can_transfer_repositories = False
+
+    def _validate_repo(
+        self, client: GitHubBaseClient, installation: IntegrationInstallation, repo: str
+    ) -> Mapping[str, object]:
         try:
             repo_data = client.get_repo(repo)
         except Exception as e:

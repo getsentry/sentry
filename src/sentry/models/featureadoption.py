@@ -1,11 +1,13 @@
-import logging
-from typing import ClassVar, cast
+from __future__ import annotations
 
-import rb
+import logging
+from collections.abc import Iterable
+from datetime import timedelta
+from typing import TYPE_CHECKING, ClassVar, cast
+
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
-from sentry_redis_tools.clients import RedisCluster
 
 from sentry.adoption import manager
 from sentry.adoption.manager import UnknownFeature
@@ -13,16 +15,17 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
-from sentry.utils.redis import (
-    get_dynamic_cluster_from_options,
-    is_instance_rb_cluster,
-    is_instance_redis_cluster,
-)
+
+if TYPE_CHECKING:
+    from sentry.models.organization import Organization
+
+from sentry.utils.redis import get_dynamic_cluster_from_options
 from sentry.utils.services import build_instance_from_options
 
 logger = logging.getLogger(__name__)
 
 FEATURE_ADOPTION_REDIS_KEY = "organization-feature-adoption:{}"
+FEATURE_ADOPTION_CACHE_TTL = int(timedelta(days=90).total_seconds())
 
 # Languages
 manager.add(0, "python", "Python", "language")
@@ -121,35 +124,29 @@ manager.add(92, "metric_alert_rules", "Metric Alert Rules", "web", prerequisite=
 
 
 class FeatureAdoptionRedisBackend:
-    def __init__(self, key_tpl=FEATURE_ADOPTION_REDIS_KEY, **options):
+    def __init__(self, key_tpl: str = FEATURE_ADOPTION_REDIS_KEY, **options: object) -> None:
         self.key_tpl = key_tpl
-        self.is_redis_cluster, self.cluster, _config = get_dynamic_cluster_from_options(
-            "SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS", options
+        _, self.cluster, _config = get_dynamic_cluster_from_options(
+            "SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS", options, decode_responses=True
         )
 
-    def get_client(self, key: str) -> rb.Cluster | RedisCluster:
-        # WARN: Carefully as this works only for single key operations.
-        if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
-            return self.cluster
-        elif is_instance_rb_cluster(self.cluster, self.is_redis_cluster):
-            return self.cluster.get_local_client_for_key(key)
-        else:
-            raise AssertionError("unreachable")
-
-    def in_cache(self, organization_id, feature_id):
+    def in_cache(self, organization_id: int, feature_id: int) -> bool:
         org_key = self.key_tpl.format(organization_id)
-        return self.get_client(org_key).sismember(org_key, feature_id)
+        return self.cluster.sismember(org_key, feature_id)
 
-    def get_all_cache(self, organization_id):
+    def get_all_cache(self, organization_id: int) -> set[int]:
         org_key = self.key_tpl.format(organization_id)
-        return {int(v) for v in self.get_client(org_key).smembers(org_key)}
+        return {int(v) for v in self.cluster.smembers(org_key)}
 
-    def bulk_set_cache(self, organization_id, *args):
+    def bulk_set_cache(self, organization_id: int, *args: int) -> bool:
         if not args:
             return False
 
         org_key = self.key_tpl.format(organization_id)
-        self.get_client(org_key).sadd(org_key, *args)
+        pipe = self.cluster.pipeline()
+        pipe.sadd(org_key, *args)
+        pipe.expire(org_key, FEATURE_ADOPTION_CACHE_TTL)
+        pipe.execute()
         return True
 
 
@@ -159,19 +156,19 @@ class FeatureAdoptionManager(BaseManager["FeatureAdoption"]):
         build_instance_from_options(settings.SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS),
     )
 
-    def in_cache(self, organization_id, feature_id):
+    def in_cache(self, organization_id: int, feature_id: int) -> bool:
         return self.cache_backend.in_cache(organization_id, feature_id)
 
-    def set_cache(self, organization_id, feature_id):
+    def set_cache(self, organization_id: int, feature_id: int) -> bool:
         return self.bulk_set_cache(organization_id, feature_id)
 
-    def get_all_cache(self, organization_id):
+    def get_all_cache(self, organization_id: int) -> set[int]:
         return self.cache_backend.get_all_cache(organization_id)
 
-    def bulk_set_cache(self, organization_id, *args):
+    def bulk_set_cache(self, organization_id: int, *args: int) -> bool:
         return self.cache_backend.bulk_set_cache(organization_id, *args)
 
-    def record(self, organization_id, feature_slug, **kwargs):
+    def record(self, organization_id: int, feature_slug: str, **kwargs: object) -> bool:
         try:
             feature_id = manager.get_by_slug(feature_slug).id
         except UnknownFeature as e:
@@ -189,7 +186,9 @@ class FeatureAdoptionManager(BaseManager["FeatureAdoption"]):
 
         return False
 
-    def bulk_record(self, organization_id, feature_slugs, **kwargs):
+    def bulk_record(
+        self, organization_id: int, feature_slugs: Iterable[str], **kwargs: object
+    ) -> bool:
         features = []
 
         try:
@@ -212,18 +211,14 @@ class FeatureAdoptionManager(BaseManager["FeatureAdoption"]):
 
         try:
             with transaction.atomic(router.db_for_write(FeatureAdoption)):
-                self.bulk_create(features)
+                # Skip existing rows and keep the new ones
+                self.bulk_create(features, ignore_conflicts=True)
         except IntegrityError:
-            # This can occur if redis somehow loses the set of complete features and
-            # we attempt to insert duplicate (org_id, feature_id) rows
-            # This also will happen if we get parallel processes running `bulk_record` and
-            # `get_all_cache` returns in the second process before the first process
-            # can `bulk_set_cache`.
             pass
 
         return self.bulk_set_cache(organization_id, *incomplete_feature_ids)
 
-    def get_by_slug(self, organization, slug):
+    def get_by_slug(self, organization: Organization, slug: str) -> FeatureAdoption | None:
         return self.filter(
             organization=organization, feature_id=manager.get_by_slug(slug).id
         ).first()

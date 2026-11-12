@@ -1,6 +1,17 @@
 from __future__ import annotations
 
-from django.db.models import Case, IntegerField, When
+import sentry_sdk
+from django.db.models import (
+    Case,
+    DateTimeField,
+    F,
+    IntegerField,
+    OuterRef,
+    Subquery,
+    Value,
+    When,
+)
+from django.db.models.expressions import OrderBy
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -11,6 +22,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEndpoint
+from sentry.api.helpers.creator import get_creator_reference
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.discoversavedquery import (
@@ -27,12 +39,19 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id, has_user, is_owned_by_acting_user
 from sentry.discover.endpoints.bases import (
     DiscoverSavedQueryPermission,
     filter_to_accessible_discover_queries,
 )
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
-from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.discover.models import (
+    DatasetSourcesTypes,
+    DiscoverSavedQuery,
+    DiscoverSavedQueryLastVisited,
+    DiscoverSavedQueryStarred,
+    DiscoverSavedQueryTypes,
+)
 from sentry.models.organization import Organization
 from sentry.search.utils import tokenize_query
 
@@ -44,10 +63,11 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     owner = ApiOwner.DATA_BROWSING
     permission_classes = (DiscoverSavedQueryPermission,)
 
-    def has_feature(self, organization, request):
+    def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has("organizations:discover-query", organization, actor=request.user)
 
     @extend_schema(
@@ -81,14 +101,21 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             return self.respond(status=404)
 
         queryset = (
-            DiscoverSavedQuery.objects.filter(organization=organization)
-            .prefetch_related("projects")
-            .extra(select={"lower_name": "lower(name)"})
-        ).exclude(is_homepage=True)
+            (
+                DiscoverSavedQuery.objects.filter(organization=organization)
+                .prefetch_related("projects")
+                .extra(select={"lower_name": "lower(name)"})
+                # Hide transactions saved queries for everyone since they've been migrated to spans and
+                # the transactions dataset has been deprecated
+            )
+            .exclude(is_homepage=True)
+            .exclude(dataset=DiscoverSavedQueryTypes.TRANSACTION_LIKE)
+        )
         # Hide saved queries whose project scope the caller cannot access. The detail endpoint
         # enforces this via `check_object_permissions`; without this filter the list endpoint
         # would leak the body of queries belonging to projects the caller has no access to.
         queryset = filter_to_accessible_discover_queries(request, queryset)
+
         query = request.query_params.get("query")
         if query:
             tokens = tokenize_query(query)
@@ -100,6 +127,17 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
                 else:
                     queryset = queryset.none()
 
+        last_visited_query: Subquery | Value = Value(None, output_field=DateTimeField(null=True))
+        if has_user(request.user):
+            last_visited_query = Subquery(
+                DiscoverSavedQueryLastVisited.objects.filter(
+                    organization=organization,
+                    user_id=request.user.id,
+                    discover_saved_query_id=OuterRef("id"),
+                ).values("last_visited")[:1]
+            )
+        queryset = queryset.annotate(user_last_visited=last_visited_query)
+
         sort_by = request.query_params.get("sortBy")
         if sort_by and sort_by.startswith("-"):
             sort_by, desc = sort_by[1:], True
@@ -107,7 +145,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             desc = False
 
         if sort_by == "name":
-            order_by: list[Case | str] = [
+            order_by: list[Case | OrderBy | str] = [
                 "-lower_name" if desc else "lower_name",
                 "-date_created",
             ]
@@ -125,12 +163,19 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             ]
 
         elif sort_by == "recentlyViewed":
-            order_by = ["last_visited" if desc else "-last_visited"]
+            order_by = [
+                (
+                    F("user_last_visited").asc(nulls_last=True)
+                    if desc
+                    else F("user_last_visited").desc(nulls_last=True)
+                ),
+                "-date_updated",
+            ]
 
         elif sort_by == "myqueries":
             order_by = [
                 Case(
-                    When(created_by_id=request.user.id, then=-1),
+                    When(is_owned_by_acting_user(request.user, "created_by_id"), then=-1),
                     default="created_by_id",
                     output_field=IntegerField(),
                 ),
@@ -146,11 +191,13 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         if request.query_params.get("all") == "1":
             saved_queries = list(queryset.all())
             return Response(
-                serialize(saved_queries, serializer=DiscoverSavedQueryModelSerializer()),
+                serialize(
+                    saved_queries, request.user, serializer=DiscoverSavedQueryModelSerializer()
+                ),
                 status=200,
             )
 
-        def data_fn(offset, limit):
+        def data_fn(offset: int, limit: int) -> list[DiscoverSavedQuery]:
             return list(queryset[offset : offset + limit])
 
         return self.paginate(
@@ -174,7 +221,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         examples=DiscoverExamples.DISCOVER_SAVED_QUERY_POST_RESPONSE,
     )
     def post(
-        self, request: Request, organization
+        self, request: Request, organization: Organization
     ) -> Response[DiscoverSavedQueryResponse] | Response[ValidationErrorResponse]:
         """
         Create a new saved query for the given organization.
@@ -211,10 +258,19 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
                 if user_selected_dataset
                 else DatasetSourcesTypes.UNKNOWN.value
             ),
-            created_by_id=request.user.id if request.user.is_authenticated else None,
+            **get_creator_reference(request),
         )
 
         model.set_projects(data["project_ids"])
+
+        try:
+            user_id = acting_user_id(request.user)
+            if user_id is not None and request.data.get("starred"):
+                DiscoverSavedQueryStarred.objects.insert_starred_query(
+                    organization, user_id, model, starred=True
+                )
+        except Exception as err:
+            sentry_sdk.capture_exception(err)
 
         return Response(
             serialize(model, serializer=DiscoverSavedQueryModelSerializer()), status=201

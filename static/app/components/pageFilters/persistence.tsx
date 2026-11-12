@@ -1,11 +1,12 @@
 import * as Sentry from '@sentry/react';
 
-import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import type {PinnedPageFilter} from 'sentry/types/core';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 import {getStateFromQuery} from './parse';
+import {PageFiltersStore} from './store';
+import type {PageFiltersState} from './types';
 
 function makeLocalStorageKey(orgSlug: string) {
   return `global-selection:${orgSlug}`;
@@ -98,10 +99,18 @@ export function setPageFiltersStorage(
   }
 }
 
+export interface PageFilterStorage {
+  pinnedFilters: Set<PinnedPageFilter>;
+  state: PageFiltersState;
+}
+
 /**
  * Retrieves the page filters from local storage
  */
-export function getPageFilterStorage(orgSlug: string, storageNamespace = '') {
+export function getPageFilterStorage(
+  orgSlug: string,
+  storageNamespace = ''
+): PageFilterStorage {
   const globalSelectionValue = decodePageFilter(orgSlug);
   const storageNamespaceValue = decodePageFilter(`${storageNamespace}:${orgSlug}`);
 

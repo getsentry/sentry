@@ -44,6 +44,7 @@ export function SimilarScoreCard({scoreList = []}: Props) {
 
         if (!title) {
           if (score !== null) {
+            // oxlint-disable-next-line react/immutability
             sumOtherScores += score;
             numOtherScores += 1;
           }

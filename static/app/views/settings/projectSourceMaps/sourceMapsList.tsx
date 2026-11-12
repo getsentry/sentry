@@ -1,19 +1,22 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconUpload} from '@sentry/icons/upload';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
-import {Button, type ButtonProps} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
+import {Button} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
+import {Confirm} from '@sentry/scraps/confirm';
+import {Grid, Container} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Access} from 'sentry/components/acl/access';
-import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {
   getSourceMapsDocLinks,
   projectPlatformToDocsMap,
@@ -21,7 +24,7 @@ import {
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {SearchBar} from 'sentry/components/searchBar';
-import {IconDelete, IconUpload} from 'sentry/icons';
+import {KeyValueTableDataRow} from 'sentry/components/tables/keyValueTable';
 import {t, tct} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -30,13 +33,12 @@ import type {Release, SourceMapsArchive} from 'sentry/types/release';
 import type {DebugIdBundle, DebugIdBundleAssociation} from 'sentry/types/sourceMaps';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {AssociatedReleases} from 'sentry/views/settings/projectSourceMaps/associatedReleases';
-import {useDeleteDebugIdBundle} from 'sentry/views/settings/projectSourceMaps/useDeleteDebugIdBundle';
+
+import {AssociatedReleases} from './associatedReleases';
+import {useDeleteDebugIdBundle} from './useDeleteDebugIdBundle';
 
 type Props = {
   project: Project;
@@ -167,11 +169,13 @@ function useSourceMapUploads({
 
 export function SourceMapsList({project}: Props) {
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [queryParams, setQueryParams] = useQueryStates({
+    query: parseAsString,
+    cursor: parseAsString,
+  });
 
-  const query = decodeScalar(location.query.query);
-  const cursor = decodeScalar(location.query.cursor);
+  const query = queryParams.query || undefined;
+  const cursor = queryParams.cursor || undefined;
 
   const {
     data: sourceMapUploads,
@@ -191,18 +195,15 @@ export function SourceMapsList({project}: Props) {
 
   const handleSearch = useCallback(
     (newQuery: string) => {
-      navigate({
-        ...location,
-        query: {...location.query, cursor: undefined, query: newQuery},
-      });
+      setQueryParams({cursor: null, query: newQuery}, {history: 'push'});
     },
-    [navigate, location]
+    [setQueryParams]
   );
 
   const platformByProject = defined(project.platform)
     ? projectPlatformToDocsMap[project.platform]
     : undefined;
-  const platform = platformByProject ?? project.platform ?? 'javascript';
+  const platform = platformByProject ?? 'javascript';
   const sourceMapsLinks = getSourceMapsDocLinks(platform);
 
   return (
@@ -367,7 +368,7 @@ function SourceMapUploadsList({
 
   return (
     <Fragment>
-      <List>
+      <Grid gap="xl" columns="1fr">
         {sourceMapUploads.map(sourceMapUpload => (
           <Item key={sourceMapUpload.id}>
             <ItemHeader>
@@ -386,16 +387,16 @@ function SourceMapUploadsList({
                 }
               />
             </ItemHeader>
-            <ItemContent>
+            <Container padding="md xl">
               <SourceMapUploadDetails
                 sourceMapUpload={sourceMapUpload}
                 projectId={project.id}
               />
-            </ItemContent>
+            </Container>
           </Item>
         ))}
-      </List>
-      <Pagination pageLinks={pageLinks} />
+      </Grid>
+      <Pagination {...getPaginationProps(pageLinks)} />
     </Fragment>
   );
 }
@@ -421,6 +422,7 @@ function SourceMapUploadDetails({
       {
         key: 'releases',
         subject: t('Found in Releases'),
+        actionButtonAlwaysVisible: true,
         actionButton: rows.length > 3 && (
           <Button size="xs" onClick={() => setShowAll(value => !value)}>
             {showAll ? t('Show Less') : t('Show All')}
@@ -433,12 +435,17 @@ function SourceMapUploadDetails({
     ];
   }, [sourceMapUpload, showAll, projectId]);
 
-  return <StyledKeyValueList data={detailsData} shouldSort={false} />;
+  return (
+    <Grid columns="fit-content(50%) 1fr" gap="0 lg">
+      {detailsData.map(item => (
+        <KeyValueTableDataRow key={item.key} item={item} variant="label" />
+      ))}
+    </Grid>
+  );
 }
 
 interface SourceMapUploadDeleteButtonProps {
   onDelete?: () => void;
-  size?: ButtonProps['size'];
 }
 
 function SourceMapUploadDeleteButton({onDelete}: SourceMapUploadDeleteButtonProps) {
@@ -474,18 +481,6 @@ function SourceMapUploadDeleteButton({onDelete}: SourceMapUploadDeleteButtonProp
   );
 }
 
-const StyledKeyValueList = styled(KeyValueList)`
-  && {
-    margin-bottom: 0;
-  }
-`;
-
-const List = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: ${p => p.theme.space.xl};
-`;
-
 const Item = styled(Panel)`
   margin: 0;
 `;
@@ -504,10 +499,6 @@ const ItemTitle = styled(Link)`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.md};
-`;
-
-const ItemContent = styled('div')`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;
 
 const SearchBarWithMarginBottom = styled(SearchBar)`

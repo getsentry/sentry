@@ -1,4 +1,5 @@
-import {IconArrow} from 'sentry/icons';
+import {IconArrow} from '@sentry/icons/arrow';
+
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {unreachable} from 'sentry/utils/unreachable';
@@ -38,7 +39,7 @@ export function getReadableArtifactTypeTooltip(
 
   switch (artifactType) {
     case BuildDetailsArtifactType.XCARCHIVE:
-      return t('XCode application archive');
+      return t('Xcode application archive');
     case BuildDetailsArtifactType.AAB:
       return t('Android app bundle');
     case BuildDetailsArtifactType.APK:
@@ -160,7 +161,7 @@ export function getTrend(diff: number): {
   if (diff > 0) {
     return {
       variant: 'danger',
-      icon: <IconArrow direction="up" size="xs" />,
+      icon: <IconArrow size="xs" />,
     };
   }
 

@@ -1,24 +1,24 @@
 import {useCallback, useEffect, useEffectEvent, useMemo, useRef, useState} from 'react';
 import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
-import {useQueryClient} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {openModal, type ModalRenderProps} from '@sentry/scraps/modal';
 import type {SelectValue} from '@sentry/scraps/select';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {BackendJsonSubmitForm} from 'sentry/components/backendJsonFormAdapter/backendJsonSubmitForm';
-import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
-import {useDynamicFields} from 'sentry/components/externalIssues/useDynamicFields';
-import type {ExternalIssueAction} from 'sentry/components/externalIssues/utils';
-import {getConfigName} from 'sentry/components/externalIssues/utils';
+import type {
+  JsonFormAdapterChoice,
+  JsonFormAdapterChoiceValue,
+  JsonFormAdapterFieldConfig,
+} from 'sentry/components/backendJsonFormAdapter/types';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import type {Choice, Choices} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import type {
   GroupIntegration,
@@ -28,13 +28,16 @@ import type {
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {useDynamicFields} from './useDynamicFields';
+import type {ExternalIssueAction} from './utils';
+import {getConfigName} from './utils';
 
 export const openExternalIssueModal = ({
   group,
@@ -78,7 +81,7 @@ interface ExternalIssueFormProps extends ModalRenderProps {
   onChange: () => void;
 }
 
-function makeIntegrationIssueConfigQueryKey({
+function makeIntegrationIssueConfigApiOptions({
   orgSlug,
   groupId,
   integrationId,
@@ -88,20 +91,19 @@ function makeIntegrationIssueConfigQueryKey({
   integrationId: string;
   orgSlug: string;
   action?: ExternalIssueAction;
-}): ApiQueryKey {
-  return [
-    getApiUrl(
-      '/organizations/$organizationIdOrSlug/issues/$issueId/integrations/$integrationId/',
-      {
-        path: {
-          organizationIdOrSlug: orgSlug,
-          issueId: groupId,
-          integrationId,
-        },
-      }
-    ),
-    {query: {action}},
-  ];
+}) {
+  return apiOptions.as<IntegrationIssueConfig>()(
+    '/organizations/$organizationIdOrSlug/issues/$issueId/integrations/$integrationId/',
+    {
+      path: {
+        organizationIdOrSlug: orgSlug,
+        issueId: groupId,
+        integrationId,
+      },
+      query: {action},
+      staleTime: Infinity,
+    }
+  );
 }
 
 function startExternalIssueFormSpan({
@@ -146,12 +148,15 @@ export function ExternalIssueForm({
 }: ExternalIssueFormProps) {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
-  const {url: endpointString} = parseQueryKey(
-    makeIntegrationIssueConfigQueryKey({
-      orgSlug: organization.slug,
-      groupId: group.id,
-      integrationId: integration.id,
-    })
+  const endpointString = getApiUrl(
+    '/organizations/$organizationIdOrSlug/issues/$issueId/integrations/$integrationId/',
+    {
+      path: {
+        organizationIdOrSlug: organization.slug,
+        issueId: group.id,
+        integrationId: integration.id,
+      },
+    }
   );
   const queryClient = useQueryClient();
 
@@ -168,30 +173,29 @@ export function ExternalIssueForm({
     error,
     isPending,
     isError,
-  } = useApiQuery<IntegrationIssueConfig>(
-    makeIntegrationIssueConfigQueryKey({
+  } = useQuery({
+    ...makeIntegrationIssueConfigApiOptions({
       orgSlug: organization.slug,
       groupId: group.id,
       integrationId: integration.id,
       action,
     }),
-    {
-      staleTime: Infinity,
-      retry: false,
-      refetchOnMount: 'always',
-    }
-  );
+    retry: false,
+    refetchOnMount: 'always',
+  });
   const {dynamicFieldValues, setDynamicFieldValue} = useDynamicFields({
     action,
     integrationDetails: integrationDetails ?? null,
   });
 
-  const [asyncOptionsCache, setAsyncOptionsCache] = useState<Record<string, Choices>>({});
+  const [asyncOptionsCache, setAsyncOptionsCache] = useState<
+    Record<string, JsonFormAdapterChoice[]>
+  >({});
   const handleAsyncOptionsFetched = useCallback(
-    (fieldName: string, options: Array<SelectValue<string>>) => {
+    (fieldName: string, options: Array<SelectValue<JsonFormAdapterChoiceValue>>) => {
       setAsyncOptionsCache(prev => ({
         ...prev,
-        [fieldName]: options.map((o): Choice => {
+        [fieldName]: options.map((o): JsonFormAdapterChoice => {
           const label = typeof o.label === 'string' ? o.label : String(o.value);
           return [o.value, label];
         }),
@@ -206,7 +210,7 @@ export function ExternalIssueForm({
    * It starts as an object, with keys of certain field names, and empty values.
    * As the user updates the values, those dynamic fields require a refetch of the config, with what
    * the user entered as a query param. Since we can't conditionally call hooks, we have to avoid
-   * `useApiQuery`, and instead manually call the api, and update the cache ourselves.
+   * `useQuery`, and instead manually call the api, and update the cache ourselves.
    */
   const refetchWithDynamicFields = useCallback(
     async (dynamicValues: Record<string, unknown>) => {
@@ -217,15 +221,19 @@ export function ExternalIssueForm({
           query: {action, ...dynamicValues},
           includeAllArgs: true,
         });
-        setApiQueryData(
-          queryClient,
-          makeIntegrationIssueConfigQueryKey({
+        queryClient.setQueryData(
+          makeIntegrationIssueConfigApiOptions({
             orgSlug: organization.slug,
             groupId: group.id,
             integrationId: integration.id,
             action,
-          }),
-          existingData => (data ? (data as IntegrationIssueConfig) : existingData)
+          }).queryKey,
+          previous => {
+            if (!data) {
+              return previous;
+            }
+            return {...previous, headers: previous?.headers ?? {}, json: data};
+          }
         );
       } catch (err: any) {
         if (err?.responseText) {
@@ -235,6 +243,7 @@ export function ExternalIssueForm({
             level: 'error',
           });
         }
+        // oxlint-disable-next-line react/todo
       } finally {
         setIsDynamicallyRefetching(false);
       }
@@ -280,6 +289,7 @@ export function ExternalIssueForm({
         external_issue_type: 'first_party',
         success: !isError,
       });
+      // oxlint-disable-next-line react/set-state-in-effect
       setHasTrackedLoad(true);
     }
   }, [isPending, isError, organization, group, integration, hasTrackedLoad]);
@@ -307,7 +317,7 @@ export function ExternalIssueForm({
           external_issue_provider: integration.provider.key,
           external_issue_type: 'first_party',
         });
-        addSuccessMessage(MESSAGES_BY_ACTION[action]);
+        toast.success(MESSAGES_BY_ACTION[action]);
         onChange();
         closeModal();
         span?.end();
@@ -327,7 +337,11 @@ export function ExternalIssueForm({
     const config = integrationDetails[getConfigName(action)];
     return (config ?? []).map(field => {
       const cachedChoices = asyncOptionsCache[field.name];
-      if (field.url && cachedChoices) {
+      if (
+        (field.type === 'select' || field.type === 'choice') &&
+        field.url &&
+        cachedChoices
+      ) {
         const existingValues = new Set((field.choices ?? []).map(c => String(c[0])));
         const missingChoices = cachedChoices.filter(
           c => !existingValues.has(String(c[0]))
@@ -340,7 +354,7 @@ export function ExternalIssueForm({
         }
       }
       return field;
-    }) as JsonFormAdapterFieldConfig[];
+    });
   }, [integrationDetails, action, asyncOptionsCache]);
 
   const onFieldChange = useCallback(
@@ -360,7 +374,8 @@ export function ExternalIssueForm({
     field => field.name === 'error' && field.type === 'blank'
   );
 
-  const errorDetail = error?.responseJSON?.detail;
+  const errorDetail =
+    error instanceof RequestError ? error.responseJSON?.detail : undefined;
   const errorMessage =
     typeof errorDetail === 'string'
       ? errorDetail
@@ -371,20 +386,21 @@ export function ExternalIssueForm({
       <Grid
         as="header"
         columns="minmax(0, 1fr) max-content"
+        /* oxlint-disable-next-line react/jsx-curly-brace-presence -- Keep the template literal expression unchanged. */
         areas={`"content close" "content loading"`}
         align="start"
         gap="0 md"
         borderBottom="primary"
       >
-        <Flex area="content" direction="column" align="stretch" gap="lg" minWidth={0}>
+        <Stack area="content" align="stretch" gap="lg" minWidth={0}>
           <Heading as="h2">{title}</Heading>
-          <Tabs value={action} onChange={handleClick} disableOverflow>
+          <Tabs value={action} onChange={handleClick}>
             <TabList>
               <TabList.Item key="create">{t('Create')}</TabList.Item>
               <TabList.Item key="link">{t('Link')}</TabList.Item>
             </TabList>
           </Tabs>
-        </Flex>
+        </Stack>
         <Container area="close" justifySelf="center">
           <CloseButton />
         </Container>

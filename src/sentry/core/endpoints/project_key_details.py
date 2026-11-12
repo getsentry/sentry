@@ -26,7 +26,6 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams, ProjectParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
-from sentry.loader.browsersdkversion import get_default_sdk_version_for_project
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 
@@ -39,6 +38,7 @@ class ProjectKeyDetailsEndpoint(ProjectKeyEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
 
     @extend_schema(
         operation_id="getProjectKey",
@@ -57,7 +57,7 @@ class ProjectKeyDetailsEndpoint(ProjectKeyEndpoint):
         examples=ProjectExamples.CLIENT_KEY_RESPONSE,
     )
     def get(
-        self, request: Request, project_key: ProjectKey, **kwargs
+        self, request: Request, project_key: ProjectKey, **kwargs: object
     ) -> Response[ProjectKeySerializerResponse]:
         """
         Return a client key bound to a project.
@@ -107,13 +107,12 @@ class ProjectKeyDetailsEndpoint(ProjectKeyEndpoint):
         examples=ProjectExamples.CLIENT_KEY_RESPONSE,
     )
     def put(
-        self, request: Request, project_key: ProjectKey, project: Project, **kwargs
+        self, request: Request, project_key: ProjectKey, project: Project, **kwargs: object
     ) -> Response[ProjectKeySerializerResponse] | Response[ValidationErrorResponse]:
         """
         Update various settings for a client key.
         """
         serializer = ProjectKeyPutSerializer(data=request.data, partial=True)
-        default_version = get_default_sdk_version_for_project(project)
 
         if not serializer.is_valid():
             return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
@@ -123,9 +122,8 @@ class ProjectKeyDetailsEndpoint(ProjectKeyEndpoint):
             project_key.label = result["name"]
         if not project_key.data:
             project_key.data = {}
-        project_key.data["browserSdkVersion"] = (
-            default_version if not result.get("browserSdkVersion") else result["browserSdkVersion"]
-        )
+        if result.get("browserSdkVersion"):
+            project_key.data["browserSdkVersion"] = result["browserSdkVersion"]
 
         result_dynamic_sdk_options = result.get("dynamicSdkLoaderOptions")
         if result_dynamic_sdk_options:
@@ -191,7 +189,7 @@ class ProjectKeyDetailsEndpoint(ProjectKeyEndpoint):
         examples=None,
     )
     def delete(
-        self, request: Request, project_key: ProjectKey, project: Project, **kwargs
+        self, request: Request, project_key: ProjectKey, project: Project, **kwargs: object
     ) -> Response[None]:
         """
         Delete a client key for a given project.

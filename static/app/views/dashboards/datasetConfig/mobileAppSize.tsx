@@ -1,37 +1,14 @@
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
-import type {PageFilters} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
 import type {TagCollection} from 'sentry/types/group';
-import type {
-  EventsStats,
-  MultiSeriesEventsStats,
-  Organization,
-} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
-import type {
-  Aggregation,
-  AggregationOutputType,
-  DataUnit,
-  QueryFieldValue,
-} from 'sentry/utils/discover/fields';
-import {SizeUnit} from 'sentry/utils/discover/fields';
-import {AggregationKey} from 'sentry/utils/fields';
-import type {
-  DatasetConfig,
-  SearchBarData,
-  SearchBarDataProviderProps,
-  WidgetBuilderSearchBarProps,
-} from 'sentry/views/dashboards/datasetConfig/base';
-import {handleOrderByReset} from 'sentry/views/dashboards/datasetConfig/base';
-import {getTimeseriesSortOptions} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
+import type {Aggregation, QueryFieldValue} from 'sentry/utils/discover/fields';
+import {AggregationKey, attributeTypeFromKind} from 'sentry/utils/fields';
+import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
-import {
-  isEventsStats,
-  isMultiSeriesEventsStats,
-} from 'sentry/views/dashboards/utils/isEventsStats';
 import {
   useMobileAppSizeSeriesQuery,
   useMobileAppSizeTableQuery,
@@ -43,6 +20,16 @@ import {useTraceItemSearchQueryBuilderProps} from 'sentry/views/explore/componen
 import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
 import {usePreprodItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {handleOrderByReset} from './utils/handleOrderByReset';
+import {mobileAppSizeResponseTransforms} from './utils/mobileAppSizeResponseTransforms';
+import type {
+  DatasetConfig,
+  SearchBarData,
+  SearchBarDataProviderProps,
+  WidgetBuilderSearchBarProps,
+} from './base';
+import {getTimeseriesSortOptions} from './events';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
@@ -153,7 +140,7 @@ function getGroupByFieldOptions(
       label: tag.name,
       value: {
         kind: FieldValueKind.TAG,
-        meta: {name: tag.name, dataType: tag.kind === 'tag' ? 'string' : 'number'},
+        meta: {name: tag.name, dataType: attributeTypeFromKind(tag.kind)},
       },
     };
   }
@@ -223,30 +210,7 @@ function useMobileAppSizeSearchBarDataProvider(
   };
 }
 
-function buildSeriesResultMap<T extends AggregationOutputType | DataUnit>(
-  data: EventsStats | MultiSeriesEventsStats,
-  widgetQuery: WidgetQuery,
-  value: T
-): Record<string, T> {
-  const result: Record<string, T> = {};
-
-  for (const aggregate of widgetQuery.aggregates ?? []) {
-    result[aggregate] = value;
-  }
-
-  if (isMultiSeriesEventsStats(data)) {
-    for (const seriesName of Object.keys(data)) {
-      result[seriesName] = value;
-    }
-  }
-
-  return result;
-}
-
-export const MobileAppSizeConfig: DatasetConfig<
-  EventsStats | MultiSeriesEventsStats,
-  TableData
-> = {
+export const MobileAppSizeConfig: DatasetConfig<EventsTimeSeriesResponse, TableData> = {
   axisRange: 'dataMin',
   defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
@@ -262,80 +226,7 @@ export const MobileAppSizeConfig: DatasetConfig<
     getTimeseriesSortOptions(organization, widgetQuery, tags, getPrimaryFieldOptions),
   useSeriesQuery: useMobileAppSizeSeriesQuery,
   useTableQuery: useMobileAppSizeTableQuery,
-  transformTable: (
-    data: TableData,
-    _widgetQuery: WidgetQuery,
-    _organization: Organization,
-    _pageFilters: PageFilters
-  ): TableData => {
-    return data;
-  },
-  transformSeries: (
-    data: EventsStats | MultiSeriesEventsStats,
-    widgetQuery: WidgetQuery,
-    _organization: Organization
-  ): Series[] => {
-    if (!data) {
-      return [];
-    }
-
-    const aggregate =
-      widgetQuery.aggregates?.[0] || widgetQuery.fields?.[0] || 'App Size';
-
-    if (isEventsStats(data)) {
-      const seriesData = data.data
-        .filter(
-          ([, values]) =>
-            values[0]?.count !== null &&
-            values[0]?.count !== undefined &&
-            values[0]?.count !== 0
-        )
-        .map(([timestamp, values]) => ({
-          name: timestamp * 1000,
-          value: values[0]!.count,
-        }));
-
-      const seriesName = widgetQuery.name || aggregate;
-
-      return [{seriesName, data: seriesData}];
-    }
-
-    const multiResponse = data;
-    const seriesWithOrder: Array<{order: number; series: Series}> = [];
-
-    for (const [groupName, groupData] of Object.entries(multiResponse)) {
-      if (!groupData?.data || !Array.isArray(groupData.data)) {
-        continue;
-      }
-
-      const seriesData = groupData.data
-        .filter(
-          ([, values]) =>
-            values[0]?.count !== null &&
-            values[0]?.count !== undefined &&
-            values[0]?.count !== 0
-        )
-        .map(([timestamp, values]) => ({
-          name: timestamp * 1000,
-          value: values[0]!.count,
-        }));
-
-      const seriesName = widgetQuery.name
-        ? `${widgetQuery.name} : ${groupName}`
-        : groupName;
-
-      seriesWithOrder.push({
-        order: groupData.order ?? 0,
-        series: {seriesName, data: seriesData},
-      });
-    }
-
-    return seriesWithOrder.sort((a, b) => a.order - b.order).map(item => item.series);
-  },
-  getSeriesResultType: (data, widgetQuery) =>
-    buildSeriesResultMap(data, widgetQuery, 'size'),
-  getSeriesResultUnit: (data, widgetQuery) =>
-    buildSeriesResultMap(data, widgetQuery, SizeUnit.BYTE),
+  ...mobileAppSizeResponseTransforms,
   filterAggregateParams,
   handleOrderByReset,
 };

@@ -12,8 +12,9 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {OurlogsSection} from 'sentry/components/events/ourlogs/ourlogsSection';
 import {IssueType} from 'sentry/types/group';
+
+import {OurlogsSection} from './ourlogsSection';
 
 jest.mock('sentry/components/lazyRender', () => ({
   LazyRender: ({children}: {children: React.ReactNode}) => children,
@@ -161,7 +162,7 @@ describe('OurlogsSection', () => {
             [OurLogKnownFieldKey.MESSAGE]: 'i am a log',
           }),
         ],
-        meta: {},
+        meta: {routingHint: 'issue-log-hint'},
       },
     });
 
@@ -198,7 +199,7 @@ describe('OurlogsSection', () => {
         meta: {},
       },
     });
-    render(<OurlogsSection event={event} project={project} group={group} />, {
+    render(<OurlogsSection event={event} group={group} />, {
       organization,
     });
     await waitFor(() => {
@@ -223,7 +224,7 @@ describe('OurlogsSection', () => {
       },
     });
 
-    render(<OurlogsSection event={event} project={project} group={group} />, {
+    render(<OurlogsSection event={event} group={group} />, {
       organization,
       initialRouterConfig: {
         location: {
@@ -243,6 +244,16 @@ describe('OurlogsSection', () => {
     expect(
       screen.queryByRole('complementary', {name: 'logs drawer'})
     ).not.toBeInTheDocument();
+
+    await userEvent.hover(screen.getByTestId('log-table-row'));
+    await waitFor(() => {
+      expect(mockRowDetailsRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({routing_hint: 'issue-log-hint'}),
+        })
+      );
+    });
 
     await userEvent.click(screen.getByText(/i am a log/));
 
@@ -287,10 +298,7 @@ describe('OurlogsSection', () => {
   it('renders logs for a rage-click issue when there is no trace context', async () => {
     mockReplayRecord([REPLAY_TRACE_ID]);
 
-    render(
-      <OurlogsSection event={replayEvent} project={project} group={rageClickGroup} />,
-      {organization}
-    );
+    render(<OurlogsSection event={replayEvent} group={rageClickGroup} />, {organization});
 
     expect(await screen.findByText(/i am a log/)).toBeInTheDocument();
     expect(mockRequest).toHaveBeenCalledWith(
@@ -313,14 +321,9 @@ describe('OurlogsSection', () => {
       },
     });
 
-    render(
-      <OurlogsSection
-        event={replayAndTraceEvent}
-        project={project}
-        group={rageClickGroup}
-      />,
-      {organization}
-    );
+    render(<OurlogsSection event={replayAndTraceEvent} group={rageClickGroup} />, {
+      organization,
+    });
 
     expect(await screen.findByText(/i am a log/)).toBeInTheDocument();
     expect(mockRequest).toHaveBeenCalledWith(
@@ -347,14 +350,9 @@ describe('OurlogsSection', () => {
       },
     });
 
-    render(
-      <OurlogsSection
-        event={replayAndTraceEvent}
-        project={project}
-        group={rageClickGroup}
-      />,
-      {organization}
-    );
+    render(<OurlogsSection event={replayAndTraceEvent} group={rageClickGroup} />, {
+      organization,
+    });
 
     expect(await screen.findByText(/i am a log/)).toBeInTheDocument();
     const [, options] = mockRequest.mock.calls[0];
@@ -371,10 +369,7 @@ describe('OurlogsSection', () => {
       },
     });
 
-    render(
-      <OurlogsSection event={errorEventWithReplay} project={project} group={group} />,
-      {organization}
-    );
+    render(<OurlogsSection event={errorEventWithReplay} group={group} />, {organization});
 
     expect(await screen.findByText(/i am a log/)).toBeInTheDocument();
     expect(replayRecordRequest).not.toHaveBeenCalled();
@@ -386,10 +381,7 @@ describe('OurlogsSection', () => {
   it('omits an empty query param when freezing on replay + traces', async () => {
     mockReplayRecord([REPLAY_TRACE_ID]);
 
-    render(
-      <OurlogsSection event={replayEvent} project={project} group={rageClickGroup} />,
-      {organization}
-    );
+    render(<OurlogsSection event={replayEvent} group={rageClickGroup} />, {organization});
 
     expect(await screen.findByText(/i am a log/)).toBeInTheDocument();
     const [, options] = mockRequest.mock.calls[0];
@@ -399,7 +391,7 @@ describe('OurlogsSection', () => {
   it('renders nothing when the event has neither a trace id nor a replay id', async () => {
     const bareEvent = EventFixture({contexts: {}});
 
-    render(<OurlogsSection event={bareEvent} project={project} group={group} />, {
+    render(<OurlogsSection event={bareEvent} group={group} />, {
       organization,
     });
 
@@ -409,8 +401,8 @@ describe('OurlogsSection', () => {
     expect(mockRequest).not.toHaveBeenCalled();
   });
 
-  it('renders Open in explore button with correct URL when trace_id exists', async () => {
-    render(<OurlogsSection event={event} project={project} group={group} />, {
+  it('renders Open in Explore button with correct URL when trace_id exists', async () => {
+    render(<OurlogsSection event={event} group={group} />, {
       organization: OrganizationFixture({
         features: ['ourlogs-enabled', 'visibility-explore-view'],
       }),
@@ -434,14 +426,14 @@ describe('OurlogsSection', () => {
     expect(aside).toBeInTheDocument();
 
     const openInExploreButton = within(aside).getByRole('button', {
-      name: 'Open in explore',
+      name: 'Open in Explore',
     });
     expect(openInExploreButton).toBeInTheDocument();
     expect(openInExploreButton).toHaveAttribute('target', '_blank');
 
     const href = openInExploreButton.getAttribute('href');
     expect(href).toBe(
-      '/organizations/org-slug/explore/logs/?end=2019-03-21T00%3A00%3A00&environment=dev&logsQuery=trace%3A00000000000000000000000000000000&project=2&start=2019-03-19T00%3A00%3A00'
+      '/organizations/org-slug/explore/logs/?end=2019-03-21T00%3A00%3A00&logsQuery=trace%3A00000000000000000000000000000000&project=-1&start=2019-03-19T00%3A00%3A00'
     );
   });
 });

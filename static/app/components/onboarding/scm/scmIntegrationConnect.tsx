@@ -1,0 +1,266 @@
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack, type StackProps} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SCM_STEP_CONTENT_WIDTH} from 'sentry/components/onboarding/consts';
+import {t} from 'sentry/locale';
+import type {Integration, Repository} from 'sentry/types/integrations';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {type ScmAnalyticsFlow, scmFlowVariantParams} from './scmAnalyticsFlow';
+import {ScmIntegrationSelect} from './scmIntegrationSelect';
+import {ScmPickerSection} from './scmPickerSection';
+import {ScmProviderPills} from './scmProviderPills';
+import {ScmRepoSelector} from './scmRepoSelector';
+import {useScmPlatformDetection} from './useScmPlatformDetection';
+import {useScmProviders} from './useScmProviders';
+
+const INTEGRATION_SELECTED_EVENT = {
+  onboarding: 'onboarding.scm_connect_integration_selected',
+  'project-creation': 'project_creation.connect_integration_selected',
+} as const;
+
+interface ScmIntegrationConnectProps {
+  analyticsFlow: ScmAnalyticsFlow;
+  // Fired once per user-driven repo change so callers can invalidate state
+  // derived from the repo (platform, features, created project). See
+  // ScmRepoSelector for why this is separate from onRepositoryChange.
+  onClearDerivedState: () => void;
+  onIntegrationChange: (integration: Integration | undefined) => void;
+  onRepositoryChange: (repo: Repository | undefined) => void;
+  selectedIntegration: Integration | undefined;
+  selectedRepository: Repository | undefined;
+  // When true, the connected state renders a dropdown for switching between
+  // connected integrations (provider + org/account). When false (default), it
+  // renders static "Connected to ..." text for the single active integration.
+  allowIntegrationSwitching?: boolean;
+  maxWidth?: StackProps['maxWidth'];
+  // Horizontal alignment of the provider pills. Left by default.
+  pillsJustify?: React.ComponentProps<typeof ScmProviderPills>['justify'];
+}
+
+/**
+ * Core integration-and-repo connection mechanic shared by the SCM connect step
+ * (`ScmConnect`) and the SCM-first project creation surface. Renders the
+ * provider install pills when no integration is connected, or the repo
+ * selector when one is. Owns integration data fetching, platform detection
+ * pre-warming, and the `scm_connect_step_viewed` analytic.
+ *
+ * With `allowIntegrationSwitching`, the connected state also renders an
+ * integration selector so the user can pick which connected integration to
+ * search repos within; otherwise it shows static "Connected to ..." text.
+ *
+ * Does NOT render the connect step's onboarding chrome (intro heading,
+ * lock/revoke text, benefits grid, Continue/Skip footer). Hosts compose the
+ * chrome they need around this component.
+ */
+export function ScmIntegrationConnect({
+  analyticsFlow,
+  onClearDerivedState,
+  onIntegrationChange,
+  onRepositoryChange,
+  selectedIntegration,
+  selectedRepository,
+  allowIntegrationSwitching = false,
+  maxWidth = SCM_STEP_CONTENT_WIDTH,
+  pillsJustify,
+}: ScmIntegrationConnectProps) {
+  const organization = useOrganization();
+  const {
+    scmProviders,
+    activeIntegrations,
+    isPending,
+    isError,
+    refetch,
+    refetchIntegrations,
+  } = useScmProviders();
+
+  // Pre-warm platform detection so results are cached when the user advances
+  useScmPlatformDetection(selectedRepository);
+
+  // Derive integration from explicit selection, falling back to the first
+  // active integration so the repo selector has something to search.
+  const effectiveIntegration = selectedIntegration ?? activeIntegrations[0];
+
+  // Guards the auto-select analytics event below so it fires once.
+  const defaultIntegrationTrackedRef = useRef(false);
+
+  useEffect(() => {
+    // Onboarding views this as a discrete step. Single-view project creation
+    // shows all sections at once and fires one page-viewed event in
+    // scmCreateProject, so suppress the per-section step_viewed there.
+    if (analyticsFlow !== 'onboarding') {
+      return;
+    }
+    trackAnalytics('onboarding.scm_connect_step_viewed', {organization});
+  }, [organization, analyticsFlow]);
+
+  // Fire scm_connect_integration_selected once for the integration auto-selected
+  // on entry, when the selector is in use and the user hasn't explicitly picked
+  // one. Otherwise a user who keeps the default never emits the event, leaving
+  // the funnel without an integration-selected step. An explicit switch fires
+  // its own `source: 'manual'` event in the handler below.
+  useEffect(() => {
+    if (
+      !allowIntegrationSwitching ||
+      defaultIntegrationTrackedRef.current ||
+      selectedIntegration ||
+      !effectiveIntegration
+    ) {
+      return;
+    }
+    defaultIntegrationTrackedRef.current = true;
+    trackAnalytics(INTEGRATION_SELECTED_EVENT[analyticsFlow], {
+      organization,
+      provider: effectiveIntegration.provider.key,
+      source: 'default',
+      ...scmFlowVariantParams(analyticsFlow),
+    });
+  }, [
+    allowIntegrationSwitching,
+    selectedIntegration,
+    effectiveIntegration,
+    analyticsFlow,
+    organization,
+  ]);
+
+  // An install swaps the provider pills for the repo selector, which unmounts
+  // the pill that had focus. The selector takes focus on mount instead.
+  const [focusRepoSelectorOnMount, setFocusRepoSelectorOnMount] = useState(false);
+
+  const handleInstall = useCallback(
+    (data: Integration) => {
+      setFocusRepoSelectorOnMount(true);
+      onIntegrationChange(data);
+      onRepositoryChange(undefined);
+      refetchIntegrations();
+    },
+    [onIntegrationChange, onRepositoryChange, refetchIntegrations]
+  );
+
+  // Switching integrations invalidates the selected repo (repos are scoped to
+  // an integration) and everything derived from it (platform, features, form).
+  const handleIntegrationSelect = useCallback(
+    (integration: Integration) => {
+      // Reselecting the active integration is a no-op; clearing here would wipe
+      // the in-progress repo/platform/form for no reason (CompactSelect fires
+      // onChange even when the already-selected option is re-picked).
+      if (integration.id === effectiveIntegration?.id) {
+        return;
+      }
+      onClearDerivedState();
+      onIntegrationChange(integration);
+      onRepositoryChange(undefined);
+      trackAnalytics(INTEGRATION_SELECTED_EVENT[analyticsFlow], {
+        organization,
+        provider: integration.provider.key,
+        source: 'manual',
+        ...scmFlowVariantParams(analyticsFlow),
+      });
+    },
+    [
+      analyticsFlow,
+      organization,
+      effectiveIntegration?.id,
+      onClearDerivedState,
+      onIntegrationChange,
+      onRepositoryChange,
+    ]
+  );
+
+  if (isPending) {
+    return (
+      <Flex
+        justify="center"
+        align="center"
+        role="status"
+        aria-label={t('Loading integrations')}
+      >
+        <LoadingIndicator mini />
+      </Flex>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Stack gap="lg" align="center" role="alert">
+        <Text variant="muted">{t('Failed to load integrations.')}</Text>
+        <Button onClick={() => refetch()}>{t('Retry')}</Button>
+      </Stack>
+    );
+  }
+
+  if (!effectiveIntegration) {
+    return (
+      <Stack key="without-integration" gap="2xl" width="100%" maxWidth={maxWidth}>
+        <ScmProviderPills
+          analyticsFlow={analyticsFlow}
+          providers={scmProviders}
+          onInstall={handleInstall}
+          justify={pillsJustify}
+        />
+      </Stack>
+    );
+  }
+
+  const repoSelector = (
+    <Stack width="100%">
+      <ScmRepoSelector
+        analyticsFlow={analyticsFlow}
+        integration={effectiveIntegration}
+        selectedRepository={selectedRepository}
+        onRepositoryChange={onRepositoryChange}
+        onClearDerivedState={onClearDerivedState}
+        autoFocus={focusRepoSelectorOnMount}
+      />
+    </Stack>
+  );
+
+  if (allowIntegrationSwitching) {
+    return (
+      <Stack key="with-integration" gap="md" width="100%" maxWidth={maxWidth}>
+        <Flex
+          direction={{zero: 'column-reverse', '3xl': 'row'}}
+          width="100%"
+          gap="md"
+          align={{zero: 'start', '3xl': 'center'}}
+        >
+          {repoSelector}
+          <ScmIntegrationSelect
+            analyticsFlow={analyticsFlow}
+            integrations={activeIntegrations}
+            selectedIntegration={effectiveIntegration}
+            onChange={handleIntegrationSelect}
+          />
+        </Flex>
+      </Stack>
+    );
+  }
+
+  // Single-integration hosts (onboarding) frame the connected provider and repo
+  // selector in the shared picker card, with the provider logo standing in for
+  // the provider's name.
+  return (
+    <Stack key="with-integration" width="100%" maxWidth={maxWidth}>
+      <ScmPickerSection
+        title={
+          <Fragment>
+            {/* The logo stands in for the provider's name, so it carries the
+              name for screen readers. */}
+            <Flex role="img" aria-label={effectiveIntegration.provider.name}>
+              {getIntegrationIcon(effectiveIntegration.provider.key)}
+            </Flex>
+            <Text size="lg">{effectiveIntegration.name}</Text>
+          </Fragment>
+        }
+      >
+        {repoSelector}
+      </ScmPickerSection>
+    </Stack>
+  );
+}

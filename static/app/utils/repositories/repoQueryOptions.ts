@@ -4,8 +4,8 @@ import type {Repository, RepositoryWithSettings} from 'sentry/types/integrations
 import type {Organization} from 'sentry/types/organization';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {encodeSort} from 'sentry/utils/queryString';
 
 /**
  * Select helper that flattens infinite pages and deduplicates repositories
@@ -53,7 +53,6 @@ export function organizationRepositoriesInfiniteOptions({
 export function organizationRepositoriesWithSettingsInfiniteOptions({
   organization,
   query,
-  staleTime,
 }: {
   organization: Organization;
   query?: {
@@ -64,7 +63,6 @@ export function organizationRepositoriesWithSettingsInfiniteOptions({
     sort?: Sort;
     status?: 'active' | 'deleted';
   };
-  staleTime?: number;
 }) {
   const sortQuery = query?.sort ? encodeSort(query.sort) : undefined;
   return apiOptions.asInfinite<RepositoryWithSettings[]>()(
@@ -72,7 +70,7 @@ export function organizationRepositoriesWithSettingsInfiniteOptions({
     {
       path: {organizationIdOrSlug: organization.slug},
       query: {expand: 'settings', per_page: 100, ...query, sort: sortQuery},
-      staleTime: staleTime ?? 0,
+      staleTime: 0,
     }
   );
 }

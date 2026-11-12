@@ -1,5 +1,6 @@
-import {platforms} from 'sentry/data/platforms';
 import type {PlatformKey} from 'sentry/types/platform';
+
+import {platforms} from './platforms';
 
 export enum PlatformCategory {
   FRONTEND = 0,
@@ -295,6 +296,10 @@ export const withPerformanceOnboarding = new Set<PlatformKey>([
   'python-flask',
   'php',
   'node',
+  'node-eve',
+  'node-flue',
+  'node-mastra',
+  'node-pi-durable',
 ]);
 
 // List of platforms that do not have performance support. We make use of this list in the product to not provide any Performance
@@ -317,6 +322,7 @@ export const withLoggingOnboarding = new Set<PlatformKey>([
   'cocoa-objc',
   'cocoa-swift',
   'dart',
+  'deno',
   'dotnet',
   'dotnet-aspnet',
   'dotnet-aspnetcore',
@@ -364,12 +370,16 @@ export const withLoggingOnboarding = new Set<PlatformKey>([
   'node-cloudflare-pages',
   'node-cloudflare-workers',
   'node-express',
+  'node-eve',
   'node-fastify',
+  'node-flue',
   'node-gcpfunctions',
   'node-hapi',
   'node-hono',
   'node-koa',
+  'node-mastra',
   'node-nestjs',
+  'node-pi-durable',
   'php',
   'php-laravel',
   'php-symfony',
@@ -416,6 +426,8 @@ export const withMetricsOnboarding = new Set<PlatformKey>([
   'apple',
   'apple-ios',
   'apple-macos',
+  'bun',
+  'deno',
   'dotnet',
   'dotnet-aspnet',
   'dotnet-aspnetcore',
@@ -460,13 +472,17 @@ export const withMetricsOnboarding = new Set<PlatformKey>([
   'node-cloudflare-pages',
   'node-cloudflare-workers',
   'node-connect',
+  'node-eve',
   'node-express',
   'node-fastify',
+  'node-flue',
   'node-gcpfunctions',
   'node-hapi',
   'node-hono',
   'node-koa',
+  'node-mastra',
   'node-nestjs',
+  'node-pi-durable',
   'php',
   'php-laravel',
   'php-symfony',
@@ -533,13 +549,17 @@ export const profiling: PlatformKey[] = [
   'node-awslambda',
   'node-azurefunctions',
   'node-connect',
+  'node-eve',
   'node-express',
   'node-fastify',
+  'node-flue',
   'node-gcpfunctions',
   'node-hapi',
   'node-hono',
   'node-koa',
+  'node-mastra',
   'node-nestjs',
+  'node-pi-durable',
   'php',
   'php-laravel',
   'php-symfony',
@@ -620,7 +640,6 @@ export const releaseHealth: PlatformKey[] = [
   'python-pymongo',
   'rust',
   'apple-macos',
-  'native',
   'native-crashpad',
   'native-breakpad',
   'native-qt',
@@ -638,6 +657,10 @@ export const releaseHealth: PlatformKey[] = [
   'dotnet-winforms',
   'dotnet-xamarin',
   'unity',
+  'unreal',
+  'nintendo-switch',
+  'playstation',
+  'xbox',
   'java',
   'kotlin',
 ];
@@ -717,11 +740,24 @@ export const replayMobilePlatforms: PlatformKey[] = [
   'cocoa-swift',
 ];
 
+// These are the gaming/engine platforms that can set up replay. Only consumed
+// locally via replayVideoPlatforms / replayPlatforms / replayOnboardingPlatforms.
+const replayGamingPlatforms: readonly PlatformKey[] = ['unreal'];
+
+// These are the platforms whose replays are recorded as video (mobile SDKs +
+// gaming engines). They share the same native replay UI: video-only table
+// columns and platform-specific onboarding rather than the browser (rrweb) flow.
+export const replayVideoPlatforms: readonly PlatformKey[] = [
+  ...replayMobilePlatforms,
+  ...replayGamingPlatforms,
+];
+
 // These are all the platforms that can set up replay.
 export const replayPlatforms: readonly PlatformKey[] = [
   ...replayFrontendPlatforms,
   ...replayBackendPlatforms,
   ...replayMobilePlatforms,
+  ...replayGamingPlatforms,
 ];
 
 /**
@@ -732,6 +768,7 @@ export const replayOnboardingPlatforms: readonly PlatformKey[] = [
   ...replayFrontendPlatforms.filter(p => !['javascript-backbone'].includes(p)),
   ...replayBackendPlatforms,
   ...replayMobilePlatforms,
+  ...replayGamingPlatforms,
 ];
 
 // These are the supported replay platforms that can also be set up using the JS loader.
@@ -828,21 +865,21 @@ export const featureFlagOnboardingPlatforms: readonly PlatformKey[] = [
 // Feature flag platforms to show the issue details distribution drawer for.
 export const featureFlagDrawerPlatforms: readonly PlatformKey[] = [
   ...platformKeys.filter(
-    id => id.startsWith('javascript') || id.startsWith('node') || id.startsWith('python')
+    id =>
+      id.startsWith('apple') ||
+      // Matches 'javascript*' as well as 'java*'.
+      id.startsWith('java') ||
+      id.startsWith('node') ||
+      id.startsWith('python')
   ),
+  'android',
   'bun',
+  'dart',
   'deno',
+  'react-native',
 ];
 
-export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
-  ...platformKeys.filter(id => id.startsWith('javascript')),
-  ...platformKeys.filter(id => id.startsWith('node')),
-  ...platformKeys.filter(id => id.startsWith('python')),
-  'deno',
-  'bun',
-]);
-
-export const javascriptMetaFrameworks: readonly PlatformKey[] = [
+const javascriptMetaFrameworks: readonly PlatformKey[] = [
   'javascript-astro',
   'javascript-nextjs',
   'javascript-nuxt',
@@ -853,8 +890,19 @@ export const javascriptMetaFrameworks: readonly PlatformKey[] = [
   'javascript-tanstackstart-react',
 ] as const;
 
+export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
+  ...javascriptMetaFrameworks,
+  ...platformKeys.filter(id => id.startsWith('node')),
+  ...platformKeys.filter(id => id.startsWith('python')),
+  'deno',
+  'bun',
+  'php-laravel',
+]);
+
 export const mcpMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
   ...javascriptMetaFrameworks,
   ...platformKeys.filter(id => id.startsWith('node')),
   ...platformKeys.filter(id => id.startsWith('python')),
+  'bun',
+  'deno',
 ]);

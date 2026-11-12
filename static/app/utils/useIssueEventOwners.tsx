@@ -1,41 +1,38 @@
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import {useOrganization} from 'sentry/utils/useOrganization';
+import {useQuery} from '@tanstack/react-query';
+
 import type {EventOwners} from 'sentry/views/issueDetails/header/getOwnerList';
+
+import {apiOptions} from './api/apiOptions';
+import {useOrganization} from './useOrganization';
 
 interface UseIssueEventOwnersProps {
   eventId: string;
   projectSlug: string;
 }
 
-const makeCommittersQueryKey = (
+const makeCommittersApiOptions = (
   orgSlug: string,
   projectSlug: string,
   eventId: string
-): ApiQueryKey => [
-  getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/owners/', {
-    path: {
-      organizationIdOrSlug: orgSlug,
-      projectIdOrSlug: projectSlug,
-      eventId,
-    },
-  }),
-];
-
-export function useIssueEventOwners(
-  {eventId, projectSlug}: UseIssueEventOwnersProps,
-  options: Partial<UseApiQueryOptions<EventOwners>> = {}
-) {
-  const org = useOrganization();
-  return useApiQuery<EventOwners>(
-    makeCommittersQueryKey(org.slug, projectSlug, eventId),
+) =>
+  apiOptions.as<EventOwners>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/owners/',
     {
+      path: {
+        organizationIdOrSlug: orgSlug,
+        projectIdOrSlug: projectSlug,
+        eventId,
+      },
       staleTime: Infinity,
-      retry: false,
-      enabled: !!eventId,
-      ...options,
     }
   );
+
+export function useIssueEventOwners({eventId, projectSlug}: UseIssueEventOwnersProps) {
+  const org = useOrganization();
+  return useQuery({
+    ...makeCommittersApiOptions(org.slug, projectSlug, eventId),
+
+    retry: false,
+    enabled: !!eventId,
+  });
 }

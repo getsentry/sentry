@@ -4,6 +4,8 @@ import {withTheme} from '@emotion/react';
 import type {Location} from 'history';
 import round from 'lodash/round';
 
+import {InfoTip} from '@sentry/scraps/info';
+
 import type {AreaChartProps} from 'sentry/components/charts/areaChart';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
@@ -11,7 +13,6 @@ import {StackedAreaChart} from 'sentry/components/charts/stackedAreaChart';
 import {HeaderTitleLegend, HeaderValue} from 'sentry/components/charts/styles';
 import {TransitionChart} from 'sentry/components/charts/transitionChart';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {SessionFieldWithOperation, SessionStatus} from 'sentry/types/organization';
@@ -649,7 +650,7 @@ class ReleaseSessionsChart extends Component<Props> {
         <HeaderTitleLegend aria-label={t('Chart Title')}>
           {releaseComparisonChartTitles[chartType]}
           {releaseComparisonChartHelp[chartType] && (
-            <QuestionTooltip
+            <InfoTip
               size="sm"
               position="top"
               title={releaseComparisonChartHelp[chartType]}

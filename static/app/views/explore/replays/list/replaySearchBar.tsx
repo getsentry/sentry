@@ -1,7 +1,8 @@
 import {useCallback, useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
 
-import {fetchTagValues, useFetchOrganizationTags} from 'sentry/actionCreators/tags';
+import {fetchTagValues, organizationTagsApiOptions} from 'sentry/actionCreators/tags';
 import {EMAIL_REGEX} from 'sentry/components/events/contexts/knownContext/user';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
@@ -120,7 +121,6 @@ type Props = Omit<
   pageFilters: PageFilters;
   query: string;
   onSearch?: (query: string) => void;
-  searchSource?: string;
 };
 
 export function ReplaySearchBar(props: Props) {
@@ -135,27 +135,22 @@ export function ReplaySearchBar(props: Props) {
     : undefined;
   const statsPeriod = pageFilters.datetime.period;
 
-  const tagQuery = useFetchOrganizationTags(
-    {
+  const {data: tags} = useQuery(
+    organizationTagsApiOptions({
       orgSlug: organization.slug,
       projectIds: projectIds.map(String),
       dataset: Dataset.REPLAYS,
-      useCache: true,
-      enabled: true,
-      keepPreviousData: false,
       start,
       end,
       statsPeriod,
-    },
-    {}
+    })
   );
   const customTags = useMemo(() => {
-    return (tagQuery.data ?? []).reduce<TagCollection>((acc, tag) => {
+    return (tags ?? []).reduce<TagCollection>((acc, tag) => {
       acc[tag.key] = {...tag, kind: FieldKind.TAG};
       return acc;
     }, {});
-  }, [tagQuery]);
-  // tagQuery.isLoading and tagQuery.isError are not used
+  }, [tags]);
 
   const filterKeys = useMemo(() => getReplayFilterKeys(customTags), [customTags]);
   const filterKeySections = useMemo(() => {
@@ -191,7 +186,10 @@ export function ReplaySearchBar(props: Props) {
         includeReplays: true,
       }).then(
         tagValues =>
-          tagValues.filter(tagValue => tagValue.name !== '').map(({value}) => value),
+          // Events without the tag come back with an empty name or a null value
+          tagValues.flatMap(({name, value}) =>
+            name !== '' && value !== null ? [value] : []
+          ),
         () => {
           throw new Error('Unable to fetch event field values');
         }
@@ -230,7 +228,7 @@ export function ReplaySearchBar(props: Props) {
       matchKeySuggestions={[{key: 'user.email', valuePattern: EMAIL_REGEX}]}
       initialQuery={props.query ?? props.initialQuery ?? ''}
       onSearch={onSearchWithAnalytics}
-      searchSource={props.searchSource ?? 'replay_index'}
+      searchSource="replay_index"
       placeholder={
         props.placeholder ??
         t('Search for users, duration, clicked elements, count_errors, and more')

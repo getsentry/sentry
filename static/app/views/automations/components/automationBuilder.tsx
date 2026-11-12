@@ -1,30 +1,27 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import type {SelectValue} from '@sentry/scraps/select';
 
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
 import {PurpleTextButton} from 'sentry/components/workflowEngine/ui/purpleTextButton';
-import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {
   DataConditionGroupLogicType,
   DataConditionHandlerGroupType,
 } from 'sentry/types/workflowEngine/dataConditions';
-import {ActionFilterBlock} from 'sentry/views/automations/components/actionFilterBlock';
-import {AutomationBuilderConflictContext} from 'sentry/views/automations/components/automationBuilderConflictContext';
-import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
-import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
-import {DataConditionNodeList} from 'sentry/views/automations/components/dataConditionNodeList';
-import {
-  EmbeddedSelectField,
-  Step,
-  StepLead,
-} from 'sentry/views/automations/components/stepComponents';
-import {TRIGGER_MATCH_OPTIONS} from 'sentry/views/automations/components/triggers/constants';
 import {findConflictingConditions} from 'sentry/views/automations/hooks/utils';
+
+import {TRIGGER_MATCH_OPTIONS} from './triggers/constants';
+import {ActionFilterBlock} from './actionFilterBlock';
+import {AutomationBuilderConflictContext} from './automationBuilderConflictContext';
+import {useAutomationBuilderContext} from './automationBuilderContext';
+import {useAutomationBuilderErrorContext} from './automationBuilderErrorContext';
+import {DataConditionNodeList} from './dataConditionNodeList';
+import {EmbeddedSelectField, Step, StepLead} from './stepComponents';
 
 export function AutomationBuilder() {
   const {state, actions, showTriggerLogicTypeSelector} = useAutomationBuilderContext();
@@ -36,44 +33,40 @@ export function AutomationBuilder() {
 
   return (
     <AutomationBuilderConflictContext.Provider value={conflictData}>
-      <Flex direction="column" gap="md">
+      <Stack gap="md">
         <Step>
           <StepLead>
-            {tct(
-              '[when:When] an issue event is captured and [selector] of the following occur',
-              {
-                when: <ConditionBadge />,
-                selector: showTriggerLogicTypeSelector ? (
-                  <Container width="80px">
-                    <EmbeddedSelectField
-                      styles={{
-                        control: (provided: any) => ({
-                          ...provided,
-                          minHeight: '21px',
-                          height: '21px',
-                        }),
-                      }}
-                      isSearchable={false}
-                      isClearable={false}
-                      name={`${state.triggers.id}.logicType`}
-                      value={
-                        // We do not expose ANY as a valid option, but it is
-                        state.triggers.logicType === DataConditionGroupLogicType.ANY
-                          ? DataConditionGroupLogicType.ANY_SHORT_CIRCUIT
-                          : state.triggers.logicType
-                      }
-                      onChange={(option: SelectValue<DataConditionGroupLogicType>) =>
-                        actions.updateWhenLogicType(option.value)
-                      }
-                      options={TRIGGER_MATCH_OPTIONS}
-                      size="xs"
-                    />
-                  </Container>
-                ) : (
-                  <strong>{t('any')}</strong>
-                ),
-              }
-            )}
+            {tct('[when:When] [selector] of the following occur', {
+              when: <ConditionBadge />,
+              selector: showTriggerLogicTypeSelector ? (
+                <Container width="80px">
+                  <EmbeddedSelectField
+                    styles={{
+                      control: (provided: any) => ({
+                        ...provided,
+                        minHeight: '21px',
+                        height: '21px',
+                      }),
+                    }}
+                    searchable={false}
+                    name={`${state.triggers.id}.logicType`}
+                    value={
+                      // We do not expose ANY as a valid option, but it is
+                      state.triggers.logicType === DataConditionGroupLogicType.ANY
+                        ? DataConditionGroupLogicType.ANY_SHORT_CIRCUIT
+                        : state.triggers.logicType
+                    }
+                    onChange={(option: SelectValue<DataConditionGroupLogicType>) =>
+                      actions.updateWhenLogicType(option.value)
+                    }
+                    options={TRIGGER_MATCH_OPTIONS}
+                    size="xs"
+                  />
+                </Container>
+              ) : (
+                <strong>{t('any')}</strong>
+              ),
+            })}
           </StepLead>
         </Step>
         <DataConditionNodeList
@@ -109,7 +102,7 @@ export function AutomationBuilder() {
             {t('If/Then Block')}
           </PurpleTextButton>
         </span>
-      </Flex>
+      </Stack>
     </AutomationBuilderConflictContext.Provider>
   );
 }

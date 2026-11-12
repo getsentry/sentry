@@ -1,26 +1,29 @@
 import styled from '@emotion/styled';
+import {parseAsInteger, useQueryState} from 'nuqs';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {EmptyState as TableEmptyState} from '@sentry/scraps/emptyState';
+import {Container, Stack} from '@sentry/scraps/layout';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
-import {PanelTable} from 'sentry/components/panels/panelTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import {decodeInteger} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {AddCredentialsButton} from 'sentry/views/settings/project/tempest/addCredentialsButton';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {AddCredentialsButton} from './addCredentialsButton';
 import {
   ALLOWLIST_IP_ADDRESSES_DESCRIPTION,
   AllowListIPAddresses,
-} from 'sentry/views/settings/project/tempest/allowListIPAddresses';
-import {CredentialRow} from 'sentry/views/settings/project/tempest/CredentialRow';
-import type {TempestCredentials} from 'sentry/views/settings/project/tempest/types';
+} from './allowListIPAddresses';
+import {CredentialRow} from './CredentialRow';
+import type {TempestCredentials} from './types';
 
 interface EmptyStateProps {
   hasWriteAccess: boolean;
@@ -31,6 +34,14 @@ interface EmptyStateProps {
   tempestCredentials?: TempestCredentials[];
 }
 
+const CREDENTIAL_COLUMNS: TableColumnConfig[] = [
+  {key: 'clientId', width: 'auto'},
+  {key: 'status', width: 'auto'},
+  {key: 'createdAt', width: 'auto'},
+  {key: 'createdBy', width: 'auto'},
+  {key: 'actions', width: 'auto'},
+];
+
 export function EmptyState({
   project,
   tempestCredentials,
@@ -40,20 +51,21 @@ export function EmptyState({
   removingCredentialId,
 }: EmptyStateProps) {
   const navigate = useNavigate();
-  const location = useLocation();
+  const [guidedStep, setGuidedStep] = useQueryState('guidedStep', parseAsInteger);
+  const organization = useOrganization();
 
   return (
     <div>
       <HeaderWrapper>
         <Title>{t('Get Started with PlayStation Error Monitoring')}</Title>
-        <Description>
-          {t('Your code sleuth eagerly awaits its first mission.')}
-        </Description>
-        <Image src={waitingForEventImg} />
+        <Container>{t('Your code sleuth eagerly awaits its first mission.')}</Container>
+        <Container display={{zero: 'none', '2xl': 'contents'}}>
+          <Image src={waitingForEventImg} />
+        </Container>
       </HeaderWrapper>
       <Divider />
-      <Body>
-        <Setup>
+      <Container>
+        <Container padding="3xl">
           <BodyTitle>{t('Install instructions')}</BodyTitle>
           <Alert.Container>
             <Alert variant="info">
@@ -63,60 +75,67 @@ export function EmptyState({
             </Alert>
           </Alert.Container>
           <GuidedSteps
-            initialStep={decodeInteger(location.query.guidedStep)}
+            initialStep={guidedStep ?? undefined}
             onStepChange={step => {
-              navigate({
-                query: {
-                  ...location.query,
-                  guidedStep: step,
-                },
-              });
+              setGuidedStep(step, {history: 'push'});
             }}
           >
             <GuidedSteps.Step
               stepKey="step-1"
               title={t('Retrieve Back Office Server Credential from Sony')}
             >
-              <DescriptionWrapper>
+              <Container marginBottom="md">
                 {t(
                   'Retrieve the Back Office Server Credentials (Client ID and Secret) for the title of interest. To avoid problems with rate limiting it is preferred to have a separate set of credentials that are only used by Sentry.'
                 )}
-              </DescriptionWrapper>
-              <Flex direction="column" align="end" gap="xl">
-                <StyledPanelTable
-                  headers={[
-                    t('Client ID'),
-                    t('Status'),
-                    t('Created At'),
-                    t('Created By'),
-                    '',
-                  ]}
-                  isEmpty={!tempestCredentials?.length}
-                  emptyMessage={t('No credentials found')}
-                  emptyAction={
-                    <AddCredentialsButton project={project} origin="project-settings" />
+              </Container>
+              <Stack align="end" gap="xl">
+                <StyledSimpleTable
+                  columns={CREDENTIAL_COLUMNS}
+                  header={
+                    <SimpleTable.HeaderRow>
+                      <SimpleTable.HeaderCell>{t('Client ID')}</SimpleTable.HeaderCell>
+                      <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
+                      <SimpleTable.HeaderCell>{t('Created At')}</SimpleTable.HeaderCell>
+                      <SimpleTable.HeaderCell>{t('Created By')}</SimpleTable.HeaderCell>
+                      <SimpleTable.HeaderCell />
+                    </SimpleTable.HeaderRow>
                   }
                 >
-                  {tempestCredentials?.map(credential => (
-                    <CredentialRow
-                      key={credential.id}
-                      credential={credential}
-                      isRemoving={isRemoving && removingCredentialId === credential.id}
-                      removeCredential={hasWriteAccess ? onRemoveCredential : undefined}
-                    />
-                  ))}
-                </StyledPanelTable>
-              </Flex>
+                  {tempestCredentials?.length ? (
+                    tempestCredentials.map(credential => (
+                      <CredentialRow
+                        key={credential.id}
+                        credential={credential}
+                        isRemoving={isRemoving && removingCredentialId === credential.id}
+                        removeCredential={hasWriteAccess ? onRemoveCredential : undefined}
+                      />
+                    ))
+                  ) : (
+                    <SimpleTable.Empty>
+                      <TableEmptyState
+                        title={t('No credentials found')}
+                        action={
+                          <AddCredentialsButton
+                            project={project}
+                            origin="project-settings"
+                          />
+                        }
+                      />
+                    </SimpleTable.Empty>
+                  )}
+                </StyledSimpleTable>
+              </Stack>
               <GuidedSteps.StepButtons />
             </GuidedSteps.Step>
 
             <GuidedSteps.Step stepKey="step-2" title={t('Allow list our IP Addresses:')}>
-              <DescriptionWrapper>
+              <Container marginBottom="md">
                 {ALLOWLIST_IP_ADDRESSES_DESCRIPTION}
                 <CodeSnippetWrapper>
                   <AllowListIPAddresses />
                 </CodeSnippetWrapper>
-              </DescriptionWrapper>
+              </Container>
               <GuidedSteps.StepButtons />
             </GuidedSteps.Step>
 
@@ -125,7 +144,7 @@ export function EmptyState({
               title={t('Configure data collection')}
               optional
             >
-              <DescriptionWrapper>
+              <Container marginBottom="md">
                 <p>
                   {t(
                     'You can toggle "Attach Dumps" in which case Sentry will add the prosperodumps as an attachment to the issues.'
@@ -141,26 +160,26 @@ export function EmptyState({
                     'Both screenshots and crash dump files consume from your attachments quota.'
                   )}
                 </p>
-              </DescriptionWrapper>
+              </Container>
               <GuidedSteps.StepButtons />
             </GuidedSteps.Step>
 
             <GuidedSteps.Step stepKey="step-4" title={t('Look at events')}>
-              <DescriptionWrapper>
+              <Container marginBottom="md">
                 {t(
                   'Once you provided credentials, Sentry will make an initial request to verify the credentials are correct and the IPs are allowlisted, if either of these are not the case an error will be displayed in the UI. After that new crashes are pulled once every minute. Events generated from crashes can be filtered using:'
                 )}{' '}
                 <OnboardingCodeSnippet language="javascript">
                   os.name:PlayStation
                 </OnboardingCodeSnippet>
-              </DescriptionWrapper>
+              </Container>
               <GuidedSteps.StepButtons>
                 <Button
                   size="sm"
                   variant="primary"
                   onClick={() => {
                     navigate({
-                      pathname: '/issues/',
+                      pathname: `/organizations/${organization.slug}/issues/`,
                       query: {
                         query: 'os.name:PlayStation',
                       },
@@ -172,8 +191,8 @@ export function EmptyState({
               </GuidedSteps.StepButtons>
             </GuidedSteps.Step>
           </GuidedSteps>
-        </Setup>
-      </Body>
+        </Container>
+      </Container>
     </div>
   );
 }
@@ -182,8 +201,6 @@ const Title = styled('div')`
   font-size: 26px;
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
-
-const Description = styled('div')``;
 
 const HeaderWrapper = styled('div')`
   border-radius: ${p => p.theme.radius.md};
@@ -196,16 +213,10 @@ const BodyTitle = styled('div')`
   margin-bottom: ${p => p.theme.space.md};
 `;
 
-const StyledPanelTable = styled(PanelTable)`
+const StyledSimpleTable = styled(SimpleTable)`
   width: 100%;
   margin-bottom: 0;
 `;
-
-const Setup = styled('div')`
-  padding: ${p => p.theme.space['3xl']};
-`;
-
-const Body = styled('div')``;
 
 const Image = styled('img')`
   position: absolute;
@@ -215,16 +226,12 @@ const Image = styled('img')`
   pointer-events: none;
   height: 120px;
   overflow: hidden;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
 `;
 
 const Divider = styled('hr')`
   height: 1px;
   width: 95%;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.primary};
   border: none;
   margin-top: 0;
@@ -234,10 +241,6 @@ const Divider = styled('hr')`
 const CodeSnippetWrapper = styled('div')`
   margin-bottom: ${p => p.theme.space.xl};
   margin-top: ${p => p.theme.space.xl};
-`;
-
-const DescriptionWrapper = styled('div')`
-  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const BoldText = styled('span')`

@@ -2,6 +2,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getDataCollectionStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t, tct} from 'sentry/locale';
 
 export const onboarding: OnboardingConfig = {
@@ -69,47 +70,34 @@ export const onboarding: OnboardingConfig = {
 
 Sentry.init({
   dsn: "${params.dsn.public}",
-
-  dataCollection: {
-    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
-    // https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/configuration/options/#dataCollection
-    // userInfo: false,
-    // httpBodies: [],
-  },${
-    params.isReplaySelected
-      ? `
+${
+  params.isReplaySelected
+    ? `
 
   integrations: [
     Sentry.replayIntegration(),
   ],`
-      : ''
-  }${
-    params.isPerformanceSelected
-      ? `
+    : ''
+}${
+                params.isPerformanceSelected
+                  ? `
 
   // Set tracesSampleRate to 1.0 to capture 100%
   // of transactions for tracing.
   // We recommend adjusting this value in production.
   // Learn more at https://docs.sentry.io/platforms/javascript/configuration/options/#traces-sample-rate
   tracesSampleRate: 1.0,`
-      : ''
-  }${
-    params.isReplaySelected
-      ? `
+                  : ''
+              }${
+                params.isReplaySelected
+                  ? `
 
   // Capture Replay for 10% of all sessions,
   // plus for 100% of sessions with an error.
   replaysSessionSampleRate: 0.1,
   replaysOnErrorSampleRate: 1.0,`
-      : ''
-  }${
-    params.isLogsSelected
-      ? `
-
-  // Enable logs to be sent to Sentry
-  enableLogs: true,`
-      : ''
-  }
+                  : ''
+              }
 });`,
             },
           ],
@@ -207,30 +195,17 @@ export const getRouter = () => {
 
 Sentry.init({
   dsn: "${params.dsn.public}",
-
-  dataCollection: {
-    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
-    // https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/configuration/options/#dataCollection
-    // userInfo: false,
-    // httpBodies: [],
-  },${
-    params.isPerformanceSelected
-      ? `
+${
+  params.isPerformanceSelected
+    ? `
 
   // Set tracesSampleRate to 1.0 to capture 100%
   // of transactions for tracing.
   // We recommend adjusting this value in production.
   // Learn more at https://docs.sentry.io/platforms/javascript/configuration/options/#traces-sample-rate
   tracesSampleRate: 1.0,`
-      : ''
-  }${
-    params.isLogsSelected
-      ? `
-
-  // Enable logs to be sent to Sentry
-  enableLogs: true,`
-      : ''
-  }
+    : ''
+}
 });`,
             },
           ],
@@ -534,6 +509,10 @@ const route = createRoute({
       ],
       collapsible: true,
     },
+    getDataCollectionStep({
+      docsLink:
+        'https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/configuration/options/#dataCollection',
+    }),
   ],
   verify: params => [
     {
@@ -560,6 +539,14 @@ const route = createRoute({
               code: `<button
   type="button"
   onClick={() => {${
+    params.isLogsSelected
+      ? `
+    // Send a log before throwing the error
+    Sentry.logger.info('User triggered test error', {
+      action: 'test_error_button_click',
+    });`
+      : ''
+  }${
     params.isMetricsSelected
       ? `
     // Send a test metric before throwing the error
@@ -695,4 +682,40 @@ export const Route = createFileRoute("/api/sentry-example")({
       ],
     },
   ],
+  nextSteps: params => {
+    const steps = [
+      {
+        id: 'tanstackstart-features',
+        name: t('TanStack Start Features'),
+        description: t(
+          'Learn about our first class integration with the TanStack Start framework.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/features/',
+      },
+    ];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/logs/#integrations',
+      });
+    }
+
+    if (params.isMetricsSelected) {
+      steps.push({
+        id: 'metrics',
+        name: t('Application Metrics'),
+        description: t(
+          'Learn how to track custom metrics to monitor your application performance and business KPIs.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/metrics/',
+      });
+    }
+
+    return steps;
+  },
 };

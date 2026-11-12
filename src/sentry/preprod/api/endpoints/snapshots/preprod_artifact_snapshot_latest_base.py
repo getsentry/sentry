@@ -20,22 +20,26 @@ from sentry.api.bases.organization import (
 from sentry.api.helpers.projects import PROJECT_ID_OR_SLUG_SCHEMA
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.preprod_examples import PreprodExamples
+from sentry.apidocs.formats import iso_datetime
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.auth.staff import is_active_staff
 from sentry.constants import ObjectStatus
-from sentry.issues.action_log import resolve_action_source
+from sentry.issues.action_log.request import resolve_action_source
 from sentry.models.organization import Organization
-from sentry.objectstore import get_preprod_session
 from sentry.preprod.analytics import PreprodArtifactApiGetLatestBaseSnapshotEvent
 from sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot import (
     _strip_to_compact,
-    build_snapshot_image_response,
 )
-from sentry.preprod.api.models.public.snapshots import LatestBaseSnapshotResponseDict
+from sentry.preprod.api.models.public.snapshots import (
+    LatestBaseSnapshotImageResponseDict,
+    LatestBaseSnapshotResponseDict,
+)
 from sentry.preprod.models import PreprodArtifact
-from sentry.preprod.snapshots.manifest import SnapshotManifest
+from sentry.preprod.snapshots.image_serialization import build_head_image_dict
+from sentry.preprod.snapshots.storage import get_snapshot_storage
 
 logger = logging.getLogger(__name__)
 
@@ -184,9 +188,7 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
             PreprodArtifactApiGetLatestBaseSnapshotEvent(
                 organization_id=organization.id,
                 project_id=artifact.project_id,
-                user_id=(
-                    request.user.id if request.user and request.user.is_authenticated else None
-                ),
+                user_id=acting_user_id(request.user),
                 artifact_id=str(artifact.id),
                 app_id=app_id,
                 client=resolve_action_source(request),
@@ -199,9 +201,17 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
             return Response({"detail": "Manifest key not found"}, status=404)
 
         try:
-            session = get_preprod_session(organization.id, artifact.project_id)
-            manifest_data = orjson.loads(session.get(manifest_key).payload.read())
-            manifest = SnapshotManifest(**manifest_data)
+            session = get_snapshot_storage(artifact.project)
+            response = session.get(manifest_key)
+            if response is None:
+                logger.info(
+                    "preprod.snapshot.manifest_missing",
+                    extra={"preprod_artifact_id": artifact.id, "manifest_key": manifest_key},
+                )
+                return Response({"detail": "No snapshot found"}, status=404)
+            manifest_data = orjson.loads(response.payload.read())
+            manifest_images = manifest_data.get("images", {})
+            manifest_diff_threshold = manifest_data.get("diff_threshold")
         except Exception:
             logger.exception(
                 "Failed to retrieve snapshot manifest",
@@ -214,21 +224,24 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
 
         image_base_url = f"/api/0/projects/{organization.slug}/{artifact.project.slug}/files/images"
 
-        images = []
-        for key, metadata in sorted(manifest.images.items()):
-            img = build_snapshot_image_response(key, metadata, manifest.diff_threshold).dict()
-            img["image_url"] = f"{image_base_url}/{metadata.content_hash}/"
+        images: list[LatestBaseSnapshotImageResponseDict] = []
+        for key, metadata in sorted(manifest_images.items()):
+            img = cast(
+                LatestBaseSnapshotImageResponseDict,
+                build_head_image_dict(key, metadata, manifest_diff_threshold),
+            )
+            img["image_url"] = f"{image_base_url}/{metadata['content_hash']}/"
             images.append(img)
 
-        response_data: dict[str, Any] = {
+        response_data: LatestBaseSnapshotResponseDict = {
             "head_artifact_id": str(artifact.id),
             "project_id": str(artifact.project_id),
             "project_slug": artifact.project.slug,
             "app_id": artifact.app_id,
             "image_count": snapshot_metrics.image_count,
             "images": images,
-            "diff_threshold": manifest.diff_threshold,
-            "date_added": artifact.date_added.isoformat(),
+            "diff_threshold": manifest_diff_threshold,
+            "date_added": iso_datetime(artifact.date_added),
         }
 
         cc = artifact.commit_comparison
@@ -243,13 +256,10 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
             }
 
         if compact:
-            response_data["images"] = [
+            compact_data = cast(dict[str, Any], response_data)
+            compact_data["images"] = [
                 {**_strip_to_compact(img), "image_url": img["image_url"]}
-                for img in response_data["images"]
+                for img in compact_data["images"]
             ]
 
-        # cast() sanctioned: response_data is a hand-built dict[str, Any] whose
-        # shape mirrors LatestBaseSnapshotResponseDict. The TypedDict and the
-        # builder are kept in sync by hand at the source of truth.
-        body = cast(LatestBaseSnapshotResponseDict, response_data)
-        return Response(body)
+        return Response(response_data)

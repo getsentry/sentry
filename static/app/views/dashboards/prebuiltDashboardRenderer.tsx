@@ -1,4 +1,5 @@
 import {useLayoutEffect} from 'react';
+import {IconClose} from '@sentry/icons/close';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -10,7 +11,6 @@ import {LoadingContainer} from 'sentry/components/loading/loadingContainer';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SEER_AGENTS_PROJECT_ID} from 'sentry/constants';
-import {IconClose} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -18,17 +18,17 @@ import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {DashboardDetailWithInjectedProps as DashboardDetail} from 'sentry/views/dashboards/detail';
+
+import {mergeGlobalFilters} from './globalFilter/utils';
+import {getPrebuiltDashboardConfig, PrebuiltDashboardId} from './utils/prebuiltConfigs';
+import {useGetPrebuiltDashboard} from './utils/usePopulateLinkedDashboards';
+import {DashboardDetailWithInjectedProps as DashboardDetail} from './detail';
 import {
   DashboardState,
   type DashboardDetails,
   type DashboardFilters,
   type GlobalFilter,
-} from 'sentry/views/dashboards/types';
-import {useGetPrebuiltDashboard} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
-
-import {mergeGlobalFilters} from './globalFilter/utils';
-import {PREBUILT_DASHBOARDS, PrebuiltDashboardId} from './utils/prebuiltConfigs';
+} from './types';
 
 type PrebuiltDashboardRendererProps = {
   prebuiltId: PrebuiltDashboardId;
@@ -44,7 +44,7 @@ export function PrebuiltDashboardRenderer({
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
-  const prebuiltDashboard = PREBUILT_DASHBOARDS[prebuiltId];
+  const prebuiltDashboard = getPrebuiltDashboardConfig(prebuiltId, organization);
   const {dashboard: populatedPrebuiltDashboard, isLoading} =
     useGetPrebuiltDashboard(prebuiltId);
 

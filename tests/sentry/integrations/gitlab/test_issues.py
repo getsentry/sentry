@@ -5,6 +5,7 @@ import responses
 from fixtures.gitlab import GitLabTestCase
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
+from sentry.models.grouplink import GroupLink
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationFormError
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now
@@ -27,7 +28,13 @@ class GitlabIssuesTest(GitLabTestCase):
             project_id=self.project.id,
             default_event_type=EventType.DEFAULT,
         )
+        assert event.group is not None
         self.group = event.group
+
+    def latest_event_title(self) -> str:
+        event = self.group.get_latest_event()
+        assert event is not None
+        return event.title
 
     def test_make_external_key(self) -> None:
         project_name = "getsentry/sentry"
@@ -43,6 +50,60 @@ class GitlabIssuesTest(GitLabTestCase):
             self.installation.get_issue_url(issue_id)
             == "https://example.gitlab.com/project/project/issues/7"
         )
+
+    def test_issue_url_with_deployment_prefix(self) -> None:
+        self.installation.model.metadata.update(
+            base_url="https://example.gitlab.com/gitlab", domain_name="example.gitlab.com/team"
+        )
+        for issue_path in ("issues/13", "-/issues/13"):
+            assert self.installation.get_issue_link_data(
+                f"https://example.gitlab.com/gitlab/team/subgroup/project/{issue_path}?view=1#note"
+            ) == {"externalIssue": "team/subgroup/project#13"}
+
+    def test_issue_url_rejects_other_installations(self) -> None:
+        self.installation.model.metadata.update(
+            base_url="https://example.gitlab.com/gitlab", domain_name="example.gitlab.com/team"
+        )
+        for url in (
+            "https://other.gitlab.com/gitlab/team/project/-/issues/13",
+            "https://example.gitlab.com/gitlab-archive/team/project/-/issues/13",
+            "https://example.gitlab.com/gitlab/team-other/project/-/issues/13",
+        ):
+            with pytest.raises(IntegrationFormError):
+                self.installation.get_issue_link_data(url)
+
+    @responses.activate
+    def test_link_issue_url(self) -> None:
+        project = "group-x/subgroup/project"
+        api_url = "https://example.gitlab.com/api/v4/projects/group-x%2Fsubgroup%2Fproject"
+        responses.get(
+            f"{api_url}/issues/13",
+            json={
+                "iid": 13,
+                "title": "Existing issue",
+                "description": "Details",
+                "web_url": f"https://example.gitlab.com/{project}/-/issues/13",
+            },
+        )
+        responses.get(api_url, json={"id": 12, "path_with_namespace": project})
+
+        with self.feature("organizations:integrations-issue-basic"):
+            for issue_path in ("-/issues/13", "issues/13"):
+                group = self.create_group(project=self.project)
+                path = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/integrations/{self.integration.id}/"
+                response = self.client.put(
+                    path,
+                    data={"externalIssue": f"https://example.gitlab.com/{project}/{issue_path}"},
+                )
+                assert response.status_code == 201
+                assert response.data["key"] == f"example.gitlab.com/group-x:{project}#13"
+                assert GroupLink.objects.filter(
+                    group_id=group.id,
+                    linked_id=response.data["id"],
+                    linked_type=GroupLink.LinkedType.issue,
+                    relationship=GroupLink.Relationship.references,
+                ).exists()
+        assert len(responses.calls) == 4
 
     @responses.activate
     def test_get_create_issue_config(self) -> None:
@@ -87,7 +148,7 @@ class GitlabIssuesTest(GitLabTestCase):
             {
                 "name": "title",
                 "label": "Title",
-                "default": self.group.get_latest_event().title,
+                "default": self.latest_event_title(),
                 "type": "string",
                 "required": True,
             },
@@ -296,7 +357,7 @@ class GitlabIssuesTest(GitLabTestCase):
             {
                 "name": "title",
                 "label": "Title",
-                "default": self.group.get_latest_event().title,
+                "default": self.latest_event_title(),
                 "type": "string",
                 "required": True,
             },
@@ -379,7 +440,7 @@ class GitlabIssuesTest(GitLabTestCase):
             {
                 "name": "title",
                 "label": "Title",
-                "default": self.group.get_latest_event().title,
+                "default": self.latest_event_title(),
                 "type": "string",
                 "required": True,
             },
@@ -424,7 +485,7 @@ class GitlabIssuesTest(GitLabTestCase):
             {
                 "name": "title",
                 "label": "Title",
-                "default": self.group.get_latest_event().title,
+                "default": self.latest_event_title(),
                 "type": "string",
                 "required": True,
             },
@@ -443,7 +504,7 @@ class GitlabIssuesTest(GitLabTestCase):
         responses.add(
             responses.POST,
             "https://example.gitlab.com/api/v4/projects/2/issues/321/notes",
-            json=[],
+            json={},
         )
         data = {"externalIssue": "2#321", "comment": "This is not good."}
         external_issue = ExternalIssue.objects.create(

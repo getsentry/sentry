@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from collections.abc import Callable, Collection, Sequence
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
 
 import sentry_sdk
-from django.contrib.auth.models import AnonymousUser
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -14,6 +14,7 @@ from sentry import features, search
 from sentry.api.event_search import AggregateFilter, SearchFilter
 from sentry.api.helpers.environments import get_environment
 from sentry.api.serializers import serialize
+from sentry.auth.principal import RequestPrincipal
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.issue_search import convert_query_values, parse_search_query
@@ -24,15 +25,18 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.signals import advanced_search_feature_gated
 from sentry.snuba.referrer import Referrer
-from sentry.users.models.user import User
 from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
 
 from . import SEARCH_MAX_HITS
 from .validators import ValidationError
 
-# TODO(mgaeta): It's not currently possible to type a Callable's args with kwargs.
-EndpointFunction = Callable[..., Response]
+if TYPE_CHECKING:
+    from sentry.api.serializers.models.group import GroupReleaseVersionResponse
+    from sentry.api.serializers.types import ReleaseSerializerResponse
+
+P = ParamSpec("P")
+R = TypeVar("R", bound=Response)
 
 
 # List of conditions that mark a SearchFilter as an advanced search. Format is
@@ -50,7 +54,7 @@ def parse_and_convert_issue_search_query(
     organization: Organization,
     projects: Sequence[Project],
     environments: Sequence[Environment] | None,
-    user: User | AnonymousUser,
+    user: RequestPrincipal,
 ) -> Sequence[SearchFilter | AggregateFilter]:
     try:
         search_filters = convert_query_values(
@@ -63,6 +67,18 @@ def parse_and_convert_issue_search_query(
     return search_filters
 
 
+def is_api_request(request: Request) -> bool:
+    return not isinstance(request.successful_authenticator, SessionAuthentication)
+
+
+def get_search_referrer(request: Request) -> Referrer:
+    # Split UI (browser session) traffic from API/integration traffic so the two can be
+    # measured separately in Snuba.
+    if is_api_request(request):
+        return Referrer.SEARCH_GROUP_INDEX_API
+    return Referrer.SEARCH_GROUP_INDEX
+
+
 def build_query_params_from_request(
     request: Request,
     organization: Organization,
@@ -72,7 +88,7 @@ def build_query_params_from_request(
     query_kwargs: dict[str, Any] = {
         "projects": projects,
         "sort_by": request.GET.get("sort", DEFAULT_SORT_OPTION),
-        "referrer": Referrer.SEARCH_GROUP_INDEX,
+        "referrer": get_search_referrer(request),
     }
 
     limit = request.GET.get("limit")
@@ -120,7 +136,7 @@ def build_query_params_from_request(
 def validate_search_filter_permissions(
     organization: Organization,
     search_filters: Sequence[AggregateFilter | SearchFilter],
-    user: User | AnonymousUser,
+    user: RequestPrincipal,
 ) -> None:
     """
     Verifies that an organization is allowed to perform the query that they
@@ -169,13 +185,13 @@ def get_by_short_ids(
     return groups
 
 
-def track_slo_response(name: str) -> Callable[[EndpointFunction], EndpointFunction]:
-    def inner_func(function: EndpointFunction) -> EndpointFunction:
-        def wrapper(request: Request, *args: Any, **kwargs: Any) -> Response:
+def track_slo_response(name: str) -> Callable[[Callable[P, R]], Callable[P, R]]:
+    def inner_func(function: Callable[P, R]) -> Callable[P, R]:
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             from sentry.utils import snuba
 
             try:
-                response = function(request, *args, **kwargs)
+                response = function(*args, **kwargs)
             except snuba.RateLimitExceeded:
                 metrics.incr(
                     f"{name}.slo.http_response",
@@ -256,7 +272,9 @@ def prep_search(
     return result, query_kwargs
 
 
-def serialize_releases(request: Request, group: Group, versions: list[str]) -> list[dict[str, Any]]:
+def serialize_releases(
+    request: Request, group: Group, versions: list[str]
+) -> list[ReleaseSerializerResponse | GroupReleaseVersionResponse]:
     releases = {
         release.version: release
         for release in Release.objects.filter(
@@ -280,7 +298,10 @@ def get_first_last_release(
     request: Request,
     group: Group,
     environment_names: list[str] | None = None,
-) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+) -> tuple[
+    ReleaseSerializerResponse | GroupReleaseVersionResponse | None,
+    ReleaseSerializerResponse | GroupReleaseVersionResponse | None,
+]:
     first_release_s = group.get_first_release(environment_names=environment_names)
     if first_release_s is not None:
         last_release_s = group.get_last_release(environment_names=environment_names)

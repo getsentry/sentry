@@ -1,11 +1,11 @@
-import time
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from django.db import IntegrityError, router, transaction
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
@@ -29,16 +29,19 @@ from sentry.apidocs.response_types import (
     as_validation_errors,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import is_owned_by_acting_user
 from sentry.constants import PROJECT_SLUG_MAX_LENGTH, RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.issue_detection.detectors.disable_detectors import set_default_disabled_detectors
 from sentry.models.organization import Organization
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.team import Team
+from sentry.roles import team_roles
 from sentry.seer.similarity.utils import (
-    project_is_seer_eligible,
     set_default_project_autofix_automation_tuning,
     set_default_project_seer_preferences,
     set_default_project_seer_scanner_automation,
+    set_default_project_similarity_grouping,
 )
 from sentry.signals import project_created
 from sentry.utils.platform_categories import CONSOLES
@@ -61,9 +64,7 @@ def apply_default_project_settings(organization: Organization, project: Project)
 
     set_default_symbol_sources(project, organization)
 
-    # Create project option to turn on ML similarity feature for new EA projects
-    if project_is_seer_eligible(project):
-        project.update_option("sentry:similarity_backfill_completed", int(time.time()))
+    set_default_project_similarity_grouping(project)
 
     set_default_project_autofix_automation_tuning(organization, project)
     set_default_project_seer_scanner_automation(organization, project)
@@ -94,7 +95,7 @@ their own alerts to be notified of new issues.
         initial=True,
     )
 
-    def validate_platform(self, value):
+    def validate_platform(self, value: str) -> str:
         if not Project.is_valid_platform(value):
             raise serializers.ValidationError("Invalid platform")
 
@@ -134,6 +135,41 @@ class TeamProjectPermission(TeamPermission):
         "DELETE": ["project:admin"],
     }
 
+    def has_object_permission(self, request: Request, view: APIView, team: Any) -> bool:
+        if super().has_object_permission(request, view, team):
+            return True
+
+        # Members hold project:read. A member of this team may create a project
+        # on it, matching OrganizationProjectsEndpoint. The handler enforces
+        # disable_member_project_creation so the response carries its message.
+        return (
+            request.method == "POST"
+            and request.access.has_scope("project:read")
+            and request.access.has_team_membership(team)
+        )
+
+
+def _has_team_admin_membership(request: Request, team: Team) -> bool:
+    """Whether the caller holds a team role with team:admin on this team.
+
+    Access.has_team_scope honors team roles only when the organization has the
+    team-roles feature. Project creation does not depend on that feature, so
+    this reads the stored membership role instead.
+    """
+    if not request.user.is_authenticated:
+        return False
+    if (
+        request.access.scopes_upper_bound is not None
+        and "team:admin" not in request.access.scopes_upper_bound
+    ):
+        return False
+    return OrganizationMemberTeam.objects.filter(
+        is_owned_by_acting_user(request.user, "organizationmember__user_id"),
+        team=team,
+        is_active=True,
+        role__in=[role.id for role in team_roles.with_scope("team:admin")],
+    ).exists()
+
 
 class AuditData(TypedDict):
     request: Request
@@ -148,6 +184,7 @@ class TeamProjectsEndpoint(TeamEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (TeamProjectPermission,)
     owner = ApiOwner.FOUNDATIONS
 
@@ -170,7 +207,7 @@ class TeamProjectsEndpoint(TeamEndpoint):
         examples=TeamExamples.LIST_TEAM_PROJECTS,
     )
     def get(
-        self, request: Request, team
+        self, request: Request, team: Team
     ) -> Response[list[OrganizationProjectResponse]] | Response[_StatsPeriodErrorResponse]:
         """
         Return a list of projects bound to a team.
@@ -229,7 +266,7 @@ class TeamProjectsEndpoint(TeamEndpoint):
         examples=ProjectExamples.CREATE_PROJECT,
         description="""Create a new project bound to a team.
 
-        Note: If your organization has disabled member project creation, the `org:write` or `team:admin` scope is required.
+        Note: If your organization has disabled member project creation, the `org:write` scope or the Team Admin role on the team is required.
         """,
     )
     def post(
@@ -252,10 +289,10 @@ class TeamProjectsEndpoint(TeamEndpoint):
 
         if team.organization.flags.disable_member_project_creation and not (
             request.access.has_scope("org:write")
+            or request.access.has_team_scope(team, "team:admin")
+            or _has_team_admin_membership(request, team)
         ):
-            # Only allow project creation if the user is an admin of the team
-            if not request.access.has_team_scope(team, "team:admin"):
-                return Response({"detail": DISABLED_FEATURE_ERROR_STRING}, status=403)
+            return Response({"detail": DISABLED_FEATURE_ERROR_STRING}, status=403)
 
         result = serializer.validated_data
         with transaction.atomic(router.db_for_write(Project)):

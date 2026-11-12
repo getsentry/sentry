@@ -1,0 +1,31 @@
+import {useCallback, useLayoutEffect, useState, type RefObject} from 'react';
+import {useResizeObserver} from '@react-aria/utils';
+
+const COLUMN_BREAKPOINTS = [
+  {minWidth: 1950, columnCount: 3},
+  {minWidth: 700, columnCount: 2},
+  {minWidth: 0, columnCount: 1},
+];
+
+/**
+ * Determine the column count using available space.
+ * Note: This is pretty inefficient since it recalculates on resize, but since these grids are
+ * rendered in page contents, modals, and asides, we can't rely on window breakpoint to
+ * accurately describe the available space.
+ */
+export function useContainerColumnCount(
+  elementRef: RefObject<HTMLElement | null>
+): number {
+  const [columnCount, setColumnCount] = useState(1);
+
+  const onResize = useCallback(() => {
+    const width = elementRef.current?.clientWidth ?? 0;
+    const breakpoint = COLUMN_BREAKPOINTS.find(({minWidth}) => width >= minWidth);
+    setColumnCount(breakpoint?.columnCount ?? 1);
+  }, [elementRef]);
+
+  useLayoutEffect(onResize, [onResize]);
+  useResizeObserver({ref: elementRef, onResize});
+
+  return columnCount;
+}

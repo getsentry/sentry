@@ -7,7 +7,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, within, type RouterConfig} from 'sentry-test/reactTestingLibrary';
 
 import {getShortEventId} from 'sentry/utils/events';
-import GroupOpenPeriods from 'sentry/views/issueDetails/groupOpenPeriods';
+
+import {GroupIdProvider} from './groupIdContext';
+import GroupOpenPeriods from './groupOpenPeriods';
 
 describe('GroupOpenPeriods', () => {
   const organization = OrganizationFixture({slug: 'org-slug'});
@@ -59,12 +61,18 @@ describe('GroupOpenPeriods', () => {
       match: [MockApiClient.matchQuery({groupId, per_page: 10})],
     });
 
-    render(<GroupOpenPeriods />, {organization, initialRouterConfig});
+    render(
+      <GroupIdProvider groupId={groupId}>
+        <GroupOpenPeriods />
+      </GroupIdProvider>,
+      {organization, initialRouterConfig}
+    );
 
     expect(await screen.findByText('All Open Periods')).toBeInTheDocument();
     for (const column of ['Open Period', 'Event ID', 'Description', 'Start', 'End']) {
       expect(screen.getByText(column)).toBeInTheDocument();
     }
+    expect(screen.queryByText('Investigation')).not.toBeInTheDocument();
 
     const rows = await screen.findAllByTestId('grid-body-row');
 
@@ -75,7 +83,9 @@ describe('GroupOpenPeriods', () => {
     expect(within(statusRow).getByText('Priority updated to high')).toBeInTheDocument();
     expect(within(statusRow).queryByText('#open-period-1')).not.toBeInTheDocument();
     expect(
-      within(statusRow).getByRole('link', {name: getShortEventId(statusChangeEventId)})
+      within(statusRow).getByRole('link', {
+        name: getShortEventId(statusChangeEventId),
+      })
     ).toHaveAttribute(
       'href',
       `/organizations/${organization.slug}/issues/${groupId}/events/${statusChangeEventId}/`
@@ -84,7 +94,9 @@ describe('GroupOpenPeriods', () => {
     expect(within(openedRow).getByText('#open-period-1')).toBeInTheDocument();
     expect(within(openedRow).getByText('Issue regressed')).toBeInTheDocument();
     expect(
-      within(openedRow).getByRole('link', {name: getShortEventId(openedEventId)})
+      within(openedRow).getByRole('link', {
+        name: getShortEventId(openedEventId),
+      })
     ).toHaveAttribute(
       'href',
       `/organizations/${organization.slug}/issues/${groupId}/events/${openedEventId}/`
@@ -92,5 +104,60 @@ describe('GroupOpenPeriods', () => {
 
     expect(screen.queryByText('Resolved')).not.toBeInTheDocument();
     expect(screen.getByText('Showing 1-1 matching open periods')).toBeInTheDocument();
+  });
+
+  it('links investigations for open periods when Investigations is enabled', async () => {
+    const featureOrganization = OrganizationFixture({
+      slug: organization.slug,
+      features: ['investigations'],
+      openMembership: true,
+    });
+    const openPeriod = GroupOpenPeriodFixture({
+      id: 'open-period-1',
+      activities: [
+        GroupOpenPeriodActivityFixture({
+          id: 'activity-1',
+          type: 'opened',
+          dateCreated: '2024-01-01T00:00:00Z',
+        }),
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/open-periods/`,
+      body: [openPeriod],
+      match: [MockApiClient.matchQuery({groupId, per_page: 10})],
+    });
+    const candidatesMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/investigations/candidates/`,
+      method: 'POST',
+      body: {items: [{status: 'view', investigationId: '4567'}]},
+    });
+
+    render(
+      <GroupIdProvider groupId={groupId}>
+        <GroupOpenPeriods />
+      </GroupIdProvider>,
+      {organization: featureOrganization, initialRouterConfig}
+    );
+
+    expect(await screen.findByText('Investigation')).toBeInTheDocument();
+    expect(await screen.findByRole('link', {name: '4567'})).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/seer/investigations/4567/`
+    );
+    expect(candidatesMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: {
+          sources: [
+            {
+              type: 'metric_open_period',
+              ref: {groupId, openPeriodId: 'open-period-1'},
+            },
+          ],
+        },
+      })
+    );
   });
 });

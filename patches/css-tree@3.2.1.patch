@@ -1,0 +1,58 @@
+diff --git a/cjs/utils/create-custom-error.cjs b/cjs/utils/create-custom-error.cjs
+index d1d3e535705b2b635eedd73ddef02939b28834d5..c31b11de311895f84f456e0af3ff0b0368195066 100644
+--- a/cjs/utils/create-custom-error.cjs
++++ b/cjs/utils/create-custom-error.cjs
+@@ -6,11 +6,20 @@ function createCustomError(name, message) {
+     const error = Object.create(SyntaxError.prototype);
+     const errorStack = new Error();
+ 
+-    return Object.assign(error, {
+-        name,
+-        message,
+-        get stack() {
++    Object.assign(error, { name, message });
++
++    // Object.assign() would invoke a `get stack()` accessor and copy its result,
++    // formatting the stack eagerly. Define the accessor so it stays lazy.
++    // https://github.com/csstree/csstree/issues/377
++    return Object.defineProperty(error, 'stack', {
++        configurable: true,
++        enumerable: true,
++        get() {
+             return (errorStack.stack || '').replace(/^(.+\n){1,3}/, `${name}: ${message}\n`);
++        },
++        // keep `stack` writable, as it was when copied by Object.assign()
++        set(value) {
++            Object.defineProperty(this, 'stack', { value, writable: true, configurable: true, enumerable: true });
+         }
+     });
+ }
+diff --git a/lib/utils/create-custom-error.js b/lib/utils/create-custom-error.js
+index dba122f4eda837e5b61ada2f350cc892bdec2cbf..bbd576ac85ae54e55a2fa1849e8ef5b803d70828 100644
+--- a/lib/utils/create-custom-error.js
++++ b/lib/utils/create-custom-error.js
+@@ -4,11 +4,20 @@ export function createCustomError(name, message) {
+     const error = Object.create(SyntaxError.prototype);
+     const errorStack = new Error();
+ 
+-    return Object.assign(error, {
+-        name,
+-        message,
+-        get stack() {
++    Object.assign(error, { name, message });
++
++    // Object.assign() would invoke a `get stack()` accessor and copy its result,
++    // formatting the stack eagerly. Define the accessor so it stays lazy.
++    // https://github.com/csstree/csstree/issues/377
++    return Object.defineProperty(error, 'stack', {
++        configurable: true,
++        enumerable: true,
++        get() {
+             return (errorStack.stack || '').replace(/^(.+\n){1,3}/, `${name}: ${message}\n`);
++        },
++        // keep `stack` writable, as it was when copied by Object.assign()
++        set(value) {
++            Object.defineProperty(this, 'stack', { value, writable: true, configurable: true, enumerable: true });
+         }
+     });
+ };

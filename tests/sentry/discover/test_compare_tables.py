@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from typing import TypedDict, Unpack
 from uuid import uuid4
 
 import pytest
@@ -13,16 +14,28 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
-from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
+from sentry.models.project import Project
 from sentry.testutils.cases import BaseMetricsLayerTestCase, BaseSpansTestCase, TestCase
 from sentry.utils.samples import load_data
 
-pytestmark = pytest.mark.sentry_metrics
+pytestmark = [
+    pytest.mark.sentry_metrics,
+    pytest.mark.skip(
+        reason="Generic metrics sets, gauges, and distributions are no longer queryable"
+    ),
+]
+
+
+class SegmentKwargs(TypedDict, total=False):
+    transaction: str
+    exclusive_time: int
+    measurements: dict[str, float]
+    tags: dict[str, str]
 
 
 class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCase):
     @property
-    def now(self):
+    def now(self) -> datetime:
         return datetime.now(UTC).replace(microsecond=0)
 
     def setUp(self) -> None:
@@ -194,17 +207,17 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
     def triple_write_segment(
         self,
         *,
-        project,
-        trace_id,
-        transaction_id,
-        span_id,
-        duration,
+        project: Project,
+        trace_id: str,
+        transaction_id: str,
+        span_id: str,
+        duration: int,
         days_before_now: int = 0,
         hours_before_now: int = 0,
         minutes_before_now: int = 0,
         seconds_before_now: int = 0,
-        **kwargs,
-    ):
+        **kwargs: Unpack[SegmentKwargs],
+    ) -> None:
         kwargs.setdefault("measurements", {})
         if "lcp" not in kwargs["measurements"]:
             kwargs["measurements"]["lcp"] = duration
@@ -254,7 +267,7 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
         )
 
         self.store_performance_metric(
-            name=TransactionMRI.DURATION.value,
+            name="d:transactions/duration@millisecond",
             tags=tags,
             project_id=project.id,
             org_id=project.organization.id,

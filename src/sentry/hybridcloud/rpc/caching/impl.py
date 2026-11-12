@@ -55,7 +55,7 @@ def _delete_cache(key: str, mode: SiloMode) -> Generator[None, None, int]:
 
 
 def _get_cache(keys: list[str], mode: SiloMode) -> Generator[None, None, Mapping[str, str | int]]:
-    versions = {cv.key: cv.version for cv in _version_model(mode).objects.filter(key__in=keys)}
+    versions = _version_model(mode).get_version_map(keys)
     yield
 
     versioned_keys = [_versioned_key(key, versions.get(key, 0)) for key in keys]

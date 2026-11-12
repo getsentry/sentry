@@ -1,23 +1,18 @@
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQueryClient, useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {useModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
 import {DetailLabel} from 'admin/components/detailLabel';
-import {DetailList} from 'admin/components/detailList';
 import {DetailsContainer} from 'admin/components/detailsContainer';
 import {DetailsPage} from 'admin/components/detailsPage';
 import {PromoCodeClaimants} from 'admin/components/promoCodes/promoCodeClaimants';
@@ -33,14 +28,12 @@ export function PromoCodeDetails() {
   const queryClient = useQueryClient();
   const ENDPOINT = getApiUrl('/promocodes/$code/', {path: {code: codeId}});
 
-  const {
-    data: promoCode,
-    isPending,
-    isError,
-    refetch,
-  } = useApiQuery<PromoCode>([ENDPOINT], {
+  const queryOptions = apiOptions.as<PromoCode>()('/promocodes/$code/', {
+    path: {code: codeId},
     staleTime: 0,
   });
+
+  const {data: promoCode, isPending, isError, refetch} = useQuery(queryOptions);
 
   const onUpdateMutation = useMutation({
     mutationFn: (updatedData: Record<string, any>) => {
@@ -50,17 +43,17 @@ export function PromoCodeDetails() {
       });
     },
     onMutate: () => {
-      addLoadingMessage('Saving Changes...');
+      toast.loading('Saving Changes...');
     },
     onSuccess: data => {
-      addSuccessMessage(`Promo code has been updated with ${JSON.stringify(data)}.`);
-      setApiQueryData<PromoCode>(queryClient, [ENDPOINT], oldData => {
-        return oldData ? {...oldData, data} : undefined;
+      toast.success(`Promo code has been updated with ${JSON.stringify(data)}.`);
+      queryClient.setQueryData(queryOptions.queryKey, previous => {
+        return previous ? {...previous, json: {...previous.json, data}} : previous;
       });
     },
     onError: () => {
-      addErrorMessage('There was an internal error with updating the promo code.');
-      clearIndicators();
+      toast.error('There was an internal error with updating the promo code.');
+      toast.dismiss();
     },
   });
 
@@ -76,7 +69,7 @@ export function PromoCodeDetails() {
 
   const overviewPanel = (
     <DetailsContainer>
-      <DetailList>
+      <DescriptionList gap="md">
         <DetailLabel title="Code">
           <code>{promoCode.code}</code>
         </DetailLabel>
@@ -87,8 +80,8 @@ export function PromoCodeDetails() {
           {promoCode.maxClaims ? ` / ${promoCode.maxClaims}` : null}
         </DetailLabel>
         <DetailLabel title="New Only">{promoCode.newOnly ? 'Yes' : 'No'}</DetailLabel>
-      </DetailList>
-      <DetailList>
+      </DescriptionList>
+      <DescriptionList gap="md">
         <DetailLabel title="Status">{titleCase(promoCode.status)}</DetailLabel>
         <DetailLabel title="Duration">{promoCode.duration}</DetailLabel>
         <DetailLabel title="Created">
@@ -100,7 +93,7 @@ export function PromoCodeDetails() {
         <DetailLabel title="Trial Duration">
           {promoCode.trialDays ? promoCode.trialDays + ' days' : 'N/A'}
         </DetailLabel>
-      </DetailList>
+      </DescriptionList>
     </DetailsContainer>
   );
 
@@ -136,9 +129,11 @@ export function PromoCodeDetails() {
                 {...deps}
                 promoCode={promoCode}
                 onSubmit={(newCode: PromoCode) => {
-                  // Will be fixed soon when we get rid of setApiQueryData.
-                  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
-                  setApiQueryData<PromoCode>(queryClient, [ENDPOINT], newCode);
+                  queryClient.setQueryData(queryOptions.queryKey, previous => ({
+                    ...previous,
+                    headers: previous?.headers ?? {},
+                    json: newCode,
+                  }));
                 }}
               />
             ));

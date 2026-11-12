@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Sequence
 from datetime import datetime
 from typing import Any, Literal, NamedTuple, NotRequired, TypedDict, overload
 
 import sentry_sdk
+from django.conf import settings
 from django.core.cache import cache
 from django.db.models import Q
 from django.http.request import HttpRequest, QueryDict
@@ -12,18 +14,28 @@ from rest_framework.exceptions import ParseError, PermissionDenied, ValidationEr
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.views import APIView
+from sentry_sdk import traces
 
+from sentry import features, options
+from sentry.api.authentication import UserAuthTokenAuthentication
 from sentry.api.base import Endpoint
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.exceptions import (
+    INSUFFICIENT_SCOPE_ATTR,
+    ResourceDoesNotExist,
+    SuperuserRequired,
+)
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.projects import (
     ParsedProjectIdOrSlugParams,
     ProjectIdOrSlugField,
+    filter_projects_by_permissions,
     parse_id_or_slug_params,
 )
 from sentry.api.permissions import DemoSafePermission, StaffPermissionMixin
 from sentry.api.utils import get_date_range_from_params, is_member_disabled_from_limit
-from sentry.auth.staff import is_active_staff
+from sentry.auth import access
+from sentry.auth.principal import acting_user_id, require_user
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
 from sentry.exceptions import InvalidParams
@@ -40,12 +52,15 @@ from sentry.organizations.services.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.seer.agent_token import is_agent_auth
+from sentry.service_accounts.auth import is_service_account_auth
 from sentry.types.cell import subdomain_is_locality
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
 from sentry.utils.numbers import format_grouped_length
-from sentry.utils.sdk import bind_organization_context, set_span_attribute
-from sentry.utils.tracing import set_span_data, set_span_tag, start_span
+from sentry.utils.sdk import bind_organization_context
+
+logger = logging.getLogger(__name__)
 
 
 class NoProjects(Exception):
@@ -80,6 +95,12 @@ class OrganizationPermission(DemoSafePermission):
         "PUT": ["org:write", "org:admin"],
         "DELETE": ["org:admin"],
     }
+    # Stop accepting `settings.DEPRECATED_SCOPES` in orgs with granular scopes while the
+    # deprecated scope translation is enabled. Members get the replacements from the granular
+    # roles, and tokens holding a deprecated scope get them from the translation. Only opt in
+    # once every deprecated scope in `scope_map` has a translated replacement that the granular
+    # roles grant and this permission accepts.
+    rejects_deprecated_scopes = False
 
     def is_not_2fa_compliant(
         self, request: Request, organization: RpcOrganization | Organization
@@ -87,7 +108,7 @@ class OrganizationPermission(DemoSafePermission):
         if not organization.flags.require_2fa:
             return False
 
-        if request.user.is_authenticated and request.user.has_2fa():
+        if request.user.is_authenticated and require_user(request).has_2fa():
             return False
 
         if request.user.is_authenticated and request.user.is_sentry_app:
@@ -119,8 +140,40 @@ class OrganizationPermission(DemoSafePermission):
         organization: Organization | RpcOrganization | RpcUserOrganizationContext,
     ) -> bool:
         self.determine_access(request, organization)
-        allowed_scopes = set(self.scope_map.get(request.method or "", []))
+
+        org_slug = getattr(request, "_superuser_needs_org_auth", None)
+        if org_slug:
+            has_staff_perm = any(
+                isinstance(perm, StaffPermissionMixin) for perm in view.get_permissions()
+            )
+            delattr(request, "_superuser_needs_org_auth")
+            if not has_staff_perm:
+                raise SuperuserRequired(orgSlug=org_slug)
+
+        allowed_scopes = self.get_allowed_scopes(request, organization)
         return any(request.access.has_scope(s) for s in allowed_scopes)
+
+    def get_allowed_scopes(
+        self,
+        request: Request,
+        organization: Organization | RpcOrganization | RpcUserOrganizationContext,
+    ) -> set[str]:
+        """The scopes that grant access to `organization` for the request's method."""
+        allowed_scopes = set(self.scope_map.get(request.method or "", []))
+        if self.rejects_deprecated_scopes and self._deprecated_scopes_retired(organization):
+            allowed_scopes -= settings.DEPRECATED_SCOPES
+        return allowed_scopes
+
+    def _deprecated_scopes_retired(
+        self, organization: Organization | RpcOrganization | RpcUserOrganizationContext
+    ) -> bool:
+        if isinstance(organization, RpcUserOrganizationContext):
+            organization = organization.organization
+        # TODO: Remove deprecated scopes from opted-in scope maps once the translation is
+        # enabled everywhere.
+        return options.get("auth.deprecated-scope-translation.enabled") and features.has(
+            "organizations:granular-permission-scopes", organization
+        )
 
     def is_member_disabled_from_limit(
         self,
@@ -166,6 +219,12 @@ class OrganizationEventPermission(OrganizationPermission):
 # additional checks to limit actions to releases
 # associated with projects people have access to
 class OrganizationReleasePermission(OrganizationPermission):
+    """
+    Includes org:ci so CI org-auth-tokens (e.g. sentry-cli) can manage releases.
+    Use only for release endpoints. Do not reuse an org:ci permission for endpoints
+    exposing data a CI token should not read.
+    """
+
     scope_map = {
         "GET": ["project:read", "project:write", "project:admin", "project:releases", "org:ci"],
         "POST": ["project:write", "project:admin", "project:releases", "org:ci"],
@@ -184,6 +243,15 @@ class OrganizationIntegrationsPermission(OrganizationPermission):
 
 
 class OrganizationIntegrationsLoosePermission(OrganizationPermission):
+    """
+    "Loose" because GET also grants org:ci, so CI org-auth-tokens (e.g. sentry-cli)
+    can call it; this was added for the repositories list. Use only for integration
+    reads that are safe for CI tokens. Do NOT reuse for endpoints returning repo or
+    source content (PR diffs, file trees, source) — or any other data a CI token
+    should not read. Prefer OrganizationIntegrationsPermission (no org:ci), or
+    SessionNoAuthTokenAuthentication for UI-only endpoints.
+    """
+
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin", "org:integrations", "org:ci"],
         "POST": ["org:read", "org:write", "org:admin", "org:integrations"],
@@ -193,6 +261,12 @@ class OrganizationIntegrationsLoosePermission(OrganizationPermission):
 
 
 class OrganizationCodeMappingsBulkPermission(OrganizationPermission):
+    """
+    Grants org:ci on GET/POST so sentry-cli can set up bulk code mappings in CI.
+    Use only for CI-driven code-mapping setup. Do not reuse an org:ci permission for
+    endpoints exposing data a CI token should not read.
+    """
+
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin", "org:integrations", "org:ci"],
         "POST": ["org:read", "org:write", "org:admin", "org:integrations", "org:ci"],
@@ -251,11 +325,52 @@ class OrganizationDetectorPermission(OrganizationPermission):
 
 
 class OrgAuthTokenPermission(OrganizationPermission):
+    """
+    Org auth tokens can be managed from a browser session, or by an OAuth application
+    token (e.g. the Sentry CLI) acting for a member who consented to `org:tokens`.
+
+    Every other token type is rejected: personal tokens cannot hold token-only scopes
+    like `org:tokens`, and org auth / integration tokens must never mint new tokens.
+    """
+
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
         "POST": ["org:read", "org:write", "org:admin"],
         "PUT": ["org:read", "org:write", "org:admin"],
         "DELETE": ["org:write", "org:admin"],
+    }
+
+    def has_permission(self, request: Request, view: APIView) -> bool:
+        if request.auth is not None:
+            if not self._is_oauth_application_token(request):
+                return False
+            if not request.auth.has_scope("org:tokens"):
+                setattr(request, INSUFFICIENT_SCOPE_ATTR, {"org:tokens"})
+                return False
+        return super().has_permission(request, view)
+
+    @staticmethod
+    def _is_oauth_application_token(request: Request) -> bool:
+        return (
+            isinstance(request.successful_authenticator, UserAuthTokenAuthentication)
+            and is_api_token_auth(request.auth)
+            and request.auth.application_id is not None
+            and not getattr(request.user, "is_sentry_app", False)
+        )
+
+
+def get_issuing_token_audit_log_data(request: Request) -> dict[str, int]:
+    """
+    Record which OAuth application and token managed an org auth token, so tokens minted by
+    a compromised OAuth grant can be traced back to it.
+    """
+    if not is_api_token_auth(request.auth) or request.auth.application_id is None:
+        return {}
+    issuing_token = AuthenticatedToken.from_token(request.auth)
+    assert issuing_token is not None and issuing_token.entity_id is not None
+    return {
+        "application_id": request.auth.application_id,
+        "api_token_id": issuing_token.entity_id,
     }
 
 
@@ -300,21 +415,22 @@ class ControlSiloOrganizationEndpoint(Endpoint):
                 raise ResourceDoesNotExist
 
         if str(organization_id_or_slug).isdecimal():
-            # It is ok that `get_organization_by_id` doesn't check for visibility as we
-            # don't check the visibility in `get_organization_by_slug` either (only_active=False).
-            organization_context = organization_service.get_organization_by_id(
-                id=int(organization_id_or_slug), user_id=request.user.id
+            organization_context = access.get_organization_access_context(
+                request, organization_id=int(organization_id_or_slug)
             )
         else:
-            organization_context = organization_service.get_organization_by_slug(
-                slug=str(organization_id_or_slug), only_visible=False, user_id=request.user.id
+            organization_context = organization_service.get_access_context_by_slug(
+                slug=str(organization_id_or_slug),
+                only_visible=False,
+                user_id=acting_user_id(request.user),
+                include_resource_ids=access.should_prefetch_organization_resources(request),
             )
         if organization_context is None:
             raise ResourceDoesNotExist
 
-        with start_span(
-            op="check_object_permissions_on_organization",
+        with traces.start_span(
             name="check_object_permissions_on_organization",
+            attributes={"sentry.op": "check_object_permissions_on_organization"},
         ):
             self.check_object_permissions(request, organization_context)
 
@@ -428,11 +544,12 @@ class OrganizationEndpoint(Endpoint):
             qs = qs.filter(id__in=ids)
         # No project ids or slugs === `all projects I am a member of`
 
-        with start_span(
-            op="fetch_organization_projects", name="fetch_organization_projects"
+        with traces.start_span(
+            name="fetch_organization_projects",
+            attributes={"sentry.op": "fetch_organization_projects"},
         ) as span:
             projects = list(qs)
-            set_span_data(span, "Project Count", len(projects))
+            span.set_attribute("Project Count", len(projects))
 
         filter_by_membership = not bool(ids) and not bool(slugs)
         filtered_projects = self._filter_projects_by_permissions(
@@ -457,34 +574,13 @@ class OrganizationEndpoint(Endpoint):
         force_global_perms: bool = False,
         include_all_accessible: bool = False,
     ) -> list[Project]:
-        with start_span(op="apply_project_permissions", name="apply_project_permissions") as span:
-            set_span_data(span, "Project Count", len(projects))
-            if force_global_perms:
-                set_span_tag(span, "mode", "force_global_perms")
-                return projects
-
-            # There is a special case for staff, where we want to fetch a single project (OrganizationStatsEndpointV2)
-            # or all projects (OrganizationMetricsDetailsEndpoint) in _admin. Staff cannot use has_project_access
-            # like superuser because it fails due to staff having no scopes. The workaround is to create a lambda that
-            # mimics checking for active projects like has_project_access without further validation.
-            # NOTE: We must check staff before superuser or else _admin will fail when both cookies are active
-            if is_active_staff(request):
-                set_span_tag(span, "mode", "staff_fetch_all")
-                proj_filter = lambda proj: proj.status == ObjectStatus.ACTIVE  # noqa: E731
-            # Superuser should fetch all projects.
-            # Also fetch all accessible projects if requesting $all
-            elif is_active_superuser(request) or include_all_accessible:
-                set_span_tag(span, "mode", "has_project_access")
-                proj_filter = request.access.has_project_access
-            # Check if explicitly requesting specific projects
-            elif not filter_by_membership:
-                set_span_tag(span, "mode", "has_project_access")
-                proj_filter = request.access.has_project_access
-            else:
-                set_span_tag(span, "mode", "has_project_membership")
-                proj_filter = request.access.has_project_membership
-
-            return [p for p in projects if proj_filter(p)]
+        return filter_projects_by_permissions(
+            projects=projects,
+            request=request,
+            filter_by_membership=filter_by_membership,
+            force_global_perms=force_global_perms,
+            include_all_accessible=include_all_accessible,
+        )
 
     def get_requested_project_ids_unchecked(self, request: HttpRequest) -> set[int]:
         """
@@ -655,7 +751,11 @@ class OrganizationEndpoint(Endpoint):
             )
             # For some reason we use range in saved queries
             if "range" in data and "statsPeriod" not in data:
-                data["statsPeriod"] = data["range"]
+                if not isinstance(data, QueryDict):
+                    logger.warning("deprecated range parameter used")
+                    data["statsPeriod"] = data["range"]
+                else:
+                    raise ParseError(detail="range is not a supported parameter")
             start, end = get_date_range_from_params(data, optional=date_filter_optional)
             if start and end:
                 total_seconds = (end - start).total_seconds()
@@ -695,7 +795,9 @@ class OrganizationEndpoint(Endpoint):
         sentry_sdk.set_attribute("query.num_projects", len_projects)
         sentry_sdk.set_tag("query.num_projects.grouped", format_grouped_length(len_projects))
         sentry_sdk.set_attribute("query.num_projects.grouped", format_grouped_length(len_projects))
-        set_span_attribute("query.num_projects", len_projects)
+        span = traces.get_current_span()
+        if span:
+            span.set_attribute("query.num_projects", len_projects)
 
         params: FilterParams = {
             "start": start,
@@ -753,9 +855,9 @@ class OrganizationEndpoint(Endpoint):
         except Organization.DoesNotExist:
             raise ResourceDoesNotExist
 
-        with start_span(
-            op="check_object_permissions_on_organization",
+        with traces.start_span(
             name="check_object_permissions_on_organization",
+            attributes={"sentry.op": "check_object_permissions_on_organization"},
         ):
             self.check_object_permissions(request, organization)
 
@@ -812,8 +914,20 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             is_api_token_auth(request.auth) and request.access.has_scope("project:releases")
         )
 
+        agent_auth = request.auth if is_agent_auth(request.auth) else None
+        has_valid_agent_auth = (
+            agent_auth is not None and agent_auth.organization_id == organization.id
+        )
+        has_valid_service_account_auth = (
+            is_service_account_auth(request.auth)
+            and request.auth.organization_id == organization.id
+        )
+
         if not (
-            has_valid_api_key or (getattr(request, "user", None) and request.user.is_authenticated)
+            has_valid_api_key
+            or has_valid_agent_auth
+            or has_valid_service_account_auth
+            or (getattr(request, "user", None) and request.user.is_authenticated)
         ):
             return []
 
@@ -847,14 +961,19 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         via has_global_access.
 
         Results are cached for 60s per actor/org/release/effective-project-scope/mode.
+        Agent requests bypass the cache so every call rechecks live project membership.
+        Service accounts bypass it too. With no user, they'd fall into the
+        `apikey:<entity_id>` key below, where a service account ID can match an
+        API key ID.
         """
         actor_id = None
         has_perms = None
         key = None
-        if request.user.is_authenticated:
-            actor_id = "user:%s" % request.user.id
-        elif request.auth is not None:
-            actor_id = "apikey:%s" % request.auth.entity_id
+        if not is_agent_auth(request.auth) and not is_service_account_auth(request.auth):
+            if request.user.is_authenticated:
+                actor_id = "user:%s" % require_user(request).id
+            elif request.auth is not None:
+                actor_id = "apikey:%s" % request.auth.entity_id
         if actor_id is not None:
             if project_ids:
                 requested_projects = ParsedProjectIdOrSlugParams(ids=project_ids, slugs=set())

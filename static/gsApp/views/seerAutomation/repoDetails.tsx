@@ -1,4 +1,5 @@
-import {useEffect, useRef} from 'react';
+import {useEffect} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {DrawerBody, DrawerHeader, useDrawer} from '@sentry/scraps/drawer';
@@ -12,11 +13,9 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NoAccess} from 'sentry/components/noAccess';
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
-import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
+import {repositoryWithSettingsApiOptions} from 'sentry/components/repositories/repositoryWithSettingsApiOptions';
 import {RepoDetailsForm} from 'sentry/components/seer/repoDetails/repoDetailsForm';
 import {t} from 'sentry/locale';
-import type {RepositoryWithSettings} from 'sentry/types/integrations';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {orgHasCodeReviewFeature} from 'sentry/utils/seer/orgHasCodeReviewFeature';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -30,9 +29,6 @@ export default function SeerRepoDetails() {
   const organization = useOrganization();
   const {openDrawer} = useDrawer();
 
-  const queryRef = useRef(query);
-  queryRef.current = query;
-
   const isSupportedProvider = useIsSeerSupportedProvider();
 
   const hasCodeReviewAccess = orgHasCodeReviewFeature(organization);
@@ -42,13 +38,10 @@ export default function SeerRepoDetails() {
     error,
     isPending,
     refetch,
-  } = useApiQuery<RepositoryWithSettings>(
-    getRepositoryWithSettingsQueryKey(organization, repoId ?? ''),
-    {
-      staleTime: 0,
-      enabled: !!repoId && hasCodeReviewAccess,
-    }
-  );
+  } = useQuery({
+    ...repositoryWithSettingsApiOptions(organization, repoId ?? ''),
+    enabled: !!repoId && hasCodeReviewAccess,
+  });
 
   useEffect(() => {
     if (!repoId) {
@@ -94,7 +87,7 @@ export default function SeerRepoDetails() {
         onClose: () => {
           navigate({
             pathname: `/settings/${organization.slug}/seer/repos/`,
-            query: queryRef.current,
+            query,
           });
         },
         shouldCloseOnLocationChange: nextLocation =>
@@ -109,6 +102,7 @@ export default function SeerRepoDetails() {
     navigate,
     openDrawer,
     organization,
+    query,
     refetch,
     repoId,
     repoWithSettings,

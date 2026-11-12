@@ -19,6 +19,7 @@ from sentry.analytics.events.internal_integration_created import InternalIntegra
 from sentry.analytics.events.sentry_app_created import SentryAppCreatedEvent
 from sentry.analytics.events.sentry_app_updated import SentryAppUpdatedEvent
 from sentry.api.helpers.slugs import sentry_slugify
+from sentry.auth.principal import RequestPrincipal, acting_user_id
 from sentry.auth.staff import has_staff_option
 from sentry.constants import SentryAppStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
@@ -40,10 +41,10 @@ from sentry.sentry_apps.metrics import (
 )
 from sentry.sentry_apps.models.sentry_app import (
     MASKED_VALUE,
-    REQUIRED_EVENT_PERMISSIONS,
     UUID_CHARS_IN_SLUG,
     SentryApp,
     default_uuid,
+    required_scope_for_subscription,
 )
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
@@ -91,7 +92,7 @@ def expand_events(rolled_up_events: list[str]) -> list[str]:
 
 
 # TODO(schew2381): Delete this method after staff is GA'd and the options are removed
-def _is_elevated_user(user) -> bool:
+def _is_elevated_user(user: RequestPrincipal) -> bool:
     """
     This is a temporary helper method that checks if the user can become staff
     if staff mode is enabled. Otherwise, it defaults to checking that the user
@@ -120,7 +121,7 @@ class SentryAppUpdater:
     features: list[int] | None = None
     is_disabled: bool | None = None
 
-    def run(self, user: User | RpcUser) -> SentryApp:
+    def run(self, user: RequestPrincipal) -> SentryApp:
         with SentryAppInteractionEvent(
             operation_type=SentryAppInteractionType.MANAGEMENT,
             event_type=SentryAppEventType.APP_UPDATE,
@@ -147,7 +148,7 @@ class SentryAppUpdater:
             self.record_analytics(user, new_schema_elements)
             return self.sentry_app
 
-    def _update_features(self, user: User | RpcUser) -> None:
+    def _update_features(self, user: RequestPrincipal) -> None:
         if self.features is not None:
             if not _is_elevated_user(user) and self.sentry_app.status == SentryAppStatus.PUBLISHED:
                 raise ParseError(detail="Cannot update features on a published integration.")
@@ -166,7 +167,7 @@ class SentryAppUpdater:
         if self.author is not None:
             self.sentry_app.author = self.author
 
-    def _update_status(self, user: User | RpcUser) -> None:
+    def _update_status(self, user: RequestPrincipal) -> None:
         # All status changes require elevated permissions (superuser/staff).
         # The publish request endpoint handles its own status change directly.
         if self.status is not None and _is_elevated_user(user):
@@ -192,6 +193,11 @@ class SentryAppUpdater:
 
             self.sentry_app.scope_list = self.scopes
 
+            # Without an application the app has no tokens, and application=None would match
+            # every personal token.
+            if self.sentry_app.application_id is None:
+                return
+
             # update the scopes of active tokens tokens
             tokens = list(
                 ApiToken.objects.filter(
@@ -206,7 +212,7 @@ class SentryAppUpdater:
     def _update_events(self) -> None:
         if self.events is not None:
             for event in self.events:
-                needed_scope = REQUIRED_EVENT_PERMISSIONS[event]
+                needed_scope = required_scope_for_subscription(event)
                 if needed_scope not in self.sentry_app.scope_list:
                     raise ParseError(
                         detail=f"{event} webhooks require the {needed_scope} permission."
@@ -270,7 +276,7 @@ class SentryAppUpdater:
         if self.is_alertable is not None:
             self.sentry_app.is_alertable = self.is_alertable
 
-    def _update_is_disabled(self, user: User | RpcUser) -> None:
+    def _update_is_disabled(self, user: RequestPrincipal) -> None:
         if self.is_disabled is not None and _is_elevated_user(user):
             self.sentry_app.is_disabled = self.is_disabled
 
@@ -306,6 +312,8 @@ class SentryAppUpdater:
         # they should re-enter the value when renaming.
         existing_by_name = {}
         for header in self.sentry_app.webhook_headers:
+            if header is None:
+                continue
             name, separator, _value = header.partition(":")
             if separator:
                 existing_by_name[name.strip().lower()] = header
@@ -323,7 +331,7 @@ class SentryAppUpdater:
         self.sentry_app.webhook_headers = resolved
         # Persisted by the sentry_app.save() call at the end of run().
 
-    def _update_popularity(self, user: User | RpcUser) -> None:
+    def _update_popularity(self, user: RequestPrincipal) -> None:
         if self.popularity is not None:
             if _is_elevated_user(user):
                 self.sentry_app.popularity = self.popularity
@@ -353,11 +361,13 @@ class SentryAppUpdater:
                     type=element["type"], sentry_app_id=self.sentry_app.id, schema=element
                 )
 
-    def record_analytics(self, user: User | RpcUser, new_schema_elements: set[str] | None) -> None:
+    def record_analytics(
+        self, user: RequestPrincipal, new_schema_elements: set[str] | None
+    ) -> None:
         created_alert_rule_ui_component = "alert-rule-action" in (new_schema_elements or set())
         analytics.record(
             SentryAppUpdatedEvent(
-                user_id=user.id,
+                user_id=acting_user_id(user),
                 organization_id=self.sentry_app.owner_id,
                 sentry_app=self.sentry_app.slug,
                 created_alert_rule_ui_component=created_alert_rule_ui_component,
@@ -382,7 +392,7 @@ class SentryAppCreator:
     allowed_origins: list[str] = dataclasses.field(default_factory=list)
     webhook_headers: list[str] = dataclasses.field(default_factory=list)
     popularity: int | None = None
-    metadata: dict | None = field(default_factory=dict)
+    metadata: dict[str, object] | None = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if self.is_internal:

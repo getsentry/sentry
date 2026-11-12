@@ -1,18 +1,19 @@
+import {IconInfo} from '@sentry/icons/info';
 import {useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AlertLink} from '@sentry/scraps/alert';
 import {defaultFormOptions, FieldGroup, useScrapsForm} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Redirect} from 'sentry/components/redirect';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -84,7 +85,7 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
           "Receive notifications when your organization's usage exceeds a threshold"
         )}
       />
-      <Flex direction="column" gap="2xl">
+      <Stack gap="2xl">
         <AlertLink
           to="/settings/account/notifications/quota/"
           variant="info"
@@ -109,7 +110,7 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
         ) : (
           <ContactBillingMembers />
         )}
-      </Flex>
+      </Stack>
     </SubscriptionPageContainer>
   );
 }
@@ -133,15 +134,17 @@ function ThresholdsForm({
     onSubmit: async ({value}) => {
       try {
         await fetchMutation({
-          url: `/customers/${organization.slug}/spend-notifications/`,
+          url: getApiUrl('/customers/$organizationIdOrSlug/spend-notifications/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
           method: 'POST',
           data: value,
         });
-        addSuccessMessage(t('Threshold notifications saved successfully.'));
+        toast.success(t('Threshold notifications saved successfully.'));
         await onSuccess();
         form.reset();
       } catch {
-        addErrorMessage(t('Unable to save threshold notifications.'));
+        toast.error(t('Unable to save threshold notifications.'));
       }
     },
   });

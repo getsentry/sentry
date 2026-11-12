@@ -2,10 +2,11 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import {CommitRow} from 'sentry/components/commitRow';
 import type {Commit, Repository} from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
 import type {User} from 'sentry/types/user';
+
+import {CommitRow} from './commitRow';
 
 jest.mock('sentry/components/hovercard', () => {
   return {
@@ -46,11 +47,6 @@ const baseCommit: Commit = {
 
 // static/app/components/hovercard.tsx
 describe('commitRow', () => {
-  it('renders custom avatar', () => {
-    render(<CommitRow commit={baseCommit} customAvatar="Custom Avatar" />);
-    expect(screen.getByText(/Custom Avatar/)).toBeInTheDocument();
-  });
-
   it('renders invite flow for non associated users', async () => {
     const commit = {
       ...baseCommit,

@@ -1,20 +1,23 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
+import {IconGrabbable} from '@sentry/icons/grabbable';
 import {AnimatePresence} from 'framer-motion';
 
 import {Backdrop} from '@sentry/scraps/backdrop';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {InfoTip} from '@sentry/scraps/info';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 import {Heading} from '@sentry/scraps/text';
 
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {IconClose, IconGrabbable} from 'sentry/icons';
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import {t} from 'sentry/locale';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
-import {AppSizeInsightsSidebarRow} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsightsSidebarRow';
 import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 import type {ProcessedInsight} from 'sentry/views/preprod/utils/insightProcessing';
+
+import {AppSizeInsightsSidebarRow} from './appSizeInsightsSidebarRow';
 
 interface AppSizeInsightsSidebarProps {
   isOpen: boolean;
@@ -92,17 +95,22 @@ export function AppSizeInsightsSidebar({
           panelWidth={`${constrainedWidth}px`}
           ariaLabel={t('App size insights details')}
         >
-          <Flex height="100%" direction="column">
+          <Stack height="100%">
             <Header padding="xl" align="center" justify="between">
               <Flex align="center" gap="sm">
                 <Heading as="h2" size="xl">
                   {t('Insights')}
                 </Heading>
-                <PageHeadingQuestionTooltip
-                  docsUrl={getInsightsDocsUrl(platform)}
-                  title={t(
-                    'Insights help you identify opportunities to reduce your app size.'
-                  )}
+                <InfoTip
+                  title={
+                    <DocumentationHint docsUrl={getInsightsDocsUrl(platform)}>
+                      {t(
+                        'Insights help you identify opportunities to reduce your app size.'
+                      )}
+                    </DocumentationHint>
+                  }
+                  size="sm"
+                  position="right"
                 />
               </Flex>
               <Button
@@ -124,7 +132,7 @@ export function AppSizeInsightsSidebar({
               </ResizeHandle>
 
               <Flex flex={1} overflowY="auto" padding="xl">
-                <Flex direction="column" gap="xl" width="100%">
+                <Stack gap="xl" width="100%">
                   {processedInsights.map(insight => {
                     const isGroupedInsight =
                       insight.key === 'duplicate_files' || insight.key === 'loose_images';
@@ -140,10 +148,10 @@ export function AppSizeInsightsSidebar({
                       />
                     );
                   })}
-                </Flex>
+                </Stack>
               </Flex>
             </Flex>
-          </Flex>
+          </Stack>
         </SlideOverPanel>
       )}
     </Fragment>

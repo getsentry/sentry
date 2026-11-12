@@ -1,25 +1,21 @@
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQueryClient, useQuery} from '@tanstack/react-query';
 
 import {SentryAppAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import type {SentryApp} from 'sentry/types/integrations';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
 import {DetailLabel} from 'admin/components/detailLabel';
-import {DetailList} from 'admin/components/detailList';
 import {DetailsContainer} from 'admin/components/detailsContainer';
 import type {ActionItem, BadgeItem} from 'admin/components/detailsPage';
 import {DetailsPage} from 'admin/components/detailsPage';
@@ -35,28 +31,45 @@ export function SentryAppDetails() {
   const api = useApi();
   const queryClient = useQueryClient();
 
-  const {data, isPending, isError, refetch} = useApiQuery<any>([ENDPOINT], {
+  const queryOptions = apiOptions.as<
+    SentryApp & {isDisabled: boolean; owner: NonNullable<SentryApp['owner']>}
+  >()('/sentry-apps/$sentryAppIdOrSlug/', {
+    path: {sentryAppIdOrSlug: sentryAppSlug},
     staleTime: 0,
   });
 
+  const {data, isPending, isError, refetch} = useQuery(queryOptions);
+
   const onUpdateMutation = useMutation({
-    mutationFn: (updatedData: Record<string, any>) => {
+    mutationFn: (
+      updatedData: Record<string, unknown>
+    ): Promise<
+      SentryApp & {isDisabled: boolean; owner: NonNullable<SentryApp['owner']>}
+    > => {
       return api.requestPromise(ENDPOINT, {
         method: 'PUT',
         data: updatedData,
       });
     },
     onMutate: () => {
-      addLoadingMessage('Saving Changes...');
+      toast.loading('Saving Changes...');
     },
     onSuccess: updatedData => {
-      addSuccessMessage(`Resource has been updated with ${JSON.stringify(updatedData)}.`);
-      clearIndicators();
-      setApiQueryData(queryClient, [ENDPOINT], updatedData);
+      toast.success(`Resource has been updated with ${JSON.stringify(updatedData)}.`);
+      toast.dismiss();
+      queryClient.setQueryData(queryOptions.queryKey, previous =>
+        updatedData === undefined
+          ? previous
+          : {
+              ...previous,
+              headers: previous?.headers ?? {},
+              json: updatedData,
+            }
+      );
     },
     onError: () => {
-      addErrorMessage('There was an internal error with updating the resource.');
-      clearIndicators();
+      toast.error('There was an internal error with updating the resource.');
+      toast.dismiss();
     },
   });
 
@@ -112,13 +125,7 @@ export function SentryAppDetails() {
     help: 'Update the details of this Sentry App (e.g. popularity)',
     skipConfirmModal: true,
     onAction: () =>
-      openModal(deps => (
-        <SentryAppUpdateModal
-          {...deps}
-          sentryAppData={data}
-          onAction={onUpdateMutation.mutate}
-        />
-      )),
+      openModal(deps => <SentryAppUpdateModal {...deps} sentryAppData={data} />),
   };
 
   const actions =
@@ -132,7 +139,7 @@ export function SentryAppDetails() {
 
   const overview = (
     <DetailsContainer>
-      <DetailList>
+      <DescriptionList gap="md">
         <DetailLabel title="Name">{data.name}</DetailLabel>
         <DetailLabel title="Slug">{data.slug}</DetailLabel>
         <DetailLabel title="Status">{data.status}</DetailLabel>
@@ -143,14 +150,14 @@ export function SentryAppDetails() {
         <DetailLabel title="Enabled" yesNo={!data.isDisabled} />
         <DetailLabel title="Popularity">{data.popularity}</DetailLabel>
         <DetailLabel title="Scopes">
-          {data.scopes.map((scope: any) => (
+          {data.scopes.map(scope => (
             <div key={scope}>
               <code>{scope}</code>
             </div>
           ))}
         </DetailLabel>
         <DetailLabel title="Features">
-          {data.featureData?.map((feature: any) => (
+          {data.featureData?.map(feature => (
             <div key={feature.featureGate}>
               {
                 <Tag variant="warning">
@@ -160,14 +167,14 @@ export function SentryAppDetails() {
             </div>
           ))}
         </DetailLabel>
-      </DetailList>
-      <DetailList>
+      </DescriptionList>
+      <DescriptionList gap="md">
         <DetailLabel title="Directory Logo" />
         <SentryAppAvatar sentryApp={data} size={100} />
         <br />
         <DetailLabel title="UI Component Icon" />
         <SentryAppAvatar sentryApp={data} size={30} isColor={false} />
-      </DetailList>
+      </DescriptionList>
     </DetailsContainer>
   );
 

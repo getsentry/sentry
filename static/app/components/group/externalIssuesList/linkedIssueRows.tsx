@@ -1,15 +1,16 @@
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {GroupIntegrationIssueResult} from 'sentry/components/group/externalIssuesList/hooks/types';
-import {IconClose} from 'sentry/icons';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {t} from 'sentry/locale';
+
+import type {GroupIntegrationIssueResult} from './hooks/types';
 
 interface LinkedIssueRowsProps {
   linkedIssues: GroupIntegrationIssueResult['linkedIssues'];
@@ -23,10 +24,9 @@ const DEFAULT_ICON_OFFSET = -1;
 
 export function LinkedIssueRows({linkedIssues}: LinkedIssueRowsProps) {
   return (
-    <Flex
+    <Stack
       as="ul"
       aria-label={t('Linked issues')}
-      direction="column"
       border="primary"
       radius="md"
       overflow="hidden"
@@ -43,7 +43,7 @@ export function LinkedIssueRows({linkedIssues}: LinkedIssueRowsProps) {
           <LinkedIssueRow linkedIssue={linkedIssue} />
         </Container>
       ))}
-    </Flex>
+    </Stack>
   );
 }
 
@@ -56,15 +56,29 @@ function LinkedIssueRow({linkedIssue}: LinkedIssueRowProps) {
     <LinkedIssueRowGrid>
       <InteractionStateLayer />
       <LinkedIssueRowLink href={linkedIssue.url}>
-        <LinkedIssueRowIcon
+        <Flex
+          as="span"
+          display="inline-flex"
+          justify="center"
+          align="center"
+          flexShrink={0}
+          width="14px"
+          height="14px"
           aria-hidden
           style={{
             transform: `translateY(${linkedIssue.displayIconOffset ?? DEFAULT_ICON_OFFSET}px)`,
           }}
         >
           {linkedIssue.displayIcon}
-        </LinkedIssueRowIcon>
-        <LinkedIssueRowTitleCell>
+        </Flex>
+        <Container
+          as="span"
+          display="block"
+          width="100%"
+          minWidth="0"
+          maxWidth="100%"
+          overflow="hidden"
+        >
           <Tooltip
             title={
               <Text as="span" align="left" wordBreak="break-word">
@@ -77,7 +91,7 @@ function LinkedIssueRow({linkedIssue}: LinkedIssueRowProps) {
           >
             <LinkedIssueRowTitle>{displayTitle}</LinkedIssueRowTitle>
           </Tooltip>
-        </LinkedIssueRowTitleCell>
+        </Container>
       </LinkedIssueRowLink>
       <Flex as="span" align="center" padding="xs sm" paddingLeft="0" paddingRight="xs">
         <Tooltip title={t('Unlink issue')} skipWrapper>
@@ -119,23 +133,6 @@ const LinkedIssueRowLink = styled(ExternalLink)`
   &:hover {
     color: ${p => p.theme.tokens.content.primary};
   }
-`;
-
-const LinkedIssueRowTitleCell = styled('span')`
-  display: block;
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
-`;
-
-const LinkedIssueRowIcon = styled('span')`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 14px;
-  height: 14px;
 `;
 
 const LinkedIssueRowTitle = styled('span')`

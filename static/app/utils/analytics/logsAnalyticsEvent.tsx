@@ -19,6 +19,7 @@ export type LogsAnalyticsEventParameters = {
     page_source: LogsAnalyticsPageSource;
     toggleState: 'enabled' | 'disabled';
   };
+  'logs.delete_query': Record<string, unknown>;
   'logs.explorer.continue_searching_clicked': {
     bytes_scanned: number;
     organization: Organization;
@@ -77,7 +78,19 @@ export type LogsAnalyticsEventParameters = {
   'logs.save_query_modal': {
     action: 'open' | 'submit';
     save_type: 'save_new_query' | 'rename_query';
-    ui_source: 'toolbar' | 'table';
+    ui_source: 'toolbar' | 'table' | 'explorer';
+  };
+  'logs.star_query': {
+    save_type: 'star_query' | 'unstar_query';
+    ui_source: 'table' | 'explorer';
+  };
+  'logs.table.pinned_row_not_in_results': {
+    log_id: string;
+    organization: Organization;
+  };
+  'logs.table.pinned_row_scrolled_to': {
+    log_id: string;
+    organization: Organization;
   };
   'logs.table.row_copied_as_json': {
     log_id: string;
@@ -88,6 +101,11 @@ export type LogsAnalyticsEventParameters = {
     page_source: LogsAnalyticsPageSource;
   };
   'logs.table.row_link_copied': {
+    log_id: string;
+    organization: Organization;
+  };
+  'logs.table.row_viewed_in_context': {
+    context: 'trace' | 'time';
     log_id: string;
     organization: Organization;
   };
@@ -131,8 +149,13 @@ export const logsAnalyticsEventMap: Record<LogsAnalyticsEventKey, string | null>
     'Logs Tracing Onboarding Platform Docs Viewed',
   'logs.save_as': 'Logs Save As',
   'logs.save_query_modal': 'Logs Save Query Modal',
+  'logs.star_query': 'Logs Star Query',
+  'logs.delete_query': 'Logs Delete Query',
   'logs.onboarding_platform_docs_viewed':
     'Logs Explore Empty State (Onboarding) - Platform Docs Viewed',
+  'logs.table.pinned_row_not_in_results': 'Logs Pinned Row Not in Results',
+  'logs.table.pinned_row_scrolled_to': 'Logs Pinned Row Scrolled To',
   'logs.table.row_copied_as_json': 'Logs Row Copied as JSON',
   'logs.table.row_link_copied': 'Logs Row Link Copied',
+  'logs.table.row_viewed_in_context': 'Logs Row Viewed in Context',
 };

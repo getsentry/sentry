@@ -1,0 +1,492 @@
+import {useState} from 'react';
+import {DetectedPlatformFixture} from 'sentry-fixture/detectedPlatform';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RepositoryFixture} from 'sentry-fixture/repository';
+
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import * as analytics from 'sentry/utils/analytics';
+
+import {ScmPlatformFeaturesCore} from './scmPlatformFeaturesCore';
+
+jest.unmock('@tanstack/react-pacer');
+
+// Mock the virtualizer so the manual-picker Select renders in JSDOM (no layout
+// engine).
+jest.mock('@tanstack/react-virtual', () => ({
+  useVirtualizer: jest.fn(({count}) => ({
+    getVirtualItems: () =>
+      Array.from({length: count}, (_, i) => ({
+        key: i,
+        index: i,
+        start: i * 36,
+        size: 36,
+      })),
+    getTotalSize: () => count * 36,
+    measure: jest.fn(),
+    measureElement: jest.fn(),
+    scrollToIndex: jest.fn(),
+  })),
+}));
+
+// Provide a small platform list so the Select dropdown renders a manageable
+// number of options in JSDOM.
+jest.mock('sentry/data/platforms', () => {
+  const actual = jest.requireActual('sentry/data/platforms');
+  return {
+    ...actual,
+    platforms: actual.platforms.filter(
+      (p: {id: string}) =>
+        p.id === 'javascript' ||
+        p.id === 'python' ||
+        p.id === 'python-django' ||
+        // Not in the curated popular list, so the picker gets both sections.
+        p.id === 'deno'
+    ),
+  };
+});
+
+const pythonPlatform: OnboardingSelectedSDK = {
+  key: 'python',
+  name: 'Python',
+  language: 'python',
+  type: 'language',
+  link: 'https://docs.sentry.io/platforms/python/',
+  category: 'popular',
+};
+
+const javascriptPlatform: OnboardingSelectedSDK = {
+  key: 'javascript',
+  name: 'Browser JavaScript',
+  language: 'javascript',
+  type: 'language',
+  link: 'https://docs.sentry.io/platforms/javascript/',
+  category: 'popular',
+};
+
+function defaultProps(overrides: Partial<Record<string, unknown>> = {}) {
+  return {
+    analyticsFlow: 'onboarding' as const,
+    selectedRepository: undefined,
+    selectedPlatform: pythonPlatform,
+    onPlatformChange: jest.fn(),
+    onFeaturesChange: jest.fn(),
+    ...overrides,
+  };
+}
+
+describe('ScmPlatformFeaturesCore', () => {
+  const organization = OrganizationFixture();
+
+  afterEach(() => {
+    jest.useRealTimers();
+    jest.restoreAllMocks();
+  });
+
+  it('renders the manual platform picker when no repository is connected', () => {
+    render(<ScmPlatformFeaturesCore {...defaultProps()} />, {organization});
+
+    expect(screen.getByText('Python')).toBeInTheDocument();
+    expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
+  });
+
+  it('fires step_viewed analytics in onboarding on mount', () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    render(<ScmPlatformFeaturesCore {...defaultProps({analyticsFlow: 'onboarding'})} />, {
+      organization,
+    });
+
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'onboarding.scm_platform_features_step_viewed',
+      expect.anything()
+    );
+  });
+
+  it('does not fire step_viewed in project creation (page-viewed fires once upstream)', () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    render(
+      <ScmPlatformFeaturesCore {...defaultProps({analyticsFlow: 'project-creation'})} />,
+      {
+        organization,
+      }
+    );
+
+    expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
+      'onboarding.scm_platform_features_step_viewed',
+      expect.anything()
+    );
+  });
+
+  it('fires only growth.select_platform for the project-creation SCM flow', async () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    const repository = RepositoryFixture({
+      id: '123',
+      provider: {id: 'integrations:github', name: 'GitHub'},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/${repository.id}/platforms/`,
+      body: {platforms: [DetectedPlatformFixture({platform: 'python'})]},
+    });
+
+    render(
+      <ScmPlatformFeaturesCore
+        {...defaultProps({
+          analyticsFlow: 'project-creation',
+          selectedRepository: repository,
+          selectedPlatform: undefined,
+        })}
+      />,
+      {organization}
+    );
+
+    await waitFor(() =>
+      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+        'growth.select_platform',
+        expect.objectContaining({
+          platform_id: 'python',
+          selection_source: 'detected',
+          source: 'project-creation',
+          variant: 'scm',
+        })
+      )
+    );
+    expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
+      'project_creation.platform_selected',
+      expect.anything()
+    );
+  });
+
+  it('keeps the onboarding SCM platform-selection event', async () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    const repository = RepositoryFixture({
+      id: '123',
+      provider: {id: 'integrations:github', name: 'GitHub'},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/${repository.id}/platforms/`,
+      body: {platforms: [DetectedPlatformFixture({platform: 'python'})]},
+    });
+
+    render(
+      <ScmPlatformFeaturesCore
+        {...defaultProps({
+          analyticsFlow: 'onboarding',
+          selectedRepository: repository,
+          selectedPlatform: undefined,
+        })}
+      />,
+      {organization}
+    );
+
+    await waitFor(() =>
+      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+        'onboarding.scm_platform_selected',
+        expect.objectContaining({platform: 'python', source: 'detected'})
+      )
+    );
+    expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
+      'growth.select_platform',
+      expect.anything()
+    );
+  });
+
+  it('sections the manual picker dropdown into Popular and Other platforms', async () => {
+    render(<ScmPlatformFeaturesCore {...defaultProps({selectedPlatform: undefined})} />, {
+      organization,
+    });
+
+    await userEvent.click(screen.getByRole('textbox'));
+
+    expect(screen.getByText('Popular')).toBeInTheDocument();
+    expect(screen.getByText('Other platforms')).toBeInTheDocument();
+  });
+
+  it('tracks one debounced manual platform search with its result count', async () => {
+    jest.useFakeTimers();
+    const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    const {unmount} = render(
+      <ScmPlatformFeaturesCore
+        {...defaultProps({
+          analyticsFlow: 'project-creation',
+          selectedPlatform: undefined,
+        })}
+      />,
+      {organization}
+    );
+
+    await user.type(screen.getByRole('textbox'), 'java ');
+
+    expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
+      'growth.platformpicker_search',
+      expect.anything()
+    );
+
+    act(() => {
+      jest.advanceTimersByTime(DEFAULT_DEBOUNCE_DURATION);
+    });
+
+    expect(trackAnalyticsSpy).toHaveBeenCalledTimes(1);
+
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith('growth.platformpicker_search', {
+      organization,
+      search: 'java ',
+      num_results: 1,
+      source: 'project-creation',
+      variant: 'scm',
+    });
+
+    await user.type(screen.getByRole('textbox'), 'script');
+    expect(trackAnalyticsSpy).toHaveBeenCalledTimes(1);
+    unmount();
+    expect(trackAnalyticsSpy).toHaveBeenCalledTimes(2);
+    expect(trackAnalyticsSpy).toHaveBeenLastCalledWith(
+      'growth.platformpicker_search',
+      expect.objectContaining({search: 'java script'})
+    );
+  });
+
+  it('clears the selected platform from the manual picker', async () => {
+    const onPlatformChange = jest.fn();
+    const onFeaturesChange = jest.fn();
+    render(
+      <ScmPlatformFeaturesCore
+        {...defaultProps({
+          onPlatformChange,
+          onFeaturesChange,
+        })}
+      />,
+      {organization}
+    );
+
+    await userEvent.click(await screen.findByTestId('icon-close'));
+
+    expect(onPlatformChange).toHaveBeenCalledWith(undefined);
+    expect(onFeaturesChange).toHaveBeenCalledWith(undefined);
+  });
+
+  it('moves focus with the view when switching between detected and manual pickers', async () => {
+    const repository = RepositoryFixture({
+      id: '123',
+      provider: {id: 'integrations:github', name: 'GitHub'},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/${repository.id}/platforms/`,
+      body: {platforms: [DetectedPlatformFixture({platform: 'python'})]},
+    });
+
+    render(
+      <ScmPlatformFeaturesCore {...defaultProps({selectedRepository: repository})} />,
+      {organization}
+    );
+
+    // Each switch unmounts the button that was activated, so the incoming
+    // view's control takes focus instead of the body.
+    await userEvent.click(
+      await screen.findByRole('button', {name: "Not what you're building? Pick another"})
+    );
+    expect(screen.getByRole('textbox', {name: 'Platform'})).toHaveFocus();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Back to what we found'}));
+    expect(screen.getByRole('radio', {name: /Python/})).toHaveFocus();
+  });
+
+  it('does not move focus to a card that detection mounts after the return', async () => {
+    const repository = RepositoryFixture({
+      id: '123',
+      provider: {id: 'integrations:github', name: 'GitHub'},
+    });
+    let finishDetection!: () => void;
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/${repository.id}/platforms/`,
+      body: {platforms: [DetectedPlatformFixture({platform: 'python'})]},
+      asyncDelay: new Promise<void>(resolve => {
+        finishDetection = resolve;
+      }),
+    });
+
+    render(
+      <ScmPlatformFeaturesCore
+        {...defaultProps({selectedRepository: repository, selectedPlatform: undefined})}
+      />,
+      {organization}
+    );
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Skip detection and select manually'})
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Back to what we found'}));
+    // The cards are not mounted while detection is pending, so the view's
+    // only control takes focus.
+    const skipButton = screen.getByRole('button', {
+      name: 'Skip detection and select manually',
+    });
+    expect(skipButton).toHaveFocus();
+
+    // Detection finishing is not a user action, so the cards it mounts must
+    // not pull focus from the user's current position.
+    await userEvent.tab();
+    expect(skipButton).not.toHaveFocus();
+    finishDetection();
+    expect(await screen.findByRole('radio', {name: /Python/})).not.toHaveFocus();
+  });
+
+  it('does not offer a clear button when a platform was auto-detected', async () => {
+    const repository = RepositoryFixture({
+      id: '123',
+      provider: {id: 'integrations:github', name: 'GitHub'},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/${repository.id}/platforms/`,
+      body: {platforms: [DetectedPlatformFixture({platform: 'python'})]},
+    });
+
+    render(
+      <ScmPlatformFeaturesCore {...defaultProps({selectedRepository: repository})} />,
+      {organization}
+    );
+
+    // Detection resolves to the auto-detected view; switch into the manual picker.
+    await userEvent.click(
+      await screen.findByRole('button', {name: "Not what you're building? Pick another"})
+    );
+
+    // The manual picker is showing (with a route back to the recommendation),
+    // but the clear control is suppressed: clearing would desync the picker from
+    // the detected fallback.
+    expect(
+      screen.getByRole('button', {name: 'Back to what we found'})
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('icon-close')).not.toBeInTheDocument();
+  });
+
+  it('keeps a non-default detected selection when returning to the recommended view', async () => {
+    const onFeaturesChange = jest.fn();
+    const repository = RepositoryFixture({
+      id: '123',
+      provider: {id: 'integrations:github', name: 'GitHub'},
+    });
+    // python is the recommendation (first detected); javascript is the second.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/${repository.id}/platforms/`,
+      body: {
+        platforms: [
+          DetectedPlatformFixture({platform: 'python'}),
+          DetectedPlatformFixture({platform: 'javascript'}),
+        ],
+      },
+    });
+
+    // Controlled, so hold the selection in state for the manual-pick flow.
+    function Host() {
+      const [platform, setPlatform] = useState<OnboardingSelectedSDK | undefined>(
+        pythonPlatform
+      );
+      return (
+        <ScmPlatformFeaturesCore
+          analyticsFlow="onboarding"
+          selectedRepository={repository}
+          selectedPlatform={platform}
+          onPlatformChange={setPlatform}
+          onFeaturesChange={onFeaturesChange}
+        />
+      );
+    }
+
+    render(<Host />, {organization});
+
+    // Select the second detected platform, then open the manual picker.
+    await userEvent.click(await screen.findByRole('radio', {name: 'Browser JavaScript'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: "Not what you're building? Pick another"})
+    );
+    onFeaturesChange.mockClear();
+
+    // Returning keeps the chosen detected platform: it is already detected, so
+    // nothing is reset and the card stays selected.
+    await userEvent.click(screen.getByRole('button', {name: 'Back to what we found'}));
+
+    expect(await screen.findByRole('radio', {name: 'Browser JavaScript'})).toBeChecked();
+    expect(onFeaturesChange).not.toHaveBeenCalled();
+  });
+
+  it('does not reset state when returning without a change', async () => {
+    const onFeaturesChange = jest.fn();
+    const repository = RepositoryFixture({
+      id: '123',
+      provider: {id: 'integrations:github', name: 'GitHub'},
+    });
+    // python is both the recommendation and the already-selected platform.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/${repository.id}/platforms/`,
+      body: {platforms: [DetectedPlatformFixture({platform: 'python'})]},
+    });
+
+    render(
+      <ScmPlatformFeaturesCore
+        {...defaultProps({
+          selectedRepository: repository,
+          selectedPlatform: pythonPlatform,
+          onFeaturesChange,
+        })}
+      />,
+      {organization}
+    );
+
+    // Open the manual picker from the detected view, then return without
+    // choosing a different platform.
+    await userEvent.click(
+      await screen.findByRole('button', {name: "Not what you're building? Pick another"})
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Back to what we found'}));
+
+    expect(onFeaturesChange).not.toHaveBeenCalled();
+  });
+
+  it('reverts a manual pick to the detected platform on return, recording it', async () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    const onPlatformChange = jest.fn();
+    const onFeaturesChange = jest.fn();
+    const repository = RepositoryFixture({
+      id: '123',
+      provider: {id: 'integrations:github', name: 'GitHub'},
+    });
+    const detectionRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/${repository.id}/platforms/`,
+      body: {platforms: [DetectedPlatformFixture({platform: 'python'})]},
+    });
+
+    // The active platform is a manual pick that is not among the detected
+    // platforms, so the manual picker shows with a route back to recommended.
+    render(
+      <ScmPlatformFeaturesCore
+        {...defaultProps({
+          selectedRepository: repository,
+          selectedPlatform: javascriptPlatform,
+          onPlatformChange,
+          onFeaturesChange,
+        })}
+      />,
+      {organization}
+    );
+
+    // Wait for detection so the detected fallback (python) is available.
+    await waitFor(() => expect(detectionRequest).toHaveBeenCalled());
+
+    await userEvent.click(screen.getByRole('button', {name: 'Back to what we found'}));
+
+    // Leaving the manual pick reverts to the detected platform and records the
+    // selection with the detected source.
+    await waitFor(() =>
+      expect(onPlatformChange).toHaveBeenCalledWith(
+        expect.objectContaining({key: 'python'})
+      )
+    );
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'onboarding.scm_platform_selected',
+      expect.objectContaining({platform: 'python', source: 'detected'})
+    );
+  });
+});

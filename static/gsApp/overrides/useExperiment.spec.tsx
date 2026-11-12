@@ -103,8 +103,8 @@ describe('useExperiment (gsApp)', () => {
 
   it('sets the Amplitude experiment group property on exposure', async () => {
     const org = OrganizationFixture({
-      features: ['onboarding-scm-experiment'],
-      experiments: {'onboarding-scm-experiment': 'active'},
+      features: ['test-experiment'],
+      experiments: {'test-experiment': 'active'},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/experiment-exposure/`,
@@ -112,7 +112,7 @@ describe('useExperiment (gsApp)', () => {
       statusCode: 204,
     });
 
-    render(<TestComponent feature="onboarding-scm-experiment" reportExposure />, {
+    render(<TestComponent feature="test-experiment" reportExposure />, {
       organization: org,
     });
 
@@ -124,7 +124,7 @@ describe('useExperiment (gsApp)', () => {
     // transform matches getsentry/experiments/tasks.py.
     const identifyInstance = jest.mocked(Amplitude.Identify).mock.results[0]!.value;
     expect(identifyInstance.set).toHaveBeenCalledWith(
-      'experiment_onboarding_scm_experiment',
+      'experiment_test_experiment',
       'active'
     );
     expect(Amplitude.groupIdentify).toHaveBeenCalledWith(

@@ -57,7 +57,6 @@ export function DropdownAddTeam({
   organization: Organization;
   selectedTeams: string[];
   teams: Team[];
-  canCreateTeam?: boolean;
   isAddingTeamToMember?: boolean;
   onCreateTeam?: (team: Team) => void;
   project?: Project;
@@ -83,6 +82,7 @@ export function DropdownAddTeam({
   return (
     <CompactSelect
       size="xs"
+      strategy="fixed"
       value=""
       menuWidth={300}
       options={dropdownItems}

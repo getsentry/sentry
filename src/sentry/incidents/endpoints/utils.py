@@ -1,34 +1,4 @@
-from collections.abc import Sequence
-
-from django.db.models import QuerySet
-from rest_framework.request import Request
-
-from sentry.api.helpers.teams import get_teams
-from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
-from sentry.models.organization import Organization
-from sentry.models.team import Team
 from sentry.workflow_engine.models.data_condition import Condition
-
-
-def parse_team_params(
-    request: Request, organization: Organization, teams: Sequence[str]
-) -> tuple[QuerySet[Team], bool]:
-    teams_set = set(teams)
-
-    unassigned = False
-    if "unassigned" in teams_set:
-        teams_set.remove("unassigned")
-        unassigned = True
-
-    resolved_teams = get_teams(request, organization, teams=teams_set)
-
-    return (resolved_teams, unassigned)
-
-
-threshold_translators = {
-    AlertRuleThresholdType.ABOVE: lambda threshold: threshold - 100,
-    AlertRuleThresholdType.BELOW: lambda threshold: 100 - threshold,
-}
 
 data_condition_type_translators = {
     Condition.GREATER.value: lambda threshold: threshold - 100,
@@ -36,19 +6,6 @@ data_condition_type_translators = {
     Condition.LESS.value: lambda threshold: 100 - threshold,
     Condition.LESS_OR_EQUAL.value: lambda threshold: 100 - threshold,
 }
-
-
-def translate_threshold(alert_rule: AlertRule, threshold: float | None) -> float | None:
-    """
-    Translates our internal percent representation into a delta percentage.
-    For ABOVE: A percentage like 170% would become 70% increase
-    For BELOW: A percentage like 40% would become 60% decrease.
-    """
-    if alert_rule.comparison_delta is None or threshold is None:
-        return threshold
-
-    threshold_type = AlertRuleThresholdType(alert_rule.threshold_type)
-    return threshold_translators[threshold_type](threshold)
 
 
 def translate_data_condition_type(

@@ -4,14 +4,11 @@ import {AutomationBuilderInput} from 'sentry/components/workflowEngine/form/auto
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {t, tct} from 'sentry/locale';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
-import {
-  Attribute,
-  MATCH_CHOICES,
-  MatchType,
-} from 'sentry/views/automations/components/actionFilters/constants';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
-import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
+import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
+
+import {Attribute, MATCH_CHOICES, MatchType} from './constants';
 
 function matchRequiresValue(match: MatchType): boolean {
   return match !== MatchType.IS_SET && match !== MatchType.NOT_SET;

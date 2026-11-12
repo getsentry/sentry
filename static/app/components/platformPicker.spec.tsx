@@ -1,8 +1,9 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {PlatformPicker} from 'sentry/components/platformPicker';
 import {gaming} from 'sentry/data/platformCategories';
 import {trackAnalytics} from 'sentry/utils/analytics';
+
+import {PlatformPicker} from './platformPicker';
 
 jest.mock('sentry/utils/analytics');
 
@@ -52,6 +53,20 @@ describe('PlatformPicker', () => {
       'growth.platformpicker_category',
       expect.objectContaining({
         category: 'all',
+      })
+    );
+  });
+
+  it('records picker selections as manual', async () => {
+    render(<PlatformPicker {...baseProps} defaultCategory="all" />);
+
+    await userEvent.click(screen.getByTestId('platform-python'));
+
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'growth.select_platform',
+      expect.objectContaining({
+        platform_id: 'python',
+        selection_source: 'manual',
       })
     );
   });

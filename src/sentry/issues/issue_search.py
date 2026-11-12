@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping, Sequence
+from datetime import datetime
 from functools import partial
-from typing import overload
-
-from django.contrib.auth.models import AnonymousUser
+from typing import cast, overload
 
 from sentry.api.event_search import (
     AggregateFilter,
@@ -18,13 +17,14 @@ from sentry.api.event_search import (
     default_config,
 )
 from sentry.api.event_search import parse_search_query as base_parse_query
+from sentry.auth.principal import RequestPrincipal
 from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.grouptype import (
     GroupCategory,
     get_group_type_by_slug,
 )
 from sentry.issues.grouptype import registry as GROUP_TYPE_REGISTRY
-from sentry.issues.progress import IssueProgressState
+from sentry.issues.progress_state import IssueProgressState
 from sentry.models.environment import Environment
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOICES
 from sentry.models.organization import Organization
@@ -42,8 +42,8 @@ from sentry.search.utils import (
     parse_user_value,
 )
 from sentry.seer.autofix.constants import FixabilityScoreThresholds
+from sentry.seer.autofix.issue_search import AUTOFIX_STATE_VALUES
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, PriorityLevel
-from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
 is_filter_translation: dict[str, tuple[str, int]] = {
@@ -87,17 +87,17 @@ ValueConverter = Callable[
     [
         Iterable[str],
         Sequence[Project],
-        User,
+        RequestPrincipal | None,
         Sequence[Environment] | None,
     ],
-    str | list[str] | list[RpcUser | Team | None] | list[RpcUser] | list[int],
+    str | list[str] | list[RpcUser | Team | None] | list[RpcUser] | list[int] | list[float],
 ]
 
 
 def convert_actor_or_none_value(
     value: Iterable[str],
     projects: Sequence[Project],
-    user: User,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
 ) -> list[RpcUser | Team | None]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
@@ -114,7 +114,7 @@ def convert_actor_or_none_value(
 def convert_user_value(
     value: Iterable[str],
     projects: Sequence[Project],
-    user: User,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
 ) -> list[RpcUser]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
@@ -125,7 +125,7 @@ def convert_user_value(
 def convert_release_value(
     value: Iterable[str],
     projects: Sequence[Project],
-    user: User,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
 ) -> str | list[str]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
@@ -142,7 +142,7 @@ def convert_release_value(
 def convert_first_release_value(
     value: Iterable[str],
     projects: Sequence[Project],
-    user: User,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
 ) -> list[str]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
@@ -156,7 +156,7 @@ def convert_first_release_value(
 def convert_substatus_value(
     value: Iterable[str | int],
     projects: Sequence[Project],
-    user: User,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
 ) -> list[int]:
     parsed = []
@@ -171,7 +171,7 @@ def convert_substatus_value(
 def convert_status_value(
     value: Iterable[str | int],
     projects: Sequence[Project],
-    user: User,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
 ) -> list[int]:
     parsed = []
@@ -186,7 +186,7 @@ def convert_status_value(
 def convert_category_value(
     value: Iterable[str],
     projects: Sequence[Project],
-    user: User,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
 ) -> list[int]:
     """Convert a value like 'error' or 'performance' to the GroupType value for issue lookup"""
@@ -202,7 +202,7 @@ def convert_category_value(
 def convert_priority_value(
     value: Iterable[str],
     projects: Sequence[Project],
-    user: User,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
 ) -> list[int]:
     """Convert a value like 'high' or 'medium' to the Priority value for issue lookup"""
@@ -218,7 +218,7 @@ def convert_priority_value(
 def convert_type_value(
     value: Iterable[str],
     projects: Sequence[Project],
-    user: User,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
 ) -> list[int]:
     """Convert a value like 'error' or 'performance_n_plus_one_db_queries' to the GroupType value for issue lookup"""
@@ -234,7 +234,7 @@ def convert_type_value(
 def convert_device_class_value(
     value: Iterable[str],
     projects: Sequence[Project],
-    user: User,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
 ) -> list[str]:
     """Convert high, medium, and low to the underlying device class values"""
@@ -250,9 +250,9 @@ def convert_device_class_value(
 def convert_seer_actionability_value(
     value: Iterable[str],
     projects: Sequence[Project],
-    user: User,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
-):
+) -> list[float]:
     """Convert high, medium, and low to fixability score thresholds"""
     results: list[float] = []
     for fixable in value:
@@ -266,7 +266,7 @@ def convert_seer_actionability_value(
 def convert_issue_progress_value(
     value: Iterable[str],
     projects: Sequence[Project],
-    user: User,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
 ) -> list[str]:
     results: list[str] = []
@@ -279,10 +279,24 @@ def convert_issue_progress_value(
     return results
 
 
+def convert_autofix_state_value(
+    value: Iterable[str],
+    projects: Sequence[Project],
+    user: RequestPrincipal | None,
+    environments: Sequence[Environment] | None,
+) -> list[str]:
+    results: list[str] = []
+    for state in value:
+        if state not in AUTOFIX_STATE_VALUES:
+            raise InvalidSearchQuery(f"Invalid issue.autofix_state value of '{state}'")
+        results.append(state)
+    return results
+
+
 def convert_detector_value(
     value: Iterable[str],
     projects: Sequence[Project],
-    user: User,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
 ) -> list[str]:
     """Convert detector ID(s) to a list of strings for consistent handling"""
@@ -305,6 +319,7 @@ value_converters: Mapping[str, ValueConverter] = {
     "substatus": convert_substatus_value,
     "issue.seer_actionability": convert_seer_actionability_value,
     "issue.progress": convert_issue_progress_value,
+    "issue.autofix_state": convert_autofix_state_value,
     "detector": convert_detector_value,  # TODO - delete this once the UI has been updated
     "monitor": convert_detector_value,
 }
@@ -315,10 +330,10 @@ value_converters: Mapping[str, ValueConverter] = {
 def convert_query_values(
     search_filters: list[SearchFilter],
     projects: Sequence[Project],
-    user: User | RpcUser | AnonymousUser | None,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
-    value_converters=value_converters,
-    allow_aggregate_filters=False,
+    value_converters: Mapping[str, ValueConverter] = value_converters,
+    allow_aggregate_filters: bool = False,
 ) -> list[SearchFilter]: ...
 
 
@@ -327,10 +342,10 @@ def convert_query_values(
 def convert_query_values(
     search_filters: Sequence[AggregateFilter | SearchFilter],
     projects: Sequence[Project],
-    user: User | RpcUser | AnonymousUser | None,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
-    value_converters=value_converters,
-    allow_aggregate_filters=False,
+    value_converters: Mapping[str, ValueConverter] = value_converters,
+    allow_aggregate_filters: bool = False,
 ) -> Sequence[AggregateFilter | SearchFilter]: ...
 
 
@@ -338,10 +353,10 @@ def convert_query_values(
 def convert_query_values(
     search_filters: Sequence[QueryToken],
     projects: Sequence[Project],
-    user: User | RpcUser | AnonymousUser | None,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
-    value_converters=value_converters,
-    allow_aggregate_filters=False,
+    value_converters: Mapping[str, ValueConverter] = value_converters,
+    allow_aggregate_filters: bool = False,
 ) -> Sequence[QueryToken]: ...
 
 
@@ -349,20 +364,20 @@ def convert_query_values(
 def convert_query_values(
     search_filters: Sequence[ParsedTerm],
     projects: Sequence[Project],
-    user: User | RpcUser | AnonymousUser | None,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
-    value_converters=value_converters,
-    allow_aggregate_filters=False,
+    value_converters: Mapping[str, ValueConverter] = value_converters,
+    allow_aggregate_filters: bool = False,
 ) -> Sequence[ParsedTerm]: ...
 
 
 def convert_query_values(
     search_filters: Sequence[QueryToken | str],
     projects: Sequence[Project],
-    user: User | RpcUser | AnonymousUser | None,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
-    value_converters=value_converters,
-    allow_aggregate_filters=False,
+    value_converters: Mapping[str, ValueConverter] = value_converters,
+    allow_aggregate_filters: bool = False,
 ) -> Sequence[QueryToken | str]:
     """
     Accepts a collection of SearchFilter objects and converts their values into
@@ -410,16 +425,18 @@ def convert_query_values(
 
         if search_filter.key.name in value_converters:
             converter = value_converters[search_filter.key.name]
-            new_value = converter(
-                to_list(search_filter.value.raw_value), projects, user, environments
-            )
+            raw_value = cast(str | list[str], search_filter.value.raw_value)
+            new_value = converter(to_list(raw_value), projects, user, environments)
             if isinstance(new_value, list):
                 operator = "IN" if search_filter.operator in EQUALITY_OPERATORS else "NOT IN"
             else:
                 operator = "=" if search_filter.operator in EQUALITY_OPERATORS else "!="
 
+            search_value = cast(
+                str | float | datetime | Sequence[float] | Sequence[str] | None, new_value
+            )
             search_filter = search_filter._replace(
-                value=SearchValue(new_value),
+                value=SearchValue(search_value),
                 operator=operator,
             )
         elif isinstance(search_filter, AggregateFilter) and not allow_aggregate_filters:

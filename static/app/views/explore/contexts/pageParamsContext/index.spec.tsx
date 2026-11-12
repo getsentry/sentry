@@ -2,12 +2,6 @@ import type {ReactNode} from 'react';
 
 import {act, render} from 'sentry-test/reactTestingLibrary';
 
-import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {
-  DEFAULT_VISUALIZATION,
-  DEFAULT_VISUALIZATION_AGGREGATE,
-  DEFAULT_VISUALIZATION_FIELD,
-} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
   useQueryParams,
   useSetQueryParams,
@@ -22,6 +16,13 @@ import {
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+import {Mode} from './mode';
+import {
+  DEFAULT_VISUALIZATION,
+  DEFAULT_VISUALIZATION_AGGREGATE,
+  DEFAULT_VISUALIZATION_FIELD,
+} from './visualizes';
 
 function Wrapper({children}: {children: ReactNode}) {
   return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;
@@ -53,14 +54,23 @@ describe('SpanQueryParamsProvider', () => {
   let setVisualizes: ReturnType<typeof useSetQueryParamsVisualizes>;
 
   function Component() {
+    // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
     queryParams = useQueryParams();
+    // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
     setQueryParams = useSetQueryParams();
+    // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
     setFields = useSetQueryParamsFields();
+    // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
     setGroupBys = useSetQueryParamsGroupBys();
+    // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
     setMode = useSetQueryParamsMode();
+    // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
     setQuery = useSetQueryParamsQuery();
+    // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
     setSortBys = useSetQueryParamsSortBys();
+    // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
     setAggregateSortBys = useSetQueryParamsAggregateSortBys();
+    // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
     setVisualizes = useSetQueryParamsVisualizes();
     return <br />;
   }
@@ -564,6 +574,36 @@ describe('SpanQueryParamsProvider', () => {
         ],
       })
     );
+  });
+
+  it('keeps group bys between charts in place when updating a shared chart', () => {
+    renderTestComponent({
+      aggregateFields: [
+        {yAxes: ['p50(span.duration)', 'p99(span.duration)']},
+        {groupBy: 'span.op'},
+        {yAxes: ['count(span.duration)']},
+      ],
+    });
+
+    act(() =>
+      setVisualizes([
+        {yAxes: ['p50(span.duration)', 'p99(span.duration)'], chartType: ChartType.BAR},
+        {yAxes: ['count(span.duration)']},
+      ])
+    );
+
+    expect(queryParams.aggregateFields).toEqual([
+      new VisualizeFunction('p50(span.duration)', {
+        chartType: ChartType.BAR,
+        chartGroup: expect.any(String),
+      }),
+      new VisualizeFunction('p99(span.duration)', {
+        chartType: ChartType.BAR,
+        chartGroup: expect.any(String),
+      }),
+      {groupBy: 'span.op'},
+      new VisualizeFunction('count(span.duration)'),
+    ]);
   });
 
   it('manages inserting and deleting a column when added/removed', () => {

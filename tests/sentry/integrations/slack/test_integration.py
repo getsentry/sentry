@@ -17,14 +17,16 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.slack import SlackIntegration, SlackIntegrationProvider
 from sentry.integrations.slack.utils.constants import SlackScope
+from sentry.integrations.slack.utils.errors import TypedSlackApiError
 from sentry.integrations.slack.utils.users import SLACK_GET_USERS_PAGE_SIZE
+from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.slack.provider import SlackNotificationProvider
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.types import (
-    NotificationCategory,
     NotificationProviderKey,
     NotificationTargetResourceType,
 )
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.notifications.platform import MockNotification, MockNotificationTemplate
@@ -140,7 +142,13 @@ class SlackIntegrationPostInstallTest(APITestCase):
         }
 
         with self.tasks():
-            SlackIntegrationProvider().post_install(self.integration, self.organization, extra={})
+            SlackIntegrationProvider().post_install(
+                self.integration,
+                serialize_rpc_organization(
+                    self.organization, include_projects=False, include_teams=False
+                ),
+                extra={},
+            )
 
         user1_identity = Identity.objects.get(user=self.user)
         assert user1_identity
@@ -194,7 +202,13 @@ class SlackIntegrationPostInstallTest(APITestCase):
         )
 
         with self.tasks():
-            SlackIntegrationProvider().post_install(self.integration, self.organization, extra={})
+            SlackIntegrationProvider().post_install(
+                self.integration,
+                serialize_rpc_organization(
+                    self.organization, include_projects=False, include_teams=False
+                ),
+                extra={},
+            )
 
         user5_identity = Identity.objects.get(user=user5)
         assert user5_identity
@@ -228,7 +242,13 @@ class SlackIntegrationPostInstallTest(APITestCase):
         )
 
         with self.tasks(), pytest.raises(SlackApiError):
-            SlackIntegrationProvider().post_install(self.integration, self.organization, extra={})
+            SlackIntegrationProvider().post_install(
+                self.integration,
+                serialize_rpc_organization(
+                    self.organization, include_projects=False, include_teams=False
+                ),
+                extra={},
+            )
 
         user5_identity = Identity.objects.filter(user=user5).first()
         assert user5_identity is None
@@ -245,7 +265,13 @@ class SlackIntegrationPostInstallTest(APITestCase):
         }
 
         with self.tasks():
-            SlackIntegrationProvider().post_install(self.integration, self.organization, extra={})
+            SlackIntegrationProvider().post_install(
+                self.integration,
+                serialize_rpc_organization(
+                    self.organization, include_projects=False, include_teams=False
+                ),
+                extra={},
+            )
 
         identities = Identity.objects.all()
         assert identities.count() == 3
@@ -263,7 +289,13 @@ class SlackIntegrationPostInstallTest(APITestCase):
         }
 
         with self.tasks():
-            SlackIntegrationProvider().post_install(self.integration, self.organization, extra={})
+            SlackIntegrationProvider().post_install(
+                self.integration,
+                serialize_rpc_organization(
+                    self.organization, include_projects=False, include_teams=False
+                ),
+                extra={},
+            )
 
         user3_identity = Identity.objects.get(user=self.user4)
         assert user3_identity
@@ -315,15 +347,29 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
             organization_id=self.organization.id,
         )
         data = MockNotification(message="test")
-        rendered_template = MockNotificationTemplate().render(data)
-        renderer = SlackNotificationProvider.get_renderer(
-            data=data, category=NotificationCategory.DEBUG
+        self.slack_renderable, _ = NotificationService.render_template(
+            data=data,
+            template=MockNotificationTemplate(),
+            provider=SlackNotificationProvider,
         )
-        self.slack_renderable = renderer.render(data=data, rendered_template=rendered_template)
 
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     def test_send_notification_success(self, mock_chat_post: MagicMock) -> None:
-        self.installation.send_notification(target=self.target, payload=self.slack_renderable)
+        mock_chat_post.return_value = SlackResponse(
+            client=MagicMock(),
+            http_verb="POST",
+            api_url="https://slack.com/api/chat.postMessage",
+            req_args={},
+            data={"ok": True, "ts": "1234567890.123456"},
+            headers={},
+            status_code=200,
+        )
+
+        response = self.installation.send_notification(
+            target=self.target, payload=self.slack_renderable
+        )
+
+        assert response["ts"] == "1234567890.123456"
 
         mock_chat_post.assert_called_once_with(
             channel="C1234567890",
@@ -341,7 +387,7 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
         mock_response.data = {"error": "channel_not_found"}
         mock_response.api_url = "https://slack.com/api/chat.postMessage"
 
-        mock_chat_post.side_effect = SlackApiError("channel_not_found", mock_response)
+        mock_chat_post.side_effect = TypedSlackApiError("channel_not_found", mock_response)
 
         with pytest.raises(IntegrationConfigurationError):
             self.installation.send_notification(target=self.target, payload=self.slack_renderable)
@@ -364,7 +410,7 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     def test_send_threaded_message_error(self, mock_chat_post: MagicMock) -> None:
         error_message = "thread_not_found"
-        mock_chat_post.side_effect = SlackApiError(error_message, MagicMock())
+        mock_chat_post.side_effect = TypedSlackApiError(error_message, MagicMock())
 
         with pytest.raises(IntegrationError, match=error_message):
             self.installation.send_threaded_message(
@@ -375,13 +421,17 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
 
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postEphemeral")
     def test_send_threaded_ephemeral_message_success(self, mock_chat_ephemeral: MagicMock) -> None:
-        self.installation.send_threaded_ephemeral_message(
+        slack_response = MagicMock()
+        mock_chat_ephemeral.return_value = slack_response
+
+        response = self.installation.send_threaded_ephemeral_message(
             channel_id=self.channel_id,
             thread_ts=self.thread_ts,
             renderable=self.slack_renderable,
             slack_user_id=self.slack_user_id,
         )
 
+        assert response is slack_response
         mock_chat_ephemeral.assert_called_once_with(
             channel=self.channel_id,
             thread_ts=self.thread_ts,
@@ -394,7 +444,7 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postEphemeral")
     def test_send_threaded_ephemeral_message_error(self, mock_chat_ephemeral: MagicMock) -> None:
         error_message = "user_not_in_channel"
-        mock_chat_ephemeral.side_effect = SlackApiError(error_message, MagicMock())
+        mock_chat_ephemeral.side_effect = TypedSlackApiError(error_message, MagicMock())
 
         with pytest.raises(IntegrationError, match=error_message):
             self.installation.send_threaded_ephemeral_message(
@@ -510,7 +560,9 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
         mock_conversations_info.return_value = MagicMock(
             data={"ok": True, "channel": {"is_channel": True, "is_private": False}}
         )
-        mock_conversations_replies.side_effect = SlackApiError("channel_not_found", MagicMock())
+        mock_conversations_replies.side_effect = TypedSlackApiError(
+            "channel_not_found", MagicMock()
+        )
         result = self.installation.get_thread_history(
             channel_id=self.channel_id, thread_ts=self.thread_ts
         )
@@ -547,7 +599,9 @@ class SlackApiPipelineTest(APITestCase):
         return self.client.post(self._get_pipeline_url(), data=data, format="json")
 
     def _get_pipeline_signature(self, resp: Any) -> str:
-        return resp.data["data"]["oauthUrl"].split("state=")[1].split("&")[0]
+        oauth_url = resp.data["data"]["oauthUrl"]
+        assert isinstance(oauth_url, str)
+        return oauth_url.split("state=")[1].split("&")[0]
 
     @responses.activate
     def test_initialize_pipeline(self) -> None:

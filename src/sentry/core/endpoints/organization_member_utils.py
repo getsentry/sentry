@@ -10,6 +10,7 @@ from rest_framework.request import Request
 from sentry import roles
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.auth.access import Access
+from sentry.auth.principal import is_owned_by_acting_user
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.locks import locks
 from sentry.models.organization import Organization
@@ -130,7 +131,7 @@ def save_team_assignments(
                 TeamAssignmentChange(team=t, omt_id=old_omt_by_team[t.id].id) for t in removed_teams
             ]
 
-            OrganizationMemberTeam.objects.bulk_delete(existing)
+            existing.delete()
             OrganizationMemberTeam.objects.bulk_create(
                 [
                     OrganizationMemberTeam(
@@ -213,7 +214,7 @@ def get_allowed_org_roles(
     if member is None:
         try:
             member = OrganizationMember.objects.get(
-                user_id=request.user.id, organization=organization
+                is_owned_by_acting_user(request.user), organization=organization
             )
         except OrganizationMember.DoesNotExist:
             # This can happen if the request was authorized by an app integration

@@ -14,7 +14,9 @@ export function useLogsQueryTruncate(): number {
   // logs we already fetched are still long enough to display, so there is no
   // reason to re-query for shorter messages.
   const maxTruncate = useRef(truncate);
+  // oxlint-disable-next-line react/refs
   maxTruncate.current = Math.max(maxTruncate.current, truncate);
 
+  // oxlint-disable-next-line react/refs
   return maxTruncate.current;
 }

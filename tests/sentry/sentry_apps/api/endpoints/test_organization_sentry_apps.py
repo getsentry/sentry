@@ -27,6 +27,11 @@ class OrganizationSentryAppsTest(APITestCase):
         )
         self.unpublished_app = self.create_sentry_app(name="Testin", organization=self.org)
         self.url = reverse("sentry-api-0-organization-sentry-apps", args=[self.org.slug])
+        application = self.unpublished_app.application
+        assert application is not None
+        assert application.client_secret is not None
+        self.unpublished_application = application
+        self.unpublished_client_secret = application.client_secret
 
 
 @control_silo_test
@@ -46,6 +51,7 @@ class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
                     "slug": self.unpublished_app.slug,
                     "scopes": [],
                     "events": [],
+                    "webhookEvents": [],
                     "uuid": self.unpublished_app.uuid,
                     "status": self.unpublished_app.get_status_display(),
                     "webhookUrl": self.unpublished_app.webhook_url,
@@ -53,8 +59,8 @@ class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
                     "isAlertable": self.unpublished_app.is_alertable,
                     "isDisabled": self.unpublished_app.is_disabled,
                     "verifyInstall": self.unpublished_app.verify_install,
-                    "clientId": self.unpublished_app.application.client_id,
-                    "clientSecret": self.unpublished_app.application.client_secret,
+                    "clientId": self.unpublished_application.client_id,
+                    "clientSecret": self.unpublished_client_secret,
                     "overview": self.unpublished_app.overview,
                     "allowedOrigins": [],
                     "webhookHeaders": [],
@@ -90,6 +96,13 @@ class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 403
+
+    def test_invalid_status(self) -> None:
+        self.login_as(self.user)
+        response = self.client.get(self.url, {"status": "invalid"})
+
+        assert response.status_code == 400
+        assert response.data == {"detail": "Invalid status"}
 
     def test_filter_for_internal(self) -> None:
         self.login_as(user=self.user)

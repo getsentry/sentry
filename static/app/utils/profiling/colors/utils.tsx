@@ -1,4 +1,3 @@
-import {clamp} from 'sentry/utils/profiling/colors/clamp';
 import type {
   ColorChannels,
   ColorMapFn,
@@ -7,6 +6,8 @@ import type {
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import type {SpanChart} from 'sentry/utils/profiling/spanChart';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {clamp} from './clamp';
 
 function uniqueCountBy<T>(
   arr: readonly T[],
@@ -118,7 +119,7 @@ function makeColorBuffer(
 
 export const makeStackToColor = (
   fallbackColor: [number, number, number, number]
-): FlamegraphTheme['COLORS']['STACK_TO_COLOR'] => {
+): FlamegraphTheme['COLORS']['stackToColor'] => {
   return (
     frames: readonly FlamegraphFrame[],
     generateColorMap: ColorMapFn,
@@ -161,7 +162,7 @@ export function makeColorMapBySymbolName(
   const colors = new Map<FlamegraphFrame['key'], ColorChannels>();
   const colorCache = new Map<string, ColorChannels>();
 
-  const sortedFrames = [...frames].sort(defaultFrameSort);
+  const sortedFrames = frames.toSorted(defaultFrameSort);
   const uniqueCount = uniqueCountBy(sortedFrames, t => defaultFrameKey(t));
 
   for (let i = 0; i < sortedFrames.length; i++) {
@@ -187,7 +188,7 @@ export function makeColorMapByRecursion(
   const colors = new Map<FlamegraphFrame['frame']['key'], ColorChannels>();
   const colorCache = new Map<FlamegraphFrame['frame']['key'], ColorChannels>();
 
-  const sortedFrames = [...frames].sort(defaultFrameSort);
+  const sortedFrames = frames.toSorted(defaultFrameSort);
   const uniqueCount = uniqueCountBy(sortedFrames, t => !!t.node.recursive);
 
   for (let i = 0; i < sortedFrames.length; i++) {
@@ -215,7 +216,7 @@ export function makeColorMapByLibrary(
   const colors = new Map<FlamegraphFrame['key'], ColorChannels>();
   const colorCache = new Map<string, ColorChannels>();
 
-  const sortedFrames: FlamegraphFrame[] = [...frames].sort((a, b) => {
+  const sortedFrames: FlamegraphFrame[] = frames.toSorted((a, b) => {
     return frameLibraryKey(a).localeCompare(frameLibraryKey(b));
   });
 
@@ -247,7 +248,7 @@ export function makeColorMapBySystemFrame(
   const colors = new Map<FlamegraphFrame['key'], ColorChannels>();
   const colorCache = new Map<string, ColorChannels>();
 
-  const sortedFrames: FlamegraphFrame[] = [...frames].sort((a, b) => {
+  const sortedFrames: FlamegraphFrame[] = frames.toSorted((a, b) => {
     return defaultFrameKey(a).localeCompare(defaultFrameKey(b));
   });
 
@@ -277,7 +278,7 @@ export function makeColorMapBySystemVsApplicationFrame(
   const colors = new Map<FlamegraphFrame['key'], ColorChannels>();
   const colorCache = new Map<string, ColorChannels>();
 
-  const sortedFrames: FlamegraphFrame[] = [...frames].sort((a, b) => {
+  const sortedFrames: FlamegraphFrame[] = frames.toSorted((a, b) => {
     return defaultFrameKey(a).localeCompare(defaultFrameKey(b));
   });
 
@@ -303,7 +304,7 @@ export function makeColorMapByApplicationFrame(
   const colors = new Map<FlamegraphFrame['key'], ColorChannels>();
   const colorCache = new Map<string, ColorChannels>();
 
-  const sortedFrames: FlamegraphFrame[] = [...frames].sort((a, b) => {
+  const sortedFrames: FlamegraphFrame[] = frames.toSorted((a, b) => {
     return defaultFrameKey(a).localeCompare(defaultFrameKey(b));
   });
 

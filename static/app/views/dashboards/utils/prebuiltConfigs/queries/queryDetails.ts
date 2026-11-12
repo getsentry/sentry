@@ -2,14 +2,15 @@ import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+
 import {
   AVERAGE_DURATION_TEXT,
   BASE_FILTER_STRING,
   QUERIES_PER_MINUTE_TEXT,
   DETAILS_DASHBOARD_TITLE,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/settings';
-import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
-import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+} from './settings';
 
 export const QUERIES_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
@@ -108,7 +109,6 @@ export const QUERIES_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
           fieldAliases: [],
           conditions: BASE_FILTER_STRING,
           orderby: 'id',
-          onDemand: [],
           linkedDashboards: [],
         },
       ],
@@ -136,7 +136,6 @@ export const QUERIES_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
           ],
           conditions: BASE_FILTER_STRING,
           orderby: `-sum(${SpanFields.SPAN_DURATION})`,
-          onDemand: [],
           isHidden: false,
           linkedDashboards: [],
         },
@@ -160,7 +159,6 @@ export const QUERIES_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
           fieldAliases: [],
           conditions: BASE_FILTER_STRING,
           orderby: 'epm()',
-          onDemand: [],
           isHidden: false,
           linkedDashboards: [],
         },
@@ -185,7 +183,6 @@ export const QUERIES_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
           fieldAliases: [],
           conditions: BASE_FILTER_STRING,
           orderby: `avg(${SpanFields.SPAN_DURATION})`,
-          onDemand: [],
           isHidden: false,
         },
       ],

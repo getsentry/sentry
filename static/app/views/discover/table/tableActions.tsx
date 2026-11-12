@@ -1,24 +1,24 @@
 import {Fragment} from 'react';
+import {IconDownload} from '@sentry/icons/download';
+import {IconSliders} from '@sentry/icons/sliders';
+import {IconTag} from '@sentry/icons/tag';
 import type {Location} from 'history';
 
 import {Button} from '@sentry/scraps/button';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
-import {DataExport} from 'sentry/components/exports/dataExport';
-import {ExportQueryType} from 'sentry/components/exports/useDataExport';
 import {Hovercard} from 'sentry/components/hovercard';
-import {IconDownload, IconSliders, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
-import {DiscoverExportModalButton} from 'sentry/views/discover/table/discoverExportModalButton';
 import {downloadAsCsv} from 'sentry/views/discover/utils';
-import {useShowExploreModalExport} from 'sentry/views/explore/components/exports/useShowExploreModalExport';
+
+import {DiscoverExportModalButton} from './discoverExportModalButton';
 
 type Props = {
   error: string | null;
@@ -47,17 +47,6 @@ function renderDownloadButton(canEdit: boolean, props: Props) {
       features="organizations:discover-query"
       renderDisabled={() => renderBrowserExportButton(canEdit, props)}
     >
-      <DiscoverExportSwitch canEdit={canEdit} {...props} />
-    </Feature>
-  );
-}
-
-function DiscoverExportSwitch({canEdit, ...props}: Props & {canEdit: boolean}) {
-  const showModalExport = useShowExploreModalExport();
-  const {tableData} = props;
-
-  if (showModalExport) {
-    return (
       <DiscoverExportModalButton
         disabled={!canEdit}
         error={props.error}
@@ -68,12 +57,8 @@ function DiscoverExportSwitch({canEdit, ...props}: Props & {canEdit: boolean}) {
         tableData={props.tableData}
         title={props.title}
       />
-    );
-  }
-
-  return tableData?.data && tableData.data.length < 50
-    ? renderBrowserExportButton(canEdit, props)
-    : renderAsyncExportButton(canEdit, props);
+    </Feature>
+  );
 }
 
 function renderBrowserExportButton(canEdit: boolean, props: Props) {
@@ -100,25 +85,6 @@ function renderBrowserExportButton(canEdit: boolean, props: Props) {
     </Button>
   );
 }
-
-function renderAsyncExportButton(canEdit: boolean, props: Props) {
-  const {isLoading, error, location, eventView} = props;
-  const disabled = isLoading || error !== null || !canEdit;
-  return (
-    <DataExport
-      payload={{
-        queryType: ExportQueryType.DISCOVER,
-        queryInfo: eventView.getEventsAPIPayload(location),
-      }}
-      disabled={disabled}
-      icon={<IconDownload />}
-    >
-      {t('Export All')}
-    </DataExport>
-  );
-}
-
-// Placate eslint proptype checking
 
 function renderEditButton(canEdit: boolean, props: Props) {
   const onClick = canEdit ? props.onEdit : undefined;

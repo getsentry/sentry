@@ -1,19 +1,12 @@
-import type {Theme} from '@emotion/react';
-import {ASAP} from 'downsample/methods/ASAP';
 import type {Location} from 'history';
-import moment from 'moment-timezone';
 
-import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import type {Project} from 'sentry/types/project';
-import {decodeScalar} from 'sentry/utils/queryString';
-import type {
-  NormalizedTrendsTransaction,
-  TrendFunction,
-  TrendParameter,
-  TrendsTransaction,
-} from 'sentry/views/performance/trends/types';
 import {
-  TrendChangeType,
+  loadQueryParamsFromLocation,
+  parseAsScalar,
+} from 'sentry/views/explore/queryParams/parsers';
+import type {TrendFunction, TrendParameter} from 'sentry/views/performance/trends/types';
+import {
   TrendFunctionField,
   TrendParameterColumn,
   TrendParameterLabel,
@@ -22,6 +15,12 @@ import {
   platformToPerformanceType,
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
+
+const trendsParsers = {
+  topEvents: parseAsScalar,
+  trendFunction: parseAsScalar,
+  trendParameter: parseAsScalar,
+};
 
 const TRENDS_FUNCTIONS: TrendFunction[] = [
   {
@@ -95,40 +94,13 @@ const TRENDS_PARAMETERS: TrendParameter[] = [
   },
 ];
 
-export function makeTrendToColorMapping(theme: Theme) {
-  return {
-    [TrendChangeType.IMPROVED]: {
-      lighter: theme.colors.green200,
-      default: theme.colors.green400,
-    },
-    [TrendChangeType.REGRESSION]: {
-      lighter: theme.colors.red200,
-      default: theme.colors.red400,
-    },
-    neutral: {
-      lighter: theme.colors.yellow200,
-      default: theme.colors.yellow400,
-    },
-    // TODO remove this once backend starts sending
-    // TrendChangeType.IMPROVED as change type
-    improvement: {
-      lighter: theme.colors.green200,
-      default: theme.colors.green400,
-    },
-  };
-}
-
-const trendUnselectedSeries = {
-  [TrendChangeType.IMPROVED]: 'improvedUnselectedSeries',
-  [TrendChangeType.REGRESSION]: 'regressionUnselectedSeries',
-};
-
 export function getCurrentTrendFunction(
   location: Location,
   _trendFunctionField?: TrendFunctionField
 ): TrendFunction {
   const trendFunctionField =
-    _trendFunctionField ?? decodeScalar(location?.query?.trendFunction);
+    _trendFunctionField ??
+    loadQueryParamsFromLocation(trendsParsers, location).trendFunction;
   const trendFunction = TRENDS_FUNCTIONS.find(({field}) => field === trendFunctionField);
   return trendFunction || TRENDS_FUNCTIONS[1]!;
 }
@@ -148,7 +120,10 @@ export function getCurrentTrendParameter(
   projects: Project[],
   projectIds: readonly number[]
 ): TrendParameter {
-  const trendParameterLabel = decodeScalar(location?.query?.trendParameter);
+  const {trendParameter: trendParameterLabel} = loadQueryParamsFromLocation(
+    trendsParsers,
+    location
+  );
   const trendParameter = TRENDS_PARAMETERS.find(
     ({label}) => label === trendParameterLabel
   );
@@ -181,92 +156,6 @@ export function performanceTypeToTrendParameterLabel(
   }
 }
 
-export function transformDeltaSpread(from: number, to: number) {
-  const fromSeconds = from / 1000;
-  const toSeconds = to / 1000;
-
-  const showDigits = from > 1000 || to > 1000 || from < 10 || to < 10; // Show digits consistently if either has them
-
-  return {fromSeconds, toSeconds, showDigits};
-}
-
-/**
- * This will normalize the trends transactions while the current trend function and current data are out of sync
- * To minimize extra renders with missing results.
- */
-export function normalizeTrends(
-  data: TrendsTransaction[]
-): NormalizedTrendsTransaction[] {
-  const received_at = moment(); // Adding the received time for the transaction so calls to get baseline always line up with the transaction
-  return data.map(row => {
-    return {
-      ...row,
-      received_at,
-      transaction: row.transaction,
-    };
-  });
-}
-
-export function getUnselectedSeries(trendChangeType: TrendChangeType) {
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  return trendUnselectedSeries[trendChangeType];
-}
-
-const smoothTrend = (data: Array<[number, number]>, resolution = 100) => {
-  return ASAP(data, resolution);
-};
-
-export function transformEventStatsSmoothed(data?: Series[], seriesName?: string) {
-  let minValue = Number.MAX_SAFE_INTEGER;
-  let maxValue = 0;
-  if (!data) {
-    return {
-      maxValue,
-      minValue,
-      smoothedResults: undefined,
-    };
-  }
-
-  const smoothedResults: Series[] = [];
-
-  for (const current of data) {
-    const currentData = current.data;
-    const resultData: SeriesDataUnit[] = [];
-
-    const smoothed = smoothTrend(
-      currentData.map(({name, value}) => [Number(name), value])
-    );
-
-    // smoothed is not iterable - only indexable
-    // eslint-disable-next-line @typescript-eslint/prefer-for-of
-    for (let i = 0; i < smoothed.length; i++) {
-      const point = smoothed[i] as any;
-      const value = point.y;
-      resultData.push({
-        name: point.x,
-        value,
-      });
-      if (!isNaN(value)) {
-        const rounded = Math.round(value);
-        minValue = Math.min(rounded, minValue);
-        maxValue = Math.max(rounded, maxValue);
-      }
-    }
-    smoothedResults.push({
-      seriesName: seriesName || current.seriesName || 'Current',
-      data: resultData,
-      lineStyle: current.lineStyle,
-      color: current.color,
-    });
-  }
-
-  return {
-    minValue,
-    maxValue,
-    smoothedResults,
-  };
-}
-
 export function getTopTrendingEvents(location: Location) {
-  return decodeScalar(location?.query?.topEvents);
+  return loadQueryParamsFromLocation(trendsParsers, location).topEvents ?? undefined;
 }

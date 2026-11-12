@@ -1,3 +1,4 @@
+import sentry_sdk
 from django.http import HttpResponse, StreamingHttpResponse
 from django.http.response import HttpResponseBase
 from rest_framework.request import Request
@@ -8,6 +9,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.lang.native.applecrashreport import AppleCrashReport
+from sentry.models.project import Project
 from sentry.services import eventstore
 from sentry.utils.safe import get_path
 
@@ -19,7 +21,7 @@ class EventAppleCrashReportEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, project, event_id) -> HttpResponseBase:
+    def get(self, request: Request, project: Project, event_id: str) -> HttpResponseBase:
         """
         Retrieve an Apple Crash Report from an event
         `````````````````````````````````````````````
@@ -30,6 +32,8 @@ class EventAppleCrashReportEndpoint(ProjectEndpoint):
         event = eventstore.backend.get_event_by_id(project.id, event_id)
         if event is None:
             raise ResourceDoesNotExist
+
+        sentry_sdk.set_attribute("event.type", event.get_event_type())
 
         if event.platform not in ("cocoa", "native"):
             return HttpResponse(

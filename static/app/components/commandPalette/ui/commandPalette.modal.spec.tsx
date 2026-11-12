@@ -1,4 +1,4 @@
-jest.unmock('lodash/debounce');
+jest.unmock('@tanstack/react-pacer');
 
 jest.mock('@tanstack/react-virtual', () => ({
   useVirtualizer: ({count}: {count: number}) => {
@@ -29,12 +29,10 @@ import {
 } from '@sentry/scraps/modal';
 
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
-import {
-  CMDKAction,
-  CommandPaletteProvider,
-} from 'sentry/components/commandPalette/ui/cmdk';
-import {CommandPalette as CommandPaletteModal} from 'sentry/components/commandPalette/ui/commandPalette';
-import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
+
+import {CMDKAction, CommandPaletteProvider} from './cmdk';
+import {CommandPalette as CommandPaletteModal} from './commandPalette';
+import {CommandPaletteSlot} from './commandPaletteSlot';
 
 /**
  * Returns a minimal but valid ModalRenderProps with a jest.fn() as closeModal.
@@ -132,7 +130,7 @@ describe('CommandPaletteModal', () => {
     );
 
     expect(closeModalSpy).not.toHaveBeenCalled();
-    expect(screen.getByRole('textbox', {name: 'Search commands'})).toHaveAttribute(
+    expect(screen.getByRole('searchbox', {name: 'Search commands'})).toHaveAttribute(
       'placeholder',
       'Paste a DSN...'
     );
@@ -205,7 +203,7 @@ describe('CommandPaletteModal', () => {
       </CommandPaletteProvider>
     );
 
-    await screen.findByRole('textbox', {name: 'Search commands'});
+    await screen.findByRole('searchbox', {name: 'Search commands'});
     await userEvent.keyboard('{Shift>}{Enter}{/Shift}');
 
     expect(openSpy).toHaveBeenCalledWith('/target/', '_blank', 'noreferrer');

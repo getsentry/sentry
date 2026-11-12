@@ -1,10 +1,12 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {TransactionsList} from 'sentry/components/discover/transactionsList';
 import {EventView} from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+
+import {TransactionsList} from './transactionsList';
 
 function WrapperComponent(props: any) {
   return (
@@ -161,19 +163,102 @@ describe('TransactionsList', () => {
       expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
       expect(
         screen.getByRole('button', {
-          name: 'Open in Discover',
+          name: 'Open in Explore',
         })
       ).toBeInTheDocument();
 
-      expect(screen.getAllByTestId('table-header')).toHaveLength(2);
+      expect(screen.getAllByRole('columnheader')).toHaveLength(2);
       expect(
         screen.getByRole('button', {name: 'Filter Transactions'})
       ).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Previous'})).toBeInTheDocument();
+      expect(await screen.findByRole('button', {name: 'Previous'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
 
       const gridCells = screen.getAllByTestId('grid-cell');
       expect(gridCells.map(e => e.textContent)).toEqual(['/a', '100', '/b', '1,000']);
+    });
+
+    it('keeps custom cursor keys and the app location when paginating', async () => {
+      const paginationLocation = {
+        pathname: '/transactions/',
+        query: {environment: ['production', 'staging'], query: 'transaction:checkout'},
+      };
+      const {router} = render(
+        <WrapperComponent
+          location={paginationLocation}
+          organization={organization}
+          eventView={eventView}
+          selected={options[0]}
+          options={options}
+          handleDropdownChange={handleDropdownChange}
+        />,
+        {initialRouterConfig: {location: paginationLocation}}
+      );
+      await screen.findByTestId('transactions-table');
+      await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+      await waitFor(() => {
+        expect(router.location.query).toEqual({
+          ...paginationLocation.query,
+          transactionCursor: '0:20:0',
+        });
+      });
+      expect(router.location.pathname).toBe('/transactions/');
+    });
+
+    it('links "Open in Explore" to Explore > Traces', async () => {
+      initialize({
+        organization: {
+          features: ['discover-basic'],
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        body: {
+          meta: {fields: {transaction: 'string', 'failure_count()': 'number'}},
+          data: [{transaction: '/a', 'failure_count()': 1}],
+        },
+      });
+      const spansEventView = EventView.fromSavedQuery({
+        id: '',
+        name: 'test query',
+        version: 2,
+        fields: ['transaction', 'failure_count()', 'epm()', 'p50()'],
+        query: 'is_transaction:true release:"1.0" failure_count():>0',
+        orderby: '-failure_count',
+        projects: [Number(project.id)],
+        dataset: DiscoverDatasets.SPANS,
+      });
+
+      render(
+        <WrapperComponent
+          api={api}
+          location={location}
+          organization={organization}
+          eventView={spansEventView}
+          selected={{sort: {kind: 'desc', field: 'failure_count'}, value: 'count'}}
+          options={options}
+          handleDropdownChange={handleDropdownChange}
+        />
+      );
+
+      expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
+
+      const link = screen.getByRole('button', {name: 'Open in Explore'});
+      const href = link.getAttribute('href')!;
+      expect(href).toContain('/organizations/org-slug/explore/traces/');
+      expect(href).toContain('mode=aggregate');
+
+      const query = new URLSearchParams(href.split('?')[1]);
+      expect(query.get('groupBy')).toBe('transaction');
+      // Aggregate HAVING conditions are dropped; row-level filters are kept.
+      expect(query.get('query')).toBe('is_transaction:true release:1.0');
+      // Columns stay in the list's field order; `p50()` gains its required
+      // column argument for the spans dataset.
+      expect(query.getAll('visualize')).toEqual([
+        JSON.stringify({yAxes: ['failure_count()', 'epm()', 'p50(span.duration)']}),
+      ]);
+      // The list's sort is preserved via the aggregate sort param.
+      expect(query.get('aggregateSort')).toBe('-failure_count()');
     });
 
     it('renders a trend view', async () => {
@@ -212,7 +297,7 @@ describe('TransactionsList', () => {
 
       expect(
         screen.queryByRole('button', {
-          name: 'Open in Discover',
+          name: 'Open in Explore',
         })
       ).not.toBeInTheDocument();
 
@@ -231,7 +316,7 @@ describe('TransactionsList', () => {
         ])
       );
 
-      const tableHeadings = screen.getAllByTestId('table-header');
+      const tableHeadings = screen.getAllByRole('columnheader');
       expect(tableHeadings.map(e => e.textContent)).toEqual([
         'transaction',
         'percentage',
@@ -254,7 +339,7 @@ describe('TransactionsList', () => {
 
       expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
 
-      const tableHeadings = screen.getAllByTestId('table-header');
+      const tableHeadings = screen.getAllByRole('columnheader');
       expect(tableHeadings.map(e => e.textContent)).toEqual(['transaction', 'count()']);
     });
 
@@ -274,7 +359,7 @@ describe('TransactionsList', () => {
 
       expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
 
-      const tableHeadings = screen.getAllByTestId('table-header');
+      const tableHeadings = screen.getAllByRole('columnheader');
       expect(tableHeadings.map(e => e.textContent)).toEqual(['foo', 'bar']);
     });
 
@@ -293,7 +378,7 @@ describe('TransactionsList', () => {
 
       expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
 
-      const gridCells = screen.getAllByTestId('grid-cell');
+      const gridCells = await screen.findAllByTestId('grid-cell');
       expect(gridCells.map(e => e.textContent)).toEqual(['/a', '100', '/b', '1,000']);
 
       const filterDropdown = screen.getByRole('button', {
@@ -349,7 +434,7 @@ describe('TransactionsList', () => {
 
       expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
 
-      const links = screen.getAllByRole('link');
+      const links = await screen.findAllByRole('link');
       expect(links).toHaveLength(2);
       expect(links[0]).toHaveAttribute(
         'href',
@@ -390,9 +475,9 @@ describe('TransactionsList', () => {
       );
 
       expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
+      const gridCells = await screen.findAllByTestId('grid-cell');
       expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
-      const gridCells = screen.getAllByTestId('grid-cell');
       expect(gridCells.map(e => e.textContent)).toEqual(['/a', '100', '/b', '1,000']);
     });
   });

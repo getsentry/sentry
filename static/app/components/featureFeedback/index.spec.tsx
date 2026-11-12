@@ -16,7 +16,7 @@ describe('FeatureFeedback', () => {
 
     expect(await screen.findByText('Select type of feedback')).toBeInTheDocument();
 
-    expect(screen.getByRole('button', {name: 'Submit Feedback'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Submit'})).toBeInTheDocument();
   });
 
   it('shows the modal on click with custom "onClick" handler', async () => {

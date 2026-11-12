@@ -1,11 +1,7 @@
-import {useExternalIssues} from 'sentry/components/group/externalIssuesList/useExternalIssues';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import type {
-  PlatformExternalIssue,
-  SentryAppInstallation,
-} from 'sentry/types/integrations';
+import type {PlatformExternalIssue} from 'sentry/types/integrations';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {getStacktraceBody} from 'sentry/utils/getStacktraceBody';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
@@ -15,14 +11,19 @@ import {
   type SchemaFormConfig,
 } from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
+import {useExternalIssues} from './externalIssuesList/useExternalIssues';
+
 type Props = {
   action: 'create' | 'link';
   appName: string;
   config: SchemaFormConfig;
-  event: Event;
+  /**
+   * Adds stack trace content to the default issue description when available.
+   */
+  event: Event | undefined;
   group: Group;
   onSubmitSuccess: (externalIssue: PlatformExternalIssue) => void;
-  sentryAppInstallation: SentryAppInstallation;
+  sentryAppInstallationUuid: string;
 };
 
 export function SentryAppExternalIssueForm({
@@ -32,7 +33,7 @@ export function SentryAppExternalIssueForm({
   event,
   group,
   onSubmitSuccess,
-  sentryAppInstallation,
+  sentryAppInstallationUuid,
 }: Props) {
   const organization = useOrganization();
   const {onCreateExternalIssue} = useExternalIssues({group, organization});
@@ -96,7 +97,7 @@ export function SentryAppExternalIssueForm({
 
   return (
     <SentryAppExternalForm
-      sentryAppInstallationUuid={sentryAppInstallation.uuid}
+      sentryAppInstallationUuid={sentryAppInstallationUuid}
       appName={appName}
       config={config}
       action={action}

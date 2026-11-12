@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import responses
 
@@ -34,7 +34,7 @@ class BaseDataForwarderTest(TestCase):
     @responses.activate
     @override_options({"data-forwarding.task-rollout-rate": 1.0})
     @patch("sentry.integrations.data_forwarding.tasks.forward_event")
-    def test_post_process_rollout_dispatches_to_task(self, mock_forward_event) -> None:
+    def test_post_process_rollout_dispatches_to_task(self, mock_forward_event: MagicMock) -> None:
         responses.add(responses.POST, "https://api.segment.io/v1/track")
         self.forwarder.post_process(self.event, self.data_forwarder_project)
         mock_forward_event.delay.assert_called_once()

@@ -4,13 +4,19 @@ import logging
 from typing import NotRequired, TypedDict
 
 from django.db.models.query import QuerySet
-from django.http import Http404, HttpResponse, HttpResponseBadRequest, StreamingHttpResponse
+from django.http import (
+    Http404,
+    HttpResponse,
+    HttpResponseBadRequest,
+    HttpResponseBase,
+    StreamingHttpResponse,
+)
 from rest_framework.request import Request
 from rest_framework.response import Response
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
 
-from sentry import ratelimits
+from sentry import options, ratelimits
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -57,14 +63,14 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
     }
     permission_classes = (ProjectReleasePermission,)
 
-    def download_file(self, download_id, project: Project):
+    def download_file(self, download_id: str, project: Project) -> HttpResponseBase:
         split = download_id.split("/")
         if len(split) < 2:
             return HttpResponseBadRequest(content=b"Invalid download ID")
-        ty, ty_id, *_rest = split
+        ty, ty_id_str, *_rest = split
 
         try:
-            ty_id = int(ty_id)
+            ty_id = int(ty_id_str)
         except ValueError:
             return HttpResponseBadRequest(content=b"Invalid download ID")
 
@@ -118,13 +124,13 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
             response = StreamingHttpResponse(
                 iter(lambda: fp.read(4096), b""), content_type="application/octet-stream"
             )
-            response["Content-Length"] = file.size
+            response["Content-Length"] = str(file.size)
             response["Content-Disposition"] = f'attachment; filename="{file.name}"'
             return response
         except OSError:
             raise Http404
 
-    def get(self, request: Request, project: Project) -> Response:
+    def get(self, request: Request, project: Project) -> Response | HttpResponseBase:
         """
         List a Project's Individual Artifacts or Bundles
         ````````````````````````````````````````
@@ -172,7 +178,9 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         individual_files: list[ReleaseFile] = []
         if not artifact_bundles:
             release, dist = try_resolve_release_dist(project, release_name, dist_name)
-            if release:
+            if release and not may_have_legacy_release_files(release, dist):
+                metrics.incr("sourcemaps.lookup.release_file.skipped")
+            elif release:
                 metrics.incr("sourcemaps.lookup.release_file")
                 releasefile_ids = list(get_legacy_release_bundles(release, dist))
                 for releasefile_id in releasefile_ids:
@@ -249,6 +257,19 @@ def try_resolve_release_dist(
         logger.exception("Failed to read")
 
     return release, dist
+
+
+def may_have_legacy_release_files(release: Release, dist: Distribution | None) -> bool:
+    """
+    Both legacy lookups below only match `ReleaseFile`s of this release and dist, so when
+    there are none, one EXISTS query replaces both. Releases that only use artifact bundles,
+    or never had source maps uploaded, have none.
+    """
+    if not options.get("sourcemaps.artifact-lookup.skip-legacy-without-release-files"):
+        return True
+    return ReleaseFile.objects.filter(
+        release_id=release.id, dist_id=dist.id if dist else None
+    ).exists()
 
 
 def get_legacy_release_bundles(release: Release, dist: Distribution | None) -> set[int]:

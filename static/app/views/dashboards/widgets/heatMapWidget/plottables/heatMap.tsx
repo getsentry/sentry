@@ -1,6 +1,7 @@
 import type {SeriesOption} from 'echarts';
 
-import type {Theme} from 'sentry/utils/theme';
+import type {Theme} from '@sentry/scraps/theme';
+
 import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 import {isAPlottableTimeSeriesValueType} from 'sentry/views/dashboards/widgets/common/typePredicates';
 import type {

@@ -1,37 +1,39 @@
 import {useMemo, useState} from 'react';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
+  isSingleRunAutofix,
   type AutofixExplorerStep,
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {t} from 'sentry/locale';
 
 interface UseResetAutofixStepOptions {
   autofix: ReturnType<typeof useExplorerAutofix>;
   section: AutofixSection;
   step: AutofixExplorerStep;
   canReset?: boolean;
+  initialShouldShowReset?: boolean;
 }
 
 export function useResetAutofixStep({
   autofix,
   canReset,
+  initialShouldShowReset = false,
   section,
   step,
 }: UseResetAutofixStepOptions) {
-  const [shouldShowReset, setShouldShowReset] = useState(false);
+  const [shouldShowReset, setShouldShowReset] = useState(initialShouldShowReset);
 
   const {runState, startStep} = autofix;
-  const runId = runState?.run_id;
+  const runId = getAutofixRunId(runState);
   const notProcessing = autofix.runState?.status !== 'processing';
   const noPRs = Object.values(autofix.runState?.repo_pr_states ?? {}).length === 0;
   const noCodingAgents =
     Object.values(autofix.runState?.coding_agents ?? {}).length === 0;
   const defaultCanReset = notProcessing && noPRs && noCodingAgents;
 
-  const isResetEligible = canReset ?? defaultCanReset;
+  const isResetEligible = !isSingleRunAutofix(runState) && (canReset ?? defaultCanReset);
 
   const handleReset = useMemo(() => {
     return async (userContext?: string) => {
@@ -41,8 +43,8 @@ export function useResetAutofixStep({
       try {
         await startStep(step, {runId, userContext, insertIndex: section.index});
       } catch {
+        // startStep already reports why the request failed.
         setShouldShowReset(true);
-        addErrorMessage(t('Failed to reset. Please try again.'));
       }
     };
   }, [startStep, step, runId, section.index]);

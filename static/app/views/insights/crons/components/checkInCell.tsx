@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {Tag} from '@sentry/scraps/badge';
+import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -20,14 +20,13 @@ import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 import {getShortEventId} from 'sentry/utils/events';
+import {DEFAULT_CHECKIN_MARGIN, DEFAULT_MAX_RUNTIME} from 'sentry/utils/monitor/cron';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import type {CheckIn, CheckInCellKey} from 'sentry/views/insights/crons/types';
 import {CheckInStatus} from 'sentry/views/insights/crons/types';
 import {statusToText} from 'sentry/views/insights/crons/utils';
-
-import {DEFAULT_CHECKIN_MARGIN, DEFAULT_MAX_RUNTIME} from './monitorForm';
 
 /**
  * How many seconds can a check-in have been stuck in Relay before being
@@ -218,7 +217,7 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
         {groups.map(({id: groupId, shortId}) => (
           <QuickContextHovercard
             dataRow={{
-              ['issue.id']: groupId,
+              'issue.id': groupId,
               issue: shortId,
             }}
             contextType={ContextType.ISSUE}
@@ -484,7 +483,7 @@ function ProcessingLatencyIndicator({checkIn}: ProcessingLatencyProps) {
         'This check-in was incorrectly marked as timed-out. The check-in was processed late due to abnormal system latency in Sentry.'
       );
 
-  return <QuestionTooltip icon="info" size="sm" title={tooltipMessage} />;
+  return <QuestionTooltip size="sm" title={tooltipMessage} />;
 }
 
 const TimestampContainer = styled('div')`

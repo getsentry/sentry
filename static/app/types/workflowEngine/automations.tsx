@@ -1,37 +1,62 @@
 import type {Group} from 'sentry/types/group';
-import type {DataConditionGroup} from 'sentry/types/workflowEngine/dataConditions';
-import type {Detector} from 'sentry/types/workflowEngine/detectors';
 
-export interface NewAutomation {
-  actionFilters: DataConditionGroup[];
+import type {Action} from './actions';
+import type {DataCondition, DataConditionGroup} from './dataConditions';
+import type {Detector} from './detectors';
+
+export type NewAutomationAction = Omit<Action, 'id'>;
+export type NewAutomationDataCondition = Omit<DataCondition, 'id'>;
+
+export type AutomationType = 'alert' | 'inbox';
+
+export interface NewAutomationDataConditionGroup extends Omit<
+  DataConditionGroup,
+  'actions' | 'conditions' | 'id'
+> {
+  conditions: NewAutomationDataCondition[];
+  actions?: NewAutomationAction[];
+}
+
+interface AutomationBase {
   config: {frequency?: number};
   detectorIds: string[];
   enabled: boolean;
   environment: string | null;
   name: string;
-  triggers: DataConditionGroup | null;
 }
 
-export interface Automation extends Readonly<NewAutomation> {
+export interface NewAutomation extends AutomationBase {
+  actionFilters: NewAutomationDataConditionGroup[];
+  triggers: NewAutomationDataConditionGroup | null;
+}
+
+export interface Automation extends Readonly<AutomationBase> {
+  readonly actionFilters: DataConditionGroup[];
   readonly createdBy: string;
   readonly dateCreated: string;
   readonly dateUpdated: string;
   readonly id: string;
   readonly lastTriggered: string;
+  readonly triggers: DataConditionGroup | null;
+  readonly type: AutomationType;
+}
+
+interface AlertPreviewResult {
+  groupId: string;
+  isThrottled: boolean;
+  triggeredAt: string;
+}
+
+export interface AlertPreviewResponse {
+  results: AlertPreviewResult[];
 }
 
 export interface AutomationFireHistory {
   count: number;
-  eventId: string;
   group: Group;
   lastTriggered: string;
   detector?: Detector;
 }
-
-export type AutomationStats = {
-  count: number;
-  date: string;
-};
 
 /**
  * Warning information about the status of actions in an automation.

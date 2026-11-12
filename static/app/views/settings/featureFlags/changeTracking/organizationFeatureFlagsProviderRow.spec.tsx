@@ -9,8 +9,10 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
-import {OrganizationFeatureFlagsProviderRow} from 'sentry/views/settings/featureFlags/changeTracking/organizationFeatureFlagsProviderRow';
+
+import {OrganizationFeatureFlagsProviderRow} from './organizationFeatureFlagsProviderRow';
 
 describe('OrganizationFeatureFlagsProviderRow', () => {
   const {organization} = initializeOrg();
@@ -41,7 +43,11 @@ describe('OrganizationFeatureFlagsProviderRow', () => {
   });
 
   it('shows secret and provider name', () => {
-    render(<OrganizationFeatureFlagsProviderRow {...defaultProps} />);
+    render(
+      <SimpleTable>
+        <OrganizationFeatureFlagsProviderRow {...defaultProps} />
+      </SimpleTable>
+    );
 
     expect(screen.getByLabelText('Secret preview')).toHaveTextContent('123abc*****');
     expect(screen.getByText('launchdarkly')).toBeInTheDocument();
@@ -54,7 +60,11 @@ describe('OrganizationFeatureFlagsProviderRow', () => {
         removeSecret: undefined,
       };
 
-      render(<OrganizationFeatureFlagsProviderRow {...props} />);
+      render(
+        <SimpleTable>
+          <OrganizationFeatureFlagsProviderRow {...props} />
+        </SimpleTable>
+      );
 
       expect(
         screen.getByRole('button', {name: 'Remove secret for launchdarkly provider'})
@@ -62,7 +72,11 @@ describe('OrganizationFeatureFlagsProviderRow', () => {
     });
 
     it('allows to remove', async () => {
-      render(<OrganizationFeatureFlagsProviderRow {...defaultProps} />);
+      render(
+        <SimpleTable>
+          <OrganizationFeatureFlagsProviderRow {...defaultProps} />
+        </SimpleTable>
+      );
       renderGlobalModal();
 
       expect(
@@ -84,7 +98,11 @@ describe('OrganizationFeatureFlagsProviderRow', () => {
         isRemoving: true,
       };
 
-      render(<OrganizationFeatureFlagsProviderRow {...props} />);
+      render(
+        <SimpleTable>
+          <OrganizationFeatureFlagsProviderRow {...props} />
+        </SimpleTable>
+      );
 
       expect(
         screen.getByRole('button', {name: 'Remove secret for launchdarkly provider'})

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC
+from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 from time import time
 from typing import Any
@@ -8,6 +9,7 @@ from unittest import mock
 
 import orjson
 from django.db import router
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry import audit_log
@@ -16,10 +18,10 @@ from sentry.db.pending_deletion import build_pending_deletion_key
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
-from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.issues.highlights import get_highlight_preset_for_project
 from sentry.models.apitoken import ApiToken
 from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.custominboundfilter import CustomInboundFilter, LegacyFilter
 from sentry.models.deletedproject import DeletedProject
 from sentry.models.environment import EnvironmentProject
 from sentry.models.options.organization_option import OrganizationOption
@@ -30,16 +32,20 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.rule import Rule
+from sentry.models.team import Team
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.types.activity import ActivityType
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
-def first_symbol_source_id(sources_json):
+def first_symbol_source_id(sources_json: bytes | str) -> Any:
     sources = orjson.loads(sources_json)
     return sources[0]["id"]
 
@@ -87,6 +93,26 @@ class ProjectDetailsTest(APITestCase):
         )
         assert response.data["stats"]["unresolved"] == 1
 
+    @freeze_time()
+    def test_with_stats_includes_recently_reopened_issues(self) -> None:
+        self.project.update_option("sentry:resolve_age", 1)
+        now = datetime.now(timezone.utc)
+        old = now - timedelta(days=1)
+        self.create_group(project=self.project, last_seen=now)
+        self.create_group(project=self.project, last_seen=old)
+        reopened = self.create_group(project=self.project, last_seen=old)
+        self.create_group_activity(reopened, type=ActivityType.SET_UNRESOLVED.value)
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, qs_params={"include": "stats"}
+        )
+        assert response.data["stats"]["unresolved"] == 2
+
+        with freeze_time(now + timedelta(hours=1)):
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, qs_params={"include": "stats"}
+            )
+        assert response.data["stats"]["unresolved"] == 0
+
     def test_has_alert_integration(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_provider_integration(provider="msteams")
@@ -100,6 +126,20 @@ class ProjectDetailsTest(APITestCase):
             qs_params={"expand": "hasAlertIntegration"},
         )
         assert response.data["hasAlertIntegrationInstalled"]
+
+    def test_disabled_org_alert_integration(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_provider_integration(provider="msteams")
+            org_integration = integration.add_organization(self.organization)
+            assert org_integration is not None
+            org_integration.update(status=ObjectStatus.DISABLED)
+
+        response = self.get_success_response(
+            self.project.organization.slug,
+            self.project.slug,
+            qs_params={"expand": "hasAlertIntegration"},
+        )
+        assert not response.data["hasAlertIntegrationInstalled"]
 
     def test_no_alert_integration(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -207,51 +247,6 @@ class ProjectDetailsTest(APITestCase):
                 resp = self.get_success_response(self.project.organization.slug, self.project.slug)
                 assert not resp.data["isDynamicallySampled"]
 
-    def test_is_dynamically_sampled(self) -> None:
-        # test with feature flags disabled
-        with self.feature(
-            {
-                "organizations:dynamic-sampling": False,
-                "organizations:dynamic-sampling-custom": False,
-            }
-        ):
-            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
-            assert not resp.data["isDynamicallySampled"]
-
-        # test with sampling_mode = organization
-        self.project.organization.update_option(
-            "sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value
-        )
-
-        # test not sampled organization
-        self.project.organization.update_option("sentry:target_sample_rate", 1.0)
-        with self.feature("organizations:dynamic-sampling-custom"):
-            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
-            assert not resp.data["isDynamicallySampled"]
-
-        # test dynamically sampled organization
-        self.project.organization.update_option("sentry:target_sample_rate", 0.1)
-        with self.feature("organizations:dynamic-sampling-custom"):
-            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
-            assert resp.data["isDynamicallySampled"]
-
-        # test with sampling_mode = project
-        self.project.organization.update_option(
-            "sentry:sampling_mode", DynamicSamplingMode.PROJECT.value
-        )
-
-        # test with not sampled project
-        self.project.update_option("sentry:target_sample_rate", 1.0)
-        with self.feature("organizations:dynamic-sampling-custom"):
-            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
-            assert not resp.data["isDynamicallySampled"]
-
-        # test with sampled project
-        self.project.update_option("sentry:target_sample_rate", 0.1)
-        with self.feature("organizations:dynamic-sampling-custom"):
-            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
-            assert resp.data["isDynamicallySampled"]
-
     def test_filter_options(self) -> None:
         self.project.update_option("sentry:releases", ["1.*", "2.1.*"])
         self.project.update_option(
@@ -269,6 +264,11 @@ class ProjectDetailsTest(APITestCase):
         )
         assert resp.data["options"]["filters:log_messages"] == "Updated*\n*.sentry.io"
         assert resp.data["options"]["filters:trace_metric_names"] == "counter.*\n*.duration"
+
+    def test_preprod_size_pr_comments_defaults(self) -> None:
+        resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+        assert resp.data["options"]["sentry:preprod_size_pr_comments_enabled"] is False
+        assert resp.data["options"]["sentry:preprod_size_pr_comments_rules"] is None
 
 
 class ProjectUpdateTestTokenAuthenticated(APITestCase):
@@ -306,6 +306,34 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         )
         assert response.status_code == 200
         assert response.data["isBookmarked"] is True
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_update_skips_bookmark(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.project.organization,
+            scope_list=["project:write"],
+            project_ids=[self.project.id],
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.project.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        response = self.client.put(
+            self.url,
+            format="json",
+            HTTP_X_VIEWER_CONTEXT=viewer_context,
+            data={"platform": "rust", "isBookmarked": True},
+        )
+
+        assert response.status_code == 200, response.content
+        self.project.refresh_from_db()
+        assert self.project.platform == "rust"
+        assert not ProjectBookmark.objects.filter(project_id=self.project.id).exists()
 
     def test_admin_update_allowed_with_correct_token_scope(self) -> None:
         self.create_member(
@@ -608,6 +636,61 @@ class ProjectUpdateTest(APITestCase):
     def test_platform_invalid(self) -> None:
         self.get_error_response(self.org_slug, self.proj_slug, platform="lol", status_code=400)
 
+    def test_filter_list_writes_its_row_and_reads_back_unchanged(self) -> None:
+        options = {
+            "filters:error_messages": "TypeError*\n# old\nValueError*",
+            "filters:releases": "1.*",
+        }
+        with self.feature("projects:custom-inbound-filters"):
+            self.get_success_response(self.org_slug, self.proj_slug, options=options)
+
+        project = Project.objects.get(id=self.project.id)
+        lines = ["TypeError*", "# old", "ValueError*"]
+        assert project.get_option("sentry:error_messages") == lines
+        assert project.get_option("sentry:releases") == ["1.*"]
+        rows = CustomInboundFilter.objects.filter(project_id=project.id).order_by("legacy_filter")
+        assert [(row.legacy_filter, row.data_type, row.conditions) for row in rows] == [
+            (
+                "error-message",
+                "error",
+                [{"type": "error_message", "operator": "glob", "value": lines}],
+            ),
+            ("release-version", "all", [{"type": "release", "operator": "glob", "value": ["1.*"]}]),
+        ]
+
+        with self.feature("projects:custom-inbound-filters"):
+            response = self.get_success_response(self.org_slug, self.proj_slug, method="get")
+        assert response.data["options"]["filters:error_messages"] == "\n".join(lines)
+        assert response.data["options"]["filters:releases"] == "1.*"
+
+    @with_feature("organizations:inbound-filters-v2")
+    def test_filter_list_at_v2_reads_its_row_and_writes_it_with_the_option(self) -> None:
+        self.create_project_custom_inbound_filter(
+            project=self.project,
+            data_type="error",
+            conditions=[{"type": "error_message", "value": ["Stored*"]}],
+            legacy_filter=LegacyFilter.ERROR_MESSAGE,
+        )
+        self.project.update_option("sentry:error_messages", ["stale"])
+
+        with self.feature("projects:custom-inbound-filters"):
+            response = self.get_success_response(self.org_slug, self.proj_slug, method="get")
+        assert response.data["options"]["filters:error_messages"] == "Stored*"
+
+        with self.feature("projects:custom-inbound-filters"):
+            self.get_success_response(
+                self.org_slug,
+                self.proj_slug,
+                options={"filters:error_messages": "TypeError*\n# old"},
+            )
+
+        project = Project.objects.get(id=self.project.id)
+        assert project.get_option("sentry:error_messages") == ["TypeError*", "# old"]
+        row = CustomInboundFilter.objects.get(project_id=project.id, legacy_filter="error-message")
+        assert row.conditions == [
+            {"type": "error_message", "operator": "glob", "value": ["TypeError*", "# old"]}
+        ]
+
     def test_options(self) -> None:
         options: dict[str, Any] = {
             "sentry:resolve_age": 1,
@@ -635,6 +718,7 @@ class ProjectUpdateTest(APITestCase):
             "sentry:replay_hydration_error_issues": True,
             "sentry:toolbar_allowed_origins": "*.sentry.io\nexample.net  \nnugettrends.com",
             "sentry:replay_rage_click_issues": True,
+            "sentry:relay_automatic_json_expansion": True,
             "sentry:feedback_user_report_notifications": True,
             "sentry:feedback_ai_spam_detection": True,
             "feedback:branding": False,
@@ -774,6 +858,7 @@ class ProjectUpdateTest(APITestCase):
             "nugettrends.com",
         ]
         assert project.get_option("sentry:replay_rage_click_issues") is True
+        assert project.get_option("sentry:relay_automatic_json_expansion") is True
         assert project.get_option("sentry:feedback_user_report_notifications") is True
         assert project.get_option("sentry:feedback_ai_spam_detection") is True
 
@@ -819,6 +904,26 @@ class ProjectUpdateTest(APITestCase):
         )
         project = Project.objects.get(id=self.project.id)
         assert project.get_option("sentry:preprod_snapshot_pr_comments_post_on_renamed") is True
+
+    def test_preprod_size_pr_comments_enabled_option(self) -> None:
+        self.get_success_response(self.org_slug, self.proj_slug, preprodSizePrCommentsEnabled=True)
+        project = Project.objects.get(id=self.project.id)
+        assert project.get_option("sentry:preprod_size_pr_comments_enabled") is True
+
+    def test_preprod_size_pr_comments_rules_option(self) -> None:
+        rules = [
+            {
+                "id": "r1",
+                "metric": "install_size",
+                "measurement": "absolute",
+                "value": 1000000,
+                "artifactType": "main_artifact",
+                "filterQuery": "",
+            }
+        ]
+        self.get_success_response(self.org_slug, self.proj_slug, preprodSizePrCommentsRules=rules)
+        project = Project.objects.get(id=self.project.id)
+        assert project.get_option("sentry:preprod_size_pr_comments_rules") == rules
 
     def test_bookmarks(self) -> None:
         self.get_success_response(self.org_slug, self.proj_slug, isBookmarked="false")
@@ -875,10 +980,39 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("sentry:scrub_ip_address") is False
         assert resp.data["scrubIPAddresses"] is False
 
+    def test_enable_native_source_server_mapping(self) -> None:
+        resp = self.get_success_response(self.org_slug, self.proj_slug)
+        assert resp.data["enableNativeSourceServerMapping"] is False
+
+        resp = self.get_success_response(
+            self.org_slug, self.proj_slug, enableNativeSourceServerMapping=True
+        )
+        assert self.project.get_option("sentry:enable_native_source_server_mapping") is True
+        assert resp.data["enableNativeSourceServerMapping"] is True
+
+        resp = self.get_success_response(
+            self.org_slug, self.proj_slug, enableNativeSourceServerMapping=False
+        )
+        assert self.project.get_option("sentry:enable_native_source_server_mapping") is False
+        assert resp.data["enableNativeSourceServerMapping"] is False
+
     def test_scrape_javascript(self) -> None:
         resp = self.get_success_response(self.org_slug, self.proj_slug, scrapeJavaScript=False)
         assert self.project.get_option("sentry:scrape_javascript") is False
         assert resp.data["scrapeJavaScript"] is False
+
+    def test_enable_auto_release_creation(self) -> None:
+        resp = self.get_success_response(
+            self.org_slug, self.proj_slug, enableAutoReleaseCreation=False
+        )
+        assert self.project.get_option("sentry:enable_auto_release_creation") is False
+        assert resp.data["enableAutoReleaseCreation"] is False
+
+        resp = self.get_success_response(
+            self.org_slug, self.proj_slug, enableAutoReleaseCreation=True
+        )
+        assert self.project.get_option("sentry:enable_auto_release_creation") is True
+        assert resp.data["enableAutoReleaseCreation"] is True
 
     def test_default_environment(self) -> None:
         resp = self.get_success_response(self.org_slug, self.proj_slug, defaultEnvironment="dev")
@@ -1286,7 +1420,7 @@ class ProjectUpdateTest(APITestCase):
                 "symbolSources": ["Hidden symbol source secret is missing a value"]
             }
 
-    def symbol_sources(self):
+    def symbol_sources(self) -> list[dict[str, Any]]:
         project = Project.objects.get(id=self.project.id)
         source1 = {
             "id": "honk",
@@ -1343,42 +1477,6 @@ class ProjectUpdateTest(APITestCase):
             assert resp.status_code == 200
             assert project.get_option("sentry:symbol_sources", orjson.dumps([source1]).decode())
 
-    @with_feature({"organizations:dynamic-sampling-custom": False})
-    def test_target_sample_rate_without_feature(self) -> None:
-        self.project.update_option("sentry:target_sample_rate", 1.0)
-        self.get_error_response(
-            self.org_slug, self.proj_slug, targetSampleRate=0.1, status_code=400
-        )
-        assert self.project.get_option("sentry:target_sample_rate") == 1.0
-
-    @with_feature({"organizations:dynamic-sampling-custom": True})
-    def test_target_sample_rate_automatic_mode(self) -> None:
-        self.project.update_option("sentry:target_sample_rate", 1.0)
-        # automatic mode is called "organization" in code
-        self.organization.update_option(
-            "sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value
-        )
-        self.get_error_response(
-            self.org_slug, self.proj_slug, targetSampleRate=0.1, status_code=400
-        )
-        assert self.project.get_option("sentry:target_sample_rate") == 1.0
-
-    @with_feature({"organizations:dynamic-sampling-custom": True})
-    def test_target_sample_rate_invalid(self) -> None:
-        self.project.update_option("sentry:target_sample_rate", 1.0)
-        self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT.value)
-        self.get_error_response(
-            self.org_slug, self.proj_slug, targetSampleRate=2.0, status_code=400
-        )
-        assert self.project.get_option("sentry:target_sample_rate") == 1.0
-
-    @with_feature({"organizations:dynamic-sampling-custom": True})
-    def test_target_sample_rate(self) -> None:
-        self.project.update_option("sentry:target_sample_rate", 1.0)
-        self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT.value)
-        self.get_success_response(self.org_slug, self.proj_slug, targetSampleRate=0.1)
-        assert self.project.get_option("sentry:target_sample_rate") == 0.1
-
     def test_no_setting_grouping_configs(self) -> None:
         response = self.get_error_response(
             self.org_slug, self.proj_slug, groupingConfig="some config", status_code=400
@@ -1430,14 +1528,13 @@ class CopyProjectSettingsTest(APITestCase):
         self.create_project_rule(project=self.other_project, name="rule1")
         self.create_project_rule(project=self.other_project, name="rule2")
         self.create_project_rule(project=self.other_project, name="rule3")
-        # there is a default rule added to project
         self.rules = Rule.objects.filter(project_id=self.other_project.id).order_by("label")
 
-    def assert_other_project_settings_not_changed(self):
+    def assert_other_project_settings_not_changed(self) -> None:
         # other_project should not have changed. This should check that.
         self.assert_settings_copied(self.other_project)
 
-    def assert_settings_copied(self, project):
+    def assert_settings_copied(self, project: Project) -> None:
         for key, value in self.options_dict.items():
             assert project.get_option(key) == value
 
@@ -1457,7 +1554,7 @@ class CopyProjectSettingsTest(APITestCase):
         for rule, other_rule in zip(rules, self.rules):
             assert rule.label == other_rule.label
 
-    def assert_settings_not_copied(self, project, teams=()):
+    def assert_settings_not_copied(self, project: Project, teams: Sequence[Team] = ()) -> None:
         for key in self.options_dict.keys():
             assert project.get_option(key) is None
 
@@ -1469,10 +1566,8 @@ class CopyProjectSettingsTest(APITestCase):
 
         assert not ProjectOwnership.objects.filter(project_id=project.id).exists()
 
-        # default rule
-        rules = Rule.objects.filter(project_id=project.id)
-        assert len(rules) == 1
-        assert rules[0].label == "Send a notification for high priority issues"
+        # project creation creates a default workflow, not a rule
+        assert not Rule.objects.filter(project_id=project.id).exists()
 
     def test_simple(self) -> None:
         project = self.create_project()
@@ -1603,7 +1698,7 @@ class ProjectDeleteTest(APITestCase):
         self.login_as(user=self.user)
 
     @mock.patch("sentry.db.pending_deletion.uuid4")
-    def _delete_project_and_assert_deleted(self, mock_uuid4_mixin):
+    def _delete_project_and_assert_deleted(self, mock_uuid4_mixin: mock.MagicMock) -> None:
         mock_uuid4_mixin.return_value = self.get_mock_uuid()
 
         with self.settings(SENTRY_PROJECT=0):
@@ -1611,9 +1706,10 @@ class ProjectDeleteTest(APITestCase):
                 self.project.organization.slug, self.project.slug, status_code=204
             )
 
-        assert CellScheduledDeletion.objects.filter(
+        deletion = CellScheduledDeletion.objects.get(
             model_name="Project", object_id=self.project.id
-        ).exists()
+        )
+        assert deletion.actor_id is not None
 
         project = Project.objects.get(id=self.project.id)
         assert project.status == ObjectStatus.PENDING_DELETION
@@ -1654,8 +1750,8 @@ class ProjectDeleteTest(APITestCase):
         "sentry.tasks.seer.delete_seer_grouping_records.call_seer_delete_project_grouping_records.apply_async"
     )
     def test_delete_project_and_delete_grouping_records(
-        self, mock_call_seer_delete_project_grouping_records
-    ):
+        self, mock_call_seer_delete_project_grouping_records: mock.MagicMock
+    ) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
         self._delete_project_and_assert_deleted()
         mock_call_seer_delete_project_grouping_records.assert_called_with(args=[self.project.id])
@@ -1708,7 +1804,7 @@ class TestProjectDetailsBase(APITestCase, ABC):
         self.login_as(user=self.user)
         self._apply_old_date_to_project_and_org()
 
-    def _apply_old_date_to_project_and_org(self):
+    def _apply_old_date_to_project_and_org(self) -> None:
         # We have to create the project and organization in the past, since we boost new orgs and projects to 100%
         # automatically.
         old_date = datetime.now(tz=timezone.utc) - timedelta(
@@ -1896,7 +1992,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
 
     def test_put_dynamic_sampling_after_migrating_to_new_plan_default_biases_with_missing_flags(
         self,
-    ):
+    ) -> None:
         """
         Test for case when a user is an old plan but tries to update dynamic sampling biases that is a
         feature of new plans

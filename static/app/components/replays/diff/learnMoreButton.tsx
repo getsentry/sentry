@@ -1,13 +1,14 @@
 import type {ComponentProps, ReactNode} from 'react';
 import {ClassNames, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconInfo} from '@sentry/icons/info';
+import {IconOpen} from '@sentry/icons/open';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea, useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {Hovercard} from 'sentry/components/hovercard';
-import {IconOpen, IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 function Resource({
@@ -76,7 +77,7 @@ export function LearnMoreButton(
           >
             <Button
               size="sm"
-              icon={<IconQuestion />}
+              icon={<IconInfo />}
               aria-label={t('learn more about hydration errors')}
             >
               {t('Learn More')}

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from itertools import chain
-from typing import Any
+from typing import Any, TypedDict, cast
 
 from django.http.request import HttpRequest
 from django.urls import reverse
@@ -25,6 +25,7 @@ from sentry.integrations.source_code_management.repository import (
     RepositoryInfo,
     RepositoryIntegration,
 )
+from sentry.integrations.source_code_management.url import url_is_under
 from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.atlassian_connect import (
@@ -103,6 +104,15 @@ metadata = IntegrationMetadata(
 scopes = ("issue:write", "pullrequest", "webhook", "repository")
 
 
+class BitbucketRepoPayload(TypedDict, total=False):
+    full_name: str
+    uuid: str
+
+
+class BitbucketSearchResponse(TypedDict, total=False):
+    values: list[BitbucketRepoPayload]
+
+
 class BitbucketIntegration(RepositoryIntegration[BitbucketApiClient], BitbucketIssuesSpec):
     codeowners_locations = [".bitbucket/CODEOWNERS"]
 
@@ -115,8 +125,9 @@ class BitbucketIntegration(RepositoryIntegration[BitbucketApiClient], BitbucketI
 
     # IntegrationInstallation methods
 
-    def error_message_from_json(self, data):
-        return data.get("error", {}).get("message", "unknown error")
+    def error_message_from_json(self, data: Mapping[str, object]) -> object:
+        error = cast(Mapping[str, object], data.get("error", {}))
+        return error.get("message", "unknown error")
 
     # RepositoryIntegration methods
 
@@ -130,6 +141,7 @@ class BitbucketIntegration(RepositoryIntegration[BitbucketApiClient], BitbucketI
         accessible_only: bool = False,
         use_cache: bool = False,
         raise_on_page_limit: bool = False,
+        parallel: bool = False,
     ) -> list[RepositoryInfo]:
         username = self.model.metadata.get("uuid", self.username)
         if not query:
@@ -152,8 +164,8 @@ class BitbucketIntegration(RepositoryIntegration[BitbucketApiClient], BitbucketI
         seen: OrderedSet[str] = OrderedSet()
         repos: list[RepositoryInfo] = []
         for repo in chain(
-            exact_search_resp.get("values", []),
-            fuzzy_search_resp.get("values", []),
+            cast(BitbucketSearchResponse, exact_search_resp).get("values", []),
+            cast(BitbucketSearchResponse, fuzzy_search_resp).get("values", []),
         ):
             if repo["full_name"] not in seen:
                 seen.add(repo["full_name"])
@@ -176,9 +188,9 @@ class BitbucketIntegration(RepositoryIntegration[BitbucketApiClient], BitbucketI
         return True
 
     def source_url_matches(self, url: str) -> bool:
-        return url.startswith(f"https://{self.model.metadata['domain_name']}") or url.startswith(
-            "https://bitbucket.org",
-        )
+        # domain_name is "bitbucket.org/<workspace>" for teams but a bare username for
+        # personal accounts, so it can't narrow this down to one workspace.
+        return url_is_under(url, "https://bitbucket.org")
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         return f"https://bitbucket.org/{repo.name}/src/{branch}/{filepath}"
@@ -196,7 +208,7 @@ class BitbucketIntegration(RepositoryIntegration[BitbucketApiClient], BitbucketI
         return source_path
 
     def _get_debug_metadata_keys(self) -> list[str]:
-        return ["base_url", "domain_name", "scopes", "uuid", "type"]
+        return ["domain_name", "scopes", "uuid", "type"]
 
     # Bitbucket only methods
 
@@ -288,11 +300,9 @@ class BitbucketIntegrationProvider(IntegrationProvider):
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         if state.get("publicKey"):
             principal_data = state["principal"]
-            base_url = state["baseUrl"].replace("https://", "")
-            # fall back to display name, user installations will use this primarily
-            username = principal_data.get("username", principal_data["display_name"])
+            username = principal_data.get("username") or principal_data.get("display_name")
             account_type = principal_data["type"]
-            domain = f"{base_url}/{username}" if account_type == "team" else username
+            domain = f"bitbucket.org/{username}" if account_type == "team" else username
             secret = generate_token()
 
             return {
@@ -303,7 +313,6 @@ class BitbucketIntegrationProvider(IntegrationProvider):
                     "public_key": state["publicKey"],
                     "shared_secret": state["sharedSecret"],
                     "webhook_secret": secret,
-                    "base_url": state["baseApiUrl"],
                     "domain_name": domain,
                     "icon": principal_data["links"]["avatar"]["href"],
                     "scopes": self.scopes,
@@ -318,7 +327,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
                 "expect_exists": True,
             }
 
-    def setup(self):
+    def setup(self) -> None:
         from sentry.plugins.base import bindings
 
         bindings.add(

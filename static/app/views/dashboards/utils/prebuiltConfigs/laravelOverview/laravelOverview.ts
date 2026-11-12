@@ -9,12 +9,13 @@ import {
   BACKEND_OVERVIEW_FIRST_ROW_WIDGETS,
   BACKEND_OVERVIEW_SECOND_ROW_WIDGETS,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/backendOverview/backendOverview';
-import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/laravelOverview/settings';
 import {
   WIDGET_COLUMN_LABELS,
   TABLE_MIN_HEIGHT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {DASHBOARD_DESCRIPTION, DASHBOARD_TITLE} from './settings';
 
 const PATHS_TABLE: PrebuiltWidget = {
   id: 'paths-table',
@@ -129,7 +130,7 @@ const JOBS_TABLE: PrebuiltWidget = {
         'count()',
         'failure_rate()',
         `avg(${SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY})`,
-        `equation|avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
+        `equation|avg_if(\`${SpanFields.SPAN_OP}:queue.process\`,${SpanFields.SPAN_DURATION})`,
         `sum(${SpanFields.SPAN_DURATION})`,
       ],
       columns: [SpanFields.MESSAGING_MESSAGE_DESTINATION_NAME, 'transaction'],
@@ -137,7 +138,7 @@ const JOBS_TABLE: PrebuiltWidget = {
         'count()',
         'failure_rate()',
         `avg(${SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY})`,
-        `equation|avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
+        `equation|avg_if(\`${SpanFields.SPAN_OP}:queue.process\`,${SpanFields.SPAN_DURATION})`,
         `sum(${SpanFields.SPAN_DURATION})`,
       ],
       fieldAliases: [
@@ -178,6 +179,7 @@ export const LARAVEL_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
   title: DASHBOARD_TITLE,
+  description: DASHBOARD_DESCRIPTION,
   widgets: [
     ...BACKEND_OVERVIEW_FIRST_ROW_WIDGETS,
     ...BACKEND_OVERVIEW_SECOND_ROW_WIDGETS,

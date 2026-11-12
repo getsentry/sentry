@@ -2,16 +2,10 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {defaultRenderers} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/defaultRenderers';
-import {RendererContext} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/rendererContext';
-import type {
-  BlockRenderers,
-  ContentBlock,
-} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
-import {
-  ContentBlockCssVariables,
-  renderBlocks,
-} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/utils';
+import {defaultRenderers} from './defaultRenderers';
+import {RendererContext} from './rendererContext';
+import type {ContentBlock} from './types';
+import {ContentBlockCssVariables, renderBlocks} from './utils';
 
 interface Props {
   /**
@@ -23,36 +17,20 @@ interface Props {
    */
   className?: string;
   /**
-   * A custom renderer for the content blocks.
-   * If not provided, the default renderer will be used.
-   * The renderers object must have a key for each content block type.
-   */
-  renderers?: Partial<BlockRenderers>;
-  /**
    * The spacing between the content blocks.
    * Available as a CSS variable `var(${ContentBlockCssVariables.BLOCK_SPACING})` for styling of child elements.
    */
   spacing?: string;
 }
 
-const NO_RENDERERS = {};
-
-export function ContentBlocksRenderer({
-  contentBlocks,
-  renderers: customRenderers = NO_RENDERERS,
-  spacing,
-  className,
-}: Props) {
+export function ContentBlocksRenderer({contentBlocks, spacing, className}: Props) {
   const theme = useTheme();
   const resolvedSpacing = spacing ?? theme.space.xl;
   const contextValue = useMemo(
     () => ({
-      renderers: {
-        ...defaultRenderers,
-        ...customRenderers,
-      },
+      renderers: defaultRenderers,
     }),
-    [customRenderers]
+    []
   );
   return (
     <RendererContext value={contextValue}>

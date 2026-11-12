@@ -1,13 +1,15 @@
 import styled from '@emotion/styled';
+import {IconInfo} from '@sentry/icons/info';
+import {IconSliders} from '@sentry/icons/sliders';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {Hovercard} from 'sentry/components/hovercard';
@@ -15,8 +17,6 @@ import {DiffCompareContextProvider} from 'sentry/components/replays/diff/diffCom
 import {LearnMoreButton} from 'sentry/components/replays/diff/learnMoreButton';
 import {DiffTimestampPicker} from 'sentry/components/replays/diff/picker/diffTimestampPicker';
 import {ReplayDiffChooser} from 'sentry/components/replays/diff/replayDiffChooser';
-import {IconSliders} from 'sentry/icons';
-import {IconInfo} from 'sentry/icons/iconInfo';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
@@ -58,7 +58,6 @@ export default function ReplayComparisonModal({
             <Title>
               {t('Hydration Error')}
               <Tooltip
-                isHoverable
                 title={tct(
                   'This modal helps with debugging hydration errors by diffing the DOM before and after the app hydrated. [boldBefore:Before] refers to the HTML rendered on the server. [boldAfter:After] refers to the HTML rendered on the client. Read more about [link:resolving hydration errors].',
                   {
@@ -89,6 +88,7 @@ export default function ReplayComparisonModal({
               ) : null}
               {focusTrap ? (
                 <FeedbackButton
+                  variant="secondary"
                   feedbackOptions={{
                     onFormOpen: () => {
                       focusTrap.pause();

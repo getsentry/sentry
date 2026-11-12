@@ -10,7 +10,7 @@ from __future__ import annotations
 import contextlib
 import logging
 import threading
-from collections.abc import MutableMapping
+from collections.abc import Iterator, MutableMapping
 from typing import Any
 
 import orjson
@@ -75,33 +75,34 @@ class SentryRouter(LibraryRouter):
                 routes = json.loads(settings.TASKWORKER_ROUTES)
             except Exception as err:
                 capture_exception(err)
-        self._route_map = routes
+
+        self._route_map: dict[str, str] = routes
+        self._default_topic: str = Topic.TASKWORKER.value
+
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
-            # Control silos always use the control topic; the region default
-            # topic override never applies to them.
-            self._default_topic = Topic.TASKWORKER_CONTROL
+            # Control silos always use the control topic
+            # The region default topic override never applies to them
+            self._default_topic = Topic.TASKWORKER_CONTROL.value
         elif settings.TASKWORKER_DEFAULT_TOPIC:
-            self._default_topic = Topic(settings.TASKWORKER_DEFAULT_TOPIC)
-        else:
-            self._default_topic = Topic.TASKWORKER
+            self._default_topic = settings.TASKWORKER_DEFAULT_TOPIC
 
     def route_namespace(self, name: str) -> str:
         # Check local overrides
         if name in _route_overrides:
-            return Topic(_route_overrides[name]).value
+            return _route_overrides[name]
 
         # Check global overrides
         overrides = options.get("taskworker.route.overrides")
 
         if name in overrides:
-            return Topic(overrides[name]).value
+            return overrides[name]
 
         # Check for configured mapping
         if name in self._route_map:
-            return Topic(self._route_map[name]).value
+            return self._route_map[name]
 
         # Fall back onto the default topic
-        return self._default_topic.value
+        return self._default_topic
 
 
 class ViewerContextHook:
@@ -126,7 +127,7 @@ class ViewerContextHook:
         if raw:
             try:
                 ctx = ViewerContext.deserialize(orjson.loads(raw))
-            except (orjson.JSONDecodeError, TypeError, KeyError, AttributeError):
+            except (ValueError, TypeError, KeyError, AttributeError):
                 logger.exception("Failed to deserialize viewer context header")
         # Only `expected=True` when dispatch actually sent the header. That distinguishes
         # the noise case (system task with no VC, header genuinely absent) from the bug
@@ -141,28 +142,61 @@ class ViewerContextHook:
         return viewer_context_scope(ctx)
 
 
-_producer_local = threading.local()
+class LocalCacheClearHook:
+    """
+    ContextHook that clears process-local caches when a task finishes, so a
+    later task in the same worker doesn't read options cached by an earlier one.
+    """
+
+    def on_dispatch(self, headers: MutableMapping[str, Any]) -> None:
+        return None
+
+    @contextlib.contextmanager
+    def on_execute(self, headers: dict[str, str]) -> Iterator[None]:
+        try:
+            yield
+        finally:
+            clear_local_caches()
+
+
+def clear_local_caches() -> None:
+    """Clear the process-local option and group meta caches."""
+    # Imported here because models can't be imported while the task app is set up.
+    from sentry.models.groupmeta import GroupMeta
+    from sentry.models.options.organization_option import OrganizationOption
+
+    try:
+        # Every OptionManager shares one process-local dict, so this clears the
+        # organization, project and user option caches together.
+        OrganizationOption.objects.clear_local_cache()
+        GroupMeta.objects.clear_local_cache()
+    except Exception:
+        logger.exception("taskworker.clear_local_caches.failed")
+
+
+_producers: dict[str, SingletonProducer] = {}
+_producers_lock = threading.Lock()
 
 
 def make_producer(topic: str) -> SingletonProducer:
     """
     Producer factory for taskbroker-client.
 
-    Returns a thread-local KafkaProducer for the given topic, creating one
-    on first access.
+    Returns a process-wide KafkaProducer for the given topic, creating one
+    on first access. Producers are safe to share across threads, thus there's
+    no need for a threading.local instance.
     """
-    if not hasattr(_producer_local, "producers"):
-        _producer_local.producers = {}
+    with _producers_lock:
+        producer = _producers.get(topic)
+        if producer is None:
 
-    if topic not in _producer_local.producers:
+            def factory() -> KafkaProducer:
+                return get_arroyo_producer(f"sentry.taskworker.{topic}", topic)
 
-        def factory() -> KafkaProducer:
-            return get_arroyo_producer(f"sentry.taskworker.{topic}", Topic(topic))
-
-        _producer_local.producers[topic] = SingletonProducer(
-            factory, max_futures=options.get("taskworker.producer.max_futures")
-        )
-    return _producer_local.producers[topic]
+            producer = _producers[topic] = SingletonProducer(
+                factory, max_futures=options.get("taskworker.producer.max_futures")
+            )
+        return producer
 
 
 def _extract_metrics_config() -> tuple[str | None, int | None]:

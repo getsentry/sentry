@@ -1,9 +1,11 @@
 import {useTheme} from '@emotion/react';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {defined} from 'sentry/utils/defined';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {WidgetType, type Widget} from 'sentry/views/dashboards/types';
+import {getWebVitalScoresFromTraceMetricsRow} from 'sentry/views/dashboards/utils/webVitalTraceMetricFields';
 import {PerformanceScoreRingWithTooltips} from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
 import {
   getWebVitalScoresFromTableDataRow,
@@ -12,16 +14,22 @@ import {
 
 interface WheelWidgetVisualizationProps {
   tableResults?: TableDataWithTitle[];
+  widget?: Widget;
 }
 
-export function WheelWidgetVisualization({tableResults}: WheelWidgetVisualizationProps) {
+export function WheelWidgetVisualization({
+  tableResults,
+  widget,
+}: WheelWidgetVisualizationProps) {
   const theme = useTheme();
   const ringSegmentColors = theme.chart.getColorPalette(4).slice() as unknown as string[];
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
   const row = tableResults?.[0]?.data?.[0];
   const projectScore = row
-    ? getWebVitalScoresFromTableDataRow(row as unknown as WebVitalScores)
+    ? widget?.widgetType === WidgetType.TRACEMETRICS
+      ? getWebVitalScoresFromTraceMetricsRow(row)
+      : getWebVitalScoresFromTableDataRow(row as unknown as WebVitalScores)
     : undefined;
   const score = projectScore?.totalScore;
 
@@ -30,7 +38,7 @@ export function WheelWidgetVisualization({tableResults}: WheelWidgetVisualizatio
   }
 
   return (
-    <Flex justify="center" align="center" direction="column" height="100%">
+    <Stack justify="center" align="center" height="100%">
       <PerformanceScoreRingWithTooltips
         autoSize
         projectScore={projectScore}
@@ -38,6 +46,6 @@ export function WheelWidgetVisualization({tableResults}: WheelWidgetVisualizatio
         ringBackgroundColors={ringBackgroundColors}
         ringSegmentColors={ringSegmentColors}
       />
-    </Flex>
+    </Stack>
   );
 }

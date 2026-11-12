@@ -66,6 +66,11 @@ export type DiscoverEventParameters = SaveQueryEventParameters & {
   'discover_v2.update_columns': Record<string, unknown>;
   'discover_v2.view_saved_queries': Record<string, unknown>;
   'discover_v2.y_axis_change': {y_axis_value: string[]};
+  'errors.save_query_modal': {
+    action: 'submit';
+    save_type: 'save_new_query' | 'rename_query';
+    ui_source: 'errors';
+  };
 };
 
 type DiscoverEventKey = keyof DiscoverEventParameters;
@@ -116,4 +121,5 @@ export const discoverEventMap: Record<DiscoverEventKey, string | null> = {
   'discover_v2.update_columns': 'Discoverv2: Update columns',
   'discover_search.failed': 'Discover Search: Failed',
   'discover_search.success': 'Discover Search: Succeeded',
+  'errors.save_query_modal': 'Errors: Save Query Modal',
 };

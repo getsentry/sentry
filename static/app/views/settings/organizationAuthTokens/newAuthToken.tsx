@@ -6,17 +6,14 @@ import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {OrgAuthToken} from 'sentry/types/user';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
@@ -24,7 +21,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {makeFetchOrgAuthTokensForOrgQueryKey} from 'sentry/views/settings/organizationAuthTokens';
+import {orgAuthTokensOptions} from 'sentry/views/settings/organizationAuthTokens';
 
 type OrgAuthTokenWithToken = OrgAuthToken & {token: string};
 
@@ -51,15 +48,17 @@ function AuthTokenCreateForm({
   >({
     mutationFn: data =>
       fetchMutation<OrgAuthTokenWithToken>({
-        url: `/organizations/${organization.slug}/org-auth-tokens/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/org-auth-tokens/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         method: 'POST',
         data,
       }),
     onSuccess: (token: OrgAuthTokenWithToken) => {
-      addSuccessMessage(t('Created organization token.'));
+      toast.success(t('Created organization token.'));
 
       queryClient.invalidateQueries({
-        queryKey: makeFetchOrgAuthTokensForOrgQueryKey({orgSlug: organization.slug}),
+        queryKey: orgAuthTokensOptions({orgSlug: organization.slug}).queryKey,
       });
 
       onCreatedToken(token);
@@ -75,7 +74,7 @@ function AuthTokenCreateForm({
             )
           : t('Failed to create a new organization token.');
       handleXhrErrorResponse(message, error);
-      addErrorMessage(message);
+      toast.error(message);
     },
   });
 
@@ -84,7 +83,7 @@ function AuthTokenCreateForm({
     defaultValues: {name: ''},
     validators: {onDynamic: schema},
     onSubmit: ({value}) => {
-      addLoadingMessage();
+      toast.loading(t('Saving changes...'));
       return mutation.mutateAsync(value).catch(() => {});
     },
   });

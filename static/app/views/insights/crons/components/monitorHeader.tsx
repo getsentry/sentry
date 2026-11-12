@@ -1,9 +1,14 @@
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import {Fragment} from 'react';
+
 import {IdBadge} from 'sentry/components/idBadge';
-import * as Layout from 'sentry/components/layouts/thirds';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {
+  makeMonitorBasePathname,
+  makeMonitorTypePathname,
+} from 'sentry/views/detectors/pathnames';
 import type {Monitor} from 'sentry/views/insights/crons/types';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
@@ -17,34 +22,45 @@ interface Props {
 
 export function MonitorHeader({monitor, orgSlug, onUpdate}: Props) {
   const organization = useOrganization();
-  const crumbs = [
-    {
-      label: t('Alerts'),
-      to: makeAlertsPathname({path: '/rules/', organization}),
-      preservePageFilters: true,
-    },
-    {
-      label: t('Cron Monitor'),
-    },
-  ];
+  const location = useLocation();
+  const selectionQuery = extractSelectionParameters(location.query);
 
   return (
-    <Layout.Header>
-      <Layout.HeaderContent>
-        <Breadcrumbs crumbs={crumbs} />
-        <Layout.Title>
-          <IdBadge
-            project={monitor.project}
-            avatarSize={28}
-            hideName
-            avatarProps={{hasTooltip: true, tooltip: monitor.project.slug}}
-          />
-          {monitor.name}
-        </Layout.Title>
-      </Layout.HeaderContent>
+    <Fragment>
+      <TopBar.Slot
+        name="breadcrumbs"
+        title={{
+          type: 'page-title',
+          label: monitor.name,
+          leadingGraphic: (
+            <IdBadge project={monitor.project} avatarSize={16} hideName disableLink />
+          ),
+        }}
+        items={[
+          {
+            type: 'link',
+            label: t('Monitors'),
+            to: {
+              pathname: makeMonitorBasePathname(organization.slug),
+              query: selectionQuery,
+            },
+          },
+          {
+            type: 'link',
+            label: t('Cron Monitors'),
+            to: {
+              pathname: makeMonitorTypePathname(
+                organization.slug,
+                'monitor_check_in_failure'
+              ),
+              query: selectionQuery,
+            },
+          },
+        ]}
+      />
       <TopBar.Slot name="actions">
         <MonitorHeaderActions orgSlug={orgSlug} monitor={monitor} onUpdate={onUpdate} />
       </TopBar.Slot>
-    </Layout.Header>
+    </Fragment>
   );
 }

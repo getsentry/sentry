@@ -1,7 +1,8 @@
 import {useMemo} from 'react';
 
+import {useTimezone} from '@sentry/scraps/datetime';
+
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
-import {useTimezone} from 'sentry/components/timezoneProvider';
 
 import {usePageFilterDates} from './useMonitorDates';
 
@@ -10,6 +11,10 @@ interface Options {
    * The width of the timeline influences how we calculate the rollup value
    */
   timelineWidth: number;
+  /**
+   * Largest bucket interval in seconds the timeline may pick
+   */
+  maxBucketInterval?: number;
   /**
    * Interval in milliseconds to recompute the dates (for relative time periods)
    */
@@ -27,6 +32,7 @@ interface Options {
 
 export function useTimeWindowConfig({
   timelineWidth,
+  maxBucketInterval,
   recomputeInterval,
   recomputeOnWindowFocus,
   recomputeQueryKey,
@@ -39,7 +45,8 @@ export function useTimeWindowConfig({
   });
 
   return useMemo(
-    () => getConfigFromTimeRange(since, until, timelineWidth, timezone),
-    [since, until, timelineWidth, timezone]
+    () =>
+      getConfigFromTimeRange(since, until, timelineWidth, timezone, maxBucketInterval),
+    [since, until, timelineWidth, timezone, maxBucketInterval]
   );
 }

@@ -6,7 +6,6 @@ import type {
   PrebuiltDashboard,
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendAssets/settings';
 import {
   WIDGET_COLUMN_LABELS,
   TABLE_MIN_HEIGHT,
@@ -14,6 +13,8 @@ import {
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/insights/browser/resources/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+
+import {DASHBOARD_DESCRIPTION, DASHBOARD_TITLE} from './settings';
 
 const FILTER_QUERY = MutableSearch.fromQueryObject({
   has: SpanFields.NORMALIZED_DESCRIPTION,
@@ -172,6 +173,7 @@ export const FRONTEND_ASSETS_PREBUILT_CONFIG: PrebuiltDashboard = {
     ],
   },
   title: DASHBOARD_TITLE,
+  description: DASHBOARD_DESCRIPTION,
   widgets: [...FIRST_ROW_WIDGETS, ASSETS_TABLE],
   onboarding: {type: 'module', moduleName: ModuleName.RESOURCE},
 };

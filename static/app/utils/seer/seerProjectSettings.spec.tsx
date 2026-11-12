@@ -6,13 +6,14 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
+
 import {
   getInfiniteSeerProjectsSettingsQueryOptions,
   getMutateSeerProjectSettingsOptions,
   getMutateSeerProjectsSettingsOptions,
   getSeerProjectSettingsQueryOptions,
-} from 'sentry/utils/seer/seerProjectSettings';
-import type {AgentIntegration, SeerProjectSettingResponse} from 'sentry/utils/seer/types';
+} from './seerProjectSettings';
+import type {AgentIntegration, SeerProjectSettingResponse} from './types';
 
 const organization = OrganizationFixture({slug: 'org-slug'});
 const project = {slug: 'project-slug'};
@@ -30,6 +31,7 @@ function makeResponseFixture(
     autoCreatePr: null,
     automationTuning: 'medium',
     integrationId: null,
+    prIteration: true,
     projectId: '1',
     projectSlug: 'project-slug',
     reposCount: 1,

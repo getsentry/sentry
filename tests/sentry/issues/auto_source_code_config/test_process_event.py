@@ -2,6 +2,9 @@ from collections.abc import Mapping, Sequence
 from typing import Any, TypedDict, cast
 from unittest.mock import patch
 
+import pytest
+from django.db import IntegrityError
+
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.repo_trees import RepoAndBranch
@@ -72,7 +75,7 @@ class BaseDeriveCodeMappings(TestCase):
         self.integration = self.create_integration(
             organization=self.organization,
             provider=self.provider,
-            external_id=self.organization.id,
+            external_id=str(self.organization.id),
             metadata={"domain_name": f"{self.domain_name}/test-org"},
         )
 
@@ -272,24 +275,26 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
     def setUp(self) -> None:
         super().setUp()
         # The platform and event are not relevant for these tests
-        self.event = self.create_event([self.frame("foo/bar.baz", True)], "python")
+        self.group_event = self.create_event([self.frame("foo/bar.baz", True)], "python")
+        assert self.group_event.group.id is not None
+        self.group_id = self.group_event.group.id
 
     def test_api_errors_halts(self, mock_record: Any) -> None:
         error = ApiError('{"message":"Not Found"}')
         with patch(f"{REPO_TREES_INTEGRATION}.get_trees_for_org", side_effect=error):
-            process_event(self.project.id, self.event.group_id, self.event.event_id)
+            process_event(self.project.id, self.group_id, self.group_event.event_id)
             assert_halt_metric(mock_record, error)
 
     def test_unable_to_get_lock_halts(self, mock_record: Any) -> None:
         error = UnableToAcquireLock()
         with patch(f"{REPO_TREES_INTEGRATION}.get_trees_for_org", side_effect=error):
-            process_event(self.project.id, self.event.group_id, self.event.event_id)
+            process_event(self.project.id, self.group_id, self.group_event.event_id)
             assert not RepositoryProjectPathConfig.objects.exists()
             assert_halt_metric(mock_record, error)
 
     def test_generic_errors_fail(self, mock_record: Any) -> None:
         with patch(f"{REPO_TREES_INTEGRATION}.get_trees_for_org", side_effect=Exception("foo")):
-            process_event(self.project.id, self.event.group_id, self.event.event_id)
+            process_event(self.project.id, self.group_id, self.group_event.event_id)
             # Failures require manual investigation.
             assert_failure_metric(mock_record, DeriveCodeMappingsErrorReason.UNEXPECTED_ERROR)
 
@@ -298,7 +303,17 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
             f"{CODE_ROOT}.task.get_installation",
             side_effect=InstallationNotFoundError("foo"),
         ):
-            process_event(self.project.id, self.event.group_id, self.event.event_id)
+            process_event(self.project.id, self.group_id, self.group_event.event_id)
+
+    def test_project_does_not_exist(self, mock_record: Any) -> None:
+        # If the project is deleted after the task is enqueued, process_event
+        # should return early without raising.
+        non_existent_project_id = 0
+        code_mappings, in_app_rules = process_event(
+            non_existent_project_id, self.group_id, self.group_event.event_id
+        )
+        assert code_mappings == []
+        assert in_app_rules == []
 
 
 class TestGenericBehaviour(BaseDeriveCodeMappings):
@@ -329,6 +344,74 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
             expected_new_code_mappings=[self.code_mapping("", "src/foo/")],
         )
 
+    def test_created_repository_has_integration_provider(self) -> None:
+        self._process_and_assert_configuration_changes(
+            repo_trees={REPO1: ["src/foo/bar.py"]},
+            frames=[self.frame("bar.py", True)],
+            platform="python",
+            expected_new_code_mappings=[self.code_mapping("", "src/foo/")],
+        )
+        repository = Repository.objects.get(name=REPO1, organization_id=self.organization.id)
+        assert repository.provider == "integrations:github"
+        assert repository.integration_id == self.integration.id
+
+    def test_create_code_mapping_sets_integration_provider(self) -> None:
+        repo = RepoAndBranch(name=REPO1, branch="master", external_id="1")
+        cm = CodeMapping(repo=repo, stacktrace_root="foo/", source_path="src/foo/")
+        create_code_mapping(self.organization, cm, self.project)
+
+        repository = Repository.objects.get(name=REPO1, organization_id=self.organization.id)
+        assert repository.provider == "integrations:github"
+        assert repository.integration_id == self.integration.id
+
+    def test_reuses_repository_renamed_on_provider(self) -> None:
+        # The tree reports the repository under a new name, but a row for the same
+        # provider-side repository is still stored under its old name.
+        renamed = self.create_repo(
+            project=self.project,
+            name="test-org/old-name",
+            provider="integrations:github",
+            integration_id=self.integration.id,
+            external_id=REPO1,
+        )
+        self._process_and_assert_configuration_changes(
+            repo_trees={REPO1: ["src/foo/bar.py"]},
+            frames=[self.frame("bar.py", True)],
+            platform="python",
+            expected_new_code_mappings=[
+                self.code_mapping("", "src/foo/", repo_name="test-org/old-name")
+            ],
+        )
+        code_mapping = RepositoryProjectPathConfig.objects.get(
+            project_repository__project=self.project
+        )
+        assert code_mapping.project_repository.repository_id == renamed.id
+
+    def test_create_code_mapping_reuses_repository_renamed_on_provider(self) -> None:
+        renamed = self.create_repo(
+            project=self.project,
+            name="test-org/old-name",
+            provider="integrations:github",
+            integration_id=self.integration.id,
+            external_id="1",
+        )
+        repo = RepoAndBranch(name=REPO1, branch="master", external_id="1")
+        cm = CodeMapping(repo=repo, stacktrace_root="foo/", source_path="src/foo/")
+
+        code_mapping = create_code_mapping(self.organization, cm, self.project)
+
+        assert code_mapping.project_repository.repository_id == renamed.id
+
+    def test_create_code_mapping_reraises_unrelated_integrity_error(self) -> None:
+        repo = RepoAndBranch(name=REPO1, branch="master", external_id="1")
+        cm = CodeMapping(repo=repo, stacktrace_root="foo/", source_path="src/foo/")
+
+        with (
+            patch.object(Repository.objects, "get_or_create", side_effect=IntegrityError),
+            pytest.raises(IntegrityError),
+        ):
+            create_code_mapping(self.organization, cm, self.project)
+
     def test_dry_run_platform(self) -> None:
         frame_filename = "foo/bar.py"
         file_in_repo = "src/foo/bar.py"
@@ -352,7 +435,9 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
         frame_filename = "foo/bar.tbd"
         file_in_repo = "src/foo/bar.tbd"
         platform = "other"
-        self.event = self.create_event([{"filename": frame_filename, "in_app": True}], platform)
+        self.group_event = self.create_event(
+            [{"filename": frame_filename, "in_app": True}], platform
+        )
 
         with (
             patch(f"{CODE_ROOT}.utils.platform.get_platform_config", return_value={}),
@@ -369,7 +454,9 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
         frame_filename = "foo/bar.tbd"
         file_in_repo = "src/foo/bar.tbd"
         platform = "other"
-        self.event = self.create_event([{"filename": frame_filename, "in_app": True}], platform)
+        self.group_event = self.create_event(
+            [{"filename": frame_filename, "in_app": True}], platform
+        )
 
         with (
             patch(f"{CODE_ROOT}.utils.platform.get_platform_config", return_value={}),

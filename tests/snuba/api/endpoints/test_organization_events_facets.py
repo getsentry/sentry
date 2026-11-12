@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from datetime import timedelta
 from unittest import mock
 from uuid import uuid4
@@ -6,6 +7,7 @@ import requests
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.exceptions import ParseError
+from rest_framework.response import Response
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -26,7 +28,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         self.min_ago_iso = self.min_ago.isoformat()
         self.features = {"organizations:discover-basic": True}
 
-    def assert_facet(self, response, key, expected):
+    def assert_facet(self, response: Response, key: str, expected: Sequence[object]) -> None:
         actual = None
         for facet in response.data:
             if facet["key"] == key:
@@ -34,8 +36,8 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
                 break
         assert actual is not None, f"Could not find {key} facet in {response.data}"
         assert "topValues" in actual
-        key = lambda row: row["name"] if row["name"] is not None else ""
-        assert sorted(expected, key=key) == sorted(actual["topValues"], key=key)
+        sort_key = lambda row: row["name"] if row["name"] is not None else ""
+        assert sorted(expected, key=sort_key) == sorted(actual["topValues"], key=sort_key)
 
     def test_performance_view_feature(self) -> None:
         self.features.update(
@@ -48,6 +50,23 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             response = self.client.get(self.url, data={"project": self.project.id}, format="json")
 
         assert response.status_code == 200, response.content
+
+    def test_trace_timestamp_outside_retention(self) -> None:
+        with (
+            self.feature(self.features),
+            mock.patch("sentry.quotas.backend.get_event_retention", return_value=30),
+        ):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "statsPeriod": "90d",
+                    "traceTimestamp": before_now(days=60).timestamp(),
+                },
+                format="json",
+            )
+
+        assert response.status_code == 400, response.content
 
     def test_simple(self) -> None:
         self.store_event(
@@ -119,7 +138,15 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
 
         assert response.status_code == 200, response.content
         keys = [facet["key"] for facet in response.data]
-        assert ["alpha", "beta", "charlie", "environment", "level", "project"] == keys
+        assert [
+            "alpha",
+            "beta",
+            "charlie",
+            "environment",
+            "interface_type",
+            "level",
+            "project",
+        ] == keys
 
     def test_with_message_query(self) -> None:
         self.store_event(
@@ -627,7 +654,11 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             data={
                 "event_id": uuid4().hex,
                 "timestamp": self.min_ago_iso,
-                "tags": {"device.class": "1"},
+                # Relay derives ``device.class`` from the device context rather
+                # than trusting a client-supplied tag.
+                "contexts": {
+                    "device": {"type": "device", "family": "iPhone", "model": "iPhone8,1"}
+                },
             },
             project_id=self.project2.id,
         )
@@ -635,7 +666,9 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             data={
                 "event_id": uuid4().hex,
                 "timestamp": self.min_ago_iso,
-                "tags": {"device.class": "2"},
+                "contexts": {
+                    "device": {"type": "device", "family": "iPhone", "model": "iPhone10,1"}
+                },
             },
             project_id=self.project.id,
         )
@@ -643,7 +676,9 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             data={
                 "event_id": uuid4().hex,
                 "timestamp": self.min_ago_iso,
-                "tags": {"device.class": "3"},
+                "contexts": {
+                    "device": {"type": "device", "family": "iPhone", "model": "iPhone14,3"}
+                },
             },
             project_id=self.project.id,
         )
@@ -692,12 +727,16 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         assert links[1]["cursor"] == "0:10:0"
         assert len(response.data) == 10
 
-        # Loop over the first 10 tags to ensure they're in the results
-        for tag_key in list(test_tags.keys())[:10]:
+        # Loop over the first 9 tags to ensure they're in the results; the 10th
+        # slot is taken by "interface_type", which sorts between "i" and "j".
+        for tag_key in list(test_tags.keys())[:9]:
             expected = [
                 {"count": 1, "name": test_tags[tag_key], "value": test_tags[tag_key]},
             ]
             self.assert_facet(response, tag_key, expected)
+        self.assert_facet(
+            response, "interface_type", [{"count": 1, "name": "contexts", "value": "contexts"}]
+        )
 
         # Get the next page
         with self.feature(self.features):
@@ -710,7 +749,11 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
 
         assert response.status_code == 200, response.content
         assert links[1]["results"] == "false"  # There should be no more tags to fetch
-        assert len(response.data) == 2
+        assert len(response.data) == 3
+        expected = [
+            {"count": 1, "name": "ten", "value": "ten"},
+        ]
+        self.assert_facet(response, "j", expected)
         expected = [
             {"count": 1, "name": "eleven", "value": "eleven"},
         ]
@@ -783,7 +826,10 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
 
         assert response.status_code == 200, response.content
         assert links[1]["results"] == "false"  # There should be no more tags to fetch
-        assert len(response.data) == 3
+        assert len(response.data) == 4
+        self.assert_facet(
+            response, "interface_type", [{"count": 1, "name": "contexts", "value": "contexts"}]
+        )
         expected = [
             {"count": 1, "name": "ten", "value": "ten"},
         ]
@@ -846,7 +892,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
 
         assert response.status_code == 200, response.content
         assert links[1]["results"] == "false"  # There should be no more tags to fetch
-        assert len(response.data) == 3
+        assert len(response.data) == 4
 
     def test_multiple_pages_with_multiple_projects(self) -> None:
         test_project = self.create_project()
@@ -906,7 +952,8 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
 
         assert response.status_code == 200, response.content
         assert links[1]["results"] == "false"  # There should be no more tags to fetch
-        assert len(response.data) == 4  # 4 because projects and levels were added to the base 22
+        # 5 because project, level and interface_type were added to the base 22
+        assert len(response.data) == 5
 
     def test_get_all_tags(self) -> None:
         test_project = self.create_project()
@@ -924,7 +971,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             )
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 23
+        assert len(response.data) == 24
 
     @mock.patch("sentry.search.events.builder.base.raw_snql_query")
     def test_dont_turbo_trace_queries(self, mock_run: mock.MagicMock) -> None:

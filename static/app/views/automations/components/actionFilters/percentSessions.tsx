@@ -6,25 +6,14 @@ import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge
 import {t, tct} from 'sentry/locale';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
-import {
-  CountBranch,
-  PercentBranch,
-} from 'sentry/views/automations/components/actionFilters/comparisonBranches';
-import {
-  COMPARISON_INTERVAL_CHOICES,
-  PERCENT_INTERVAL_CHOICES,
-} from 'sentry/views/automations/components/actionFilters/constants';
-import {
-  SubfilterDetailsList,
-  SubfiltersList,
-  validateSubfilters,
-} from 'sentry/views/automations/components/actionFilters/subfiltersList';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
-import {
-  dataConditionNodesMap,
-  useDataConditionNodeContext,
-} from 'sentry/views/automations/components/dataConditionNodes';
+import type {DataConditionNodeComponentProps} from 'sentry/views/automations/components/dataConditionNodeContext';
+import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
+
+import {CountBranch, PercentBranch} from './comparisonBranches';
+import {COMPARISON_INTERVAL_CHOICES, PERCENT_INTERVAL_CHOICES} from './constants';
+import {SubfilterDetailsList, SubfiltersList, validateSubfilters} from './subfiltersList';
 
 export function PercentSessionsCountDetails({condition}: {condition: DataCondition}) {
   const hasSubfilters = condition.comparison.filters?.length > 0;
@@ -74,14 +63,16 @@ export function PercentSessionsPercentDetails({condition}: {condition: DataCondi
   );
 }
 
-export function PercentSessionsNode() {
+export function PercentSessionsNode({
+  getDefaultComparison,
+}: DataConditionNodeComponentProps) {
   const {condition} = useDataConditionNodeContext();
   const hasSubfilters = condition.comparison.filters?.length > 0;
   return (
     <div>
       <RowLine>
         {tct('Percentage of sessions affected by an issue is [select] [where]', {
-          select: <ComparisonTypeField />,
+          select: <ComparisonTypeField getDefaultComparison={getDefaultComparison} />,
           where: hasSubfilters ? <ConditionBadge>{t('Where')}</ConditionBadge> : null,
         })}
       </RowLine>
@@ -90,7 +81,7 @@ export function PercentSessionsNode() {
   );
 }
 
-function ComparisonTypeField() {
+function ComparisonTypeField({getDefaultComparison}: DataConditionNodeComponentProps) {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   const {removeError} = useAutomationBuilderErrorContext();
 
@@ -121,7 +112,7 @@ function ComparisonTypeField() {
           type: option.value,
           comparison: {
             ...condition.comparison,
-            ...dataConditionNodesMap.get(option.value)?.defaultComparison,
+            ...getDefaultComparison(option.value),
           },
         });
         removeError(condition.id);

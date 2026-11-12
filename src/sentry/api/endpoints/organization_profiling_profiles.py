@@ -22,7 +22,12 @@ from sentry.api.serializers.models.profilechunkattachment import (
     ProfileChunkAttachmentSerializerResponse,
 )
 from sentry.api.utils import handle_query_errors
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
 from sentry.apidocs.examples.profiling_examples import ProfilingExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
@@ -36,44 +41,6 @@ from sentry.snuba.dataset import Dataset, StorageKey
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
 
-FLAMEGRAPH_DATA_SOURCE_PARAM = OpenApiParameter(
-    name="dataSource",
-    location="query",
-    required=False,
-    type=str,
-    enum=["transactions", "profiles", "functions", "spans"],
-    description=(
-        "Source dataset to build the flamegraph from. Defaults to `functions` when "
-        "`fingerprint` is set and `transactions` otherwise."
-    ),
-)
-
-FLAMEGRAPH_FINGERPRINT_PARAM = OpenApiParameter(
-    name="fingerprint",
-    location="query",
-    required=False,
-    type=int,
-    description="A UInt32 function fingerprint. Only valid when `dataSource=functions`.",
-)
-
-FLAMEGRAPH_QUERY_PARAM = OpenApiParameter(
-    name="query",
-    location="query",
-    required=False,
-    type=str,
-    description="Sentry [search syntax](https://docs.sentry.io/concepts/search/) to filter the candidate profiles.",
-)
-
-FLAMEGRAPH_EXPAND_PARAM = OpenApiParameter(
-    name="expand",
-    location="query",
-    required=False,
-    many=True,
-    type=str,
-    enum=["metrics"],
-    description="Optional expansions. Pass `metrics` to include flamegraph metric aggregates in the response.",
-)
-
 
 class OrganizationProfilingBaseEndpoint(OrganizationEventsEndpointBase):
     owner = ApiOwner.PROFILING
@@ -84,14 +51,31 @@ class OrganizationProfilingBaseEndpoint(OrganizationEventsEndpointBase):
 
 class OrganizationProfilingFlamegraphSerializer(serializers.Serializer):
     # fingerprint is an UInt32
-    fingerprint = serializers.IntegerField(min_value=0, max_value=(1 << 32) - 1, required=False)
-    dataSource = serializers.ChoiceField(
-        ["transactions", "profiles", "functions", "spans"], required=False
+    fingerprint = serializers.IntegerField(
+        min_value=0,
+        max_value=(1 << 32) - 1,
+        required=False,
+        help_text="A UInt32 function fingerprint. Only valid when `dataSource=functions`.",
     )
-    query = serializers.CharField(required=False)
-    expand = serializers.ListField(child=serializers.ChoiceField(["metrics"]), required=False)
+    dataSource = serializers.ChoiceField(
+        ["transactions", "profiles", "functions", "spans"],
+        required=False,
+        help_text=(
+            "Source dataset to build the flamegraph from. Defaults to `functions` when "
+            "`fingerprint` is set and `transactions` otherwise."
+        ),
+    )
+    query = serializers.CharField(
+        required=False,
+        help_text="Sentry [search syntax](https://docs.sentry.io/concepts/search/) to filter the candidate profiles.",
+    )
+    expand = serializers.ListField(
+        child=serializers.ChoiceField(["metrics"]),
+        required=False,
+        help_text="Optional expansions. Pass `metrics` to include flamegraph metric aggregates in the response.",
+    )
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, object]) -> dict[str, object]:
         source = attrs.get("dataSource")
 
         if source is None:
@@ -132,10 +116,7 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
             GlobalParams.STATS_PERIOD,
             GlobalParams.START,
             GlobalParams.END,
-            FLAMEGRAPH_DATA_SOURCE_PARAM,
-            FLAMEGRAPH_FINGERPRINT_PARAM,
-            FLAMEGRAPH_QUERY_PARAM,
-            FLAMEGRAPH_EXPAND_PARAM,
+            OrganizationProfilingFlamegraphSerializer,
         ],
         responses={
             200: inline_sentry_response_serializer(
@@ -196,14 +177,6 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
         )
 
 
-PROFILER_ID_QUERY_PARAM = OpenApiParameter(
-    name="profiler_id",
-    location="query",
-    required=True,
-    type=str,
-    description="The continuous-profiler ID to fetch chunks for.",
-)
-
 CHUNKS_PROJECT_PARAM = OpenApiParameter(
     name="project",
     location="query",
@@ -211,6 +184,13 @@ CHUNKS_PROJECT_PARAM = OpenApiParameter(
     type=str,
     description="The ID or slug of the project to fetch chunks for. Exactly one project must be specified.",
 )
+
+
+class OrganizationProfilingChunksQuerySerializer(serializers.Serializer):
+    profiler_id = serializers.UUIDField(
+        format="hex",
+        help_text="The continuous-profiler ID to fetch chunks for.",
+    )
 
 
 @extend_schema(tags=["Profiling"])
@@ -229,19 +209,22 @@ class OrganizationProfilingChunksEndpoint(OrganizationProfilingBaseEndpoint):
             GlobalParams.STATS_PERIOD,
             GlobalParams.START,
             GlobalParams.END,
-            PROFILER_ID_QUERY_PARAM,
+            OrganizationProfilingChunksQuerySerializer,
         ],
         responses={
             200: inline_sentry_response_serializer(
                 "OrganizationProfilingChunksResponse", dict[str, Any]
             ),
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
         examples=ProfilingExamples.PROFILE_CHUNKS,
     )
-    def get(self, request: Request, organization: Organization) -> Response[None] | HttpResponse:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[None] | Response[ValidationErrorResponse] | HttpResponse:
         """
         Retrieve continuous profiling data for a profiler over a time range.
 
@@ -259,9 +242,10 @@ class OrganizationProfilingChunksEndpoint(OrganizationProfilingBaseEndpoint):
         if project_ids is None or len(project_ids) != 1:
             raise ParseError(detail="one project_id must be specified.")
 
-        profiler_id = request.query_params.get("profiler_id")
-        if profiler_id is None:
-            raise ParseError(detail="profiler_id must be specified.")
+        serializer = OrganizationProfilingChunksQuerySerializer(data=request.query_params)
+        if not serializer.is_valid():
+            return Response(as_validation_errors(serializer), status=400)
+        profiler_id = serializer.validated_data["profiler_id"].hex
 
         chunk_ids = get_chunk_ids(snuba_params, profiler_id, project_ids[0])
 
@@ -305,7 +289,7 @@ class OrganizationProfilingChunkAttachmentsEndpoint(OrganizationProfilingBaseEnd
             GlobalParams.STATS_PERIOD,
             GlobalParams.START,
             GlobalParams.END,
-            PROFILER_ID_QUERY_PARAM,
+            OrganizationProfilingChunksQuerySerializer,
             CHUNK_ID_QUERY_PARAM,
         ],
         responses={
@@ -313,12 +297,15 @@ class OrganizationProfilingChunkAttachmentsEndpoint(OrganizationProfilingBaseEnd
                 "OrganizationProfilingChunkAttachmentsResponse",
                 list[ProfileChunkAttachmentSerializerResponse],
             ),
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, organization: Organization) -> HttpResponse:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[ValidationErrorResponse] | HttpResponse:
         """
         List attachments (e.g. Perfetto traces) for a profiler's chunks.
 
@@ -339,9 +326,10 @@ class OrganizationProfilingChunkAttachmentsEndpoint(OrganizationProfilingBaseEnd
         if project_ids is None or len(project_ids) != 1:
             raise ParseError(detail="one project_id must be specified.")
 
-        profiler_id = request.query_params.get("profiler_id")
-        if profiler_id is None:
-            raise ParseError(detail="profiler_id must be specified.")
+        serializer = OrganizationProfilingChunksQuerySerializer(data=request.query_params)
+        if not serializer.is_valid():
+            return Response(as_validation_errors(serializer), status=400)
+        profiler_id = serializer.validated_data["profiler_id"].hex
 
         chunk_id = request.query_params.get("chunk_id")
         if chunk_id is not None:

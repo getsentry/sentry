@@ -1,22 +1,21 @@
 from __future__ import annotations
 
-import logging
 import os
 from collections import defaultdict
 from datetime import timedelta
 from typing import Any
-from urllib.parse import urlparse
 
 from sentry.issue_detection.base import DetectorType, PerformanceDetector
 from sentry.issue_detection.detectors.utils import (
     fingerprint_http_spans,
     get_notification_attachment_body,
+    get_span_description,
     get_span_evidence_value,
     get_total_span_duration,
     get_url_from_span,
-    is_filtered_url,
     parameterize_url,
     parameterize_url_with_result,
+    safer_urlparse,
 )
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issue_detection.types import Span
@@ -53,11 +52,12 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         self.spans: list[Span] = []
 
     def visit_span(self, span: Span) -> None:
-        if not self._is_span_eligible(span):
-            return
-
+        # Check the op before `_is_span_eligible`, which parses the span's URL.
         op = span.get("op", None)
         if op not in self.settings.get("allowed_span_ops", []):
+            return
+
+        if not self._is_span_eligible(span):
             return
 
         previous_span = self.spans[-1] if len(self.spans) > 0 else None
@@ -85,17 +85,18 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
     def _is_span_eligible(self, span: Span) -> bool:
         span_id = span.get("span_id", None)
+        parent_span_id = span.get("parent_span_id", None)
         op = span.get("op", None)
         hash = span.get("hash", None)
 
-        if not span_id or not op or not hash:
+        if not span_id or not parent_span_id or not op or not hash:
             return False
 
-        description = span.get("description")
+        description = get_span_description(span)
         if not description:
             return False
 
-        if description.strip()[:3].upper() != "GET":
+        if description[:3].upper() != "GET":
             return False
 
         url = get_url_from_span(span)
@@ -125,13 +126,10 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if not url:
             return False
 
-        if is_filtered_url(url):
-            return False
-
         # Once most users update their SDKs to use the latest standard, we
         # won't have to do this, since the URLs will be sent in as `span.data`
         # in a parsed format
-        parsed_url = urlparse(str(url))
+        parsed_url = safer_urlparse(str(url))
 
         # Ignore anything that looks like an asset. Some frameworks (and apps)
         # fetch assets via XHR, which is not our concern
@@ -167,17 +165,14 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             return
 
         if self.stored_problems.get(fingerprint):
-            logging.info(
-                "Multiple occurrences detected for fingerprint",
-                extra={"detector": self.settings_key},
-            )
+            self.duplicate_fingerprint_count += 1
             return
 
         offender_span_ids = [span["span_id"] for span in self.spans]
         problem_description = self._get_parameterized_url(self.spans[0])
         if problem_description == "":
             problem_description = os.path.commonprefix(
-                [span.get("description", "") or "" for span in self.spans]
+                [get_span_description(span) for span in self.spans]
             )
 
         parent_span_id = last_span.get("parent_span_id")
@@ -189,7 +184,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             "parent_span_ids": [parent_span_id] if parent_span_id else [],
             "offender_span_ids": offender_span_ids,
             "transaction_name": self._event.get("transaction", ""),
-            "num_repeating_spans": str(len(offender_span_ids)) if offender_span_ids else "",
+            "num_repeating_spans": str(len(offender_span_ids)),
             "repeating_spans": self._get_path_prefix(self.spans[0]),
             "repeating_spans_compact": get_span_evidence_value(self.spans[0], include_op=False),
             "parameters": parameters["query_params"],
@@ -259,7 +254,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             return ""
 
         url = get_url_from_span(repeating_span)
-        parsed_url = urlparse(url)
+        parsed_url = safer_urlparse(url)
         return parsed_url.path or ""
 
     def _fingerprint(self) -> str | None:
@@ -285,7 +280,6 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         )
 
     def _spans_are_similar(self, span_a: Span, span_b: Span) -> bool:
-        return (
+        return span_a["parent_span_id"] == span_b["parent_span_id"] and (
             self._get_parameterized_url(span_a) == self._get_parameterized_url(span_b)
-            and span_a["parent_span_id"] == span_b["parent_span_id"]
         )

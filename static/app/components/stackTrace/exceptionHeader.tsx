@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {AnsiText} from 'sentry/components/ansiText';
 import {Mechanism} from 'sentry/components/events/interfaces/crashContent/exception/mechanism';
 import {renderLinksInText} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
@@ -48,16 +49,20 @@ export function ExceptionDescription({
   const valueMeta = meta?.value?.[''];
 
   return (
-    <Flex direction="column" gap={gap}>
+    <Stack gap={gap}>
       {valueMeta && !value ? (
         <ExceptionValue>
           <AnnotatedText value={value} meta={valueMeta} />
         </ExceptionValue>
       ) : value ? (
-        <ExceptionValue>{renderLinksInText({exceptionText: value})}</ExceptionValue>
+        <ExceptionValue>
+          <AnsiText renderText={text => renderLinksInText({exceptionText: text})}>
+            {value}
+          </AnsiText>
+        </ExceptionValue>
       ) : null}
       {mechanism && <Mechanism data={mechanism} meta={meta?.mechanism} />}
-    </Flex>
+    </Stack>
   );
 }
 

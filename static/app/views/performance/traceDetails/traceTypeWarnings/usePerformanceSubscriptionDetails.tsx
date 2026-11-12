@@ -1,0 +1,97 @@
+import {useQuery} from '@tanstack/react-query';
+
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+// Note: This does not fully represent the actual Subscription type.
+// Contains only the subset of attributes that we used in the hook.
+type Subscription = {
+  categories:
+    | {
+        transactions: {
+          usageExceeded: boolean;
+        };
+      }
+    | {
+        spans: {
+          usageExceeded: boolean;
+        };
+      }
+    | {
+        logBytes: {
+          usageExceeded: boolean;
+        };
+      }
+    | {
+        traceMetrics: {
+          usageExceeded: boolean;
+        };
+      };
+  planDetails: {
+    billingInterval: 'monthly' | 'annual';
+    budgetTerm: 'pay-as-you-go' | 'on-demand';
+  };
+  planTier: string;
+  onDemandBudgets?: {
+    enabled: boolean;
+  };
+};
+
+export function usePerformanceSubscriptionDetails({
+  traceItemDataset,
+}: {
+  // Default refers to the existing behaviour for either spans or transactions.
+  // Otherwise used to discern exactly which usage limit was exceeded in explore pages.
+  traceItemDataset: 'logs' | 'metrics' | 'default';
+}) {
+  const organization = useOrganization();
+
+  const subscriptionQuery = useQuery({
+    ...apiOptions.as<Subscription>()('/customers/$organizationIdOrSlug/', {
+      path: {organizationIdOrSlug: organization.slug},
+      staleTime: Infinity,
+    }),
+  });
+
+  const hasExceededPerformanceUsageLimit = subscriptionHasExceededPerformanceUsageLimit(
+    subscriptionQuery.data,
+    traceItemDataset
+  );
+
+  return {
+    isLoading: subscriptionQuery.isLoading,
+    data: {
+      hasExceededPerformanceUsageLimit,
+      subscription: subscriptionQuery.data,
+    },
+  };
+}
+
+function subscriptionHasExceededPerformanceUsageLimit(
+  subscription: Subscription | undefined,
+  traceItemDataset: 'logs' | 'metrics' | 'default'
+) {
+  let hasExceededExploreItemUsageLimit = false;
+  const dataCategories = subscription?.categories;
+  if (dataCategories) {
+    if (traceItemDataset === 'logs') {
+      if ('logBytes' in dataCategories) {
+        hasExceededExploreItemUsageLimit =
+          dataCategories.logBytes?.usageExceeded || false;
+      }
+    } else if (traceItemDataset === 'metrics') {
+      if ('traceMetrics' in dataCategories) {
+        hasExceededExploreItemUsageLimit =
+          dataCategories.traceMetrics?.usageExceeded || false;
+      }
+    } else if (traceItemDataset === 'default') {
+      if ('transactions' in dataCategories) {
+        hasExceededExploreItemUsageLimit =
+          dataCategories.transactions?.usageExceeded || false;
+      } else if ('spans' in dataCategories) {
+        hasExceededExploreItemUsageLimit = dataCategories.spans?.usageExceeded || false;
+      }
+    }
+  }
+  return hasExceededExploreItemUsageLimit;
+}

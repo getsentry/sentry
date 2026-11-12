@@ -1,6 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Pagination} from '@sentry/scraps/pagination';
 
@@ -9,14 +10,12 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {tct} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
-import type {Project, ProjectSummaryWithOptions} from 'sentry/types/project';
+import type {ProjectSummaryWithOptions} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import {useNavigate} from 'sentry/utils/useNavigate';
-import {withProjects} from 'sentry/utils/withProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import type {UsageSeries} from 'sentry/views/organizationStats/types';
 import type {UsageStatsOrganizationProps} from 'sentry/views/organizationStats/usageStatsOrg';
 import {
@@ -37,7 +36,7 @@ import {withSubscription} from 'getsentry/components/withSubscription';
 import {type Subscription} from 'getsentry/types';
 import {SPIKE_PROTECTION_OPTION_DISABLED} from 'getsentry/views/spikeProtection/constants';
 import {SpikeProtectionRangeLimitation} from 'getsentry/views/spikeProtection/spikeProtectionCallouts';
-import SpikeProtectionHistoryTable from 'getsentry/views/spikeProtection/spikeProtectionHistoryTable';
+import {SpikeProtectionHistoryTable} from 'getsentry/views/spikeProtection/spikeProtectionHistoryTable';
 import SpikeProtectionUsageChart from 'getsentry/views/spikeProtection/spikeProtectionUsageChart';
 import type {
   Spike,
@@ -76,7 +75,10 @@ function ProjectDetails({
   project,
   storedSpikes,
 }: ProjectDetailsProps) {
-  const navigate = useNavigate();
+  const [, setSpikeCursor] = useQueryState(
+    SPIKE_TABLE_CURSOR_KEY,
+    parseAsString.withOptions({history: 'push'})
+  );
 
   const spikesForDataCategory = storedSpikes.filter(
     spike => spike.dataCategory === dataCategoryInfo.name
@@ -105,13 +107,8 @@ function ProjectDetails({
         isLoading={loading}
       />
       <Pagination
-        pageLinks={pageLink}
-        onCursor={(cursor, path, query) => {
-          navigate({
-            pathname: path,
-            query: {...query, [SPIKE_TABLE_CURSOR_KEY]: cursor},
-          });
-        }}
+        {...getPaginationProps(pageLink)}
+        onCursor={cursor => void setSpikeCursor(cursor ?? null)}
       />
     </ErrorBoundary>
   );
@@ -210,7 +207,6 @@ function getSpikeDetails({
 
 interface EnhancedUsageStatsOrganizationProps extends UsageStatsOrganizationProps {
   isSingleProject: boolean;
-  projects: Project[];
   subscription: Subscription;
   chartTransform?: string;
   spikeCursor?: string;
@@ -224,7 +220,6 @@ interface EnhancedUsageStatsOrganizationProps extends UsageStatsOrganizationProp
  */
 function EnhancedUsageStatsOrganization({
   organization,
-  projects,
   subscription,
   projectIds,
   dataDatetime,
@@ -237,6 +232,7 @@ function EnhancedUsageStatsOrganization({
   handleChangeState,
   chartTransform,
 }: EnhancedUsageStatsOrganizationProps) {
+  const {projects} = useProjects();
   const project = projects.find(p => p.id === `${projectIds[0]}`);
   const endpointQueryDatetime = getEndpointQueryDatetime(dataDatetime);
   const endpointQuery = useMemo(
@@ -277,46 +273,42 @@ function EnhancedUsageStatsOrganization({
   });
 
   const spikesListQueryEnabled = isSingleProject && !!project;
-  const spikesList = useApiQuery<SpikesList>(
-    [
-      // Get all the spikes in the time period
-      getApiUrl(
-        '/organizations/$organizationIdOrSlug/spikes/projects/$projectIdOrSlug/',
-        {
-          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project?.id!},
-        }
-      ),
+  const spikesList = useQuery({
+    // Get all the spikes in the time period
+    ...apiOptions.as<SpikesList>()(
+      '/organizations/$organizationIdOrSlug/spikes/projects/$projectIdOrSlug/',
       {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project?.id!},
         query: {
           ...endpointQueryDatetime,
         },
-      },
-    ],
-    {staleTime: Infinity, retry: false, enabled: spikesListQueryEnabled}
-  );
+        staleTime: Infinity,
+      }
+    ),
+    retry: false,
+    enabled: spikesListQueryEnabled,
+  });
 
   const spikeThresholdsQueryEnabled = isSingleProject && !!project && hasAccurateSpikes;
-  const spikeThresholds = useApiQuery<SpikeThresholds>(
-    [
-      // Only fetch spike thresholds if the interval is 1h
-      getApiUrl(
-        '/organizations/$organizationIdOrSlug/spike-projection/projects/$projectIdOrSlug/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: project?.slug!,
-          },
-        }
-      ),
+  const spikeThresholds = useQuery({
+    // Only fetch spike thresholds if the interval is 1h
+    ...apiOptions.as<SpikeThresholds>()(
+      '/organizations/$organizationIdOrSlug/spike-projection/projects/$projectIdOrSlug/',
       {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: project?.slug!,
+        },
         query: {
           ...endpointQueryDatetime,
           interval: REQUIRED_INTERVAL,
         },
-      },
-    ],
-    {staleTime: Infinity, retry: false, enabled: spikeThresholdsQueryEnabled}
-  );
+        staleTime: Infinity,
+      }
+    ),
+    retry: false,
+    enabled: spikeThresholdsQueryEnabled,
+  });
 
   useRouteAnalyticsParams({
     subscription,
@@ -488,4 +480,4 @@ const DroppedFromSpikesStat = styled('div')`
   font-size: ${p => p.theme.font.size.md};
 `;
 
-export default withProjects(withSubscription(EnhancedUsageStatsOrganization));
+export default withSubscription(EnhancedUsageStatsOrganization);

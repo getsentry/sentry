@@ -25,6 +25,7 @@ from sentry.analytics.events.project_created import ProjectCreatedEvent
 from sentry.analytics.events.project_transferred import ProjectTransferredEvent
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.integrations.analytics import IntegrationAddedEvent
+from sentry.integrations.models.integration import Integration
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationonboardingtask import (
     OnboardingTask,
@@ -69,7 +70,7 @@ pytestmark = [requires_snuba]
 
 class OrganizationOnboardingTaskTest(TestCase):
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def _create_integration(self, provider: str, external_id: int = 9999):
+    def _create_integration(self, provider: str, external_id: int = 9999) -> Integration:
         return self.create_provider_integration(
             provider=provider,
             name="test",
@@ -167,7 +168,6 @@ class OrganizationOnboardingTaskTest(TestCase):
     def test_project_created__default_workflow(self) -> None:
         project = self.create_project(fire_project_created=True)
 
-        assert Rule.objects.filter(project=project).exists()
         workflow = Workflow.objects.get(
             organization=project.organization,
             name=DEFAULT_WORKFLOW_LABEL,
@@ -468,8 +468,8 @@ class OrganizationOnboardingTaskTest(TestCase):
 
     @patch("sentry.analytics.record", wraps=record)
     def test_analytic_triggered_only_once_if_multiple_events_with_minified_stack_trace_received(
-        self, record_analytics
-    ):
+        self, record_analytics: MagicMock
+    ) -> None:
         """
         Test that an analytic event is triggered only once when
         multiple events with minified stack trace are received
@@ -664,8 +664,8 @@ class OrganizationOnboardingTaskTest(TestCase):
 
     @patch("sentry.analytics.record", wraps=record)
     def test_analytic_triggered_only_once_if_multiple_events_with_sourcemaps_received(
-        self, record_analytics
-    ):
+        self, record_analytics: MagicMock
+    ) -> None:
         """
         Test that an analytic event is triggered only once when
         multiple events with sourcemaps are received
@@ -771,6 +771,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
+        assert self.organization.default_owner_id is not None
         assert_last_analytics_event(
             record_analytics,
             IntegrationAddedEvent(
@@ -798,6 +799,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
+        assert self.organization.default_owner_id is not None
         assert_last_analytics_event(
             record_analytics,
             IntegrationAddedEvent(
@@ -825,6 +827,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
+        assert self.organization.default_owner_id is not None
         assert_last_analytics_event(
             record_analytics,
             IntegrationAddedEvent(
@@ -866,34 +869,6 @@ class OrganizationOnboardingTaskTest(TestCase):
             status=OnboardingTaskStatus.COMPLETE,
         )
         assert task is not None
-
-    def test_issue_alert_received_through_project_creation(self) -> None:
-        now = timezone.now()
-
-        first_organization = self.create_organization(owner=self.user, slug="first-org")
-        first_project = self.create_project(first_event=now, organization=first_organization)
-        # By default, the project creation will create a default rule
-        project_created.send(project=first_project, user=self.user, sender=None)
-        assert OrganizationOnboardingTask.objects.filter(
-            organization=first_project.organization,
-            task=OnboardingTask.ALERT_RULE,
-            status=OnboardingTaskStatus.COMPLETE,
-        ).exists()
-
-        second_organization = self.create_organization(owner=self.user, slug="second-org")
-        second_project = self.create_project(first_event=now, organization=second_organization)
-        # When creating a project, a user can opt out of creating a default rule
-        project_created.send(
-            project=second_project,
-            user=self.user,
-            sender=None,
-            default_rules=False,
-        )
-        assert not OrganizationOnboardingTask.objects.filter(
-            organization=second_project.organization,
-            task=OnboardingTask.ALERT_RULE,
-            status=OnboardingTaskStatus.COMPLETE,
-        ).exists()
 
     @patch("sentry.analytics.record", wraps=record)
     def test_new_onboarding_complete(self, record_analytics: MagicMock) -> None:
@@ -1050,6 +1025,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
             is not None
         )
+        assert self.organization.default_owner_id is not None
         assert_last_analytics_event(
             record_analytics,
             IntegrationAddedEvent(
@@ -1133,6 +1109,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
             is not None
         )
+        assert self.organization.default_owner_id is not None
         assert_last_analytics_event(
             record_analytics,
             IntegrationAddedEvent(
@@ -1200,6 +1177,16 @@ class OrganizationOnboardingTaskTest(TestCase):
         # Create a project that can have source maps + create an issue alert
         project = self.create_project(platform="javascript")
         project_created.send(project=project, user=self.user, sender=None)
+
+        # project creation no longer creates a default alert, so create one explicitly
+        alert_rule_created.send(
+            rule_id=Rule(id=1).id,
+            project=project,
+            user=self.user,
+            rule_type="issue",
+            sender=None,
+            is_api_token=False,
+        )
 
         # Capture first transaction + release
         transaction_event = load_data("transaction")
@@ -1361,6 +1348,16 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         project = self.create_project(platform="python")
         project_created.send(project=project, user=self.user, default_rules=True, sender=None)
+
+        # project creation no longer creates a default alert, so create one explicitly
+        alert_rule_created.send(
+            rule_id=Rule(id=1).id,
+            project=project,
+            user=self.user,
+            rule_type="issue",
+            sender=None,
+            is_api_token=False,
+        )
 
         transaction_event = load_data("transaction")
         transaction_event.update({"user": None, "release": "my-first-release", "tags": []})

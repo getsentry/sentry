@@ -1,29 +1,26 @@
 import {Fragment} from 'react';
+import {IconClose} from '@sentry/icons/close';
+import {parseAsBoolean, parseAsInteger, parseAsStringLiteral, useQueryStates} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {hasTempestAccess} from 'sentry/utils/tempest/features';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {TopBar} from 'sentry/views/navigation/topBar';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 import {DevKitSettings} from './DevKitSettings';
 import {PlayStationSettings} from './PlayStationSettings';
 
-type Tab = 'retail' | 'devkit-crashes';
+const TABS = ['retail', 'devkit-crashes'] as const;
+
+type Tab = (typeof TABS)[number];
 
 const TAB_LABELS: Record<Tab, string> = {
   retail: t('Retail'),
@@ -35,34 +32,29 @@ const PS5_WARNING_DISMISS_KEY = 'tempest-ps5-warning-dismissed';
 export default function TempestSettings() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [{tab: tabParam}, setQueryParams] = useQueryStates({
+    tab: parseAsStringLiteral(TABS),
+    guidedStep: parseAsInteger,
+    setupInstructions: parseAsBoolean,
+  });
   const {dismiss: dismissPS5Warning, isDismissed: isPS5WarningDismissed} =
     useDismissAlert({
       key: PS5_WARNING_DISMISS_KEY,
     });
 
-  const getCurrentTab = (): Tab => {
-    const queryTab = decodeScalar(location?.query?.tab);
-    return (
-      ['retail', 'devkit-crashes'].includes(queryTab || '') ? queryTab : 'devkit-crashes'
-    ) as Tab;
-  };
-
-  const tab = getCurrentTab();
+  const tab = tabParam ?? 'devkit-crashes';
 
   const handleTabChange = (newTab: Tab) => {
-    const newQuery: any = {
-      ...location.query,
-      tab: newTab,
-    };
-    // Reset guided step when switching tabs to avoid cross-tab bleed
-    delete newQuery.guidedStep;
-    // setupInstructions is only available on the retail tab
-    delete newQuery.setupInstructions;
-    navigate({
-      query: newQuery,
-    });
+    setQueryParams(
+      {
+        tab: newTab,
+        // Reset guided step when switching tabs to avoid cross-tab bleed
+        guidedStep: null,
+        // setupInstructions is only available on the retail tab
+        setupInstructions: null,
+      },
+      {history: 'push'}
+    );
   };
 
   if (!hasTempestAccess(organization)) {
@@ -74,25 +66,6 @@ export default function TempestSettings() {
       </Alert.Container>
     );
   }
-
-  const renderPlayStationSettings = () => {
-    return <PlayStationSettings organization={organization} project={project} />;
-  };
-
-  const renderDevKitCrashesSettings = () => {
-    return <DevKitSettings organization={organization} project={project} />;
-  };
-
-  const renderTabContent = () => {
-    switch (tab) {
-      case 'retail':
-        return renderPlayStationSettings();
-      case 'devkit-crashes':
-        return renderDevKitCrashesSettings();
-      default:
-        return renderPlayStationSettings();
-    }
-  };
 
   const getPageTitle = () => {
     switch (tab) {
@@ -108,14 +81,6 @@ export default function TempestSettings() {
     <Fragment>
       <SentryDocumentTitle title={getPageTitle()} />
       <SettingsPageHeader title={getPageTitle()} />
-      <TopBar.Slot name="feedback">
-        <FeedbackButton
-          aria-label={t('Give Feedback')}
-          tooltipProps={{title: t('Give Feedback')}}
-        >
-          {null}
-        </FeedbackButton>
-      </TopBar.Slot>
 
       {!isPS5WarningDismissed && (
         <div>
@@ -123,13 +88,12 @@ export default function TempestSettings() {
             <Alert
               variant="warning"
               trailingItems={
-                <Button
-                  variant="link"
+                <Alert.Button
+                  variant="transparent"
                   icon={<IconClose />}
                   onClick={dismissPS5Warning}
                   aria-label={t('Dismiss Alert')}
                   tooltipProps={{title: t('Dismiss Alert')}}
-                  size="zero"
                 />
               }
             >
@@ -157,7 +121,11 @@ export default function TempestSettings() {
         />
       </Flex>
 
-      {renderTabContent()}
+      {tab === 'devkit-crashes' ? (
+        <DevKitSettings organization={organization} project={project} />
+      ) : (
+        <PlayStationSettings organization={organization} project={project} />
+      )}
     </Fragment>
   );
 }

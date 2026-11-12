@@ -1,5 +1,20 @@
 from drf_spectacular.utils import OpenApiExample
 
+_METRIC_DATA_SOURCE = {
+    "query_type": 0,
+    "dataset": "events",
+    "query": "is:unresolved",
+    "aggregate": "count()",
+    "time_window": 3600,
+    "environment": "production",
+    "event_types": ["error", "default"],
+}
+
+_THRESHOLD_CONDITIONS = [
+    {"type": "gt", "comparison": 10, "conditionResult": 75},
+    {"type": "lte", "comparison": 10, "conditionResult": 0},
+]
+
 
 class WorkflowEngineExamples:
     GET_WORKFLOW = [
@@ -8,6 +23,7 @@ class WorkflowEngineExamples:
             value={
                 "id": "6789123",
                 "name": "My Alert",
+                "type": "alert",
                 "organizationId": "1",
                 "createdBy": "1234567",
                 "dateCreated": "2026-01-14T20:08:32.273220Z",
@@ -53,7 +69,7 @@ class WorkflowEngineExamples:
                             {
                                 "id": "234567",
                                 "type": "issue_priority_deescalating",
-                                "comparison": True,
+                                "comparison": 75,
                                 "conditionResult": True,
                             }
                         ],
@@ -90,6 +106,7 @@ class WorkflowEngineExamples:
             value={
                 "id": "1234567",
                 "name": "My Updated Alert",
+                "type": "alert",
                 "organizationId": "1",
                 "createdBy": "23456",
                 "dateCreated": "2026-01-14T20:08:32.273220Z",
@@ -135,7 +152,7 @@ class WorkflowEngineExamples:
                             {
                                 "id": "345678",
                                 "type": "issue_priority_deescalating",
-                                "comparison": True,
+                                "comparison": 75,
                                 "conditionResult": True,
                             }
                         ],
@@ -221,7 +238,7 @@ class WorkflowEngineExamples:
                     ],
                     "actions": [],
                 },
-                "config": {"detectionType": "dynamic", "comparisonDelta": None},
+                "config": {"detectionType": "dynamic"},
                 "enabled": True,
                 "latestGroup": {
                     "id": "123456789",
@@ -256,6 +273,11 @@ class WorkflowEngineExamples:
         )
     ]
     UPDATE_DETECTOR = [
+        OpenApiExample(
+            "Update a monitor to percent-change detection",
+            value={"config": {"detectionType": "percent", "comparisonDelta": 3600}},
+            request_only=True,
+        ),
         OpenApiExample(
             "Update a Monitor",
             value={
@@ -339,7 +361,7 @@ class WorkflowEngineExamples:
             },
             status_codes=["200"],
             response_only=True,
-        )
+        ),
     ]
     LIST_ORG_DETECTORS = [
         OpenApiExample(
@@ -421,6 +443,8 @@ class WorkflowEngineExamples:
                                 "intervalSeconds": 60,
                                 "timeoutMs": 5000,
                                 "traceSampling": False,
+                                "responseCaptureEnabled": True,
+                                "assertion": None,
                             },
                         }
                     ],
@@ -512,7 +536,7 @@ class WorkflowEngineExamples:
                         ],
                         "actions": [],
                     },
-                    "config": {"detectionType": "static", "comparisonDelta": None},
+                    "config": {"detectionType": "static"},
                     "enabled": True,
                     "latestGroup": None,
                 },
@@ -528,6 +552,7 @@ class WorkflowEngineExamples:
                 {
                     "id": "123",
                     "name": "Send a notification for high priority issues",
+                    "type": "alert",
                     "organizationId": "1",
                     "createdBy": None,
                     "dateCreated": "2025-03-18T20:48:55.495059Z",
@@ -584,6 +609,7 @@ class WorkflowEngineExamples:
                 {
                     "id": "456",
                     "name": "Notify team #example-team",
+                    "type": "alert",
                     "organizationId": "1",
                     "createdBy": "34567",
                     "dateCreated": "2026-01-15T23:46:39.594915Z",
@@ -634,6 +660,7 @@ class WorkflowEngineExamples:
                 {
                     "id": "789",
                     "name": "Notify Jane Doe",
+                    "type": "alert",
                     "organizationId": "1",
                     "createdBy": "2345",
                     "dateCreated": "2026-01-15T23:46:39.594915Z",
@@ -696,6 +723,7 @@ class WorkflowEngineExamples:
             value={
                 "id": "1234567",
                 "name": "Notify Jane Doe",
+                "type": "alert",
                 "organizationId": "1",
                 "createdBy": "2345",
                 "dateCreated": "2026-01-13T21:21:15.975384Z",
@@ -774,6 +802,52 @@ class WorkflowEngineExamples:
     ]
     CREATE_DETECTOR = [
         OpenApiExample(
+            "Create a static threshold monitor",
+            value={
+                "name": "Unresolved errors",
+                "type": "metric_issue",
+                "dataSources": [_METRIC_DATA_SOURCE],
+                "conditionGroup": {"logicType": "any", "conditions": _THRESHOLD_CONDITIONS},
+                "config": {"detectionType": "static"},
+            },
+            request_only=True,
+        ),
+        OpenApiExample(
+            "Create a percent-change monitor",
+            value={
+                "name": "Error volume change",
+                "type": "metric_issue",
+                "dataSources": [_METRIC_DATA_SOURCE],
+                "conditionGroup": {"logicType": "any", "conditions": _THRESHOLD_CONDITIONS},
+                "config": {"detectionType": "percent", "comparisonDelta": 3600},
+            },
+            request_only=True,
+        ),
+        OpenApiExample(
+            "Create a dynamic anomaly monitor",
+            value={
+                "name": "Unusual error volume",
+                "type": "metric_issue",
+                "dataSources": [_METRIC_DATA_SOURCE],
+                "conditionGroup": {
+                    "logicType": "any",
+                    "conditions": [
+                        {
+                            "type": "anomaly_detection",
+                            "comparison": {
+                                "sensitivity": "high",
+                                "seasonality": "auto",
+                                "thresholdType": 2,
+                            },
+                            "conditionResult": 75,
+                        }
+                    ],
+                },
+                "config": {"detectionType": "dynamic"},
+            },
+            request_only=True,
+        ),
+        OpenApiExample(
             "Monitor successfully created",
             value={
                 "id": "12345",
@@ -830,5 +904,5 @@ class WorkflowEngineExamples:
             },
             status_codes=["201"],
             response_only=True,
-        )
+        ),
     ]

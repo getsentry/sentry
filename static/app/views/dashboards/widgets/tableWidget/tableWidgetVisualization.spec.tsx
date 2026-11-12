@@ -1,8 +1,10 @@
+import {IconArrow} from '@sentry/icons/arrow';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TabularColumnsFixture} from 'sentry-fixture/tabularColumns';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
+import {dragHandle} from 'sentry-test/dragMove';
 import {
   render,
   screen,
@@ -11,7 +13,6 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {IconArrow} from 'sentry/icons';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
@@ -20,12 +21,13 @@ import type {
   TabularData,
   TabularRow,
 } from 'sentry/views/dashboards/widgets/common/types';
-import {sampleHTTPRequestTableData} from 'sentry/views/dashboards/widgets/tableWidget/fixtures/sampleHTTPRequestTableData';
-import type {FieldRenderer} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
-import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 
-jest.mock('sentry/icons/iconArrow', () => ({
+import {sampleHTTPRequestTableData} from './fixtures/sampleHTTPRequestTableData';
+import type {FieldRenderer} from './tableWidgetVisualization';
+import {TableWidgetVisualization} from './tableWidgetVisualization';
+
+jest.mock('@sentry/icons/arrow', () => ({
   IconArrow: jest.fn(() => <div />),
 }));
 
@@ -77,6 +79,22 @@ describe('TableWidgetVisualization', () => {
       const $headers = screen.getAllByRole('columnheader');
       expect($headers[0]).not.toHaveTextContent('is_starred_transaction');
       expect($headers[0]!.querySelector('svg')).toBeInTheDocument();
+    });
+
+    it('Sizes the is_starred_transaction column to its content', () => {
+      const starredTableData: TabularData = {
+        data: [{is_starred_transaction: true, transaction: '/api/foo'}],
+        meta: {
+          fields: {is_starred_transaction: 'boolean', transaction: 'string'},
+          units: {is_starred_transaction: null, transaction: null},
+        },
+      };
+
+      render(<TableWidgetVisualization tableData={starredTableData} />);
+
+      expect(screen.getByRole('table')).toHaveStyle({
+        gridTemplateColumns: 'max-content minmax(90px, auto)',
+      });
     });
 
     it('Renders alias text instead of star icon when alias is provided', () => {
@@ -170,6 +188,56 @@ describe('TableWidgetVisualization', () => {
       expect($cells[0]).toHaveTextContent('relax, soon');
     });
 
+    it('Prettifies typed EAP attribute keys in column headers', () => {
+      render(
+        <TableWidgetVisualization
+          tableData={{
+            data: [{'tags[is_equal,boolean]': 'true', 'count(span.duration)': 1}],
+            meta: {
+              fields: {
+                'tags[is_equal,boolean]': 'string',
+                'count(span.duration)': 'number',
+              },
+              units: {'tags[is_equal,boolean]': null, 'count(span.duration)': null},
+            },
+          }}
+          columns={TabularColumnsFixture([
+            {key: 'tags[is_equal,boolean]'},
+            {key: 'count(span.duration)'},
+          ])}
+        />
+      );
+
+      const $headers = screen.getAllByRole('columnheader');
+      expect($headers[0]).toHaveTextContent('is_equal');
+      expect($headers[0]).not.toHaveTextContent('tags[is_equal,boolean]');
+      // Untyped keys are left exactly as they are.
+      expect($headers[1]).toHaveTextContent('count(span.duration)');
+    });
+
+    it('Leaves aggregate and equation headers intact', () => {
+      // prettifyTagKey's pattern is unanchored, so running it over a whole
+      // expression would return the first attribute name and drop the rest.
+      const equation = 'equation|tags[a,number] + 1';
+      const aggregate = 'count(tags[foo,number])';
+      render(
+        <TableWidgetVisualization
+          tableData={{
+            data: [{[equation]: 1, [aggregate]: 2}],
+            meta: {
+              fields: {[equation]: 'number', [aggregate]: 'number'},
+              units: {[equation]: null, [aggregate]: null},
+            },
+          }}
+          columns={TabularColumnsFixture([{key: equation}, {key: aggregate}])}
+        />
+      );
+
+      const $headers = screen.getAllByRole('columnheader');
+      expect($headers[0]).toHaveTextContent('tags[a,number] + 1');
+      expect($headers[1]).toHaveTextContent('count(tags[foo,number])');
+    });
+
     it('Uses aliases for column names if supplied', () => {
       const aliases = {
         'count(span.duration)': 'span duration count',
@@ -211,6 +279,32 @@ describe('TableWidgetVisualization', () => {
       );
       await waitFor(() =>
         expect(testRouter.location.query.sort).toBe('-count(span.duration)')
+      );
+    });
+
+    it('keeps other query params when the sort link is followed', async () => {
+      const {router: testRouter} = render(
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          columns={TabularColumnsFixture(sortableColumns)}
+        />,
+        {
+          initialRouterConfig: {
+            location: {
+              pathname: '/mock-pathname/',
+              query: {project: ['1', '2'], sort: 'http.request_method'},
+            },
+          },
+        }
+      );
+
+      await userEvent.click(screen.getAllByRole('columnheader')[0]?.children[0]!);
+
+      await waitFor(() =>
+        expect(testRouter.location.query).toEqual({
+          project: ['1', '2'],
+          sort: '-count(span.duration)',
+        })
       );
     });
 
@@ -263,15 +357,64 @@ describe('TableWidgetVisualization', () => {
         }
       );
 
-      const $gridResizer = screen.getAllByRole('columnheader')[0]?.children[1]!;
-      await userEvent.pointer([
-        {keys: '[MouseLeft>]', target: $gridResizer},
-        {target: $gridResizer, coords: {x: 100}},
-        {keys: '[/MouseLeft]'},
-      ]);
+      dragHandle(screen.getAllByRole('separator')[0]!, {from: 0, to: 100});
       await waitFor(() =>
         expect(testRouter.location.query.width).toStrictEqual(['100', '-1'])
       );
+    });
+
+    it('replaces history when writing widths on column resize', async () => {
+      const onNuqsUrlUpdate = jest.fn();
+      render(
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          columns={TabularColumnsFixture(columns)}
+        />,
+        {onNuqsUrlUpdate}
+      );
+
+      dragHandle(screen.getAllByRole('separator')[0]!, {from: 0, to: 100});
+
+      await waitFor(() =>
+        expect(onNuqsUrlUpdate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            queryString: '?width=100&width=-1',
+            options: expect.objectContaining({history: 'replace'}),
+          })
+        )
+      );
+    });
+
+    it('applies URL widths to the columns when their counts match', () => {
+      render(<TableWidgetVisualization tableData={sampleHTTPRequestTableData} />, {
+        initialRouterConfig: {
+          location: {pathname: '/mock-pathname/', query: {width: ['200', '-1']}},
+        },
+      });
+
+      expect(screen.getByRole('table')).toHaveStyle({
+        gridTemplateColumns: '200px minmax(90px, auto)',
+      });
+    });
+
+    it('applies a single URL width to a one-column table', () => {
+      const singleColumnTableData: TabularData = {
+        data: [{'count(span.duration)': 14105}],
+        meta: {
+          fields: {'count(span.duration)': 'integer'},
+          units: {'count(span.duration)': null},
+        },
+      };
+
+      render(<TableWidgetVisualization tableData={singleColumnTableData} />, {
+        initialRouterConfig: {
+          location: {pathname: '/mock-pathname/', query: {width: '200'}},
+        },
+      });
+
+      expect(screen.getByRole('table')).toHaveStyle({
+        gridTemplateColumns: 'minmax(200px, auto)',
+      });
     });
 
     it('Uses onChangeResizeColumn if supplied on column resize', async () => {
@@ -283,12 +426,7 @@ describe('TableWidgetVisualization', () => {
         />
       );
 
-      const $gridResizer = screen.getAllByRole('columnheader')[0]?.children[1]!;
-      await userEvent.pointer([
-        {keys: '[MouseLeft>]', target: $gridResizer},
-        {target: $gridResizer, coords: {x: 100}},
-        {keys: '[/MouseLeft]'},
-      ]);
+      dragHandle(screen.getAllByRole('separator')[0]!, {from: 0, to: 100});
       await waitFor(() =>
         expect(onResizeColumnMock).toHaveBeenCalledWith([
           {

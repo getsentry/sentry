@@ -1,34 +1,35 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {useQuery} from '@tanstack/react-query';
 import type {LocationDescriptorObject} from 'history';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {SearchBar} from 'sentry/components/searchBar';
-import type {
-  Alignments,
-  Directions,
-} from 'sentry/components/tables/gridEditable/sortLink';
-import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
+import {
+  type ColumnAlign,
+  SortableHeaderCell,
+  type SortDirection,
+} from 'sentry/components/tables/sortableHeaderCell';
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import {DataCategoryExact, Outcome} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
 import type {UsageSeries} from './types';
 import type {TableStat} from './usageTable';
-import UsageTable, {CellProject, CellStat} from './usageTable';
+import {CellProject, CellStat, UsageTable} from './usageTable';
 import {getOffsetFromCursor, getPaginationPageLink} from './utils';
 
 type Props = {
@@ -116,19 +117,13 @@ export function UsageStatsProjects({
     isError,
     error,
     isPending: loading,
-  } = useApiQuery<UsageSeries>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/stats_v2/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        // We do not need more granularity in the data so interval is '1d'
-        query: endpointQuery,
-      },
-    ],
-    {
+  } = useQuery(
+    apiOptions.as<UsageSeries>()('/organizations/$organizationIdOrSlug/stats_v2/', {
+      path: {organizationIdOrSlug: organization.slug},
+      // We do not need more granularity in the data so interval is '1d'
+      query: endpointQuery,
       staleTime: Infinity,
-    }
+    })
   );
 
   const tableSort: {
@@ -191,9 +186,8 @@ export function UsageStatsProjects({
         nextDirection = -1; // Default PROJECT to ascending
       }
 
-      // The header uses SortLink, which takes a LocationDescriptor and pushes
-      // that to the router. As such, we do not need to update the router in
-      // handleChangeState
+      // The header cell takes a LocationDescriptor and pushes that to the
+      // router, so handleChangeState does not need to update it
       return handleChangeState(
         {sort: `${nextDirection > 0 ? '-' : ''}${nextKey}`},
         {willUpdateRouter: false}
@@ -373,7 +367,7 @@ export function UsageStatsProjects({
     ({showStoredOutcome}: {showStoredOutcome: boolean}) => {
       const {key, direction} = tableSort;
 
-      const getArrowDirection = (linkKey: SortBy): Directions => {
+      const getArrowDirection = (linkKey: SortBy): SortDirection | undefined => {
         if (linkKey !== key) {
           return undefined;
         }
@@ -430,13 +424,13 @@ export function UsageStatsProjects({
 
           return (
             <Cell key={h.key}>
-              <SortLink
-                canSort
-                title={h.title}
-                align={h.align as Alignments}
+              <SortableHeaderCell
+                align={h.align as ColumnAlign}
                 direction={h.direction}
-                generateSortLink={h.onClick}
-              />
+                to={h.onClick()}
+              >
+                {h.title}
+              </SortableHeaderCell>
             </Cell>
           );
         })
@@ -483,9 +477,8 @@ export function UsageStatsProjects({
         </Flex>
       )}
       {!isSingleProject && (
-        <Container>
+        <Container marginBottom="xl">
           <SearchBar
-            defaultQuery=""
             query={tableQuery}
             placeholder={t('Filter your projects')}
             aria-label={t('Filter projects')}
@@ -493,7 +486,7 @@ export function UsageStatsProjects({
           />
         </Container>
       )}
-      <Container data-test-id="usage-stats-table">
+      <Container marginBottom="xl" data-test-id="usage-stats-table">
         <UsageTable
           isLoading={loading || !projectsLoaded}
           isError={isError}
@@ -504,15 +497,11 @@ export function UsageStatsProjects({
           usageStats={tableStats}
           showStoredOutcome={showStoredOutcome}
         />
-        <Pagination pageLinks={pageLink} />
+        <Pagination {...getPaginationProps(pageLink)} />
       </Container>
     </Fragment>
   );
 }
-
-const Container = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-`;
 
 const Title = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};

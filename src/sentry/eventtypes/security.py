@@ -18,7 +18,7 @@ class SecurityEvent(BaseEvent):
         )
         return {"message": message}
 
-    def get_title(self, metadata: Mapping[str, str | None]) -> str:
+    def get_title(self, metadata: Mapping[str, Any]) -> str:
         # Due to a regression (https://github.com/getsentry/sentry/pull/19794)
         # some events did not have message persisted but title. Because of this
         # the title code has to take these into account.

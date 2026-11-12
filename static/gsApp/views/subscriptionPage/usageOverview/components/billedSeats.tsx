@@ -4,10 +4,9 @@ import {useQuery} from '@tanstack/react-query';
 
 import {Container} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
-import {LoadingError} from 'sentry/components/loadingError';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
@@ -15,6 +14,7 @@ import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
+import {getPaginationProps} from 'sentry/utils/pagination';
 
 import {UNLIMITED_RESERVED} from 'getsentry/constants';
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
@@ -24,6 +24,11 @@ import {
   type Subscription,
 } from 'getsentry/types';
 import {normalizeMetricHistory} from 'getsentry/utils/billing';
+
+const BILLED_SEAT_COLUMNS: TableColumnConfig[] = [
+  {key: 'activeContributors', width: '1fr'},
+  {key: 'dateAdded', width: '1fr'},
+];
 
 export function BilledSeats({
   selectedProduct,
@@ -70,6 +75,7 @@ export function BilledSeats({
   return (
     <Fragment>
       <Table
+        columns={BILLED_SEAT_COLUMNS}
         hasBorderTop={
           // add a top border if there is info above this component in the panel
           // we can infer this by checking if there is at least one billed seat
@@ -82,23 +88,21 @@ export function BilledSeats({
             (normalizedMetricHistory.prepaid > 0 ||
               normalizedMetricHistory.prepaid === UNLIMITED_RESERVED))
         }
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell style={{textTransform: 'uppercase'}}>
+              {tct('Active Contributors ([count])', {count: billedSeats?.length ?? 0})}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell style={{textTransform: 'uppercase'}}>
+              {t('Date Added')}
+            </SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
       >
-        <SimpleTable.Header>
-          <SimpleTable.HeaderCell style={{textTransform: 'uppercase'}}>
-            {tct('Active Contributors ([count])', {count: billedSeats?.length ?? 0})}
-          </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell style={{textTransform: 'uppercase'}}>
-            {t('Date Added')}
-          </SimpleTable.HeaderCell>
-        </SimpleTable.Header>
         {seatsError ? (
-          <SimpleTable.Empty>
-            <LoadingError onRetry={refetch} />
-          </SimpleTable.Empty>
+          <SimpleTable.Error onRetry={refetch} />
         ) : seatsLoading ? (
-          <SimpleTable.Empty>
-            <LoadingIndicator />
-          </SimpleTable.Empty>
+          <SimpleTable.Loading />
         ) : billedSeats && billedSeats.length > 0 ? (
           billedSeats.map(seat => (
             <SimpleTable.Row key={seat.id}>
@@ -116,7 +120,7 @@ export function BilledSeats({
       </Table>
       {billedSeats && billedSeats.length > 0 && (
         <Container padding="0 lg lg" borderTop="primary">
-          <Pagination pageLinks={data?.headers.Link ?? null} />
+          <Pagination {...getPaginationProps(data?.headers.Link ?? null)} />
         </Container>
       )}
     </Fragment>
@@ -124,7 +128,6 @@ export function BilledSeats({
 }
 
 const Table = styled(SimpleTable)<{hasBorderTop: boolean}>`
-  grid-template-columns: 1fr 1fr;
   border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   border: none;
   border-top: ${p =>

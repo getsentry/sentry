@@ -1,18 +1,26 @@
 import logging
 import re
+from collections.abc import Callable, Mapping, Sequence
+from typing import Any, cast
 
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
+from drf_spectacular.utils import extend_schema_field
 from jsonschema.exceptions import ValidationError as SchemaValidationError
 from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
 
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case
+from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.parameters import build_typed_list
+from sentry.auth.access import Access
 from sentry.integrations.models.integration_feature import Feature
 from sentry.models.apiscopes import ApiScopes
-from sentry.sentry_apps.api.parsers.schema import validate_ui_element_schema
-from sentry.sentry_apps.models.sentry_app import REQUIRED_EVENT_PERMISSIONS, UUID_CHARS_IN_SLUG
+from sentry.sentry_apps.api.parsers.schema import UiElementSchema, validate_ui_element_schema
+from sentry.sentry_apps.models.sentry_app import (
+    UUID_CHARS_IN_SLUG,
+    VALID_EVENTS,
+    required_scope_for_subscription,
+)
 from sentry.sentry_apps.utils.webhooks import VALID_EVENT_RESOURCES
 from sentry.utils.display_name_filter import is_spam_display_name
 
@@ -45,12 +53,14 @@ RESERVED_WEBHOOK_HEADER_PREFIXES = ("x-forwarded-", "x-sentry-")
 
 
 @extend_schema_field(build_typed_list(OpenApiTypes.STR))
-class ApiScopesField(serializers.Field):
-    def to_internal_value(self, data):
+class ApiScopesField(
+    serializers.Field[Sequence[str] | None, Sequence[str] | None, Sequence[str], object]
+):
+    def to_internal_value(self, data: Sequence[str] | None) -> Sequence[str] | None:
         valid_scopes = ApiScopes()
 
         if data is None:
-            return
+            return None
 
         for scope in data:
             if scope not in valid_scopes:
@@ -59,31 +69,32 @@ class ApiScopesField(serializers.Field):
 
 
 @extend_schema_field(build_typed_list(OpenApiTypes.STR))
-class EventListField(serializers.Field):
-    def to_internal_value(self, data):
+class EventListField(
+    serializers.Field[Sequence[str] | None, Sequence[str] | None, Sequence[str], object]
+):
+    def to_internal_value(self, data: Sequence[str] | None) -> Sequence[str] | None:
         if data is None:
-            return
+            return None
 
-        if not set(data).issubset(VALID_EVENT_RESOURCES):
+        valid = set(VALID_EVENT_RESOURCES) | set(VALID_EVENTS)
+        if not set(data).issubset(valid):
             raise ValidationError(
-                "Invalid event subscription: {}".format(
-                    ", ".join(set(data).difference(VALID_EVENT_RESOURCES))
-                )
+                "Invalid event subscription: {}".format(", ".join(set(data).difference(valid)))
             )
         return data
 
 
 @extend_schema_field(OpenApiTypes.OBJECT)
-class SchemaField(serializers.Field):
-    def to_internal_value(self, data):
+class SchemaField(serializers.Field[object, object, object, object]):
+    def to_internal_value(self, data: object) -> object:
         if data is None:
-            return
+            return None
 
         if data == "" or data == {}:
             return {}
 
         try:
-            validate_ui_element_schema(data)
+            validate_ui_element_schema(cast(UiElementSchema, data))
         except SchemaValidationError as e:
             raise ValidationError(e.message)
 
@@ -91,7 +102,7 @@ class SchemaField(serializers.Field):
 
 
 class URLField(serializers.URLField):
-    def to_internal_value(self, url):
+    def to_internal_value(self, url: str) -> str:
         # The Django URLField doesn't distinguish between different types of
         # invalid URLs, so do any manual checks here to give the User a better
         # error message.
@@ -100,7 +111,13 @@ class URLField(serializers.URLField):
         return url
 
 
-@extend_schema_serializer(exclude_fields=["popularity", "features", "status", "isDisabled"])
+@sentry_schema_serializer(
+    omit_from_public_schema={
+        "popularity": "Internal ranking value used to order integrations in the directory.",
+        "isDisabled": "Set by Sentry when an integration is disabled; not client-settable.",
+        "status": "Only applied for elevated Sentry staff; ignored for everyone else.",
+    }
+)
 class SentryAppParser(Serializer):
     name = serializers.CharField(help_text="The name of the custom integration.")
     author = serializers.CharField(
@@ -188,14 +205,16 @@ class SentryAppParser(Serializer):
         allow_null=True,
     )
 
-    def __init__(self, *args, **kwargs):
-        self.active_staff = kwargs.pop("active_staff", False)
-        self.access = kwargs.pop("access", None)
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        self.active_staff: bool = kwargs.pop("active_staff", False)
+        self.access: Access | None = kwargs.pop("access", None)
         Serializer.__init__(self, *args, **kwargs)
 
     # an abstraction to pull fields from attrs if they are available or the sentry_app if not
-    def get_current_value_wrapper(self, attrs):
-        def get_current_value(field_name):
+    def get_current_value_wrapper(
+        self, attrs: Mapping[str, object]
+    ) -> Callable[[str], object | None]:
+        def get_current_value(field_name: str) -> object | None:
             if field_name in attrs:
                 return attrs[field_name]
             # params might be passed as camel case but we always store as snake case
@@ -207,7 +226,7 @@ class SentryAppParser(Serializer):
 
         return get_current_value
 
-    def validate_name(self, value):
+    def validate_name(self, value: str) -> str:
         max_length = 64 - UUID_CHARS_IN_SLUG - 1  # -1 comes from the - before the UUID bit
         if len(value) > max_length:
             raise ValidationError("Cannot exceed %d characters" % max_length)
@@ -229,13 +248,13 @@ class SentryAppParser(Serializer):
 
         return value
 
-    def validate_allowedOrigins(self, value):
+    def validate_allowedOrigins(self, value: list[str]) -> list[str]:
         for allowed_origin in value:
             if "*" in allowed_origin:
                 raise ValidationError("'*' not allowed in origin")
         return value
 
-    def validate_webhookHeaders(self, value):
+    def validate_webhookHeaders(self, value: list[str]) -> list[str]:
         if len(value) > 20:
             raise ValidationError("Cannot configure more than 20 custom webhook headers.")
         seen_names = set()
@@ -243,11 +262,21 @@ class SentryAppParser(Serializer):
             # Reject CR/LF to prevent header injection / request splitting.
             if "\n" in header or "\r" in header:
                 raise ValidationError("Webhook headers cannot contain newlines.")
-            name, separator, _header_value = header.partition(":")
+            name, separator, header_value = header.partition(":")
             name = name.strip()
+            header_value = header_value.strip()
             if not separator or not name:
                 raise ValidationError(
                     f"Invalid webhook header '{header}'. Use the format 'Header-Name: value'."
+                )
+            # HTTP header fields are latin-1; reject unsupported characters on write.
+            try:
+                name.encode("latin-1")
+                header_value.encode("latin-1")
+            except UnicodeEncodeError:
+                raise ValidationError(
+                    "Webhook header contains unsupported characters and cannot be "
+                    "sent as an HTTP header."
                 )
             if not _HTTP_TOKEN_RE.match(name):
                 raise ValidationError(
@@ -274,7 +303,7 @@ class SentryAppParser(Serializer):
             seen_names.add(normalized)
         return value
 
-    def validate_scopes(self, value):
+    def validate_scopes(self, value: Sequence[str] | None) -> Sequence[str] | None:
         if not value:
             return value
 
@@ -307,14 +336,16 @@ class SentryAppParser(Serializer):
 
         return value
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         # validates events against scopes
         if attrs.get("scopes"):
-            for resource in attrs.get("events", []):
-                needed_scope = REQUIRED_EVENT_PERMISSIONS[resource]
+            for subscription in attrs.get("events", []):
+                needed_scope = required_scope_for_subscription(subscription)
                 if needed_scope not in attrs["scopes"]:
                     raise ValidationError(
-                        {"events": f"{resource} webhooks require the {needed_scope} permission."}
+                        {
+                            "events": f"{subscription} webhooks require the {needed_scope} permission."
+                        }
                     )
 
         get_current_value = self.get_current_value_wrapper(attrs)

@@ -18,6 +18,11 @@ const respond = (
     return;
   }
 
+  if (asyncDelay instanceof Promise) {
+    asyncDelay.then(() => fn(...args));
+    return;
+  }
+
   if (asyncDelay !== undefined) {
     setTimeout(() => fn(...args), asyncDelay);
     return;
@@ -33,7 +38,7 @@ type FunctionCallback<Args extends any[] = any[]> = (...args: Args) => void;
  */
 type MatchCallable = (url: string, options: ApiNamespace.RequestOptions) => boolean;
 
-type AsyncDelay = undefined | number;
+type AsyncDelay = undefined | number | Promise<unknown>;
 interface ResponseType extends ResponseMeta {
   body: any;
   callCount: 0;
@@ -44,11 +49,9 @@ interface ResponseType extends ResponseMeta {
   statusCode: number;
   url: string;
   /**
-   * Whether to return mocked api responses directly, or with a setTimeout delay.
+   * Whether to return mocked API responses directly or after an asynchronous delay.
    *
-   * Set to `null` to disable the async delay
-   * Set to a `number` which will be the amount of time (ms) for the delay
-   *
+   * Set to a `number` for a millisecond delay, or a `Promise` to delay until it resolves.
    * This will override `MockApiClient.asyncDelay` for this request.
    */
   asyncDelay?: AsyncDelay;
@@ -98,11 +101,9 @@ class Client implements ApiNamespace.Client {
   static mockResponses: MockResponse[] = [];
 
   /**
-   * Whether to return mocked api responses directly, or with a setTimeout delay.
+   * Whether to return mocked API responses directly or after an asynchronous delay.
    *
-   * Set to `null` to disable the async delay
-   * Set to a `number` which will be the amount of time (ms) for the delay
-   *
+   * Set to a `number` for a millisecond delay, or a `Promise` to delay until it resolves.
    * This is the global/default value. `addMockResponse` can override per request.
    */
   static asyncDelay: AsyncDelay = undefined;
@@ -218,6 +219,14 @@ class Client implements ApiNamespace.Client {
       this.request(path, {
         ...options,
         success: (data, ...args) => {
+          // Specs pass a promise as `body` to keep a request pending until they
+          // resolve it. resolve(data) already waits for that promise, but
+          // resolve([data, ...args]) would return the pending promise itself as
+          // the body, so wait for it before building the includeAllArgs tuple.
+          if (includeAllArgs && typeof data?.then === 'function') {
+            data.then((settled: unknown) => resolve([settled, ...args]), reject);
+            return;
+          }
           resolve(includeAllArgs ? [data, ...args] : data);
         },
         error: (error, ..._args) => {

@@ -3,13 +3,13 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
+import {InfoTip} from '@sentry/scraps/info';
 import {ExternalLink} from '@sentry/scraps/link';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegraphPreview';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -29,8 +29,9 @@ import {
   ProfilesProvider,
   useProfiles,
 } from 'sentry/views/explore/profiling/profilesProvider';
-import {SectionKey} from 'sentry/views/issueDetails/context';
-import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+
+import {SectionKey} from './context';
+import {FoldSection} from './foldSection';
 
 export function ProfilePreviewSection({
   event,
@@ -89,7 +90,7 @@ export function ProfilePreviewSection({
                 <span>
                   {sectionTitle}
                   &nbsp;
-                  <QuestionTooltip
+                  <InfoTip
                     position="bottom"
                     size="sm"
                     title={t('This shows you a profile around the time of this event.')}

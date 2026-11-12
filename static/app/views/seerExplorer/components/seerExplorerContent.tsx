@@ -1,54 +1,99 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, type ReactNode} from 'react';
+import {
+  Fragment,
+  memo,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  type ReactNode,
+} from 'react';
 import styled from '@emotion/styled';
-import {skipToken, useQuery} from '@tanstack/react-query';
+import {IconClose} from '@sentry/icons/close';
+import {IconRefresh} from '@sentry/icons/refresh';
+import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import type {ComposerValue} from '@sentry/scraps/composer';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {usePictureInPicture} from '@sentry/scraps/pictureInPicture';
+import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {SINGLE_RUN_FEATURE_ID} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {
+  AutofixChatProvider,
+  useAutofixOutOfCreditsEmbeds,
+  type SendMessageOptions,
+} from 'sentry/components/seer/autofixChatContext';
+import {SeerCreditUsageMeter} from 'sentry/components/seer/outOfCredits/seerCreditUsageMeter';
+import {SeerOutOfCreditsCta} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
 import {SEER_AGENTS_PROJECT_ID} from 'sentry/constants';
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {integrationRequiresUpgrade} from 'sentry/utils/integrationUtil';
+import {
+  canManageIntegrations,
+  integrationRequiresUpgrade,
+} from 'sentry/utils/integrationUtil';
+import {
+  seerCreditCheckApiOptions,
+  useSeerCreditCheck,
+} from 'sentry/utils/seer/useSeerCreditCheck';
 import {useDeferredSessionStorage} from 'sentry/utils/useDeferredSessionStorage';
+import {useDimensions} from 'sentry/utils/useDimensions';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {useTimeout} from 'sentry/utils/useTimeout';
 import {useUser} from 'sentry/utils/useUser';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
-import {
-  NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
-  PRIMARY_HEADER_HEIGHT,
-} from 'sentry/views/navigation/constants';
-import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
-import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
-import {EmptyState} from 'sentry/views/seerExplorer/components/emptyState';
-import {useExplorerMenu} from 'sentry/views/seerExplorer/components/explorerMenu';
-import {FileChangeApprovalBlock} from 'sentry/views/seerExplorer/components/fileChangeApprovalBlock';
-import {InputSection} from 'sentry/views/seerExplorer/components/inputSection';
-import {usePRWidgetData} from 'sentry/views/seerExplorer/components/prWidget';
-import {ReauthMonitoringProviderBlock} from 'sentry/views/seerExplorer/components/reauthMonitoringProviderBlock';
-import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
-import {UpdateSlackAlert} from 'sentry/views/seerExplorer/components/updateSlackAlert';
+import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
+import {getBlockChatPrompt} from 'sentry/views/seerExplorer/chatPrompt';
+import {useChatSuggestions} from 'sentry/views/seerExplorer/hooks/useChatSuggestions';
+import {useCopySessionDataToClipboard} from 'sentry/views/seerExplorer/hooks/useCopySessionDataToClipboard';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
-import type {Block, SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer/types';
+import {useStartInvestigation} from 'sentry/views/seerExplorer/hooks/useStartInvestigation';
+import {
+  useSeerExplorerChatDispatch,
+  useSeerExplorerChatState,
+} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
+import type {
+  Block,
+  ChatSuggestion,
+  PendingUserInput,
+  SeerExplorerRunId,
+  SeerExplorerSidebarPosition,
+} from 'sentry/views/seerExplorer/types';
 import {
   getExplorerFeedbackOptions,
   getExplorerUrl,
-  getLangfuseUrl,
-  getRelativeExplorerUrl,
-  useCopySessionDataToClipboard,
   useSeerExplorerDeepLink,
   useSeerExplorerResumeDeepLink,
 } from 'sentry/views/seerExplorer/utils';
 
+import {ChatPromptMessage} from './chat/chatPrompt';
+import {groupTranscript, ResponseGroup} from './chat/responseGroup';
+import {findLatestTodos} from './chat/toolUse';
+import {BlockComponent} from './chat';
+import {EmptyState} from './emptyState';
+import {useExplorerMenu} from './explorerMenu';
+import {InputSection} from './inputSection';
+import {
+  isReauthEnabled,
+  PendingUserInputDock,
+  PendingUserInputPicker,
+} from './pendingUserInputDock';
+import {SeerExplorerHeader} from './seerExplorerHeader';
+import {UpdateSlackAlert} from './updateSlackAlert';
+
 export const INPUT_STORAGE_KEY_PREFIX = 'seer-explorer-draft';
+
+const EMPTY_INPUT: ComposerValue = {text: '', mentions: []};
 
 /**
  * Wraps the shared header content with the surface's chrome. The drawer passes
@@ -74,10 +119,7 @@ function SidebarHeaderShell({
       as="header"
       align="center"
       gap="md"
-      height={{
-        'screen:sm': `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`,
-        'screen:md': `${PRIMARY_HEADER_HEIGHT}px`,
-      }}
+      height={`${PRIMARY_HEADER_HEIGHT}px`}
       padding="0 lg"
       background="primary"
       borderBottom="primary"
@@ -99,6 +141,7 @@ function SidebarHeaderShell({
 export function SeerExplorerContent({
   getPageReferrer,
   initialQuery,
+  appendInitialQuery,
   onClose,
   renderHeader,
   sidebarPosition,
@@ -107,6 +150,8 @@ export function SeerExplorerContent({
   getPageReferrer: () => string;
   /** Closes the current surface (drawer / sidebar). */
   onClose: () => void;
+  /** Submit `initialQuery` into the open run rather than only an empty one. */
+  appendInitialQuery?: boolean;
   initialQuery?: string;
   onSidebarPositionChange?: (position: SeerExplorerSidebarPosition) => void;
   /** Surface chrome for the header. Defaults to the sidebar shell. */
@@ -114,6 +159,7 @@ export function SeerExplorerContent({
   sidebarPosition?: SeerExplorerSidebarPosition;
 }) {
   const organization = useOrganization({allowNull: true});
+  const queryClient = useQueryClient();
   const {projects} = useProjects();
   const user = useUser();
   const {
@@ -158,52 +204,93 @@ export function SeerExplorerContent({
   };
 
   // Persisted so the toggle survives the drawer remounting (e.g. popping out
-  // into the picture-in-picture window, or reopening the drawer).
-  const [showThinking, setShowThinking] = useLocalStorageState(
+  // into the picture-in-picture window, or reopening the drawer). Code mode
+  // always shows thinking — no preference or toggle can hide it.
+  const [showThinkingPreference, setShowThinking] = useLocalStorageState(
     'seer-explorer-show-thinking',
     false
   );
+  const hasCodeModeTools = !!organization?.features.includes(
+    'seer-explorer-code-mode-tools'
+  );
+  const showThinking = hasCodeModeTools || showThinkingPreference;
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const composerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const blockRefs = useRef<Array<HTMLDivElement | null>>([]);
   const userScrolledUpRef = useRef(false);
-  const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
+  /** A new chat was started and the composer should take focus once it is back. */
+  const pendingComposerFocusRef = useRef(false);
 
   const focusInput = useCallback(() => {
-    textareaRef.current?.focus();
+    composerRef.current?.focus();
   }, []);
 
   // - Session data and mutators ----------------------------------------------
   const {
     runId,
     sessionData,
+    featureId,
     isPolling,
     isError,
+    hasSessionLoadError,
     errorStatusCode,
     isTimedOut,
     sendMessage,
+    requestError,
     startNewSession,
     switchToRun,
     respondToUserInput,
-    createPR,
     interruptRun,
     hasSentInterrupt,
-    overrideCtxEngEnable,
-    setOverrideCtxEngEnable,
+    overrideBashModeEnabled,
+    setOverrideBashModeEnabled,
     setOverrideCodeModeEnable,
   } = useSeerExplorer();
 
   // Persist the input draft per-run so drawer closes / run switches
   // don't lose the user's in-progress text.
   const {
-    value: inputValue,
+    value: storedInputValue,
     setValue: setInputValue,
     reset: clearInput,
-  } = useDeferredSessionStorage(
+  } = useDeferredSessionStorage<ComposerValue | string>(
     runId === null ? null : `${INPUT_STORAGE_KEY_PREFIX}:${runId}`,
-    ''
+    EMPTY_INPUT
   );
+
+  const inputValue = useMemo<ComposerValue>(
+    () => ({
+      text:
+        typeof storedInputValue === 'string' ? storedInputValue : storedInputValue.text,
+      mentions: [],
+    }),
+    [storedInputValue]
+  );
+
+  // Put a message that failed to send back in the composer, unless the user has
+  // already started typing something else.
+  useEffect(() => {
+    const failedQuery = requestError?.query;
+    if (failedQuery) {
+      setInputValue(current =>
+        // Backwards compatibility for drafts saved as a string in sessionStorage.
+        (typeof current === 'string' ? current : current.text).trim()
+          ? current
+          : {text: failedQuery, mentions: []}
+      );
+    }
+  }, [requestError, setInputValue]);
+
+  const {chatPrompt} = useSeerExplorerChatState();
+  const chatDispatch = useSeerExplorerChatDispatch();
+
+  // Put back the question a failed reply answered, on every failure. The error only exists
+  // for the run on screen, and this panel only exists while Explorer is showing.
+  useEffect(() => {
+    if (requestError?.chatPrompt) {
+      chatDispatch({type: 'restore chat prompt', payload: requestError.chatPrompt});
+    }
+  }, [requestError, chatDispatch]);
 
   const readOnly =
     sessionData?.owner_user_id !== undefined &&
@@ -211,9 +298,152 @@ export function SeerExplorerContent({
     sessionData.owner_user_id.toString() !== user.id;
 
   const blocks = useMemo(() => sessionData?.blocks || [], [sessionData?.blocks]);
+  // React Compiler could not prove this memoization is preserved; it bails out on
+  // code this callback depends on. Revisit once those bailouts are fixed.
+  // oxlint-disable-next-line react/preserve-manual-memoization
+  const retryTarget = useMemo(() => {
+    for (let index = blocks.length - 1; index >= 0; index--) {
+      const block = blocks[index];
+      if (block?.message.role === 'user' && block.message.content?.trim()) {
+        return {
+          insertIndex: index,
+          query: block.message.content,
+          chatPrompt: getBlockChatPrompt(block),
+        };
+      }
+    }
+    return null;
+  }, [blocks]);
   const isAwaitingUserInput = sessionData?.status === 'awaiting_user_input';
   const pendingInput = sessionData?.pending_user_input ?? null;
+  const isAgentWriteApprovalPending =
+    isAwaitingUserInput && pendingInput?.input_type === 'agent_write_approval';
   const isEmptyState = blocks.length === 0 && !(isAwaitingUserInput && pendingInput);
+  // Only when the error empty state is what's on screen. A live conversation that hits a
+  // transient poll error still has its transcript and must keep its composer.
+  const showLoadError = isEmptyState && (isError || hasSessionLoadError);
+  const showEmptyState = isEmptyState && (!chatPrompt || showLoadError);
+
+  // - Pending user input (file approval + questions) -------------------------
+  // The prompt itself renders in `PendingUserInputPicker`; the composer carries the question and
+  // diff controls.
+  const pendingUserInputState = usePendingUserInput({
+    isAwaitingUserInput,
+    pendingInput,
+    respondToUserInput,
+    scrollContainerRef,
+    userScrolledUpRef,
+  });
+  const {
+    isFileApprovalPending,
+    fileApprovalIndex,
+    fileApprovalTotalPatches,
+    handleFileApprovalApprove,
+    handleFileApprovalReject,
+    isQuestionPending,
+    questionIndex,
+    totalQuestions,
+    currentQuestion,
+    canSubmitQuestion,
+    handleQuestionNext,
+    handleQuestionBack,
+    handleQuestionMoveUp,
+    handleQuestionMoveDown,
+    isReauthPending,
+    reauthData,
+    handleReauthComplete,
+  } = pendingUserInputState;
+
+  const showFileApprovalBar =
+    isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches;
+  const showQuestionBar = isQuestionPending && !!currentQuestion;
+
+  // - Credits ----------------------------------------------------------------
+  // Checked only while the composer is up. A read-only or failed chat takes no
+  // message, and the approval and question bars replace the composer while Seer
+  // waits on an answer to a message it already has.
+  const isComposerShown =
+    !readOnly && !showLoadError && !showFileApprovalBar && !showQuestionBar;
+  const {hasEnoughCredits, hasCheckedSinceMount} = useSeerCreditCheck(
+    'agent_chat_message',
+    {enabled: isComposerShown}
+  );
+  const isOutOfCredits = !hasEnoughCredits;
+  // Each forward remounts the panel, so an answer cached by an earlier panel can
+  // be out of date: a billing member may have topped up since. Only this
+  // panel's own check counts.
+  const isCheckingCredits = !hasCheckedSinceMount;
+  // Seer stopped a reply, or the backend refused a send, for credits. Recheck so the
+  // notice shows and sending is disabled. Every refused send rechecks, since an
+  // earlier recheck may have failed open or the balance may have moved since.
+  const refusedForCredits = requestError?.isOutOfCredits ? requestError : null;
+  const isRunOutOfCredits = sessionData?.failure_reason === 'out_of_credits';
+  useEffect(() => {
+    if (organization && (refusedForCredits || isRunOutOfCredits)) {
+      queryClient.invalidateQueries({
+        queryKey: seerCreditCheckApiOptions(organization, 'agent_chat_message').queryKey,
+      });
+    }
+  }, [refusedForCredits, isRunOutOfCredits, organization, queryClient]);
+  // A question forwarded from elsewhere waits for that check (see the
+  // auto-submit below) and goes first. Until it does, the user's own sends wait
+  // too, or one would land ahead of it and the forwarded question would be
+  // dropped, or sent after it.
+  const isForwardedQueryWaiting =
+    isCheckingCredits && !!initialQuery?.trim() && (isEmptyState || !!appendInitialQuery);
+  // Gates every way this panel starts a message: the composer, suggestions, retry,
+  // `/investigate`, and the autofix embeds.
+  const isSendBlocked = isOutOfCredits || isForwardedQueryWaiting;
+  // An autofix card that can't afford its next step keeps its buttons, disabled,
+  // and leaves the notice to the composer, where it stays in view. The chat's
+  // own notice wins, so the card's waits for the chat's check to answer. While
+  // the approval or question bar stands in for the composer, there's nowhere to
+  // put it, so cards show their own.
+  const {isAutofixOutOfCredits, reportOutOfCredits} = useAutofixOutOfCreditsEmbeds();
+  let outOfCreditsNotice: ReactNode = null;
+  if (isOutOfCredits) {
+    outOfCreditsNotice = (
+      <Container data-test-id="seer-explorer-out-of-credits">
+        <SeerOutOfCreditsCta reason="agent-chat" />
+      </Container>
+    );
+  } else if (isAutofixOutOfCredits && !isCheckingCredits) {
+    outOfCreditsNotice = (
+      <Container data-test-id="seer-explorer-autofix-out-of-credits">
+        <SeerOutOfCreditsCta reason="autofix-continue" size="md" />
+      </Container>
+    );
+  }
+
+  const suggestions = useChatSuggestions({
+    enabled: isEmptyState && !chatPrompt && !showLoadError && !isPolling && !readOnly,
+    allowStructuredContext: true,
+  });
+  const handleSuggestionClick = useCallback(
+    (suggestion: ChatSuggestion, position: number) => {
+      if (!suggestions.isLoading) {
+        trackAnalytics('seer.explorer.suggestion_clicked', {
+          organization,
+          referrer: getPageReferrer(),
+          source: suggestions.source,
+          position,
+          kind: suggestion.kind,
+          action_type: suggestion.action_type ?? undefined,
+        });
+      }
+      sendMessage(suggestion.text);
+    },
+    [suggestions, organization, getPageReferrer, sendMessage]
+  );
+
+  // A question can't be answered in a run that won't take a reply (someone else's, or one
+  // that failed to load), so it moves to a new chat instead of being lost.
+  useEffect(() => {
+    if (chatPrompt && (readOnly || showLoadError)) {
+      chatDispatch({type: 'set run id', payload: null});
+      chatDispatch({type: 'set chat prompt', payload: chatPrompt});
+    }
+  }, [chatPrompt, readOnly, showLoadError, chatDispatch]);
 
   // Whether the org has an active Slack integration installed. Slack is an
   // org-level integration, so this reflects the organization, not the user.
@@ -234,57 +464,85 @@ export function SeerExplorerContent({
       integration.organizationIntegrationStatus === 'active'
   );
   const hasSlackIntegration = activeSlackIntegrations.length > 0;
+  // Only surface the reinstall CTA to users who can actually reinstall. Settings
+  // already gates the upgrade button on `canManageIntegrations`; without the same
+  // check here, members without `org:integrations` get a dead-end nudge.
   const needsSlackUpgrade = activeSlackIntegrations.some(integrationRequiresUpgrade);
+  const showSlackUpgradeAlert =
+    needsSlackUpgrade && !!organization && canManageIntegrations(organization);
 
   // Auto-submit the initial query forwarded from the command palette, but only
-  // if the session is still empty (don't clobber an active run). The ref dedupes
-  // within a single mount; each *new* forward remounts this component (the drawer
-  // via `openDrawer`, the sidebar via a `key` on the forward nonce), which resets
-  // the ref and re-arms the submit.
+  // if the session is still empty (don't clobber an active run) unless the
+  // caller asked to add to the open run. The ref dedupes within a single mount;
+  // each *new* forward remounts this component (the drawer via `openDrawer`, the
+  // sidebar via a `key` on the forward nonce), which re-arms the submit.
   const lastAutoSubmittedQueryRef = useRef<string | null>(null);
   useEffect(() => {
     const query = initialQuery?.trim();
-    if (!query || !isEmptyState || lastAutoSubmittedQueryRef.current === query) {
+    if (!query || lastAutoSubmittedQueryRef.current === query) {
+      return;
+    }
+    if (!isEmptyState && !appendInitialQuery) {
+      return;
+    }
+    // The panel opens with the check in flight; sending before it answers would skip it.
+    if (isCheckingCredits) {
       return;
     }
     lastAutoSubmittedQueryRef.current = query;
+    if (isOutOfCredits) {
+      // Keep the question for after a top-up, unless the user has a draft there already.
+      setInputValue(current =>
+        (typeof current === 'string' ? current : current.text).trim()
+          ? current
+          : {text: query, mentions: []}
+      );
+      return;
+    }
+    if (showLoadError) {
+      // The open run failed to load, so appending to it would post into a dead run.
+      // A forwarded query still deserves an answer: start it in a fresh one.
+      sendMessage(query, 0, null);
+      return;
+    }
     sendMessage(query, blocks.length);
-  }, [initialQuery, isEmptyState, sendMessage, blocks.length]);
+  }, [
+    initialQuery,
+    appendInitialQuery,
+    isEmptyState,
+    isCheckingCredits,
+    isOutOfCredits,
+    showLoadError,
+    sendMessage,
+    setInputValue,
+    blocks.length,
+  ]);
 
-  // - Pending user input (file approval + questions) -------------------------
-  const {
-    isFileApprovalPending,
-    fileApprovalIndex,
-    fileApprovalTotalPatches,
-    handleFileApprovalApprove,
-    handleFileApprovalReject,
-    isQuestionPending,
-    questionIndex,
-    totalQuestions,
-    currentQuestion,
-    selectedOption,
-    isOtherSelected,
-    customText,
-    canSubmitQuestion,
-    handleQuestionNext,
-    handleQuestionBack,
-    handleQuestionSelectOption,
-    handleQuestionMoveUp,
-    handleQuestionMoveDown,
-    handleQuestionCustomTextChange,
-    isReauthPending,
-    reauthData,
-    handleReauthComplete,
-  } = usePendingUserInput({
-    isAwaitingUserInput,
-    pendingInput,
-    respondToUserInput,
-    scrollContainerRef,
-    userScrolledUpRef,
-  });
+  // The panel is already open here, so append by default; a `null` run id is how
+  // `sendMessage` starts a fresh one.
+  const postMessage = useCallback(
+    (query: string, options?: SendMessageOptions) => {
+      if (options?.newChat) {
+        sendMessage(query, 0, null);
+        return;
+      }
+      sendMessage(query);
+    },
+    [sendMessage]
+  );
 
-  const showReauth =
-    isReauthPending && !!organization?.features.includes('seer-infra-telemetry');
+  const showReauth = isReauthPending && isReauthEnabled(organization);
+
+  // A send refused for credits shows no error of its own. The recheck brings up the
+  // credits notice above the composer instead.
+  const requestErrorAlert =
+    requestError && !requestError.isOutOfCredits ? (
+      <Container padding="0 xl">
+        <Alert variant="danger">
+          <Text>{t('There was an error sending your message, wait and try again.')}</Text>
+        </Alert>
+      </Container>
+    ) : null;
 
   // - Topbar, menu, and slash command handlers -------------------------------
   const copySessionEnabled = runId !== null && !!organization?.slug;
@@ -303,14 +561,13 @@ export function SeerExplorerContent({
     try {
       const url = getExplorerUrl(runId);
       await navigator.clipboard.writeText(url);
-      addSuccessMessage('Copied link to current chat');
+      toast.success('Copied link to current chat');
       trackAnalytics('seer.explorer.session_link_copied', {organization});
     } catch {
-      addErrorMessage('Failed to copy link to current chat');
+      toast.error('Failed to copy link to current chat');
     }
   }, [runId, organization]);
 
-  const langfuseUrl = runId ? getLangfuseUrl(runId) : undefined;
   const conversationsUrl = useMemo(() => {
     if (runId === null) {
       return;
@@ -337,13 +594,6 @@ export function SeerExplorerContent({
     });
   }, [runId, blocks]);
 
-  const handleOpenLangfuse = useCallback(() => {
-    // Command handler. Disabled in slash command menu for non-employees
-    if (langfuseUrl) {
-      window.open(langfuseUrl, '_blank');
-    }
-  }, [langfuseUrl]);
-
   const handleOpenConversations = useCallback(() => {
     // Command handler. Disabled in slash command menu for non-employees
     if (conversationsUrl) {
@@ -359,7 +609,31 @@ export function SeerExplorerContent({
     }
   }, [openFeedbackForm, runId]);
 
+  const startInvestigation = useStartInvestigation();
+
   // - Pop-up menu component --------------------------------------------------
+
+  // The composer only keeps the caret for its own edits, so a command completed
+  // from the menu moves it after the new text once that has rendered.
+  const completedTextRef = useRef<string | null>(null);
+  const completeInput = useCallback(
+    (text: string) => {
+      completedTextRef.current = text;
+      setInputValue({text, mentions: []});
+    },
+    [setInputValue]
+  );
+  useLayoutEffect(() => {
+    const composer = composerRef.current;
+    if (completedTextRef.current !== inputValue.text || !composer) {
+      return;
+    }
+    completedTextRef.current = null;
+    composer.focus();
+    const selection = composer.ownerDocument.defaultView?.getSelection();
+    selection?.selectAllChildren(composer);
+    selection?.collapseToEnd();
+  }, [inputValue.text]);
 
   // Extract repo_pr_states from session
   const repoPRStates = useMemo(
@@ -367,33 +641,25 @@ export function SeerExplorerContent({
     [sessionData?.repo_pr_states]
   );
 
-  // Get PR widget data for menu
-  const {menuItems: prWidgetItems, menuFooter: prWidgetFooter} = usePRWidgetData({
-    blocks,
-    repoPRStates,
-    onCreatePR: createPR,
-  });
-
   // Menu component
-  const {menu, closeMenu, openPRWidget} = useExplorerMenu({
+  const {menu, closeMenu} = useExplorerMenu({
     clearInput,
-    inputValue,
+    completeInput,
+    inputValue: inputValue.text,
     focusInput,
-    textAreaRef: textareaRef,
+    composerRef,
     panelSize: 'max',
     slashCommandHandlers: {
       onNew: startNewSession,
+      canInvestigate: startInvestigation !== undefined,
       onFeedback: openFeedbackForm ? handleFeedback : undefined,
-      onLangfuse: langfuseUrl ? handleOpenLangfuse : undefined,
       onConversations: conversationsUrl ? handleOpenConversations : undefined,
+      onBashMode: setOverrideBashModeEnabled,
       onCodeMode: organization?.features.includes('seer-explorer-code-mode-tools')
         ? setOverrideCodeModeEnable
         : undefined,
     },
-    inputAnchorRef: textareaRef,
-    prWidgetAnchorRef: prWidgetButtonRef,
-    prWidgetItems,
-    prWidgetFooter,
+    inputAnchorRef: composerRef,
   });
 
   const handleBlocksClick = useCallback(() => {
@@ -401,18 +667,48 @@ export function SeerExplorerContent({
   }, [closeMenu]);
 
   // - Input section handlers -------------------------------------------------
-  const canSendMessage = !readOnly && !isPolling && !!inputValue.trim();
+  const canSendMessage =
+    !readOnly &&
+    !showLoadError &&
+    !isPolling &&
+    !isSendBlocked &&
+    !!inputValue.text.trim();
   const handleSend = useCallback(() => {
+    // Checked before `/investigate`, which starts a run of its own. The draft stays.
+    if (isSendBlocked) {
+      return;
+    }
+    const text = inputValue.text.trim();
+    // `/investigate` runs here whether or not a question follows it; the menu
+    // only completes it. It doesn't wait for Seer to finish responding.
+    const investigateMatch = /^\/investigate(?:\s+(.*))?$/s.exec(text);
+    if (startInvestigation && investigateMatch) {
+      // Keep the question if the investigation doesn't start.
+      void startInvestigation(investigateMatch[1]).then(started => {
+        if (started) {
+          clearInput();
+        }
+      });
+      return;
+    }
     if (!canSendMessage) {
       return;
     }
-    sendMessage(inputValue.trim(), blocks.length);
+    sendMessage(text, blocks.length);
     clearInput();
     userScrolledUpRef.current = false;
-  }, [canSendMessage, inputValue, sendMessage, blocks.length, clearInput]);
+  }, [
+    canSendMessage,
+    isSendBlocked,
+    inputValue,
+    startInvestigation,
+    sendMessage,
+    blocks.length,
+    clearInput,
+  ]);
 
-  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.nativeEvent.isComposing) {
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.defaultPrevented || e.nativeEvent.isComposing) {
       return;
     }
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -424,15 +720,42 @@ export function SeerExplorerContent({
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputValue(e.target.value);
-    textareaRef.current?.focus();
+  const handleInputChange = (value: ComposerValue) => {
+    setInputValue(value);
+    composerRef.current?.focus();
   };
 
   const handleInputClick = () => {
     focusInput();
     closeMenu();
   };
+
+  const handleStartNewChat = useCallback(() => {
+    startNewSession();
+    if (readOnly || showLoadError) {
+      // Exactly when `InputSection` renders its disabled branch - a different
+      // textarea that never takes `composerRef` - so focusing now would be a
+      // no-op. Ask for it once the real composer is back. Starting a chat clears
+      // both conditions, so the request cannot outlive the render after it.
+      pendingComposerFocusRef.current = true;
+      return;
+    }
+    focusInput();
+  }, [startNewSession, focusInput, readOnly, showLoadError]);
+
+  const handleRetry = useCallback(() => {
+    if (!retryTarget || readOnly || isSendBlocked) {
+      return;
+    }
+    // Seer rebuilds the retried message from this request, so resend the question it answered.
+    sendMessage(
+      retryTarget.query,
+      retryTarget.insertIndex,
+      undefined,
+      retryTarget.chatPrompt
+    );
+    userScrolledUpRef.current = false;
+  }, [readOnly, isSendBlocked, retryTarget, sendMessage]);
 
   // - Scroll effects ---------------------------------------------------------
 
@@ -442,16 +765,48 @@ export function SeerExplorerContent({
       if (scrollContainerRef.current) {
         scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
       }
-      textareaRef.current?.focus();
+      composerRef.current?.focus();
     }, 100);
   }, []);
 
-  // Auto-scroll to bottom when new blocks are added, but only if user hasn't scrolled up
+  // Focus the composer once a new chat has actually replaced the error screen.
+  // `handleStartNewChat` only arms this while that screen is up, and starting a
+  // chat takes it down, so the request is consumed on the very next render.
+  useEffect(() => {
+    if (!pendingComposerFocusRef.current || readOnly || showLoadError) {
+      return;
+    }
+    pendingComposerFocusRef.current = false;
+    focusInput();
+  }, [readOnly, showLoadError, focusInput]);
+
+  // Bring a new "Ask Seer" question into view and focus the composer. Deferred like the
+  // open effect above, so the drawer has mounted and a closing menu can't steal focus.
+  const {start: revealChatPrompt} = useTimeout({
+    timeMs: 100,
+    onTimeout: () => {
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+      }
+      composerRef.current?.focus();
+    },
+  });
+  useEffect(() => {
+    if (!chatPrompt) {
+      return;
+    }
+    userScrolledUpRef.current = false;
+    revealChatPrompt();
+  }, [chatPrompt, revealChatPrompt]);
+
+  // Auto-scroll to bottom when blocks are added or the transcript resizes, unless scrolled up
+  const {height: transcriptHeight} = useDimensions({elementRef: scrollContainerRef});
   useEffect(() => {
     if (!userScrolledUpRef.current && scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
     }
-  }, [blocks]);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
+  }, [blocks, transcriptHeight]);
 
   // Track scroll position to detect if user scrolled up
   useEffect(() => {
@@ -481,11 +836,6 @@ export function SeerExplorerContent({
     }
     return;
   }, []);
-
-  // Update block refs array when blocks change
-  useEffect(() => {
-    blockRefs.current = blockRefs.current.slice(0, blocks.length);
-  }, [blocks]);
 
   // Deep link effect
   useSeerExplorerDeepLink({callback: switchToRun});
@@ -518,25 +868,15 @@ export function SeerExplorerContent({
   const headerContent = (
     <SeerExplorerHeader
       disableNewChatButton={runId === null}
-      onNewChatClick={() => {
-        startNewSession();
-        focusInput();
-      }}
+      onNewChatClick={handleStartNewChat}
       onChangeSession={switchToRun}
       onCopySessionClick={copySessionEnabled ? copySessionToClipboard : undefined}
       onCopyLinkClick={runId === null ? undefined : handleCopyLink}
-      overrideCtxEngEnable={overrideCtxEngEnable}
-      onOverrideCtxEngEnableToggle={() => setOverrideCtxEngEnable(v => !v)}
-      showContextEngineToggle={
-        !!organization?.features.includes(
-          'seer-explorer-context-engine-fe-override-ui-flag'
-        )
-      }
+      overrideBashModeEnabled={overrideBashModeEnabled}
+      onOverrideBashModeToggle={() => setOverrideBashModeEnabled(v => !v)}
       showThinking={showThinking}
       onShowThinkingToggle={() => setShowThinking(v => !v)}
-      showThinkingToggle={
-        !!organization?.features.includes('seer-explorer-thinking-blocks')
-      }
+      conversationsUrl={conversationsUrl}
       isPipSupported={isPipSupported}
       isPoppedOut={isPoppedOut}
       onTogglePictureInPicture={handleTogglePictureInPicture}
@@ -546,150 +886,209 @@ export function SeerExplorerContent({
   );
 
   return (
-    <ContentContainer
-      ref={rootRef}
-      data-seer-explorer-root=""
-      direction="column"
-      width="100%"
-      height="100%"
-      background="primary"
-      overflow="hidden"
-      contain="inline-size"
+    <AutofixChatProvider
+      isBusy={isPolling}
+      reportOutOfCredits={isComposerShown ? reportOutOfCredits : undefined}
+      sendMessage={readOnly || isSendBlocked ? undefined : postMessage}
     >
-      {renderHeader ? (
-        renderHeader({children: headerContent, isPoppedOut, onClose: handleClose})
-      ) : (
-        <SidebarHeaderShell onClose={handleClose}>{headerContent}</SidebarHeaderShell>
-      )}
-      {menu}
-      {needsSlackUpgrade && (
-        <UpdateSlackAlert num_configurations={activeSlackIntegrations.length} />
-      )}
-      <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>
-        {isEmptyState ? (
-          <EmptyState
-            isLoading={isPolling}
-            isError={isError}
-            errorStatusCode={errorStatusCode}
-            runId={runId}
-            displaySlackAgentReminder={hasSlackIntegration && !needsSlackUpgrade}
-            onSuggestionClick={readOnly ? undefined : sendMessage}
-          />
+      <Stack
+        ref={rootRef}
+        data-seer-explorer-root=""
+        width="100%"
+        height="100%"
+        position="relative"
+        background="primary"
+        overflow="hidden"
+        containerType="inline-size"
+      >
+        {renderHeader ? (
+          renderHeader({children: headerContent, isPoppedOut, onClose: handleClose})
         ) : (
-          <Fragment>
-            {blocks.map((block: Block, index: number) => {
-              // For slide-in animation that runs on mount. Avoid running this twice on user blocks when blocks are hydrated.
-              const key = block.message.role === 'user' ? `user-${index}` : block.id;
-
-              return (
-                <BlockComponent
-                  key={key}
-                  ref={el => {
-                    blockRefs.current[index] = el;
-                  }}
-                  block={block}
-                  blockIndex={index}
-                  blocks={blocks}
-                  runId={runId ?? undefined}
-                  getPageReferrer={getPageReferrer}
-                  interactionPending={
-                    isFileApprovalPending || isQuestionPending || showReauth
-                  }
-                  readOnly={readOnly}
-                  showThinking={showThinking}
-                />
-              );
-            })}
-            {!readOnly &&
-              isFileApprovalPending &&
-              fileApprovalIndex < fileApprovalTotalPatches && (
-                <FileChangeApprovalBlock
-                  currentIndex={fileApprovalIndex}
-                  pendingInput={pendingInput}
-                />
-              )}
-            {!readOnly && isQuestionPending && currentQuestion && (
-              <AskUserQuestionBlock
-                currentQuestion={currentQuestion}
-                customText={customText}
-                isOtherSelected={isOtherSelected}
-                onCustomTextChange={handleQuestionCustomTextChange}
-                onSelectOption={handleQuestionSelectOption}
-                questionIndex={questionIndex}
-                selectedOption={selectedOption}
-              />
-            )}
-            {!readOnly && showReauth && reauthData && (
-              <ReauthMonitoringProviderBlock
-                data={reauthData}
-                onComplete={handleReauthComplete}
-                returnUrl={
-                  runId === null
-                    ? undefined
-                    : getRelativeExplorerUrl(runId, {resume: true})
-                }
-              />
-            )}
-          </Fragment>
+          <SidebarHeaderShell onClose={handleClose}>{headerContent}</SidebarHeaderShell>
         )}
-      </BlocksContainer>
-      <InputSection
-        blocks={blocks}
-        enabled={!readOnly}
-        inputValue={inputValue}
-        canSendMessage={canSendMessage}
-        interruptState={interruptState}
-        isTimedOut={isTimedOut}
-        onCreatePR={createPR}
-        onInputChange={handleInputChange}
-        onInputClick={handleInputClick}
-        onInterrupt={interruptRun}
-        onKeyDown={handleInputKeyDown}
-        onSend={handleSend}
-        onPRWidgetClick={openPRWidget}
-        prWidgetButtonRef={prWidgetButtonRef}
-        repoPRStates={repoPRStates}
-        textAreaRef={textareaRef}
-        fileApprovalActions={
-          isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches
-            ? {
-                currentIndex: fileApprovalIndex,
-                totalPatches: fileApprovalTotalPatches,
-                onApprove: handleFileApprovalApprove,
-                onReject: handleFileApprovalReject,
+        {menu}
+        {showSlackUpgradeAlert && (
+          <UpdateSlackAlert num_configurations={activeSlackIntegrations.length} />
+        )}
+        <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>
+          {showEmptyState ? (
+            <EmptyState
+              isLoading={isPolling}
+              isError={showLoadError}
+              errorStatusCode={errorStatusCode}
+              onStartNewChat={showLoadError ? handleStartNewChat : undefined}
+              runId={runId}
+              displaySlackAgentReminder={hasSlackIntegration && !needsSlackUpgrade}
+              onSuggestionClick={
+                readOnly || isSendBlocked ? undefined : handleSuggestionClick
               }
-            : undefined
-        }
-        questionActions={
-          isQuestionPending && currentQuestion
-            ? {
-                currentIndex: questionIndex,
-                totalQuestions,
-                canSubmit: canSubmitQuestion,
-                onNext: handleQuestionNext,
-                onBack: handleQuestionBack,
-                onMoveUp: handleQuestionMoveUp,
-                onMoveDown: handleQuestionMoveDown,
+              suggestions={suggestions}
+            />
+          ) : (
+            <Fragment>
+              <SeerExplorerTranscript
+                blocks={blocks}
+                runId={runId}
+                getPageReferrer={getPageReferrer}
+                interactionPending={
+                  isFileApprovalPending ||
+                  isAgentWriteApprovalPending ||
+                  isQuestionPending ||
+                  showReauth
+                }
+                pendingInput={pendingInput}
+                readOnly={readOnly}
+                showThinking={showThinking}
+              />
+              {chatPrompt ? <ChatPromptMessage text={chatPrompt.text} /> : null}
+            </Fragment>
+          )}
+        </BlocksContainer>
+        {isTimedOut && (
+          <Container padding="0 xl">
+            <Alert
+              variant="warning"
+              trailingItems={
+                retryTarget &&
+                !readOnly && (
+                  <Alert.Button
+                    variant="secondary"
+                    icon={<IconRefresh />}
+                    onClick={handleRetry}
+                    disabled={isSendBlocked}
+                  >
+                    {t('Retry')}
+                  </Alert.Button>
+                )
               }
-            : undefined
-        }
-      />
-    </ContentContainer>
+            >
+              <Text>{t('Response timed out.')}</Text>
+            </Alert>
+          </Container>
+        )}
+        {requestErrorAlert}
+        {!showEmptyState && (
+          <PendingUserInputDock>
+            <PendingUserInputPicker
+              isAwaitingUserInput={isAwaitingUserInput}
+              pendingInput={pendingInput}
+              pendingUserInputState={pendingUserInputState}
+              readOnly={readOnly}
+              respondToUserInput={respondToUserInput}
+              runId={runId}
+            />
+          </PendingUserInputDock>
+        )}
+        <InputSection
+          enabled={!readOnly && !showLoadError}
+          disabledPlaceholder={
+            showLoadError ? t('Start a new chat to keep talking to Seer') : undefined
+          }
+          inputValue={inputValue}
+          canSendMessage={canSendMessage}
+          notice={outOfCreditsNotice}
+          toolbarItems={<SeerCreditUsageMeter hasEnoughCredits={hasEnoughCredits} />}
+          interruptState={interruptState}
+          onInputChange={handleInputChange}
+          onInputClick={handleInputClick}
+          onInterrupt={interruptRun}
+          onKeyDown={handleInputKeyDown}
+          onSend={handleSend}
+          repoPRStates={repoPRStates}
+          runId={runId}
+          isSingleRun={featureId === SINGLE_RUN_FEATURE_ID}
+          composerRef={composerRef}
+          fileApprovalActions={
+            showFileApprovalBar
+              ? {
+                  currentIndex: fileApprovalIndex,
+                  totalPatches: fileApprovalTotalPatches,
+                  onApprove: handleFileApprovalApprove,
+                  onReject: handleFileApprovalReject,
+                }
+              : undefined
+          }
+          questionActions={
+            showQuestionBar
+              ? {
+                  currentIndex: questionIndex,
+                  totalQuestions,
+                  canSubmit: canSubmitQuestion,
+                  onNext: handleQuestionNext,
+                  onBack: handleQuestionBack,
+                  onMoveUp: handleQuestionMoveUp,
+                  onMoveDown: handleQuestionMoveDown,
+                }
+              : undefined
+          }
+        />
+      </Stack>
+    </AutofixChatProvider>
   );
 }
+
+interface SeerExplorerTranscriptProps {
+  blocks: Block[];
+  getPageReferrer: () => string;
+  interactionPending: boolean;
+  pendingInput: PendingUserInput | null;
+  readOnly: boolean;
+  runId: SeerExplorerRunId | null;
+  showThinking: boolean;
+}
+
+/**
+ * The conversation itself. Memoized so typing in the composer (whose state lives in the parent)
+ * doesn't re-render every message, and `ResponseGroup`/`BlockComponent` are memoized so a poll only
+ * re-renders the segments whose blocks actually changed.
+ */
+const SeerExplorerTranscript = memo(function SeerExplorerTranscript({
+  blocks,
+  getPageReferrer,
+  interactionPending,
+  pendingInput,
+  readOnly,
+  runId,
+  showThinking,
+}: SeerExplorerTranscriptProps) {
+  const segments = useMemo(() => groupTranscript(blocks), [blocks]);
+  // Walk the conversation once here rather than once per tool block.
+  const latestTodos = useMemo(() => findLatestTodos(blocks), [blocks]);
+
+  return segments.map(segment => {
+    if (segment.kind === 'user') {
+      // For slide-in animation that runs on mount. Avoid running this twice on user
+      // blocks when blocks are hydrated.
+      return (
+        <BlockComponent
+          key={`user-${segment.index}`}
+          block={segment.block}
+          blockIndex={segment.index}
+          runId={runId ?? undefined}
+        />
+      );
+    }
+
+    return (
+      <ResponseGroup
+        key={`response-${segment.indices[0]}`}
+        group={segment.blocks}
+        blockIndex={segment.indices[0]!}
+        latestTodos={latestTodos}
+        runId={runId ?? undefined}
+        getPageReferrer={getPageReferrer}
+        interactionPending={interactionPending}
+        pendingInput={pendingInput}
+        readOnly={readOnly}
+        showThinking={showThinking}
+      />
+    );
+  });
+});
 
 const BlocksContainer = styled(Stack)`
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
-`;
-
-// Establishes the container query context used by the header's responsive
-// controls (`@container seer-explorer-root`). The query-container CSS has no
-// layout-primitive prop, so it stays in `styled`; everything else is passed as
-// `Flex` props.
-const ContentContainer = styled(Flex)`
-  container-type: inline-size;
-  container-name: seer-explorer-root;
 `;

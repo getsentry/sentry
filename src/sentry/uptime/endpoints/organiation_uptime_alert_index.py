@@ -2,6 +2,7 @@ from django.db.models import Q
 from django.db.models.fields import BigIntegerField, CharField
 from django.db.models.functions import Cast
 from drf_spectacular.utils import extend_schema
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -13,7 +14,12 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.helpers.teams import get_teams
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, UptimeParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
@@ -54,6 +60,7 @@ class OrganizationUptimeAlertIndexEndpoint(OrganizationEndpoint):
             200: inline_sentry_response_serializer(
                 "UptimeAlertList", list[UptimeDetectorSerializerResponse]
             ),
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -92,7 +99,10 @@ class OrganizationUptimeAlertIndexEndpoint(OrganizationEndpoint):
             include_unassigned = "unassigned" in owners_set
             owners_set.discard("unassigned")
 
-            actors = [Actor.from_identifier(identifier) for identifier in owners_set]
+            try:
+                actors = [Actor.from_identifier(identifier) for identifier in owners_set]
+            except Actor.InvalidActor:
+                raise ParseError(detail="Invalid owner")
 
             user_ids = [actor.id for actor in actors if actor.is_user]
             team_ids = [actor.id for actor in actors if actor.is_team]
@@ -141,4 +151,5 @@ class OrganizationUptimeAlertIndexEndpoint(OrganizationEndpoint):
             queryset=queryset,
             on_results=lambda x: serialize(x, request.user, UptimeDetectorSerializer()),
             paginator_cls=OffsetPaginator,
+            order_by="id",
         )

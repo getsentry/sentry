@@ -1,20 +1,21 @@
-import {useMemo} from 'react';
-import {type Theme} from '@emotion/react';
+import {Fragment, useCallback, useMemo} from 'react';
+import {IconInfo} from '@sentry/icons/info';
+import {IconWarning} from '@sentry/icons/warning';
 import type {YAXisComponentOption} from 'echarts';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
+import {useRenderToString} from '@sentry/scraps/renderToString';
 import {Text} from '@sentry/scraps/text';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {AreaChart, type AreaChartProps} from 'sentry/components/charts/areaChart';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconInfo, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {GroupOpenPeriod} from 'sentry/types/group';
@@ -26,13 +27,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
-import {
-  buildDetectorZoomQuery,
-  computeZoomRangeMs,
-} from 'sentry/views/detectors/components/details/common/buildDetectorZoomQuery';
-import {getDetectorOpenInDestination} from 'sentry/views/detectors/components/details/metric/getDetectorOpenInDestination';
-import {useDetectorChartAxisBounds} from 'sentry/views/detectors/components/details/metric/utils/useDetectorChartAxisBounds';
-import {useIsMigratedExtrapolation} from 'sentry/views/detectors/components/details/metric/utils/useIsMigratedExtrapolation';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {useFilteredAnomalyThresholdSeries} from 'sentry/views/detectors/hooks/useFilteredAnomalyThresholdSeries';
@@ -46,6 +40,13 @@ import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/use
 import {useMetricTimestamps} from 'sentry/views/detectors/hooks/useMetricTimestamps';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {getDetectorChartFormatters} from 'sentry/views/detectors/utils/detectorChartFormatting';
+import {getOpenPeriodIssuePath} from 'sentry/views/detectors/utils/getOpenPeriodIssuePath';
+
+import {useDetectorChartAxisBounds} from './utils/useDetectorChartAxisBounds';
+import {useIsMigratedExtrapolation} from './utils/useIsMigratedExtrapolation';
+import {AggregateSummaryTable} from './aggregateSummaryTable';
+import {incidentMarklineTooltip, incidentSeriesTooltip} from './chartTooltip';
+import {getDetectorOpenInDestination} from './getDetectorOpenInDestination';
 
 /**
  * Shift data points from bucket-start to bucket-end timestamps.
@@ -68,48 +69,6 @@ function shiftSeriesToBucketEnd(seriesList: Series[], intervalSeconds: number): 
   }));
 }
 
-interface IncidentTooltipContext {
-  period: IncidentPeriod;
-  theme: Theme;
-}
-
-function incidentSeriesTooltip(ctx: IncidentTooltipContext) {
-  const startTime = defaultFormatAxisLabel(ctx.period.start, true, false, true, false);
-  const endTime = ctx.period.end
-    ? defaultFormatAxisLabel(ctx.period.end, true, false, true, false)
-    : '-';
-  const color =
-    ctx.period.priority === 'high' ? ctx.theme.colors.red400 : ctx.theme.colors.yellow400;
-  const priorityLabel = ctx.period.priority === 'high' ? t('Critical') : t('Warning');
-
-  const priorityDot = `<span style="display:inline-block;width:10px;height:8px;border-radius:100%;background:${color};margin-right:6px;vertical-align:middle;"></span>`;
-  return [
-    '<div class="tooltip-series">',
-    `<div><span class="tooltip-label"><strong>#${ctx.period.id}</strong></span></div>`,
-    `<div><span class="tooltip-label">${t('Started')}</span> ${startTime}</div>`,
-    `<div><span class="tooltip-label">${t('Ended')}</span> ${endTime}</div>`,
-    `<div><span class="tooltip-label">${t('Priority')}</span> ${priorityDot} ${priorityLabel}</div>`,
-    '</div>',
-    '<div class="tooltip-arrow arrow-top"></div>',
-  ].join('');
-}
-
-function incidentMarklineTooltip(ctx: IncidentTooltipContext) {
-  const time = defaultFormatAxisLabel(ctx.period.start, true, false, true, false);
-  const color =
-    ctx.period.priority === 'high' ? ctx.theme.colors.red400 : ctx.theme.colors.yellow400;
-  const priorityLabel = ctx.period.priority === 'high' ? t('Critical') : t('Warning');
-  const priorityDot = `<span style="display:inline-block;width:10px;height:8px;border-radius:100%;background:${color};margin-right:6px;vertical-align:middle;"></span>`;
-  return [
-    '<div class="tooltip-series">',
-    `<div><span class="tooltip-label"><strong>${t('#%s Triggered', ctx.period.id)}</strong></span></div>`,
-    `<div><span class="tooltip-label">${t('Started')}</span> ${time}</div>`,
-    `<div><span class="tooltip-label">${t('Priority')}</span> ${priorityDot} ${priorityLabel}</div>`,
-    '</div>',
-    '<div class="tooltip-arrow arrow-top"></div>',
-  ].join('');
-}
-
 interface MetricDetectorDetailsChartProps {
   detector: MetricDetector;
 }
@@ -128,6 +87,10 @@ interface UseMetricDetectorChartProps {
    * Display a persistent highlight area for the open period with the given ID.
    */
   highlightedOpenPeriodId?: string;
+  /**
+   * Called when clicking an open period's marker or anywhere within its time range.
+   */
+  onOpenPeriodClick?: (openPeriod: GroupOpenPeriod) => void;
   start?: string | null;
   statsPeriod?: string | null;
 }
@@ -142,6 +105,7 @@ function createTriggerIntervalMarkerData({
   return {
     id: period.id,
     end: new Date(period.start).getTime(),
+    issueShortId: period.shortId,
     priority: period.activities[0]?.value ?? 'high',
     start: new Date(period.start).getTime() - intervalMs,
     type: 'trigger-interval',
@@ -149,11 +113,15 @@ function createTriggerIntervalMarkerData({
 }
 
 function createOpenPeriodMarkerData({
+  chartEndTimestampMs,
   period,
 }: {
+  chartEndTimestampMs: number | undefined;
   period: GroupOpenPeriod;
 }): IncidentPeriod[] {
-  const endDate = period.end ? new Date(period.end).getTime() : Date.now();
+  const endDate = period.end
+    ? new Date(period.end).getTime()
+    : (chartEndTimestampMs ?? Date.now());
 
   const segments = period.activities
     .filter(activity => activity.type !== 'closed')
@@ -173,6 +141,8 @@ function createOpenPeriodMarkerData({
     type: i === 0 ? 'open-period-start' : 'open-period-transition',
     end: segment.end,
     id: period.id,
+    isOngoing: !period.end && i === segments.length - 1,
+    issueShortId: period.shortId,
     name: t('Open Periods'),
     priority: segment.priority ?? 'high',
     start: segment.start,
@@ -202,11 +172,9 @@ export function useMetricDetectorChart({
   enabled = true,
   openPeriods,
   highlightedOpenPeriodId,
+  onOpenPeriodClick,
   height = CHART_HEIGHT,
 }: UseMetricDetectorChartProps): UseMetricDetectorChartResult {
-  const navigate = useNavigate();
-  const location = useLocation();
-
   const detectionType = detector.config.detectionType;
   const comparisonDelta =
     detectionType === 'percent' ? detector.config.comparisonDelta : undefined;
@@ -214,6 +182,13 @@ export function useMetricDetectorChart({
   const dataset = getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes);
   const datasetConfig = getDatasetConfig(dataset);
   const aggregate = datasetConfig.fromApiAggregate(snubaQuery.aggregate);
+  // Datasets may summarize the aggregate (e.g. "A + B" for a trace metric equation).
+  const query = datasetConfig.toSnubaQueryString(snubaQuery);
+  const aggregateSummary = useMemo(
+    () => datasetConfig.getAggregateSummary?.(snubaQuery.aggregate),
+    [datasetConfig, snubaQuery.aggregate]
+  );
+  const renderToString = useRenderToString();
   const {
     series,
     comparisonSeries,
@@ -229,7 +204,7 @@ export function useMetricDetectorChart({
       ? snubaQuery.aggregate
       : aggregate,
     interval: snubaQuery.timeWindow,
-    query: datasetConfig.toSnubaQueryString(snubaQuery),
+    query,
     environment: snubaQuery.environment,
     projectId: detector.projectId,
     eventTypes: snubaQuery.eventTypes,
@@ -240,6 +215,10 @@ export function useMetricDetectorChart({
     options: {enabled},
   });
 
+  const chartSeries = useMemo(
+    () => shiftSeriesToBucketEnd(series, snubaQuery.timeWindow),
+    [series, snubaQuery.timeWindow]
+  );
   const metricTimestamps = useMetricTimestamps(series);
 
   const {maxValue: thresholdMaxValue, additionalSeries: thresholdAdditionalSeries} =
@@ -264,14 +243,36 @@ export function useMetricDetectorChart({
   });
 
   const incidentPeriods = useMemo(() => {
+    const lastChartTimestamp = chartSeries[0]?.data.at(-1)?.name;
+    let chartEndTimestampMs: number | undefined;
+    if (lastChartTimestamp !== undefined) {
+      chartEndTimestampMs =
+        typeof lastChartTimestamp === 'number'
+          ? lastChartTimestamp
+          : new Date(lastChartTimestamp).getTime();
+    } else if (end) {
+      chartEndTimestampMs = new Date(end).getTime();
+    }
+
     return openPeriods.flatMap<IncidentPeriod>(period => [
       createTriggerIntervalMarkerData({
         period,
         intervalMs: snubaQuery.timeWindow * 1000,
       }),
-      ...createOpenPeriodMarkerData({period}),
+      ...createOpenPeriodMarkerData({chartEndTimestampMs, period}),
     ]);
-  }, [openPeriods, snubaQuery.timeWindow]);
+  }, [chartSeries, end, openPeriods, snubaQuery.timeWindow]);
+
+  const handleIncidentMarkerClick = useCallback(
+    (context: {period: IncidentPeriod}) => {
+      const clickedOpenPeriod = openPeriods.find(({id}) => id === context.period.id);
+
+      if (clickedOpenPeriod) {
+        onOpenPeriodClick?.(clickedOpenPeriod);
+      }
+    },
+    [openPeriods, onOpenPeriodClick]
+  );
 
   const openPeriodMarkerResult = useIncidentMarkers({
     incidents: incidentPeriods,
@@ -281,20 +282,7 @@ export function useMetricDetectorChart({
     yAxisIndex: 1, // Use index 1 to avoid conflict with main chart axis
     seriesTooltip: incidentSeriesTooltip,
     markLineTooltip: incidentMarklineTooltip,
-    onClick: context => {
-      const startMs = context.period.start;
-      const endMs = context.period.end ?? Date.now();
-      const intervalSeconds = Number(snubaQuery.timeWindow) || 60;
-      const zoomRange = computeZoomRangeMs({
-        startMs,
-        endMs,
-        intervalSeconds,
-      });
-      navigate({
-        pathname: location.pathname,
-        query: buildDetectorZoomQuery(location.query, zoomRange),
-      });
-    },
+    onClick: handleIncidentMarkerClick,
   });
 
   const chartZoomProps = useChartZoom({
@@ -414,13 +402,46 @@ export function useMetricDetectorChart({
       showTimeInTooltip: true,
       height,
       stacked: false,
-      series: shiftSeriesToBucketEnd(series, snubaQuery.timeWindow),
+      series: chartSeries,
       additionalSeries,
       yAxes: yAxes.length > 1 ? yAxes : undefined,
       yAxis: yAxes.length === 1 ? yAxes[0] : undefined,
       grid,
       xAxis: openPeriodMarkerResult.incidentMarkerXAxis,
       tooltip: {
+        // The aggregate series is named after the raw aggregate. Show the summary and
+        // the filter it runs under instead, with the labels explained underneath.
+        // Threshold series share this tooltip and keep their own names.
+        nameFormatter: aggregateSummary
+          ? (name, seriesParams) =>
+              seriesParams?.seriesName === aggregate
+                ? renderToString(
+                    <Flex as="span" display="inline-flex" gap="xs" align="baseline">
+                      <Text size="sm">{aggregateSummary.expression}</Text>
+                      {query ? (
+                        <Fragment>
+                          <Text size="sm" bold>
+                            {t('Where')}
+                          </Text>
+                          <Text size="sm">{query}</Text>
+                        </Fragment>
+                      ) : null}
+                    </Flex>
+                  )
+                : name
+          : undefined,
+        renderSeriesDetails: aggregateSummary
+          ? seriesNames =>
+              seriesNames.includes(aggregate)
+                ? renderToString(
+                    // The wrapper absorbs `.tooltip-series > div`, which would otherwise
+                    // override the table's grid with flex.
+                    <Container paddingTop="md">
+                      <AggregateSummaryTable summary={aggregateSummary} />
+                    </Container>
+                  )
+                : ''
+          : undefined,
         // Data points are shifted to bucket-end timestamps
         // so we need to subtract the interval to get the bucket-start time.
         formatAxisLabel: (
@@ -455,6 +476,8 @@ export function useMetricDetectorChart({
   }, [
     additionalSeries,
     aggregate,
+    aggregateSummary,
+    chartSeries,
     chartZoomProps,
     detectionType,
     error,
@@ -462,7 +485,8 @@ export function useMetricDetectorChart({
     height,
     isLoading,
     openPeriodMarkerResult,
-    series,
+    query,
+    renderToString,
     serverOutputType,
     snubaQuery.timeWindow,
     unit,
@@ -591,6 +615,7 @@ function ChartFooter({
 
 export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChartProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const organization = useOrganization();
   const dateParams = normalizeDateTimeParams(location.query);
   const snubaQuery = detector.dataSources[0]?.queryObj?.snubaQuery;
@@ -612,10 +637,17 @@ export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChar
     ...dateParams,
   });
 
+  const navigateToOpenPeriodIssue = useCallback(
+    (clickedOpenPeriod: GroupOpenPeriod) =>
+      navigate(getOpenPeriodIssuePath(clickedOpenPeriod, organization.slug)),
+    [navigate, organization.slug]
+  );
+
   const {chartProps, isLoading, error, isAnomalyThresholdCutOff} = useMetricDetectorChart(
     {
       detector,
       openPeriods,
+      onOpenPeriodClick: navigateToOpenPeriodIssue,
       height: CHART_HEIGHT,
       ...dateParams,
     }
@@ -625,7 +657,7 @@ export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChar
     return (
       <ChartContainer>
         <ChartBody>
-          <Flex height={CHART_HEIGHT} justify="center" align="center">
+          <Flex justify="center" align="center">
             <Placeholder height={`${CHART_HEIGHT}px`} />
           </Flex>
         </ChartBody>

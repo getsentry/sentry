@@ -1,19 +1,14 @@
-from typing import Any
-from unittest.mock import MagicMock, patch
+from datetime import timedelta
+from typing import Any, cast
+from unittest.mock import DEFAULT, MagicMock, patch
 
+import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
+from django.utils import timezone
 
-import sentry.api.helpers.group_index.update
-import sentry.issues.endpoints.group_details
-import sentry.issues.endpoints.group_integration_details
-import sentry.issues.priority
-import sentry.issues.status_change
-import sentry.models.group
-import sentry.models.groupassignee
-import sentry.models.groupinbox
 from sentry.auth.services.auth import AuthenticatedToken
-from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
+from sentry.hybridcloud.models.outbox import CellOutbox, OutboxFlushError, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.issues.action_log import (
     SYSTEM_ACTOR,
@@ -22,34 +17,49 @@ from sentry.issues.action_log import (
     action_context_scope,
     get_action_context,
     publish_action,
+    publish_actions_from_context_bulk,
+)
+from sentry.issues.action_log.request import (
+    has_recent_view,
     resolve_action_actor,
     resolve_action_source,
 )
-from sentry.issues.action_log.base import ActionSource
+from sentry.issues.action_log.tasks import enqueue_group_action_log_outbox_jobs
 from sentry.issues.action_log.types import (
+    ActionSource,
     ArchiveAction,
     AssignAction,
     CreateExternalIssueAction,
+    GroupAction,
     GroupActionType,
     GroupActorType,
     LinkExternalIssueAction,
     MarkReviewedAction,
     MergeFromOtherAction,
     MergeIntoOtherAction,
+    PullRequestClosedAction,
     ResolveAction,
     SetPriorityAction,
+    SetResolvedByAgeAction,
     UnassignAction,
     UnlinkExternalIssueAction,
     ViewAction,
 )
+from sentry.issues.endpoints.group_details import VIEW_ACTION_PUBLISH_INTERVAL
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
 from sentry.issues.models.groupderiveddata import GroupDerivedData
+from sentry.locks import locks
+from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.seer.endpoints.seer_rpc import SeerRpcSignatureAuthentication
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
+from sentry.testutils.helpers.action_log import CapturedAction, capture_action_log
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
+from sentry.utils.locking import UnableToAcquireLock
 
 
 def _make_request(
@@ -83,6 +93,15 @@ class TestResolveActionSource(TestCase):
             },
         )
         assert resolve_action_source(request) == "mcp:claude-code"
+
+    def test_mcp_legacy_claude_desktop_family_is_recorded_as_claude(self) -> None:
+        request = _make_request(
+            meta={
+                "HTTP_USER_AGENT": MCP_USER_AGENT,
+                "HTTP_X_SENTRY_MCP_CLIENT_FAMILY": "claude-desktop",
+            },
+        )
+        assert resolve_action_source(request) == "mcp:claude"
 
     def test_mcp_unrecognized_family_logs_and_falls_back(self) -> None:
         request = _make_request(
@@ -162,6 +181,11 @@ class TestResolveActionActor(TestCase):
         request = self._request(auth=auth, user=self.user)
         assert resolve_action_actor(request) == GroupActionActor.user(self.user.id)
 
+    def test_agent_token(self) -> None:
+        auth = AuthenticatedToken(kind="agent_token", user_id=self.user.id)
+        request = self._request(auth=auth)
+        assert resolve_action_actor(request) == GroupActionActor.user(self.user.id)
+
     def test_org_auth_token(self) -> None:
         auth = AuthenticatedToken(kind="org_auth_token", organization_id=self.organization.id)
         request = self._request(auth=auth)
@@ -174,12 +198,14 @@ class TestResolveActionActor(TestCase):
 
     def test_sentry_app_token_resolves_to_app(self) -> None:
         sentry_app = self.create_sentry_app(organization=self.organization)
+        proxy_user = sentry_app.proxy_user
+        assert proxy_user is not None
         auth = AuthenticatedToken(
             kind="api_token",
             application_id=sentry_app.application_id,
-            user_id=sentry_app.proxy_user.id,
+            user_id=proxy_user.id,
         )
-        request = self._request(auth=auth, user=sentry_app.proxy_user)
+        request = self._request(auth=auth, user=proxy_user)
         assert resolve_action_actor(request) == GroupActionActor.sentry_app(sentry_app.id)
 
     def test_user_oauth_token_with_application_id_is_user(self) -> None:
@@ -192,6 +218,64 @@ class TestResolveActionActor(TestCase):
 
     def test_unauthenticated_is_system(self) -> None:
         assert resolve_action_actor(self._request()) == SYSTEM_ACTOR
+
+
+class TestHasRecentView(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group()
+        self.actor = GroupActionActor.user(self.user.id)
+
+    def _create_view(self, **kwargs: Any) -> GroupActionLogEntry:
+        defaults: dict[str, Any] = {
+            "type": GroupActionType.VIEW,
+            "actor_type": self.actor.actor_type,
+            "actor_id": self.actor.actor_id,
+            "source": ActionSource.WEB,
+        }
+        return self.create_group_action_log_entry(group=self.group, **{**defaults, **kwargs})
+
+    def _has_recent_view(self) -> bool:
+        return has_recent_view(
+            self.group.id, source=ActionSource.WEB, actor=self.actor, within=timedelta(days=2)
+        )
+
+    def test_no_entries(self) -> None:
+        assert not self._has_recent_view()
+
+    def test_recent_view(self) -> None:
+        self._create_view()
+        assert self._has_recent_view()
+
+    def test_stale_view(self) -> None:
+        self._create_view(date_added=timezone.now() - timedelta(days=3))
+        assert not self._has_recent_view()
+
+    def test_other_source(self) -> None:
+        self._create_view(source=ActionSource.API)
+        assert not self._has_recent_view()
+
+    def test_other_actor(self) -> None:
+        self._create_view(actor_id=self.user.id + 1)
+        assert not self._has_recent_view()
+
+    def test_other_actor_type(self) -> None:
+        self._create_view(actor_type=GroupActorType.ORG)
+        assert not self._has_recent_view()
+
+    def test_other_action_type(self) -> None:
+        self._create_view(type=GroupActionType.BOOKMARK)
+        assert not self._has_recent_view()
+
+    def test_other_group(self) -> None:
+        self.create_group_action_log_entry(
+            group=self.create_group(),
+            type=GroupActionType.VIEW,
+            actor_type=self.actor.actor_type,
+            actor_id=self.actor.actor_id,
+            source=ActionSource.WEB,
+        )
+        assert not self._has_recent_view()
 
 
 class TestActionContext(TestCase):
@@ -279,6 +363,23 @@ class TestPublishActionFromContext(TestCase):
         assert getattr(info_record, "source") == "unknown"
 
 
+class TestPublishActionsFromContextBulk(TestCase):
+    def test_multiple_writes(self) -> None:
+        from sentry.issues.action_log import action_context_scope, publish_actions_from_context_bulk
+
+        actor = GroupActionActor.user(42)
+        with self.feature("projects:issue-action-log-write-to-db"), outbox_runner():
+            with action_context_scope(source="web", actor=actor):
+                publish_actions_from_context_bulk(
+                    [
+                        (ViewAction(), self.group.project, self.group.id, None),
+                        (ResolveAction(), self.group.project, self.group.id, None),
+                    ],
+                )
+
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 2
+
+
 class TestActionLogIntegration(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -290,111 +391,133 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
         )
         self.url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/"
 
-    @patch.object(
-        sentry.api.helpers.group_index.update, "publish_action_from_context", autospec=True
-    )
-    def test_resolve_emits_action(self, mock_publish: MagicMock) -> None:
-        response = self.client.put(self.url, data={"status": "resolved"}, format="json")
+    def test_resolve_emits_action(self) -> None:
+        with capture_action_log() as log:
+            response = self.client.put(self.url, data={"status": "resolved"}, format="json")
         assert response.status_code == 200
-        resolve_calls = [
-            c
-            for c in mock_publish.call_args_list
-            if c.args[0].get_type() == GroupActionType.RESOLVE
-        ]
-        assert len(resolve_calls) == 1
-        assert resolve_calls[0].kwargs["group_id"] == self.group.id
+        log.assert_logged(ResolveAction, group_id=self.group.id)
 
-    @patch.object(
-        sentry.api.helpers.group_index.update, "publish_action_from_context", autospec=True
-    )
-    def test_resolve_already_resolved_skips(self, mock_publish: MagicMock) -> None:
+    def test_resolve_already_resolved_skips(self) -> None:
         self.group.update(status=GroupStatus.RESOLVED, substatus=None)
-        response = self.client.put(self.url, data={"status": "resolved"}, format="json")
+        with capture_action_log() as log:
+            response = self.client.put(self.url, data={"status": "resolved"}, format="json")
         assert response.status_code == 200
-        resolve_calls = [
-            c
-            for c in mock_publish.call_args_list
-            if c.args[0].get_type() == GroupActionType.RESOLVE
-        ]
-        assert len(resolve_calls) == 0
+        log.assert_not_logged(ResolveAction)
 
-    @patch.object(sentry.issues.status_change, "publish_action_from_context", autospec=True)
-    def test_archive_emits_action(self, mock_publish: MagicMock) -> None:
-        response = self.client.put(
-            self.url,
-            data={"status": "ignored", "substatus": "archived_until_escalating"},
-            format="json",
-        )
+    def test_archive_emits_action(self) -> None:
+        with capture_action_log() as log:
+            response = self.client.put(
+                self.url,
+                data={"status": "ignored", "substatus": "archived_until_escalating"},
+                format="json",
+            )
         assert response.status_code == 200
-        mock_publish.assert_called_once()
-        assert isinstance(mock_publish.call_args.args[0], ArchiveAction)
+        log.assert_logged(ArchiveAction, group_id=self.group.id)
 
-    @patch.object(sentry.issues.status_change, "publish_action_from_context", autospec=True)
-    def test_archive_already_archived_skips(self, mock_publish: MagicMock) -> None:
+    def test_archive_already_archived_skips(self) -> None:
         self.group.update(status=GroupStatus.IGNORED, substatus=GroupSubStatus.UNTIL_ESCALATING)
-        response = self.client.put(
-            self.url,
-            data={"status": "ignored", "substatus": "archived_until_escalating"},
-            format="json",
+        with capture_action_log() as log:
+            response = self.client.put(
+                self.url,
+                data={"status": "ignored", "substatus": "archived_until_escalating"},
+                format="json",
+            )
+        assert response.status_code == 200
+        log.assert_not_logged(ArchiveAction)
+
+    def test_priority_change_emits_action(self) -> None:
+        with capture_action_log() as log:
+            response = self.client.put(self.url, data={"priority": "high"}, format="json")
+        assert response.status_code == 200
+        log.assert_logged(SetPriorityAction, group_id=self.group.id, priority="high")
+
+    def test_priority_same_value_skips(self) -> None:
+        with capture_action_log() as log:
+            response = self.client.put(self.url, data={"priority": "medium"}, format="json")
+        assert response.status_code == 200
+        log.assert_not_logged(SetPriorityAction)
+
+    def test_assign_emits_action(self) -> None:
+        with capture_action_log() as log:
+            response = self.client.put(
+                self.url, data={"assignedTo": f"user:{self.user.id}"}, format="json"
+            )
+        assert response.status_code == 200
+        log.assert_logged(AssignAction, group_id=self.group.id)
+
+    def test_assign_same_user_skips(self) -> None:
+        self.client.put(self.url, data={"assignedTo": f"user:{self.user.id}"}, format="json")
+        with capture_action_log() as log:
+            self.client.put(self.url, data={"assignedTo": f"user:{self.user.id}"}, format="json")
+        log.assert_not_logged(AssignAction)
+
+    def test_unassign_emits_action(self) -> None:
+        self.client.put(self.url, data={"assignedTo": f"user:{self.user.id}"}, format="json")
+        with capture_action_log() as log:
+            response = self.client.put(self.url, data={"assignedTo": ""}, format="json")
+        assert response.status_code == 200
+        log.assert_logged(UnassignAction, group_id=self.group.id)
+
+    def test_unassign_without_assignee_skips(self) -> None:
+        with capture_action_log() as log:
+            response = self.client.put(self.url, data={"assignedTo": ""}, format="json")
+        assert response.status_code == 200
+        log.assert_not_logged(UnassignAction)
+
+    def test_view_emits_action(self) -> None:
+        with capture_action_log() as log:
+            response = self.client.get(self.url, format="json")
+        assert response.status_code == 200
+        log.assert_logged(ViewAction, group_id=self.group.id)
+
+    @patch("sentry.issues.endpoints.group_details.metrics.incr")
+    def test_view_skipped_when_recently_viewed(self, mock_incr: MagicMock) -> None:
+        self.create_group_action_log_entry(
+            group=self.group,
+            type=GroupActionType.VIEW,
+            actor_type=GroupActorType.USER,
+            actor_id=self.user.id,
+            source=ActionSource.WEB,
         )
+        with capture_action_log() as log:
+            response = self.client.get(self.url, format="json")
         assert response.status_code == 200
-        mock_publish.assert_not_called()
-
-    @patch.object(sentry.issues.priority, "publish_action_from_context", autospec=True)
-    def test_priority_change_emits_action(self, mock_publish: MagicMock) -> None:
-        response = self.client.put(self.url, data={"priority": "high"}, format="json")
-        assert response.status_code == 200
-        mock_publish.assert_called_once()
-        assert isinstance(mock_publish.call_args.args[0], SetPriorityAction)
-
-    @patch.object(sentry.issues.priority, "publish_action_from_context", autospec=True)
-    def test_priority_same_value_skips(self, mock_publish: MagicMock) -> None:
-        response = self.client.put(self.url, data={"priority": "medium"}, format="json")
-        assert response.status_code == 200
-        mock_publish.assert_not_called()
-
-    @patch.object(sentry.models.groupassignee, "publish_action_from_context", autospec=True)
-    def test_assign_emits_action(self, mock_publish: MagicMock) -> None:
-        response = self.client.put(
-            self.url, data={"assignedTo": f"user:{self.user.id}"}, format="json"
+        log.assert_not_logged(ViewAction)
+        mock_incr.assert_any_call(
+            "issues.action_log.view_rate_limited",
+            sample_rate=1.0,
+            tags={"source": "web", "actor_type": "user"},
         )
+
+    def test_view_emits_when_last_view_is_stale(self) -> None:
+        self.create_group_action_log_entry(
+            group=self.group,
+            type=GroupActionType.VIEW,
+            actor_type=GroupActorType.USER,
+            actor_id=self.user.id,
+            source=ActionSource.WEB,
+            date_added=timezone.now() - VIEW_ACTION_PUBLISH_INTERVAL - timedelta(minutes=1),
+        )
+        with capture_action_log() as log:
+            response = self.client.get(self.url, format="json")
         assert response.status_code == 200
-        mock_publish.assert_called_once()
-        assert isinstance(mock_publish.call_args.args[0], AssignAction)
+        log.assert_logged(ViewAction, group_id=self.group.id)
 
-    @patch.object(sentry.models.groupassignee, "publish_action_from_context", autospec=True)
-    def test_assign_same_user_skips(self, mock_publish: MagicMock) -> None:
-        self.client.put(self.url, data={"assignedTo": f"user:{self.user.id}"}, format="json")
-        mock_publish.reset_mock()
-        self.client.put(self.url, data={"assignedTo": f"user:{self.user.id}"}, format="json")
-        mock_publish.assert_not_called()
-
-    @patch.object(sentry.models.groupassignee, "publish_action_from_context", autospec=True)
-    def test_unassign_emits_action(self, mock_publish: MagicMock) -> None:
-        self.client.put(self.url, data={"assignedTo": f"user:{self.user.id}"}, format="json")
-        mock_publish.reset_mock()
-        response = self.client.put(self.url, data={"assignedTo": ""}, format="json")
+    @override_options({"issues.action_log.view_rate_limit.killswitch": True})
+    def test_view_emits_when_recently_viewed_and_killswitch_on(self) -> None:
+        self.create_group_action_log_entry(
+            group=self.group,
+            type=GroupActionType.VIEW,
+            actor_type=GroupActorType.USER,
+            actor_id=self.user.id,
+            source=ActionSource.WEB,
+        )
+        with capture_action_log() as log:
+            response = self.client.get(self.url, format="json")
         assert response.status_code == 200
-        unassign_calls = [
-            c for c in mock_publish.call_args_list if isinstance(c.args[0], UnassignAction)
-        ]
-        assert len(unassign_calls) == 1
+        log.assert_logged(ViewAction, group_id=self.group.id)
 
-    @patch.object(sentry.models.groupassignee, "publish_action_from_context", autospec=True)
-    def test_unassign_without_assignee_skips(self, mock_publish: MagicMock) -> None:
-        response = self.client.put(self.url, data={"assignedTo": ""}, format="json")
-        assert response.status_code == 200
-        mock_publish.assert_not_called()
-
-    @patch.object(sentry.issues.endpoints.group_details, "publish_action", autospec=True)
-    def test_view_emits_action(self, mock_publish: MagicMock) -> None:
-        response = self.client.get(self.url, format="json")
-        assert response.status_code == 200
-        mock_publish.assert_called_once()
-        assert isinstance(mock_publish.call_args.args[0], ViewAction)
-
-    @patch.object(sentry.models.groupinbox, "publish_action_from_context", autospec=True)
-    def test_mark_reviewed_emits_for_inbox_groups(self, mock_publish: MagicMock) -> None:
+    def test_mark_reviewed_emits_for_inbox_groups(self) -> None:
         from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
 
         group_in_inbox = self.create_group(
@@ -408,53 +531,39 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
         assert not GroupInbox.objects.filter(group=group_not_in_inbox).exists()
 
         url = f"/api/0/organizations/{self.organization.slug}/issues/?id={group_in_inbox.id}&id={group_not_in_inbox.id}"
-        response = self.client.put(url, data={"inbox": False}, format="json")
+        with capture_action_log() as log:
+            response = self.client.put(url, data={"inbox": False}, format="json")
         assert response.status_code == 200
-        reviewed_calls = [
-            c for c in mock_publish.call_args_list if isinstance(c.args[0], MarkReviewedAction)
-        ]
-        assert len(reviewed_calls) == 1
-        assert reviewed_calls[0].kwargs["group_id"] == group_in_inbox.id
+        log.assert_logged(MarkReviewedAction, group_id=group_in_inbox.id)
+        log.assert_not_logged(MarkReviewedAction, group_id=group_not_in_inbox.id)
 
-    @patch.object(sentry.api.helpers.group_index.update, "publish_action", autospec=True)
-    def test_merge_emits_actions(self, mock_publish: MagicMock) -> None:
+    def test_merge_emits_actions(self) -> None:
         group2 = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
         url = f"/api/0/organizations/{self.organization.slug}/issues/?id={self.group.id}&id={group2.id}"
-        response = self.client.put(url, data={"merge": 1}, format="json")
+        with capture_action_log() as log:
+            response = self.client.put(url, data={"merge": 1}, format="json")
         assert response.status_code == 200
-        merge_from = [
-            c for c in mock_publish.call_args_list if isinstance(c.args[0], MergeFromOtherAction)
-        ]
-        merge_into = [
-            c for c in mock_publish.call_args_list if isinstance(c.args[0], MergeIntoOtherAction)
-        ]
-        assert len(merge_from) == 1
-        assert len(merge_into) == 1
+        log.assert_logged(MergeFromOtherAction)
+        log.assert_logged(MergeIntoOtherAction)
 
 
 class TestUpdateGroupStatusActionLog(APITestCase, SnubaTestCase):
     def test_resolve_emits_action_with_context_source(self) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
-        with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
-            with action_context_scope(
-                source=ActionSource.SLACK, actor=GroupActionActor.user(self.user.id)
-            ):
+        actor = GroupActionActor.user(self.user.id)
+        with capture_action_log() as log:
+            with action_context_scope(source=ActionSource.SLACK, actor=actor):
                 Group.objects.update_group_status(
                     groups=[group],
                     status=GroupStatus.RESOLVED,
                     substatus=None,
                     activity_type=ActivityType.SET_RESOLVED,
                 )
-        records = [r for r in logs.records if r.message == "group.action_log"]
-        assert len(records) == 1
-        assert getattr(records[0], "action") == "resolve"
-        assert getattr(records[0], "source") == ActionSource.SLACK
-        assert getattr(records[0], "group_id") == str(group.id)
-        assert getattr(records[0], "actor_id") == str(self.user.id)
+        log.assert_logged(ResolveAction, group_id=group.id, source=ActionSource.SLACK, actor=actor)
 
     def test_ignore_emits_archive_action(self) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
-        with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
+        with capture_action_log() as log:
             with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
                 Group.objects.update_group_status(
                     groups=[group],
@@ -462,25 +571,7 @@ class TestUpdateGroupStatusActionLog(APITestCase, SnubaTestCase):
                     substatus=GroupSubStatus.UNTIL_ESCALATING,
                     activity_type=ActivityType.SET_IGNORED,
                 )
-        records = [r for r in logs.records if r.message == "group.action_log"]
-        assert len(records) == 1
-        assert getattr(records[0], "action") == "archive"
-        assert getattr(records[0], "source") == ActionSource.SYSTEM
-
-    @patch.object(sentry.models.group, "publish_action_from_context", autospec=True)
-    def test_substatus_only_transition_emits_no_action(self, mock_publish: MagicMock) -> None:
-        # AUTO_SET_ONGOING moves a group NEW -> ONGOING but it stays UNRESOLVED; that
-        # substatus-only change must not be logged as an unresolve.
-        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW)
-        with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
-            Group.objects.update_group_status(
-                groups=[group],
-                status=GroupStatus.UNRESOLVED,
-                substatus=GroupSubStatus.ONGOING,
-                activity_type=ActivityType.AUTO_SET_ONGOING,
-                from_substatus=GroupSubStatus.NEW,
-            )
-        assert mock_publish.call_count == 0
+        log.assert_logged(ArchiveAction, group_id=group.id, source=ActionSource.SYSTEM)
 
 
 class TestExternalIssueLinkingActionLog(APITestCase, SnubaTestCase):
@@ -498,37 +589,47 @@ class TestExternalIssueLinkingActionLog(APITestCase, SnubaTestCase):
         )
         self.base_url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/integrations/{self.integration.id}/"
 
-    @patch.object(
-        sentry.issues.endpoints.group_integration_details, "publish_action", autospec=True
-    )
-    def test_create_external_issue_emits_action(self, mock_publish: MagicMock) -> None:
-        with self.feature("organizations:integrations-issue-basic"):
+    def _assert_link_locked(self, *args: Any, **kwargs: Any) -> Any:
+        with pytest.raises(UnableToAcquireLock):
+            with locks.get(
+                f"external-issue-link:{self.organization.id}:{self.integration.id}:APP-123",
+                duration=300,
+            ).acquire():
+                pass
+        return DEFAULT
+
+    def test_create_external_issue_emits_action(self) -> None:
+        with capture_action_log() as log, self.feature("organizations:integrations-issue-basic"):
             response = self.client.post(
                 self.base_url, data={"assignee": "foo@sentry.io"}, format="json"
             )
         assert response.status_code == 201
-        mock_publish.assert_called_once()
-        assert isinstance(mock_publish.call_args.args[0], CreateExternalIssueAction)
-        assert mock_publish.call_args.kwargs["group_id"] == self.group.id
-        assert mock_publish.call_args.args[0].provider == "example"
+        log.assert_logged(CreateExternalIssueAction, group_id=self.group.id, provider="example")
 
-    @patch.object(
-        sentry.issues.endpoints.group_integration_details, "publish_action", autospec=True
-    )
-    def test_link_external_issue_emits_action(self, mock_publish: MagicMock) -> None:
-        with self.feature("organizations:integrations-issue-basic"):
+    def test_link_external_issue_emits_action(self) -> None:
+        with (
+            capture_action_log() as log,
+            self.feature("organizations:integrations-issue-basic"),
+            patch.object(
+                Activity.objects,
+                "create",
+                wraps=Activity.objects.create,
+                side_effect=self._assert_link_locked,
+            ) as create_activity,
+            patch(
+                "sentry.issues.endpoints.group_integration_details.publish_action",
+                wraps=publish_action,
+                side_effect=self._assert_link_locked,
+            ),
+        ):
             response = self.client.put(
                 self.base_url, data={"externalIssue": "APP-123"}, format="json"
             )
         assert response.status_code == 201
-        mock_publish.assert_called_once()
-        assert isinstance(mock_publish.call_args.args[0], LinkExternalIssueAction)
-        assert mock_publish.call_args.kwargs["group_id"] == self.group.id
+        create_activity.assert_called_once()
+        log.assert_logged(LinkExternalIssueAction, group_id=self.group.id)
 
-    @patch.object(
-        sentry.issues.endpoints.group_integration_details, "publish_action", autospec=True
-    )
-    def test_unlink_external_issue_emits_action(self, mock_publish: MagicMock) -> None:
+    def test_unlink_external_issue_emits_action(self) -> None:
         from sentry.integrations.models.external_issue import ExternalIssue
         from sentry.models.grouplink import GroupLink
 
@@ -544,18 +645,22 @@ class TestExternalIssueLinkingActionLog(APITestCase, SnubaTestCase):
             linked_id=external_issue.id,
             relationship=GroupLink.Relationship.references,
         )
-        with self.feature("organizations:integrations-issue-basic"):
+        with (
+            capture_action_log() as log,
+            self.feature("organizations:integrations-issue-basic"),
+            patch(
+                "sentry.issues.endpoints.group_integration_details.publish_action",
+                wraps=publish_action,
+                side_effect=self._assert_link_locked,
+            ),
+        ):
             response = self.client.delete(
                 f"{self.base_url}?externalIssue={external_issue.id}", format="json"
             )
         assert response.status_code == 204
-        mock_publish.assert_called_once()
-        assert isinstance(mock_publish.call_args.args[0], UnlinkExternalIssueAction)
+        log.assert_logged(UnlinkExternalIssueAction, group_id=self.group.id)
 
-    @patch.object(
-        sentry.issues.endpoints.group_integration_details, "publish_action", autospec=True
-    )
-    def test_unlink_unlinked_external_issue_skips_action(self, mock_publish: MagicMock) -> None:
+    def test_unlink_unlinked_external_issue_skips_action(self) -> None:
         from sentry.integrations.models.external_issue import ExternalIssue
 
         # The external issue exists but is not linked to this group, so nothing is
@@ -565,12 +670,43 @@ class TestExternalIssueLinkingActionLog(APITestCase, SnubaTestCase):
             integration_id=self.integration.id,
             key="APP-123",
         )
-        with self.feature("organizations:integrations-issue-basic"):
+        with capture_action_log() as log, self.feature("organizations:integrations-issue-basic"):
             response = self.client.delete(
                 f"{self.base_url}?externalIssue={external_issue.id}", format="json"
             )
         assert response.status_code == 204
-        mock_publish.assert_not_called()
+        log.assert_not_logged()
+
+
+class TestGroupActionLogOutboxRecovery(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group()
+
+    def _seed_dedicated_outbox(self, action: GroupAction, group: Group) -> None:
+        with self.feature("projects:issue-action-log-write-to-db"), outbox_context(flush=False):
+            publish_action(
+                action,
+                source=ActionSource.API,
+                group_id=group.id,
+                project=group.project,
+            )
+
+    def test_receiver_failure_retains_dedicated_row(self) -> None:
+        self._seed_dedicated_outbox(ViewAction(), self.group)
+
+        with (
+            patch(
+                "sentry.hybridcloud.models.outbox.process_cell_outbox.send",
+                side_effect=ValueError("receiver failed"),
+            ),
+            self.tasks(),
+            pytest.raises(OutboxFlushError),
+        ):
+            enqueue_group_action_log_outbox_jobs(concurrency=1)
+
+        outbox = GroupActionLogOutbox.objects.get()
+        assert outbox.scheduled_for > outbox.scheduled_from
 
 
 class TestPublishActionWrite(TestCase):
@@ -595,6 +731,62 @@ class TestPublishActionWrite(TestCase):
         assert entry.source == ActionSource.API
         assert entry.data == {}
         assert entry.date_added is not None
+
+    @patch("sentry.utils.metrics.timer")
+    def test_uses_dedicated_outbox(self, mock_timer: MagicMock) -> None:
+        with self.feature("projects:issue-action-log-write-to-db"), outbox_context(flush=False):
+            publish_action(
+                ViewAction(),
+                source=ActionSource.API,
+                group_id=self.group.id,
+                project=self.group.project,
+                force_async_derived=True,
+            )
+
+        assert GroupActionLogOutbox.objects.count() == 1
+        assert not CellOutbox.objects.filter(
+            category=OutboxCategory.GROUP_ACTION_LOG_EVENT
+        ).exists()
+        mock_timer.assert_any_call(
+            "issues.action_log.enqueue.duration",
+            tags={
+                "action": "view",
+                "source": "api",
+                "derived_strategy": "async",
+            },
+        )
+
+    @patch("sentry.issues.action_log.publish.secrets.randbelow", return_value=12344)
+    def test_outbox_identifier_uses_secure_random_value(self, mock_randbelow: MagicMock) -> None:
+        with (
+            self.feature("projects:issue-action-log-write-to-db"),
+            outbox_context(flush=False),
+        ):
+            publish_action(
+                ViewAction(),
+                source=ActionSource.API,
+                group_id=self.group.id,
+                project=self.group.project,
+            )
+
+        outbox = GroupActionLogOutbox.objects.get()
+        assert outbox.object_identifier == 12345
+        mock_randbelow.assert_called_once_with(2**63 - 1)
+
+    def test_outbox_flushes_on_commit(self) -> None:
+        with (
+            self.feature("projects:issue-action-log-write-to-db"),
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            publish_action(
+                ViewAction(),
+                source=ActionSource.API,
+                group_id=self.group.id,
+                project=self.group.project,
+            )
+
+        assert not GroupActionLogOutbox.objects.exists()
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
 
     def test_system_action(self) -> None:
         with self.feature("projects:issue-action-log-write-to-db"), outbox_runner():
@@ -630,7 +822,7 @@ class TestPublishActionWrite(TestCase):
     def test_rolled_back_transaction_does_not_persist(self) -> None:
         with self.feature("projects:issue-action-log-write-to-db"):
             try:
-                with transaction.atomic(using=router.db_for_write(CellOutbox)):
+                with transaction.atomic(using=router.db_for_write(GroupActionLogOutbox)):
                     publish_action(
                         ViewAction(),
                         source=ActionSource.API,
@@ -638,22 +830,18 @@ class TestPublishActionWrite(TestCase):
                         project=self.group.project,
                         actor=GroupActionActor.user(self.user.id),
                     )
-                    assert CellOutbox.objects.filter(
-                        category=OutboxCategory.GROUP_ACTION_LOG_EVENT
-                    ).exists()
+                    assert GroupActionLogOutbox.objects.exists()
                     raise IntentionalRollback()
             except IntentionalRollback:
                 pass
 
-        assert not CellOutbox.objects.filter(
-            category=OutboxCategory.GROUP_ACTION_LOG_EVENT
-        ).exists()
+        assert not GroupActionLogOutbox.objects.exists()
         assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 0
 
     def test_savepoint_rollback_discards_only_inner(self) -> None:
         with self.feature("projects:issue-action-log-write-to-db"):
             with outbox_runner():
-                with transaction.atomic(using=router.db_for_write(CellOutbox)):
+                with transaction.atomic(using=router.db_for_write(GroupActionLogOutbox)):
                     publish_action(
                         ViewAction(),
                         source=ActionSource.API,
@@ -662,7 +850,7 @@ class TestPublishActionWrite(TestCase):
                         actor=GroupActionActor.user(self.user.id),
                     )
                     try:
-                        with transaction.atomic(using=router.db_for_write(CellOutbox)):
+                        with transaction.atomic(using=router.db_for_write(GroupActionLogOutbox)):
                             publish_action(
                                 ResolveAction(),
                                 source=ActionSource.API,
@@ -678,17 +866,6 @@ class TestPublishActionWrite(TestCase):
         assert len(entries) == 1
         assert entries[0].type == GroupActionType.VIEW
 
-    def test_feature_disabled_skips_write(self) -> None:
-        publish_action(
-            ViewAction(),
-            source=ActionSource.API,
-            group_id=self.group.id,
-            project=self.group.project,
-            actor=GroupActionActor.user(self.user.id),
-        )
-
-        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 0
-
     def test_flush_false_defers_drain(self) -> None:
         with self.feature("projects:issue-action-log-write-to-db"):
             with outbox_context(flush=False):
@@ -700,15 +877,31 @@ class TestPublishActionWrite(TestCase):
                     actor=GroupActionActor.user(self.user.id),
                 )
 
-            assert CellOutbox.objects.filter(
-                category=OutboxCategory.GROUP_ACTION_LOG_EVENT
-            ).exists()
+            assert GroupActionLogOutbox.objects.exists()
             assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 0
 
             with outbox_runner():
                 pass
 
         assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
+
+    def test_bulk_publish_creates_one_dedicated_row_per_action(self) -> None:
+        with (
+            self.feature("projects:issue-action-log-write-to-db"),
+            action_context_scope(source=ActionSource.API),
+            outbox_context(flush=False),
+        ):
+            publish_actions_from_context_bulk(
+                [
+                    (ViewAction(), self.group.project, self.group.id, None),
+                    (ResolveAction(), self.group.project, self.group.id, None),
+                ]
+            )
+
+        assert GroupActionLogOutbox.objects.count() == 2
+        assert not CellOutbox.objects.filter(
+            category=OutboxCategory.GROUP_ACTION_LOG_EVENT
+        ).exists()
 
     @patch("sentry.issues.derived.processing.process_group_log_task")
     def test_force_async_derived_dispatches_task(self, mock_task: MagicMock) -> None:
@@ -727,7 +920,7 @@ class TestPublishActionWrite(TestCase):
         # Derived data was NOT processed inline
         assert not GroupDerivedData.objects.filter(group_id=self.group.id).exists()
         # Task was dispatched instead
-        mock_task.delay.assert_called_once_with(self.group.id)
+        mock_task.delay.assert_called_once_with(self.group.id, incremental=True)
 
     @patch("sentry.issues.derived.processing.process_group_log_task")
     def test_inline_derived_processes_without_task(self, mock_task: MagicMock) -> None:
@@ -746,3 +939,90 @@ class TestPublishActionWrite(TestCase):
         assert derived.view_count == 1
         # No async task needed (single entry = caught up)
         mock_task.delay.assert_not_called()
+
+    def test_idempotency_key_publish(self) -> None:
+        idempotency_key = "test_idempotency_key_publish"
+        with self.feature("projects:issue-action-log-write-to-db"), outbox_runner():
+            publish_action(
+                ViewAction(),
+                source=ActionSource.API,
+                group_id=self.group.id,
+                project=self.group.project,
+                actor=GroupActionActor.user(self.user.id),
+                idempotency_key=idempotency_key,
+            )
+
+        entry = GroupActionLogEntry.objects.get(group_id=self.group.id)
+        assert entry.idempotency_key == idempotency_key
+
+        with (
+            self.feature("projects:issue-action-log-write-to-db"),
+            outbox_runner(),
+        ):
+            # Tacitly assert silent failure / no exception
+            publish_action(
+                ViewAction(),
+                source=ActionSource.API,
+                group_id=self.group.id,
+                project=self.group.project,
+                actor=GroupActionActor.user(self.user.id),
+                idempotency_key=idempotency_key,
+            )
+
+
+class TestActivitiesCreateActions(TestCase):
+    def test_basic(self) -> None:
+        with capture_action_log() as log:
+            Activity.objects.create(
+                group=self.group,
+                project=self.project,
+                type=ActivityType.SET_RESOLVED.value,
+                user_id=self.user.id,
+                data={},
+            )
+        log.assert_logged(ResolveAction)
+
+    def test_with_data(self) -> None:
+        with capture_action_log() as log:
+            Activity.objects.create(
+                group=self.group,
+                project=self.project,
+                type=ActivityType.PULL_REQUEST_CLOSED.value,
+                user_id=self.user.id,
+                data={"pull_request": 123},
+            )
+        caption = cast(CapturedAction, log.assert_logged(PullRequestClosedAction))
+        action: PullRequestClosedAction = cast(PullRequestClosedAction, caption.action)
+        assert action.pull_request == 123
+
+    def test_with_translated_data(self) -> None:
+        with capture_action_log() as log:
+            Activity.objects.create(
+                group=self.group,
+                project=self.project,
+                type=ActivityType.SET_RESOLVED_BY_AGE.value,
+                user_id=self.user.id,
+                data={"age": 123},
+            )
+        caption = cast(CapturedAction, log.assert_logged(SetResolvedByAgeAction))
+        action: SetResolvedByAgeAction = cast(SetResolvedByAgeAction, caption.action)
+        assert action.auto_resolve_age_threshold == 123
+
+    def test_smart_assignment_completed_creates_log_entry(self) -> None:
+        data = {
+            "run_id": 123,
+            "run_uuid": "00000000-0000-0000-0000-000000000001",
+            "predicted_assignee_user_ids": [456, None],
+        }
+
+        with self.feature("projects:issue-action-log-write-to-db"), outbox_runner():
+            Activity.objects.create(
+                group=self.group,
+                project=self.project,
+                type=ActivityType.SMART_ASSIGNMENT_COMPLETED.value,
+                data=data,
+            )
+
+        entry = GroupActionLogEntry.objects.get(group_id=self.group.id)
+        assert entry.type == GroupActionType.SMART_ASSIGNMENT_COMPLETED
+        assert entry.data == data

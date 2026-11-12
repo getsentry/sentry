@@ -2,13 +2,15 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from enum import Enum
-from typing import Generic, NamedTuple, TypeVar
+from typing import Any, Generic, NamedTuple, TypeVar
 
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 
 # Django apps we take care to never import or export from.
-EXCLUDED_APPS = frozenset(("auth", "contenttypes", "fixtures"))
+EXCLUDED_APPS = frozenset(
+    ("auth", "contenttypes", "fixtures", "investigations", "notebooks", "seer_workflow_outputs")
+)
 
 
 class Printer:
@@ -43,7 +45,7 @@ class DatetimeSafeDjangoJSONEncoder(DjangoJSONEncoder):
     `DjangoJSONEncoder` drops these by default.
     """
 
-    def default(self, obj):
+    def default(self, obj: object) -> Any:
         if isinstance(obj, datetime):
             return obj.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
         return super().default(obj)

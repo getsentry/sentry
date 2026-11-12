@@ -1,13 +1,16 @@
 import {Fragment, type ReactNode} from 'react';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconPause} from '@sentry/icons/pause';
+import {IconPlay} from '@sentry/icons/play';
+import {IconStar} from '@sentry/icons/star';
 import {useQueryClient} from '@tanstack/react-query';
 
+import {FeatureBadge, type FeatureBadgeProps} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {InfoTip} from '@sentry/scraps/info';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {DisableInDemoMode} from 'sentry/components/acl/demoModeDisabled';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import * as Layout from 'sentry/components/layouts/thirds';
-import {IconEllipsis, IconPause, IconPlay, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -15,27 +18,30 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
-import {EditableIssueViewHeader} from 'sentry/views/issueList/editableIssueViewHeader';
-import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useSelectedGroupSeachView';
-import {
-  canEditIssueView,
-  confirmDeleteIssueView,
-} from 'sentry/views/issueList/issueViews/utils';
-import {useDeleteGroupSearchView} from 'sentry/views/issueList/mutations/useDeleteGroupSearchView';
-import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarred';
-import {groupSearchViewApiOptions} from 'sentry/views/issueList/queries/groupSearchView';
 import {useHasIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useHasIssueViews';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {useSelectedGroupSearchView} from './issueViews/useSelectedGroupSeachView';
+import {canEditIssueView, confirmDeleteIssueView} from './issueViews/utils';
+import {useDeleteGroupSearchView} from './mutations/useDeleteGroupSearchView';
+import {useUpdateGroupSearchViewStarred} from './mutations/useUpdateGroupSearchViewStarred';
+import {groupSearchViewApiOptions} from './queries/groupSearchView';
+import {EditableIssueViewHeader} from './editableIssueViewHeader';
 
 type IssueViewsHeaderProps = {
   onRealtimeChange: (active: boolean) => void;
   realtimeActive: boolean;
-  title: ReactNode;
+  title: string;
+  badge?: FeatureBadgeProps['type'];
   description?: ReactNode;
   headerActions?: ReactNode;
 };
 
-function PageTitle({title, description}: {title: ReactNode; description?: ReactNode}) {
+function PageTitle({
+  title,
+  description,
+  badge,
+}: Pick<IssueViewsHeaderProps, 'title' | 'description' | 'badge'>) {
   const organization = useOrganization();
   const {data: groupSearchView} = useSelectedGroupSearchView();
   const user = useUser();
@@ -50,14 +56,26 @@ function PageTitle({title, description}: {title: ReactNode; description?: ReactN
   }
 
   if (groupSearchView) {
-    return <Layout.Title>{groupSearchView?.name ?? title}</Layout.Title>;
+    return (
+      <TopBar.Slot
+        name="breadcrumbs"
+        title={{type: 'page-title', label: groupSearchView?.name ?? title}}
+      />
+    );
   }
 
   return (
-    <Layout.Title>
-      {title}
-      {description && <InfoTip position="right" size="sm" title={description} />}
-    </Layout.Title>
+    <TopBar.Slot
+      name="breadcrumbs"
+      title={{
+        type: 'page-title',
+        label: title,
+        labelTooltip: description,
+        trailingActions: badge
+          ? {type: 'badge', element: <FeatureBadge type={badge} />}
+          : undefined,
+      }}
+    />
   );
 }
 
@@ -186,7 +204,7 @@ function IssueViewEditMenu() {
         },
       ]}
       trigger={props => (
-        <Button
+        <OverlayTrigger.IconButton
           size="sm"
           {...props}
           tooltipProps={{title: moreOptionsLabel}}
@@ -202,6 +220,7 @@ function IssueViewEditMenu() {
 
 export function IssueViewsHeader({
   title,
+  badge,
   description,
   realtimeActive,
   onRealtimeChange,
@@ -226,7 +245,7 @@ export function IssueViewsHeader({
 
   return (
     <Fragment>
-      <PageTitle title={title} description={description} />
+      <PageTitle title={title} description={description} badge={badge} />
       <TopBar.Slot name="actions">
         {headerActions}
         {realtimeButton}

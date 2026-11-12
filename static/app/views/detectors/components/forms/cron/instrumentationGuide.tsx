@@ -1,27 +1,24 @@
-import {Fragment, useEffect, useRef} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
+import {IconGlobe} from '@sentry/icons/globe';
+import {IconTerminal} from '@sentry/icons/terminal';
 import partition from 'lodash/partition';
 import {parseAsBoolean, useQueryState} from 'nuqs';
 import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import {
-  CopyMarkdownButton,
-  CopySetupInstructionsGate,
-} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {CopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
 import {Container as WorkflowEngineContainer} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
-import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/platform';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useCronDetectorFormField} from 'sentry/views/detectors/components/forms/cron/fields';
 import {
   platformGuides,
   type GuideKey,
@@ -30,6 +27,8 @@ import {
   toSupportedPlatform,
   useCronsUpsertGuideState,
 } from 'sentry/views/insights/crons/components/useCronsUpsertGuideState';
+
+import {useCronDetectorFormField} from './fields';
 
 const [genericPlatforms, regularPlatforms] = partition(platformGuides, p =>
   ['cli', 'http'].includes(p.platform)
@@ -40,9 +39,15 @@ const genericIcons: Record<string, React.ReactNode> = {
   http: <IconGlobe size="sm" />,
 };
 
-export function InstrumentationGuide() {
+export function InstrumentationGuide({
+  skipDetectionForInitialProject = false,
+}: {
+  skipDetectionForInitialProject?: boolean;
+}) {
   const {projects} = useProjects();
   const projectId = useCronDetectorFormField('projectId');
+  const [initialProjectId] = useState(projectId);
+  const isInitialProject = projectId === initialProjectId;
   const [skipGuideDetection] = useQueryState('skipGuideDetection', parseAsBoolean);
 
   const selectedProject = projects.find(p => p.id === projectId);
@@ -77,6 +82,10 @@ export function InstrumentationGuide() {
       return;
     }
 
+    if (skipDetectionForInitialProject && isInitialProject) {
+      return;
+    }
+
     // Attempt to find a supported upsert platform using th project platform.
     // Make a second attempt if the exact project platform has no guides by
     // extracting the 'first part' of the platform.
@@ -93,13 +102,19 @@ export function InstrumentationGuide() {
     }
 
     setPlatformGuide(defaultPlatform);
-  }, [projectPlatform, setPlatformGuide, skipGuideDetection]);
+  }, [
+    isInitialProject,
+    projectPlatform,
+    setPlatformGuide,
+    skipDetectionForInitialProject,
+    skipGuideDetection,
+  ]);
 
   const platformItems = regularPlatforms.map<MenuItemProps>(c => {
     const item = {
       key: c.platform,
       label: c.label,
-      leadingItems: <PlatformIcon platform={c.platform} size={20} />,
+      leadingItems: <PlatformIcon platform={c.platform} size={20} alt="" />,
     };
 
     // If platform has exactly one guide, select it directly
@@ -168,12 +183,18 @@ export function InstrumentationGuide() {
             <DropdownMenu
               size="sm"
               items={menuItems}
-              triggerLabel={selectedLabel}
-              triggerProps={{
-                icon: platformKey ? (
-                  <PlatformIcon platform={platformKey} size={16} />
-                ) : undefined,
-              }}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  icon={
+                    platformKey ? (
+                      <PlatformIcon platform={platformKey} size={16} />
+                    ) : undefined
+                  }
+                >
+                  {selectedLabel}
+                </OverlayTrigger.Button>
+              )}
             />
             {showAutoInstrumentationGuide && (
               <Fragment>
@@ -215,13 +236,11 @@ export function InstrumentationGuide() {
                     }))}
                   />
                 )}
-                <CopySetupInstructionsGate>
-                  <CopyMarkdownButton
-                    borderless
-                    getMarkdown={getGuideMarkdown}
-                    source="crons_detector_guide"
-                  />
-                </CopySetupInstructionsGate>
+                <CopyMarkdownButton
+                  borderless
+                  getMarkdown={getGuideMarkdown}
+                  source="crons_detector_guide"
+                />
               </Flex>
             }
           >

@@ -1,10 +1,18 @@
 import type {ReactNode} from 'react';
 import {createContext, Fragment, useContext} from 'react';
+import * as Sentry from '@sentry/react';
 
+import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Heading} from '@sentry/scraps/text';
 
+import {
+  type SeerEmbedBlockHostActions,
+  SeerEmbedBlockHostActionsContext,
+} from './embeds/components/seerEmbedBlock';
+import {type SeerEmbedScope, SeerEmbedScopeContext} from './embeds/renderTracking';
+import {STRUCTURED_SEER_EMBED_SCHEMAS} from './embeds/schemas';
 import {SeerEmbedRegistry} from './embeds';
 
 const ISSUE_SHORT_ID_PATTERN =
@@ -35,6 +43,11 @@ function LinkifyIssueShortIds({children}: {children: string}): ReactNode {
 }
 
 const IsInsideLinkContext = createContext(false);
+const StructuredContentContext = createContext<Record<string, unknown> | null>(null);
+const LeadingEmbedContext = createContext<{
+  actions: SeerEmbedBlockHostActions;
+  raw: string;
+} | null>(null);
 
 function toRelativeHref(href: string): string {
   if (!/^https?:\/\//.test(href)) {
@@ -47,13 +60,72 @@ function toRelativeHref(href: string): string {
   return href;
 }
 
+/**
+ * Markdown re-lexes and re-renders on every streamed chunk, so an unhandled tag
+ * would otherwise report once per chunk. Report each tag only once per page load.
+ */
+const reportedUnhandledTags = new Set<string>();
+
+function reportUnhandledTag(
+  name: string,
+  level: 'block' | 'inline',
+  attrs: Record<string, string>
+) {
+  if (process.env.NODE_ENV === 'development') {
+    // eslint-disable-next-line no-console
+    console.warn(`[Markdown] no renderer for tag: ${name}`, attrs);
+    return;
+  }
+
+  if (reportedUnhandledTags.has(name)) {
+    return;
+  }
+  reportedUnhandledTags.add(name);
+
+  Sentry.withScope(scope => {
+    scope.setLevel('warning');
+    scope.setTag('markdown.tag', name);
+    scope.setTag('markdown.tag_level', level);
+    scope.setExtra('attrs', attrs);
+    scope.setFingerprint(['markdown-unhandled-tag', name]);
+    Sentry.captureException(new Error(`[Markdown] no renderer for tag: ${name}`));
+  });
+}
+
 const SEER_EMBED_COMPONENTS: MarkdownProps['components'] = {
-  Tag: ({name, data, level, Default, ...rest}) => {
+  Tag: function SeerTag({name, data, level, attrs, index, raw}) {
+    const structuredContent = useContext(StructuredContentContext);
+    const leading = useContext(LeadingEmbedContext);
     const Embed = SeerEmbedRegistry.get(name);
     if (Embed) {
-      return <Embed name={name} data={data} level={level} />;
+      const embedData =
+        name in STRUCTURED_SEER_EMBED_SCHEMAS
+          ? structuredContent?.[name]
+          : data === undefined
+            ? structuredContent?.[name]
+            : data;
+      const embed = <Embed name={name} data={embedData} level={level} index={index} />;
+      if (level === 'inline') {
+        return embed;
+      }
+      // Only the tag the message opens with takes the host's actions. `index`
+      // keeps an identical tag further down from matching too.
+      const hostActions =
+        leading && index === 0 && leading.raw.trimStart().startsWith(raw.trim())
+          ? leading.actions
+          : null;
+      return (
+        <Container>
+          <SeerEmbedBlockHostActionsContext.Provider value={hostActions}>
+            {embed}
+          </SeerEmbedBlockHostActionsContext.Provider>
+        </Container>
+      );
     }
-    return <Default name={name} data={data} level={level} {...rest} />;
+    // Unknown embeds are expected to be registered here; drop them and report
+    // instead of echoing plaintext like default Markdown.
+    reportUnhandledTag(name, level, attrs);
+    return null;
   },
   Link: ({children, Default, href, title}) => (
     <IsInsideLinkContext.Provider value>
@@ -95,6 +167,39 @@ const SEER_EMBED_COMPONENTS: MarkdownProps['components'] = {
   ),
 };
 
-export function SeerMarkdown(props: Omit<MarkdownProps, 'components'>) {
-  return <Markdown {...props} components={SEER_EMBED_COMPONENTS} />;
+export function SeerMarkdown({
+  components,
+  leadingEmbedActions = null,
+  structuredContent = null,
+  scope = null,
+  ...props
+}: MarkdownProps & {
+  /**
+   * Controls for the block embed the message opens with, at the end of its
+   * card's header. For a host whose own controls sit beside the message's first
+   * line, which an embed there would otherwise have to leave room for.
+   */
+  leadingEmbedActions?: SeerEmbedBlockHostActions | null;
+  /**
+   * Conversation and message this markdown belongs to. Supply it to record
+   * embed renders; omit it (stories, demos, previews) to render untracked.
+   *
+   * Scoped to this call rather than to the message, so a surface that renders
+   * one message through two `SeerMarkdown` calls would give both embeds the
+   * same index. Pass the whole message in one call.
+   */
+  scope?: SeerEmbedScope | null;
+  structuredContent?: Record<string, unknown> | null;
+}) {
+  return (
+    <SeerEmbedScopeContext.Provider value={scope}>
+      <StructuredContentContext.Provider value={structuredContent}>
+        <LeadingEmbedContext.Provider
+          value={leadingEmbedActions && {actions: leadingEmbedActions, raw: props.raw}}
+        >
+          <Markdown {...props} components={{...SEER_EMBED_COMPONENTS, ...components}} />
+        </LeadingEmbedContext.Provider>
+      </StructuredContentContext.Provider>
+    </SeerEmbedScopeContext.Provider>
+  );
 }

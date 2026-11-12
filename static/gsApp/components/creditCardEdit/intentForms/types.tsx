@@ -1,21 +1,28 @@
 import type {Stripe, StripeElements} from '@stripe/stripe-js';
 
-import type {CreditCardFormProps} from 'getsentry/components/creditCardEdit/form';
-import type {PaymentCreateResponse, PaymentSetupCreateResponse} from 'getsentry/types';
+import type {CreditCardSetupProps} from 'getsentry/components/creditCardEdit/setup';
 
-export interface IntentFormProps extends Omit<CreditCardFormProps, 'amount'> {}
+export interface SetupIntentFormProps extends CreditCardSetupProps {
+  cardMode: 'setup';
+  invoiceGuid?: never;
+}
 
-export interface InnerIntentFormProps extends IntentFormProps {
+export interface PaymentIntentFormProps extends CreditCardSetupProps {
+  cardMode: 'payment';
+  invoiceGuid: string;
+}
+
+export type IntentFormProps = SetupIntentFormProps | PaymentIntentFormProps;
+
+export type InnerIntentFormProps = IntentFormProps & {
   handleSubmit: ({
     stripe,
     elements,
   }: {
     elements: StripeElements | null;
     stripe: Stripe | null;
-  }) => void;
+  }) => void | Promise<void>;
   isSubmitting: boolean;
-  onError: (error: string) => void;
-  busyButtonText?: string;
   errorMessage?: string;
-  intentData?: PaymentSetupCreateResponse | PaymentCreateResponse;
-}
+  onError?: (error: string) => void;
+};

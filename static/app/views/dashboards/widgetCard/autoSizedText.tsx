@@ -28,6 +28,7 @@ export function AutoSizedText({children}: Props) {
       const childDimensions = getElementDimensions(childElement);
       const parentDimensions = getElementDimensions(parentElement);
 
+      // oxlint-disable-next-line react/immutability
       adjustFontSize(childDimensions, parentDimensions);
       return;
     }
@@ -96,6 +97,7 @@ export function AutoSizedText({children}: Props) {
     return () => {
       observer.disconnect();
     };
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, []);
 
   const adjustFontSize = (childDimensions: Dimensions, parentDimensions: Dimensions) => {

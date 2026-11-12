@@ -8,12 +8,11 @@ import {
   useState,
 } from 'react';
 import {useTheme} from '@emotion/react';
-import {Replayer, ReplayerEvents} from '@sentry-internal/rrweb';
-import type {Mirror} from '@sentry-internal/rrweb-snapshot';
 import * as Sentry from '@sentry/react';
+import {Replayer, ReplayerEvents} from '@sentry/rrweb';
+import type {Mirror} from '@sentry/rrweb-snapshot';
+import isEqual from 'lodash/isEqual';
 
-import {useReplayHighlighting} from 'sentry/components/replays/useReplayHighlighting';
-import {VideoReplayerWithInteractions} from 'sentry/components/replays/videoReplayerWithInteractions';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {clamp} from 'sentry/utils/number/clamp';
 import type {useInitialTimeOffsetMs} from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
@@ -21,7 +20,7 @@ import {useTouchEventsCheck} from 'sentry/utils/replays/playback/hooks/useTouchE
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {ReplayCurrentTimeContextProvider} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import type {ReplayReader} from 'sentry/utils/replays/replayReader';
-import type {Dimensions} from 'sentry/utils/replays/types';
+import type {Dimensions, RecordingFrame} from 'sentry/utils/replays/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
@@ -29,6 +28,8 @@ import {useRAF} from 'sentry/utils/useRAF';
 import {useUser} from 'sentry/utils/useUser';
 
 import {canvasReplayerPlugin} from './canvasReplayerPlugin';
+import {useReplayHighlighting} from './useReplayHighlighting';
+import {VideoReplayerWithInteractions} from './videoReplayerWithInteractions';
 
 type RootElem = null | HTMLDivElement;
 
@@ -175,12 +176,43 @@ type Props = {
    * Time, in seconds, when the video should start
    */
   initialTimeOffsetMs?: ReturnType<typeof useInitialTimeOffsetMs>;
-
-  /**
-   * Override return fields for testing
-   */
-  value?: Partial<ReplayPlayerContextProps>;
 };
+
+/**
+ * Rebuilding the `ReplayReader` re-collects the rrweb frames into a new array,
+ * so a reference check reports new events whenever unrelated replay data
+ * changes — errors and feedback events keep paging in after the player has
+ * mounted. Acting on that tears down the `Replayer` and restarts playback at
+ * 0:00 while the user is watching.
+ *
+ * Recorded frames carry over by reference; only the few frames the reader
+ * synthesizes around them are rebuilt, and those compare cheaply because they
+ * are tiny or share their payloads with the frames they were derived from.
+ *
+ * The comparison skips `delay`: rrweb's `Replayer` writes it onto every frame
+ * it holds once playback starts, so a freshly synthesized frame never matches
+ * the copy the running `Replayer` holds.
+ */
+function hasSameFrames(
+  events: undefined | RecordingFrame[],
+  oldEvents: undefined | RecordingFrame[]
+) {
+  if (events === oldEvents) {
+    return true;
+  }
+  if (!events || !oldEvents || events.length !== oldEvents.length) {
+    return false;
+  }
+  return events.every((frame, i) => {
+    const oldFrame = oldEvents[i]!;
+    return (
+      frame === oldFrame ||
+      (frame.type === oldFrame.type &&
+        frame.timestamp === oldFrame.timestamp &&
+        isEqual(frame.data, oldFrame.data))
+    );
+  });
+}
 
 function useCurrentTime(callback: () => number) {
   const [currentTime, setCurrentTime] = useState(0);
@@ -195,7 +227,6 @@ export function Provider({
   isFetching,
   replay,
   autoStart,
-  value = {},
 }: Props) {
   const user = useUser();
   const organization = useOrganization();
@@ -210,7 +241,7 @@ export function Provider({
   const theme = useTheme();
   const oldEvents = usePrevious(events);
   // Note we have to check this outside of hooks, see `usePrevious` comments
-  const hasNewEvents = events !== oldEvents;
+  const hasNewEvents = !hasSameFrames(events, oldEvents);
   const replayerRef = useRef<Replayer | null>(null);
   const [dimensions, setDimensions] = useState({height: 0, width: 0});
   const [isPlaying, setIsPlaying] = useState(false);
@@ -239,6 +270,7 @@ export function Provider({
     []
   );
 
+  // oxlint-disable-next-line react/refs
   const isFinished = getCurrentPlayerTime() === finishedAtMS;
   const setReplayFinished = useCallback(() => {
     setFinishedAtMS(getCurrentPlayerTime());
@@ -337,6 +369,19 @@ export function Provider({
   const initRoot = useCallback(
     (root: RootElem) => {
       if (events === undefined || root === null || isFetching) {
+        return;
+      }
+
+      // rrweb's Replayer throws with fewer than 2 events. On the replay details
+      // page this happens when navigating to a replay whose segments failed to
+      // load or are empty: ReplayLoadingState handles that case, but it renders
+      // below this context, so it can't stop a Replayer that's already mounted
+      // from being rebuilt. Restructuring the contexts a replay needs, so that
+      // ReplayLoadingState sits above ReplayContext and its error handling
+      // gates player initialization, would make this guard unnecessary.
+      if (events.length < 2) {
+        replayerRef.current?.destroy();
+        replayerRef.current = null;
         return;
       }
 
@@ -513,7 +558,7 @@ export function Provider({
   }, [replayId, isFetching]);
 
   const togglePlayPause = useCallback(
-    (play: boolean) => {
+    (play: boolean, {seek = true} = {}) => {
       const replayer = replayerRef.current;
       if (!replayer) {
         return;
@@ -521,8 +566,10 @@ export function Provider({
 
       if (play) {
         replayer.play(getCurrentPlayerTime());
-      } else {
+      } else if (seek) {
         replayer.pause(getCurrentPlayerTime());
+      } else {
+        replayer.pause();
       }
       setIsPlaying(play);
 
@@ -545,7 +592,10 @@ export function Provider({
 
     const handleVisibilityChange = () => {
       if (document.visibilityState !== 'visible' && replayerRef.current) {
-        togglePlayPause(false);
+        togglePlayPause(false, {seek: isVideoReplay});
+        // Pausing without a seek skips rrweb's `backToNormal()`, so `SkipEnd`
+        // never fires to clear this
+        setFFSpeed(0);
       }
     };
 
@@ -554,7 +604,7 @@ export function Provider({
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [togglePlayPause, isPlaying]);
+  }, [togglePlayPause, isPlaying, isVideoReplay]);
 
   // Initialize replayer for Video Replays
   useEffect(() => {
@@ -570,6 +620,7 @@ export function Provider({
         instance.destroy();
       }
     };
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [rootEl, isVideoReplay, initVideoRoot, videoEvents, replay]);
 
   // For non-video (e.g. rrweb) replays, initialize the player
@@ -631,6 +682,7 @@ export function Provider({
 
   useEffect(() => {
     if (!isBuffering && buffer.target !== -1) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setBufferTime({target: -1, previous: -1});
     }
   }, [isBuffering, buffer.target]);
@@ -657,7 +709,6 @@ export function Provider({
           setCurrentTime,
           togglePlayPause,
           getMirror: () => replayerRef.current?.getMirror() ?? null,
-          ...value,
         }}
       >
         {children}

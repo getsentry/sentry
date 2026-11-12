@@ -3,15 +3,14 @@ import {useState} from 'react';
 import type {ButtonProps, LinkButtonProps} from '@sentry/scraps/button';
 import {Button, LinkButton} from '@sentry/scraps/button';
 
-import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {withApi} from 'sentry/utils/withApi';
+import {useApi} from 'sentry/utils/useApi';
 
 import {sendTrialRequest, sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
 import {StartTrialButton} from 'getsentry/components/startTrialButton';
 import type {Subscription} from 'getsentry/types';
-import {getTrialLength} from 'getsentry/utils/billing';
+import {getTrialLength, isTrial} from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 type ChildRenderProps = {
@@ -22,7 +21,6 @@ type ChildRenderProps = {
 type ChildRenderFunction = (options: ChildRenderProps) => React.ReactNode;
 
 interface BaseButtonProps {
-  api: Client;
   organization: Organization;
   source: string;
   subscription: Subscription;
@@ -47,13 +45,12 @@ interface BaseButtonProps {
  * 3. Request trial (if trial available but no permissions)
  * 4. Request upgrade
  */
-function UpgradeOrTrialButton({
+export function UpgradeOrTrialButton({
   source,
   organization,
   subscription,
   onSuccess,
   action: _action,
-  api,
   children,
   requestData,
   upgradePriority = 'primary',
@@ -61,12 +58,13 @@ function UpgradeOrTrialButton({
   ...props
 }: BaseButtonProps &
   (Omit<LinkButtonProps, 'children'> | Omit<ButtonProps, 'children'>)) {
+  const api = useApi();
   const {slug} = organization;
   const hasAccess = organization.access.includes('org:billing');
 
   // can override action if we want
   const action =
-    _action ?? (subscription.canTrial && !subscription.isTrial ? 'trial' : 'upgrade');
+    _action ?? (subscription.canTrial && !isTrial(subscription) ? 'trial' : 'upgrade');
 
   const childComponent =
     typeof children === 'function'
@@ -177,4 +175,3 @@ function UpgradeOrTrialButton({
     </Button>
   );
 }
-export default withApi(UpgradeOrTrialButton);

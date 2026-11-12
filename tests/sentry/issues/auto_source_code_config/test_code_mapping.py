@@ -1,3 +1,4 @@
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import patch
 
@@ -57,6 +58,11 @@ class TestRepoFiles(TestCase):
         assert source_code_files == []
         source_code_files = filter_source_code_files([".env", "README"])
         assert source_code_files == []
+
+    def test_filter_javascript_module_extensions(self) -> None:
+        files = ["src/module.cjs", "src/module.mts", "src/module.cts"]
+
+        assert filter_source_code_files([*files, "src/module.unsupported"]) == files
 
     def test_should_not_include(self) -> None:
         for file in [
@@ -566,6 +572,262 @@ class TestFindRootsJavaSourceRootMarkers(TestCase):
             frame.raw_path.replace(stack_root, source_root, 1)
             == "sentry-spring-boot-jakarta/src/main/java/io/sentry/spring/boot/jakarta/SentryAutoConfiguration.java"
         )
+
+
+@pytest.mark.parametrize(
+    ("frame", "stack_root", "source_root", "expected"),
+    [
+        pytest.param(
+            EventFrame(filename="app/calculator.py"),
+            "app/",
+            "app/",
+            "app/calculator.py",
+            id="relative-path",
+        ),
+        pytest.param(
+            EventFrame(filename="app/services/../calculator.py"),
+            "app/",
+            "app/",
+            "app/calculator.py",
+            id="relative-path-normalized-within-source-root",
+        ),
+        pytest.param(
+            EventFrame(
+                filename="calculator.py",
+                abs_path="/Users/example/project/app/calculator.py",
+            ),
+            "/Users/example/project/app/",
+            "app/",
+            "app/calculator.py",
+            id="absolute-frame-path",
+        ),
+        pytest.param(
+            EventFrame(
+                filename="calculator.py",
+                abs_path="/Users/example/project/app/services/../calculator.py",
+            ),
+            "/Users/example/project/app/",
+            "app/",
+            "app/calculator.py",
+            id="absolute-frame-path-normalized-within-stack-root",
+        ),
+        pytest.param(
+            EventFrame(
+                filename="calculator.rs",
+                abs_path="C:\\Users\\example\\project\\app\\calculator.rs",
+            ),
+            "C:\\Users\\example\\project\\app\\",
+            "src/",
+            "src/calculator.rs",
+            id="windows-absolute-frame-path",
+        ),
+        pytest.param(
+            EventFrame(filename="app/services/../calculator.py"),
+            "app/",
+            "",
+            "calculator.py",
+            id="repository-root-source",
+        ),
+        pytest.param(
+            EventFrame(filename="calculator.py"),
+            "",
+            "app/",
+            "app/calculator.py",
+            id="empty-stack-root",
+        ),
+        pytest.param(
+            EventFrame(filename="AppDelegate.swift"),
+            "AppDelegate",
+            "src/AppDelegate",
+            "src/AppDelegate.swift",
+            id="filename-prefix-mapping",
+        ),
+        pytest.param(
+            EventFrame(filename="/usr/src/getsentry/src/file.py"),
+            "/usr/src/getsentry",
+            "",
+            "src/file.py",
+            id="absolute-prefix-mapping-without-trailing-slash",
+        ),
+        pytest.param(
+            EventFrame(filename="/opt/project/app/file.py"),
+            "",
+            "src/",
+            "src/opt/project/app/file.py",
+            id="empty-stack-root-with-absolute-frame",
+        ),
+        pytest.param(
+            EventFrame(filename="", abs_path="/opt/project/app/file.py"),
+            "",
+            "src/",
+            "src/opt/project/app/file.py",
+            id="empty-stack-root-falls-back-to-absolute-frame",
+        ),
+        pytest.param(
+            EventFrame(filename="MyApp\\file.py"),
+            "MyApp",
+            "src/MyApp",
+            "src/MyApp/file.py",
+            id="windows-frame-with-separator-free-prefix",
+        ),
+        pytest.param(
+            EventFrame(filename="../../app/settings.py"),
+            "../../",
+            "app/",
+            "app/app/settings.py",
+            id="upward-relative-stack-root",
+        ),
+        pytest.param(
+            EventFrame(filename="application/settings.py"),
+            "app",
+            "app",
+            "application/settings.py",
+            id="legacy-filename-prefix-without-boundary",
+        ),
+        pytest.param(
+            EventFrame(filename="app/%3Fname.py"),
+            "app/",
+            "app/",
+            "app/%3Fname.py",
+            id="encoded-question-mark-remains-encoded",
+        ),
+        pytest.param(
+            EventFrame(filename="app/%23name.py"),
+            "app/",
+            "app/",
+            "app/%23name.py",
+            id="encoded-fragment-remains-encoded",
+        ),
+        pytest.param(
+            EventFrame(filename="app/src/../x/my%20file.py"),
+            "app/",
+            "app/",
+            "app/x/my%20file.py",
+            id="safe-parent-segment-with-encoded-space",
+        ),
+    ],
+)
+def test_convert_stacktrace_frame_path_to_source_path_allows_canonical_paths(
+    frame: EventFrame,
+    stack_root: str,
+    source_root: str,
+    expected: str,
+) -> None:
+    code_mapping: Any = SimpleNamespace(stack_root=stack_root, source_root=source_root)
+
+    assert (
+        convert_stacktrace_frame_path_to_source_path(
+            frame=frame,
+            code_mapping=code_mapping,
+            platform="python",
+            sdk_name="sentry.python",
+        )
+        == expected
+    )
+
+
+@pytest.mark.parametrize(
+    ("frame", "stack_root", "source_root"),
+    [
+        pytest.param(
+            EventFrame(filename="app/../config/settings.py"),
+            "app/",
+            "app/",
+            id="relative-path-escapes-source-root",
+        ),
+        pytest.param(
+            EventFrame(filename="app/services/../../config/settings.py"),
+            "app/",
+            "app/",
+            id="nested-relative-path-escapes-source-root",
+        ),
+        pytest.param(
+            EventFrame(
+                filename="settings.py",
+                abs_path="/Users/example/project/app/../config/settings.py",
+            ),
+            "/Users/example/project/app/",
+            "app/",
+            id="absolute-path-escapes-stack-root",
+        ),
+        pytest.param(
+            EventFrame(
+                filename="settings.py",
+                abs_path="C:\\Users\\example\\project\\app\\..\\config\\settings.py",
+            ),
+            "C:\\Users\\example\\project\\app\\",
+            "src/",
+            id="windows-path-escapes-stack-root",
+        ),
+        pytest.param(
+            EventFrame(filename="app/../../settings.py"),
+            "app/",
+            "",
+            id="path-escapes-repository-root",
+        ),
+        pytest.param(
+            EventFrame(filename="app/%2e%2e/config/settings.py"),
+            "app/",
+            "app/",
+            id="percent-encoded-traversal",
+        ),
+        pytest.param(
+            EventFrame(filename="app/%25252e%25252e/config/settings.py"),
+            "app/",
+            "app/",
+            id="multiply-encoded-traversal",
+        ),
+        pytest.param(
+            EventFrame(filename="app/settings.py\u0000.txt"),
+            "app/",
+            "app/",
+            id="null-byte",
+        ),
+        pytest.param(
+            EventFrame(filename="C:/../settings.py"),
+            "",
+            "",
+            id="windows-drive-root-escape",
+        ),
+        pytest.param(
+            EventFrame(filename="C:/app/../../settings.py"),
+            "",
+            "",
+            id="nested-windows-drive-root-escape",
+        ),
+        pytest.param(
+            EventFrame(filename="app/settings.py"),
+            "app/",
+            "../config/",
+            id="unsafe-source-root-configuration",
+        ),
+        pytest.param(
+            EventFrame(
+                filename="settings.py",
+                abs_path="/Users/example/project/application/settings.py",
+            ),
+            "/Users/example/project/app/",
+            "app/",
+            id="sibling-prefix-does-not-match-stack-root",
+        ),
+    ],
+)
+def test_convert_stacktrace_frame_path_to_source_path_rejects_unsafe_paths(
+    frame: EventFrame,
+    stack_root: str,
+    source_root: str,
+) -> None:
+    code_mapping: Any = SimpleNamespace(stack_root=stack_root, source_root=source_root)
+
+    assert (
+        convert_stacktrace_frame_path_to_source_path(
+            frame=frame,
+            code_mapping=code_mapping,
+            platform="python",
+            sdk_name="sentry.python",
+        )
+        is None
+    )
 
 
 class TestConvertStacktraceFramePathToSourcePath(TestCase):

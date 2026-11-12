@@ -1,9 +1,9 @@
 import type {CSSProperties, ReactNode} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 interface MetricCardAction {
   ariaLabel: string;
@@ -39,11 +39,9 @@ export function MetricCard(props: MetricCardProps) {
         <Flex gap="sm" align="center">
           {icon}
           {labelTooltip ? (
-            <Tooltip title={labelTooltip}>
-              <Text variant="muted" size="sm" bold uppercase>
-                {label}
-              </Text>
-            </Tooltip>
+            <InfoText title={labelTooltip} variant="muted" size="sm" bold uppercase>
+              {label}
+            </InfoText>
           ) : (
             <Text variant="muted" size="sm" bold uppercase>
               {label}

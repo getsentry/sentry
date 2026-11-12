@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import NotRequired, TypedDict, cast
 
 from sentry.utils.cache import cache
 
@@ -8,6 +8,7 @@ AGENT_MESSAGE_CACHE_TIMEOUT_SECONDS = 60 * 60 * 24  # 1 day
 class SlackSeerAgentMessageCachePayload(TypedDict):
     thread_ts: str
     run_id: int
+    input_id: NotRequired[str]
 
 
 class SlackSeerAgentMessageCache:
@@ -43,10 +44,44 @@ class SlackSeerAgentMessageCache:
     def get(
         cls, *, integration_id: int, channel_id: str, message_ts: str
     ) -> SlackSeerAgentMessageCachePayload | None:
-        return cache.get(
-            cls._get_cache_key(
-                integration_id=integration_id,
-                channel_id=channel_id,
-                message_ts=message_ts,
+        return cast(
+            "SlackSeerAgentMessageCachePayload | None",
+            cache.get(
+                cls._get_cache_key(
+                    integration_id=integration_id,
+                    channel_id=channel_id,
+                    message_ts=message_ts,
+                )
             ),
         )
+
+
+class SlackSeerAgentReply(TypedDict):
+    message_ts: str
+    # Hash of the repo statuses currently displayed under this reply.
+    pr_status_hash: NotRequired[str]
+    # The scope link an answer was posted with; it's only looked up once per thread.
+    missing_scope_settings_url: NotRequired[str | None]
+
+
+class SlackSeerAgentReplyCache:
+    """
+    The Seer Agent replies posted for a run, keyed by the answer's block id, "approval:<input id>",
+    "approval_dm:<input id>", or "error". It's the only record of what was posted: if it expires or is evicted, or a worker
+    dies between posting and recording, the next refresh posts that reply again.
+    """
+
+    @classmethod
+    def _get_cache_key(cls, *, run_id: int) -> str:
+        return f"slack:seer-agent:replies:{run_id}"
+
+    @classmethod
+    def get(cls, *, run_id: int) -> dict[str, SlackSeerAgentReply]:
+        return cache.get(cls._get_cache_key(run_id=run_id)) or {}
+
+    @classmethod
+    def set(cls, *, run_id: int, key: str, reply: SlackSeerAgentReply) -> None:
+        cache_key = cls._get_cache_key(run_id=run_id)
+        replies = cache.get(cache_key) or {}
+        replies[key] = reply
+        cache.set(cache_key, replies, timeout=AGENT_MESSAGE_CACHE_TIMEOUT_SECONDS)

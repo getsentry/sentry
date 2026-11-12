@@ -1,16 +1,23 @@
-from typing import Any, TypedDict
+from typing import Annotated, Any, NotRequired, TypedDict
 
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import DetailResponse
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.integrations.api.bases.organization_integrations import (
     CellOrganizationIntegrationBaseEndpoint,
 )
+from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
@@ -18,28 +25,74 @@ from sentry.shared_integrations.exceptions import IntegrationError
 
 
 class IntegrationRepository(TypedDict):
-    name: str
-    identifier: str
-    isInstalled: bool
-    defaultBranch: str | None
-    externalId: str
-    url: str | None
+    name: Annotated[str, ApiDescription("Name of the repository")]
+    identifier: Annotated[
+        str, ApiDescription("Identifier of the repository in the provider, such as owner/name")
+    ]
+    isInstalled: Annotated[
+        bool, ApiDescription("Whether the repository is already added to Sentry")
+    ]
+    defaultBranch: Annotated[str | None, ApiDescription("Default branch of the repository")]
+    externalId: Annotated[str, ApiDescription("ID of the repository in the provider")]
+    url: Annotated[str | None, ApiDescription("URL of the repository")]
 
 
+class IntegrationRepositoriesResponse(TypedDict):
+    repos: Annotated[
+        list[IntegrationRepository], ApiDescription("Repositories the integration can access")
+    ]
+    searchable: NotRequired[
+        Annotated[
+            bool,
+            ApiDescription(
+                "Whether the provider supports searching repositories with the search query parameter"
+            ),
+        ]
+    ]
+
+
+@extend_schema(tags=["Integration"])
 @cell_silo_endpoint
 class OrganizationIntegrationReposEndpoint(CellOrganizationIntegrationBaseEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
     owner = ApiOwner.ISSUES
 
+    @extend_schema(
+        operation_id="listOrganizationIntegrationRepositories",
+        summary="List Repositories Available to an Integration",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.INTEGRATION_ID,
+            OpenApiParameter("search", type=str, description="Repository name to search for."),
+            OpenApiParameter(
+                "installableOnly",
+                type=bool,
+                description="Only return repositories that are not already installed in Sentry.",
+            ),
+            OpenApiParameter(
+                "accessibleOnly",
+                type=bool,
+                description="Only search repositories accessible to the integration installation.",
+            ),
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "IntegrationRepositoriesResponse", IntegrationRepositoriesResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def get(
         self,
         request: Request,
         organization: Organization,
         integration_id: int,
         **kwds: Any,
-    ) -> Response:
+    ) -> Response[IntegrationRepositoriesResponse] | Response[DetailResponse]:
         """
         Get the list of repositories available in an integration
         ````````````````````````````````````````````````````````
@@ -72,14 +125,24 @@ class OrganizationIntegrationReposEndpoint(CellOrganizationIntegrationBaseEndpoi
             search = request.GET.get("search")
             accessible_only = request.GET.get("accessibleOnly", "false").lower() == "true"
 
-            try:
-                repositories = install.get_repositories(
-                    search,
-                    accessible_only=accessible_only,
-                    use_cache=accessible_only and bool(search),
-                )
-            except (IntegrationError, IdentityNotValid) as e:
-                return self.respond({"detail": str(e)}, status=400)
+            with install.record_event(
+                SCMIntegrationInteractionType.GET_REPOSITORY_CHOICES
+            ).capture() as lifecycle:
+                # This endpoint backs interactive repo pickers (the onboarding
+                # repo selector and the code-mappings path config form), so opt
+                # into parallel pagination for the latency win. Providers that
+                # don't implement it ignore the flag; internal/background callers
+                # of get_repositories keep the serial default.
+                try:
+                    repositories = install.get_repositories(
+                        search,
+                        accessible_only=accessible_only,
+                        use_cache=accessible_only and bool(search),
+                        parallel=True,
+                    )
+                except (IntegrationError, IdentityNotValid) as e:
+                    lifecycle.record_halt(e, create_issue=False)
+                    return self.respond({"detail": str(e)}, status=400)
 
             installable_only = request.GET.get("installableOnly", "false").lower() == "true"
 

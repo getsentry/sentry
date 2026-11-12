@@ -1,10 +1,11 @@
-import {Outlet} from 'react-router-dom';
+import {Outlet} from 'react-router';
 
 import {Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {NoAccess} from 'sentry/components/noAccess';
 import {AiFeaturesAreDisabledBanner} from 'sentry/components/seer/aiFeaturesAreDisabledBanner';
+import {orgHasNewSeerPlan} from 'sentry/utils/seer/orgHasNewSeerPlan';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export default function SeerAutomationRoot() {
@@ -14,7 +15,7 @@ export default function SeerAutomationRoot() {
     return (
       <AnalyticsArea name="seer">
         <Stack gap="lg">
-          {organization.features.includes('seat-based-seer-enabled') ? (
+          {orgHasNewSeerPlan(organization) ? (
             <AiFeaturesAreDisabledBanner />
           ) : (
             <NoAccess />

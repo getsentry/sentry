@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import Any
-from urllib.parse import urlparse
 
 from sentry.issue_detection.base import DetectorType, PerformanceDetector
 from sentry.issue_detection.detectors.utils import (
@@ -10,11 +9,13 @@ from sentry.issue_detection.detectors.utils import (
     get_duration_between_spans,
     get_max_span_duration,
     get_notification_attachment_body,
+    get_span_description,
     get_span_duration,
     get_span_evidence_value,
     get_total_span_duration,
     get_url_from_span,
-    is_filtered_url,
+    safer_urlparse,
+    span_has_obfuscated_hostname,
 )
 from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
@@ -138,7 +139,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
             desc=desc,
             type=PerformanceConsecutiveHTTPQueriesGroupType,
             cause_span_ids=[],
-            parent_span_ids=None,
+            parent_span_ids=[],
             offender_span_ids=offender_span_ids,
             evidence_display=[
                 IssueEvidence(
@@ -169,7 +170,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         span_id = span.get("span_id", None)
         op: str = span.get("op", "") or ""
         hash = span.get("hash", None)
-        description: str = span.get("description", "") or ""
+        description = get_span_description(span)
 
         if not span_id or not op or not hash or not description:
             return False
@@ -180,16 +181,17 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         if span.get("parent_span_id") in self.gen_ai_spans:
             return False
 
-        if (
-            not description.strip().upper().startswith(("GET", "POST", "DELETE", "PUT", "PATCH"))
+        if not description.upper().startswith(
+            ("GET", "POST", "DELETE", "PUT", "PATCH")
         ):  # Just using all methods to see if anything interesting pops up
             return False
 
         if any([x in description for x in ["_next/static/", "_next/data/", "googleapis.com"]]):
             return False
 
-        url = get_url_from_span(span)
-        if is_filtered_url(url):
+        # We match spans based on hostname, so make sure we have a value we can use (not one masked
+        # by data scurbbing or parameterization)
+        if span_has_obfuscated_hostname(span):
             return False
 
         return True
@@ -197,7 +199,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
     def _extract_host_from_span(self, span: Span) -> str:
         """Extract the host from a span's URL."""
         url = get_url_from_span(span)
-        return urlparse(url).netloc
+        return safer_urlparse(url).netloc
 
     def _fingerprint(self) -> str:
         hashed_url_paths = fingerprint_http_spans(self.consecutive_http_spans)

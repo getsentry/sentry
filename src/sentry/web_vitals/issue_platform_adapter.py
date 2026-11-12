@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 import sentry_sdk
+from sentry_sdk import traces
 
 from sentry.issues.grouptype import WebVitalsGroup
 from sentry.issues.ingest import hash_fingerprint
@@ -18,7 +19,7 @@ def create_fingerprint(vital_grouping: WebVitalIssueDetectionGroupingType, trans
     return fingerprint
 
 
-@sentry_sdk.tracing.trace
+@traces.trace
 def send_web_vitals_issue_to_platform(data: WebVitalIssueGroupData, trace_id: str) -> bool:
     project = data["project"]
     sentry_sdk.set_tag("project_id", project.id)

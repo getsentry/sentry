@@ -7,19 +7,16 @@ import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Grid, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -50,9 +47,11 @@ function GDPREditModal({
 }: GDPREditModalProps) {
   const mutation = useMutation({
     mutationFn: (value: GDPRFormValues) => {
-      addLoadingMessage();
+      toast.loading(t('Saving changes...'));
       return fetchMutation<Subscription>({
-        url: `/customers/${subscription.slug}/`,
+        url: getApiUrl('/customers/$organizationIdOrSlug/', {
+          path: {organizationIdOrSlug: subscription.slug},
+        }),
         method: 'PUT',
         data: {
           gdprDetails: {
@@ -66,12 +65,12 @@ function GDPREditModal({
     },
     onSuccess: data => {
       SubscriptionStore.set(subscription.slug, data);
-      clearIndicators();
+      toast.dismiss();
       closeModal();
     },
     onError: () => {
-      clearIndicators();
-      addErrorMessage(t('Unable to save change'));
+      toast.dismiss();
+      toast.error(t('Unable to save change'));
     },
   });
 
@@ -130,9 +129,7 @@ function GDPREditModal({
         </Stack>
         <Footer>
           <Grid flow="column" align="center" gap="md">
-            <Button type="button" onClick={closeModal}>
-              {t('Cancel')}
-            </Button>
+            <Button onClick={closeModal}>{t('Cancel')}</Button>
             <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
           </Grid>
         </Footer>
@@ -150,63 +147,69 @@ const sectionTitles = {
   dpo: t('Your Data Protection Officer (DPO)'),
 } as const;
 
-export function GDPRPanel({subscription}: GDPRPanelProps) {
-  const {openModal} = useModal();
+type GDPRActionProps = {
+  activeSuperUser: boolean;
+  hasAccess: boolean;
+  prefix: 'euRep' | 'dpo';
+  subscription: Subscription;
+};
 
+function GDPRAction({activeSuperUser, hasAccess, prefix, subscription}: GDPRActionProps) {
+  const {openModal} = useModal();
+  const hasInformation = subscription.gdprDetails
+    ? Boolean(
+        subscription.gdprDetails[`${prefix}Email`] ||
+        subscription.gdprDetails[`${prefix}Name`] ||
+        subscription.gdprDetails[`${prefix}Address`] ||
+        subscription.gdprDetails[`${prefix}Phone`]
+      )
+    : false;
+  const contactDetails =
+    hasInformation && subscription.gdprDetails ? (
+      <Stack>
+        <Text size="sm">
+          <Text bold>{subscription.gdprDetails[`${prefix}Name`]}</Text> (
+          {subscription.gdprDetails[`${prefix}Email`]})
+        </Text>
+        <Text size="sm">{subscription.gdprDetails[`${prefix}Address`]}</Text>
+        <Text size="sm">{subscription.gdprDetails[`${prefix}Phone`]}</Text>
+      </Stack>
+    ) : (
+      <Text>{t('There is no information on file for this contact.')}</Text>
+    );
+
+  return hasAccess ? (
+    <Stack gap="sm" align="start">
+      {contactDetails}
+      <Button
+        size="xs"
+        disabled={activeSuperUser}
+        onClick={() => {
+          if (activeSuperUser) {
+            return;
+          }
+
+          openModal(modalRenderProps => (
+            <GDPREditModal
+              {...modalRenderProps}
+              subscription={subscription}
+              prefix={prefix}
+            />
+          ));
+        }}
+      >
+        {hasInformation ? t('Update Details') : t('Add Contact Details')}
+      </Button>
+    </Stack>
+  ) : (
+    <div>{contactDetails}</div>
+  );
+}
+
+export function GDPRPanel({subscription}: GDPRPanelProps) {
   const organization = useOrganization();
   const activeSuperUser = isActiveSuperuser();
   const hasAccess = organization.access.includes('org:billing');
-
-  function getAction(prefix: 'euRep' | 'dpo') {
-    const hasInformation = subscription.gdprDetails
-      ? Boolean(
-          subscription.gdprDetails[`${prefix}Email`] ||
-          subscription.gdprDetails[`${prefix}Name`] ||
-          subscription.gdprDetails[`${prefix}Address`] ||
-          subscription.gdprDetails[`${prefix}Phone`]
-        )
-      : false;
-    const contactDetails =
-      hasInformation && subscription.gdprDetails ? (
-        <Stack>
-          <Text size="sm">
-            <Text bold>{subscription.gdprDetails[`${prefix}Name`]}</Text> (
-            {subscription.gdprDetails[`${prefix}Email`]})
-          </Text>
-          <Text size="sm">{subscription.gdprDetails[`${prefix}Address`]}</Text>
-          <Text size="sm">{subscription.gdprDetails[`${prefix}Phone`]}</Text>
-        </Stack>
-      ) : (
-        <Text>{t('There is no information on file for this contact.')}</Text>
-      );
-
-    return hasAccess ? (
-      <Stack gap="sm" align="start">
-        {contactDetails}
-        <Button
-          size="xs"
-          disabled={activeSuperUser}
-          onClick={() => {
-            if (activeSuperUser) {
-              return;
-            }
-
-            openModal(modalRenderProps => (
-              <GDPREditModal
-                {...modalRenderProps}
-                subscription={subscription}
-                prefix={prefix}
-              />
-            ));
-          }}
-        >
-          {hasInformation ? t('Update Details') : t('Add Contact Details')}
-        </Button>
-      </Stack>
-    ) : (
-      <div>{contactDetails}</div>
-    );
-  }
 
   return (
     <Panel>
@@ -223,7 +226,12 @@ export function GDPRPanel({subscription}: GDPRPanelProps) {
               )}
             </Text>
           </div>
-          {getAction('euRep')}
+          <GDPRAction
+            activeSuperUser={activeSuperUser}
+            hasAccess={hasAccess}
+            prefix="euRep"
+            subscription={subscription}
+          />
         </ItemLayout>
         <ItemLayout>
           <div>
@@ -236,7 +244,12 @@ export function GDPRPanel({subscription}: GDPRPanelProps) {
               )}
             </Text>
           </div>
-          {getAction('dpo')}
+          <GDPRAction
+            activeSuperUser={activeSuperUser}
+            hasAccess={hasAccess}
+            prefix="dpo"
+            subscription={subscription}
+          />
         </ItemLayout>
       </PanelBody>
     </Panel>

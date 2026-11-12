@@ -4,14 +4,18 @@ import uuid
 from typing import Any
 from unittest.mock import ANY, MagicMock, patch
 
+from django.test import override_settings
+
 from sentry.dashboards.on_completion_hook import DashboardOnCompletionHook
 from sentry.seer.models import SeerPermissionError
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.silo import assume_test_silo_mode
 
 
-@with_feature("organizations:dashboards-ai-generate")
-@with_feature("organizations:gen-ai-features")
+@override_settings(SENTRY_SELF_HOSTED=False)
 class OrganizationDashboardGenerateEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-dashboards-generate"
 
@@ -54,12 +58,6 @@ class OrganizationDashboardGenerateEndpointTest(APITestCase):
         call_kwargs = mock_client.start_run.call_args[1]
         assert "Show me error rates by project" in call_kwargs["prompt"]
         assert call_kwargs["artifact_key"] == "dashboard"
-
-    @with_feature({"organizations:dashboards-ai-generate": False})
-    def test_post_without_feature_flag_returns_403(self) -> None:
-        data = {"prompt": "Show me error rates"}
-        response = self.client.post(self.url, data, format="json")
-        assert response.status_code == 403
 
     @patch(
         "sentry.dashboards.endpoints.organization_dashboard_generate.has_seer_access_with_detail"
@@ -155,3 +153,60 @@ class OrganizationDashboardGenerateEndpointTest(APITestCase):
         call_kwargs = mock_client.start_run.call_args[1]
         assert "My Dashboard" in call_kwargs["on_page_context"]
         assert "Error Count" in call_kwargs["on_page_context"]
+
+
+@override_settings(SENTRY_SELF_HOSTED=False)
+@with_feature("organizations:granular-permission-scopes")
+@patch("sentry.dashboards.endpoints.organization_dashboard_generate.SeerAgentClient")
+class OrganizationDashboardGenerateScopeTest(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.url = f"/api/0/organizations/{self.organization.slug}/dashboards/generate/"
+        self.data = {"prompt": "Show me error rates by project"}
+
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    def _mock_run(self, mock_client_class: MagicMock) -> None:
+        mock_client_class.return_value.start_run.return_value = MagicMock(
+            seer_run_state_id=789, uuid=uuid.uuid4()
+        )
+
+    def test_read_scope_can_generate(self, mock_client_class: MagicMock) -> None:
+        self._mock_run(mock_client_class)
+        self._use_token(["dashboard:read"])
+        response = self.client.post(self.url, self.data, format="json")
+        assert response.status_code == 200, response.content
+
+    def test_write_scope_cannot_generate(self, mock_client_class: MagicMock) -> None:
+        # Write does not imply read.
+        self._use_token(["dashboard:write"])
+        response = self.client.post(self.url, self.data, format="json")
+        assert response.status_code == 403
+        mock_client_class.assert_not_called()
+
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_org_read_token_is_translated(self, mock_client_class: MagicMock) -> None:
+        self._mock_run(mock_client_class)
+        self._use_token(["org:read"])
+        response = self.client.post(self.url, self.data, format="json")
+        assert response.status_code == 200, response.content
+
+    @override_settings(DEPRECATED_SCOPE_TRANSLATIONS={})
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_org_read_not_accepted(self, mock_client_class: MagicMock) -> None:
+        self._use_token(["org:read"])
+        response = self.client.post(self.url, self.data, format="json")
+        assert response.status_code == 403
+        mock_client_class.assert_not_called()
+
+    @override_settings(DEPRECATED_SCOPE_TRANSLATIONS={})
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    @with_feature({"organizations:granular-permission-scopes": False})
+    def test_org_read_accepted_without_granular_scopes(self, mock_client_class: MagicMock) -> None:
+        self._mock_run(mock_client_class)
+        self._use_token(["org:read"])
+        response = self.client.post(self.url, self.data, format="json")
+        assert response.status_code == 200, response.content

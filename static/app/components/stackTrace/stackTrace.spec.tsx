@@ -1,4 +1,4 @@
-import type {ComponentProps} from 'react';
+import {useMemo, type ComponentProps} from 'react';
 import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
 import {EventFixture} from 'sentry-fixture/event';
 import {EventEntryStacktraceFixture} from 'sentry-fixture/eventEntryStacktrace';
@@ -9,17 +9,17 @@ import {DetailedProjectFixture} from 'sentry-fixture/project';
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {DisplayOptions} from 'sentry/components/stackTrace/displayOptions';
-import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
-import {IssueFrameActions} from 'sentry/components/stackTrace/issueStackTrace/issueFrameActions';
-import {StackTraceViewStateProvider} from 'sentry/components/stackTrace/stackTraceContext';
-import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
-import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
-import type {StackTraceViewStateProviderProps} from 'sentry/components/stackTrace/types';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {SentryAppComponentsStore} from 'sentry/stores/sentryAppComponentsStore';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
+
+import {FrameContent} from './frame/frameContent';
+import {IssueFrameActions} from './issueStackTrace/issueFrameActions';
+import {DisplayOptions} from './displayOptions';
+import {StackTraceViewStateProvider} from './stackTraceContext';
+import {StackTraceFrames} from './stackTraceFrames';
+import {StackTraceProvider} from './stackTraceProvider';
+import type {StackTraceViewStateProviderProps} from './types';
 
 type StacktraceWithFrames = StacktraceType & {
   frames: NonNullable<StacktraceType['frames']>;
@@ -45,7 +45,7 @@ function makeStackTraceData(): {
           ...frame,
           inApp: index >= 2,
         })) ?? [],
-    } as StacktraceWithFrames,
+    },
   };
 }
 
@@ -85,10 +85,10 @@ function TestStackTraceProvider({
   );
 }
 
-function renderStackTrace() {
-  const {event, stacktrace} = makeStackTraceData();
+function ExampleStackTrace() {
+  const {event, stacktrace} = useMemo(() => makeStackTraceData(), []);
 
-  render(
+  return (
     <TestStackTraceProvider event={event} stacktrace={stacktrace}>
       <DisplayOptions />
       <StackTraceFrames frameContextComponent={FrameContent} />
@@ -97,7 +97,12 @@ function renderStackTrace() {
 }
 
 describe('Core StackTrace', () => {
+  const longFilename = `/source/${'long directory with spaces/'.repeat(10)}runner.py`;
   beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sentry-app-components/',
+      body: [],
+    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
       body: {
@@ -116,7 +121,7 @@ describe('Core StackTrace', () => {
   });
 
   it('switches between app and full stack views', async () => {
-    renderStackTrace();
+    render(<ExampleStackTrace />);
 
     expect(screen.getAllByTestId('core-stacktrace-frame-row')).toHaveLength(4);
 
@@ -127,7 +132,7 @@ describe('Core StackTrace', () => {
   });
 
   it('toggles frame ordering', async () => {
-    renderStackTrace();
+    render(<ExampleStackTrace />);
 
     expect(screen.getAllByTestId('core-stacktrace-frame-title')[0]).toHaveTextContent(
       'raven/scripts/runner.py'
@@ -142,7 +147,7 @@ describe('Core StackTrace', () => {
   });
 
   it('supports raw stack trace view', async () => {
-    renderStackTrace();
+    render(<ExampleStackTrace />);
 
     await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
     await userEvent.click(await screen.findByRole('option', {name: 'Raw Stack Trace'}));
@@ -192,7 +197,7 @@ describe('Core StackTrace', () => {
   });
 
   it('toggles frame expansion', async () => {
-    renderStackTrace();
+    render(<ExampleStackTrace />);
 
     expect(screen.getByTestId('core-stacktrace-frame-context')).toBeInTheDocument();
 
@@ -217,7 +222,7 @@ describe('Core StackTrace', () => {
   });
 
   it('toggles frame expansion when clicking the right trailing area', async () => {
-    renderStackTrace();
+    render(<ExampleStackTrace />);
 
     const firstTrailingArea = screen.getAllByTestId('core-stacktrace-frame-trailing')[0]!;
 
@@ -248,7 +253,7 @@ describe('Core StackTrace', () => {
   });
 
   it('shows and hides collapsed system frames', async () => {
-    renderStackTrace();
+    render(<ExampleStackTrace />);
 
     const toggleButton = screen.getByRole('button', {name: 'Show 1 more frame'});
 
@@ -259,14 +264,18 @@ describe('Core StackTrace', () => {
   });
 
   it('renders frame badges for in-app frames only', async () => {
-    renderStackTrace();
+    render(<ExampleStackTrace />);
 
     expect((await screen.findAllByText('In App')).length).toBeGreaterThan(0);
     expect(screen.queryByText('System')).not.toBeInTheDocument();
   });
 
-  it('renders captured python frame variables', async () => {
-    renderStackTrace();
+  it('renders captured frame variables through the tree', async () => {
+    render(<ExampleStackTrace />, {
+      organization: OrganizationFixture({
+        features: ['native-variable-extraction'],
+      }),
+    });
 
     expect(await screen.findByText('args')).toBeInTheDocument();
     expect(screen.getByText('dsn')).toBeInTheDocument();
@@ -374,7 +383,7 @@ describe('Core StackTrace', () => {
   });
 
   it('renders lead hint when non-app frame leads to app frame', async () => {
-    renderStackTrace();
+    render(<ExampleStackTrace />);
 
     expect(await screen.findByText('Called from:')).toBeInTheDocument();
   });
@@ -543,25 +552,78 @@ describe('Core StackTrace', () => {
     ).toBeInTheDocument();
   });
 
+  it('skips the source map debug request when no frame can show the unminify action', async () => {
+    const {event, stacktrace} = makeStackTraceData();
+    const javascriptEvent = EventFixture({
+      ...event,
+      sdk: {name: 'sentry.javascript.react', version: '10.0.0'},
+    });
+    const organization = OrganizationFixture({slug: 'org-slug'});
+    const project = DetailedProjectFixture({
+      id: javascriptEvent.projectID,
+      slug: 'project-slug',
+      platform: 'javascript',
+    });
+    const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
+    ProjectsStore.loadInitialData([project]);
+    const sourceMapDebugRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/events/${javascriptEvent.id}/source-map-debug/`,
+      body: {},
+    });
+
+    render(
+      <TestStackTraceProvider
+        event={javascriptEvent}
+        stacktrace={{
+          ...stacktrace,
+          frames: [
+            {
+              ...frame,
+              filename: 'runner.js',
+              absPath: '/home/ubuntu/runner.js',
+              context: [[1, 'const x = 1;']],
+              inApp: true,
+            },
+          ],
+        }}
+        exceptionIndex={0}
+      >
+        <DisplayOptions />
+        <StackTraceFrames
+          frameContextComponent={FrameContent}
+          frameActionsComponent={IssueFrameActions}
+        />
+      </TestStackTraceProvider>,
+      {organization}
+    );
+
+    expect(await screen.findByText('runner.js')).toBeInTheDocument();
+    expect(sourceMapDebugRequest).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', {name: 'Unminify Code'})).not.toBeInTheDocument();
+  });
+
   it('renders sentry app frame links with line context', async () => {
     const {event, stacktrace} = makeStackTraceData();
-    SentryAppComponentsStore.loadComponents([
-      {
-        uuid: 'stacktrace-component',
-        type: 'stacktrace-link',
-        schema: {
-          uri: '/frame-link',
-          url: 'https://example.com/frame-link?projectSlug=sentry',
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sentry-app-components/',
+      body: [
+        {
+          uuid: 'stacktrace-component',
           type: 'stacktrace-link',
+          schema: {
+            uri: '/frame-link',
+            url: 'https://example.com/frame-link?projectSlug=sentry',
+            type: 'stacktrace-link',
+          },
+          sentryApp: {
+            uuid: 'sentry-app-1',
+            slug: 'source-lens',
+            name: 'Source Lens',
+            avatars: [],
+          },
         },
-        sentryApp: {
-          uuid: 'sentry-app-1',
-          slug: 'source-lens',
-          name: 'Source Lens',
-          avatars: [],
-        },
-      },
-    ]);
+      ],
+    });
 
     render(
       <TestStackTraceProvider event={event} stacktrace={stacktrace}>
@@ -582,36 +644,48 @@ describe('Core StackTrace', () => {
     );
   });
 
-  it('shows a tooltip with absPath when hovering filename', async () => {
-    jest.useFakeTimers();
-    const {event, stacktrace} = makeStackTraceData();
-    const frameWithAbsolutePath = {
-      ...stacktrace.frames[stacktrace.frames.length - 1]!,
+  it.each([
+    {
       filename: 'raven/scripts/runner.py',
       absPath: '/home/ubuntu/raven/scripts/runner.py',
-      inApp: false,
-    };
+    },
+    {filename: longFilename, absPath: longFilename},
+    {filename: longFilename, absPath: null},
+  ])(
+    'shows the full path in the filename tooltip (case %#)',
+    async ({filename, absPath}) => {
+      jest.useFakeTimers();
+      const {event, stacktrace} = makeStackTraceData();
 
-    render(
-      <TestStackTraceProvider
-        event={event}
-        stacktrace={{
-          ...stacktrace,
-          frames: [frameWithAbsolutePath],
-        }}
-      >
-        <DisplayOptions />
-        <StackTraceFrames frameContextComponent={FrameContent} />
-      </TestStackTraceProvider>
-    );
+      render(
+        <TestStackTraceProvider
+          event={event}
+          stacktrace={{
+            ...stacktrace,
+            frames: [
+              {
+                ...stacktrace.frames[stacktrace.frames.length - 1]!,
+                filename,
+                absPath,
+                inApp: false,
+              },
+            ],
+          }}
+        >
+          <DisplayOptions />
+          <StackTraceFrames frameContextComponent={FrameContent} />
+        </TestStackTraceProvider>
+      );
 
-    await userEvent.hover(screen.getByText('raven/scripts/runner.py'), {delay: null});
-    act(() => jest.advanceTimersByTime(2000));
-    expect(
-      await screen.findByText('/home/ubuntu/raven/scripts/runner.py')
-    ).toBeInTheDocument();
-    jest.useRealTimers();
-  });
+      await userEvent.hover(screen.getByText(filename), {delay: null});
+      act(() => jest.advanceTimersByTime(2000));
+
+      expect(
+        await screen.findByText(absPath ?? filename, {selector: '[data-tooltip] span'})
+      ).toBeVisible();
+      jest.useRealTimers();
+    }
+  );
 
   it('shows copy path and code mapping setup actions on hover for collapsed frames', async () => {
     const {event, stacktrace} = makeStackTraceData();
@@ -659,7 +733,7 @@ describe('Core StackTrace', () => {
     await userEvent.hover(frameTitles[1]!);
 
     expect(
-      await within(frameTitles[1]!).findByRole('button', {name: 'Set up Code Mapping'})
+      await within(frameTitles[1]!).findByText('Set up Code Mapping')
     ).toBeInTheDocument();
     expect(
       within(frameTitles[1]!).getByRole('button', {name: 'Copy file path'})

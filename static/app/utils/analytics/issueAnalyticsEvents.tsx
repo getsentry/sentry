@@ -1,9 +1,16 @@
 import type {FieldValue} from 'sentry/components/forms/model';
-import type {PriorityLevel} from 'sentry/types/group';
-import type {IntegrationType, PullRequestAttribution} from 'sentry/types/integrations';
+import type {PriorityLevel, ProgressState} from 'sentry/types/group';
+import type {
+  IntegrationType,
+  PullRequestAttribution,
+  PullRequestAttributionAgent,
+  PullRequestChecksStatus,
+  PullRequestReviewStatus,
+} from 'sentry/types/integrations';
 import type {Broadcast} from 'sentry/types/system';
-import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
+
+import type {BaseEventAnalyticsParams} from './workflowAnalyticsEvents';
 
 type IssueStream = {
   group_id: string;
@@ -37,16 +44,25 @@ interface ExternalIssueParams extends CommonGroupAnalyticsData {
 }
 
 interface ExternalIssuePullRequestParams extends CommonGroupAnalyticsData {
+  checks_status: PullRequestChecksStatus | null;
   pull_request_id: string;
   pull_request_status: string;
   repository_id: string;
   repository_provider: string;
+  review_status: PullRequestReviewStatus | null;
+  attribution_agent?: PullRequestAttributionAgent | null;
   attribution_type?: PullRequestAttribution['type'];
 }
 
 interface SetPriorityParams extends CommonGroupAnalyticsData {
   from_priority: PriorityLevel;
   to_priority: PriorityLevel;
+}
+
+interface IssueInboxItemParams extends CommonGroupAnalyticsData {
+  assignment_filter: 'my_teams' | 'all';
+  last_progressed_at: string | null;
+  progress: ProgressState | undefined;
 }
 
 export type IssueEventParameters = {
@@ -77,7 +93,6 @@ export type IssueEventParameters = {
   'integrations.integration_reinstall_clicked': {
     provider: string;
   };
-  'issue-details.android-tombstones-cta-dismiss': {type: string};
   'issue-details.replay-cta-dismiss': {type: string};
   'issue.engaged_view': {
     group_id: number;
@@ -112,15 +127,13 @@ export type IssueEventParameters = {
   'issue_details.header_view_replay_clicked': GroupEventParams;
   'issue_details.issue_content_selected': {
     content: string;
+    surface: 'tabs' | 'dropdown';
   };
   'issue_details.issue_status_docs_clicked': Record<string, unknown>;
   'issue_details.issue_tags_click': Record<string, unknown>;
   'issue_details.merged_issues.drawer_opened': {
     group_id: string;
     project_id: string;
-  };
-  'issue_details.related_trace_issue.trace_issue_clicked': {
-    group_id: number;
   };
   'issue_details.section_fold': {
     open: boolean;
@@ -138,10 +151,6 @@ export type IssueEventParameters = {
   'issue_details.similar_issues.drawer_opened': {
     group_id: string;
     project_id: string;
-  };
-  'issue_details.streamline_ui_toggle': {
-    enforced_streamline_ui: boolean;
-    isEnabled: boolean;
   };
   'issue_details.tour.reminder': {method: 'dismissed' | 'timeout'};
   'issue_details.tour.skipped': Record<string, unknown>;
@@ -187,6 +196,16 @@ export type IssueEventParameters = {
     tag: string;
     value: string;
     platform?: string;
+  };
+  'issue_inbox.assignment_filter_changed': {
+    assignment_filter: 'my_teams' | 'all';
+  };
+  'issue_inbox.issue_viewed': IssueInboxItemParams;
+  'issue_inbox.item_clicked': IssueInboxItemParams;
+  'issue_inbox.open_in_desktop_app_clicked': {
+    agent: 'cursor' | 'codex' | 'claude-code';
+    group_id: string;
+    event_id?: string;
   };
   'issue_search.empty': {
     query: string;
@@ -239,6 +258,11 @@ export type IssueEventParameters = {
     action_status_details?: string;
     action_substatus?: string | null;
   };
+  'issues_stream.copied': {
+    area: string;
+    copy_type: 'short_ids' | 'links';
+    count: number;
+  };
   'issues_stream.issue_assigned': IssueStream & {
     area: string;
     assigned_type: string;
@@ -267,16 +291,6 @@ export type IssueEventParameters = {
   'issues_stream.updated_priority': {
     area: string;
     priority: PriorityLevel;
-  };
-  'one_other_related_trace_issue.clicked': {
-    area: string;
-    // Equivalent to 'issue_details.related_trace_issue.trace_issue_clicked', but `area` is dynamic.
-    group_id: number;
-  };
-  'project_modal.created': {
-    issue_alert: 'Default' | 'Custom' | 'No Rule';
-    project_id: string;
-    rule_id: string;
   };
   'quick_trace.connected_services': {
     projects: number;
@@ -331,7 +345,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Details: Merged Issues Drawer Opened',
   'issue_details.similar_issues.diff_clicked':
     'Issue Details: Similar Issues: Diff Clicked',
-  'issue_details.streamline_ui_toggle': 'Streamline: UI Toggle Clicked',
   'issue_details.tour.skipped': 'Issue Details: Tour Skipped',
   'issue_details.tour.started': 'Issue Details: Tour Started',
   'issue_details.tour.reminder': 'Issue Details: Tour Reminder Acknowledged',
@@ -341,8 +354,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.view_hierarchy.select_from_wireframe':
     'View Hierarchy: Selection from wireframe',
   'issue_details.issue_status_docs_clicked': 'Issue Details: Issue Status Docs Clicked',
-  'issue_details.related_trace_issue.trace_issue_clicked':
-    'Related Issue: Trace Issue Clicked',
   'issue_error_banner.proguard_misconfigured.displayed':
     'Proguard Potentially Misconfigured Issue Error Banner Displayed',
   'issue_error_banner.proguard_missing_mapping.displayed':
@@ -365,7 +376,12 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_views.star_view': 'Issue Views: Star View',
   'issue_search.failed': 'Issue Search: Failed',
   'issue_search.empty': 'Issue Search: Empty',
+  'issue_inbox.assignment_filter_changed': 'Issue Inbox: Assignment Filter Changed',
+  'issue_inbox.issue_viewed': 'Issue Inbox: Issue Viewed',
+  'issue_inbox.item_clicked': 'Issue Inbox: Item Clicked',
+  'issue_inbox.open_in_desktop_app_clicked': 'Issue Inbox: Open in Desktop App Clicked',
   'issues_stream.archived': 'Issues Stream: Archived',
+  'issues_stream.copied': 'Issues Stream: Copied',
   'issues_stream.updated_priority': 'Issues Stream: Updated Priority',
   'issues_stream.realtime_clicked': 'Issues Stream: Realtime Clicked',
   'issues_stream.issue_assigned': 'Assigned Issue from Issues Stream',
@@ -375,14 +391,12 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issues_stream.paginate': 'Paginate Issues Stream',
   'issue.shared_publicly': 'Issue Shared Publicly',
   resolve_issue: 'Resolve Issue',
-  'project_modal.created': 'Project Modal: Created',
   'quick_trace.connected_services': 'Quick Trace: Connected Services',
   'quick_trace.trace_id.clicked': 'Quick Trace: Trace ID clicked',
   'settings.inbound_filter_updated': 'Settings: Inbound Filter Updated',
   'issue_group_details.tab.clicked': 'Issue Group Details: Header Tab Clicked',
   'issue_group_details.tags.bar.clicked': 'Issue Group Details: Tags value bar clicked',
   'integrations.integration_reinstall_clicked': 'Integration Reinstall Button Clicked',
-  'one_other_related_trace_issue.clicked': 'One Other Related Trace Issue Clicked',
   'issue_details.view_full_trace_waterfall_clicked':
     ' Issue Details: View Full Trace Waterfall Clicked',
 
@@ -392,8 +406,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.event_dropdown_option_selected':
     'Issue Details: Event Dropdown Option Selected',
   'issue_details.header_view_replay_clicked': 'Issue Details: Header View Replay Clicked',
-  'issue-details.android-tombstones-cta-dismiss':
-    'Issue Details Android Tombstones CTA Dismissed',
   'issue-details.replay-cta-dismiss': 'Issue Details Replay CTA Dismissed',
   'issue_group_details.anr_root_cause_detected': 'Detected ANR Root Cause',
   'issue_details.copy_issue_details_as_markdown':

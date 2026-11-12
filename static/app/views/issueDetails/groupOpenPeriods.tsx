@@ -1,30 +1,39 @@
-import {Link} from 'react-router-dom';
+import {Link} from 'react-router';
 import styled from '@emotion/styled';
+import {IconSeer} from '@sentry/icons/seer';
 import {useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
+import {parseAsString, useQueryState} from 'nuqs';
+
+import {Flex} from '@sentry/scraps/layout';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
 import {DateTime} from 'sentry/components/dateTime';
-import {
-  COL_WIDTH_UNDEFINED,
-  GridEditable,
-  type GridColumnOrder,
-} from 'sentry/components/tables/gridEditable';
+import {DataGrid, type GridColumnOrder} from 'sentry/components/tables/dataGrid';
 import {t} from 'sentry/locale';
 import type {GroupOpenPeriodActivity} from 'sentry/types/group';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getShortEventId} from 'sentry/utils/events';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {unreachable} from 'sentry/utils/unreachable';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {openPeriodsApiOptions} from 'sentry/views/detectors/hooks/useOpenPeriods';
-import {EventListTable} from 'sentry/views/issueDetails/eventListTable';
+import {investigationCandidatesQueryOptions} from 'sentry/views/investigations/api';
+import type {MetricOpenPeriodInvestigationSource} from 'sentry/views/investigations/types';
+import {
+  getInvestigationPath,
+  useInvestigationsEnabled,
+} from 'sentry/views/investigations/utils';
+
+import {EventListTable} from './eventListTable';
+import {useGroupId} from './groupIdContext';
 
 interface OpenPeriodDisplayData {
   description: string;
   end: React.ReactNode;
   eventId: React.ReactNode;
+  investigation: React.ReactNode;
+  openPeriod: React.ReactNode;
   start: React.ReactNode;
 }
 
@@ -42,11 +51,10 @@ function getOpenPeriodActivityTypeLabel(activity: GroupOpenPeriodActivity): stri
   }
 }
 
-// TODO(snigdha): make this work for the old UI
 function IssueOpenPeriodsList() {
   const organization = useOrganization();
-  const location = useLocation();
-  const params = useParams<{groupId: string}>();
+  const [cursor] = useQueryState('cursor', parseAsString);
+  const groupId = useGroupId();
   const {
     data: response,
     isPending,
@@ -54,15 +62,30 @@ function IssueOpenPeriodsList() {
   } = useQuery({
     ...openPeriodsApiOptions({
       organization,
-      groupId: params.groupId,
-      cursor: location.query?.cursor,
+      groupId,
+      cursor: cursor ?? undefined,
       limit: 10,
     }),
     select: selectJsonWithHeaders,
   });
   const openPeriods = response?.json ?? [];
+  const investigationsEnabled = useInvestigationsEnabled();
+  const candidateSources: MetricOpenPeriodInvestigationSource[] = openPeriods.map(
+    period => ({
+      type: 'metric_open_period',
+      ref: {groupId, openPeriodId: period.id},
+    })
+  );
+  const {data: candidates} = useQuery({
+    ...investigationCandidatesQueryOptions({
+      organizationSlug: organization.slug,
+      sources: candidateSources,
+    }),
+    enabled: investigationsEnabled && candidateSources.length > 0,
+  });
 
-  const data = openPeriods.flatMap(period => {
+  const data = openPeriods.flatMap((period, periodIndex) => {
+    const candidate = candidates?.items[periodIndex];
     const periodActivities = orderBy(
       period.activities.filter(activity => activity.type !== 'closed'),
       'dateCreated',
@@ -77,24 +100,46 @@ function IssueOpenPeriodsList() {
       return {
         openPeriod: activity.type === 'opened' ? `#${period.id}` : undefined,
         eventId: activity.eventId ? (
-          <Link
-            to={`/organizations/${organization.slug}/issues/${params.groupId}/events/${activity.eventId}/`}
+          <EventIdLink
+            to={`/organizations/${organization.slug}/issues/${groupId}/events/${activity.eventId}/`}
           >
             {getShortEventId(activity.eventId)}
-          </Link>
+          </EventIdLink>
         ) : (
           '—'
         ),
         description: getOpenPeriodActivityTypeLabel(activity),
         start: <DateTime date={startDate} />,
         end: endDate ? <DateTime date={endDate} /> : undefined,
+        investigation:
+          activity.type === 'opened' && candidate?.status === 'view' ? (
+            <Link to={getInvestigationPath(organization.slug, candidate.investigationId)}>
+              <Flex as="span" align="center" gap="xs">
+                <IconSeer size="xs" />
+                {candidate.investigationId}
+              </Flex>
+            </Link>
+          ) : undefined,
       };
     });
   });
 
-  const renderHeadCell = (col: GridColumnOrder) => {
-    return <AlignLeft>{col.name}</AlignLeft>;
-  };
+  const columnOrder: Array<GridColumnOrder<string>> = [
+    {key: 'openPeriod', width: COL_WIDTH_UNDEFINED, name: t('Open Period')},
+    {key: 'eventId', width: 100, name: t('Event ID')},
+    {key: 'description', width: COL_WIDTH_UNDEFINED, name: t('Description')},
+    {key: 'start', width: COL_WIDTH_UNDEFINED, name: t('Start')},
+    {key: 'end', width: COL_WIDTH_UNDEFINED, name: t('End')},
+    ...(investigationsEnabled
+      ? [
+          {
+            key: 'investigation',
+            width: COL_WIDTH_UNDEFINED,
+            name: t('Investigation'),
+          },
+        ]
+      : []),
+  ];
 
   const renderBodyCell = (
     col: GridColumnOrder<string>,
@@ -124,20 +169,12 @@ function IssueOpenPeriodsList() {
         tableUnits: t('open periods'),
       }}
     >
-      <GridEditable
+      <DataGrid
         isLoading={isPending}
         data={data}
         error={error}
-        columnOrder={[
-          {key: 'openPeriod', width: COL_WIDTH_UNDEFINED, name: t('Open Period')},
-          {key: 'eventId', width: 100, name: t('Event ID')},
-          {key: 'description', width: COL_WIDTH_UNDEFINED, name: t('Description')},
-          {key: 'start', width: COL_WIDTH_UNDEFINED, name: t('Start')},
-          {key: 'end', width: COL_WIDTH_UNDEFINED, name: t('End')},
-        ]}
-        columnSortBy={[]}
+        columnOrder={columnOrder}
         grid={{
-          renderHeadCell,
           renderBodyCell,
         }}
       />
@@ -148,6 +185,19 @@ function IssueOpenPeriodsList() {
 const AlignLeft = styled('span')`
   text-align: left;
   width: 100%;
+`;
+
+// The EventListTable hides link styling if they aren't in the first column
+// so we have to style it manually
+const EventIdLink = styled(Link)`
+  &&& {
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
+    text-decoration: none;
+
+    &:hover {
+      color: ${p => p.theme.tokens.interactive.link.accent.hover};
+    }
+  }
 `;
 
 export default IssueOpenPeriodsList;

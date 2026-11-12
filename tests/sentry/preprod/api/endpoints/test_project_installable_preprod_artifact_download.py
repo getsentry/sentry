@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import cast
 
 from django.utils import timezone
 
@@ -36,7 +37,12 @@ class ProjectInstallablePreprodArtifactDownloadEndpointTest(TestCase):
             download_count=0,
         )
 
-    def _get_url(self, organization_id_or_slug=None, project_id_or_slug=None, url_path=None):
+    def _get_url(
+        self,
+        organization_id_or_slug: str | None = None,
+        project_id_or_slug: str | None = None,
+        url_path: str | None = None,
+    ) -> str:
         org = organization_id_or_slug or self.organization.slug
         proj = project_id_or_slug or self.project.slug
         path = url_path or self.installable.url_path
@@ -55,6 +61,22 @@ class ProjectInstallablePreprodArtifactDownloadEndpointTest(TestCase):
         # Verify download count was incremented
         self.installable.refresh_from_db()
         assert self.installable.download_count == 1
+
+    def test_download_ipa_with_build_configuration_success(self) -> None:
+        build_configuration = self.create_preprod_build_configuration(
+            project=self.project, name="qa_playstore"
+        )
+        self.preprod_artifact.build_configuration = build_configuration
+        self.preprod_artifact.save()
+
+        url = self._get_url() + "?response_format=ipa"
+        response = self.client.get(url)
+
+        assert response.status_code == 200
+        assert (
+            'filename="com.example.TestApp-qa_playstore@1.2.3.ipa"'
+            in response["Content-Disposition"]
+        )
 
     def test_download_plist_success(self) -> None:
         url = self._get_url() + "?response_format=plist"
@@ -96,7 +118,7 @@ class ProjectInstallablePreprodArtifactDownloadEndpointTest(TestCase):
         assert response.json()["error"] == "Install link expired"
 
     def test_no_installable_file(self) -> None:
-        self.preprod_artifact.installable_app_file_id = None
+        self.preprod_artifact.installable_app_file_id = cast("int", None)
         self.preprod_artifact.save()
 
         url = self._get_url()

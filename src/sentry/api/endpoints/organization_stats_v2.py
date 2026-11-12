@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from contextlib import contextmanager
 
 from drf_spectacular.utils import extend_schema
@@ -5,12 +6,14 @@ from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationAndStaffPermission, OrganizationEndpoint
+from sentry.api.helpers.projects import ParsedProjectIdOrSlugParams
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
@@ -33,7 +36,6 @@ from sentry.snuba.outcomes import (
 from sentry.snuba.sessions_v2 import InvalidField
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.outcomes import Outcome
-from sentry.utils.tracing import start_span
 
 
 class OrgStatsQueryParamsSerializer(serializers.Serializer):
@@ -177,24 +179,30 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
         """
         with self.handle_query_errors():
             tenant_ids = {"organization_id": organization.id}
-            with start_span(op="outcomes.endpoint", name="build_outcomes_query"):
+            with traces.start_span(
+                name="build_outcomes_query", attributes={"sentry.op": "outcomes.endpoint"}
+            ):
                 query = self.build_outcomes_query(
                     request,
                     organization,
                 )
-            with start_span(op="outcomes.endpoint", name="run_outcomes_query"):
+            with traces.start_span(
+                name="run_outcomes_query", attributes={"sentry.op": "outcomes.endpoint"}
+            ):
                 result_totals = run_outcomes_query_totals(query, tenant_ids=tenant_ids)
                 result_timeseries = (
                     None
                     if "project_id" in query.query_groupby
                     else run_outcomes_query_timeseries(query, tenant_ids=tenant_ids)
                 )
-            with start_span(op="outcomes.endpoint", name="massage_outcomes_result"):
+            with traces.start_span(
+                name="massage_outcomes_result", attributes={"sentry.op": "outcomes.endpoint"}
+            ):
                 result = massage_outcomes_result(query, result_totals, result_timeseries)
             return Response(result, status=200)
 
-    def build_outcomes_query(self, request: Request, organization):
-        params = {"organization_id": organization.id}
+    def build_outcomes_query(self, request: Request, organization: Organization) -> QueryDefinition:
+        params: dict[str, object] = {"organization_id": organization.id}
         project_ids = self._get_projects_for_orgstats_query(request, organization)
 
         if project_ids:
@@ -202,10 +210,11 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
 
         return QueryDefinition.from_query_dict(request.GET, params)
 
-    def _get_projects_for_orgstats_query(self, request: Request, organization):
-        # look at the raw project_id filter passed in, if its empty
-        # and project_id is not in groupBy filter, treat it as an
-        # org wide query and don't pass project_id in to QueryDefinition
+    def _get_projects_for_orgstats_query(
+        self, request: Request, organization: Organization
+    ) -> list[int] | None:
+        # Only an explicit all-projects selection can request an organization total.
+        # An omitted project filter means the user's projects.
         requested_projects = self.get_requested_project_params_unchecked(request)
         if self._is_org_total_query(request, requested_projects):
             return None
@@ -215,17 +224,16 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
                 raise NoProjects("No projects available")
             return [p.id for p in projects]
 
-    def _is_org_total_query(self, request: Request, requested_projects):
-        no_project_filter = not requested_projects.has_values
+    def _is_org_total_query(
+        self, request: Request, requested_projects: ParsedProjectIdOrSlugParams
+    ) -> bool:
         all_access_filter = (
             requested_projects.ids == ALL_ACCESS_PROJECTS and not requested_projects.slugs
         ) or (requested_projects.slugs == {ALL_ACCESS_PROJECTS_SLUG} and not requested_projects.ids)
-        return (no_project_filter or all_access_filter) and "project" not in request.GET.getlist(
-            "groupBy"
-        )
+        return all_access_filter and "project" not in request.GET.getlist("groupBy")
 
     @contextmanager
-    def handle_query_errors(self):
+    def handle_query_errors(self) -> Iterator[None]:
         try:
             with handle_query_errors():
                 yield

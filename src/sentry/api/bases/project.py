@@ -20,6 +20,7 @@ from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.utils.sdk import Scope, bind_organization_context
+from sentry.viewer_context import set_viewer_context_project
 
 from .organization import OrganizationPermission
 
@@ -76,6 +77,12 @@ class StrictProjectPermission(ProjectPermission):
 
 
 class ProjectReleasePermission(ProjectPermission):
+    """
+    Includes org:ci so CI org-auth-tokens (e.g. sentry-cli) can manage releases.
+    Use only for release endpoints. Do not reuse an org:ci permission for endpoints
+    exposing data a CI token should not read.
+    """
+
     scope_map = {
         "GET": ["project:read", "project:write", "project:admin", "project:releases", "org:ci"],
         "POST": ["project:write", "project:admin", "project:releases", "org:ci"],
@@ -208,6 +215,7 @@ class ProjectEndpoint(Endpoint):
         sentry_sdk.set_attribute("project", project.id)
 
         bind_organization_context(project.organization)
+        set_viewer_context_project(project.id)
 
         request._request.organization = (
             project.organization

@@ -1,22 +1,24 @@
-import {queryOptions, useMutation, useQueryClient} from '@tanstack/react-query';
+import {queryOptions, useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
+import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowEngine/getWorkflowEngineResponseErrorMessage';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {
   type BaseDetectorUpdatePayload,
   type Detector,
+  type IssueStreamDetector,
   type UptimeDetector,
 } from 'sentry/types/workflowEngine/detectors';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface DetectorTypeMap {
+  issue_stream: IssueStreamDetector;
   uptime: UptimeDetector;
 }
 
@@ -132,7 +134,7 @@ export function useCreateDetector<T extends Detector = Detector>() {
       });
     },
     onError: _ => {
-      addErrorMessage(t('Unable to create monitor'));
+      toast.error(t('Unable to create monitor'));
     },
   });
 }
@@ -142,8 +144,10 @@ export function useUpdateDetector<T extends Detector = Detector>() {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
-  return useMutation<T, void, {detectorId: string} & Partial<BaseDetectorUpdatePayload>>({
-    mutationFn: data =>
+  return useMutation({
+    mutationFn: (
+      data: {detectorId: string} & Partial<BaseDetectorUpdatePayload>
+    ): Promise<T> =>
       api.requestPromise(
         getApiUrl('/organizations/$organizationIdOrSlug/detectors/$detectorId/', {
           path: {organizationIdOrSlug: org.slug, detectorId: data.detectorId},
@@ -158,38 +162,50 @@ export function useUpdateDetector<T extends Detector = Detector>() {
         queryKey: allDetectorListsQueryKey(org),
       });
       queryClient.invalidateQueries({
-        queryKey: [
-          getApiUrl('/organizations/$organizationIdOrSlug/detectors/$detectorId/', {
-            path: {organizationIdOrSlug: org.slug, detectorId: data.detectorId},
-          }),
-        ],
+        queryKey: detectorDetailsApiOptions({
+          orgSlug: org.slug,
+          detectorId: data.detectorId,
+        }).queryKey,
       });
     },
-    onError: _ => {
-      addErrorMessage(t('Unable to update monitor'));
+    onError: error => {
+      toast.error(
+        (error instanceof RequestError
+          ? getWorkflowEngineResponseErrorMessage(error.responseJSON)
+          : undefined) ?? t('Unable to update monitor')
+      );
     },
   });
 }
 
-export const makeDetectorDetailsQueryKey = ({
+export const detectorDetailsApiOptions = <T extends Partial<Detector> = Detector>({
   orgSlug,
   detectorId,
 }: {
   detectorId: string;
   orgSlug: string;
-}): ApiQueryKey => [
-  getApiUrl('/organizations/$organizationIdOrSlug/detectors/$detectorId/', {
+}) =>
+  apiOptions.as<T>()('/organizations/$organizationIdOrSlug/detectors/$detectorId/', {
     path: {organizationIdOrSlug: orgSlug, detectorId},
-  }),
-];
+    staleTime: 0,
+  });
+
+export const makeDetectorDetailsQueryKey = (params: {
+  detectorId: string;
+  orgSlug: string;
+}) => detectorDetailsApiOptions(params).queryKey;
 
 export function useDetectorQuery<T extends Detector = Detector>(
   detectorId: string,
-  options: Partial<UseApiQueryOptions<T>> = {}
+  options: Pick<
+    ReturnType<typeof detectorDetailsApiOptions<T>>,
+    'enabled' | 'retry' | 'staleTime' | 'refetchOnWindowFocus' | 'refetchInterval'
+  > = {}
 ) {
   const org = useOrganization();
 
-  return useApiQuery<T>(makeDetectorDetailsQueryKey({orgSlug: org.slug, detectorId}), {
+  return useQuery({
+    ...detectorDetailsApiOptions<T>({orgSlug: org.slug, detectorId}),
     staleTime: 0,
     retry: false,
     ...options,

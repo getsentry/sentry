@@ -11,6 +11,7 @@ from sentry.api.bases.organization import (
     ControlSiloOrganizationEndpoint,
     OrganizationPermission,
 )
+from sentry.auth.principal import is_owned_by_acting_user
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.users.models.identity import OrganizationIdentity
 
@@ -39,13 +40,17 @@ class OrganizationMonitoringProviderIndexEndpoint(ControlSiloOrganizationEndpoin
     permission_classes = (MonitoringProviderPermission,)
 
     def get(self, request: Request, organization: RpcOrganization, **kwargs: object) -> Response:
-        if not features.has("organizations:seer-infra-telemetry", organization, actor=request.user):
+        if not features.has(
+            "organizations:seer-infra-telemetry", organization, actor=request.user
+        ) or not features.has(
+            "organizations:seer-infra-telemetry-user-level-auth", organization, actor=request.user
+        ):
             return Response(status=404)
 
         connected_providers = set(
             OrganizationIdentity.objects.filter(
+                is_owned_by_acting_user(request.user, "identity__user_id"),
                 organization_id=organization.id,
-                identity__user_id=request.user.id,  # type: ignore[misc]
                 identity__idp__type__in=MONITORING_PROVIDERS.keys(),
             ).values_list("identity__idp__type", flat=True)
         )

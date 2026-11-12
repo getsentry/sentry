@@ -1,16 +1,18 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Pagination} from '@sentry/scraps/pagination';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {getFlagActionLabel, type RawFlag} from 'sentry/components/featureFlags/utils';
-import {GridEditable, type GridColumnOrder} from 'sentry/components/tables/gridEditable';
+import {DataGrid, type GridColumnOrder} from 'sentry/components/tables/dataGrid';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FIELD_FORMATTERS} from 'sentry/utils/discover/fieldRenderers';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {getFlagActionLabel, type RawFlag} from './utils';
 
 export type ColumnKey = 'provider' | 'flag' | 'action' | 'createdAt';
 
@@ -25,7 +27,6 @@ interface FeatureFlagsLogTableProps {
   onResizeColumn?: (columnIndex: number, nextColumn: GridColumnOrder<ColumnKey>) => void;
   onRowMouseOut?: (dataRow: RawFlag, key: number) => void;
   onRowMouseOver?: (dataRow: RawFlag, key: number) => void;
-  scrollable?: boolean;
 }
 
 export function FeatureFlagsLogTable({
@@ -39,35 +40,34 @@ export function FeatureFlagsLogTable({
   onRowMouseOver,
   onRowMouseOut,
   highlightedRowKey,
-  scrollable = false,
 }: FeatureFlagsLogTableProps) {
   const organization = useOrganization();
   const analyticsArea = useAnalyticsArea();
-  const navigate = useNavigate();
+  const [, setCursor] = useQueryState(
+    cursorKeyName,
+    parseAsString.withOptions({history: 'push'})
+  );
 
   const handlePageChange = useCallback(
-    (cursor: string | undefined, path: string, searchQuery: Record<string, any>) => {
+    (cursor: string | undefined, delta: -1 | 1) => {
       trackAnalytics('flags.logs-paginated', {
-        direction: cursor?.endsWith(':1') ? 'prev' : 'next',
+        direction: delta === -1 ? 'prev' : 'next',
         organization,
         surface: analyticsArea,
       });
-      navigate({
-        pathname: path,
-        query: {...searchQuery, [cursorKeyName]: cursor},
-      });
+      void setCursor(cursor ?? null);
     },
-    [analyticsArea, cursorKeyName, navigate, organization]
+    [analyticsArea, organization, setCursor]
   );
 
   return (
     <div>
-      <GridEditable
+      <DataGrid
         error={error}
         isLoading={isPending}
         data={flags ?? []}
         columnOrder={columns}
-        columnSortBy={[]}
+        fit="max-content"
         grid={{
           renderBodyCell,
           onResizeColumn,
@@ -75,11 +75,13 @@ export function FeatureFlagsLogTable({
         onRowMouseOver={onRowMouseOver}
         onRowMouseOut={onRowMouseOut}
         highlightedRowKey={highlightedRowKey}
-        scrollable={scrollable}
         data-test-id="audit-log-table"
       />
 
-      <PaginationNoMargin pageLinks={pageLinks} onCursor={handlePageChange} />
+      <PaginationNoMargin
+        {...getPaginationProps(pageLinks)}
+        onCursor={handlePageChange}
+      />
     </div>
   );
 }

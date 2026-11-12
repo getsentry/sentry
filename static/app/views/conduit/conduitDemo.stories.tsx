@@ -2,7 +2,7 @@ import {useMemo, useState} from 'react';
 import {useStream} from 'conduit-client';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
@@ -47,7 +47,7 @@ export default Storybook.story('Conduit Demo', story => {
     const fullMessage = messages.map(msg => msg.value).join(' ');
 
     return (
-      <Flex direction="column" gap="lg" padding="lg" align="start">
+      <Stack gap="lg" padding="lg" align="start">
         <Heading as="h1">Conduit Demo</Heading>
         <Button variant="primary" size="md" onClick={() => setIsEnabled(prev => !prev)}>
           {isEnabled ? 'Disable' : 'Enable'}
@@ -61,7 +61,7 @@ export default Storybook.story('Conduit Demo', story => {
             {fullMessage}
           </Text>
         )}
-      </Flex>
+      </Stack>
     );
   });
 });

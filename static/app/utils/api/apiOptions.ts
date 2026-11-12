@@ -1,14 +1,15 @@
 import type {SkipToken} from '@tanstack/react-query';
 import {infiniteQueryOptions, queryOptions, skipToken} from '@tanstack/react-query';
 
-import {apiFetch, apiFetchInfinite} from 'sentry/utils/api/apiFetch';
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
-import type {QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {ExtractPathParams, OptionalPathParams} from 'sentry/utils/api/getApiUrl';
-import type {KnownGetsentryApiUrls} from 'sentry/utils/api/knownGetsentryApiUrls';
-import type {KnownSentryApiUrls} from 'sentry/utils/api/knownSentryApiUrls.generated';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
+
+import {apiFetch, apiFetchInfinite} from './apiFetch';
+import type {ApiResponse} from './apiFetch';
+import type {QueryKeyEndpointOptions} from './apiQueryKey';
+import {getApiUrl} from './getApiUrl';
+import type {ExtractPathParams, OptionalPathParams} from './getApiUrl';
+import type {KnownGetsentryApiUrls} from './knownGetsentryApiUrls';
+import type {KnownSentryApiUrls} from './knownSentryApiUrls.generated';
 
 type KnownApiUrls = KnownGetsentryApiUrls | KnownSentryApiUrls;
 
@@ -74,6 +75,7 @@ function _apiOptions<
 }
 
 function parsePageParam<TQueryFnData = unknown>(dir: 'previous' | 'next') {
+  // oxlint-disable-next-line react/function-component-definition -- This callback is not a React component.
   return ({headers}: ApiResponse<TQueryFnData>) => {
     const parsed = parseLinkHeader(headers.Link ?? null);
     return parsed[dir]?.results ? parsed[dir] : null;

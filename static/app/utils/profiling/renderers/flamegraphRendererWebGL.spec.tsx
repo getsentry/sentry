@@ -13,8 +13,9 @@ import type {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegrap
 import {makeLightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {getFlamegraphFrameSearchId} from 'sentry/utils/profiling/flamegraphFrame';
-import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
+
+import {FlamegraphRendererWebGL} from './flamegraphRendererWebGL';
 
 const theme = makeLightFlamegraphTheme(ThemeFixture());
 const originalDpr = window.devicePixelRatio;
@@ -42,8 +43,8 @@ describe('flamegraphRendererWebGL', () => {
           ...theme,
           COLORS: {
             ...theme.COLORS,
-            // @ts-expect-error overridee the colors implementation
-            STACK_TO_COLOR: () => {
+            // @ts-expect-error override the colors implementation
+            stackToColor: () => {
               const colorMap = new Map<string, number[]>([['f0', [1, 0, 0, 1]]]);
               return {
                 colorBuffer: [

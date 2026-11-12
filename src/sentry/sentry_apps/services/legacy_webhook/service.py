@@ -7,10 +7,9 @@ from sentry.eventstore.models import GroupEvent
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.rule import Rule
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.tasks.sentry_apps import send_alert_webhook_v2
-from sentry.workflow_engine.models import AlertRuleWorkflow, Workflow
+from sentry.workflow_engine.models import Workflow
 from sentry.workflow_engine.types import ActionInvocation
 
 logger = logging.getLogger("sentry.legacy_webhook")
@@ -46,27 +45,10 @@ def is_legacy_webhook_enabled(project: Project) -> bool:
 def get_triggering_rule_name(invocation: ActionInvocation) -> str:
     try:
         workflow = Workflow.objects.get(id=invocation.workflow_id)
-        label = workflow.name
     except Workflow.DoesNotExist:
         return invocation.detector.name
 
-    alert_rule_workflow = AlertRuleWorkflow.objects.filter(
-        workflow_id=workflow.id,
-        rule_id__isnull=False,
-    ).first()
-    if alert_rule_workflow:
-        try:
-            label = Rule.objects.get(
-                id=alert_rule_workflow.rule_id,
-                project__organization_id=workflow.organization_id,
-            ).label
-        except Rule.DoesNotExist:
-            logger.exception(
-                "Rule not found when querying for AlertRuleWorkflow",
-                extra={"rule_id": alert_rule_workflow.rule_id},
-            )
-
-    return label
+    return workflow.name
 
 
 def build_legacy_webhook_payload(invocation: ActionInvocation) -> LegacyWebhookPayload:
@@ -134,7 +116,7 @@ def send_legacy_webhooks_for_invocation(invocation: ActionInvocation) -> None:
     # Delayed import to avoid circular dependency (tasks imports LegacyWebhookPayload from here)
     from sentry.sentry_apps.services.legacy_webhook.tasks import send_legacy_webhook_task
 
-    project = invocation.detector.project
+    project = invocation.detector.linked_project
     enabled = ProjectOption.objects.get_value(project, "webhooks:enabled", default=False)
     if not enabled:
         return

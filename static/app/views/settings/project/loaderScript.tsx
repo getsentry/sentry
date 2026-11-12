@@ -16,8 +16,9 @@ import type {Project, ProjectKey} from 'sentry/types/project';
 import {projectKeysApiOptions} from 'sentry/utils/projectKeys';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {LoaderSettings} from 'sentry/views/settings/project/projectKeys/details/loaderSettings';
-import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
+
+import {LoaderSettings} from './projectKeys/details/loaderSettings';
+import {useProjectSettingsOutlet} from './projectSettingsLayout';
 
 export default function ProjectLoaderScript() {
   const organization = useOrganization();
@@ -40,7 +41,7 @@ export default function ProjectLoaderScript() {
       );
       const newUpdatedProjectKeys =
         existingProjectIndex > -1
-          ? [...updatedProjectKeys].map((updatedProjectKey, index) => {
+          ? Array.from(updatedProjectKeys, (updatedProjectKey, index) => {
               return index === existingProjectIndex ? projectKey : updatedProjectKey;
             })
           : [...updatedProjectKeys, projectKey];

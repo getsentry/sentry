@@ -3,12 +3,18 @@ import zipfile
 from datetime import datetime, timedelta, timezone
 from hashlib import sha1
 from io import BytesIO
+from typing import Any, cast
+from unittest import mock
 from uuid import uuid4
 
 import orjson
 from django.core.files.base import ContentFile
 from django.urls import reverse
 
+from sentry.api.endpoints.artifact_lookup import (
+    get_legacy_release_bundles,
+    get_legacy_releasefile_by_file_url,
+)
 from sentry.models.artifactbundle import (
     ArtifactBundle,
     DebugIdArtifactBundle,
@@ -16,22 +22,35 @@ from sentry.models.artifactbundle import (
     ReleaseArtifactBundle,
     SourceFileType,
 )
+from sentry.models.distribution import Distribution
 from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
-from sentry.models.releasefile import ReleaseFile, read_artifact_index, update_artifact_index
+from sentry.models.project import Project
+from sentry.models.releasefile import (
+    ReleaseFile,
+    read_artifact_index,
+    update_artifact_index,
+)
 from sentry.tasks.assemble import assemble_artifacts
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.helpers.response import close_streaming_response
 
 
-def make_file(artifact_name, content, type="artifact.bundle", headers=None):
+def make_file(
+    artifact_name: str,
+    content: bytes,
+    type: str = "artifact.bundle",
+    headers: dict[str, str] | None = None,
+) -> File:
     file = File.objects.create(name=artifact_name, type=type, headers=(headers or {}))
     file.putfile(BytesIO(content))
     return file
 
 
-def make_compressed_zip_file(files):
-    def remove_and_return(dictionary, key):
+def make_compressed_zip_file(files: dict[str, dict[str, Any]]) -> bytes:
+    def remove_and_return(dictionary: dict[str, Any], key: str) -> dict[str, Any]:
         dictionary.pop(key)
         return dictionary
 
@@ -57,14 +76,16 @@ def make_compressed_zip_file(files):
     return compressed.getvalue()
 
 
-def upload_bundle(bundle_file, project, release=None, dist=None):
+def upload_bundle(
+    bundle_file: bytes, project: Project, release: str | None = None, dist: str | None = None
+) -> None:
     blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), project.organization)
     total_checksum = sha1(bundle_file).hexdigest()
 
     return assemble_artifacts(
         org_id=project.organization.id,
         project_ids=[project.id],
-        version=release,
+        version=cast(str, release),
         dist=dist,
         checksum=total_checksum,
         chunks=[blob1.checksum],
@@ -78,7 +99,12 @@ class ArtifactLookupTest(APITestCase):
         for chunk in response:
             assert file.read(len(chunk)) == chunk
 
-    def create_archive(self, fields, files, dist=None):
+    def create_archive(
+        self,
+        fields: dict[str, Any],
+        files: dict[str, Any],
+        dist: Distribution | None = None,
+    ) -> tuple[ReleaseFile, bytes]:
         manifest = dict(
             fields, files={filename: {"url": f"fake://{filename}"} for filename in files}
         )
@@ -94,7 +120,34 @@ class ArtifactLookupTest(APITestCase):
         file_.putfile(buffer)
         file_.update(timestamp=datetime(2021, 6, 11, 9, 13, 1, 317902, tzinfo=timezone.utc))
 
-        return (update_artifact_index(self.release, dist, file_), buffer.getvalue())
+        return (
+            cast(ReleaseFile, update_artifact_index(self.release, dist, file_)),
+            buffer.getvalue(),
+        )
+
+    def lookup_with_legacy_calls(self, query: str) -> tuple[list[dict[str, Any]], int]:
+        """
+        Runs a lookup and counts the calls of the two legacy `ReleaseFile` queries.
+        """
+        url = reverse(
+            "sentry-api-0-project-artifact-lookup",
+            kwargs={
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
+            },
+        )
+        with (
+            mock.patch(
+                "sentry.api.endpoints.artifact_lookup.get_legacy_release_bundles",
+                wraps=get_legacy_release_bundles,
+            ) as release_bundles,
+            mock.patch(
+                "sentry.api.endpoints.artifact_lookup.get_legacy_releasefile_by_file_url",
+                wraps=get_legacy_releasefile_by_file_url,
+            ) as release_files,
+        ):
+            response = self.client.get(f"{url}?{query}").json()
+        return response, release_bundles.call_count + release_files.call_count
 
     def test_query_by_debug_ids(self) -> None:
         debug_id_a = "aaaaaaaa-0000-0000-0000-000000000000"
@@ -640,6 +693,67 @@ class ArtifactLookupTest(APITestCase):
         assert ReleaseFile.objects.get(id=releasefile.id).date_accessed > old_timestamp
         assert ReleaseFile.objects.get(id=archive1.id).date_accessed > old_timestamp
 
+    def test_legacy_lookup_runs_by_default_for_release_without_release_files(self) -> None:
+        self.login_as(user=self.user)
+
+        response, legacy_calls = self.lookup_with_legacy_calls(
+            f"release={self.release.version}&url=application.js"
+        )
+
+        assert response == []
+        assert legacy_calls == 2
+
+    @override_options({"sourcemaps.artifact-lookup.skip-legacy-without-release-files": True})
+    def test_legacy_lookup_skipped_for_release_without_release_files(self) -> None:
+        self.login_as(user=self.user)
+
+        response, legacy_calls = self.lookup_with_legacy_calls(
+            f"release={self.release.version}&url=application.js"
+        )
+
+        assert response == []
+        assert legacy_calls == 0
+
+    @override_options({"sourcemaps.artifact-lookup.skip-legacy-without-release-files": True})
+    def test_legacy_lookup_not_skipped_for_release_with_release_files(self) -> None:
+        file = make_file("application.js", b"wat", "release.file", {})
+        releasefile = self.create_release_file(file=file, name="http://example.com/application.js")
+        archive, _ = self.create_archive(fields={}, files={"foo": "foo1"})
+        self.login_as(user=self.user)
+
+        response, legacy_calls = self.lookup_with_legacy_calls(
+            f"release={self.release.version}&url=application.js"
+        )
+
+        assert legacy_calls == 2
+        assert [(artifact["id"], artifact["type"]) for artifact in response] == [
+            (f"release_file/{releasefile.id}", "file"),
+            (f"release_file/{archive.id}", "bundle"),
+        ]
+
+    @override_options({"sourcemaps.artifact-lookup.skip-legacy-without-release-files": True})
+    def test_legacy_lookup_skip_checks_requested_dist(self) -> None:
+        dist = self.release.add_dist("foo")
+        file = make_file("application.js", b"wat", "release.file", {})
+        releasefile = self.create_release_file(
+            file=file, name="http://example.com/application.js", dist_id=dist.id
+        )
+        self.login_as(user=self.user)
+
+        response, legacy_calls = self.lookup_with_legacy_calls(
+            f"release={self.release.version}&url=application.js"
+        )
+
+        assert response == []
+        assert legacy_calls == 0
+
+        response, legacy_calls = self.lookup_with_legacy_calls(
+            f"release={self.release.version}&dist={dist.name}&url=application.js"
+        )
+
+        assert legacy_calls == 2
+        assert [artifact["id"] for artifact in response] == [f"release_file/{releasefile.id}"]
+
     def test_access_control(self) -> None:
         # release file
         file_a = make_file("application.js", b"wat", "release.file", {})
@@ -763,6 +877,50 @@ class ArtifactLookupTest(APITestCase):
         )
 
         self.assert_download_matches_file(f"{url}?download=release_file/{rf_a.id}", file_content)
+
+    def test_release_file_download_as_sentry_app(self) -> None:
+        file = make_file("app.js", b"File contents here", "release.file", {})
+        releasefile = self.create_release_file(
+            self.release.id, file=file, name="http://example.com/app.js"
+        )
+        url = reverse(
+            "sentry-api-0-project-artifact-lookup",
+            kwargs={
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
+            },
+        )
+        url = f"{url}?download=release_file/{releasefile.id}"
+
+        read_app = self.create_internal_integration(
+            name="Read", organization=self.organization, scopes=("project:read",)
+        )
+        write_app = self.create_internal_integration(
+            name="Write",
+            organization=self.organization,
+            scopes=("project:read", "project:write"),
+        )
+        read_token = self.create_internal_integration_token(
+            user=self.user, internal_integration=read_app
+        )
+        write_token = self.create_internal_integration_token(
+            user=self.user, internal_integration=write_app
+        )
+        read_auth = f"Bearer {read_token.token}"
+        write_auth = f"Bearer {write_token.token}"
+
+        # The default debug files role requires write access
+        response = self.client.get(url, HTTP_AUTHORIZATION=read_auth)
+        assert response.status_code == 403, response.content
+        response = self.client.get(url, HTTP_AUTHORIZATION=write_auth)
+        assert response.status_code == 200, response.content
+        assert b"File contents here" == close_streaming_response(response)
+
+        # The member role only requires read access
+        self.organization.update_option("sentry:debug_files_role", "member")
+        response = self.client.get(url, HTTP_AUTHORIZATION=read_auth)
+        assert response.status_code == 200, response.content
+        assert b"File contents here" == close_streaming_response(response)
 
     def test_download_invalid_id(self) -> None:
         self.login_as(user=self.user)

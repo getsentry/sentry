@@ -1,9 +1,9 @@
 import {useQuery} from '@tanstack/react-query';
 
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Link} from '@sentry/scraps/link';
+import {Footer} from '@sentry/scraps/menu';
 
-import {DropdownMenu, type DropdownMenuProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {t} from 'sentry/locale';
 import {seerAgentIntegrationsSelectQueryOptions} from 'sentry/utils/seer/preferredAgent';
 import type {AutofixAgentSelectOption} from 'sentry/utils/seer/types';
@@ -11,12 +11,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function PreferredAgentDropdownMenu({
   isDisabled,
-  size = 'xs',
   onChange,
 }: {
   isDisabled: boolean;
   onChange: (value: AutofixAgentSelectOption) => void;
-  size?: DropdownMenuProps['size'];
 }) {
   const organization = useOrganization();
   const {data: agentOptions = []} = useQuery(
@@ -26,7 +24,7 @@ export function PreferredAgentDropdownMenu({
   return (
     <DropdownMenu
       isDisabled={isDisabled}
-      size={size}
+      size="xs"
       triggerLabel={t('Agent')}
       items={
         agentOptions.map(({value, label}) => ({
@@ -36,7 +34,7 @@ export function PreferredAgentDropdownMenu({
         })) ?? []
       }
       menuFooter={
-        <DropdownMenuFooter>
+        <Footer>
           <Link
             to={{
               pathname: `/settings/${organization.slug}/integrations/`,
@@ -45,7 +43,7 @@ export function PreferredAgentDropdownMenu({
           >
             {t('Manage Coding Agents')}
           </Link>
-        </DropdownMenuFooter>
+        </Footer>
       }
     />
   );

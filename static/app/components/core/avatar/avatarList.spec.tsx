@@ -5,16 +5,6 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {AvatarList} from '@sentry/scraps/avatar';
 
-function renderComponent({
-  users,
-  teams,
-}: {
-  users: React.ComponentProps<typeof AvatarList>['users'];
-  teams?: React.ComponentProps<typeof AvatarList>['teams'];
-}) {
-  return render(<AvatarList users={users} teams={teams} />);
-}
-
 describe('AvatarList', () => {
   const user = UserFixture();
   const team = TeamFixture();
@@ -25,7 +15,7 @@ describe('AvatarList', () => {
       {...user, id: '2', name: 'BC'},
     ];
 
-    renderComponent({users});
+    render(<AvatarList users={users} />);
     expect(screen.getByText('A')).toBeInTheDocument();
     expect(screen.getByText('B')).toBeInTheDocument();
     expect(screen.queryByTestId('avatarList-collapsedavatars')).not.toBeInTheDocument();
@@ -41,7 +31,7 @@ describe('AvatarList', () => {
       {...user, id: '6', name: 'FG'},
     ];
 
-    renderComponent({users});
+    render(<AvatarList users={users} />);
     expect(screen.getByText(users[0]!.name.charAt(0))).toBeInTheDocument();
     expect(screen.getByText(users[1]!.name.charAt(0))).toBeInTheDocument();
     expect(screen.getByText(users[2]!.name.charAt(0))).toBeInTheDocument();
@@ -62,7 +52,7 @@ describe('AvatarList', () => {
       {...user, id: '7', name: 'GH'},
     ];
 
-    renderComponent({users});
+    render(<AvatarList users={users} />);
     expect(screen.getByText(users[0]!.name.charAt(0))).toBeInTheDocument();
     expect(screen.getByText(users[1]!.name.charAt(0))).toBeInTheDocument();
     expect(screen.getByText(users[2]!.name.charAt(0))).toBeInTheDocument();
@@ -82,7 +72,7 @@ describe('AvatarList', () => {
       {...team, id: '2', name: 'B', slug: 'B', type: 'team'},
     ];
 
-    renderComponent({users, teams});
+    render(<AvatarList users={users} teams={teams} />);
     expect(screen.getByText('A')).toBeInTheDocument();
     expect(screen.getByText('B')).toBeInTheDocument();
     expect(screen.getByText('C')).toBeInTheDocument();
@@ -96,7 +86,7 @@ describe('AvatarList', () => {
       {...team, id: '2', name: 'B', slug: 'B', type: 'team'},
     ];
 
-    renderComponent({users: [], teams});
+    render(<AvatarList users={[]} teams={teams} />);
     expect(screen.getByText('A')).toBeInTheDocument();
     expect(screen.getByText('B')).toBeInTheDocument();
     expect(screen.queryByTestId('avatarList-collapsedavatars')).not.toBeInTheDocument();

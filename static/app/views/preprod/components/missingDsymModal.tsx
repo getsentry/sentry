@@ -1,12 +1,12 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {openModal} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {openModal} from 'sentry/actionCreators/modal';
-import {IconClose} from 'sentry/icons/iconClose';
 import {t, tn} from 'sentry/locale';
 
 interface MissingDsymModalProps {
@@ -16,7 +16,7 @@ interface MissingDsymModalProps {
 
 function MissingDsymModal({binaries, closeModal}: MissingDsymModalProps) {
   return (
-    <Flex direction="column" gap="lg">
+    <Stack gap="lg">
       <Flex justify="center" align="center" width="100%" position="relative">
         <Heading as="h2">
           {tn('Missing Debug Symbol', 'Missing Debug Symbols', binaries.length)}
@@ -50,7 +50,7 @@ function MissingDsymModal({binaries, closeModal}: MissingDsymModalProps) {
           </BinaryItem>
         ))}
       </BinaryList>
-    </Flex>
+    </Stack>
   );
 }
 

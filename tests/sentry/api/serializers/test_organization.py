@@ -1,4 +1,5 @@
 import datetime
+from typing import cast
 from unittest import mock
 
 from django.conf import settings
@@ -11,12 +12,16 @@ from sentry.api.serializers import (
     OrganizationWithProjectsAndTeamsSerializer,
     serialize,
 )
-from sentry.api.serializers.models.organization import ORGANIZATION_OPTIONS_AS_FEATURES
+from sentry.api.serializers.models.organization import (
+    OrganizationSerializerResponse,
+    OrganizationWithProjectsAndTeamsSerializerResponse,
+)
 from sentry.auth import access
 from sentry.features.base import OrganizationFeature
 from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
 from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organization import Organization
 from sentry.models.organizationonboardingtask import (
     OnboardingTask,
     OnboardingTaskStatus,
@@ -25,33 +30,56 @@ from sentry.models.organizationonboardingtask import (
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.skips import requires_snuba
+from sentry.users.models.user import User
 
 pytestmark = [requires_snuba]
 
-non_default_owner_scopes = ["org:ci", "openid", "email", "profile", "project:distribution"]
+
+def _serialize_organization(
+    organization: Organization,
+    user: User,
+    serializer: OrganizationSerializer,
+    access: access.Access,
+) -> OrganizationSerializerResponse:
+    return cast(
+        OrganizationSerializerResponse, serialize(organization, user, serializer, access=access)
+    )
+
+
+def _serialize_organization_with_projects_and_teams(
+    organization: Organization,
+    user: User,
+    serializer: OrganizationWithProjectsAndTeamsSerializer,
+    access: access.Access,
+) -> OrganizationWithProjectsAndTeamsSerializerResponse:
+    return cast(
+        OrganizationWithProjectsAndTeamsSerializerResponse,
+        serialize(organization, user, serializer, access=access),
+    )
+
+
+granular_scopes = [
+    "dashboard:read",
+    "dashboard:write",
+    "saved_query:read",
+    "saved_query:write",
+    "user_preference:read",
+    "user_preference:write",
+]
+non_default_owner_scopes = [
+    "org:ci",
+    "org:tokens",
+    "openid",
+    "email",
+    "profile",
+    "project:distribution",
+    *granular_scopes,
+]
 default_owner_scopes = frozenset(
     filter(lambda scope: scope not in non_default_owner_scopes, settings.SENTRY_SCOPES)
 )
-
-mock_options_as_features = {
-    "sentry:set_no_value": [
-        ("frontend-flag-1-1", lambda opt: True),
-        ("frontend-flag-1-2", lambda opt: True),
-    ],
-    "sentry:unset_no_value": [
-        ("frontend-flag-2-1", lambda opt: True),
-        ("frontend-flag-2-2", lambda opt: True),
-    ],
-    "sentry:set_with_func_pass": [
-        ("frontend-flag-3-1", lambda opt: bool(opt.value)),
-        ("frontend-flag-3-2", lambda opt: bool(opt.value)),
-    ],
-    "sentry:set_with_func_fail": [
-        ("frontend-flag-4-1", lambda opt: bool(opt.value)),
-        ("frontend-flag-4-2", lambda opt: bool(opt.value)),
-    ],
-}
 
 
 class OrganizationSummarySerializerTest(TestCase):
@@ -67,8 +95,6 @@ class OrganizationSummarySerializerTest(TestCase):
             "change-alerts",
             "crash-rate-alerts",
             "custom-symbol-sources",
-            "dashboards-basic",
-            "dashboards-edit",
             "data-forwarding",
             "discover-basic",
             "discover-query",
@@ -90,7 +116,6 @@ class OrganizationSummarySerializerTest(TestCase):
             "invite-members",
             "open-membership",
             "relay",
-            "sentry-app-schema-form-migration",
             "session-replay-ui",
             "shared-issues",
             "sso-basic",
@@ -99,6 +124,11 @@ class OrganizationSummarySerializerTest(TestCase):
             "team-roles",
             "uptime",
         ]
+
+    @with_feature("organizations:flamegraph-attachments")
+    def test_flamegraph_feature_is_exposed(self) -> None:
+        result = serialize(self.organization, self.user)
+        assert "flamegraph-attachments" in result["features"]
 
     @mock.patch("sentry.features.batch_has")
     def test_organization_batch_has(self, mock_batch: mock.MagicMock) -> None:
@@ -118,30 +148,6 @@ class OrganizationSummarySerializerTest(TestCase):
         assert "test-feature" in result["features"]
         assert "disabled-feature" not in result["features"]
 
-    @mock.patch.dict(ORGANIZATION_OPTIONS_AS_FEATURES, mock_options_as_features)
-    def test_organization_options_as_features(self) -> None:
-        user = self.create_user()
-        organization = self.create_organization(owner=user)
-
-        OrganizationOption.objects.set_value(organization, "sentry:set_no_value", {})
-        OrganizationOption.objects.set_value(organization, "sentry:set_with_func_pass", 1)
-        OrganizationOption.objects.set_value(organization, "sentry:set_with_func_fail", 0)
-
-        features = serialize(organization, user)["features"]
-
-        # Setting a flag with no function checks for option, regardless of value
-        for feature, _func in mock_options_as_features["sentry:set_no_value"]:
-            assert feature in features
-        # If the option isn't set, it doesn't appear in features
-        for feature, _func in mock_options_as_features["sentry:unset_no_value"]:
-            assert feature not in features
-        # With a function, run it against the value
-        for feature, _func in mock_options_as_features["sentry:set_with_func_pass"]:
-            assert feature in features
-        # If it returns False, it doesn't appear in features
-        for feature, _func in mock_options_as_features["sentry:set_with_func_fail"]:
-            assert feature not in features
-
 
 class OrganizationSerializerTest(TestCase):
     def test_detailed(self) -> None:
@@ -150,15 +156,28 @@ class OrganizationSerializerTest(TestCase):
         acc = access.from_user(user, organization)
 
         serializer = OrganizationSerializer()
-        result = serialize(organization, user, serializer, access=acc)
+        result = _serialize_organization(organization, user, serializer, acc)
 
         assert result["id"] == str(organization.id)
         assert result["role"] == "owner"
-        assert result["access"] == default_owner_scopes
+        assert result["access"] == sorted(default_owner_scopes)
         assert result["relayPiiConfig"] is None
         assert isinstance(result["orgRoleList"], list)
         assert isinstance(result["teamRoleList"], list)
         assert result["requiresSso"] == acc.requires_sso
+
+    @with_feature("organizations:granular-permission-scopes")
+    def test_detailed_with_granular_permission_scopes(self) -> None:
+        user = self.create_user()
+        organization = self.create_organization(owner=user)
+        acc = access.from_user(user, organization)
+
+        serializer = OrganizationSerializer()
+        result = _serialize_organization(organization, user, serializer, acc)
+
+        assert result["access"] == sorted(default_owner_scopes | set(granular_scopes))
+        for role in result["orgRoleList"]:
+            assert set(granular_scopes) <= role["scopes"]
 
     def test_granular_replay_permissions_without_option(self) -> None:
         user = self.create_user()
@@ -166,7 +185,7 @@ class OrganizationSerializerTest(TestCase):
         acc = access.from_user(user, organization)
 
         serializer = OrganizationSerializer()
-        result = serialize(organization, user, serializer, access=acc)
+        result = _serialize_organization(organization, user, serializer, acc)
 
         assert result["hasGranularReplayPermissions"] is False
         assert result["replayAccessMembers"] == []
@@ -183,7 +202,7 @@ class OrganizationSerializerTest(TestCase):
         )
 
         serializer = OrganizationSerializer()
-        result = serialize(organization, user, serializer, access=acc)
+        result = _serialize_organization(organization, user, serializer, acc)
         assert result["hasGranularReplayPermissions"] is True
         assert result["replayAccessMembers"] == []
 
@@ -201,7 +220,7 @@ class OrganizationSerializerTest(TestCase):
         acc = access.from_user(user, organization)
 
         serializer = OrganizationSerializer()
-        result = serialize(organization, user, serializer, access=acc)
+        result = _serialize_organization(organization, user, serializer, acc)
         assert set(result["replayAccessMembers"]) == set()
 
     def test_replay_access_members_serialized_with_option_enabled(self) -> None:
@@ -224,7 +243,7 @@ class OrganizationSerializerTest(TestCase):
         )
 
         serializer = OrganizationSerializer()
-        result = serialize(organization, user, serializer, access=acc)
+        result = _serialize_organization(organization, user, serializer, acc)
         assert result["hasGranularReplayPermissions"] is True
         assert set(result["replayAccessMembers"]) == {member1.user_id, member2.user_id}
 
@@ -234,7 +253,7 @@ class OrganizationSerializerTest(TestCase):
         acc = access.from_user(user, organization)
 
         serializer = OrganizationSerializer()
-        result = serialize(organization, user, serializer, access=acc)
+        result = _serialize_organization(organization, user, serializer, acc)
 
         assert result["replayAccessMembers"] == []
 
@@ -244,7 +263,7 @@ class OrganizationSerializerTest(TestCase):
         acc = access.from_user(user, organization)
 
         serializer = OrganizationSerializer()
-        result = serialize(organization, user, serializer, access=acc)
+        result = _serialize_organization(organization, user, serializer, acc)
 
         assert result["experiments"] == {}
 
@@ -261,7 +280,7 @@ class OrganizationSerializerTest(TestCase):
         features.default_manager.add_entity_handler(handler)
         try:
             serializer = OrganizationSerializer()
-            result = serialize(organization, user, serializer, access=acc)
+            result = _serialize_organization(organization, user, serializer, acc)
 
             assert result["experiments"] == {"experiment-test": "active"}
         finally:
@@ -275,11 +294,13 @@ class OrganizationWithProjectsAndTeamsSerializerTest(TestCase):
         self.project
         acc = access.from_user(self.user, self.organization)
         serializer = OrganizationWithProjectsAndTeamsSerializer()
-        result = serialize(self.organization, self.user, serializer, access=acc)
+        result = _serialize_organization_with_projects_and_teams(
+            self.organization, self.user, serializer, acc
+        )
 
         assert result["id"] == str(self.organization.id)
         assert result["role"] == "owner"
-        assert result["access"] == default_owner_scopes
+        assert result["access"] == sorted(default_owner_scopes)
         assert result["relayPiiConfig"] is None
         assert len(result["teams"]) == 1
         assert len(result["projects"]) == 1
@@ -308,7 +329,9 @@ class OrganizationWithProjectsAndTeamsSerializerTest(TestCase):
         )
         acc = access.from_user(self.user, self.organization)
         serializer = OrganizationWithProjectsAndTeamsSerializer()
-        result = serialize(self.organization, self.user, serializer, access=acc)
+        result = _serialize_organization_with_projects_and_teams(
+            self.organization, self.user, serializer, acc
+        )
 
         assert result["projects"][0]["latestDeploys"]
 
@@ -317,7 +340,9 @@ class OrganizationWithProjectsAndTeamsSerializerTest(TestCase):
         )
         options.set("api.organization.disable-last-deploys", opt_val)
 
-        result = serialize(self.organization, self.user, serializer, access=acc)
+        result = _serialize_organization_with_projects_and_teams(
+            self.organization, self.user, serializer, acc
+        )
         assert not result["projects"][0].get("latestDeploys")
 
         opt_val = killswitches.validate_user_input("api.organization.disable-last-deploys", [])

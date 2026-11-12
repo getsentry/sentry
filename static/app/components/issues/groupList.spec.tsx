@@ -1,3 +1,4 @@
+import {Fragment, useState} from 'react';
 import {GroupFixture} from 'sentry-fixture/group';
 import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -5,13 +6,37 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
+
+import type {CursorHandler} from '@sentry/scraps/pagination';
 
 import {GroupStore} from 'sentry/stores/groupStore';
 import {TeamStore} from 'sentry/stores/teamStore';
-import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
 
 import {GroupList} from './groupList';
+
+function GroupListWithExternalPagination() {
+  const [onCursor, setOnCursor] = useState<CursorHandler>();
+  return (
+    <Fragment>
+      <GroupList
+        numPlaceholderRows={1}
+        queryParams={{query: '', sort: 'new', limit: '50'}}
+        onFetchSuccess={(_state, handler) => setOnCursor(() => handler)}
+      />
+      <button disabled={!onCursor} onClick={() => onCursor?.('next-cursor', 1)}>
+        Next external page
+      </button>
+    </Fragment>
+  );
+}
 
 describe('GroupList', () => {
   const organization = OrganizationFixture();
@@ -63,6 +88,25 @@ describe('GroupList', () => {
     expect(screen.getByText('35K')).toBeInTheDocument();
   });
 
+  it('renders a header for each column of the rows', async () => {
+    render(
+      <GroupList
+        numPlaceholderRows={1}
+        queryParams={defaultQueryParams}
+        withColumns={['firstSeen', 'lastSeen', 'event', 'priority', 'assigneeAvatar']}
+      />,
+      {organization, initialRouterConfig}
+    );
+
+    await screen.findByText(group.shortId);
+    const row = screen.getByTestId('group');
+
+    expect(screen.getAllByRole('columnheader').map(header => header.textContent)).toEqual(
+      ['Issue', 'Last Seen', 'Age', 'Graph', 'Events', 'Priority', 'Assignee']
+    );
+    expect(within(row).getAllByRole('cell')).toHaveLength(7);
+  });
+
   it('renders empty state when no groups are returned', async () => {
     MockApiClient.addMockResponse({url: membersUrl, body: []});
     MockApiClient.addMockResponse({
@@ -81,8 +125,7 @@ describe('GroupList', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders custom error when query has boolean logic', async () => {
-    const renderErrorMessage = jest.fn(() => <div>custom error</div>);
+  it('explains a boolean query without asking the endpoint', async () => {
     const issuesRequest = MockApiClient.addMockResponse({
       url: issuesUrl,
       method: 'GET',
@@ -93,7 +136,6 @@ describe('GroupList', () => {
       <GroupList
         numPlaceholderRows={1}
         queryParams={{...defaultQueryParams, query: 'foo OR bar'}}
-        renderErrorMessage={renderErrorMessage}
       />,
       {
         organization,
@@ -107,12 +149,71 @@ describe('GroupList', () => {
       }
     );
 
-    expect(await screen.findByText('custom error')).toBeInTheDocument();
-    expect(renderErrorMessage).toHaveBeenCalledWith(
-      {detail: RELATED_ISSUES_BOOLEAN_QUERY_ERROR},
-      expect.any(Function)
-    );
+    expect(await screen.findByTestId('loading-error')).toBeInTheDocument();
+    expect(
+      screen.getByText('Search queries with AND or OR are not supported.')
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
     expect(issuesRequest).not.toHaveBeenCalled();
+  });
+
+  it('offers no retry for a client error the endpoint already rejected', async () => {
+    MockApiClient.addMockResponse({
+      url: issuesUrl,
+      method: 'GET',
+      statusCode: 400,
+      body: {detail: 'Invalid query'},
+    });
+
+    render(<GroupList numPlaceholderRows={1} queryParams={defaultQueryParams} />, {
+      organization,
+      initialRouterConfig,
+    });
+
+    expect(await screen.findByTestId('loading-error')).toBeInTheDocument();
+    expect(screen.getByText('Invalid query')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
+  });
+
+  it('falls back to generic copy when the response carries no detail', async () => {
+    MockApiClient.addMockResponse({
+      url: issuesUrl,
+      method: 'GET',
+      statusCode: 400,
+      body: {},
+    });
+
+    render(<GroupList numPlaceholderRows={1} queryParams={defaultQueryParams} />, {
+      organization,
+      initialRouterConfig,
+    });
+
+    expect(await screen.findByTestId('loading-error')).toBeInTheDocument();
+    expect(screen.getByText('There was an error loading data.')).toBeInTheDocument();
+  });
+
+  it('offers a retry for a server error that could land differently', async () => {
+    const issuesRequest = MockApiClient.addMockResponse({
+      url: issuesUrl,
+      method: 'GET',
+      statusCode: 500,
+      body: {detail: 'Internal error'},
+    });
+
+    render(<GroupList numPlaceholderRows={1} queryParams={defaultQueryParams} />, {
+      organization,
+      initialRouterConfig,
+    });
+
+    expect(await screen.findByTestId('loading-error')).toBeInTheDocument();
+
+    const retry = await screen.findByRole('button', {name: 'Retry'});
+    const callsBeforeRetry = issuesRequest.mock.calls.length;
+    await userEvent.click(retry);
+
+    await waitFor(() =>
+      expect(issuesRequest.mock.calls.length).toBeGreaterThan(callsBeforeRetry)
+    );
   });
 
   it('invokes onFetchSuccess with correct arguments', async () => {
@@ -171,7 +272,13 @@ describe('GroupList', () => {
       <GroupList numPlaceholderRows={1} queryParams={defaultQueryParams} />,
       {
         organization,
-        initialRouterConfig,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {...defaultQueryParams, project: ['1', '2']},
+          },
+        },
       }
     );
 
@@ -188,6 +295,32 @@ describe('GroupList', () => {
     });
 
     expect(router.location.query.page).toBe('1');
+    expect(router.location.query.project).toEqual(['1', '2']);
+    expect(router.location.pathname).toBe(initialRouterConfig.location.pathname);
+  });
+
+  it('keeps external pagination handlers synchronized with URL filters', async () => {
+    const {router} = render(<GroupListWithExternalPagination />, {
+      organization,
+      initialRouterConfig,
+    });
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Next external page'})).toBeEnabled()
+    );
+    act(() => {
+      router.navigate(
+        `${initialRouterConfig.location.pathname}?query=&sort=new&limit=50&environment=production&environment=staging`
+      );
+    });
+    await userEvent.click(screen.getByRole('button', {name: 'Next external page'}));
+    await waitFor(() => {
+      expect(router.location.query).toEqual({
+        ...defaultQueryParams,
+        environment: ['production', 'staging'],
+        cursor: 'next-cursor',
+        page: '1',
+      });
+    });
   });
 
   it('updates the assignee when changed', async () => {

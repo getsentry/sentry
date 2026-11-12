@@ -5,17 +5,17 @@ import devkitCrashesStep2 from 'sentry-images/tempest/devkit-crashes-step2.png';
 import devkitCrashesStep3 from 'sentry-images/tempest/devkit-crashes-step3.png';
 import windowToolImg from 'sentry-images/tempest/windows-tool-devkit.png';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
+import {docsFlowGamingOrigin} from 'sentry/components/onboarding/gettingStartedDoc/docsFlowAnalytics';
 import {
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {InstallationMode} from 'sentry/gettingStartedDocs/playstation/utils';
 import {t, tct} from 'sentry/locale';
 import {AddCredentialsButton} from 'sentry/views/settings/project/tempest/addCredentialsButton';
 import {
@@ -23,6 +23,8 @@ import {
   AllowListIPAddresses,
 } from 'sentry/views/settings/project/tempest/allowListIPAddresses';
 import {ConfigForm} from 'sentry/views/settings/project/tempest/configForm';
+
+import {InstallationMode} from './utils';
 
 const isRetailMode = (params: DocsParams) =>
   params.platformOptions?.installationMode === InstallationMode.RETAIL;
@@ -57,7 +59,7 @@ const onboardingRetail: OnboardingConfig = {
           content: (
             <AddCredentialsButton
               project={params.project}
-              origin={params.newOrg ? 'onboarding' : 'project-creation'}
+              origin={docsFlowGamingOrigin(params.docsFlow)}
             />
           ),
         },
@@ -69,7 +71,6 @@ const onboardingRetail: OnboardingConfig = {
               projectSettingsLink: (
                 <ExternalLink
                   href={`/settings/${params.organization.slug}/projects/${params.project.slug}/playstation/?tab=retail`}
-                  openInNewTab
                 />
               ),
             }
@@ -192,7 +193,7 @@ const onboardingDevkit: OnboardingConfig = {
         {
           type: 'custom',
           content: (
-            <Flex direction="column" gap="lg" align="center">
+            <Stack gap="lg" align="center">
               <CardIllustration
                 src={devkitCrashesStep1}
                 alt={t('DevKit set up screenshot step 1')}
@@ -205,7 +206,7 @@ const onboardingDevkit: OnboardingConfig = {
                 src={devkitCrashesStep3}
                 alt={t('DevKit set up screenshot step 3')}
               />
-            </Flex>
+            </Stack>
           ),
         },
       ],
@@ -274,7 +275,7 @@ export const onboarding: OnboardingConfig = {
               gamingPlatform="playstation"
               organization={params.organization}
               projectId={params.project.id}
-              origin={params.newOrg ? 'onboarding' : 'project-creation'}
+              origin={docsFlowGamingOrigin(params.docsFlow)}
             />
           ),
         },

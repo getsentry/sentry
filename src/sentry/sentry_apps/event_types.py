@@ -61,9 +61,18 @@ class SentryAppEventType(StrEnum):
     SEER_CODING_STARTED = "seer.coding_started"
     SEER_CODING_COMPLETED = "seer.coding_completed"
     SEER_PR_CREATED = "seer.pr_created"
+    SEER_PR_READY_FOR_REVIEW = "seer.pr_ready_for_review"
     SEER_ITERATION_STARTED = "seer.iteration_started"
     SEER_ITERATION_COMPLETED = "seer.iteration_completed"
+    # Internal only: not sent to Sentry Apps.
+    SEER_ERRORED = "seer.errored"
+    SEER_STOPPED = "seer.stopped"
 
     # preprod artifact webhooks
     PREPROD_ARTIFACT_SIZE_ANALYSIS_COMPLETED = "preprod_artifact.size_analysis_completed"
     PREPROD_ARTIFACT_BUILD_DISTRIBUTION_COMPLETED = "preprod_artifact.build_distribution_completed"
+
+
+INTERNAL_SEER_EVENT_TYPES = frozenset(
+    {SentryAppEventType.SEER_ERRORED, SentryAppEventType.SEER_STOPPED}
+)

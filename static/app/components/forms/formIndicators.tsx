@@ -1,15 +1,12 @@
 import styled from '@emotion/styled';
+import {IconRefresh} from '@sentry/icons/refresh';
 
 import {Flex} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
-import type {FieldValue, FormModel} from 'sentry/components/forms/model';
-import {DEFAULT_TOAST_DURATION} from 'sentry/constants';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
+
+import type {FieldValue, FormModel} from './model';
 
 /**
  * This will call an action creator to generate a "Toast" message that
@@ -49,66 +46,65 @@ export function addUndoableFormChangeMessage(
     newValue: <FormValue>{prettifyValue(change.new)}</FormValue>,
   };
 
-  addSuccessMessage(
+  toast.success(
     showChangeText
       ? tct('Changed [fieldName] from [oldValue] to [newValue]', tctArgsSuccess)
       : tct('Changed [fieldName]', tctArgsSuccess),
     {
-      formModel: {
-        model,
-        id: fieldName,
-      },
-      undo: () => {
-        if (!model || !fieldName) {
-          return;
-        }
+      action: {
+        label: t('Undo'),
+        icon: <IconRefresh size="xs" />,
+        onClick: () => {
+          if (!model || !fieldName) {
+            return;
+          }
 
-        const oldValue = model.getValue(fieldName);
-        if (!model.undo()) {
-          // Failed to undo, do nothing.
-          return;
-        }
+          const oldValue = model.getValue(fieldName);
+          if (!model.undo()) {
+            // Failed to undo, do nothing.
+            return;
+          }
 
-        const newValue = model.getValue(fieldName);
-        const maybeSaveResultPromise = model.saveField(fieldName, newValue);
+          const newValue = model.getValue(fieldName);
+          const maybeSaveResultPromise = model.saveField(fieldName, newValue);
 
-        if (!maybeSaveResultPromise) {
-          const tctArgsFail = {
+          if (!maybeSaveResultPromise) {
+            const tctArgsFail = {
+              root,
+              fieldName: <FieldName>{label}</FieldName>,
+              oldValue: <FormValue>{prettifyValue(oldValue)}</FormValue>,
+              newValue: <FormValue>{prettifyValue(newValue)}</FormValue>,
+            };
+
+            toast.error(
+              showChangeText
+                ? tct(
+                    'Unable to restore [fieldName] from [oldValue] to [newValue]',
+                    tctArgsFail
+                  )
+                : tct('Unable to restore [fieldName]', tctArgsFail)
+            );
+            return;
+          }
+
+          const tctArgsRestored = {
             root,
             fieldName: <FieldName>{label}</FieldName>,
             oldValue: <FormValue>{prettifyValue(oldValue)}</FormValue>,
             newValue: <FormValue>{prettifyValue(newValue)}</FormValue>,
           };
 
-          addErrorMessage(
-            showChangeText
-              ? tct(
-                  'Unable to restore [fieldName] from [oldValue] to [newValue]',
-                  tctArgsFail
-                )
-              : tct('Unable to restore [fieldName]', tctArgsFail)
-          );
-          return;
-        }
-
-        const tctArgsRestored = {
-          root,
-          fieldName: <FieldName>{label}</FieldName>,
-          oldValue: <FormValue>{prettifyValue(oldValue)}</FormValue>,
-          newValue: <FormValue>{prettifyValue(newValue)}</FormValue>,
-        };
-
-        maybeSaveResultPromise.then(() => {
-          addMessage(
-            showChangeText
-              ? tct('Restored [fieldName] from [oldValue] to [newValue]', tctArgsRestored)
-              : tct('Restored [fieldName]', tctArgsRestored),
-            'success',
-            {
-              duration: DEFAULT_TOAST_DURATION,
-            }
-          );
-        });
+          maybeSaveResultPromise.then(() => {
+            toast.success(
+              showChangeText
+                ? tct(
+                    'Restored [fieldName] from [oldValue] to [newValue]',
+                    tctArgsRestored
+                  )
+                : tct('Restored [fieldName]', tctArgsRestored)
+            );
+          });
+        },
       },
     }
   );
@@ -119,8 +115,8 @@ const PRETTY_VALUES = new Map<unknown, string>([
   [null, '<none>'],
   [undefined, '<unset>'],
   // if we don't cast as any, then typescript complains because booleans are not valid keys
-  [true as any, 'enabled'],
-  [false as any, 'disabled'],
+  [true, 'enabled'],
+  [false, 'disabled'],
 ]);
 
 // Transform form values into a string

@@ -9,6 +9,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, cell_silo_endpoint
@@ -23,6 +24,7 @@ from sentry.integrations.project_management.metrics import (
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
+from sentry.integrations.utils.status_sync import PROVIDER_EVENT_TIME_KEY
 from sentry.integrations.utils.sync import sync_group_assignee_inbound
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.ratelimits.config import RateLimitConfig
@@ -77,6 +79,7 @@ class WorkItemWebhook(Endpoint):
                 provider=IntegrationProviderSlug.AZURE_DEVOPS.value,
                 external_id=external_id,
                 status=ObjectStatus.ACTIVE,
+                using_replica=options.get("integration_service.get_integration.using_replica"),
             )
             if integration is None:
                 logger.info(
@@ -157,6 +160,7 @@ def handle_status_change(
     external_issue_key: str,
     status_change: Mapping[str, str] | None,
     project: str | None,
+    changed_date: str | None,
 ) -> None:
     with ProjectManagementEvent(
         action_type=ProjectManagementActionType.INBOUND_STATUS_SYNC, integration=integration
@@ -186,6 +190,7 @@ def handle_status_change(
                             # old_state is None when the issue is New
                             "old_state": status_change.get("oldValue"),
                             "project": project,
+                            PROVIDER_EVENT_TIME_KEY: changed_date,
                         },
                     )
                 else:
@@ -217,6 +222,11 @@ def handle_updated_workitem(data: Mapping[str, Any], integration: RpcIntegration
     try:
         assigned_to = data["resource"]["fields"].get("System.AssignedTo")
         status_change = data["resource"]["fields"].get("System.State")
+        # The only provider-side clock in this payload, used to order deliveries.
+        changed_date_field = data["resource"]["fields"].get("System.ChangedDate")
+        changed_date = (
+            changed_date_field.get("newValue") if isinstance(changed_date_field, dict) else None
+        )
     except KeyError as e:
         logger.info(
             "vsts.updated-workitem-fields-not-passed",
@@ -238,4 +248,4 @@ def handle_updated_workitem(data: Mapping[str, Any], integration: RpcIntegration
     )
 
     handle_assign_to(integration, external_issue_key, assigned_to)
-    handle_status_change(integration, external_issue_key, status_change, project)
+    handle_status_change(integration, external_issue_key, status_change, project, changed_date)

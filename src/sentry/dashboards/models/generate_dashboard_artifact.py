@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Literal, TypeAlias
+from typing import Any, Literal, TypeAlias, cast
 
 from pydantic import BaseModel, Field, root_validator, validator
 
@@ -9,6 +9,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetDisplayTypes,
     DashboardWidgetTypes,
     get_max_widget_limit,
+    get_min_widget_height,
 )
 
 GRID_WIDTH = 6
@@ -44,6 +45,9 @@ Intervals = Literal["5m", "15m", "30m", "1h", "4h", "12h", "24h"]
 # Blocklist for frequently hallucinated functions or functions we want to avoid using
 FUNCTION_BLOCKLIST: set[str] = {"spm", "apdex", "http_error_count", "http_error_count_percent"}
 
+# Mirrors SUPPORTED_AXES in OrganizationIssueTimeseriesEndpoint, which issue chart widgets query.
+ISSUE_CHART_AGGREGATES: frozenset[str] = frozenset({"count(new_issues)", "count(resolved_issues)"})
+
 
 class GeneratedWidgetQuery(BaseModel):
     name: str = ""
@@ -59,6 +63,9 @@ class GeneratedWidgetQuery(BaseModel):
             the Y-axis values; for table widgets they become data columns alongside columns[].
             Valid aggregate function values vary by dataset type. Do not make up functions or
             use unsupported functions.
+
+            For the 'issue' widget_type, chart widgets support only `count(new_issues)` and
+            `count(resolved_issues)`. Issue table widgets take no aggregates.
 
             For the 'tracemetrics' widget_type, aggregates use a required 4-argument form:
             `func(attribute, metric_name, metric_type, metric_unit)` where attribute must be
@@ -268,13 +275,40 @@ class GeneratedWidget(BaseModel):
         limit = values.get("limit")
         if display_type is None or limit is None or display_type == "text":
             return values
-        max_limit = get_max_widget_limit(
-            DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
-        )
+        display_type_id = cast(int, DashboardWidgetDisplayTypes.get_id_for_type_name(display_type))
+        max_limit = get_max_widget_limit(display_type_id)
         if limit > max_limit:
             raise ValueError(
                 f"limit={limit} exceeds the maximum of {max_limit} for display_type '{display_type}'"
             )
+        return values
+
+    @root_validator
+    def check_height_by_display_type(cls, values: dict[str, Any]) -> dict[str, Any]:
+        display_type = values.get("display_type")
+        layout = values.get("layout")
+        if display_type is None or layout is None:
+            return values
+
+        display_type_id = cast(int, DashboardWidgetDisplayTypes.get_id_for_type_name(display_type))
+        min_height = get_min_widget_height(display_type_id)
+        if layout.h < min_height:
+            raise ValueError(f"Height must be at least {min_height} for {display_type} widgets.")
+
+        layout.min_h = min_height
+        return values
+
+    @root_validator
+    def check_issue_chart_aggregates(cls, values: dict[str, Any]) -> dict[str, Any]:
+        if values.get("widget_type") != "issue" or values.get("display_type") == "table":
+            return values
+        for query in values.get("queries") or []:
+            unsupported = [a for a in query.aggregates if a not in ISSUE_CHART_AGGREGATES]
+            if unsupported:
+                raise ValueError(
+                    f"Unsupported aggregates {unsupported} for an issue chart widget. Issue "
+                    f"charts only support {sorted(ISSUE_CHART_AGGREGATES)}."
+                )
         return values
 
     @root_validator

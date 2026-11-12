@@ -4,56 +4,27 @@ import type {TickStyle} from 'sentry/components/checkInTimeline/types';
 import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 
 import {CheckInStatus, type Monitor} from './types';
 
-export function monitorListApiOptions(
-  organization: Organization,
-  queryParams: Partial<
-    Record<
-      'asc' | 'cursor' | 'environment' | 'owner' | 'project' | 'query' | 'sort',
-      unknown
-    >
-  >
-) {
-  const {query, project, environment, owner, cursor, sort, asc} = queryParams;
-  return apiOptions.as<Monitor[]>()('/organizations/$organizationIdOrSlug/monitors/', {
-    path: {organizationIdOrSlug: organization.slug},
-    query: {
-      cursor,
-      query,
-      project,
-      environment,
-      owner,
-      includeNew: true,
-      per_page: 20,
-      sort,
-      asc,
-    },
-    staleTime: 0,
-  });
-}
-
-export function makeMonitorDetailsQueryKey(
+export function monitorDetailsApiOptions(
   organization: Organization,
   projectId: string,
   monitorSlug: string,
-  query?: Record<string, any>
+  query?: Record<string, unknown>
 ) {
-  return [
-    getApiUrl(
-      '/projects/$organizationIdOrSlug/$projectIdOrSlug/monitors/$monitorIdOrSlug/',
-      {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          projectIdOrSlug: projectId,
-          monitorIdOrSlug: monitorSlug,
-        },
-      }
-    ),
-    {query},
-  ] as const;
+  return apiOptions.as<Monitor>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/monitors/$monitorIdOrSlug/',
+    {
+      staleTime: 0,
+      query,
+      path: {
+        organizationIdOrSlug: organization.slug,
+        projectIdOrSlug: projectId,
+        monitorIdOrSlug: monitorSlug,
+      },
+    }
+  );
 }
 
 // Orders the status in terms of ascending precedence for showing to the user

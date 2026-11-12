@@ -14,7 +14,7 @@ import {ActionTarget} from 'sentry/types/workflowEngine/actions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUserFromId} from 'sentry/utils/useUserFromId';
-import {useActionNodeContext} from 'sentry/views/automations/components/actionNodes';
+import {useActionNodeContext} from 'sentry/views/automations/components/actionNodeContext';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 
 enum FallthroughChoiceType {
@@ -64,7 +64,7 @@ function AssignedToTeam({teamId}: {teamId: string}) {
 
 function AssignedToMember({memberId}: {memberId: number}) {
   const {data: user} = useUserFromId({id: memberId});
-  return t('Notify %s', `${user?.name ?? user?.email ?? 'unknown'}`);
+  return t('Notify %s', user?.name ?? user?.email ?? 'unknown');
 }
 
 export function EmailNode() {

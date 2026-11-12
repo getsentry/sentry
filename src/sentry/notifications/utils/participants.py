@@ -5,8 +5,6 @@ from collections import defaultdict
 from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from typing import TYPE_CHECKING, Any
 
-from django.db.models import Q
-
 from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils.providers import get_provider_enum_from_string
 from sentry.models.commit import Commit
@@ -19,8 +17,6 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.release import Release
-from sentry.models.rule import Rule
-from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.team import Team
 from sentry.notifications.services import notifications_service
 from sentry.notifications.types import (
@@ -219,7 +215,11 @@ def get_owners(
     else:
         outcome = "everyone"
         users = user_service.get_many_by_id(
-            ids=list(project.member_set.values_list("user_id", flat=True))
+            ids=[
+                user_id
+                for user_id in project.member_set.values_list("user_id", flat=True)
+                if user_id is not None
+            ]
         )
         recipients = Actor.many_from_object(users)
     return (recipients, outcome)
@@ -358,26 +358,14 @@ def get_send_to(
     event: Event | GroupEvent | None = None,
     notification_type_enum: NotificationSettingEnum = NotificationSettingEnum.ISSUE_ALERTS,
     fallthrough_choice: FallthroughChoiceType | None = None,
-    rules: Iterable[Rule] | None = None,
     notification_uuid: str | None = None,
 ) -> Mapping[ExternalProviders, set[Actor]]:
-    recipients = determine_eligible_recipients(
-        project, target_type, target_identifier, event, fallthrough_choice
+    recipients = list(
+        determine_eligible_recipients(
+            project, target_type, target_identifier, event, fallthrough_choice
+        )
     )
 
-    if rules:
-        rule_snoozes = RuleSnooze.objects.filter(Q(rule__in=rules))
-        muted_user_ids = []
-        for rule_snooze in rule_snoozes:
-            if rule_snooze.user_id is None:
-                return {}
-            else:
-                muted_user_ids.append(rule_snooze.user_id)
-
-        if muted_user_ids:
-            recipients = filter(
-                lambda x: x.actor_type != ActorType.USER or x.id not in muted_user_ids, recipients
-            )
     return _get_recipients_by_provider(
         project,
         recipients,
@@ -400,12 +388,20 @@ def get_fallthrough_recipients(
 
     elif fallthrough_choice == FallthroughChoiceType.ALL_MEMBERS:
         return user_service.get_many_by_id(
-            ids=list(project.member_set.values_list("user_id", flat=True))
+            ids=[
+                user_id
+                for user_id in project.member_set.values_list("user_id", flat=True)
+                if user_id is not None
+            ]
         )
 
     elif fallthrough_choice == FallthroughChoiceType.ACTIVE_MEMBERS:
         member_users = user_service.get_many_by_id(
-            ids=list(project.member_set.values_list("user_id", flat=True)),
+            ids=[
+                user_id
+                for user_id in project.member_set.values_list("user_id", flat=True)
+                if user_id is not None
+            ],
         )
         member_users.sort(
             key=lambda u: u.last_active.isoformat() if u.last_active else "", reverse=True

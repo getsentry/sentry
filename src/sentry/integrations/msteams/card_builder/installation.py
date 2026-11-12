@@ -85,8 +85,8 @@ def build_installation_confirmation_message(
 def build_team_installation_confirmation_message(
     organization: Organization | RpcOrganizationSummary,
 ) -> AdaptiveCard:
-    alert_rule_url = absolute_uri(
-        InstallationMessages.ALERT_RULE_URL.format(organization_slug=organization.slug)
+    monitors_url = absolute_uri(
+        InstallationMessages.MONITORS_URL.format(organization_slug=organization.slug)
     )
 
     return build_installation_confirmation_message(
@@ -95,7 +95,7 @@ def build_team_installation_confirmation_message(
         ),
         text=InstallationMessages.TEAM_INSTALLATION_CONFIRMATION_INSTRUCTION,
         button_title=InstallationMessages.TEAM_INSTALLATION_CONFIRMATION_BUTTON,
-        url=alert_rule_url,
+        url=monitors_url,
     )
 
 

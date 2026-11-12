@@ -2,7 +2,7 @@ import functools
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 import sentry_sdk
 from django.utils import timezone
@@ -10,13 +10,13 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk import start_span
+from sentry_sdk import traces
 
 from sentry import analytics, features, search
 from sentry.analytics.events.issue_search_endpoint_queried import IssueSearchEndpointQueriedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.bases import OrganizationEventPermission
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.event_search import SearchFilter
@@ -24,6 +24,7 @@ from sentry.api.helpers.group_index import (
     build_query_params_from_request,
     calculate_stats_period,
     get_by_short_ids,
+    is_api_request,
     schedule_tasks_to_delete_groups,
     track_slo_response,
     update_groups_with_search_fn,
@@ -37,7 +38,11 @@ from sentry.api.serializers.models.group_stream import (
     StreamGroupSerializerSnuba,
     StreamGroupSerializerSnubaResponse,
 )
-from sentry.api.utils import get_date_range_from_stats_period, handle_query_errors
+from sentry.api.utils import (
+    get_date_range_from_stats_period,
+    handle_query_errors,
+    to_valid_int_id_list,
+)
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -54,17 +59,19 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import DetailResponse, ValidationErrorResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.constants import ALLOWED_FUTURE_DELTA, DEFAULT_SORT_OPTION
-from sentry.exceptions import InvalidSearchQuery
+from sentry.auth.principal import acting_user_id
+from sentry.constants import ALLOWED_FUTURE_DELTA
+from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.environment import Environment
-from sentry.models.group import QUERY_STATUS_LOOKUP, Group, GroupStatus
+from sentry.models.group import Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.groupinbox import GroupInbox
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.search.events.constants import EQUALITY_OPERATORS
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.search.snuba.backend import assigned_or_suggested_filter
 from sentry.search.snuba.executors import get_search_filter
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.validators import normalize_event_id
 
@@ -104,7 +111,7 @@ def inbox_search(
     end = max([earliest_date, end])
 
     if start >= end:
-        return Paginator(Group.objects.none()).get_result()
+        return cast(CursorResult[Group], Paginator(Group.objects.none()).get_result())
 
     # Make sure search terms are valid
     invalid_search_terms = (
@@ -144,7 +151,7 @@ def inbox_search(
         )
 
     owner_search = get_search_filter(search_filters, "assigned_or_suggested", "IN")
-    if owner_search:
+    if owner_search is not None:
         qs = qs.filter(
             assigned_or_suggested_filter(owner_search, projects, field_filter="group_id")
         )
@@ -155,14 +162,16 @@ def inbox_search(
     # We want to return groups from the endpoint, but have the cursor be related to the
     # GroupInbox rows. So we paginate on the GroupInbox results queryset, then fetch
     # the group_ids out and use them to get the actual groups.
+    group_ids = [r.group_id for r in cast(Sequence[GroupInbox], results.results)]
     group_qs = Group.objects.filter(
-        id__in=[r.group_id for r in results.results],
+        id__in=group_ids,
         project__in=projects,
         status=GroupStatus.UNRESOLVED,
     )
     groups: Mapping[int, Group] = {g.id: g for g in group_qs}
-    results.results = [groups[r.group_id] for r in results.results if r.group_id in groups]
-    return results
+    group_results: CursorResult[Group] = cast(CursorResult[Group], results)
+    group_results.results = [groups[group_id] for group_id in group_ids if group_id in groups]
+    return group_results
 
 
 def search_issues(
@@ -172,7 +181,7 @@ def search_issues(
     environments: Sequence[Environment],
     extra_query_kwargs: None | Mapping[str, Any] = None,
 ) -> tuple[CursorResult[Group], Mapping[str, Any]]:
-    with start_span(op="_search"):
+    with traces.start_span(name="_search", attributes={"sentry.op": "_search"}):
         query_kwargs = build_query_params_from_request(
             request, organization, projects, environments
         )
@@ -196,10 +205,6 @@ def search_issues(
             query_kwargs["sort_by"] = "recommended_v2"
         elif query_kwargs["sort_by"] == "recommended_v1":
             query_kwargs["sort_by"] = "recommended"
-        if query_kwargs["sort_by"] == "progress" and not features.has(
-            "organizations:issue-stream-progress-sort", organization, actor=request.user
-        ):
-            query_kwargs["sort_by"] = DEFAULT_SORT_OPTION
         if query_kwargs["sort_by"] == "inbox":
             query_kwargs.pop("sort_by")
             query_kwargs.pop("referrer")
@@ -256,18 +261,6 @@ def search_and_serialize_issues(
         request=request,
     )
 
-    # HACK: remove auto resolved entries
-    # TODO: We should try to integrate this into the search backend, since
-    # this can cause us to arbitrarily return fewer results than requested.
-    status = [
-        search_filter
-        for search_filter in query_kwargs.get("search_filters", [])
-        if search_filter.key.name == "status" and search_filter.operator in EQUALITY_OPERATORS
-    ]
-    if status and (GroupStatus.UNRESOLVED in status[0].value.raw_value):
-        status_labels = {QUERY_STATUS_LOOKUP[s] for s in status[0].value.raw_value}
-        rows = [r for r in rows if "status" not in r or r["status"] in status_labels]
-
     return rows, cursor_result, query_kwargs
 
 
@@ -279,9 +272,21 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = {"GET": DEFAULT_DURATION_BUDGET, "PUT": 10.0, "DELETE": 10.0}
     permission_classes = (OrganizationEventPermission,)
     enforce_rate_limit = True
+
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=10, window=1),
+                RateLimitCategory.USER: RateLimit(limit=10, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1),
+            }
+        }
+    )
 
     def _search(
         self,
@@ -291,7 +296,18 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         environments: Sequence[Environment],
         extra_query_kwargs: None | Mapping[str, Any] = None,
     ) -> tuple[CursorResult[Group], Mapping[str, Any]]:
-        return search_issues(request, organization, projects, environments, extra_query_kwargs)
+        try:
+            start, end = get_date_range_from_stats_period(request.GET, optional=True)
+        except InvalidParams as exc:
+            raise ValidationError(str(exc)) from exc
+
+        return search_issues(
+            request,
+            organization,
+            projects,
+            environments,
+            {"date_from": start, "date_to": end, **(extra_query_kwargs or {})},
+        )
 
     @extend_schema(
         operation_id="listOrganizationIssues",
@@ -307,13 +323,14 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             GlobalParams.ENVIRONMENT,
             OrganizationParams.PROJECT,
             GlobalParams.STATS_PERIOD,
+            GlobalParams.STATS_PERIOD_START,
+            GlobalParams.STATS_PERIOD_END,
             GlobalParams.START,
             GlobalParams.END,
             IssueParams.GROUP_STATS_PERIOD,
             IssueParams.SHORT_ID_LOOKUP,
             IssueParams.DEFAULT_QUERY,
-            IssueParams.VIEW_ID,
-            IssueParams.VIEW_SORT,
+            IssueParams.ORGANIZATION_VIEW_SORT,
             IssueParams.LIMIT,
             IssueParams.GROUP_INDEX_EXPAND,
             IssueParams.GROUP_INDEX_COLLAPSE,
@@ -369,21 +386,21 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         query = request.GET.get("query", "").strip()
 
         # record analytics for search query
-        if request.user:
-            try:
-                analytics.record(
-                    IssueSearchEndpointQueriedEvent(
-                        user_id=request.user.id,
-                        organization_id=organization.id,
-                        project_ids=",".join(map(str, project_ids)),
-                        full_query_params=",".join(
-                            f"{key}={value}" for key, value in request.GET.items()
-                        ),
-                        query=query,
-                    )
+        try:
+            analytics.record(
+                IssueSearchEndpointQueriedEvent(
+                    user_id=acting_user_id(request.user),
+                    organization_id=organization.id,
+                    project_ids=",".join(map(str, project_ids)),
+                    full_query_params=",".join(
+                        f"{key}={value}" for key, value in request.GET.items()
+                    ),
+                    query=query,
+                    is_api_token=is_api_request(request),
                 )
-            except Exception as e:
-                sentry_sdk.capture_exception(e)
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
         if query:
             # check to see if we've got an event ID
@@ -438,10 +455,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                 return response
 
         # If group ids specified, just ignore any query components
-        try:
-            group_ids = set(map(int, request.GET.getlist("group")))
-        except ValueError:
-            return Response({"detail": "Group ids must be integers"}, status=400)
+        group_ids = set(to_valid_int_id_list("group", request.GET.getlist("group")))
 
         if group_ids:
             groups = list(Group.objects.filter(id__in=group_ids, project_id__in=project_ids))
@@ -504,10 +518,11 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             GlobalParams.ENVIRONMENT,
             OrganizationParams.PROJECT,
             IssueParams.MUTATE_ISSUE_ID_LIST,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
             IssueParams.DEFAULT_QUERY,
-            IssueParams.VIEW_ID,
-            IssueParams.VIEW_SORT,
-            IssueParams.LIMIT,
+            IssueParams.ORGANIZATION_VIEW_SORT,
         ],
         request=GroupValidator,
         responses={
@@ -523,8 +538,12 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         examples=IssueExamples.ORGANIZATION_GROUP_INDEX_PUT,
     )
     @track_slo_response("workflow")
-    def put(self, request: Request, organization: Organization) -> Response[MutateIssueResponse]:
+    def put(
+        self, request: Request, organization: Organization
+    ) -> Response[MutateIssueResponse] | Response[None]:
         projects = self.get_projects(request, organization)
+        if not projects:
+            return Response(status=204)
 
         search_fn = functools.partial(
             self._search,
@@ -534,7 +553,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             self.get_environments(request, organization),
         )
 
-        ids = [int(id) for id in request.GET.getlist("id")]
+        ids = to_valid_int_id_list("id", request.GET.getlist("id"))
         return update_groups_with_search_fn(request, ids, projects, organization.id, search_fn)
 
     @extend_schema(
@@ -551,10 +570,11 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             GlobalParams.ENVIRONMENT,
             OrganizationParams.PROJECT,
             IssueParams.DELETE_ISSUE_ID_LIST,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
             IssueParams.DEFAULT_QUERY,
-            IssueParams.VIEW_ID,
-            IssueParams.VIEW_SORT,
-            IssueParams.LIMIT,
+            IssueParams.ORGANIZATION_VIEW_SORT,
         ],
         responses={
             204: RESPONSE_NO_CONTENT,
@@ -569,6 +589,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         self, request: Request, organization: Organization
     ) -> Response[None] | Response[DetailResponse] | Response[ValidationErrorResponse]:
         projects = self.get_projects(request, organization)
+        if not projects:
+            return Response(status=204)
 
         search_fn = functools.partial(
             self._search,

@@ -3,10 +3,13 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconWarning} from '@sentry/icons/warning';
 import partition from 'lodash/partition';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack, Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -21,11 +24,11 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {TextOverflow} from 'sentry/components/textOverflow';
-import {IconArrow, IconChevron, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import type {FunctionTrend, TrendType} from 'sentry/utils/profiling/hooks/types';
 import {useProfileFunctionTrends} from 'sentry/utils/profiling/hooks/useProfileFunctionTrends';
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
@@ -87,13 +90,14 @@ export function FunctionTrendsWidget({
   );
 
   const handleCursor = useCallback(
-    (cursor: any, pathname: any, query: any) => {
+    (cursor: string | undefined) => {
+      const {pathname, query} = location;
       navigate({
         pathname,
         query: {...query, [cursorName]: cursor},
       });
     },
-    [cursorName, navigate]
+    [cursorName, location, navigate]
   );
 
   const paginationAnalyticsEvent = useCallback(
@@ -116,7 +120,9 @@ export function FunctionTrendsWidget({
   });
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setExpandedIndex(0);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [trendsQuery.data]);
 
   const hasTrends = (trendsQuery.data?.json?.length || 0) > 0;
@@ -146,7 +152,7 @@ export function FunctionTrendsWidget({
         paginationAnalyticsEvent={paginationAnalyticsEvent}
         trendType={trendType}
       />
-      <Flex flex="1 1 auto" direction="column" justify="center">
+      <Stack flex="1 1 auto" justify="center">
         {isLoading && (
           <StatusContainer>
             <LoadingIndicator />
@@ -189,7 +195,7 @@ export function FunctionTrendsWidget({
             })}
           </Accordion>
         )}
-      </Flex>
+      </Stack>
     </WidgetContainer>
   );
 }
@@ -218,10 +224,12 @@ function FunctionTrendsWidgetHeader({
           )}
           <Subtitle>{t('Functions by most regressed.')}</Subtitle>
           <StyledPagination
-            pageLinks={pageLinks}
+            {...getPaginationProps(pageLinks)}
             size="xs"
             onCursor={handleCursor}
-            paginationAnalyticsEvent={paginationAnalyticsEvent}
+            onPageChange={(_cursor, delta) =>
+              paginationAnalyticsEvent(delta === -1 ? 'Previous' : 'Next')
+            }
           />
         </HeaderContainer>
       );
@@ -233,10 +241,12 @@ function FunctionTrendsWidgetHeader({
           )}
           <Subtitle>{t('Functions by most improved.')}</Subtitle>
           <StyledPagination
-            pageLinks={pageLinks}
+            {...getPaginationProps(pageLinks)}
             size="xs"
             onCursor={handleCursor}
-            paginationAnalyticsEvent={paginationAnalyticsEvent}
+            onPageChange={(_cursor, delta) =>
+              paginationAnalyticsEvent(delta === -1 ? 'Previous' : 'Next')
+            }
           />
         </HeaderContainer>
       );
@@ -356,9 +366,9 @@ function FunctionTrendsEntry({
         </Tooltip>
       </AccordionItem>
       {isExpanded && (
-        <FunctionTrendsChartContainer>
+        <Container flex="1 1 auto">
           <FunctionTrendsChart func={func} trendFunction={trendFunction} />
-        </FunctionTrendsChartContainer>
+        </Container>
       )}
     </Fragment>
   );
@@ -542,10 +552,6 @@ const StyledPagination = styled(Pagination)`
 `;
 
 const FunctionName = styled(TextOverflow)`
-  flex: 1 1 auto;
-`;
-
-const FunctionTrendsChartContainer = styled('div')`
   flex: 1 1 auto;
 `;
 

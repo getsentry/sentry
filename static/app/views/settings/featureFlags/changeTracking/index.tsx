@@ -1,29 +1,30 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
-import {LoadingError} from 'sentry/components/loadingError';
-import {PanelTable} from 'sentry/components/panels/panelTable';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
-import {OrganizationFeatureFlagsAuditLogTable} from 'sentry/views/settings/featureFlags/changeTracking/organizationFeatureFlagsAuditLogTable';
-import {OrganizationFeatureFlagsProviderRow} from 'sentry/views/settings/featureFlags/changeTracking/organizationFeatureFlagsProviderRow';
+
+import {OrganizationFeatureFlagsAuditLogTable} from './organizationFeatureFlagsAuditLogTable';
+import {OrganizationFeatureFlagsProviderRow} from './organizationFeatureFlagsProviderRow';
 
 export type Secret = {
   createdAt: string;
@@ -43,12 +44,14 @@ type RemoveSecretQueryVariables = {
   id: number;
 };
 
-export const makeFetchSecretQueryKey = ({orgSlug}: FetchSecretParameters) =>
-  [
-    getApiUrl('/organizations/$organizationIdOrSlug/flags/signing-secrets/', {
+export const makeFetchSecretOptions = ({orgSlug}: FetchSecretParameters) =>
+  apiOptions.as<FetchSecretResponse>()(
+    '/organizations/$organizationIdOrSlug/flags/signing-secrets/',
+    {
       path: {organizationIdOrSlug: orgSlug},
-    }),
-  ] as const;
+      staleTime: Infinity,
+    }
+  );
 
 function SecretList({
   secretList,
@@ -75,6 +78,31 @@ function SecretList({
   );
 }
 
+function AddNewProvider({
+  hasAccess,
+  organizationSlug,
+}: {
+  hasAccess: boolean;
+  organizationSlug: string;
+}) {
+  return (
+    <Tooltip
+      title={t('You must be an organization member to add a provider.')}
+      disabled={hasAccess}
+    >
+      <LinkButton
+        variant="primary"
+        size="sm"
+        to={`/settings/${organizationSlug}/feature-flags/change-tracking/new-provider/`}
+        data-test-id="create-new-provider"
+        disabled={!hasAccess}
+      >
+        {t('Add New Provider')}
+      </LinkButton>
+    </Tooltip>
+  );
+}
+
 function OrganizationFeatureFlagsChangeTracking() {
   const organization = useOrganization();
   const api = useApi();
@@ -85,12 +113,7 @@ function OrganizationFeatureFlagsChangeTracking() {
     isError,
     data: secretList,
     refetch: refetchSecretList,
-  } = useApiQuery<FetchSecretResponse>(
-    makeFetchSecretQueryKey({orgSlug: organization.slug}),
-    {
-      staleTime: Infinity,
-    }
-  );
+  } = useQuery(makeFetchSecretOptions({orgSlug: organization.slug}));
 
   const {mutate: handleRemoveSecret, isPending: isRemoving} = useMutation<
     unknown,
@@ -99,48 +122,37 @@ function OrganizationFeatureFlagsChangeTracking() {
   >({
     mutationFn: ({id}) =>
       api.requestPromise(
-        `/organizations/${organization.slug}/flags/signing-secrets/${id}/`,
+        getApiUrl(
+          '/organizations/$organizationIdOrSlug/flags/signing-secrets/$signingSecretId/',
+          {path: {organizationIdOrSlug: organization.slug, signingSecretId: id}}
+        ),
         {
           method: 'DELETE',
         }
       ),
 
     onSuccess: (_data, {id}) => {
-      addSuccessMessage(
-        t('Removed the provider and signing secret for the organization.')
-      );
+      toast.success(t('Removed the provider and signing secret for the organization.'));
 
-      setApiQueryData<FetchSecretResponse>(
-        queryClient,
-        makeFetchSecretQueryKey({orgSlug: organization.slug}),
+      queryClient.setQueryData(
+        makeFetchSecretOptions({orgSlug: organization.slug}).queryKey,
         oldData => {
-          return {data: oldData?.data.filter(oldSecret => oldSecret.id !== id) ?? []};
+          return {
+            ...oldData,
+            headers: oldData?.headers ?? {},
+            json: {
+              data: oldData?.json.data.filter(oldSecret => oldSecret.id !== id) ?? [],
+            },
+          };
         }
       );
     },
     onError: error => {
       const message = t('Failed to remove the provider or signing secret.');
       handleXhrErrorResponse(message, error);
-      addErrorMessage(message);
+      toast.error(message);
     },
   });
-
-  const addNewProvider = (hasAccess: any) => (
-    <Tooltip
-      title={t('You must be an organization member to add a provider.')}
-      disabled={hasAccess}
-    >
-      <LinkButton
-        variant="primary"
-        size="sm"
-        to={`/settings/${organization.slug}/feature-flags/change-tracking/new-provider/`}
-        data-test-id="create-new-provider"
-        disabled={!hasAccess}
-      >
-        {t('Add New Provider')}
-      </LinkButton>
-    </Tooltip>
-  );
 
   const canRead = hasEveryAccess(['org:read'], {organization});
   const canWrite = hasEveryAccess(['org:write'], {organization});
@@ -165,7 +177,7 @@ function OrganizationFeatureFlagsChangeTracking() {
 
       <Flex justify="between">
         <h5>{t('Providers')}</h5>
-        {addNewProvider(hasAccess)}
+        <AddNewProvider hasAccess={hasAccess} organizationSlug={organization.slug} />
       </Flex>
 
       <TextBlock>
@@ -173,21 +185,30 @@ function OrganizationFeatureFlagsChangeTracking() {
           'Look below for a list of the webhooks you have set up with external providers. Note that each provider can only have one associated signing secret.'
         )}
       </TextBlock>
-      <ResponsivePanelTable
-        isLoading={isPending || isError}
-        isEmpty={!isPending && !secretList?.data?.length}
-        loader={
-          isError ? (
-            <LoadingError
-              message={t('Failed to load secrets and providers for the organization.')}
-              onRetry={refetchSecretList}
-            />
-          ) : undefined
-        }
-        emptyMessage={t("You haven't linked any providers yet.")}
-        headers={[t('Provider'), t('Created'), t('Created by'), '']}
+      <StyledSimpleTable
+        columns={SECRET_COLUMNS}
         data-test-id="secrets-table"
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>{t('Provider')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Created')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Created by')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell />
+          </SimpleTable.HeaderRow>
+        }
       >
+        {isError && (
+          <SimpleTable.Error
+            message={t('Failed to load secrets and providers for the organization.')}
+            onRetry={refetchSecretList}
+          />
+        )}
+        {!isError && isPending && <SimpleTable.Loading />}
+        {!isError && !isPending && !secretList?.data?.length && (
+          <SimpleTable.Empty>
+            {t("You haven't linked any providers yet.")}
+          </SimpleTable.Empty>
+        )}
         {!isError && !isPending && !!secretList?.data?.length && (
           <SecretList
             secretList={secretList.data}
@@ -195,7 +216,7 @@ function OrganizationFeatureFlagsChangeTracking() {
             removeSecret={hasDeleteAccess ? handleRemoveSecret : undefined}
           />
         )}
-      </ResponsivePanelTable>
+      </StyledSimpleTable>
 
       <OrganizationFeatureFlagsAuditLogTable />
     </Fragment>
@@ -210,14 +231,13 @@ export default function OrganizationFeatureFlagsChangeTrackingRoute() {
   );
 }
 
-const ResponsivePanelTable = styled(PanelTable)`
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 1fr 1fr;
+const SECRET_COLUMNS: TableColumnConfig[] = [
+  {key: 'provider', width: {zero: '1fr', xl: 'auto'}},
+  {key: 'created', visible: {xl: true}, width: 'auto'},
+  {key: 'createdBy', visible: {xl: true}, width: 'auto'},
+  {key: 'actions', width: {zero: '1fr', xl: 'auto'}},
+];
 
-    > *:nth-child(4n + 2),
-    > *:nth-child(4n + 3) {
-      display: none;
-    }
-  }
+const StyledSimpleTable = styled(SimpleTable)`
   margin-bottom: ${p => p.theme.space['2xl']};
 `;

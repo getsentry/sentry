@@ -1,19 +1,25 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
 
-import {IconChevron} from 'sentry/icons';
-import type {MDXFrontmatter} from 'sentry/stories/frontmatter';
-import {storyFrontmatterIndex} from 'sentry/stories/storyFrontmatterIndex';
-import {useStoryParams} from 'sentry/stories/view';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {
+  COMPONENT_CATEGORY_CONFIG,
+  COMPONENT_CATEGORY_ORDER,
+  isComponentCategory,
+  isScrapsStoryFile,
+  type ComponentCategory,
+} from 'sentry/stories/componentCategories';
+import {storyFiles, storyFrontmatterIndex} from 'sentry/stories/storyManifest';
 import {fzf} from 'sentry/utils/search/fzf';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {useStoryBookFiles} from './useStoriesLoader';
+import {useStoryParams} from './useStoryParams';
 
 export class StoryTreeNode {
   public name: string;
@@ -29,24 +35,25 @@ export class StoryTreeNode {
 
   public result: ReturnType<typeof fzf> | null = null;
 
-  constructor(name: string, path: string, filesystemPath: string) {
+  constructor(name: string, path: string, filesystemPath: string, displayLabel?: string) {
     this.name = name;
     this.path = path;
     this.filesystemPath = filesystemPath;
-    this.label = normalizeFilename(name);
+    const routeLabel = normalizeFilename(name);
+    this.label = displayLabel ?? routeLabel;
     this.category = inferFileCategory(filesystemPath);
 
-    if (this.category === 'product') {
-      const [_app, ...segments] = this.filesystemPath.split('/');
+    if (isTreeSection(this.category)) {
+      const [_root, ...segments] = this.filesystemPath.split('/');
       // Remove the filename from the path
       segments.pop()!;
       const pathPrefix =
         segments.length > 0
           ? `${segments.map(segment => segment.toLowerCase()).join('/')}/`
           : '';
-      this.slug = `${pathPrefix}${this.label.replaceAll(' ', '-').toLowerCase()}`;
+      this.slug = `${pathPrefix}${routeLabel.replaceAll(' ', '-').toLowerCase()}`;
     } else {
-      this.slug = this.label.replaceAll(' ', '-').toLowerCase();
+      this.slug = routeLabel.replaceAll(' ', '-').toLowerCase();
     }
   }
 
@@ -107,11 +114,11 @@ function normalizeFilename(filename: string) {
   );
 }
 
-export type StoryCategory = 'principles' | 'patterns' | 'core' | 'product';
+export type StoryCategory = 'principles' | 'patterns' | 'core' | 'product' | 'gsApp';
 
 type StorySection = 'overview' | StoryCategory;
 
-type ComponentSubcategory = NonNullable<MDXFrontmatter['category']>;
+type ComponentSubcategory = ComponentCategory;
 
 export const SECTION_CONFIG: Record<StorySection, {label: string}> = {
   overview: {label: 'Overview'},
@@ -119,48 +126,10 @@ export const SECTION_CONFIG: Record<StorySection, {label: string}> = {
   patterns: {label: 'Patterns'},
   core: {label: 'Components'},
   product: {label: 'Shared'},
+  gsApp: {label: 'gsApp'},
 };
 
-interface SubcategoryConfig {
-  label: string;
-  subgroups?: Array<{components: string[]; label: string}>;
-}
-
-export const COMPONENT_SUBCATEGORY_CONFIG: Record<
-  ComponentSubcategory,
-  SubcategoryConfig
-> = {
-  layout: {label: 'Layout'},
-  typography: {label: 'Typography'},
-  buttons: {label: 'Buttons'},
-  controls: {label: 'Controls'},
-  forms: {
-    label: 'Forms',
-    subgroups: [
-      {
-        label: 'Primitives',
-        components: [
-          'input',
-          'inputgroup',
-          'numberinput',
-          'numberdraginput',
-          'checkbox',
-          'radio',
-          'switch',
-          'slider',
-          'select',
-          'multiselect',
-        ],
-      },
-    ],
-  },
-  navigation: {label: 'Navigation'},
-  status: {label: 'Status'},
-  display: {label: 'Display'},
-  overlays: {label: 'Overlays'},
-  utilities: {label: 'Utilities'},
-  shared: {label: 'Shared'},
-};
+export const COMPONENT_SUBCATEGORY_CONFIG = COMPONENT_CATEGORY_CONFIG;
 
 export const SECTION_ORDER: StorySection[] = [
   'overview',
@@ -168,21 +137,34 @@ export const SECTION_ORDER: StorySection[] = [
   'patterns',
   'core',
   'product',
+  'gsApp',
 ];
 
-const COMPONENT_SUBCATEGORY_ORDER: ComponentSubcategory[] = [
-  'layout',
-  'typography',
-  'buttons',
-  'controls',
-  'forms',
-  'navigation',
-  'status',
-  'display',
-  'overlays',
-  'utilities',
-  'shared',
-];
+/**
+ * Sections whose stories are nested by folder, with routes built from the
+ * file path.
+ */
+export function isTreeSection(section: StorySection) {
+  return section === 'product' || section === 'gsApp';
+}
+
+function isGsAppFile(file: string) {
+  return file.startsWith('gsApp/');
+}
+
+/**
+ * Self-hosted servers never load getsentry, so its stories are hidden there.
+ * The stories are lazy imports, so hiding them also means their code is never
+ * fetched.
+ */
+function getVisibleStoryFiles() {
+  if (ConfigStore.get('sentryMode') !== 'SELF_HOSTED') {
+    return storyFiles;
+  }
+  return storyFiles.filter(file => !isGsAppFile(file));
+}
+
+const COMPONENT_SUBCATEGORY_ORDER = COMPONENT_CATEGORY_ORDER;
 
 // Hierarchical structure for sidebar rendering
 interface StoryHierarchyData {
@@ -194,8 +176,6 @@ interface StoryHierarchyData {
  * Stories are ordered by section, then by subcategory within components.
  */
 export function useFlatStoryList(): StoryTreeNode[] {
-  const files = useStoryBookFiles();
-
   return useMemo(() => {
     const result: StoryTreeNode[] = [];
 
@@ -209,7 +189,7 @@ export function useFlatStoryList(): StoryTreeNode[] {
       grouped.set(section, {direct: [], bySubcategory: new Map()});
     }
 
-    for (const file of files) {
+    for (const file of getVisibleStoryFiles()) {
       const loc = inferStoryLocation(file);
       const sectionData = grouped.get(loc.section);
       if (!sectionData) {
@@ -232,9 +212,7 @@ export function useFlatStoryList(): StoryTreeNode[] {
 
       // Add direct stories for this section
       for (const file of sectionData.direct.sort()) {
-        const name = inferComponentName(file);
-        const node = new StoryTreeNode(formatName(name), section, file);
-        result.push(node);
+        result.push(createStoryLeaf(file, section));
       }
 
       if (section === 'core') {
@@ -244,16 +222,15 @@ export function useFlatStoryList(): StoryTreeNode[] {
             continue;
           }
 
-          for (const file of subcategoryFiles.sort()) {
-            const name = inferComponentName(file);
-            result.push(new StoryTreeNode(formatName(name), 'core', file));
+          for (const file of subcategoryFiles.sort(compareCoreFiles)) {
+            result.push(createStoryLeaf(file, 'core'));
           }
         }
       }
     }
 
     return result;
-  }, [files]);
+  }, []);
 }
 
 /**
@@ -261,8 +238,6 @@ export function useFlatStoryList(): StoryTreeNode[] {
  * Sections contain stories, and the components section has subcategories.
  */
 export function useStoryHierarchy(): Map<StorySection, StoryHierarchyData> {
-  const files = useStoryBookFiles();
-
   return useMemo(() => {
     const hierarchy = new Map<StorySection, StoryHierarchyData>();
 
@@ -272,19 +247,21 @@ export function useStoryHierarchy(): Map<StorySection, StoryHierarchyData> {
     }
 
     // Collect files by section
-    const productFiles: string[] = [];
+    const treeFilesBySection = new Map<StorySection, string[]>();
     const coreFilesBySubcategory = new Map<ComponentSubcategory, string[]>();
 
-    for (const file of files) {
+    for (const file of getVisibleStoryFiles()) {
       const loc = inferStoryLocation(file);
       const sectionData = hierarchy.get(loc.section);
       if (!sectionData) {
         continue;
       }
 
-      // Special handling for 'product' section - collect files for tree building
-      if (loc.section === 'product') {
-        productFiles.push(file);
+      // Tree sections collect files so the folder hierarchy can be built below
+      if (isTreeSection(loc.section)) {
+        const sectionFiles = treeFilesBySection.get(loc.section) ?? [];
+        sectionFiles.push(file);
+        treeFilesBySection.set(loc.section, sectionFiles);
         continue;
       }
 
@@ -298,15 +275,11 @@ export function useStoryHierarchy(): Map<StorySection, StoryHierarchyData> {
       }
 
       // Other sections: add directly
-      const name = inferComponentName(file);
-      const node = new StoryTreeNode(formatName(name), loc.section, file);
-      sectionData.stories.push(node);
+      sectionData.stories.push(createStoryLeaf(file, loc.section));
     }
 
-    // Build tree structure for 'product'/'Shared' section
-    if (productFiles.length > 0) {
-      const productTree = buildProductTree(productFiles);
-      hierarchy.set('product', {stories: productTree});
+    for (const [section, files] of treeFilesBySection) {
+      hierarchy.set(section, {stories: buildProductTree(files, section)});
     }
 
     // Build tree structure for 'core'/'Components' section
@@ -317,8 +290,8 @@ export function useStoryHierarchy(): Map<StorySection, StoryHierarchyData> {
 
     // Sort stories within each section
     for (const [section, sectionData] of hierarchy) {
-      // Skip 'product' and 'core' - already sorted by tree builders
-      if (section === 'product' || section === 'core') {
+      // Tree sections and 'core' are already sorted by the tree builders
+      if (isTreeSection(section) || section === 'core') {
         continue;
       }
 
@@ -326,10 +299,14 @@ export function useStoryHierarchy(): Map<StorySection, StoryHierarchyData> {
     }
 
     return hierarchy;
-  }, [files]);
+  }, []);
 }
 
 function inferFileCategory(path: string): StoryCategory {
+  if (isGsAppFile(path)) {
+    return 'gsApp';
+  }
+
   if (isPrinciplesFile(path)) {
     return 'principles';
   }
@@ -352,6 +329,10 @@ interface StoryLocation {
 }
 
 function inferStoryLocation(path: string): StoryLocation {
+  if (isGsAppFile(path)) {
+    return {section: 'gsApp'};
+  }
+
   // Overview section
   if (isOverviewFile(path)) {
     return {section: 'overview'};
@@ -367,11 +348,12 @@ function inferStoryLocation(path: string): StoryLocation {
     return {section: 'patterns'};
   }
 
-  // Components - determine subcategory from frontmatter, fall back to 'shared'
   if (isCoreFile(path)) {
     const category = storyFrontmatterIndex[path]?.category;
-    const subcategory = isComponentSubcategory(category) ? category : 'shared';
-    return {section: 'core', subcategory};
+    if (!isComponentSubcategory(category)) {
+      throw new Error(`Core component story ${path} has an invalid category`);
+    }
+    return {section: 'core', subcategory: category};
   }
 
   // Shared (non-core components)
@@ -381,7 +363,7 @@ function inferStoryLocation(path: string): StoryLocation {
 function isComponentSubcategory(
   value: string | undefined
 ): value is ComponentSubcategory {
-  return value !== undefined && value in COMPONENT_SUBCATEGORY_CONFIG;
+  return isComponentCategory(value);
 }
 
 function isOverviewFile(file: string) {
@@ -398,7 +380,20 @@ function isPrinciplesFile(file: string) {
 }
 
 function isCoreFile(file: string) {
-  return file.includes('components/core');
+  return isScrapsStoryFile(file) || file.includes('components/core');
+}
+
+/**
+ * Core docs live in both the app and the Scraps package, so sorting by the full
+ * path would list every app doc before every package doc. Sort by the path
+ * inside the component directory instead.
+ */
+function compareCoreFiles(a: string, b: string) {
+  const sortKey = (file: string) =>
+    file.replace(/^(app\/components\/core|packages\/scraps\/src)\//, '');
+  const keyA = sortKey(a);
+  const keyB = sortKey(b);
+  return keyA < keyB ? -1 : keyA > keyB ? 1 : 0;
 }
 
 function isPatternsFile(file: string) {
@@ -417,6 +412,11 @@ function inferComponentName(path: string): string {
   return (part ?? '').replace(/\.(stories\.tsx|mdx)$/, '');
 }
 
+function createStoryLeaf(file: string, path: string) {
+  const name = formatName(inferComponentName(file));
+  return new StoryTreeNode(name, path, file, storyFrontmatterIndex[file]?.title);
+}
+
 function formatName(name: string) {
   return name
     .split('-')
@@ -429,16 +429,16 @@ function formatName(name: string) {
 }
 
 /**
- * Builds a nested tree structure from flat product/shared file paths.
- * Strips 'app/' prefix and creates intermediate folder nodes.
+ * Builds a nested tree structure from flat file paths in a tree section.
+ * Strips the root directory and creates intermediate folder nodes.
  * Example: "app/components/forms/form.stories.tsx" → components/forms/Form
  */
-function buildProductTree(files: string[]): StoryTreeNode[] {
+function buildProductTree(files: string[], section: StorySection): StoryTreeNode[] {
   const root = new StoryTreeNode('root', '', '');
 
   for (const file of files) {
-    // Strip 'app/' prefix, keep rest of path
-    const normalizedPath = file.replace(/^app\//, '');
+    // Strip the root directory, keep rest of path
+    const normalizedPath = file.replace(/^[^/]+\//, '');
     const parts = normalizedPath.split('/');
 
     let currentNode = root;
@@ -463,7 +463,7 @@ function buildProductTree(files: string[]): StoryTreeNode[] {
 
     // Add the actual story file as leaf node
     const name = inferComponentName(file);
-    currentNode.children[name] = new StoryTreeNode(formatName(name), 'product', file);
+    currentNode.children[name] = createStoryLeaf(file, section);
   }
 
   // Sort recursively: folders first, then alphabetically
@@ -511,25 +511,22 @@ function buildComponentTree(
   // Iterate in display order
   for (const subcategory of COMPONENT_SUBCATEGORY_ORDER) {
     const files = filesBySubcategory.get(subcategory);
-    if (!files || files.length === 0) {
+    if (!files?.[0]) {
       continue;
     }
 
+    const firstFile = files[0];
     const config = COMPONENT_SUBCATEGORY_CONFIG[subcategory];
-    if (!files[0]) {
-      continue;
-    }
-
-    const folderNode = new StoryTreeNode(config.label, subcategory, files[0]);
+    const folderNode = new StoryTreeNode(config.label, subcategory, firstFile);
 
     // Collect subgroup component names for filtering
     const subgroupComponents = new Set(config.subgroups?.flatMap(sg => sg.components));
 
     // Add top-level files (those not in any subgroup), sorted alphabetically
-    for (const file of files.sort()) {
+    for (const file of files.sort(compareCoreFiles)) {
       const name = inferComponentName(file);
       if (!subgroupComponents.has(name.toLowerCase())) {
-        folderNode.children[name] = new StoryTreeNode(formatName(name), 'core', file);
+        folderNode.children[name] = createStoryLeaf(file, 'core');
       }
     }
 
@@ -539,11 +536,12 @@ function buildComponentTree(
         const subgroupFiles = files.filter(f =>
           subgroup.components.includes(inferComponentName(f).toLowerCase())
         );
-        if (subgroupFiles.length > 0 && subgroupFiles[0]) {
+        const firstSubgroupFile = subgroupFiles[0];
+        if (firstSubgroupFile) {
           const subgroupNode = new StoryTreeNode(
             subgroup.label,
             subcategory,
-            subgroupFiles[0]
+            firstSubgroupFile
           );
           // Add subgroup components in config order (not alphabetically)
           for (const componentName of subgroup.components) {
@@ -551,12 +549,7 @@ function buildComponentTree(
               f => inferComponentName(f).toLowerCase() === componentName
             );
             if (file) {
-              const name = inferComponentName(file);
-              subgroupNode.children[componentName] = new StoryTreeNode(
-                formatName(name),
-                'core',
-                file
-              );
+              subgroupNode.children[componentName] = createStoryLeaf(file, 'core');
             }
           }
           folderNode.children[`_subgroup_${subgroup.label}`] = subgroupNode;
@@ -629,11 +622,12 @@ function Folder(props: {node: StoryTreeNode}) {
   const {storySlug} = useStoryParams();
 
   const hasActiveChild = useMemo(() => {
-    // eslint-disable-next-line unicorn/prefer-array-some
+    // eslint-disable-next-line unicorn/prefer-array-some, e18e/prefer-array-some
     return !!props.node.find(n => n.slug === storySlug);
   }, [storySlug, props.node]);
 
   if (hasActiveChild && !props.node.expanded) {
+    // oxlint-disable-next-line react/immutability
     props.node.expanded = true;
     setExpanded(true);
   }
@@ -650,6 +644,7 @@ function Folder(props: {node: StoryTreeNode}) {
     <li>
       <FolderName
         onClick={() => {
+          // oxlint-disable-next-line react/immutability
           props.node.expanded = !props.node.expanded;
           if (props.node.expanded) {
             for (const child of Object.values(props.node.children)) {
@@ -690,13 +685,13 @@ function File(props: {node: StoryTreeNode}) {
       <FolderLink
         to={{
           pathname: normalizeUrl(
-            `/organizations/${organization.slug}/stories/${props.node.category}/${props.node.slug}/`
+            `/organizations/${organization.slug}/scraps/${props.node.category}/${props.node.slug}/`
           ),
         }}
         aria-current={active ? 'page' : undefined}
         active={active}
       >
-        {normalizeFilename(props.node.name)}
+        {props.node.label}
       </FolderLink>
     </li>
   );

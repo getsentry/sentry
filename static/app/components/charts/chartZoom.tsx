@@ -7,11 +7,7 @@ import type {
 } from 'echarts';
 import type {Location} from 'history';
 import moment, {type MomentInput} from 'moment-timezone';
-import * as qs from 'query-string';
 
-import {DataZoomInside} from 'sentry/components/charts/components/dataZoomInside';
-import {ToolBox} from 'sentry/components/charts/components/toolBox';
-import {activateZoomAreaSelect} from 'sentry/components/charts/utils';
 import {updateDateTime} from 'sentry/components/pageFilters/actions';
 import type {DateString} from 'sentry/types/core';
 import type {
@@ -21,9 +17,15 @@ import type {
   EChartRestoreHandler,
 } from 'sentry/types/echarts';
 import {getUtcDateString, getUtcToLocalDateObject} from 'sentry/utils/dates';
+import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
+
+import {dataZoomInside} from './components/dataZoomInside';
+import {getToolBox} from './components/toolBox';
+import {CHART_ZOOM_MERGE_OPTIONS} from './chartZoomConfig';
+import {activateZoomAreaSelect} from './utils';
 
 const getDate = (date: MomentInput) =>
   date ? moment.utc(date).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) : null;
@@ -46,6 +48,8 @@ export interface ZoomRenderProps extends Pick<Props, ZoomPropKeys> {
   dataZoom?: DataZoomComponentOption[];
   end?: Date;
   isGroupedByDate?: boolean;
+  notMerge?: boolean;
+  replaceMerge?: string[];
   showTimeInTooltip?: boolean;
   start?: Date;
   toolBox?: ToolboxComponentOption;
@@ -167,10 +171,7 @@ class ChartZoom extends Component<Props> {
         pageStatsPeriod: period ?? undefined,
       };
 
-      // Only push new location if query params has changed because this will cause a heavy re-render
-      if (qs.stringify(newQuery) !== qs.stringify(location.query)) {
-        navigate({pathname: location.pathname, query: newQuery});
-      }
+      navigateIfQueryChanged(navigate, location, {query: newQuery});
     } else {
       updateDateTime(
         {
@@ -326,22 +327,22 @@ class ChartZoom extends Component<Props> {
         utc,
         start,
         end,
-        isGroupedByDate: true,
+        ...CHART_ZOOM_MERGE_OPTIONS,
         ...props,
       });
     }
     const renderProps = {
-      // Zooming only works when grouped by date
-      isGroupedByDate: true,
+      ...props,
+      ...CHART_ZOOM_MERGE_OPTIONS,
       onChartReady: this.handleChartReady,
       utc,
       start,
       end,
-      dataZoom: DataZoomInside({
+      dataZoom: dataZoomInside({
         xAxisIndex,
       }),
       showTimeInTooltip: true,
-      toolBox: ToolBox(
+      toolBox: getToolBox(
         {},
         {
           dataZoom: {
@@ -360,7 +361,6 @@ class ChartZoom extends Component<Props> {
       onDataZoom: this.handleDataZoom,
       onFinished: this.handleChartFinished,
       onRestore: this.handleZoomRestore,
-      ...props,
     };
 
     return children(renderProps);

@@ -2,9 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import {SettingsLayout} from 'sentry/views/settings/components/settingsLayout';
-
-import {BreadcrumbProvider} from './settingsBreadcrumb/context';
+import {SettingsLayout} from './settingsLayout';
 
 describe('SettingsLayout', () => {
   beforeEach(() => {
@@ -28,10 +26,6 @@ describe('SettingsLayout', () => {
   });
 
   it('renders', () => {
-    render(
-      <BreadcrumbProvider>
-        <SettingsLayout>content</SettingsLayout>
-      </BreadcrumbProvider>
-    );
+    render(<SettingsLayout>content</SettingsLayout>);
   });
 });

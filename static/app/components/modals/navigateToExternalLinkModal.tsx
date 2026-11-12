@@ -2,9 +2,10 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
+import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 
 type Props = ModalRenderProps & {
   linkText: string;
@@ -29,9 +30,11 @@ function NavigateToExternalLinkModal({Body, closeModal, Header, linkText}: Props
       </Body>
       <ButtonContainer>
         <ButtonBar>
-          <LinkButton variant="primary" href={linkText} onClick={handleClose} external>
-            {t('Continue')}
-          </LinkButton>
+          {isValidUrl(linkText) && (
+            <LinkButton variant="primary" href={linkText} onClick={handleClose} external>
+              {t('Continue')}
+            </LinkButton>
+          )}
           <Button variant="secondary" onClick={handleClose}>
             {t('Cancel')}
           </Button>

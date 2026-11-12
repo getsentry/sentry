@@ -1,9 +1,10 @@
+import {IconSort} from '@sentry/icons/sort';
+
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {RELEASES_SORT_OPTIONS, ReleasesSortOption} from 'sentry/constants/releases';
-import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 interface ReleasesSortSelectProps {

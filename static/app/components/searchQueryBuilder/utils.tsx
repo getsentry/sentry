@@ -1,7 +1,6 @@
 import type {ListState} from '@react-stately/list';
 import type {Key} from '@react-types/shared';
 
-import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import {
   BooleanOperator,
   FilterType,
@@ -16,7 +15,9 @@ import {
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
-import {FieldValueType} from 'sentry/utils/fields';
+import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
+
+import type {FieldDefinitionGetter} from './types';
 
 function getFilterKeysFromQuery(value: string | undefined): string[] {
   if (!value) {
@@ -25,6 +26,9 @@ function getFilterKeysFromQuery(value: string | undefined): string[] {
 
   const keys = new Set<string>();
   const filterKeyPattern = /(?:^|[\s(])!?([^\s():]+):/g;
+  // Typed aggregate filters such as `avg(span.size):>1kb` are classified by
+  // their arguments, so the arguments need field metadata too.
+  const aggregateArgsPattern = /(?:^|[\s(])!?[\w.]+\(([^()]*)\):/g;
 
   for (const match of value.matchAll(filterKeyPattern)) {
     if (match[1]) {
@@ -32,15 +36,48 @@ function getFilterKeysFromQuery(value: string | undefined): string[] {
     }
   }
 
+  for (const match of value.matchAll(aggregateArgsPattern)) {
+    for (const arg of match[1]?.split(',') ?? []) {
+      const key = arg.trim();
+      if (key && !key.startsWith('"')) {
+        keys.add(key);
+      }
+    }
+  }
+
   return Array.from(keys);
+}
+
+export function getFieldDefinitionForFilterKey(
+  key: string,
+  getFieldDefinition: FieldDefinitionGetter,
+  filterKeys?: TagCollection
+): FieldDefinition | null {
+  const fieldDef = getFieldDefinition(key);
+  if (fieldDef) {
+    return fieldDef;
+  }
+
+  switch (filterKeys?.[key]?.kind) {
+    case FieldKind.MEASUREMENT:
+    case FieldKind.NUMERIC_METRICS:
+      return {kind: FieldKind.FIELD, valueType: FieldValueType.NUMBER};
+    case FieldKind.BOOLEAN:
+      return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
+    case FieldKind.TAG:
+      return {kind: FieldKind.FIELD, valueType: FieldValueType.STRING};
+    default:
+      return null;
+  }
 }
 
 function addKeyToSearchConfig(
   config: Partial<SearchConfig>,
   key: string,
-  getFieldDefinition: FieldDefinitionGetter
+  getFieldDefinition: FieldDefinitionGetter,
+  filterKeys: TagCollection
 ) {
-  const fieldDef = getFieldDefinition(key);
+  const fieldDef = getFieldDefinitionForFilterKey(key, getFieldDefinition, filterKeys);
   if (!fieldDef) {
     return;
   }
@@ -93,33 +130,69 @@ function getSearchConfigFromKeys({
   } satisfies Partial<SearchConfig>;
 
   for (const key of Object.keys(keys)) {
-    addKeyToSearchConfig(config, key, getFieldDefinition);
+    addKeyToSearchConfig(config, key, getFieldDefinition, keys);
   }
 
   for (const key of queryKeys) {
-    addKeyToSearchConfig(config, key, getFieldDefinition);
+    addKeyToSearchConfig(config, key, getFieldDefinition, keys);
   }
 
   return config;
 }
 
+/**
+ * True when the filter key matches an entry in `invalidFilterKeys`.
+ *
+ * Aggregate filters are compared by both the full key (`p95(span.duration)`) and the
+ * bare function name (`p95`), so callers can mark aggregates invalid the same way
+ * metrics does via validate → `invalidFilterKeys` (which returns bare names).
+ */
+export function isInvalidFilterKey(
+  key: TokenResult<Token.FILTER>['key'],
+  invalidFilterKeys: readonly string[] | undefined,
+  filterKeyAliases?: TagCollection
+): boolean {
+  if (!invalidFilterKeys?.length) {
+    return false;
+  }
+
+  const keyWithArgs = getKeyName(key, {aggregateWithArgs: true});
+  if (isFilterKeyAlias(keyWithArgs, filterKeyAliases)) {
+    return false;
+  }
+
+  if (invalidFilterKeys.includes(keyWithArgs)) {
+    return true;
+  }
+
+  // KEY_AGGREGATE: also match bare name so `invalidFilterKeys: ['p95']` catches `p95(...)`.
+  const bareKey = getKeyName(key);
+  return bareKey !== keyWithArgs && invalidFilterKeys.includes(bareKey);
+}
+
+function isFilterKeyAlias(
+  key: string,
+  filterKeyAliases: TagCollection | undefined
+): boolean {
+  return filterKeyAliases !== undefined && Object.hasOwn(filterKeyAliases, key);
+}
+
 function markInvalidFilterKeys(
   tokens: ParseResult | null,
-  invalidFilterKeys: string[] | undefined
+  invalidFilterKeys: string[] | undefined,
+  invalidKeyMessage?: string,
+  filterKeyAliases?: TagCollection
 ): ParseResult | null {
   if (!tokens || !invalidFilterKeys?.length) {
     return tokens;
   }
-
-  const invalidFilterKeySet = new Set(invalidFilterKeys);
 
   return tokens.map(token => {
     if (token.type !== Token.FILTER) {
       return token;
     }
 
-    const keyName = getKeyName(token.key, {aggregateWithArgs: true});
-    if (!invalidFilterKeySet.has(keyName) || token.invalid) {
+    if (!isInvalidFilterKey(token.key, invalidFilterKeys, filterKeyAliases)) {
       return token;
     }
 
@@ -127,7 +200,9 @@ function markInvalidFilterKeys(
       ...token,
       invalid: {
         type: InvalidReason.INVALID_KEY,
-        reason: t('Invalid key. "%s" is not a supported search key.', token.key.text),
+        reason:
+          invalidKeyMessage ??
+          t('Invalid key. "%s" is not a supported search key.', token.key.text),
       },
     };
   });
@@ -138,24 +213,30 @@ export function parseQueryBuilderValue(
   getFieldDefinition: FieldDefinitionGetter,
   options?: {
     filterKeys: TagCollection;
+    allowRegexOperators?: boolean;
     disallowFreeText?: boolean;
     disallowLogicalOperators?: boolean;
+    disallowNegation?: boolean;
     disallowUnsupportedFilters?: boolean;
     disallowWildcard?: boolean;
     filterKeyAliases?: TagCollection;
     getFilterTokenWarning?: (key: string) => React.ReactNode;
     invalidFilterKeys?: string[];
     invalidMessages?: SearchConfig['invalidMessages'];
+    validateRegexPattern?: SearchConfig['validateRegexPattern'];
   }
 ): ParseResult | null {
   return markInvalidFilterKeys(
     collapseTextTokens(
       parseSearch(value || ' ', {
         flattenParenGroups: true,
+        allowRegex: options?.allowRegexOperators,
+        validateRegexPattern: options?.validateRegexPattern,
         disallowFreeText: options?.disallowFreeText,
         getFilterTokenWarning: options?.getFilterTokenWarning,
         validateKeys: options?.disallowUnsupportedFilters,
         disallowWildcard: options?.disallowWildcard,
+        disallowNegation: options?.disallowNegation,
         disallowedLogicalOperators: options?.disallowLogicalOperators
           ? new Set([BooleanOperator.AND, BooleanOperator.OR])
           : undefined,
@@ -174,7 +255,9 @@ export function parseQueryBuilderValue(
         },
       })
     ),
-    options?.invalidFilterKeys
+    options?.invalidFilterKeys,
+    options?.invalidMessages?.[InvalidReason.INVALID_KEY],
+    options?.filterKeyAliases
   );
 }
 

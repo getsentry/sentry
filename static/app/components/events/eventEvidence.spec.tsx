@@ -4,7 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {EventEvidence} from 'sentry/components/events/eventEvidence';
+import {EventEvidence} from './eventEvidence';
 
 describe('EventEvidence', () => {
   const event = EventFixture({
@@ -47,11 +47,7 @@ describe('EventEvidence', () => {
   it('renders evidenceDisplay data in a key/value table', () => {
     render(<EventEvidence {...defaultProps} />);
 
-    expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
-    expect(
-      screen.getByRole('cell', {
-        name: '/api/0/transaction-test-endpoint/',
-      })
-    ).toBeInTheDocument();
+    expect(screen.getByText('Transaction')).toBeInTheDocument();
+    expect(screen.getByText('/api/0/transaction-test-endpoint/')).toBeInTheDocument();
   });
 });

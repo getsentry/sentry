@@ -2,7 +2,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {Column} from 'sentry/utils/discover/fields';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
-import {ArithmeticInput} from 'sentry/views/discover/table/arithmeticInput';
+
+import {ArithmeticInput} from './arithmeticInput';
 
 describe('ArithmeticInput', () => {
   const operators = ['+', '-', '*', '/', '(', ')'];
@@ -118,14 +119,14 @@ describe('ArithmeticInput', () => {
     // wrap around to the first option again
     await userEvent.keyboard('{ArrowDown}');
 
-    for (const operator of [...operators].reverse()) {
+    for (const operator of operators.toReversed()) {
       await userEvent.keyboard('{ArrowUp}');
       expect(screen.getByRole('listitem', {name: operator})).toHaveClass('active', {
         exact: false,
       });
     }
 
-    for (const column of [...numericColumns].reverse()) {
+    for (const column of numericColumns.toReversed()) {
       await userEvent.keyboard('{ArrowUp}');
       expect(
         screen.getByRole('listitem', {name: generateFieldAsString(column)})

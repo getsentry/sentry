@@ -1,17 +1,20 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import type {PrebuiltWidget} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import type {
+  PrebuiltWidget,
+  PrebuiltDashboard,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+
 import {
   SCREEN_LOAD_CONDITION,
   SCREEN_LOAD_SPAN_OPERATIONS_CONDITION,
   TRANSACTION_COUNT,
   TTFD_CONDITION,
   TTID_CONDITION,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/constants';
-import {SCREEN_LOADS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/settings';
-import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+} from './constants';
+import {SCREEN_LOADS_DASHBOARD_TITLE} from './settings';
 
 const AVG_TTID_BIG_NUMBER_WIDGET: PrebuiltWidget = {
   id: 'avg-ttid-big-number',

@@ -43,7 +43,7 @@ describe('unity onboarding docs', () => {
     });
 
     expect(
-      screen.getByText(textWithMarkupMatcher(/SentrySdk\.Metrics\.Increment/))
+      screen.getByText(textWithMarkupMatcher(/SentrySdk\.Metrics\.EmitCounter/))
     ).toBeInTheDocument();
   });
 });

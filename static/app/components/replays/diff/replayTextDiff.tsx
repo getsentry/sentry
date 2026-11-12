@@ -1,16 +1,17 @@
-import {useMemo} from 'react';
-import beautify from 'js-beautify';
-
+import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {useDiffCompareContext} from 'sentry/components/replays/diff/diffCompareContext';
-import {DiffFeedbackBanner} from 'sentry/components/replays/diff/diffFeedbackBanner';
-import {After, Before} from 'sentry/components/replays/diff/utils';
 import SplitDiff from 'sentry/components/splitDiff';
 import {t} from 'sentry/locale';
 import {useExtractPageHtml} from 'sentry/utils/replays/hooks/useExtractPageHtml';
+import {useFormattedCode} from 'sentry/utils/useFormattedCode';
+
+import {useDiffCompareContext} from './diffCompareContext';
+import {DiffFeedbackBanner} from './diffFeedbackBanner';
+import {After, Before} from './utils';
+
+const HTML_FORMAT_OPTIONS = {indent_size: 2} as const;
 
 export function ReplayTextDiff() {
   const {replay, leftOffsetMs, rightOffsetMs} = useDiffCompareContext();
@@ -23,18 +24,29 @@ export function ReplayTextDiff() {
     offsetMsToStopAt: [leftOffsetMs + 1, rightOffsetMs + 1],
   });
 
-  const [leftBody, rightBody] = useMemo(
-    () => data?.map(([_, html]) => beautify.html(html, {indent_size: 2})) ?? [],
-    [data]
-  );
+  const [leftBodySource = '', rightBodySource = ''] =
+    data?.map(([_, html]) => html) ?? [];
+  const {formattedCode: leftBody, isPending: isLeftBodyPending} = useFormattedCode({
+    code: leftBodySource,
+    language: 'html',
+    options: HTML_FORMAT_OPTIONS,
+  });
+  const {formattedCode: rightBody, isPending: isRightBodyPending} = useFormattedCode({
+    code: rightBodySource,
+    language: 'html',
+    options: HTML_FORMAT_OPTIONS,
+  });
+  const isFormatting = isLeftBodyPending || isRightBodyPending;
 
   return (
     <Stack flexGrow={1} gap="md" height="0">
-      {!isLoading && leftBody === rightBody ? <DiffFeedbackBanner /> : null}
+      {!isLoading && !isFormatting && leftBody === rightBody ? (
+        <DiffFeedbackBanner />
+      ) : null}
       <ContentSliderDiff.Header>
         <Before startTimestampMs={replay.getStartTimestampMs()} offset={leftOffsetMs}>
           <CopyToClipboardButton
-            text={leftBody ?? ''}
+            text={leftBody}
             size="xs"
             variant="transparent"
             aria-label={t('Copy Before')}
@@ -42,7 +54,7 @@ export function ReplayTextDiff() {
         </Before>
         <After startTimestampMs={replay.getStartTimestampMs()} offset={rightOffsetMs}>
           <CopyToClipboardButton
-            text={rightBody ?? ''}
+            text={rightBody}
             size="xs"
             variant="transparent"
             aria-label={t('Copy After')}
@@ -50,7 +62,7 @@ export function ReplayTextDiff() {
         </After>
       </ContentSliderDiff.Header>
       <Flex flexGrow={1} height="0" overflow="auto">
-        <SplitDiff base={leftBody ?? ''} target={rightBody ?? ''} type="lines" />
+        <SplitDiff base={leftBody} target={rightBody} />
       </Flex>
     </Stack>
   );

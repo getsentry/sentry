@@ -1,14 +1,14 @@
 import {Fragment, useState} from 'react';
+import {IconEdit} from '@sentry/icons/edit';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {DateTime} from 'sentry/components/dateTime';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -19,36 +19,44 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TimeSince} from 'sentry/components/timeSince';
 import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
 import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
-import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUserFromId} from 'sentry/utils/useUserFromId';
-import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
-import {AutomationHistoryList} from 'sentry/views/automations/components/automationHistoryList';
-import {AutomationStatsChart} from 'sentry/views/automations/components/automationStatsChart';
-import {ConditionsPanel} from 'sentry/views/automations/components/conditionsPanel';
-import {ConnectedMonitorsList} from 'sentry/views/automations/components/connectedMonitorsList';
-import {ConnectedProjectsList} from 'sentry/views/automations/components/connectedProjectsList';
-import {DisabledAlert} from 'sentry/views/automations/components/disabledAlert';
-import {useAutomationQuery, useUpdateAutomation} from 'sentry/views/automations/hooks';
-import {
-  getNoAlertWritePermissionTooltip,
-  useCanEditAutomation,
-} from 'sentry/views/automations/hooks/useCanEditAutomation';
-import {getAutomationActionsWarning} from 'sentry/views/automations/hooks/utils';
-import {
-  makeAutomationBasePathname,
-  makeAutomationEditPathname,
-} from 'sentry/views/automations/pathnames';
 import {TopBar} from 'sentry/views/navigation/topBar';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
-function AutomationDetailContent({automation}: {automation: Automation}) {
+import {AutomationFeedbackButton} from './components/automationFeedbackButton';
+import {AutomationHistoryList} from './components/automationHistoryList';
+import {AutomationStatsChart} from './components/automationStatsChart';
+import {ConditionsPanel} from './components/conditionsPanel';
+import {ConnectedMonitorsList} from './components/connectedMonitorsList';
+import {ConnectedProjectsList} from './components/connectedProjectsList';
+import {DisabledAlert} from './components/disabledAlert';
+import {useAutomationEditPermission} from './hooks/useCanEditAutomation';
+import {getAutomationActionsWarning} from './hooks/utils';
+import {dataConditionGroupToLLMContext} from './utils/automationLLMContext';
+import {useAutomationQuery, useUpdateAutomation} from './hooks';
+import {makeAutomationBasePathname, makeAutomationEditPathname} from './pathnames';
+
+const CONTEXT_HINT =
+  'Sentry alert detail page. This alert runs its actions when an issue matches its conditions. ' +
+  'triggers is the condition group that starts the alert; actionFilters are the groups that gate ' +
+  'each set of actions. Every action reports where it lands — targetDisplay is the resolved ' +
+  'channel, team, or user name, and targetIdentifier the raw id behind it. ' +
+  'throttleMinutes is how long the alert waits before firing again for the same issue; null means ' +
+  'it notifies on every trigger. statusWarning is non-null when the alert cannot run as configured. ' +
+  'The page also shows a fire-history table and a stats chart. Neither is in this node, so use a ' +
+  'tool call for how often this alert has actually fired.';
+
+function AutomationDetailContentInner({automation}: {automation: Automation}) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const {start, end, period, utc} = selection.datetime;
@@ -57,24 +65,40 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
   const [monitorListCursor, setMonitorListCursor] = useState<string | undefined>(
     undefined
   );
-  const breadcrumbs = (
-    <Breadcrumbs
-      crumbs={[
-        {
-          label: t('Alerts'),
-          to: makeAutomationBasePathname(organization.slug),
-        },
-        {label: automation.name},
-      ]}
-    />
-  );
-
   const hasConnections = !!automation.detectorIds.length;
+
+  useLLMContext({
+    contextHint: CONTEXT_HINT,
+    id: automation.id,
+    name: automation.name,
+    enabled: automation.enabled,
+    environment: automation.environment,
+    lastTriggered: automation.lastTriggered,
+    // `?? null` so the key survives serialization when the alert notifies on
+    // every trigger, where there is no throttle at all.
+    throttleMinutes: automation.config.frequency ?? null,
+    connectedMonitorIds: automation.detectorIds,
+    triggers: automation.triggers
+      ? dataConditionGroupToLLMContext(automation.triggers)
+      : null,
+    actionFilters: automation.actionFilters.map(dataConditionGroupToLLMContext),
+    statusWarning: warning?.message ?? null,
+  });
 
   return (
     <SentryDocumentTitle title={automation.name}>
       <DetailLayout>
-        <TopBar.Slot name="title">{breadcrumbs}</TopBar.Slot>
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{type: 'page-title', label: automation.name}}
+          items={[
+            {
+              type: 'link',
+              label: t('Alerts'),
+              to: makeAutomationBasePathname(organization.slug),
+            },
+          ]}
+        />
         <AutomationFeedbackButton />
         <DetailLayout.Body>
           <DetailLayout.Main>
@@ -186,20 +210,22 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
             </DetailSection>
             <DetailSection title={t('Details')}>
               <ErrorBoundary mini>
-                <KeyValueTable>
-                  <KeyValueTableRow
-                    keyName={t('Date created')}
-                    value={<DateTime date={automation.dateCreated} dateOnly year />}
-                  />
-                  <KeyValueTableRow
-                    keyName={t('Created by')}
-                    value={<UserDisplayName id={automation.createdBy} />}
-                  />
-                  <KeyValueTableRow
-                    keyName={t('Last modified')}
-                    value={<TimeSince date={automation.dateUpdated} />}
-                  />
-                </KeyValueTable>
+                <Container marginBottom="xl">
+                  <DescriptionList striped>
+                    <DescriptionList.Term>{t('Date created')}</DescriptionList.Term>
+                    <DescriptionList.Details>
+                      <DateTime date={automation.dateCreated} dateOnly year />
+                    </DescriptionList.Details>
+                    <DescriptionList.Term>{t('Created by')}</DescriptionList.Term>
+                    <DescriptionList.Details>
+                      <UserDisplayName id={automation.createdBy} />
+                    </DescriptionList.Details>
+                    <DescriptionList.Term>{t('Last modified')}</DescriptionList.Term>
+                    <DescriptionList.Details>
+                      <TimeSince date={automation.dateUpdated} />
+                    </DescriptionList.Details>
+                  </DescriptionList>
+                </Container>
               </ErrorBoundary>
             </DetailSection>
           </DetailLayout.Sidebar>
@@ -208,6 +234,11 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
     </SentryDocumentTitle>
   );
 }
+
+const AutomationDetailContent = registerLLMContext(
+  'alert-detail',
+  AutomationDetailContentInner
+);
 
 function AutomationDetailLoadingStates({automationId}: {automationId: string}) {
   const {
@@ -225,7 +256,11 @@ function AutomationDetailLoadingStates({automationId}: {automationId: string}) {
   if (isError) {
     return (
       <LoadingError
-        message={error.status === 404 ? t('The alert could not be found.') : undefined}
+        message={
+          error instanceof RequestError && error.status === 404
+            ? t('The alert could not be found.')
+            : undefined
+        }
         onRetry={refetch}
       />
     );
@@ -253,8 +288,11 @@ export default function AutomationDetail() {
 function Actions({automation, size}: {automation: Automation; size?: 'sm'}) {
   const organization = useOrganization();
   const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
-  const canEdit = useCanEditAutomation();
-  const permissionTooltipText = canEdit ? undefined : getNoAlertWritePermissionTooltip();
+  const {
+    canEdit,
+    disabledReason,
+    isPending: isPermissionPending,
+  } = useAutomationEditPermission(automation.id);
 
   const toggleDisabled = () => {
     const newEnabled = !automation.enabled;
@@ -266,7 +304,7 @@ function Actions({automation, size}: {automation: Automation; size?: 'sm'}) {
       },
       {
         onSuccess: () => {
-          addSuccessMessage(newEnabled ? t('Alert enabled') : t('Alert disabled'));
+          toast.success(newEnabled ? t('Alert enabled') : t('Alert disabled'));
         },
       }
     );
@@ -278,16 +316,16 @@ function Actions({automation, size}: {automation: Automation; size?: 'sm'}) {
         variant="secondary"
         size={size}
         onClick={toggleDisabled}
-        busy={isUpdating}
+        busy={isUpdating || isPermissionPending}
         disabled={!canEdit}
-        tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+        tooltipProps={{title: disabledReason}}
       >
         {automation.enabled ? t('Disable') : t('Enable')}
       </Button>
       <LinkButton
         to={makeAutomationEditPathname(organization.slug, automation.id)}
         disabled={!canEdit}
-        tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+        tooltipProps={{title: disabledReason}}
         variant="primary"
         icon={<IconEdit />}
         size={size}

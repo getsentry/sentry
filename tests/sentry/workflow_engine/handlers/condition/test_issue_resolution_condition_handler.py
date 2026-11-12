@@ -17,10 +17,10 @@ class TestIssueResolutionChangeCondition(ConditionTestCase):
 
     def test_evaluate_value(self) -> None:
         self.group_event.group.status = 1
-        result = self.dc.evaluate_value(self.event_data)
-        assert result is self.dc.get_condition_result()
+        evaluation = self.dc.evaluate_value(self.event_data)
+        assert evaluation.result is self.dc.get_condition_result()
 
     def test_evaluate_value__not_matching_comparison(self) -> None:
         self.group_event.group.status = 2
-        result = self.dc.evaluate_value(self.event_data)
-        assert result is None
+        evaluation = self.dc.evaluate_value(self.event_data)
+        assert evaluation.result is None

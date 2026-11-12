@@ -25,7 +25,6 @@ export function SectionHeader({
         disabled={!tooltipText}
         position="right-end"
         delay={200}
-        isHoverable
         showUnderline
       >
         <StyledHeader className={className}>{title}</StyledHeader>

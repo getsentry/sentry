@@ -3,11 +3,12 @@ import {createContext, useContext, useEffect, useReducer, useRef} from 'react';
 import {useHotkeys} from '@sentry/scraps/hotkey';
 
 import {toggleCommandPalette} from 'sentry/actionCreators/modal';
+import {COMMAND_PALETTE_HOTKEYS} from 'sentry/components/commandPalette/constants';
+import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
-import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 /**
  * A stack entry for navigating into a CMDK group. Stores the group's
@@ -154,6 +155,7 @@ export function CommandPaletteStateProvider({
   children,
 }: CommandPaletteStateProviderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  // oxlint-disable-next-line react/refs
   const [state, dispatch] = useReducer(commandPaletteReducer, {
     input: inputRef,
     query: '',
@@ -193,12 +195,13 @@ export function CommandPaletteHotkeys() {
       return;
     }
     dispatch({type: 'reset on open'});
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [location.pathname, dispatch]);
 
-  useHotkeys([
-    {
-      match: ['mod+shift+p', 'mod+k'],
-      includeInputs: true,
+  useHotkeys(
+    COMMAND_PALETTE_HOTKEYS.map(hotkey => ({
+      hotkey,
+      options: {ignoreInputs: false},
       callback: () => {
         if (!organization) {
           return;
@@ -212,8 +215,8 @@ export function CommandPaletteHotkeys() {
           isSeerExplorerEnabled(organization) ? openSeerExplorer : undefined
         );
       },
-    },
-  ]);
+    }))
+  );
 
   return null;
 }

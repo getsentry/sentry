@@ -1,14 +1,12 @@
-import {CodeBlock} from '@sentry/scraps/code';
-import {Flex} from '@sentry/scraps/layout';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {openInsightInfoModal} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
-import {
-  CodeBlockWrapper,
-  InlineCode,
-} from 'sentry/views/preprod/buildDetails/main/insights/insightInfoModal';
+
+import {CodeBlockWrapper, InlineCode} from './insightInfoModal';
 
 const COMMENT_EXAMPLE = `/* Title for the expired code alert. */
 "code_expired" = "Code Expired";`;
@@ -39,15 +37,15 @@ for root, _, files in os.walk(os.environ["BUILT_PRODUCTS_DIR"], followlinks=True
 
 function getMinifyLocalizedStringsContent() {
   return (
-    <Flex direction="column" gap="2xl">
+    <Stack gap="2xl">
       <Text>
         {t(
           'Xcode localized string bundles often ship with translator comments, whitespace, and legacy encodings that the runtime never reads. Trimming that excess reduces download size without touching what users see.'
         )}
       </Text>
 
-      <Flex direction="column" gap="xl">
-        <Flex direction="column" gap="md">
+      <Stack gap="xl">
+        <Stack gap="md">
           <Heading as="h3" size="md">
             {t('Option 1: Keep the format lean')}
           </Heading>
@@ -62,9 +60,9 @@ function getMinifyLocalizedStringsContent() {
               }
             )}
           </Text>
-        </Flex>
+        </Stack>
 
-        <Flex direction="column" gap="md">
+        <Stack gap="md">
           <Heading as="h3" size="md">
             {t('Option 2: Strip comments automatically')}
           </Heading>
@@ -125,9 +123,9 @@ function getMinifyLocalizedStringsContent() {
               'This script strips comments and blank lines after the files are generated, so keep the original annotated copies under version control for translators.'
             )}
           </Text>
-        </Flex>
-      </Flex>
-    </Flex>
+        </Stack>
+      </Stack>
+    </Stack>
   );
 }
 

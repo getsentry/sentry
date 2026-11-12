@@ -3,16 +3,15 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
+from functools import partial
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.conf import settings
-from django.db import models
-from django.db.models import F
-from django.db.models.signals import post_save
+from django.db import models, router, transaction
+from django.db.models import F, QuerySet
 from django.utils import timezone
 
-from sentry import options
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
@@ -25,10 +24,22 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.issues.action_log import publish_action_from_context, publish_actions_from_context_bulk
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.tasks import activity
-from sentry.types.activity import CHOICES, STATUS_CHANGE_ACTIVITY_TYPES, ActivityType
+from sentry.types.activity import (
+    CHOICES,
+    HIDDEN_ACTIVITY_TYPES,
+    STATUS_CHANGE_ACTIVITY_TYPES,
+    ActivityType,
+)
 from sentry.types.group import PriorityLevel
+from sentry.utils.action_log.activity_translator import (
+    activity_action_idempotency_key,
+    activity_to_action,
+)
+from sentry.utils.env import in_test_environment
+from sentry.utils.safe import safe_execute
 from sentry.workflow_engine.handlers.registry import invoke_workflow_activity_handlers
 from sentry.workflow_engine.types import DetectorId
 
@@ -42,9 +53,25 @@ _default_logger = logging.getLogger(__name__)
 
 
 class ActivityManager(BaseManager["Activity"]):
+    def get_recent_unresolved_activities(
+        self, project_id: int, cutoff: datetime
+    ) -> QuerySet[Activity]:
+        """Any SET_UNRESOLVED grants another auto-resolution interval, including snooze expiry."""
+        return self.filter(
+            project_id=project_id,
+            datetime__gt=cutoff,
+            type=ActivityType.SET_UNRESOLVED.value,
+        )
+
     def get_activities_for_group(self, group: Group, num: int) -> Sequence[Activity]:
         activities = []
-        activity_qs = self.filter(group=group).order_by("-datetime")
+        # Internal-signal activities (e.g. SMART_ASSIGNMENT_COMPLETED) exist only to drive
+        # workflow handlers; they have no frontend rendering and must be kept out of the feed.
+        activity_qs = (
+            self.filter(group=group)
+            .exclude(type__in=[t.value for t in HIDDEN_ACTIVITY_TYPES])
+            .order_by("-datetime")
+        )
 
         initial_priority_value = group.get_event_metadata().get("initial_priority")
         initial_priority = (
@@ -112,6 +139,66 @@ class ActivityManager(BaseManager["Activity"]):
         invoke_workflow_activity_handlers(group, activity, detector_id)
 
         return activity
+
+    def create_without_group_action(self, **kwargs: Any) -> Activity:
+        return super().create(**kwargs)
+
+    def create(self, **kwargs: Any) -> Activity:
+        activity: Activity = super().create(**kwargs)
+
+        group_id = kwargs.get("group_id")
+        if group_id is None:
+            group = kwargs.get("group")
+            if group is not None:
+                group_id = group.id
+
+        if group_id is not None:
+            try:
+                group_action = activity_to_action(activity)
+                if group_action is None and activity.type == ActivityType.NOTE.value:
+                    raise ValueError("Could not translate comment audit event")
+                if group_action is not None:
+                    publish_action_from_context(
+                        group_action,
+                        group_id=group_id,
+                        project=activity.project,
+                        idempotency_key=activity_action_idempotency_key(activity),
+                    )
+            except Exception:
+                _default_logger.info("Failed to translate activity %d to GALE", activity.id)
+                if activity.type == ActivityType.NOTE.value or in_test_environment():
+                    raise
+
+        return activity
+
+    def bulk_create(self, *args: Any) -> list[Activity]:
+        activities: list[Activity] = super().bulk_create(*args)
+
+        try:
+            actions_with_activities = [
+                (activity_to_action(activity), activity) for activity in activities
+            ]
+            group_actions = [
+                # This loads the group just to fetch the ID, which isn't ideal... but we need the
+                # group ID for each activity, which can be different. No real way around it.
+                # Thankfully, this function is rarely-used (and isn't in any perf-sensitive paths)
+                (aa[0], aa[1].project, aa[1].group.id, activity_action_idempotency_key(aa[1]))
+                for aa in actions_with_activities
+                if aa[0] is not None and aa[1].group is not None
+            ]
+            publish_actions_from_context_bulk(
+                group_actions,
+            )
+
+        except Exception:
+            _default_logger.info(
+                "Failed to translate activities %s to GALE",
+                ", ".join([str(a.id) for a in activities]),
+            )
+            if in_test_environment():
+                raise
+
+        return activities
 
 
 @cell_silo_model
@@ -183,26 +270,14 @@ class Activity(Model):
 
         # HACK: support Group.num_comments
         if self.type == ActivityType.NOTE.value and self.group is not None:
-            from sentry.models.group import Group
-
             self.group.update(num_comments=F("num_comments") + 1)
-            if not options.get("groups.enable-post-update-signal"):
-                post_save.send_robust(
-                    sender=Group, instance=self.group, created=True, update_fields=["num_comments"]
-                )
 
     def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
         result = super().delete(*args, **kwargs)
 
         # HACK: support Group.num_comments
         if self.type == ActivityType.NOTE.value and self.group is not None:
-            from sentry.models.group import Group
-
             self.group.update(num_comments=F("num_comments") - 1)
-            if not options.get("groups.enable-post-update-signal"):
-                post_save.send_robust(
-                    sender=Group, instance=self.group, created=True, update_fields=["num_comments"]
-                )
 
         return result
 
@@ -224,10 +299,16 @@ class Activity(Model):
             ):
                 return
 
-        activity.send_activity_notifications.delay(self.id)
+        if self.type == ActivityType.NOTE.value:
+            transaction.on_commit(
+                partial(safe_execute, activity.send_activity_notifications.delay, self.id),
+                using=router.db_for_write(Activity),
+            )
+        else:
+            activity.send_activity_notifications.delay(self.id)
 
 
-class ActivityIntegration(Enum):
+class ActivityIntegration(StrEnum):
     """Used in the Activity data column to define an acting integration"""
 
     CODEOWNERS = "codeowners"
@@ -236,3 +317,4 @@ class ActivityIntegration(Enum):
     MSTEAMS = IntegrationProviderSlug.MSTEAMS.value
     DISCORD = IntegrationProviderSlug.DISCORD.value
     SUSPECT_COMMITTER = "suspectCommitter"
+    SEER_SUGGESTED = "seerSuggested"

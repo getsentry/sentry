@@ -5,11 +5,12 @@ import type {
   PrebuiltDashboard,
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {QUEUE_CHARTS} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/queueCharts';
-import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/settings';
 import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+
+import {QUEUE_CHARTS} from './queueCharts';
+import {DASHBOARD_DESCRIPTION, DASHBOARD_TITLE} from './settings';
 
 const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow([...QUEUE_CHARTS], 0);
 
@@ -25,19 +26,19 @@ const DESTINATION_TABLE: PrebuiltWidget = {
       fields: [
         SpanFields.MESSAGING_MESSAGE_DESTINATION_NAME,
         `avg(${SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY})`,
-        `equation|avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
-        `equation|1 - (count_if(${SpanFields.TRACE_STATUS},equals,ok) / count(${SpanFields.SPAN_DURATION}))`,
-        `equation|count_if(${SpanFields.SPAN_OP},equals,queue.publish)`,
-        `equation|count_if(${SpanFields.SPAN_OP},equals,queue.process)`,
+        `equation|avg_if(\`${SpanFields.SPAN_OP}:queue.process\`,${SpanFields.SPAN_DURATION})`,
+        `equation|1 - (count_if(\`${SpanFields.TRACE_STATUS}:ok\`) / count(${SpanFields.SPAN_DURATION}))`,
+        `equation|count_if(\`${SpanFields.SPAN_OP}:queue.publish\`)`,
+        `equation|count_if(\`${SpanFields.SPAN_OP}:queue.process\`)`,
         `sum(${SpanFields.SPAN_DURATION})`,
       ],
       columns: [SpanFields.MESSAGING_MESSAGE_DESTINATION_NAME],
       aggregates: [
         `avg(${SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY})`,
-        `equation|avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
-        `equation|1 - (count_if(${SpanFields.TRACE_STATUS},equals,ok) / count(${SpanFields.SPAN_DURATION}))`,
-        `equation|count_if(${SpanFields.SPAN_OP},equals,queue.publish)`,
-        `equation|count_if(${SpanFields.SPAN_OP},equals,queue.process)`,
+        `equation|avg_if(\`${SpanFields.SPAN_OP}:queue.process\`,${SpanFields.SPAN_DURATION})`,
+        `equation|1 - (count_if(\`${SpanFields.TRACE_STATUS}:ok\`) / count(${SpanFields.SPAN_DURATION}))`,
+        `equation|count_if(\`${SpanFields.SPAN_OP}:queue.publish\`)`,
+        `equation|count_if(\`${SpanFields.SPAN_OP}:queue.process\`)`,
         `sum(${SpanFields.SPAN_DURATION})`,
       ],
       fieldAliases: [
@@ -73,6 +74,7 @@ export const QUEUES_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
   title: DASHBOARD_TITLE,
+  description: DASHBOARD_DESCRIPTION,
   filters: {
     globalFilter: [
       {

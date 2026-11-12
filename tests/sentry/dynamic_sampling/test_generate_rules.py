@@ -1,13 +1,16 @@
 import time
 from datetime import datetime, timedelta, timezone
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 import pytest
+from redis.exceptions import RedisError
 from sentry_relay.processing import normalize_project_config
 
 from sentry.constants import HEALTH_CHECK_GLOBS
 from sentry.discover.models import TeamKeyTransaction
 from sentry.dynamic_sampling import ENVIRONMENT_GLOBS, generate_rules, get_redis_client_for_ds
+from sentry.dynamic_sampling.per_org.cache import set_adjusted_factor
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.dynamic_sampling.rules.utils import (
     LATEST_RELEASES_BOOST_DECAYED_FACTOR,
@@ -16,15 +19,20 @@ from sentry.dynamic_sampling.rules.utils import (
     RuleType,
 )
 from sentry.dynamic_sampling.types import DynamicSamplingMode
+from sentry.models.project import Project
 from sentry.models.projectteam import ProjectTeam
+from sentry.models.team import Team
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
+from tests.sentry.dynamic_sampling.per_org.test_helpers import (
+    store_per_org_project_sample_rate,
+)
 
 
 @pytest.fixture
-def latest_release_only(default_old_project):
+def latest_release_only(default_old_project: Project) -> None:
     """
     This fixture is a hacky way of automatically changing the default project options to use only the latest release
     bias.
@@ -40,14 +48,14 @@ def latest_release_only(default_old_project):
 
 
 @pytest.fixture
-def default_old_project(default_project):
+def default_old_project(default_project: Project) -> Project:
     """
     A project created with an old_date.
     """
     return _apply_old_date_to_project_and_org(default_project)
 
 
-def _apply_old_date_to_project_and_org(project):
+def _apply_old_date_to_project_and_org(project: Project) -> Project:
     """
     Applies an old date to project and its corresponding org. An old date is determined as a date which is more than
     NEW_MODEL_THRESHOLD_IN_MINUTES minutes in the past.
@@ -62,7 +70,7 @@ def _apply_old_date_to_project_and_org(project):
     return project
 
 
-def _validate_rules(project):
+def _validate_rules(project: Project) -> None:
     rules = generate_rules(project)
 
     # Generate boilerplate around minimal project config:
@@ -86,7 +94,7 @@ def test_generate_rules_capture_exception(
     get_blended_sample_rate.return_value = None
     # since we mock get_blended_sample_rate function
     # no need to create real project in DB
-    fake_project = MagicMock()
+    fake_project = cast(Project, MagicMock())
     # if blended rate is None that means dynamic sampling rate should be set to 1.
     rules = generate_rules(fake_project)
     assert rules[0]["samplingValue"]["value"] == 1.0
@@ -99,16 +107,12 @@ def test_generate_rules_capture_exception(
 @django_db_all
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
 def test_generate_rules_return_only_always_allowed_rules_if_sample_rate_is_100_and_other_rules_are_enabled(
-    get_blended_sample_rate, default_old_project
-):
+    get_blended_sample_rate: MagicMock, default_old_project: Project
+) -> None:
     get_blended_sample_rate.return_value = 1.0
 
     # We also enable the recalibration to show it's not generated as part of the rules.
-    redis_client = get_redis_client_for_ds()
-    redis_client.set(
-        f"ds::o:{default_old_project.organization.id}:rate_rebalance_factor2",
-        0.5,
-    )
+    set_adjusted_factor(default_old_project.organization.id, 0.5)
 
     assert generate_rules(default_old_project) == [
         {
@@ -128,11 +132,14 @@ def test_generate_rules_return_only_always_allowed_rules_if_sample_rate_is_100_a
 @patch("sentry.dynamic_sampling.rules.base.get_enabled_user_biases")
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rules_with_rate(
-    get_blended_sample_rate, get_enabled_user_biases, default_old_project
-):
+    get_blended_sample_rate: MagicMock,
+    get_enabled_user_biases: MagicMock,
+    default_old_project: Project,
+) -> None:
     # it means no enabled user biases
     get_enabled_user_biases.return_value = {}
     get_blended_sample_rate.return_value = 0.1
+    store_per_org_project_sample_rate(default_old_project, 0.1)
     assert generate_rules(default_old_project) == [
         {
             "condition": {"inner": [], "op": "and"},
@@ -148,11 +155,41 @@ def test_generate_rules_return_uniform_rules_with_rate(
 
 
 @django_db_all
+@patch("sentry.dynamic_sampling.rules.base.get_enabled_user_biases")
+@patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
+def test_generate_rules_serve_the_blended_rate_when_the_cache_cannot_be_read(
+    get_blended_sample_rate: MagicMock,
+    get_enabled_user_biases: MagicMock,
+    default_old_project: Project,
+) -> None:
+    get_enabled_user_biases.return_value = {}
+    get_blended_sample_rate.return_value = 0.1
+    store_per_org_project_sample_rate(default_old_project, 0.5)
+
+    with patch(
+        "sentry.dynamic_sampling.per_org.cache.get_project_sample_rate",
+        side_effect=RedisError("connection refused"),
+    ):
+        rules = generate_rules(default_old_project)
+
+    assert rules == [
+        {
+            "condition": {"inner": [], "op": "and"},
+            "id": 1000,
+            "samplingValue": {"type": "sampleRate", "value": 0.1},
+            "type": "trace",
+        },
+    ]
+    _validate_rules(default_old_project)
+
+
+@django_db_all
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rules_and_env_rule(
-    get_blended_sample_rate, default_old_project
-):
+    get_blended_sample_rate: MagicMock, default_old_project: Project
+) -> None:
     get_blended_sample_rate.return_value = 0.1
+    store_per_org_project_sample_rate(default_old_project, 0.1)
     default_old_project.update_option(
         "sentry:dynamic_sampling_biases",
         [
@@ -209,8 +246,8 @@ def test_generate_rules_return_uniform_rules_and_env_rule(
 @django_db_all
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rule_with_100_rate_and_without_env_rule(
-    get_blended_sample_rate, default_old_project
-):
+    get_blended_sample_rate: MagicMock, default_old_project: Project
+) -> None:
     get_blended_sample_rate.return_value = 1.0
 
     assert generate_rules(default_old_project) == [
@@ -239,17 +276,18 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_env_rule(
     ],
 )
 def test_generate_rules_with_different_project_platforms(
-    get_blended_sample_rate,
-    apply_dynamic_factor,
-    version,
-    platform,
-    end,
-    default_project,
-    latest_release_only,
-):
+    get_blended_sample_rate: MagicMock,
+    apply_dynamic_factor: MagicMock,
+    version: str,
+    platform: str | None,
+    end: str,
+    default_project: Project,
+    latest_release_only: None,
+) -> None:
     default_old_project = _apply_old_date_to_project_and_org(default_project)
 
     get_blended_sample_rate.return_value = 0.1
+    store_per_org_project_sample_rate(default_old_project, 0.1)
     apply_dynamic_factor.return_value = LATEST_RELEASES_BOOST_FACTOR
 
     redis_client = get_redis_client_for_ds()
@@ -301,11 +339,15 @@ def test_generate_rules_with_different_project_platforms(
 @patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.apply_dynamic_factor")
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rules_and_latest_release_rule(
-    get_blended_sample_rate, apply_dynamic_factor, default_project, latest_release_only
-):
+    get_blended_sample_rate: MagicMock,
+    apply_dynamic_factor: MagicMock,
+    default_project: Project,
+    latest_release_only: None,
+) -> None:
     default_old_project = _apply_old_date_to_project_and_org(default_project)
 
     get_blended_sample_rate.return_value = 0.1
+    store_per_org_project_sample_rate(default_old_project, 0.1)
     apply_dynamic_factor.return_value = LATEST_RELEASES_BOOST_FACTOR
 
     redis_client = get_redis_client_for_ds()
@@ -382,11 +424,15 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
 @patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.apply_dynamic_factor")
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
 def test_generate_rules_does_not_return_rule_with_deleted_release(
-    get_blended_sample_rate, apply_dynamic_factor, default_project, latest_release_only
-):
+    get_blended_sample_rate: MagicMock,
+    apply_dynamic_factor: MagicMock,
+    default_project: Project,
+    latest_release_only: None,
+) -> None:
     default_old_project = _apply_old_date_to_project_and_org(default_project)
 
     get_blended_sample_rate.return_value = 0.1
+    store_per_org_project_sample_rate(default_old_project, 0.1)
     apply_dynamic_factor.return_value = LATEST_RELEASES_BOOST_FACTOR
 
     redis_client = get_redis_client_for_ds()
@@ -436,8 +482,8 @@ def test_generate_rules_does_not_return_rule_with_deleted_release(
 @django_db_all
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rule_with_100_rate_and_without_latest_release_rule(
-    get_blended_sample_rate, default_old_project, latest_release_only
-):
+    get_blended_sample_rate: MagicMock, default_old_project: Project, latest_release_only: None
+) -> None:
     get_blended_sample_rate.return_value = 1.0
 
     default_old_project.update(platform="python")
@@ -456,8 +502,8 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_latest_rel
 @django_db_all
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rule_with_non_existent_releases(
-    get_blended_sample_rate, default_old_project, latest_release_only
-):
+    get_blended_sample_rate: MagicMock, default_old_project: Project, latest_release_only: None
+) -> None:
     get_blended_sample_rate.return_value = 1.0
 
     redis_client = get_redis_client_for_ds()
@@ -480,9 +526,10 @@ def test_generate_rules_return_uniform_rule_with_non_existent_releases(
 @django_db_all
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
 def test_generate_rules_with_zero_base_sample_rate(
-    get_blended_sample_rate, default_old_project
+    get_blended_sample_rate: MagicMock, default_old_project: Project
 ) -> None:
     get_blended_sample_rate.return_value = 0.0
+    store_per_org_project_sample_rate(default_old_project, 0.0)
 
     assert generate_rules(default_old_project) == [
         {
@@ -501,16 +548,20 @@ def test_generate_rules_with_zero_base_sample_rate(
 @django_db_all
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
 @patch(
-    "sentry.dynamic_sampling.rules.biases.boost_low_volume_transactions_bias.get_transactions_resampling_rates"
+    "sentry.dynamic_sampling.rules.biases.boost_low_volume_transactions_bias.get_transaction_sample_rates"
 )
 def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
-    get_transactions_resampling_rates, get_blended_sample_rate, default_old_project, default_team
-):
+    get_transaction_sample_rates: MagicMock,
+    get_blended_sample_rate: MagicMock,
+    default_old_project: Project,
+    default_team: Team,
+) -> None:
     project_sample_rate = 0.1
     t1_rate = 0.7
     implicit_rate = 0.037
     get_blended_sample_rate.return_value = project_sample_rate
-    get_transactions_resampling_rates.return_value = (
+    store_per_org_project_sample_rate(default_old_project, project_sample_rate)
+    get_transaction_sample_rates.return_value = (
         {
             "t1": t1_rate,
         },
@@ -579,13 +630,17 @@ def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
 @django_db_all
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
 @patch(
-    "sentry.dynamic_sampling.rules.biases.boost_low_volume_transactions_bias.get_transactions_resampling_rates"
+    "sentry.dynamic_sampling.rules.biases.boost_low_volume_transactions_bias.get_transaction_sample_rates"
 )
 def test_low_volume_transactions_rules_not_returned_when_inactive(
-    get_transactions_resampling_rates, get_blended_sample_rate, default_old_project, default_team
-):
+    get_transaction_sample_rates: MagicMock,
+    get_blended_sample_rate: MagicMock,
+    default_old_project: Project,
+    default_team: Team,
+) -> None:
     get_blended_sample_rate.return_value = 0.1
-    get_transactions_resampling_rates.return_value = (
+    store_per_org_project_sample_rate(default_old_project, 0.1)
+    get_transaction_sample_rates.return_value = (
         {
             "t1": 0.7,
         },
@@ -622,12 +677,12 @@ def test_low_volume_transactions_rules_not_returned_when_inactive(
 @freeze_time("2022-10-21T18:50:25Z")
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rules_and_recalibrate_orgs_rule(
-    get_blended_sample_rate, default_project
-):
+    get_blended_sample_rate: MagicMock, default_project: Project
+) -> None:
     default_old_project = _apply_old_date_to_project_and_org(default_project)
 
     get_blended_sample_rate.return_value = 0.1
-    redis_client = get_redis_client_for_ds()
+    store_per_org_project_sample_rate(default_old_project, 0.1)
 
     default_old_project.update_option(
         "sentry:dynamic_sampling_biases",
@@ -642,10 +697,7 @@ def test_generate_rules_return_uniform_rules_and_recalibrate_orgs_rule(
     )
 
     default_factor = 0.5
-    redis_client.set(
-        f"ds::o:{default_old_project.organization.id}:rate_rebalance_factor2",
-        default_factor,
-    )
+    set_adjusted_factor(default_old_project.organization.id, default_factor)
 
     assert generate_rules(default_old_project) == [
         {
@@ -667,9 +719,10 @@ def test_generate_rules_return_uniform_rules_and_recalibrate_orgs_rule(
 @django_db_all
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
 def test_generate_rules_return_boost_replay_id(
-    get_blended_sample_rate, default_old_project
+    get_blended_sample_rate: MagicMock, default_old_project: Project
 ) -> None:
     get_blended_sample_rate.return_value = 0.5
+    store_per_org_project_sample_rate(default_old_project, 0.5)
     default_old_project.update_option(
         "sentry:dynamic_sampling_biases",
         [
@@ -710,9 +763,10 @@ def test_generate_rules_return_boost_replay_id(
 @django_db_all
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
 def test_generate_rules_return_minimum_sample_rate_when_enabled(
-    get_blended_sample_rate, default_old_project
-):
+    get_blended_sample_rate: MagicMock, default_old_project: Project
+) -> None:
     get_blended_sample_rate.return_value = 0.3
+    store_per_org_project_sample_rate(default_old_project, 0.3)
     default_old_project.update_option(
         "sentry:dynamic_sampling_biases",
         [
@@ -759,9 +813,10 @@ def test_generate_rules_return_minimum_sample_rate_when_enabled(
 @django_db_all
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
 def test_generate_rules_minimum_sample_rate_not_included_when_disabled(
-    get_blended_sample_rate, default_old_project
-):
+    get_blended_sample_rate: MagicMock, default_old_project: Project
+) -> None:
     get_blended_sample_rate.return_value = 0.3
+    store_per_org_project_sample_rate(default_old_project, 0.3)
     default_old_project.update_option(
         "sentry:dynamic_sampling_biases",
         [
@@ -787,9 +842,10 @@ def test_generate_rules_minimum_sample_rate_not_included_when_disabled(
 @django_db_all
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
 def test_generate_rules_minimum_sample_rate_not_included_by_default(
-    get_blended_sample_rate, default_old_project
-):
+    get_blended_sample_rate: MagicMock, default_old_project: Project
+) -> None:
     get_blended_sample_rate.return_value = 0.3
+    store_per_org_project_sample_rate(default_old_project, 0.3)
     default_old_project.update_option(
         "sentry:dynamic_sampling_biases",
         [
@@ -815,10 +871,11 @@ def test_generate_rules_minimum_sample_rate_not_included_by_default(
 @django_db_all
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
 def test_generate_rules_minimum_sample_rate_correct_order(
-    get_blended_sample_rate, default_old_project
-):
+    get_blended_sample_rate: MagicMock, default_old_project: Project
+) -> None:
     with Feature({"organizations:dynamic-sampling-minimum-sample-rate": True}):
         get_blended_sample_rate.return_value = 0.4
+        store_per_org_project_sample_rate(default_old_project, 0.4)
         default_old_project.update_option(
             "sentry:dynamic_sampling_biases",
             [
@@ -860,8 +917,8 @@ def test_generate_rules_minimum_sample_rate_correct_order(
 @django_db_all
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
 def test_generate_rules_minimum_sample_rate_with_100_percent_sample_rate(
-    get_blended_sample_rate, default_old_project
-):
+    get_blended_sample_rate: MagicMock, default_old_project: Project
+) -> None:
     get_blended_sample_rate.return_value = 1.0
     default_old_project.update_option(
         "sentry:dynamic_sampling_biases",
@@ -890,9 +947,10 @@ def test_generate_rules_minimum_sample_rate_with_100_percent_sample_rate(
 @django_db_all
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
 def test_generate_rules_trace_health_checks_feature_enabled(
-    get_blended_sample_rate, default_old_project
-):
+    get_blended_sample_rate: MagicMock, default_old_project: Project
+) -> None:
     get_blended_sample_rate.return_value = 0.4
+    store_per_org_project_sample_rate(default_old_project, 0.4)
     default_old_project.update_option(
         "sentry:dynamic_sampling_biases",
         [
@@ -920,8 +978,10 @@ def test_generate_rules_trace_health_checks_feature_enabled(
 @patch("sentry.dynamic_sampling.rules.base.get_enabled_user_biases")
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
 def test_generate_rules_project_mode(
-    get_blended_sample_rate, get_enabled_user_biases, default_old_project
-):
+    get_blended_sample_rate: MagicMock,
+    get_enabled_user_biases: MagicMock,
+    default_old_project: Project,
+) -> None:
     # Ensure only the project base rate is generated
     get_enabled_user_biases.return_value = {}
 

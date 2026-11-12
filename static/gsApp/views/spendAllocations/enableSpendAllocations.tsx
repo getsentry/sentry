@@ -1,11 +1,12 @@
 import type {Dispatch} from 'react';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import type {Client} from 'sentry/api';
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 
 type Props = {
   api: Client;
@@ -25,13 +26,23 @@ export function EnableSpendAllocations({
   const enableAction = async () => {
     try {
       // Toggle option; TODO: make sure this is actually redundant before removing this
-      await api.requestPromise(`/organizations/${orgSlug}/spend-allocations/toggle/`, {
-        method: 'POST',
-      });
+      await api.requestPromise(
+        getApiUrl('/organizations/$organizationIdOrSlug/spend-allocations/toggle/', {
+          path: {organizationIdOrSlug: orgSlug},
+        }),
+        {
+          method: 'POST',
+        }
+      );
       // Create root allocations
-      await api.requestPromise(`/organizations/${orgSlug}/spend-allocations/index/`, {
-        method: 'POST',
-      });
+      await api.requestPromise(
+        getApiUrl('/organizations/$organizationIdOrSlug/spend-allocations/index/', {
+          path: {organizationIdOrSlug: orgSlug},
+        }),
+        {
+          method: 'POST',
+        }
+      );
     } catch (err: any) {
       if (err.status === 409) {
         setErrors('Spend Allocations are already enabled');
@@ -42,8 +53,7 @@ export function EnableSpendAllocations({
 
   return (
     <Panel>
-      <Flex
-        direction="column"
+      <Stack
         justify="center"
         align="center"
         padding="3xl"
@@ -68,7 +78,7 @@ export function EnableSpendAllocations({
             </strong>
           </p>
         )}
-      </Flex>
+      </Stack>
     </Panel>
   );
 }

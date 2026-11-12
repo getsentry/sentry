@@ -2,10 +2,15 @@ from datetime import datetime
 
 from drf_spectacular.utils import OpenApiExample
 
-from sentry.api.serializers.models.event import EventSerializerResponse, GroupEventDetailsResponse
+from sentry.api.serializers.models.event import (
+    EventSerializerResponse,
+    GroupEventDetailsResponse,
+    SimpleEventSerializerResponse,
+)
+from sentry.apidocs.formats import hex_id, numeric_id
 
-SIMPLE_EVENT = {
-    "eventID": "9fac2ceed9344f2bbfdd1fdacb0ed9b1",
+SIMPLE_EVENT: SimpleEventSerializerResponse = {
+    "eventID": hex_id("9fac2ceed9344f2bbfdd1fdacb0ed9b1"),
     "tags": [
         {"key": "browser", "value": "Chrome 60.0"},
         {"key": "device", "value": "Other"},
@@ -16,30 +21,33 @@ SIMPLE_EVENT = {
         {"key": "release", "value": "17642328ead24b51867165985996d04b29310337"},
         {"key": "server_name", "value": "web1.example.com"},
     ],
-    "dateCreated": "2020-09-11T17:46:36Z",
+    "dateCreated": datetime.fromisoformat("2020-09-11T17:46:36Z"),
     "user": None,
     "message": "",
     "title": "This is an example Python exception",
-    "id": "dfb1a2d057194e76a4186cc8a5271553",
+    "id": hex_id("dfb1a2d057194e76a4186cc8a5271553"),
     "platform": "python",
     "event.type": "error",
-    "groupID": "1889724436",
+    "groupID": numeric_id("1889724436"),
     "crashFile": None,
     "location": "example.py:123",
     "culprit": "/books/new/",
-    "projectID": "49271",
-    "metadata": None,
+    "projectID": numeric_id("49271"),
+    "metadata": {
+        "type": "ExampleException",
+        "value": "This is an example Python exception",
+    },
 }
 
 GROUP_EVENT: GroupEventDetailsResponse = {
-    "groupID": "1341191803",
-    "eventID": "9999aaaaca8b46d797c23c6077c6ff01",
+    "groupID": numeric_id("1341191803"),
+    "eventID": hex_id("9999aaaaca8b46d797c23c6077c6ff01"),
     "dist": None,
     "userReport": None,
     "previousEventID": None,
     "message": "",
     "title": "This is an example Python exception",
-    "id": "9999aaafcc8b46d797c23c6077c6ff01",
+    "id": hex_id("9999aaafcc8b46d797c23c6077c6ff01"),
     "size": 107762,
     "errors": [
         {
@@ -363,7 +371,7 @@ GROUP_EVENT: GroupEventDetailsResponse = {
             "url": None,
             "environment": "prod",
             "dateStarted": None,
-            "dateFinished": "2020-06-17T19:20:55.641748Z",
+            "dateFinished": datetime.fromisoformat("2020-06-17T19:20:55.641748Z"),
             "id": "6883490",
         },
         "deployCount": 1,
@@ -378,26 +386,10 @@ GROUP_EVENT: GroupEventDetailsResponse = {
                 "provider": {"id": "integrations:github", "name": "GitHub"},
                 "url": "https://github.com/getsentry/getsentry",
                 "id": "2",
-                "dateCreated": "2016-10-10T21:36:45.373994Z",
+                "dateCreated": datetime.fromisoformat("2016-10-10T21:36:45.373994Z"),
             },
-            "releases": [
-                {
-                    "dateReleased": datetime.fromisoformat("2020-06-23T13:26:18.427090Z"),
-                    "url": "https://freight.getsentry.net/deploys/getsentry/staging/2077/",
-                    "dateCreated": "2020-06-23T13:22:50.420265Z",
-                    "version": "f3783e5fe710758724f14267439fd46cc2bf5918",
-                    "shortVersion": "f3783e5fe710758724f14267439fd46cc2bf5918",
-                    "ref": "perf/source-maps-test",
-                },
-                {
-                    "dateReleased": datetime.fromisoformat("2020-06-17T19:21:02.186004Z"),
-                    "url": "https://freight.getsentry.net/deploys/getsentry/production/8868/",
-                    "dateCreated": datetime.fromisoformat("2020-06-17T18:45:31.042157Z"),
-                    "version": "b65bc521378269d3eaefdc964f8ef56621414943",
-                    "shortVersion": "b65bc521378269d3eaefdc964f8ef56621414943",
-                    "ref": "master",
-                },
-            ],
+            "pullRequest": None,
+            "suspectCommitType": "",
             "dateCreated": datetime.fromisoformat("2020-06-17T18:43:37Z"),
             "message": "feat(billing): Get a lot of money",
             "id": "b65bc521378269d3eaefdc964f8ef56621414943",
@@ -409,7 +401,7 @@ GROUP_EVENT: GroupEventDetailsResponse = {
     "culprit": "/books/new/",
     "groupingConfig": {"enhancements": "abc", "id": "2359823092345612392"},
     "occurrence": None,
-    "projectID": "5236886",
+    "projectID": numeric_id("5236886"),
     "resolvedWith": [],
     "sdkUpdates": [],
 }
@@ -417,10 +409,10 @@ GROUP_EVENT: GroupEventDetailsResponse = {
 # Base event response shape returned by EventSerializer.serialize. Compared to
 # GROUP_EVENT (GroupEventDetailsResponse), this omits fields added by other serializers or for navigation
 EVENT_RESPONSE: EventSerializerResponse = {
-    "id": "9999aaafcc8b46d797c23c6077c6ff01",
-    "groupID": "1341191803",
-    "eventID": "9999aaaaca8b46d797c23c6077c6ff01",
-    "projectID": "5236886",
+    "id": hex_id("9999aaafcc8b46d797c23c6077c6ff01"),
+    "groupID": numeric_id("1341191803"),
+    "eventID": hex_id("9999aaaaca8b46d797c23c6077c6ff01"),
+    "projectID": numeric_id("5236886"),
     "message": "",
     "title": "This is an example Python exception",
     "location": "example.py:123",

@@ -8,6 +8,9 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
+import * as modal from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
+
 import type {Organization} from 'sentry/types/organization';
 
 import {deleteBillingMetricHistory} from 'admin/components/deleteBillingMetricHistory';
@@ -134,14 +137,11 @@ describe('DeleteBillingMetricHistory', () => {
       });
 
       // Mock the success indicator
-      const successIndicator = jest.spyOn(
-        require('sentry/actionCreators/indicator'),
-        'addSuccessMessage'
-      );
+      const successIndicator = jest.spyOn(toast, 'success');
 
       // Mock the API endpoint for deleting billing metric history
       const deleteBillingMetricHistoryMock = MockApiClient.addMockResponse({
-        url: `/api/0/customers/${organization.slug}/delete-billing-metric-history/`,
+        url: `/customers/${organization.slug}/delete-billing-metric-history/`,
         method: 'POST',
         body: {},
       });
@@ -170,7 +170,7 @@ describe('DeleteBillingMetricHistory', () => {
 
       // Check that the API call was made with the correct parameters
       expect(deleteBillingMetricHistoryMock).toHaveBeenCalledWith(
-        `/api/0/customers/${organization.slug}/delete-billing-metric-history/`,
+        `/customers/${organization.slug}/delete-billing-metric-history/`,
         expect.objectContaining({
           method: 'POST',
           data: {
@@ -212,14 +212,11 @@ describe('DeleteBillingMetricHistory', () => {
     });
 
     // Mock the error indicator
-    const errorIndicator = jest.spyOn(
-      require('sentry/actionCreators/indicator'),
-      'addErrorMessage'
-    );
+    const errorIndicator = jest.spyOn(toast, 'error');
 
     // Mock the API endpoint to return an error
     const deleteBillingMetricHistoryMock = MockApiClient.addMockResponse({
-      url: `/api/0/customers/${organization.slug}/delete-billing-metric-history/`,
+      url: `/customers/${organization.slug}/delete-billing-metric-history/`,
       method: 'POST',
       statusCode: 400,
       body: {
@@ -259,7 +256,7 @@ describe('DeleteBillingMetricHistory', () => {
     });
   });
 
-  it('disables Submit button when no data category is selected', async () => {
+  it('keeps the Submit button enabled when no data category is selected', async () => {
     // Mock the billing config API call
     MockApiClient.addMockResponse({
       url: '/billing-config/',
@@ -283,27 +280,19 @@ describe('DeleteBillingMetricHistory', () => {
 
     openDeleteModal();
 
-    // Wait for the component to load
-    await waitFor(() => {
-      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    });
+    const dataCategory = await screen.findByRole('textbox', {name: 'Data Category'});
+    const deleteButton = screen.getByRole('button', {name: 'Delete'});
 
-    // Wait for the form to be visible
-    await waitFor(() => {
-      expect(screen.getByRole('textbox', {name: 'Data Category'})).toBeInTheDocument();
-    });
+    expect(deleteButton).toBeEnabled();
 
-    // Check that the Delete button is disabled when no data category is selected
-    expect(screen.getByRole('button', {name: 'Delete'})).toBeDisabled();
+    await userEvent.click(deleteButton);
+
+    expect(await screen.findByText('Please select a data category.')).toBeInTheDocument();
 
     // Select a data category
-    await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Data Category'}),
-      'Errors (1)'
-    );
+    await selectEvent.select(dataCategory, 'Errors (1)');
 
-    // Now the Delete button should be enabled
-    expect(screen.getByRole('button', {name: 'Delete'})).toBeEnabled();
+    expect(deleteButton).toBeEnabled();
   });
 
   it('closes modal when Cancel button is clicked', async () => {
@@ -355,7 +344,7 @@ describe('deleteBillingMetricHistory export function', () => {
   it('opens modal with correct props', () => {
     const organization = OrganizationFixture();
     const onSuccess = jest.fn();
-    const openModalMock = jest.spyOn(require('sentry/actionCreators/modal'), 'openModal');
+    const openModalMock = jest.spyOn(modal, 'openModal');
 
     deleteBillingMetricHistory({organization, onSuccess});
 

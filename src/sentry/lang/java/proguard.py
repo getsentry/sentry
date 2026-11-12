@@ -1,8 +1,7 @@
-from symbolic.proguard import ProguardMapper
+from sentry_ophio.proguard import ProguardMapper
+from sentry_sdk import traces
 
-from sentry.utils.tracing import start_span
 
-
-def open_proguard_mapper(*args, **kwargs):
-    with start_span(op="proguard.open", name="proguard.open"):
-        return ProguardMapper.open(*args, **kwargs)
+def open_proguard_mapper(path: str) -> ProguardMapper:
+    with traces.start_span(name="proguard.open", attributes={"sentry.op": "proguard.open"}):
+        return ProguardMapper.open(path)

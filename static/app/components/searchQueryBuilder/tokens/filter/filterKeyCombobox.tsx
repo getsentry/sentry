@@ -4,18 +4,11 @@ import type {Node} from '@react-types/shared';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {useSeerAcknowledgeMutation} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
-import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
-import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {
-  useSearchQueryBuilderAI,
   useSearchQueryBuilderConfig,
-  useSearchQueryBuilderLayout,
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
-import {getFilterValueType} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import type {SearchKeyItem} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
 import {useSortedFilterKeyItems} from 'sentry/components/searchQueryBuilder/tokens/useSortedFilterKeyItems';
 import {
@@ -29,9 +22,9 @@ import type {
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {FieldKey} from 'sentry/utils/fields';
-import {useOrganization} from 'sentry/utils/useOrganization';
+import {FieldKey, FieldKind} from 'sentry/utils/fields';
+
+import {getFilterValueType} from './utils';
 
 type KeyComboboxProps = {
   item: Node<ParseResultToken>;
@@ -43,8 +36,6 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState(getKeyLabel(token.key) ?? '');
 
-  const organization = useOrganization();
-  const {mutate: seerAcknowledgeMutate} = useSeerAcknowledgeMutation();
   const {items: sortedFilterKeys, isLoading} = useSortedFilterKeyItems({
     filterValue: inputValue,
     inputValue,
@@ -53,10 +44,6 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
   const {filterKeys, getFieldDefinition, getSuggestedFilterKey} =
     useSearchQueryBuilderConfig();
   const {dispatch} = useSearchQueryBuilderState();
-  const {setDisplayAskSeer, setAutoSubmitSeer} = useSearchQueryBuilderAI();
-  const {currentInputValueRef} = useSearchQueryBuilderLayout();
-
-  const analyticsArea = useAnalyticsArea();
 
   const currentFilterValueType = getFilterValueType(
     token,
@@ -68,33 +55,6 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       const newFieldDef = getFieldDefinition(keyName);
       const newFilterValueType = getFilterValueType(token, newFieldDef);
 
-      if (keyName === ASK_SEER_ITEM_KEY) {
-        trackAnalytics('ai_query.interface', {
-          organization,
-          area: analyticsArea,
-          action: 'opened',
-        });
-        setDisplayAskSeer(true);
-
-        if (currentInputValueRef.current?.trim()) {
-          setAutoSubmitSeer(true);
-        } else {
-          setAutoSubmitSeer(false);
-        }
-
-        return;
-      }
-
-      if (keyName === ASK_SEER_CONSENT_ITEM_KEY) {
-        trackAnalytics('ai_query.interface', {
-          organization,
-          area: analyticsArea,
-          action: 'consent_accepted',
-        });
-        seerAcknowledgeMutate();
-        return;
-      }
-
       if (keyName === getKeyName(token.key)) {
         onCommit();
         return;
@@ -105,7 +65,10 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
         // IS and HAS filters are strings, but treated differently and will break
         // if we preserve the value.
         keyName !== FieldKey.IS &&
-        keyName !== FieldKey.HAS
+        keyName !== FieldKey.HAS &&
+        // Array attributes need the `[*]` membership operator, which only
+        // getInitialFilterText adds — so don't swap the key in place.
+        newFieldDef?.kind !== FieldKind.ARRAY
       ) {
         dispatch({
           type: 'UPDATE_FILTER_KEY',
@@ -128,20 +91,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
 
       onCommit();
     },
-    [
-      analyticsArea,
-      currentFilterValueType,
-      currentInputValueRef,
-      dispatch,
-      getFieldDefinition,
-      item.key,
-      onCommit,
-      organization,
-      seerAcknowledgeMutate,
-      setAutoSubmitSeer,
-      setDisplayAskSeer,
-      token,
-    ]
+    [currentFilterValueType, dispatch, getFieldDefinition, item.key, onCommit, token]
   );
 
   const onOptionSelected = useCallback(

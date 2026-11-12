@@ -1,16 +1,13 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {useLocation} from 'sentry/utils/useLocation';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useSortByFields} from 'sentry/views/explore/hooks/useSortByFields';
-import type {TraceItemAttributeConfig} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
-jest.mock('sentry/utils/useLocation');
-const mockedUsedLocation = jest.mocked(useLocation);
+import {useSortByFields} from './useSortByFields';
+import type {TraceItemAttributeConfig} from './useTraceItemAttributes';
+
 const spansConfig: TraceItemAttributeConfig = {
   traceItemType: TraceItemDataset.SPANS,
   enabled: true,
@@ -26,8 +23,6 @@ describe('useSortByFields', () => {
       url: '/organizations/org-slug/trace-items/attributes/',
       body: [],
     });
-
-    mockedUsedLocation.mockReturnValue(LocationFixture());
   });
 
   it('returns a valid list of field options in samples mode', () => {

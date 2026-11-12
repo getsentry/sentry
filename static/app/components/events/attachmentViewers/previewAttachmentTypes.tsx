@@ -1,9 +1,10 @@
-import {ImageViewer} from 'sentry/components/events/attachmentViewers/imageViewer';
-import {JsonViewer} from 'sentry/components/events/attachmentViewers/jsonViewer';
-import {LogFileViewer} from 'sentry/components/events/attachmentViewers/logFileViewer';
-import {RRWebJsonViewer} from 'sentry/components/events/attachmentViewers/rrwebJsonViewer';
-import {VideoViewer} from 'sentry/components/events/attachmentViewers/videoViewer';
 import type {IssueAttachment} from 'sentry/types/group';
+
+import {ImageViewer} from './imageViewer';
+import {JsonViewer} from './jsonViewer';
+import {LogFileViewer} from './logFileViewer';
+import {RRWebJsonViewer} from './rrwebJsonViewer';
+import {VideoViewer} from './videoViewer';
 
 export const imageMimeTypes = [
   'application/octet-stream',
@@ -15,7 +16,7 @@ export const imageMimeTypes = [
   'image/avif',
 ];
 
-const logFileMimeTypes = [
+export const logFileMimeTypes = [
   'text/css',
   'text/csv',
   'text/html',
@@ -23,7 +24,7 @@ const logFileMimeTypes = [
   'text/plain',
 ];
 
-const jsonMimeTypes = [
+export const jsonMimeTypes = [
   'application/json',
   'application/ld+json',
   'text/json',
@@ -38,7 +39,7 @@ type AttachmentRenderer =
   | typeof RRWebJsonViewer
   | typeof VideoViewer;
 
-export const getImageAttachmentRenderer = (
+const getImageAttachmentRenderer = (
   attachment: IssueAttachment
 ): AttachmentRenderer | undefined => {
   if (imageMimeTypes.includes(attachment.mimetype)) {
@@ -50,9 +51,9 @@ export const getImageAttachmentRenderer = (
   return undefined;
 };
 
-const nonPreviewableExtensions = ['.prosperodmp', '.prosperomemdmp'];
+export const nonPreviewableExtensions = ['.prosperodmp', '.prosperomemdmp'];
 
-export const getInlineAttachmentRenderer = (
+const getInlineAttachmentRenderer = (
   attachment: IssueAttachment
 ): AttachmentRenderer | undefined => {
   if (nonPreviewableExtensions.some(ext => attachment.name.endsWith(ext))) {

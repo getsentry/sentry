@@ -10,7 +10,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import OrganizationFeatureFlagsChangeTracking, {
   type Secret,
@@ -59,7 +60,9 @@ describe('OrganizationFeatureFlagsIndex', () => {
 
     expect(secretsTable.queryByTestId('loading-error')).not.toBeInTheDocument();
     expect(secretsTable.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    expect(secretsTable.queryByTestId('empty-state')).not.toBeInTheDocument();
+    expect(
+      secretsTable.queryByText("You haven't linked any providers yet.")
+    ).not.toBeInTheDocument();
 
     expect(mock).toHaveBeenCalledTimes(1);
     expect(mock).toHaveBeenCalledWith(
@@ -83,7 +86,9 @@ describe('OrganizationFeatureFlagsIndex', () => {
       'Failed to load secrets and providers for the organization.'
     );
     expect(secretsTable.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    expect(secretsTable.queryByTestId('empty-state')).not.toBeInTheDocument();
+    expect(
+      secretsTable.queryByText("You haven't linked any providers yet.")
+    ).not.toBeInTheDocument();
 
     expect(mock).toHaveBeenCalledTimes(1);
   });
@@ -101,14 +106,16 @@ describe('OrganizationFeatureFlagsIndex', () => {
 
     const secretsTable = within(screen.getByTestId('secrets-table'));
 
-    expect(await secretsTable.findByTestId('empty-state')).toBeInTheDocument();
+    expect(
+      await secretsTable.findByText("You haven't linked any providers yet.")
+    ).toBeInTheDocument();
     expect(secretsTable.queryByTestId('loading-error')).not.toBeInTheDocument();
     expect(secretsTable.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });
 
   describe('removing', () => {
     it('allows to remove secrets', async () => {
-      jest.spyOn(indicators, 'addSuccessMessage');
+      jest.spyOn(toast, 'success');
 
       const secrets: Secret[] = [
         SecretFixture(),
@@ -147,7 +154,7 @@ describe('OrganizationFeatureFlagsIndex', () => {
       expect(secretsTable.getByText('openfeature')).toBeInTheDocument();
       expect(secretsTable.queryByText('launchdarkly')).not.toBeInTheDocument();
 
-      expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
+      expect(toast.success).toHaveBeenCalledWith(
         'Removed the provider and signing secret for the organization.'
       );
 

@@ -41,27 +41,6 @@ class StringIndexer(BaseIndexer):
         ]
 
 
-@cell_silo_model
-class PerfStringIndexer(BaseIndexer):
-    __relocation_scope__ = RelocationScope.Excluded
-    use_case_id = models.CharField(
-        max_length=120,
-        default=UseCaseKey.PERFORMANCE.value,
-        db_default=UseCaseKey.PERFORMANCE.value,
-    )
-
-    class Meta:
-        db_table = "sentry_perfstringindexer"
-        app_label = "sentry"
-        constraints = [
-            models.UniqueConstraint(
-                fields=["string", "organization_id", "use_case_id"],
-                name="perf_unique_org_string_usecase",
-            ),
-        ]
-
-
 TABLE_MAPPING: dict[UseCaseKey, type[BaseIndexer]] = {
     UseCaseKey.RELEASE_HEALTH: StringIndexer,
-    UseCaseKey.PERFORMANCE: PerfStringIndexer,
 }

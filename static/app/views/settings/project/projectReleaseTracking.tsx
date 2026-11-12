@@ -1,28 +1,30 @@
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
+import {Confirm} from '@sentry/scraps/confirm';
 import {FieldGroup as FormFieldGroup} from '@sentry/scraps/form';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Confirm} from 'sentry/components/confirm';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
+
+import {useProjectSettingsOutlet} from './projectSettingsLayout';
 
 type TokenResponse = {
   token: string;
@@ -36,15 +38,14 @@ const placeholderData = {
   webhookUrl: WEBHOOK_PLACEHOLDER,
 };
 
-function getReleaseTokenQueryKey(
-  organizationSlug: string,
-  projectSlug: string
-): ApiQueryKey {
-  return [
-    getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/token/', {
+function releaseTokenOptions(organizationSlug: string, projectSlug: string) {
+  return apiOptions.as<TokenResponse>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/token/',
+    {
       path: {organizationIdOrSlug: organizationSlug, projectIdOrSlug: projectSlug},
-    }),
-  ];
+      staleTime: 0,
+    }
+  );
 }
 
 export default function ProjectReleaseTracking() {
@@ -57,35 +58,31 @@ export default function ProjectReleaseTracking() {
     isFetching,
     isError,
     error,
-  } = useApiQuery<TokenResponse>(
-    getReleaseTokenQueryKey(organization.slug, project.slug),
-    {
-      staleTime: 0,
-      retry: false,
-    }
-  );
+  } = useQuery({...releaseTokenOptions(organization.slug, project.slug), retry: false});
 
   const {mutate: regenerateToken, isPending: isRegenerating} = useMutation({
     mutationFn: () =>
       fetchMutation<TokenResponse>({
         method: 'POST',
-        url: `/projects/${organization.slug}/${project.slug}/releases/token/`,
+        url: getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/token/',
+          {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug}}
+        ),
         data: {project: project.slug},
       }),
     onSuccess: data => {
-      setApiQueryData(
-        queryClient,
-        getReleaseTokenQueryKey(organization.slug, project.slug),
-        data
+      queryClient.setQueryData(
+        releaseTokenOptions(organization.slug, project.slug).queryKey,
+        oldData => ({...oldData, json: data, headers: oldData?.headers ?? {}})
       );
-      addSuccessMessage(
+      toast.success(
         t(
           'Your deploy token has been regenerated. You will need to update any existing deploy hooks.'
         )
       );
     },
     onError: () => {
-      addErrorMessage(t('Unable to regenerate deploy token, please try again'));
+      toast.error(t('Unable to regenerate deploy token, please try again'));
     },
   });
 
@@ -103,7 +100,7 @@ export default function ProjectReleaseTracking() {
     );
   }
 
-  if (isError && error?.status !== 403) {
+  if (isError && (!(error instanceof RequestError) || error.status !== 403)) {
     return <LoadingError />;
   }
 

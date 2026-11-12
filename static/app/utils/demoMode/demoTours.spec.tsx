@@ -7,6 +7,8 @@ import {
 
 import {recordFinish} from 'sentry/actionCreators/guides';
 import type {TourState} from 'sentry/components/tours/tourContext';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+
 import {
   DEMO_TOURS_STATE_KEY,
   DemoTour,
@@ -14,8 +16,7 @@ import {
   DemoToursProvider,
   DemoTourStep,
   useDemoTour,
-} from 'sentry/utils/demoMode/demoTours';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+} from './demoTours';
 
 jest.mock('sentry/actionCreators/guides', () => ({
   recordFinish: jest.fn(),
@@ -103,8 +104,6 @@ describe('DemoTours', () => {
 
   describe('useDemoTour', () => {
     it('returns null when used outside provider', () => {
-      jest.spyOn(console, 'error').mockImplementation(() => {});
-
       const {result} = renderHookWithProviders(() => useDemoTour(DemoTour.RELEASES));
 
       expect(result.current).toBeNull();
@@ -135,7 +134,7 @@ describe('DemoTours', () => {
       const tour = result.current;
 
       act(() => {
-        tour?.startTour(DemoTourStep.RELEASES_LIST);
+        tour?.startTour();
       });
 
       expect(mockState[DemoTour.RELEASES].currentStepId).toBe(DemoTourStep.RELEASES_LIST);
@@ -178,14 +177,14 @@ describe('DemoTours', () => {
       const issuesTour = issuesResult.current;
 
       act(() => {
-        sidebarTour?.startTour(DemoTourStep.RELEASES_LIST);
+        sidebarTour?.startTour();
       });
 
       expect(mockState[DemoTour.RELEASES].currentStepId).toBe(DemoTourStep.RELEASES_LIST);
       expect(mockState[DemoTour.ISSUES].currentStepId).toBeNull();
 
       act(() => {
-        issuesTour?.startTour(DemoTourStep.ISSUES_STREAM);
+        issuesTour?.startTour();
       });
 
       expect(mockState[DemoTour.RELEASES].currentStepId).toBe(DemoTourStep.RELEASES_LIST);
@@ -220,7 +219,7 @@ describe('DemoTours', () => {
       const sidebarTour = result.current;
 
       act(() => {
-        sidebarTour?.startTour(DemoTourStep.RELEASES_LIST);
+        sidebarTour?.startTour();
       });
       expect(mockState[DemoTour.RELEASES].currentStepId).toBe(DemoTourStep.RELEASES_LIST);
 

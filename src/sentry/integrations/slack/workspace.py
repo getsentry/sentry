@@ -9,11 +9,13 @@ For example: `integration.get_installation(organization_id).get_thread_history(.
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
-from typing import Any
+from collections.abc import Mapping, Sequence
+from typing import Any, cast
 
 from slack_sdk.errors import SlackApiError
+from slack_sdk.web import SlackResponse
 
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.metrics import translate_slack_api_error
@@ -24,7 +26,7 @@ from sentry.notifications.platform.slack.provider import SlackRenderable
 _logger = logging.getLogger("sentry.integrations.slack")
 
 
-def get_conversations_info(*, integration_id: int, channel_id: str) -> dict:
+def get_conversations_info(*, integration_id: int, channel_id: str) -> dict[str, object]:
     """Fetch conversations.info. Returns an empty dict on failure."""
     try:
         client = SlackSdkClient(integration_id=integration_id)
@@ -67,7 +69,9 @@ def has_history_scope(
     """
     if scopes is None:
         integration = integration_service.get_integration(
-            integration_id=integration_id, status=ObjectStatus.ACTIVE
+            integration_id=integration_id,
+            status=ObjectStatus.ACTIVE,
+            using_replica=options.get("integration_service.get_integration.using_replica"),
         )
         if integration is None:
             return False
@@ -77,8 +81,11 @@ def has_history_scope(
     if SlackScope.CHANNELS_HISTORY in installed and SlackScope.GROUPS_HISTORY in installed:
         return True
 
-    channel_info = get_conversations_info(integration_id=integration_id, channel_id=channel_id).get(
-        "channel", {}
+    channel_info = cast(
+        Mapping[str, object],
+        get_conversations_info(integration_id=integration_id, channel_id=channel_id).get(
+            "channel", {}
+        ),
     )
     is_channel = channel_info.get("is_channel", False)
     is_private = channel_info.get("is_private", False)
@@ -152,10 +159,10 @@ def send_threaded_ephemeral_message(
     renderable: SlackRenderable,
     slack_user_id: str,
     thread_ts: str | None,
-) -> None:
+) -> SlackResponse | None:
     client = SlackSdkClient(integration_id=integration_id)
     try:
-        client.chat_postEphemeral(
+        return client.chat_postEphemeral(
             channel=channel_id,
             blocks=renderable["blocks"] if len(renderable["blocks"]) > 0 else None,
             attachments=renderable.get("attachments"),
@@ -165,3 +172,4 @@ def send_threaded_ephemeral_message(
         )
     except SlackApiError as e:
         translate_slack_api_error(e)
+        return None

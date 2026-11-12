@@ -7,16 +7,36 @@ from typing import TYPE_CHECKING, Any, NamedTuple, TypeVar
 from rest_framework import status
 from rest_framework.response import Response
 
-from sentry import features
+from sentry.api.bases.organization import OrganizationPermission
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus
 from sentry.utils.numbers import validate_bigint
 
 if TYPE_CHECKING:
-    from django.contrib.auth.models import AnonymousUser
-
     from sentry.models.organization import Organization
-    from sentry.users.models.user import User
-    from sentry.users.services.user import RpcUser
+
+
+SEER_PERMISSION_DENIED = "You are not authorized to perform this action"
+
+# Let API clients like the CLI and MCP tell billing 402s apart without parsing detail text.
+SEER_OUT_OF_CREDITS_CODE = "seer_out_of_credits"
+SEER_OUT_OF_QUOTA_CODE = "seer_out_of_quota"
+
+SEER_AUTOFIX_START_OUT_OF_CREDITS_DETAIL = (
+    "Your organization does not have enough credits to start an Autofix run."
+)
+SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL = (
+    "Your organization does not have enough credits to continue your Autofix run."
+)
+SEER_AGENT_CHAT_OUT_OF_CREDITS_DETAIL = (
+    "Your organization does not have enough credits left for you to message Seer."
+)
+
+
+class OrganizationTraceExplorerAIPermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read"],
+        "POST": ["org:read"],
+    }
 
 
 class ResolvedSeerRun(NamedTuple):
@@ -33,15 +53,28 @@ def get_seer_run(seer_run_state_id: int, organization: Organization) -> SeerRun 
     ).first()
 
 
+_NO_ACCESS_DETAIL = "You do not have access to this run."
+
+
+def _owner_mismatch_response() -> Response:
+    return Response(
+        {"detail": _NO_ACCESS_DETAIL},
+        status=status.HTTP_403_FORBIDDEN,
+    )
+
+
 def resolve_seer_run(
     run_id: str | int,
     organization: Organization,
     *,
     for_continue: bool = False,
+    user_id: int | None = None,
 ) -> ResolvedSeerRun | Response:
     """Resolve a client-facing run id (numeric ``seer_run_state_id`` or
     ``SeerRun.uuid``) to a :class:`ResolvedSeerRun`, or an error ``Response``
-    (narrow with ``isinstance``). For a not-ready run, a poll gets the 200
+    (narrow with ``isinstance``). When ``user_id`` is supplied, the mirrored run
+    must belong to that user. A numeric id with no ``SeerRun`` row is rejected
+    in that case. For a not-ready run, a poll gets the 200
     ``{"session": {"status": ...}}`` shape; ``for_continue`` instead gets 409
     (still mirroring) or 422 (mirror failed).
     """
@@ -54,6 +87,8 @@ def resolve_seer_run(
         if not validate_bigint(seer_run_state_id):
             return Response({"detail": "Invalid run_id"}, status=status.HTTP_400_BAD_REQUEST)
         run = get_seer_run(seer_run_state_id, organization)
+        if user_id is not None and (run is None or run.user_id != user_id):
+            return _owner_mismatch_response()
         return ResolvedSeerRun(seer_run_state_id, str(run.uuid) if run else None)
 
     try:
@@ -64,6 +99,8 @@ def resolve_seer_run(
     run = SeerRun.objects.filter(uuid=run_uuid, organization=organization).first()
     if run is None:
         return Response({"session": None}, status=status.HTTP_404_NOT_FOUND)
+    if user_id is not None and run.user_id != user_id:
+        return _owner_mismatch_response()
     if run.mirror_status == SeerRunMirrorStatus.FAILED:
         if for_continue:
             return Response(
@@ -112,19 +149,3 @@ def accept_organization_id_param(func: Callable[..., _RpcReturn]) -> Callable[..
         return func(**kwargs)
 
     return wrapper
-
-
-_SEER_FORWARDED_FLAGS = {
-    "organizations:assisted-query-cross-event-explorer": "assisted-query.cross-event-explorer-endpoint-enabled",
-    "organizations:assisted-query-project-expansion": "assisted-query.project-expansion-enabled",
-}
-
-
-def get_extra_seer_feature_flags(
-    organization: Organization, user: User | RpcUser | AnonymousUser
-) -> dict[str, bool]:
-    return {
-        seer_key: True
-        for ff, seer_key in _SEER_FORWARDED_FLAGS.items()
-        if features.has(ff, organization, actor=user)
-    }

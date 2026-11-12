@@ -4,21 +4,22 @@ import {MemberFixture} from 'sentry-fixture/member';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {StreamGroup} from 'sentry/components/stream/group';
 import {TagStore} from 'sentry/stores/tagStore';
 import type {Group} from 'sentry/types/group';
-import IssueList from 'sentry/views/issueList/overview';
+
+import IssueList from './overview';
 
 jest.mock('sentry/views/issueList/filters', () => ({
   IssueListFilters: jest.fn(() => null),
 }));
 jest.mock('sentry/components/stream/group', () => ({
   __esModule: true,
-  StreamGroup: jest.fn(({group}: {group: Group}) => <div data-test-id={group.id} />),
-  LoadingStreamGroup: jest.fn(() => <div data-test-id="loading-group" />),
+  StreamGroup: jest.fn(({group}: {group: Group}) => <tr data-test-id={group.id} />),
+  LoadingStreamGroup: jest.fn(() => <tr data-test-id="loading-group" />),
 }));
 
 jest.mock('js-cookie', () => ({
@@ -55,19 +56,20 @@ describe('IssueList -> Polling', () => {
       },
     });
 
-    await Promise.resolve();
-    jest.runAllTimers();
+    await act(async () => {
+      await Promise.resolve();
+      await jest.runAllTimersAsync();
+    });
   };
 
   beforeEach(() => {
     jest.useFakeTimers();
 
-    // The tests fail because we have a "component update was not wrapped in act" error.
-    // It should be safe to ignore this error, but we should remove the mock once we move to react testing library
-
-    jest.spyOn(console, 'error').mockImplementation(jest.fn());
-
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sent-first-event/',
+      body: {sentFirstEvent: true},
+    });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
@@ -77,18 +79,6 @@ describe('IssueList -> Polling', () => {
       url: '/organizations/org-slug/issues-count/',
       method: 'GET',
       body: [{}],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/processingissues/',
-      method: 'GET',
-      body: [
-        {
-          project: 'test-project',
-          numIssues: 1,
-          hasIssues: true,
-          lastSeen: '2019-01-16T15:39:11.081Z',
-        },
-      ],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
@@ -128,7 +118,7 @@ describe('IssueList -> Polling', () => {
     });
 
     jest.mocked(StreamGroup).mockClear();
-    TagStore.init();
+    TagStore.reset();
   });
 
   it('toggles polling for new issues', async () => {
@@ -151,9 +141,9 @@ describe('IssueList -> Polling', () => {
     );
 
     // Each poll request gets delayed by additional 3s, up to max of 60s
-    await jest.advanceTimersByTimeAsync(3001);
+    await act(() => jest.advanceTimersByTimeAsync(3001));
     expect(pollRequest).toHaveBeenCalledTimes(1);
-    await jest.advanceTimersByTimeAsync(6001);
+    await act(() => jest.advanceTimersByTimeAsync(6001));
     expect(pollRequest).toHaveBeenCalledTimes(2);
 
     // Pauses
@@ -161,7 +151,7 @@ describe('IssueList -> Polling', () => {
       delay: null,
     });
 
-    await jest.advanceTimersByTimeAsync(12001);
+    await act(() => jest.advanceTimersByTimeAsync(12001));
     expect(pollRequest).toHaveBeenCalledTimes(2);
   });
 
@@ -186,7 +176,7 @@ describe('IssueList -> Polling', () => {
       {delay: null}
     );
 
-    await jest.advanceTimersByTimeAsync(3001);
+    await act(() => jest.advanceTimersByTimeAsync(3001));
     expect(pollRequest).toHaveBeenCalledTimes(1);
 
     // We mock out the stream group component and only render the ID as a testid
@@ -211,9 +201,9 @@ describe('IssueList -> Polling', () => {
     );
 
     // Each poll request gets delayed by additional 3s, up to max of 60s
-    await jest.advanceTimersByTimeAsync(3001);
+    await act(() => jest.advanceTimersByTimeAsync(3001));
     expect(pollRequest).toHaveBeenCalledTimes(1);
-    await jest.advanceTimersByTimeAsync(9001);
+    await act(() => jest.advanceTimersByTimeAsync(9001));
     expect(pollRequest).toHaveBeenCalledTimes(1);
   });
 
@@ -233,9 +223,9 @@ describe('IssueList -> Polling', () => {
     );
 
     // Each poll request gets delayed by additional 3s, up to max of 60s
-    await jest.advanceTimersByTimeAsync(3001);
+    await act(() => jest.advanceTimersByTimeAsync(3001));
     expect(pollRequest).toHaveBeenCalledTimes(1);
-    await jest.advanceTimersByTimeAsync(9001);
+    await act(() => jest.advanceTimersByTimeAsync(9001));
     expect(pollRequest).toHaveBeenCalledTimes(1);
   });
 
@@ -255,9 +245,9 @@ describe('IssueList -> Polling', () => {
     );
 
     // Each poll request gets delayed by additional 3s, up to max of 60s
-    await jest.advanceTimersByTimeAsync(3001);
+    await act(() => jest.advanceTimersByTimeAsync(3001));
     expect(pollRequest).toHaveBeenCalledTimes(1);
-    await jest.advanceTimersByTimeAsync(9001);
+    await act(() => jest.advanceTimersByTimeAsync(9001));
     expect(pollRequest).toHaveBeenCalledTimes(1);
   });
 });

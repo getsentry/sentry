@@ -1,45 +1,73 @@
+import {useState} from 'react';
+import {QueryClientProvider, type QueryClient} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {makeTestQueryClient} from 'sentry-test/queryClient';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import type {SeerOutOfCreditsCtaProps} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
+import {registerOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {
-  INPUT_STORAGE_KEY_PREFIX,
-  SeerExplorerContent,
-} from 'sentry/views/seerExplorer/components/seerExplorerContent';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {seerCreditCheckApiOptions} from 'sentry/utils/seer/useSeerCreditCheck';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
+import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
-import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
+import * as seerExplorerUtils from 'sentry/views/seerExplorer/utils';
+
+import {INPUT_STORAGE_KEY_PREFIX, SeerExplorerContent} from './seerExplorerContent';
 
 const mockGetPageReferrer = jest.fn().mockReturnValue('/issues/');
 
+async function getSeerExplorerInput() {
+  const editor = await screen.findByRole('combobox', {name: 'Ask Seer a question'});
+  // user-event does not yet recognize contenteditable="plaintext-only".
+  editor.setAttribute('contenteditable', 'true');
+  return editor;
+}
+
 const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer> = {
   sessionData: null,
+  featureId: null,
   isPolling: false,
   isError: false,
+  hasSessionLoadError: false,
   errorStatusCode: undefined,
   isTimedOut: false,
   runId: null,
-  overrideCtxEngEnable: true,
+  overrideBashModeEnabled: false,
   overrideCodeModeEnable: 'off',
   hasSentInterrupt: false,
   sendMessage: jest.fn(),
+  requestError: null,
   switchToRun: jest.fn(),
   startNewSession: jest.fn(),
   interruptRun: jest.fn(),
   respondToUserInput: jest.fn(),
-  createPR: jest.fn(),
-  setOverrideCtxEngEnable: jest.fn(),
+  setOverrideBashModeEnabled: jest.fn(),
   setOverrideCodeModeEnable: jest.fn(),
 };
 
 describe('SeerExplorerContent', () => {
   const organization = OrganizationFixture({
     openMembership: true,
-    features: ['seer-explorer', 'gen-ai-features'],
+    features: ['seer-explorer'],
     hideAiFeatures: false,
   });
 
@@ -47,6 +75,14 @@ describe('SeerExplorerContent', () => {
     MockApiClient.clearMockResponses();
     sessionStorage.clear();
     jest.clearAllMocks();
+    ConfigStore.set('user', UserFixture());
+
+    // The header collapses its actions into an overflow menu on narrow
+    // containers (resolved via `useContainerBreakpoint`, which measures
+    // `clientWidth` — an accessor on Element.prototype). Fake a wide container
+    // so the expanded header — with its inline pop-out/dock buttons — renders
+    // for these tests. The spy is undone by `jest.restoreAllMocks()` below.
+    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(800);
 
     jest
       .spyOn(useSeerExplorerModule, 'useSeerExplorer')
@@ -68,6 +104,87 @@ describe('SeerExplorerContent', () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  describe('Show thinking', () => {
+    it('renders thinking traces when code mode tools is enabled', async () => {
+      const codeModeOrganization = OrganizationFixture({
+        openMembership: true,
+        features: ['seer-explorer', 'seer-explorer-code-mode-tools'],
+        hideAiFeatures: false,
+      });
+
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        sessionData: {
+          blocks: [
+            {
+              id: 'msg-1',
+              message: {role: 'user', content: 'What is this error?'},
+              timestamp: '2024-01-01T00:00:00Z',
+              loading: false,
+            },
+            {
+              id: 'tool-1',
+              message: {
+                role: 'tool_use',
+                content: null,
+                thinking_content: 'Let me search for issues...',
+                tool_calls: [
+                  {
+                    id: 'call-1',
+                    function: 'telemetry_live_search',
+                    args: '{"question":"errors"}',
+                  },
+                ],
+              },
+              timestamp: '2024-01-01T00:01:00Z',
+              loading: false,
+              tool_results: [
+                {
+                  tool_call_id: 'call-1',
+                  tool_call_function: 'telemetry_live_search',
+                  content: '{}',
+                },
+              ],
+              tool_links: [{kind: 'telemetry_live_search', params: {}}],
+            },
+            {
+              id: 'msg-2',
+              message: {
+                role: 'assistant',
+                content: 'This is a null pointer exception.',
+              },
+              timestamp: '2024-01-01T00:02:00Z',
+              loading: false,
+            },
+          ],
+          status: 'completed',
+          updated_at: '2024-01-01T00:02:00Z',
+        },
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization: codeModeOrganization,
+        }
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: /See thinking and tool calls/})
+      );
+
+      expect(screen.getByText('Let me search for issues...')).toBeVisible();
+      expect(screen.queryByRole('button', {name: 'Debug'})).not.toBeInTheDocument();
+    });
   });
 
   describe('Empty State', () => {
@@ -122,11 +239,10 @@ describe('SeerExplorerContent', () => {
           organization,
         }
       );
-      expect(
-        await screen.findByPlaceholderText(
-          'Ask Seer a question, or press / for commands.'
-        )
-      ).toBeInTheDocument();
+      expect(await screen.findByTestId('seer-explorer-input')).toHaveAttribute(
+        'data-placeholder',
+        'Ask Seer a question, or press / for commands.'
+      );
     });
 
     it('sends the suggested question when a suggestion button is clicked', async () => {
@@ -183,7 +299,7 @@ describe('SeerExplorerContent', () => {
       );
 
       expect(
-        await screen.findByText(/Error loading this session \(run_id=123\)./)
+        await screen.findByText('There was a problem loading the conversation.')
       ).toBeInTheDocument();
     });
 
@@ -238,9 +354,142 @@ describe('SeerExplorerContent', () => {
       );
 
       expect(
-        await screen.findByText(/Error loading this session \(run_id=123\)./)
+        await screen.findByText('There was a problem loading the conversation.')
       ).toBeInTheDocument();
       expect(screen.queryByText(/444/)).not.toBeInTheDocument();
+    });
+
+    it('shows a load failure when the session itself came back errored', async () => {
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        runId: 123,
+        sessionData: {
+          status: 'error',
+          updated_at: new Date().toISOString(),
+          blocks: [],
+        },
+        hasSessionLoadError: true,
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      expect(
+        await screen.findByText('There was a problem loading the conversation.')
+      ).toBeInTheDocument();
+      // The idle suggestions must not stand in for a failed load.
+      expect(
+        screen.queryByText('What are my slowest DB queries?')
+      ).not.toBeInTheDocument();
+      // Sending here would post into the failed run, so the composer is closed off.
+      expect(screen.getByTestId('seer-explorer-input')).toBeDisabled();
+    });
+
+    it('shows the failure, not a spinner, when a failed load is still polling', async () => {
+      // A 5xx load backs off and keeps polling for up to a minute. The composer is
+      // already disabled by then, so a spinner would leave no way out of the panel.
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        runId: 123,
+        isError: true,
+        errorStatusCode: 500,
+        isPolling: true,
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      expect(
+        await screen.findByText('There was a problem loading the conversation.')
+      ).toBeInTheDocument();
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Start a new chat'})).toBeInTheDocument();
+      expect(screen.getByTestId('seer-explorer-input')).toBeDisabled();
+    });
+
+    it('starts a new chat from the error state', async () => {
+      const startNewSession = jest.fn();
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        runId: 123,
+        isError: true,
+        hasSessionLoadError: true,
+        startNewSession,
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Start a new chat'})
+      );
+
+      expect(startNewSession).toHaveBeenCalled();
+    });
+
+    it('sends a forwarded query to a new run when the open run failed to load', async () => {
+      const sendMessage = jest.fn();
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        runId: 123,
+        isError: true,
+        hasSessionLoadError: true,
+        sendMessage,
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+              initialQuery="why is this slow?"
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      // The explicit null run id is what forces a fresh run rather than a post
+      // into the run that just failed.
+      await waitFor(() => {
+        expect(sendMessage).toHaveBeenCalledWith('why is this slow?', 0, null);
+      });
     });
   });
 
@@ -266,10 +515,9 @@ describe('SeerExplorerContent', () => {
               loading: false,
             },
           ],
-          run_id: 123,
           status: 'completed',
           updated_at: '2024-01-01T00:01:00Z',
-        } as SeerExplorerResponse['session'],
+        },
       });
 
       render(
@@ -292,6 +540,135 @@ describe('SeerExplorerContent', () => {
         screen.queryByText('Ask Seer anything about your application.')
       ).not.toBeInTheDocument();
     });
+
+    it('shows the request error above a pending question', async () => {
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        requestError: {},
+        sessionData: {
+          blocks: [
+            {
+              id: 'msg-1',
+              message: {role: 'user', content: 'Which project?'},
+              timestamp: '2024-01-01T00:00:00Z',
+              loading: false,
+            },
+          ],
+          status: 'awaiting_user_input',
+          pending_user_input: {
+            id: 'input-1',
+            input_type: 'ask_user_question',
+            data: {
+              questions: [
+                {
+                  question: 'Which project should we focus on?',
+                  options: [{label: 'sentry-unreal', description: 'Unreal SDK'}],
+                },
+              ],
+            },
+          },
+          updated_at: '2024-01-01T00:01:00Z',
+        },
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      const question = await screen.findByText('Which project should we focus on?');
+      // Pinned above the composer, outside the scrolling transcript.
+      expect(screen.getByTestId('seer-explorer-pending-input')).toContainElement(
+        question
+      );
+      const alert = screen.getByText(
+        'There was an error sending your message, wait and try again.'
+      );
+      expect(
+        alert.compareDocumentPosition(question) & Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+    });
+
+    it('pins a pending write approval above the composer', async () => {
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        sessionData: {
+          blocks: [
+            {
+              id: 'msg-1',
+              message: {role: 'user', content: 'Mute this monitor'},
+              timestamp: '2024-01-01T00:00:00Z',
+              loading: false,
+            },
+            {
+              id: 'tool-1',
+              message: {
+                role: 'tool_use',
+                content: null,
+                tool_calls: [{id: 'call-1', function: 'sentry_api_execute', args: '{}'}],
+              },
+              timestamp: '2024-01-01T00:00:01Z',
+              loading: false,
+              tool_results: [
+                {
+                  tool_call_id: 'call-1',
+                  tool_call_function: 'sentry_api_execute',
+                  content: '{% agentWriteApproval /%}',
+                  structuredContent: {
+                    agentWriteApproval: {
+                      inputId: '11111111-1111-4111-8111-111111111111',
+                      requiredScopes: ['alerts:write'],
+                      sessionId: 'session-1',
+                      status: 'pending',
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+          status: 'awaiting_user_input',
+          pending_user_input: {
+            id: '11111111-1111-4111-8111-111111111111',
+            input_type: 'agent_write_approval',
+            data: {required_scopes: ['alerts:write'], session_id: 'session-1'},
+          },
+          updated_at: '2024-01-01T00:01:00Z',
+        },
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      const block = await screen.findByTestId('agent-write-approval-block');
+      expect(screen.getByTestId('seer-explorer-pending-input')).toContainElement(block);
+      expect(within(block).getByRole('button', {name: 'Approve'})).toBeInTheDocument();
+      // Exactly one prompt: the transcript shows no actions of its own.
+      expect(screen.getAllByRole('button', {name: 'Approve'})).toHaveLength(1);
+      expect(
+        screen.getByText('Mute this monitor').compareDocumentPosition(block) &
+          Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+    });
   });
 
   describe('Input Handling', () => {
@@ -309,9 +686,9 @@ describe('SeerExplorerContent', () => {
           organization,
         }
       );
-      const textarea = await screen.findByTestId('seer-explorer-input');
+      const textarea = await getSeerExplorerInput();
       await userEvent.type(textarea, 'Test message');
-      expect(textarea).toHaveValue('Test message');
+      expect(textarea).toHaveTextContent('Test message');
     });
 
     it('calls sendMessage and clears input when send button is clicked', async () => {
@@ -335,12 +712,71 @@ describe('SeerExplorerContent', () => {
         }
       );
 
-      const textarea = await screen.findByTestId('seer-explorer-input');
+      const textarea = await getSeerExplorerInput();
       await userEvent.type(textarea, 'Test message');
       await userEvent.click(screen.getByRole('button', {name: 'Send message'}));
 
       expect(sendMessage).toHaveBeenCalledWith('Test message', 0);
-      expect(textarea).toHaveValue('');
+      expect(textarea).toBeEmptyDOMElement();
+    });
+
+    it('shows an error alert and restores the draft when sending fails', async () => {
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        requestError: {query: 'Failed message'},
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      expect(
+        await screen.findByText(
+          'There was an error sending your message, wait and try again.'
+        )
+      ).toBeInTheDocument();
+      expect(screen.getByTestId('seer-explorer-input')).toHaveTextContent(
+        'Failed message'
+      );
+      expect(screen.queryByRole('button', {name: 'Dismiss'})).not.toBeInTheDocument();
+    });
+
+    it('shows an error alert without touching the draft when a response fails', async () => {
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        requestError: {},
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      expect(
+        await screen.findByText(
+          'There was an error sending your message, wait and try again.'
+        )
+      ).toBeInTheDocument();
+      expect(screen.getByTestId('seer-explorer-input')).toBeEmptyDOMElement();
     });
 
     it('calls sendMessage and clears input when Enter is pressed', async () => {
@@ -364,18 +800,146 @@ describe('SeerExplorerContent', () => {
         }
       );
 
-      const textarea = await screen.findByTestId('seer-explorer-input');
+      const textarea = await getSeerExplorerInput();
       await userEvent.type(textarea, 'Test message');
       await userEvent.keyboard('{Enter}');
 
       expect(sendMessage).toHaveBeenCalledWith('Test message', 0);
-      expect(textarea).toHaveValue('');
+      expect(textarea).toBeEmptyDOMElement();
+    });
+
+    it('sends literal user and team references without fetching suggestions', async () => {
+      const sendMessage = jest.fn();
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, sendMessage});
+      const membersRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/members/',
+        body: [],
+      });
+      const teamsRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/teams/',
+        body: [],
+      });
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {organization}
+      );
+
+      const input = await getSeerExplorerInput();
+      await userEvent.type(input, 'Ask @Alice #team');
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      expect(membersRequest).not.toHaveBeenCalled();
+      expect(teamsRequest).not.toHaveBeenCalled();
+      await userEvent.keyboard('{Enter}');
+      expect(sendMessage).toHaveBeenCalledWith('Ask @Alice #team', 0);
+      expect(input).toBeEmptyDOMElement();
+    });
+
+    it('preserves Shift+Enter newlines', async () => {
+      const sendMessage = jest.fn();
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, sendMessage});
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      await userEvent.type(
+        await getSeerExplorerInput(),
+        'First{Shift>}{Enter}{/Shift}Second'
+      );
+      expect(sendMessage).not.toHaveBeenCalled();
+      await userEvent.keyboard('{Enter}');
+      expect(sendMessage).toHaveBeenCalledWith('First\nSecond', 0);
+    });
+
+    it('does not send while composing with an IME', async () => {
+      const sendMessage = jest.fn();
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, sendMessage});
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      const editor = await getSeerExplorerInput();
+      await userEvent.type(editor, 'Draft');
+      act(() => {
+        editor.dispatchEvent(new CompositionEvent('compositionstart', {bubbles: true}));
+        editor.dispatchEvent(
+          new KeyboardEvent('keydown', {key: 'Enter', bubbles: true, cancelable: true})
+        );
+      });
+      expect(sendMessage).not.toHaveBeenCalled();
+      act(() => {
+        editor.dispatchEvent(new CompositionEvent('compositionend', {bubbles: true}));
+      });
+      await userEvent.keyboard('{Enter}');
+      expect(sendMessage).toHaveBeenCalledWith('Draft', 0);
+    });
+
+    it('selects a slash command without sending a message', async () => {
+      HTMLElement.prototype.scrollIntoView = jest.fn();
+      const sendMessage = jest.fn();
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, sendMessage});
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      await userEvent.type(await getSeerExplorerInput(), '/new');
+      await screen.findByText('Start a new session');
+      await userEvent.keyboard('{Enter}');
+      expect(defaultHookReturn.startNewSession).toHaveBeenCalled();
+      expect(sendMessage).not.toHaveBeenCalled();
+      expect(await getSeerExplorerInput()).toBeEmptyDOMElement();
     });
 
     it('[Integration] sends message to the API when Enter is pressed', async () => {
       // e2e flow of sending a message to the API and receiving an updated response
       // Restore the spy so the real useSeerExplorer hook runs against mock API responses
       jest.restoreAllMocks();
+
+      const query = 'What is this error? @Alice #team';
 
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/seer/explorer-chat/`,
@@ -405,7 +969,7 @@ describe('SeerExplorerContent', () => {
             blocks: [
               {
                 id: 'msg-1',
-                message: {role: 'user', content: 'What is this error?'},
+                message: {role: 'user', content: query},
                 timestamp: '2024-01-01T00:00:00Z',
                 loading: false,
               },
@@ -437,20 +1001,61 @@ describe('SeerExplorerContent', () => {
         </PictureInPictureProvider>,
         {
           organization,
+          additionalWrapper: SeerExplorerChatStateProvider,
         }
       );
 
-      const textarea = await screen.findByTestId('seer-explorer-input');
-      await userEvent.type(textarea, 'What is this error?');
+      const textarea = await getSeerExplorerInput();
+      await userEvent.type(textarea, query);
       await userEvent.keyboard('{Enter}');
 
       expect(postMock).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/seer/explorer-chat/`,
         expect.objectContaining({
           method: 'POST',
-          data: expect.objectContaining({query: 'What is this error?'}),
+          data: expect.objectContaining({query}),
         })
       );
+      expect(await screen.findByText(query)).toBeInTheDocument();
+    });
+
+    it('restores plain text after a failed send and sends it again on retry', async () => {
+      jest.restoreAllMocks();
+      const postMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/`,
+        method: 'POST',
+        statusCode: 500,
+        body: {},
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {organization}
+      );
+
+      const input = await getSeerExplorerInput();
+      await userEvent.type(input, 'Ask @Alice #team');
+      await userEvent.keyboard('{Enter}');
+
+      expect(
+        await screen.findByText(
+          'There was an error sending your message, wait and try again.'
+        )
+      ).toBeInTheDocument();
+      expect(input).toHaveTextContent('Ask @Alice #team');
+
+      await userEvent.click(screen.getByRole('button', {name: 'Send message'}));
+      await waitFor(() => expect(postMock).toHaveBeenCalledTimes(2));
+      for (const call of postMock.mock.calls) {
+        expect(call[1].data.query).toBe('Ask @Alice #team');
+      }
     });
 
     it('does not send empty messages', async () => {
@@ -502,7 +1107,7 @@ describe('SeerExplorerContent', () => {
         }
       );
 
-      const textarea = await screen.findByTestId('seer-explorer-input');
+      const textarea = await getSeerExplorerInput();
       await userEvent.type(textarea, 'Test message');
       await userEvent.keyboard('{Enter}');
 
@@ -535,10 +1140,9 @@ describe('SeerExplorerContent', () => {
               loading: false,
             },
           ],
-          run_id: 123,
           status: 'completed',
           updated_at: '2024-01-01T00:02:00Z',
-        } as SeerExplorerResponse['session'],
+        },
       });
 
       render(
@@ -555,7 +1159,7 @@ describe('SeerExplorerContent', () => {
         }
       );
 
-      const textarea = await screen.findByTestId('seer-explorer-input');
+      const textarea = await getSeerExplorerInput();
       await userEvent.type(textarea, 'New message');
       await userEvent.keyboard('{Enter}');
 
@@ -563,7 +1167,161 @@ describe('SeerExplorerContent', () => {
     });
   });
 
+  describe('Timeout Recovery', () => {
+    it('shows the warning and retries the latest user turn', async () => {
+      const sendMessage = jest.fn();
+      const startNewSession = jest.fn();
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        isTimedOut: true,
+        runId: 123,
+        sendMessage,
+        startNewSession,
+        sessionData: {
+          blocks: [
+            {
+              id: 'user-1',
+              message: {role: 'user', content: 'First question'},
+              timestamp: '2024-01-01T00:00:00Z',
+            },
+            {
+              id: 'assistant-1',
+              message: {role: 'assistant', content: 'First answer'},
+              timestamp: '2024-01-01T00:01:00Z',
+            },
+            {
+              id: 'user-2',
+              message: {role: 'user', content: 'Timed out question'},
+              timestamp: '2024-01-01T00:02:00Z',
+            },
+          ],
+          status: 'error',
+          updated_at: '2024-01-01T00:03:00Z',
+          failure_reason: 'timeout',
+        },
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {organization}
+      );
+
+      expect(await screen.findByText('Response timed out.')).toBeInTheDocument();
+      expect(screen.getByTestId('seer-explorer-input')).toHaveAttribute(
+        'data-placeholder',
+        'Ask Seer a question, or press / for commands.'
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
+      expect(sendMessage).toHaveBeenCalledWith('Timed out question', 2, undefined, null);
+
+      await userEvent.click(screen.getByRole('button', {name: 'New chat'}));
+      expect(startNewSession).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows the question a message answered and resends it on retry', async () => {
+      const sendMessage = jest.fn();
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        isTimedOut: true,
+        runId: 123,
+        sendMessage,
+        sessionData: {
+          blocks: [
+            {
+              id: 'user-1',
+              message: {
+                role: 'user',
+                content: 'the second one',
+                metadata: {
+                  chat_prompt: 'What would you like to know about this widget?',
+                  chat_prompt_context: '{"title":"p95 latency"}',
+                },
+              },
+              timestamp: '2024-01-01T00:00:00Z',
+            },
+          ],
+          status: 'error',
+          updated_at: '2024-01-01T00:01:00Z',
+          failure_reason: 'timeout',
+        },
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {organization}
+      );
+
+      expect(
+        await screen.findByText('What would you like to know about this widget?')
+      ).toBeInTheDocument();
+      expect(screen.getByText('the second one')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
+      expect(sendMessage).toHaveBeenCalledWith('the second one', 0, undefined, {
+        text: 'What would you like to know about this widget?',
+        context: '{"title":"p95 latency"}',
+      });
+    });
+  });
+
   describe('Input Persistence', () => {
+    it.each([
+      ['legacy string', 'Ask @Alice #team'],
+      [
+        'structured',
+        {
+          text: 'Ask @Alice #team',
+          mentions: [
+            {id: 'user:1', sourceId: 'members', start: 4, end: 10, text: '@Alice'},
+            {id: 'team:2', sourceId: 'teams', start: 11, end: 16, text: '#team'},
+          ],
+        },
+      ],
+    ])('restores and sends a %s draft as plain text', async (_, draft) => {
+      sessionStorage.setItem('seer-explorer-draft:7', JSON.stringify(draft));
+      const sendMessage = jest.fn();
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        runId: 7,
+        sendMessage,
+      });
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {organization}
+      );
+
+      const editor = await getSeerExplorerInput();
+      expect(editor).toHaveTextContent('Ask @Alice #team');
+      expect(editor.querySelector('[data-mention]')).not.toBeInTheDocument();
+      await userEvent.click(editor);
+      await userEvent.keyboard('{End} updated{Enter}');
+
+      expect(sendMessage).toHaveBeenCalledWith('Ask @Alice #team updated', 0);
+      expect(sessionStorage.getItem('seer-explorer-draft:7')).toBeNull();
+    });
+
     it('restores the persisted draft when the drawer remounts', async () => {
       jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
         ...defaultHookReturn,
@@ -582,10 +1340,7 @@ describe('SeerExplorerContent', () => {
         {organization}
       );
 
-      await userEvent.type(
-        await screen.findByTestId('seer-explorer-input'),
-        'draft message'
-      );
+      await userEvent.type(await getSeerExplorerInput(), 'draft message');
       unmount();
 
       render(
@@ -600,7 +1355,7 @@ describe('SeerExplorerContent', () => {
         {organization}
       );
 
-      expect(await screen.findByTestId('seer-explorer-input')).toHaveValue(
+      expect(await screen.findByTestId('seer-explorer-input')).toHaveTextContent(
         'draft message'
       );
     });
@@ -621,10 +1376,7 @@ describe('SeerExplorerContent', () => {
         {organization}
       );
 
-      await userEvent.type(
-        await screen.findByTestId('seer-explorer-input'),
-        'draft for run 1'
-      );
+      await userEvent.type(await getSeerExplorerInput(), 'draft for run 1');
 
       useSeerExplorerSpy.mockReturnValue({...defaultHookReturn, runId: 2});
       rerender(
@@ -639,11 +1391,11 @@ describe('SeerExplorerContent', () => {
       );
 
       await waitFor(() =>
-        expect(screen.getByTestId('seer-explorer-input')).toHaveValue('')
+        expect(screen.getByTestId('seer-explorer-input')).toBeEmptyDOMElement()
       );
       expect(
         JSON.parse(sessionStorage.getItem(`${INPUT_STORAGE_KEY_PREFIX}:1`) ?? '')
-      ).toBe('draft for run 1');
+      ).toEqual({text: 'draft for run 1', mentions: []});
 
       useSeerExplorerSpy.mockReturnValue({...defaultHookReturn, runId: 1});
       rerender(
@@ -658,7 +1410,9 @@ describe('SeerExplorerContent', () => {
       );
 
       await waitFor(() =>
-        expect(screen.getByTestId('seer-explorer-input')).toHaveValue('draft for run 1')
+        expect(screen.getByTestId('seer-explorer-input')).toHaveTextContent(
+          'draft for run 1'
+        )
       );
     });
 
@@ -677,10 +1431,7 @@ describe('SeerExplorerContent', () => {
         {organization}
       );
 
-      await userEvent.type(
-        await screen.findByTestId('seer-explorer-input'),
-        'unsaved draft'
-      );
+      await userEvent.type(await getSeerExplorerInput(), 'unsaved draft');
       unmount();
 
       const draftWrites = setItemSpy.mock.calls.filter(([k]) =>
@@ -709,12 +1460,12 @@ describe('SeerExplorerContent', () => {
         {organization}
       );
 
-      const textarea = await screen.findByTestId('seer-explorer-input');
+      const textarea = await getSeerExplorerInput();
       await userEvent.type(textarea, 'hello');
       await userEvent.keyboard('{Enter}');
 
       expect(sendMessage).toHaveBeenCalledWith('hello', 0);
-      expect(textarea).toHaveValue('');
+      expect(textarea).toBeEmptyDOMElement();
       expect(sessionStorage.getItem(`${INPUT_STORAGE_KEY_PREFIX}:42`)).toBeNull();
     });
   });
@@ -726,11 +1477,10 @@ describe('SeerExplorerContent', () => {
         ...defaultHookReturn,
         sessionData: {
           blocks: [],
-          run_id: 999,
           status: 'completed',
           updated_at: '2024-01-01T00:00:00Z',
           owner_user_id: 2,
-        } as SeerExplorerResponse['session'],
+        },
       });
 
       render(
@@ -761,11 +1511,10 @@ describe('SeerExplorerContent', () => {
         ...defaultHookReturn,
         sessionData: {
           blocks: [],
-          run_id: 999,
           status: 'completed',
           updated_at: '2024-01-01T00:00:00Z',
           owner_user_id: 1,
-        } as SeerExplorerResponse['session'],
+        },
       });
 
       render(
@@ -785,7 +1534,7 @@ describe('SeerExplorerContent', () => {
       const textarea = await screen.findByTestId('seer-explorer-input');
       await waitFor(() => expect(textarea).toBeEnabled());
       expect(textarea).toHaveAttribute(
-        'placeholder',
+        'data-placeholder',
         'Ask Seer a question, or press / for commands.'
       );
     });
@@ -796,11 +1545,10 @@ describe('SeerExplorerContent', () => {
         ...defaultHookReturn,
         sessionData: {
           blocks: [],
-          run_id: 999,
           status: 'completed',
           updated_at: '2024-01-01T00:00:00Z',
           owner_user_id: undefined,
-        } as SeerExplorerResponse['session'],
+        },
       });
 
       render(
@@ -822,13 +1570,17 @@ describe('SeerExplorerContent', () => {
     });
   });
 
-  describe('Context Engine Toggle', () => {
-    const orgWithFlag = OrganizationFixture({
-      openMembership: true,
-      features: ['seer-explorer', 'seer-explorer-context-engine-fe-override-ui-flag'],
+  describe('Debug menu', () => {
+    beforeEach(() => {
+      ConfigStore.set(
+        'user',
+        UserFixture({
+          emails: [{email: 'employee@sentry.io', is_verified: true, id: '1'}],
+        })
+      );
     });
 
-    it('does not show toggle without the feature flag', async () => {
+    it('shows the debug menu to employees', async () => {
       render(
         <PictureInPictureProvider>
           <SeerExplorerSessionsProvider>
@@ -842,29 +1594,7 @@ describe('SeerExplorerContent', () => {
           organization,
         }
       );
-      await screen.findByTestId('seer-explorer-input');
-      expect(
-        screen.queryByRole('checkbox', {name: 'Toggle context engine'})
-      ).not.toBeInTheDocument();
-    });
-
-    it('shows toggle when feature flag is enabled', async () => {
-      render(
-        <PictureInPictureProvider>
-          <SeerExplorerSessionsProvider>
-            <SeerExplorerContent
-              getPageReferrer={mockGetPageReferrer}
-              onClose={() => {}}
-            />
-          </SeerExplorerSessionsProvider>
-        </PictureInPictureProvider>,
-        {
-          organization: orgWithFlag,
-        }
-      );
-      expect(
-        await screen.findByRole('checkbox', {name: 'Toggle context engine'})
-      ).toBeInTheDocument();
+      expect(await screen.findByRole('button', {name: 'Debug'})).toBeInTheDocument();
     });
   });
 
@@ -965,6 +1695,1104 @@ describe('SeerExplorerContent', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Dock position'}));
       await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Windowed'}));
       await waitFor(() => expect(requestWindow).toHaveBeenCalled());
+    });
+  });
+
+  describe('Slack upgrade alert', () => {
+    const outdatedSlackIntegration = OrganizationIntegrationsFixture({
+      outOfDate: true,
+    });
+
+    const upgradeNudgeText =
+      'Chat, ask questions, and debug with Sentry in the new Slack app. Please reinstall the Slack app to get started.';
+
+    it('shows the reinstall nudge when Slack is outdated and the user can manage integrations', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/`,
+        method: 'GET',
+        body: [outdatedSlackIntegration],
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {organization}
+      );
+
+      expect(await screen.findByText(upgradeNudgeText)).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Update Now'})).toBeInTheDocument();
+    });
+
+    it('hides the reinstall nudge when the user cannot manage integrations', async () => {
+      const memberOrg = OrganizationFixture({
+        openMembership: true,
+        features: ['seer-explorer'],
+        hideAiFeatures: false,
+        access: ['org:read', 'project:read', 'team:read', 'alerts:read'],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${memberOrg.slug}/integrations/`,
+        method: 'GET',
+        body: [outdatedSlackIntegration],
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {organization: memberOrg}
+      );
+
+      await screen.findByTestId('seer-explorer-input');
+      expect(screen.queryByText(upgradeNudgeText)).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Update Now'})).not.toBeInTheDocument();
+    });
+  });
+
+  describe('/investigate command', () => {
+    const investigationsOrganization = OrganizationFixture({
+      openMembership: true,
+      features: ['seer-explorer', 'investigations'],
+      hideAiFeatures: false,
+    });
+
+    const IssueDetailContext = registerLLMContext('issue-detail', () => {
+      useLLMContext({title: 'TypeError in checkout'});
+      return null;
+    });
+
+    function renderContent(org = investigationsOrganization) {
+      return render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <IssueDetailContext />
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {organization: org}
+      );
+    }
+
+    beforeEach(() => {
+      HTMLElement.prototype.scrollIntoView = jest.fn();
+      ProjectsStore.loadInitialData([
+        ProjectFixture({id: '1', slug: 'member', isMember: true}),
+        ProjectFixture({id: '2', slug: 'other', isMember: false}),
+      ]);
+      // An empty selection is My Projects.
+      PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: []}));
+    });
+
+    it('starts an investigation from the page context and opens it', async () => {
+      const sendMessage = jest.fn();
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, sendMessage});
+      const createMock = MockApiClient.addMockResponse({
+        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
+        method: 'POST',
+        body: {id: '4567'},
+      });
+
+      const {router} = renderContent();
+
+      await userEvent.type(await getSeerExplorerInput(), '/inv');
+      await screen.findByText(/Start an investigation of this page/);
+      await userEvent.keyboard('{Enter}');
+
+      // Selecting the command only completes it, leaving room for a question.
+      expect(await getSeerExplorerInput()).toHaveTextContent('/investigate');
+      expect(createMock).not.toHaveBeenCalled();
+      await userEvent.keyboard('{Enter}');
+
+      await waitFor(() =>
+        expect(router.location.pathname).toBe(
+          `/organizations/${investigationsOrganization.slug}/seer/investigations/4567/`
+        )
+      );
+      expect(createMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            source: {
+              type: 'manual',
+              prompt: 'Investigate what I am looking at on this page.',
+              timeRange: {
+                start: expect.stringMatching(/Z$/),
+                end: expect.stringMatching(/Z$/),
+              },
+              seed: {
+                pageContext: expect.objectContaining({
+                  nodes: [
+                    expect.objectContaining({
+                      nodeType: 'issue-detail',
+                      data: {title: 'TypeError in checkout'},
+                    }),
+                  ],
+                }),
+                // This route has no structured context, so what's on screen goes too.
+                screenshot: expect.any(String),
+              },
+            },
+            projectIds: [1],
+          },
+        })
+      );
+      expect(sendMessage).not.toHaveBeenCalled();
+    });
+
+    it('uses a question typed after the command as the prompt', async () => {
+      const sendMessage = jest.fn();
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, sendMessage});
+      PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [2]}));
+      const createMock = MockApiClient.addMockResponse({
+        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
+        method: 'POST',
+        body: {id: '4567'},
+      });
+
+      renderContent();
+
+      await userEvent.type(
+        await getSeerExplorerInput(),
+        '/investigate why did checkout slow down?{Enter}'
+      );
+
+      await waitFor(() =>
+        expect(createMock).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: expect.objectContaining({
+              source: expect.objectContaining({
+                type: 'manual',
+                prompt: 'why did checkout slow down?',
+              }),
+              projectIds: [2],
+            }),
+          })
+        )
+      );
+      expect(sendMessage).not.toHaveBeenCalled();
+      expect(await getSeerExplorerInput()).toBeEmptyDOMElement();
+    });
+
+    it('takes a question typed after picking the command from the menu', async () => {
+      const sendMessage = jest.fn();
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, sendMessage});
+      const createMock = MockApiClient.addMockResponse({
+        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
+        method: 'POST',
+        body: {id: '4567'},
+      });
+
+      renderContent();
+
+      await userEvent.type(await getSeerExplorerInput(), '/inv');
+      await userEvent.click(
+        await screen.findByText(/Start an investigation of this page/)
+      );
+      expect(await getSeerExplorerInput()).toHaveFocus();
+      await userEvent.keyboard('why did checkout slow down?{Enter}');
+
+      await waitFor(() =>
+        expect(createMock).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: expect.objectContaining({
+              source: expect.objectContaining({prompt: 'why did checkout slow down?'}),
+            }),
+          })
+        )
+      );
+      expect(sendMessage).not.toHaveBeenCalled();
+    });
+
+    it('falls back to every accessible project when My Projects is empty', async () => {
+      ProjectsStore.loadInitialData([
+        ProjectFixture({id: '1', slug: 'first', isMember: false}),
+        ProjectFixture({id: '2', slug: 'second', isMember: false}),
+      ]);
+      const createMock = MockApiClient.addMockResponse({
+        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
+        method: 'POST',
+        body: {id: '4567'},
+      });
+
+      renderContent();
+
+      await userEvent.type(await getSeerExplorerInput(), '/investigate why?{Enter}');
+
+      await waitFor(() =>
+        expect(createMock).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: expect.objectContaining({projectIds: [1, 2]}),
+          })
+        )
+      );
+    });
+
+    it('leaves out the screen capture where the page has structured context', async () => {
+      const createMock = MockApiClient.addMockResponse({
+        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
+        method: 'POST',
+        body: {id: '4567'},
+      });
+
+      jest
+        .spyOn(seerExplorerUtils, 'usePageReferrer')
+        .mockReturnValue({getPageReferrer: () => '/issues/'});
+
+      renderContent();
+
+      await userEvent.type(await getSeerExplorerInput(), '/investigate why?{Enter}');
+
+      await waitFor(() => expect(createMock).toHaveBeenCalled());
+      const {seed} = createMock.mock.calls[0][1].data.source;
+      expect(seed.pageContext.nodes).toEqual([
+        expect.objectContaining({nodeType: 'issue-detail'}),
+      ]);
+      expect(seed).not.toHaveProperty('screenshot');
+    });
+
+    it("doesn't widen a selection that matches no project", async () => {
+      // A pinned project that isn't loaded, e.g. one from a stale URL.
+      PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [99]}));
+      const createMock = MockApiClient.addMockResponse({
+        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
+        method: 'POST',
+        body: {id: '4567'},
+      });
+
+      renderContent();
+
+      await userEvent.type(await getSeerExplorerInput(), '/investigate why?{Enter}');
+
+      expect(
+        await screen.findByText('There are no projects to investigate.')
+      ).toBeInTheDocument();
+      expect(createMock).not.toHaveBeenCalled();
+      expect(await getSeerExplorerInput()).toHaveTextContent('/investigate why?');
+    });
+
+    it("sends the page's date range and environments", async () => {
+      PageFiltersStore.onInitializeUrlState(
+        PageFiltersFixture({
+          projects: [1],
+          environments: ['production'],
+          datetime: {
+            start: '2026-10-01T00:00:00',
+            end: '2026-10-02T12:00:00',
+            period: null,
+            utc: true,
+          },
+        })
+      );
+      const createMock = MockApiClient.addMockResponse({
+        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
+        method: 'POST',
+        body: {id: '4567'},
+      });
+
+      renderContent();
+
+      await userEvent.type(await getSeerExplorerInput(), '/investigate why?{Enter}');
+
+      await waitFor(() =>
+        expect(createMock).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: expect.objectContaining({
+              source: expect.objectContaining({
+                timeRange: {start: '2026-10-01T00:00:00Z', end: '2026-10-02T12:00:00Z'},
+                seed: expect.objectContaining({environments: ['production']}),
+              }),
+            }),
+          })
+        )
+      );
+    });
+
+    it('keeps the question when the investigation fails to start', async () => {
+      const sendMessage = jest.fn();
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, sendMessage});
+      const createMock = MockApiClient.addMockResponse({
+        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
+        method: 'POST',
+        statusCode: 400,
+        body: {source: 'Investigation context is too large.'},
+      });
+
+      const {router} = renderContent();
+
+      await userEvent.type(await getSeerExplorerInput(), '/investigate why?{Enter}');
+
+      await waitFor(() => expect(createMock).toHaveBeenCalled());
+      expect(
+        await screen.findByText('Unable to start investigation.')
+      ).toBeInTheDocument();
+      expect(await getSeerExplorerInput()).toHaveTextContent('/investigate why?');
+      expect(router.location.pathname).not.toContain('/investigations/');
+      expect(sendMessage).not.toHaveBeenCalled();
+    });
+
+    it('starts an investigation while Seer is responding', async () => {
+      const sendMessage = jest.fn();
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, isPolling: true, sendMessage});
+      const createMock = MockApiClient.addMockResponse({
+        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
+        method: 'POST',
+        body: {id: '4567'},
+      });
+
+      renderContent();
+
+      await userEvent.type(
+        await getSeerExplorerInput(),
+        '/investigate why did checkout slow down?{Enter}'
+      );
+
+      await waitFor(() =>
+        expect(createMock).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: expect.objectContaining({
+              source: expect.objectContaining({prompt: 'why did checkout slow down?'}),
+            }),
+          })
+        )
+      );
+      expect(sendMessage).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      [
+        'the investigations feature',
+        OrganizationFixture({
+          openMembership: true,
+          features: ['seer-explorer'],
+          hideAiFeatures: false,
+        }),
+      ],
+      [
+        'open membership',
+        OrganizationFixture({
+          openMembership: false,
+          features: ['seer-explorer', 'investigations'],
+          hideAiFeatures: false,
+        }),
+      ],
+    ])('is not offered without %s', async (_, org) => {
+      const sendMessage = jest.fn();
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, sendMessage});
+
+      renderContent(org);
+
+      await userEvent.type(await getSeerExplorerInput(), '/');
+      await screen.findByText('Start a new session');
+      expect(
+        screen.queryByText(/Start an investigation of this page/)
+      ).not.toBeInTheDocument();
+
+      await userEvent.keyboard('investigate why?{Enter}');
+      expect(sendMessage).toHaveBeenCalledWith('/investigate why?', 0);
+    });
+  });
+
+  describe('Out of credits', () => {
+    const creditsOrganization = OrganizationFixture({
+      openMembership: true,
+      features: [
+        'seer-explorer',
+        'seer-credit-checks',
+        'token-billed-seer-enabled',
+        'investigations',
+      ],
+      hideAiFeatures: false,
+    });
+
+    function mockCreditCheck(hasEnoughCredits: boolean) {
+      return MockApiClient.addMockResponse({
+        url: `/organizations/${creditsOrganization.slug}/seer/credit-check/`,
+        match: [MockApiClient.matchQuery({operation: 'agent_chat_message'})],
+        body: {hasEnoughCredits},
+      });
+    }
+
+    function contentTree(initialQuery?: string) {
+      return (
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+              initialQuery={initialQuery}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>
+      );
+    }
+
+    function renderContent({
+      org = creditsOrganization,
+      initialQuery,
+    }: {initialQuery?: string; org?: typeof creditsOrganization} = {}) {
+      return render(contentTree(initialQuery), {organization: org});
+    }
+
+    it('shows the CTA above the composer and keeps the draft instead of sending', async () => {
+      mockCreditCheck(false);
+      const sendMessage = jest.fn();
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, sendMessage});
+
+      renderContent();
+
+      const cta = await screen.findByTestId('seer-explorer-out-of-credits');
+      const textarea = await getSeerExplorerInput();
+      expect(
+        cta.compareDocumentPosition(textarea) & Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+
+      await userEvent.type(textarea, 'Test message');
+      expect(screen.getByRole('button', {name: 'Send message'})).toBeDisabled();
+      await userEvent.keyboard('{Enter}');
+
+      expect(sendMessage).not.toHaveBeenCalled();
+      expect(textarea).toHaveTextContent('Test message');
+    });
+
+    it('hides the suggested questions', async () => {
+      mockCreditCheck(false);
+
+      renderContent();
+
+      await screen.findByTestId('seer-explorer-out-of-credits');
+      expect(
+        screen.queryByRole('button', {
+          name: 'Which of my open issues are getting worse, not better?',
+        })
+      ).not.toBeInTheDocument();
+    });
+
+    it('puts a forwarded question in the composer instead of sending it', async () => {
+      mockCreditCheck(false);
+      const sendMessage = jest.fn();
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, sendMessage});
+
+      renderContent({initialQuery: 'why is this slow?'});
+
+      await screen.findByTestId('seer-explorer-out-of-credits');
+      expect(await getSeerExplorerInput()).toHaveTextContent('why is this slow?');
+      expect(sendMessage).not.toHaveBeenCalled();
+    });
+
+    it('sends a forwarded question once the check says there are credits', async () => {
+      const creditCheck = mockCreditCheck(true);
+      const sendMessage = jest.fn();
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, sendMessage});
+
+      renderContent({initialQuery: 'why is this slow?'});
+
+      await waitFor(() => {
+        expect(sendMessage).toHaveBeenCalledWith('why is this slow?', 0);
+      });
+      expect(creditCheck).toHaveBeenCalledTimes(1);
+      expect(
+        screen.queryByTestId('seer-explorer-out-of-credits')
+      ).not.toBeInTheDocument();
+    });
+
+    it('holds the user’s own sends until a forwarded question goes out', async () => {
+      let answerCreditCheck!: () => void;
+      MockApiClient.addMockResponse({
+        url: `/organizations/${creditsOrganization.slug}/seer/credit-check/`,
+        match: [MockApiClient.matchQuery({operation: 'agent_chat_message'})],
+        body: {hasEnoughCredits: true},
+        asyncDelay: new Promise<void>(resolve => {
+          answerCreditCheck = resolve;
+        }),
+      });
+      const sendMessage = jest.fn();
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, sendMessage});
+
+      renderContent({initialQuery: 'why is this slow?'});
+
+      // The check hasn't answered, so the forwarded question is still waiting.
+      const textarea = await getSeerExplorerInput();
+      await userEvent.type(textarea, 'my own question');
+      expect(screen.getByRole('button', {name: 'Send message'})).toBeDisabled();
+      await userEvent.keyboard('{Enter}');
+      expect(sendMessage).not.toHaveBeenCalled();
+
+      answerCreditCheck();
+
+      await waitFor(() => {
+        expect(sendMessage).toHaveBeenCalledWith('why is this slow?', 0);
+      });
+      expect(sendMessage).toHaveBeenCalledTimes(1);
+      expect(textarea).toHaveTextContent('my own question');
+      expect(screen.getByRole('button', {name: 'Send message'})).toBeEnabled();
+    });
+
+    it('waits for its own credit check instead of an earlier panel’s answer', async () => {
+      mockCreditCheck(false);
+      const sendMessage = jest.fn();
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, sendMessage});
+
+      // Each forward remounts the panel, which keeps the query cache.
+      function ForwardAgain() {
+        const [forwarded, setForwarded] = useState<string>();
+        return (
+          <PictureInPictureProvider>
+            <SeerExplorerSessionsProvider>
+              <button onClick={() => setForwarded('why is this slow?')}>
+                Forward a question
+              </button>
+              <SeerExplorerContent
+                key={forwarded ?? 'first'}
+                getPageReferrer={mockGetPageReferrer}
+                onClose={() => {}}
+                initialQuery={forwarded}
+              />
+            </SeerExplorerSessionsProvider>
+          </PictureInPictureProvider>
+        );
+      }
+
+      render(<ForwardAgain />, {organization: creditsOrganization});
+      await screen.findByTestId('seer-explorer-out-of-credits');
+
+      // A billing member tops up before the next question is forwarded.
+      let answerCreditCheck!: () => void;
+      MockApiClient.addMockResponse({
+        url: `/organizations/${creditsOrganization.slug}/seer/credit-check/`,
+        match: [MockApiClient.matchQuery({operation: 'agent_chat_message'})],
+        body: {hasEnoughCredits: true},
+        asyncDelay: new Promise<void>(resolve => {
+          answerCreditCheck = resolve;
+        }),
+      });
+      await userEvent.click(screen.getByRole('button', {name: 'Forward a question'}));
+
+      // The cached "out of credits" doesn't park the question in the composer.
+      expect(await getSeerExplorerInput()).not.toHaveTextContent('why is this slow?');
+      expect(sendMessage).not.toHaveBeenCalled();
+
+      answerCreditCheck();
+
+      await waitFor(() => {
+        expect(sendMessage).toHaveBeenCalledWith('why is this slow?', 0);
+      });
+    });
+
+    it('disables retrying a timed out message', async () => {
+      mockCreditCheck(false);
+      const sendMessage = jest.fn();
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        isTimedOut: true,
+        runId: 123,
+        sendMessage,
+        sessionData: {
+          blocks: [
+            {
+              id: 'user-1',
+              message: {role: 'user', content: 'Timed out question'},
+              timestamp: '2024-01-01T00:00:00Z',
+            },
+          ],
+          status: 'error',
+          updated_at: '2024-01-01T00:01:00Z',
+          failure_reason: 'timeout',
+        },
+      });
+
+      renderContent();
+
+      await screen.findByTestId('seer-explorer-out-of-credits');
+      expect(screen.getByRole('button', {name: 'Retry'})).toBeDisabled();
+    });
+
+    it('does not start an investigation', async () => {
+      mockCreditCheck(false);
+      HTMLElement.prototype.scrollIntoView = jest.fn();
+      ProjectsStore.loadInitialData([
+        ProjectFixture({id: '1', slug: 'member', isMember: true}),
+      ]);
+      PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: []}));
+      const createMock = MockApiClient.addMockResponse({
+        url: `/organizations/${creditsOrganization.slug}/notebooks/`,
+        method: 'POST',
+        body: {id: '4567'},
+      });
+
+      renderContent();
+
+      await screen.findByTestId('seer-explorer-out-of-credits');
+      await userEvent.type(await getSeerExplorerInput(), '/investigate why?{Enter}');
+
+      expect(createMock).not.toHaveBeenCalled();
+      expect(await getSeerExplorerInput()).toHaveTextContent('/investigate why?');
+    });
+
+    it('sends as before when the organization has credits', async () => {
+      const creditCheck = mockCreditCheck(true);
+      const sendMessage = jest.fn();
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, sendMessage});
+
+      renderContent();
+
+      await waitFor(() => expect(creditCheck).toHaveBeenCalled());
+      await userEvent.type(await getSeerExplorerInput(), 'Test message{Enter}');
+
+      expect(sendMessage).toHaveBeenCalledWith('Test message', 0);
+      expect(
+        screen.queryByTestId('seer-explorer-out-of-credits')
+      ).not.toBeInTheDocument();
+    });
+
+    describe('an autofix card that cannot afford its next step', () => {
+      const groupId = '1';
+      const chatBlocks = [
+        {
+          id: 'msg-1',
+          message: {role: 'user' as const, content: 'Why is JAVASCRIPT-1 happening?'},
+          timestamp: '2024-01-01T00:00:00Z',
+          loading: false,
+        },
+        {
+          id: 'msg-2',
+          message: {
+            role: 'assistant' as const,
+            content: `{% autofixRef %}${JSON.stringify({id: groupId, shortId: 'JAVASCRIPT-1', runId: 42, step: 'root_cause'})}{% /autofixRef %}`,
+          },
+          timestamp: '2024-01-01T00:01:00Z',
+          loading: false,
+        },
+      ];
+
+      // getsentry fills in the CTA; this stand-in shows what it was asked for.
+      function StubOutOfCreditsCta({
+        reason,
+        variant = 'warning',
+      }: SeerOutOfCreditsCtaProps) {
+        return <div data-test-id="seer-out-of-credits-cta">{`${variant} ${reason}`}</div>;
+      }
+
+      beforeEach(() => {
+        jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+          ...defaultHookReturn,
+          runId: 123,
+          sessionData: {
+            blocks: chatBlocks,
+            status: 'completed',
+            updated_at: '2024-01-01T00:01:00Z',
+          },
+        });
+        MockApiClient.addMockResponse({
+          url: `/organizations/${creditsOrganization.slug}/issues/${groupId}/autofix/`,
+          body: {
+            autofix: {
+              run_id: 42,
+              status: 'completed',
+              updated_at: '2024-01-01T00:01:00Z',
+              blocks: [
+                {
+                  id: 'block-0',
+                  timestamp: '2024-01-01T00:01:00Z',
+                  message: {
+                    role: 'assistant',
+                    content: 'Finished root_cause',
+                    metadata: {step: 'root_cause'},
+                  },
+                  artifacts: [
+                    {
+                      key: 'root_cause',
+                      reason: 'Done',
+                      data: {
+                        one_line_description: 'The cache key collides across orgs',
+                        five_whys: [],
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        });
+        MockApiClient.addMockResponse({
+          url: `/organizations/${creditsOrganization.slug}/seer/credit-check/`,
+          match: [MockApiClient.matchQuery({operation: 'autofix_solution'})],
+          body: {hasEnoughCredits: false},
+        });
+      });
+
+      it('shows the autofix CTA above the composer', async () => {
+        mockCreditCheck(true);
+
+        renderContent();
+
+        const cta = await screen.findByTestId('seer-explorer-autofix-out-of-credits');
+        const textarea = await getSeerExplorerInput();
+        expect(
+          cta.compareDocumentPosition(textarea) & Node.DOCUMENT_POSITION_FOLLOWING
+        ).toBeTruthy();
+        expect(
+          screen.queryByTestId('seer-explorer-out-of-credits')
+        ).not.toBeInTheDocument();
+      });
+
+      it('shows only the chat CTA when the chat is out of credits too', async () => {
+        mockCreditCheck(false);
+
+        renderContent();
+
+        await screen.findByTestId('seer-explorer-out-of-credits');
+        await waitFor(() =>
+          expect(
+            screen.queryByTestId('seer-explorer-autofix-out-of-credits')
+          ).not.toBeInTheDocument()
+        );
+      });
+
+      it('waits for the chat’s own check before showing the autofix CTA', async () => {
+        let answerChatCheck!: () => void;
+        MockApiClient.addMockResponse({
+          url: `/organizations/${creditsOrganization.slug}/seer/credit-check/`,
+          match: [MockApiClient.matchQuery({operation: 'agent_chat_message'})],
+          body: {hasEnoughCredits: true},
+          asyncDelay: new Promise<void>(resolve => {
+            answerChatCheck = resolve;
+          }),
+        });
+        const queryClient = makeTestQueryClient();
+
+        render(
+          <QueryClientProvider client={queryClient}>{contentTree()}</QueryClientProvider>,
+          {organization: creditsOrganization}
+        );
+
+        // The card's answer lands while the chat's is still out. Showing the
+        // card's CTA now could swap it for the chat's a moment later.
+        await waitFor(() =>
+          expect(
+            queryClient.getQueryState(
+              seerCreditCheckApiOptions(creditsOrganization, 'autofix_solution').queryKey
+            )?.status
+          ).toBe('success')
+        );
+        // React Query hands the answer to the card a macrotask later; let it land.
+        await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+        expect(
+          screen.queryByTestId('seer-explorer-autofix-out-of-credits')
+        ).not.toBeInTheDocument();
+
+        act(() => answerChatCheck());
+        expect(
+          await screen.findByTestId('seer-explorer-autofix-out-of-credits')
+        ).toBeInTheDocument();
+      });
+
+      it('leaves the CTA to the card while a question stands in for the composer', async () => {
+        registerOverride('component:seer-out-of-credits-cta', () => StubOutOfCreditsCta);
+        jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+          ...defaultHookReturn,
+          runId: 123,
+          sessionData: {
+            blocks: chatBlocks,
+            status: 'awaiting_user_input',
+            pending_user_input: {
+              id: 'input-1',
+              input_type: 'ask_user_question',
+              data: {
+                questions: [
+                  {
+                    question: 'Which project should we focus on?',
+                    options: [{label: 'sentry-unreal', description: 'Unreal SDK'}],
+                  },
+                ],
+              },
+            },
+            updated_at: '2024-01-01T00:01:00Z',
+          },
+        });
+
+        renderContent();
+
+        expect(
+          await screen.findByText('Which project should we focus on?')
+        ).toBeInTheDocument();
+        expect(await screen.findByTestId('seer-out-of-credits-cta')).toHaveTextContent(
+          'muted autofix-continue'
+        );
+        expect(
+          screen.queryByTestId('seer-explorer-autofix-out-of-credits')
+        ).not.toBeInTheDocument();
+      });
+    });
+
+    describe('after running out', () => {
+      // The test `rerender` mounts a new QueryClient, which would drop the credit
+      // check these tests watch, so they keep their own.
+      let queryClient: QueryClient;
+      beforeEach(() => {
+        queryClient = makeTestQueryClient();
+      });
+      function tree() {
+        return (
+          <QueryClientProvider client={queryClient}>{contentTree()}</QueryClientProvider>
+        );
+      }
+
+      it('rechecks credits when Seer stops a reply for credits', async () => {
+        const useSeerExplorerSpy = jest
+          .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+          .mockReturnValue({...defaultHookReturn, runId: 123});
+        const creditCheck = mockCreditCheck(true);
+        const {rerender} = render(tree(), {organization: creditsOrganization});
+        await waitFor(() => expect(creditCheck).toHaveBeenCalled());
+
+        mockCreditCheck(false);
+        useSeerExplorerSpy.mockReturnValue({
+          ...defaultHookReturn,
+          runId: 123,
+          sessionData: {
+            blocks: [],
+            status: 'error',
+            updated_at: '2024-01-01T00:01:00Z',
+            failure_reason: 'out_of_credits',
+          },
+        });
+        rerender(tree());
+
+        expect(
+          await screen.findByTestId('seer-explorer-out-of-credits')
+        ).toBeInTheDocument();
+      });
+
+      it('rechecks credits when a send is refused for credits', async () => {
+        const useSeerExplorerSpy = jest
+          .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+          .mockReturnValue(defaultHookReturn);
+        const creditCheck = mockCreditCheck(true);
+        const {rerender} = render(tree(), {organization: creditsOrganization});
+        await waitFor(() => expect(creditCheck).toHaveBeenCalled());
+
+        mockCreditCheck(false);
+        useSeerExplorerSpy.mockReturnValue({
+          ...defaultHookReturn,
+          requestError: {query: 'Why is this slow?', isOutOfCredits: true},
+        });
+        rerender(tree());
+
+        expect(
+          await screen.findByTestId('seer-explorer-out-of-credits')
+        ).toBeInTheDocument();
+        expect(
+          screen.queryByText(
+            'There was an error sending your message, wait and try again.'
+          )
+        ).not.toBeInTheDocument();
+      });
+
+      it('rechecks credits for each send refused for credits', async () => {
+        const useSeerExplorerSpy = jest
+          .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+          .mockReturnValue(defaultHookReturn);
+        // The check keeps saying there are credits, so sending stays possible.
+        const creditCheck = mockCreditCheck(true);
+        const {rerender} = render(tree(), {organization: creditsOrganization});
+        await waitFor(() => expect(creditCheck).toHaveBeenCalledTimes(1));
+
+        useSeerExplorerSpy.mockReturnValue({
+          ...defaultHookReturn,
+          requestError: {query: 'Why is this slow?', isOutOfCredits: true},
+        });
+        rerender(tree());
+        await waitFor(() => expect(creditCheck).toHaveBeenCalledTimes(2));
+
+        useSeerExplorerSpy.mockReturnValue({
+          ...defaultHookReturn,
+          requestError: {query: 'Why is this slow?', isOutOfCredits: true},
+        });
+        rerender(tree());
+        await waitFor(() => expect(creditCheck).toHaveBeenCalledTimes(3));
+      });
+    });
+
+    it('does not check credits without seer-credit-checks', async () => {
+      const creditCheck = mockCreditCheck(false);
+      const sendMessage = jest.fn();
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, sendMessage});
+
+      renderContent({org: organization});
+
+      await userEvent.type(await getSeerExplorerInput(), 'Test message{Enter}');
+
+      expect(sendMessage).toHaveBeenCalledWith('Test message', 0);
+      expect(creditCheck).not.toHaveBeenCalled();
+    });
+
+    it('does not check credits on a read-only conversation', async () => {
+      const creditCheck = mockCreditCheck(false);
+      ConfigStore.set('user', UserFixture({id: '1'}));
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        sessionData: {
+          blocks: [],
+          status: 'completed',
+          updated_at: '2024-01-01T00:00:00Z',
+          owner_user_id: 2,
+        },
+      });
+
+      renderContent();
+
+      await waitFor(() =>
+        expect(screen.getByTestId('seer-explorer-input')).toBeDisabled()
+      );
+      expect(creditCheck).not.toHaveBeenCalled();
+    });
+
+    it('does not check credits while Seer waits on an answer', async () => {
+      const creditCheck = mockCreditCheck(false);
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        runId: 123,
+        sessionData: {
+          blocks: [
+            {
+              id: 'msg-1',
+              message: {role: 'user', content: 'Which project?'},
+              timestamp: '2024-01-01T00:00:00Z',
+              loading: false,
+            },
+          ],
+          status: 'awaiting_user_input',
+          pending_user_input: {
+            id: 'input-1',
+            input_type: 'ask_user_question',
+            data: {
+              questions: [
+                {
+                  question: 'Which project should we focus on?',
+                  options: [{label: 'sentry-unreal', description: 'Unreal SDK'}],
+                },
+              ],
+            },
+          },
+          updated_at: '2024-01-01T00:01:00Z',
+        },
+      });
+
+      renderContent();
+
+      await screen.findByText('Which project should we focus on?');
+      expect(creditCheck).not.toHaveBeenCalled();
+      expect(
+        screen.queryByTestId('seer-explorer-out-of-credits')
+      ).not.toBeInTheDocument();
+    });
+
+    describe('usage meter', () => {
+      beforeEach(() => {
+        // getsentry fills the slot in; open source renders nothing.
+        registerOverride(
+          'component:seer-credit-usage-meter',
+          () =>
+            function UsageMeter({hasEnoughCredits}) {
+              return (
+                <div data-test-id="usage-meter">
+                  {hasEnoughCredits ? 'Enough credits' : 'Not enough credits'}
+                </div>
+              );
+            }
+        );
+      });
+
+      it('passes the chat credit check to the meter next to the send button', async () => {
+        const creditCheck = mockCreditCheck(true);
+
+        renderContent();
+
+        await waitFor(() => expect(creditCheck).toHaveBeenCalled());
+        const meter = screen.getByTestId('usage-meter');
+        expect(meter).toHaveTextContent('Enough credits');
+        expect(
+          meter.compareDocumentPosition(
+            screen.getByRole('button', {name: 'Send message'})
+          ) & Node.DOCUMENT_POSITION_FOLLOWING
+        ).toBeTruthy();
+      });
+
+      it('tells the meter when the organization is out of credits', async () => {
+        mockCreditCheck(false);
+
+        renderContent();
+
+        await screen.findByTestId('seer-explorer-out-of-credits');
+        expect(screen.getByTestId('usage-meter')).toHaveTextContent('Not enough credits');
+      });
+
+      it('leaves the meter out of a read-only conversation', async () => {
+        mockCreditCheck(true);
+        ConfigStore.set('user', UserFixture({id: '1'}));
+        jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+          ...defaultHookReturn,
+          sessionData: {
+            blocks: [],
+            status: 'completed',
+            updated_at: '2024-01-01T00:00:00Z',
+            owner_user_id: 2,
+          },
+        });
+
+        renderContent();
+
+        await waitFor(() =>
+          expect(screen.getByTestId('seer-explorer-input')).toBeDisabled()
+        );
+        expect(screen.queryByTestId('usage-meter')).not.toBeInTheDocument();
+      });
     });
   });
 });

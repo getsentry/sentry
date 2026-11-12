@@ -1,12 +1,12 @@
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
+import {IconExpand} from '@sentry/icons/expand';
 
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
@@ -37,17 +37,15 @@ import {
   HTTP_RESPONSE_5XX_COLOR,
   THROUGHPUT_COLOR,
 } from 'sentry/views/insights/colors';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {ChartActionDropdown} from 'sentry/views/insights/common/components/chartActionDropdown';
-import {
-  ChartContainer,
-  ModalChartContainer,
-} from 'sentry/views/insights/common/components/insightsChartContainer';
-import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/types';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {BASE_FIELD_ALIASES, INGESTION_DELAY} from 'sentry/views/insights/settings';
 import type {SpanFields} from 'sentry/views/insights/types';
+
+import type {LoadableChartWidgetProps} from './widgets/types';
+import {ChartType} from './chart';
+import {ChartActionDropdown} from './chartActionDropdown';
+import {ChartContainer, ModalChartContainer} from './insightsChartContainer';
 
 export interface InsightsTimeSeriesWidgetProps
   extends WidgetTitleProps, LoadableChartWidgetProps {
@@ -197,9 +195,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
     );
   }
 
-  if (
-    [...(props.series ?? []), ...(props.timeSeries ?? [])].filter(Boolean).length === 0
-  ) {
+  if (![...(props.series ?? []), ...(props.timeSeries ?? [])].some(Boolean)) {
     return (
       <ChartContainer height={props.height}>
         <Widget

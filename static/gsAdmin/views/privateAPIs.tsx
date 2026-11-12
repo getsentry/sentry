@@ -1,40 +1,56 @@
 import {Fragment, useState} from 'react';
+import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {useApi} from 'sentry/utils/useApi';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 
 import {PageHeader} from 'admin/components/pageHeader';
 
 import {SearchContainer} from './debuggingTools';
 
 function ForceAutoAssignment() {
-  const api = useApi();
   const [organizationSlug, setOrganizationSlug] = useState('');
   const [groupIds, setGroupIds] = useState('');
+
+  const {mutateAsync: forceAutoAssignment} = useMutation({
+    mutationFn: ({
+      organizationIdOrSlug,
+      groupIdsArray,
+    }: {
+      groupIdsArray: number[];
+      organizationIdOrSlug: string;
+    }) =>
+      fetchMutation<{updatedGroupIds: number[]}>({
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/issues/force-auto-assignment/',
+          {path: {organizationIdOrSlug}}
+        ),
+        method: 'PUT',
+        data: {group_ids: groupIdsArray},
+      }),
+  });
 
   const handleSubmit = async (event: any) => {
     event.preventDefault();
     if (!organizationSlug || !groupIds) {
-      addErrorMessage('Requires the organization slug and group list.');
+      toast.error('Requires the organization slug and group list.');
       return;
     }
     const groupIdsArray = groupIds.split(',').map(item => {
       return parseInt(item, 10);
     });
 
-    const response = await api.requestPromise(
-      `/organizations/${organizationSlug}/issues/force-auto-assignment/`,
-      {
-        method: 'PUT',
-        data: {group_ids: groupIdsArray},
-      }
-    );
+    const response = await forceAutoAssignment({
+      organizationIdOrSlug: organizationSlug,
+      groupIdsArray,
+    });
 
     const updatedGroupIdsStr = response.updatedGroupIds.join();
-    addSuccessMessage('Updated groups: ' + updatedGroupIdsStr);
+    toast.success('Updated groups: ' + updatedGroupIdsStr);
   };
 
   return (

@@ -10,6 +10,8 @@ import type {boot as intercomBoot} from '@intercom/messenger-js-sdk';
 import {Client} from 'sentry/api';
 import {ConfigStore} from 'sentry/stores/configStore';
 
+import {getApiUrl} from './api/getApiUrl';
+
 interface IntercomUserData {
   createdAt: number;
   email: string;
@@ -74,7 +76,9 @@ async function initIntercom(orgSlug: string): Promise<void> {
       // Fetch JWT for identity verification
       const api = new Client();
       const jwtData: IntercomJwtResponse = await api.requestPromise(
-        `/organizations/${orgSlug}/intercom-jwt/`
+        getApiUrl('/organizations/$organizationIdOrSlug/intercom-jwt/', {
+          path: {organizationIdOrSlug: orgSlug},
+        })
       );
 
       const intercomSettings: IntercomSettings = {

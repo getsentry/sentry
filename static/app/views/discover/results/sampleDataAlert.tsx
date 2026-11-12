@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -26,7 +27,8 @@ const EXCLUDED_CONDITIONS = [
 
 export function SampleDataAlert({query}: {query?: string}) {
   const user = useUser();
-  const {slug, isDynamicallySampled} = useOrganization();
+  const organization = useOrganization();
+  const {slug, isDynamicallySampled} = organization;
 
   const {dismiss, isDismissed} = useDismissAlert({
     key: `${slug}-${user.id}:sample-data-alert-dismissed`,
@@ -43,9 +45,9 @@ export function SampleDataAlert({query}: {query?: string}) {
   return (
     <Alert.Container>
       <Alert variant="warning">
-        <AlertContent>
+        <Grid align="center" gap="md" columns="1fr max-content">
           {t(
-            'Based on your search criteria and sample rate, the events available may be limited because Discover uses sampled data only.'
+            'Based on your search criteria and sample rate, the events available may be limited because Errors uses sampled data only.'
           )}
           <DismissButton
             variant="link"
@@ -54,7 +56,7 @@ export function SampleDataAlert({query}: {query?: string}) {
             aria-label={t('Dismiss Alert')}
             tooltipProps={{title: t('Dismiss Alert')}}
           />
-        </AlertContent>
+        </Grid>
       </Alert>
     </Alert.Container>
   );
@@ -66,11 +68,4 @@ const DismissButton = styled(Button)`
   &:hover {
     opacity: 0.5;
   }
-`;
-
-const AlertContent = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr max-content;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
 `;

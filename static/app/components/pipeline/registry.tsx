@@ -4,12 +4,17 @@ import {bitbucketIntegrationPipeline} from './integrationBitbucket';
 import {bitbucketServerIntegrationPipeline} from './integrationBitbucketServer';
 import {claudeCodeIntegrationPipeline} from './integrationClaudeCode';
 import {cursorIntegrationPipeline} from './integrationCursor';
+import {cursorOriginIntegrationPipeline} from './integrationCursorOrigin';
+import {datadogIntegrationPipeline} from './integrationDatadog';
 import {discordIntegrationPipeline} from './integrationDiscord';
+import {gcpIntegrationPipeline} from './integrationGcp';
 import {githubIntegrationPipeline} from './integrationGitHub';
 import {githubEnterpriseIntegrationPipeline} from './integrationGitHubEnterprise';
 import {gitlabIntegrationPipeline} from './integrationGitLab';
+import {grafanaIntegrationPipeline} from './integrationGrafana';
 import {jiraIntegrationPipeline} from './integrationJira';
 import {jiraServerIntegrationPipeline} from './integrationJiraServer';
+import {linearIntegrationPipeline} from './integrationLinear';
 import {msTeamsIntegrationPipeline} from './integrationMsTeams';
 import {opsgenieIntegrationPipeline} from './integrationOpsgenie';
 import {pagerDutyIntegrationPipeline} from './integrationPagerDuty';
@@ -30,13 +35,18 @@ export const PIPELINE_REGISTRY = [
   bitbucketServerIntegrationPipeline,
   claudeCodeIntegrationPipeline,
   cursorIntegrationPipeline,
+  cursorOriginIntegrationPipeline,
+  datadogIntegrationPipeline,
   discordIntegrationPipeline,
   dummyIntegrationPipeline,
+  gcpIntegrationPipeline,
   githubIntegrationPipeline,
   githubEnterpriseIntegrationPipeline,
   gitlabIntegrationPipeline,
+  grafanaIntegrationPipeline,
   jiraIntegrationPipeline,
   jiraServerIntegrationPipeline,
+  linearIntegrationPipeline,
   msTeamsIntegrationPipeline,
   opsgenieIntegrationPipeline,
   pagerDutyIntegrationPipeline,

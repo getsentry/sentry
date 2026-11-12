@@ -2,7 +2,7 @@
 
 Load this reference when manually fixing `use-semantic-token` violations.
 
-Source of truth: `static/eslint/eslintPluginScraps/src/config/tokenRules.ts`
+Source of truth: `static/oxlint/eslintPluginScraps/src/config/tokenRules.ts`
 
 ## Token Categories and Allowed CSS Properties
 

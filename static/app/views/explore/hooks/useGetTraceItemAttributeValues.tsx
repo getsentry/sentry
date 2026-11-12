@@ -11,7 +11,7 @@ import type {
   GetTagValuesParams,
   TagValueWithCount,
 } from 'sentry/components/searchQueryBuilder';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilters, PageFilterDatetime} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {defined} from 'sentry/utils/defined';
@@ -31,7 +31,7 @@ interface TraceItemAttributeValue {
 }
 
 interface UseGetTraceItemAttributeValuesProps extends UseTraceItemAttributeBaseProps {
-  datetime?: PageFilters['datetime'];
+  datetime?: PageFilterDatetime;
   projectIds?: PageFilters['projects'];
   query?: string;
 }
@@ -53,8 +53,14 @@ export function useGetTraceItemAttributeValues({
 
   return useCallback(
     async ({tag, searchQuery}: GetTagValuesParams): Promise<TagValueWithCount[]> => {
-      if (tag.kind === FieldKind.FUNCTION || type === 'number' || type === 'boolean') {
-        // We can't really auto suggest values for aggregate functions, numbers, or booleans
+      if (
+        !tag.key ||
+        tag.kind === FieldKind.FUNCTION ||
+        type === 'number' ||
+        type === 'boolean'
+      ) {
+        // We can't really auto suggest values for aggregate functions, numbers, or booleans.
+        // An empty key would request `/attributes//values/` and 404.
         return Promise.resolve([]);
       }
 

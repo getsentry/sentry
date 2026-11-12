@@ -45,7 +45,6 @@ def assert_matching_organization_mapping(
         assert org_mapping.disable_new_visibility_features == bool(
             org.flags.disable_new_visibility_features
         )
-        assert org_mapping.require_email_verification == bool(org.flags.require_email_verification)
         assert org_mapping.disable_member_project_creation == bool(
             org.flags.disable_member_project_creation
         )
@@ -206,7 +205,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
 class OrganizationMappingReplicationTest(TransactionTestCase):
     def test_replicates_all_flags(self) -> None:
         self.organization = self.create_organization(slug="santry", cell="us")
-        self.organization.flags = 255  # all flags set
+        setattr(self.organization, "flags", 255)  # all flags set
         organization_mapping_service.upsert(
             organization_id=self.organization.id,
             update=update_organization_mapping_from_instance(

@@ -1,33 +1,60 @@
-import {useEffect, useRef} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useQueryClient} from '@tanstack/react-query';
+import {createSerializer, useQueryStates} from 'nuqs';
 
+import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Table, type TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
 import {
   deleteMonitorEnvironment,
   setEnvironmentIsMuted,
 } from 'sentry/actionCreators/monitors';
+import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
+import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import {
   GridLineLabels,
   GridLineOverlay,
 } from 'sentry/components/checkInTimeline/gridLines';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
-import {Panel} from 'sentry/components/panels/panel';
-import {t} from 'sentry/locale';
-import {setApiQueryData} from 'sentry/utils/queryClient';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {t, tct} from 'sentry/locale';
+import {fadeIn} from 'sentry/styles/animations';
+import {getNextCheckInEnv} from 'sentry/utils/monitor/cron';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useApi} from 'sentry/utils/useApi';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getNextCheckInEnv} from 'sentry/views/alerts/rules/crons/utils';
 import type {Monitor, MonitorBucket} from 'sentry/views/insights/crons/types';
-import {makeMonitorDetailsQueryKey} from 'sentry/views/insights/crons/utils';
+import {
+  checkInStatusPrecedent,
+  monitorDetailsApiOptions,
+  statusToText,
+  tickStyle,
+} from 'sentry/views/insights/crons/utils';
+import {selectCheckInData} from 'sentry/views/insights/crons/utils/selectCheckInData';
+import {useMonitorStats} from 'sentry/views/insights/crons/utils/useMonitorStats';
 
-import {useMonitorStats} from './../utils/useMonitorStats';
-import {OverviewRow} from './overviewTimeline/overviewRow';
+import {MonitorEnvironmentLabel} from './overviewTimeline/monitorEnvironmentLabel';
 import {CronServiceIncidents} from './serviceIncidents';
+
+const ENVIRONMENT_COLUMN_WIDTH = 135;
+
+const MAX_SHOWN_ENVIRONMENTS = 4;
+
+const serializePageFilters = createSerializer(pageFilterParsers);
+
+const COLUMNS: TableColumnConfig[] = [
+  {key: 'environment', width: `${ENVIRONMENT_COLUMN_WIDTH}px`},
+  {key: 'timeline', width: '1fr'},
+];
 
 interface Props {
   monitor: Monitor;
@@ -44,12 +71,13 @@ interface Props {
 export function DetailsTimeline({monitor, onStatsLoaded, onEnvironmentUpdated}: Props) {
   const organization = useOrganization();
   const location = useLocation();
+  const [{start, end, statsPeriod, environment}] = useQueryStates(pageFilterParsers);
   const api = useApi();
   const queryClient = useQueryClient();
 
-  const elementRef = useRef<HTMLDivElement>(null);
+  const elementRef = useRef<HTMLTableCellElement>(null);
   const {width: containerWidth} = useDimensions({elementRef});
-  const timelineWidth = useDebouncedValue(containerWidth, 500);
+  const [timelineWidth] = useDebouncedValue(containerWidth, {wait: 500});
 
   // Use the nextCheckIn timestamp from the earliest scheduled environment as a
   // queryKey for computing the timeWindowConfig. This means when the
@@ -63,16 +91,14 @@ export function DetailsTimeline({monitor, onStatsLoaded, onEnvironmentUpdated}: 
     recomputeOnWindowFocus: true,
   });
 
-  const monitorDetailsQueryKey = makeMonitorDetailsQueryKey(
+  const monitorDetailsQueryKey = monitorDetailsApiOptions(
     organization,
     monitor.project.slug,
     monitor.slug,
-    {
-      environment: location.query.environment,
-    }
-  );
+    {environment}
+  ).queryKey;
 
-  const {data: monitorStats} = useMonitorStats({
+  const {data: monitorStats, isPending} = useMonitorStats({
     monitors: [monitor.id],
     timeWindowConfig,
   });
@@ -82,20 +108,31 @@ export function DetailsTimeline({monitor, onStatsLoaded, onEnvironmentUpdated}: 
     [onStatsLoaded, monitorStats, monitor.id]
   );
 
+  const [isExpanded, setExpanded] = useState(
+    monitor.environments.length <= MAX_SHOWN_ENVIRONMENTS
+  );
+
+  const environments = isExpanded
+    ? monitor.environments
+    : monitor.environments.slice(0, MAX_SHOWN_ENVIRONMENTS);
+
   const handleDeleteEnvironment = async (env: string) => {
     const success = await deleteMonitorEnvironment(api, organization.slug, monitor, env);
     if (!success) {
       return;
     }
 
-    setApiQueryData<Monitor>(queryClient, monitorDetailsQueryKey, oldMonitorDetails => {
-      return oldMonitorDetails
+    queryClient.setQueryData(monitorDetailsQueryKey, previous =>
+      previous
         ? {
-            ...oldMonitorDetails,
-            environments: oldMonitorDetails.environments.filter(e => e.name !== env),
+            ...previous,
+            json: {
+              ...previous.json,
+              environments: previous.json.environments.filter(e => e.name !== env),
+            },
           }
-        : undefined;
-    });
+        : undefined
+    );
 
     onEnvironmentUpdated?.();
   };
@@ -120,64 +157,156 @@ export function DetailsTimeline({monitor, onStatsLoaded, onEnvironmentUpdated}: 
   };
 
   return (
-    <TimelineContainer>
-      <TimelineWidthTracker ref={elementRef} />
-      <Header>
-        <TimelineTitle>{t('Check-Ins')}</TimelineTitle>
-        <GridLineLabels timeWindowConfig={timeWindowConfig} />
-      </Header>
-      <AlignedGridLineOverlay
-        allowZoom
-        showCursor
-        resetPaginationOnZoom
-        timeWindowConfig={timeWindowConfig}
-        additionalUi={<CronServiceIncidents timeWindowConfig={timeWindowConfig} />}
-        cursorOverlayAnchor="top"
-        cursorOverlayAnchorOffset={10}
-      />
-      <OverviewRow
-        monitor={monitor}
-        timeWindowConfig={timeWindowConfig}
-        onDeleteEnvironment={handleDeleteEnvironment}
-        onToggleMuteEnvironment={handleToggleMuteEnvironment}
-        singleMonitorView
-      />
-    </TimelineContainer>
+    <SimpleTable
+      aria-label={t('Check-in timeline')}
+      columns={COLUMNS}
+      density="comfortable"
+      header={
+        <TimelineHeaderRow>
+          <SimpleTable.HeaderCell>
+            <Text bold>{t('Check-Ins')}</Text>
+          </SimpleTable.HeaderCell>
+          <TimelineHeaderCell ref={elementRef} scope="col" aria-label={t('Timeline')}>
+            <GridLineLabels timeWindowConfig={timeWindowConfig} />
+            <TimelineOverlay
+              allowZoom
+              showCursor
+              resetPaginationOnZoom
+              timeWindowConfig={timeWindowConfig}
+              additionalUi={<CronServiceIncidents timeWindowConfig={timeWindowConfig} />}
+              cursorOverlayAnchor="top"
+              cursorOverlayAnchorOffset={10}
+            />
+          </TimelineHeaderCell>
+        </TimelineHeaderRow>
+      }
+    >
+      {environments.map(env => (
+        <SimpleTable.Row
+          key={env.name}
+          variant={monitor.status === 'disabled' ? 'faded' : 'default'}
+        >
+          <SimpleTable.RowCell justify="between" gap="xs">
+            <MonitorEnvironmentLabel monitorEnv={env} />
+            <DropdownMenu
+              size="sm"
+              usePortal
+              strategy="fixed"
+              trigger={triggerProps => (
+                <EnvironmentActionsButton
+                  {...triggerProps}
+                  aria-label={t('Monitor environment actions')}
+                  size="zero"
+                  icon={<IconEllipsis />}
+                />
+              )}
+              items={[
+                {
+                  key: 'view',
+                  label: t('View Environment'),
+                  to: serializePageFilters(location.pathname, {
+                    start,
+                    end,
+                    statsPeriod,
+                    environment: [env.name],
+                  }),
+                },
+                {
+                  key: 'mute',
+                  label: env.isMuted ? t('Unmute Environment') : t('Mute Environment'),
+                  onAction: () => handleToggleMuteEnvironment(env.name, !env.isMuted),
+                },
+                {
+                  key: 'delete',
+                  label: t('Delete Environment'),
+                  onAction: () =>
+                    openConfirmModal({
+                      onConfirm: () => handleDeleteEnvironment(env.name),
+                      header: t('Delete Environment?'),
+                      message: tct(
+                        'Are you sure you want to remove the "[envName]" environment and delete the associated check-ins from this Cron Monitor?',
+                        {envName: env.name}
+                      ),
+                      confirmText: t('Delete'),
+                      priority: 'danger',
+                    }),
+                },
+              ]}
+            />
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell padding="lg 0">
+            {isPending ? (
+              <CheckInPlaceholder />
+            ) : (
+              <TimelineFadeIn>
+                <CheckInTimeline
+                  statusLabel={statusToText}
+                  statusStyle={tickStyle}
+                  statusPrecedent={checkInStatusPrecedent}
+                  timeWindowConfig={timeWindowConfig}
+                  bucketedData={selectCheckInData(
+                    monitorStats?.[monitor.id] ?? [],
+                    env.name
+                  )}
+                />
+              </TimelineFadeIn>
+            )}
+          </SimpleTable.RowCell>
+        </SimpleTable.Row>
+      ))}
+      {!isExpanded && (
+        <SimpleTable.Row>
+          <SimpleTable.RowCell>
+            <Button size="xs" onClick={() => setExpanded(true)}>
+              {tct('Show [num] More', {
+                num: monitor.environments.length - MAX_SHOWN_ENVIRONMENTS,
+              })}
+            </Button>
+          </SimpleTable.RowCell>
+        </SimpleTable.Row>
+      )}
+    </SimpleTable>
   );
 }
 
-const TimelineContainer = styled(Panel)`
-  display: grid;
-  grid-template-columns: 135px 1fr;
+// The overlay spans the timeline column of every row, so it positions against
+// the table rather than the header row or cell it is rendered in.
+const TimelineHeaderRow = styled(SimpleTable.HeaderRow)`
+  position: static;
 `;
 
-const Header = styled('div')`
-  grid-column: 1/-1;
-  display: grid;
-  grid-template-columns: subgrid;
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  z-index: 1;
+const TimelineHeaderCell = styled(Table.HeadCell)`
+  position: static;
+  flex-direction: column;
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+`;
 
-  > :last-child {
-    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-    box-shadow: -1px 0 0 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
+const TimelineOverlay = styled(GridLineOverlay)`
+  inset: 0 0 0 ${ENVIRONMENT_COLUMN_WIDTH}px;
+  width: auto;
+  height: auto;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 -1px;
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
+    pointer-events: none;
   }
 `;
 
-const TimelineWidthTracker = styled('div')`
-  position: absolute;
+// The negative margin keeps the row from growing when the button appears on hover.
+// The menu is portaled out of the row, so an open menu has to keep its trigger shown.
+const EnvironmentActionsButton = styled(OverlayTrigger.IconButton)`
+  margin-block: -${p => p.theme.space.xs};
+
+  tr:not(:hover) &:not([aria-expanded='true']) {
+    display: none;
+  }
+`;
+
+const TimelineFadeIn = styled('div')`
   width: 100%;
-  grid-row: 1;
-  grid-column: 2;
-`;
-
-const AlignedGridLineOverlay = styled(GridLineOverlay)`
-  grid-column: 2;
-`;
-
-const TimelineTitle = styled(Text)`
-  padding: ${p => p.theme.space.xl};
-  grid-column: 1;
-  line-height: 1.2;
-  font-weight: bold;
+  opacity: 0;
+  animation: ${fadeIn} 1.5s ease-out forwards;
 `;

@@ -2,9 +2,10 @@ import enum
 
 CODING_PAYLOAD_TYPES = frozenset({"select_solution", "create_branch", "create_pr"})
 
-# An issue group must have >= this number of occurrences in order to be
-# a target for 'workflow' autofix.
-AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD = 10
+# ``Repository.provider`` values for the GitHub integrations Seer PR iteration
+# supports. Use with ``provider__in=`` when filtering repositories; for a Seer
+# PR-state lookup pass the specific repo's ``provider`` instead.
+SEER_GITHUB_PROVIDERS = ("integrations:github", "integrations:github_enterprise")
 
 
 class FixabilityScoreThresholds(enum.Enum):
@@ -47,21 +48,51 @@ class AutofixStatus(str, enum.Enum):
     WAITING_FOR_USER_RESPONSE = "WAITING_FOR_USER_RESPONSE"
 
 
+PUBLISH_SCOPES = frozenset({"event:write", "event:admin"})
+AUTOFIX_RUN_SCOPES = frozenset({"event:write", "event:admin", "seer:write"})
+
+
 class AutofixReferrer(enum.StrEnum):
     GROUP_AUTOFIX_ENDPOINT = "api.group_ai_autofix"
     ISSUE_SUMMARY_POST_PROCESS_FIXABILITY = "issue_summary.post_process_fixability"
     SLACK = "slack"
     ON_COMPLETION_HOOK = "autofix.on_completion_hook"
-    NIGHT_SHIFT = "night_shift"
+    AGENTIC_TRIAGE = "night_shift"
+    NIGHT_SHIFT = AGENTIC_TRIAGE
     CLI = "api.cli"
     LINEAR_AGENT = "api.linear_agent"
     MCP = "api.mcp"
     WEB = "api.web"
+    # Unprefixed because Seer Explorer's autofix lib sends this literal, and the value has to
+    # match it or every Explorer-started run records itself as UNKNOWN.
+    SEER_EXPLORER = "seer_explorer"
     GITHUB_PR_COMMENT = "github.pr_comment"
+    GITHUB_PR_REVIEW = "github.pr_review"
+    GITHUB_CHECK_SUITE = "github.check_suite"
+    ADMIN = "admin.seer"
+    ADMIN_AUTOMATED = "admin.seer.automated"
     UNKNOWN = "unknown"
 
 
 class SeerAutomationSource(enum.Enum):
     ISSUE_DETAILS = "issue_details"
     POST_PROCESS = "post_process"
-    NIGHT_SHIFT = "night_shift"
+    AGENTIC_TRIAGE = "night_shift"
+    NIGHT_SHIFT = AGENTIC_TRIAGE
+    FIRST_ASSIGNMENT = "first_assignment"
+
+
+class CodingAgentStatus(enum.StrEnum):
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+    @classmethod
+    def from_cursor_status(cls, cursor_status: str) -> "CodingAgentStatus | None":
+        status_mapping = {
+            "FINISHED": cls.COMPLETED,
+            "ERROR": cls.FAILED,
+        }
+
+        return status_mapping.get(cursor_status.upper(), None)

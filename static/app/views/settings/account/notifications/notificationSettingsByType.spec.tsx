@@ -92,11 +92,6 @@ function renderComponent({
 }
 
 describe('NotificationSettingsByType', () => {
-  afterEach(() => {
-    MockApiClient.clearMockResponses();
-    OrganizationsStore.init();
-    jest.clearAllMocks();
-  });
   beforeEach(() => {
     OrganizationsStore.init();
     MockApiClient.addMockResponse({
@@ -106,6 +101,11 @@ describe('NotificationSettingsByType', () => {
     });
   });
 
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+    OrganizationsStore.init();
+    jest.clearAllMocks();
+  });
   it('should render when default is disabled', async () => {
     renderComponent({
       notificationOptions: [
@@ -146,6 +146,17 @@ describe('NotificationSettingsByType', () => {
     renderComponent({organizations: [organization, otherOrganization]});
     expect(await screen.findByText(otherOrganization.name)).toBeInTheDocument();
     expect(projectsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('clarifies the Spike Protection notification default scope', async () => {
+    renderComponent({notificationType: 'spikeProtection'});
+
+    expect(
+      await screen.findByRole('textbox', {name: 'Spike Protection Notifications'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('This is the default for all projects under all organizations.')
+    ).toBeInTheDocument();
   });
 
   it('renders all the quota subcategories', async () => {

@@ -5,11 +5,12 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import type {PlatformOption} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+
+import type {PlatformOption} from './gettingStartedDoc/types';
+import {useUrlPlatformOptions} from './platformOptionsControl';
 
 type OptionControlProps = {
   onChange: (selectedOption: SelectOption<string>) => void;
@@ -24,9 +25,22 @@ type PlatformOptionsControlProps = {
    */
   platformOptions: Record<string, PlatformOption>;
   /**
+   * Optional connector word rendered before a given option's control, keyed by
+   * option key. Lets callers compose a readable sentence, e.g. rendering "on"
+   * between two selectors so it reads "with <integration> on <runtime>".
+   */
+  connectors?: Record<string, string>;
+  /**
    * Whether the option is disabled
    */
   disabled?: boolean;
+  /**
+   * Option values pinned by another selection, keyed by option key. A locked
+   * option renders the given value and is disabled, e.g. a Cloudflare-only SDK
+   * pins the runtime selector to "cloudflare".
+   */
+  lockedValues?: Record<string, string>;
+  onChange?: (key: string, value: string) => void;
 };
 
 function OptionControl({option, value, onChange, disabled}: OptionControlProps) {
@@ -44,7 +58,14 @@ function OptionControl({option, value, onChange, disabled}: OptionControlProps) 
       value={value}
       onChange={onChange}
       options={option.items}
-      position="bottom-end"
+      // Anchor the menu's left edge to the trigger and grow rightward. Paired
+      // with menuWidth below, a menu wider than the trigger extends right rather
+      // than hanging off to the left.
+      position="bottom-start"
+      // Size the menu to its widest option so long SDK names (e.g. "Cloudflare
+      // Agents SDK") aren't truncated. min-width:100% still keeps it at least as
+      // wide as the trigger for short lists.
+      menuWidth="max-content"
       disabled={disabled}
     />
   );
@@ -53,12 +74,16 @@ function OptionControl({option, value, onChange, disabled}: OptionControlProps) 
 export function PlatformOptionDropdown({
   platformOptions,
   disabled,
+  connectors,
+  lockedValues,
+  onChange,
 }: PlatformOptionsControlProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const urlOptionValues = useUrlPlatformOptions(platformOptions);
 
   const handleChange = (key: string, value: string) => {
+    onChange?.(key, value);
     navigate(
       {
         ...location,
@@ -78,15 +103,20 @@ export function PlatformOptionDropdown({
   return (
     <Fragment>
       {t('with')}
-      {Object.keys(platformOptions).map(key => (
-        <OptionControl
-          key={key}
-          option={platformOptions[key]!}
-          value={urlOptionValues[key]!}
-          onChange={v => handleChange(key, v.value)}
-          disabled={disabled}
-        />
-      ))}
+      {Object.keys(platformOptions).map(key => {
+        const lockedValue = lockedValues?.[key];
+        return (
+          <Fragment key={key}>
+            {connectors?.[key]}
+            <OptionControl
+              option={platformOptions[key]!}
+              value={lockedValue ?? urlOptionValues[key]!}
+              onChange={v => handleChange(key, v.value)}
+              disabled={disabled || lockedValue !== undefined}
+            />
+          </Fragment>
+        );
+      })}
     </Fragment>
   );
 }

@@ -1,20 +1,23 @@
 import {type RefObject, useCallback, useEffect, useMemo, useState} from 'react';
+import {IconAdd} from '@sentry/icons/add';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
-import {BuilderStateMetricsQueryParamsProvider} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/builderStateMetricsQueryParamsProvider';
-import {MetricToolbar} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/metricToolbar';
-import {dispatchYAxisUpdate} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/utils';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {supportsWidgetTransformations} from 'sentry/views/dashboards/utils/transformations';
+import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/constants';
+import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/useWidgetBuilderContext';
 import type {EquationModeSnapshot} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
-import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
-import {getTraceMetricAggregateSource} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+import {getTraceMetricAggregates} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+import {
+  AddTransformationButton,
+  VisualizeTransformationRows,
+} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeTransformations';
 import {MAX_METRIC_ALLOWED_LABEL_VALUE} from 'sentry/views/explore/metrics/constants';
 import {
   extractReferenceLabels,
@@ -36,6 +39,11 @@ import {
   isVisualizeEquation,
   isVisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {BuilderStateMetricsQueryParamsProvider} from './builderStateMetricsQueryParamsProvider';
+import {MetricToolbar} from './metricToolbar';
+import {dispatchYAxisUpdate} from './utils';
 
 function computeEquationReferencedLabels(
   equationQuery: MetricQuery | undefined,
@@ -70,13 +78,28 @@ export function MetricQueryRows({
   // restore this state after a mode or dataset toggle.
   useEffect(() => {
     if (equationSnapshot) {
-      equationSnapshot.current = {queries: metricQueries, selectedLabel};
+      // oxlint-disable-next-line react/immutability
+      equationSnapshot.current = {
+        queries: metricQueries,
+        selectedLabel,
+        transformations: state.transformations,
+      };
     }
-  }, [equationSnapshot, metricQueries, selectedLabel]);
+  }, [equationSnapshot, metricQueries, selectedLabel, state.transformations]);
+  const organization = useOrganization();
+  const canTransform =
+    organization.features.includes('explore-interpolation-and-smoothing') &&
+    supportsWidgetTransformations(state.dataset, state.displayType);
+  const plottedTransformations = state.transformations?.[0]?.[0] ?? [];
+  const setPlottedTransformations = (transformations: readonly string[]) =>
+    dispatch({
+      type: BuilderStateAction.SET_AGGREGATE_TRANSFORMATIONS,
+      payload: {index: 0, transformations},
+    });
   const referenceMap = useMetricReferences(metricQueries);
-  const addAggregate = useAddMetricQuery({type: 'aggregate'});
+  const addAggregate = useAddMetricQuery({});
 
-  const aggregateSource = getTraceMetricAggregateSource(
+  const aggregateSource = getTraceMetricAggregates(
     state.displayType,
     state.yAxis,
     state.fields
@@ -255,23 +278,38 @@ export function MetricQueryRows({
           </BuilderStateMetricsQueryParamsProvider>
         );
       })}
-      {equationQuery && (
-        <BuilderStateMetricsQueryParamsProvider
-          metricQuery={equationQuery}
-          isSelected={isEquationSelected}
-        >
-          <MetricToolbar
-            label={equationQuery.label ?? ''}
-            referenceMap={referenceMap}
-            isSelected={isEquationSelected}
-            onRowSelection={onRowSelection}
-            onReferenceLabelsChange={setEquationReferencedLabels}
-            deleteDisabledReason={t('An equation is required')}
-            disabled={hasUnresolvedMetrics}
-          />
-        </BuilderStateMetricsQueryParamsProvider>
+      {(equationQuery || (canTransform && plottedTransformations.length > 0)) && (
+        <Stack gap="md">
+          {equationQuery && (
+            <BuilderStateMetricsQueryParamsProvider
+              metricQuery={equationQuery}
+              isSelected={isEquationSelected}
+            >
+              <MetricToolbar
+                label={equationQuery.label ?? ''}
+                referenceMap={referenceMap}
+                isSelected={isEquationSelected}
+                onRowSelection={onRowSelection}
+                onReferenceLabelsChange={setEquationReferencedLabels}
+                deleteDisabledReason={t('An equation is required')}
+                disabled={hasUnresolvedMetrics}
+              />
+            </BuilderStateMetricsQueryParamsProvider>
+          )}
+          {canTransform && plottedTransformations.length > 0 && (
+            <VisualizeTransformationRows
+              traceItemDataset={TraceItemDataset.TRACEMETRICS}
+              analyticsSource="dashboards"
+              transformations={plottedTransformations}
+              layout="inline"
+              size="sm"
+              gap="md"
+              onChange={setPlottedTransformations}
+            />
+          )}
+        </Stack>
       )}
-      <Flex gap="md" align="center">
+      <Flex gap="md" align="baseline">
         <Button
           icon={<IconAdd />}
           onClick={addAggregate}
@@ -292,6 +330,15 @@ export function MetricQueryRows({
         >
           {t('Add Equation')}
         </Button>
+        {canTransform && (
+          <AddTransformationButton
+            variant="link"
+            traceItemDataset={TraceItemDataset.TRACEMETRICS}
+            analyticsSource="dashboards"
+            transformations={plottedTransformations}
+            onChange={setPlottedTransformations}
+          />
+        )}
       </Flex>
     </Stack>
   );

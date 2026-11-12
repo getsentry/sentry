@@ -6,6 +6,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.apidocs.constants import (
+    RESPONSE_CONFLICT,
     RESPONSE_FORBIDDEN,
     RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
@@ -15,8 +16,10 @@ from sentry.apidocs.parameters import SentryAppParams
 from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppInstallationExternalIssueBaseEndpoint as ExternalIssueBaseEndpoint,
 )
+from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
 from sentry.sentry_apps.services.cell import sentry_app_cell_service
 from sentry.sentry_apps.utils.errors import SentryAppError
+from sentry.users.services.user.serial import serialize_generic_user
 
 _EXTERNAL_ISSUE_ID_PARAM = OpenApiParameter(
     name="external_issue_id",
@@ -44,29 +47,36 @@ class SentryAppInstallationExternalIssueDetailsEndpoint(ExternalIssueBaseEndpoin
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
+            409: RESPONSE_CONFLICT,
         },
     )
-    def delete(self, request: Request, installation, external_issue_id) -> Response:
+    def delete(
+        self,
+        request: Request,
+        installation: RpcSentryAppInstallation,
+        external_issue_id: str,
+    ) -> Response:
         """
         Remove the link between a Sentry issue and an external resource created through a
         custom integration (Sentry App) installation.
         """
         try:
-            external_issue_id = int(external_issue_id)
+            issue_id = int(external_issue_id)
         except (ValueError, TypeError):
             raise SentryAppError(
                 message="Invalid external_issue_id format. Expected numeric value.",
                 status_code=400,
             )
 
-        if not request.user.is_authenticated:
+        rpc_user = serialize_generic_user(request.user)
+        if rpc_user is None:
             return Response({"detail": "Authentication credentials were not provided."}, status=401)
 
-        # Do not pass `user` until cells accept the new RPC arg everywhere (deploy phase 2).
         result = sentry_app_cell_service.delete_external_issue(
             organization_id=installation.organization_id,
             installation=installation,
-            external_issue_id=external_issue_id,
+            external_issue_id=issue_id,
+            user=rpc_user,
         )
 
         if result.error:

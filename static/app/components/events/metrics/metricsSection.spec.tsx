@@ -11,7 +11,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {MetricsSection} from 'sentry/components/events/metrics/metricsSection';
+import {MetricsSection} from './metricsSection';
 
 jest.mock('sentry/components/lazyRender', () => ({
   LazyRender: ({children}: {children: React.ReactNode}) => children,
@@ -89,6 +89,7 @@ describe('MetricsSection', () => {
           },
         ],
         meta: {
+          routingHint: 'issue-metric-hint',
           fields: {
             [TraceMetricKnownFieldKey.METRIC_NAME]: 'string',
             [TraceMetricKnownFieldKey.METRIC_TYPE]: 'string',
@@ -134,12 +135,34 @@ describe('MetricsSection', () => {
     jest.restoreAllMocks();
   });
 
+  it('keeps the issue section hint with abbreviated metric rows', async () => {
+    const details = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/trace-items/${metricId}/`,
+      body: {
+        itemId: metricId,
+        meta: {},
+        timestamp: '2025-01-01T12:00:00.000Z',
+        attributes: [
+          {name: 'custom.attribute', type: 'str', value: 'issue sample detail'},
+        ],
+      },
+    });
+    render(<MetricsSection event={event} />, {
+      organization,
+    });
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Toggle trace details'})
+    );
+    expect(await screen.findByText('issue sample detail')).toBeInTheDocument();
+    expect(details.mock.calls[0]![1].query.routing_hint).toBe('issue-metric-hint');
+  });
+
   it('renders empty when no trace id', () => {
     const eventWithoutTrace = EventFixture({
       contexts: {},
     });
 
-    render(<MetricsSection event={eventWithoutTrace} project={project} group={group} />, {
+    render(<MetricsSection event={eventWithoutTrace} />, {
       organization,
     });
 
@@ -151,7 +174,7 @@ describe('MetricsSection', () => {
       features: [],
     });
 
-    render(<MetricsSection event={event} project={project} group={group} />, {
+    render(<MetricsSection event={event} />, {
       organization: orgWithoutFeature,
     });
 
@@ -167,7 +190,7 @@ describe('MetricsSection', () => {
       },
     });
 
-    render(<MetricsSection event={event} project={project} group={group} />, {
+    render(<MetricsSection event={event} />, {
       organization,
     });
 
@@ -180,7 +203,7 @@ describe('MetricsSection', () => {
   });
 
   it('renders metrics section with data', async () => {
-    render(<MetricsSection event={event} project={project} group={group} />, {
+    render(<MetricsSection event={event} />, {
       organization,
       initialRouterConfig: {
         location: {
@@ -228,7 +251,7 @@ describe('MetricsSection', () => {
       },
     });
 
-    render(<MetricsSection event={event} project={project} group={group} />, {
+    render(<MetricsSection event={event} />, {
       organization,
     });
 
@@ -268,7 +291,7 @@ describe('MetricsSection', () => {
       },
     });
 
-    render(<MetricsSection event={event} project={project} group={group} />, {
+    render(<MetricsSection event={event} />, {
       organization,
       initialRouterConfig: {
         location: {
@@ -329,7 +352,7 @@ describe('MetricsSection', () => {
       },
     });
 
-    render(<MetricsSection event={event} project={project} group={group} />, {
+    render(<MetricsSection event={event} />, {
       organization,
     });
 

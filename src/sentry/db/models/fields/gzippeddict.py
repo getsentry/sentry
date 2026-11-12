@@ -1,20 +1,16 @@
 from __future__ import annotations
 
-import logging
-import pickle
+from typing import cast
 
 from django.db.models import Model, TextField
 
 from sentry.db.models.utils import Creator
 from sentry.utils import json
-from sentry.utils.strings import decompress
 
 __all__ = ("GzippedDictField",)
 
-logger = logging.getLogger("sentry")
 
-
-class GzippedDictField(TextField):
+class GzippedDictField(TextField[dict[str, object] | None, dict[str, object] | None]):
     """
     Slightly different from a JSONField in the sense that the default
     value is a dictionary.
@@ -28,26 +24,18 @@ class GzippedDictField(TextField):
         super().contribute_to_class(cls, name, private_only=private_only)
         setattr(cls, name, Creator(self))
 
-    def to_python(self, value):
+    def to_python(self, value: object) -> object:
         try:
             if not value:
                 return {}
-            return json.loads(value)
+            return json.loads(cast(str | bytes, value))
         except (ValueError, TypeError):
-            if isinstance(value, str) and value:
-                try:
-                    value = pickle.loads(decompress(value))
-                except Exception as e:
-                    logger.exception(str(e))
-                    return {}
-            elif not value:
-                return {}
             return value
 
-    def from_db_value(self, value, expression, connection):
+    def from_db_value(self, value: object, expression: object, connection: object) -> object:
         return self.to_python(value)
 
-    def get_prep_value(self, value):
+    def get_prep_value(self, value: object) -> str | None:
         if not value and self.null:
             # save ourselves some storage
             return None
@@ -57,5 +45,5 @@ class GzippedDictField(TextField):
             return None
         return json.dumps(value)
 
-    def value_to_string(self, obj):
-        return self.get_prep_value(self.value_from_object(obj))
+    def value_to_string(self, obj: Model) -> str:
+        return cast(str, self.get_prep_value(self.value_from_object(obj)))

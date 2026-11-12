@@ -2,7 +2,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {validateEventParamsOptions} from 'sentry/views/explore/utils/validateEventParamsOptions';
+
+import {validateEventParamsOptions} from './validateEventParamsOptions';
 
 const organization = OrganizationFixture({slug: 'org-slug'});
 

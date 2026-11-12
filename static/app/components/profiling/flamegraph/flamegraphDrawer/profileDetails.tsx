@@ -30,7 +30,7 @@ import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathname
 import {SpanFields} from 'sentry/views/insights/types';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
-import {ProfilingDetailsFrameTabs, ProfilingDetailsListItem} from './flamegraphDrawer';
+import {ProfilingDetailsFrameTabs, ProfilingDetailsListItem} from './styles';
 
 function renderValue(
   key: string,

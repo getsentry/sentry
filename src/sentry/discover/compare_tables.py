@@ -3,6 +3,7 @@ from enum import Enum
 from typing import TypedDict
 
 import sentry_sdk
+from sentry_sdk import traces
 
 from sentry.constants import ObjectStatus
 from sentry.discover.arithmetic import is_equation
@@ -116,7 +117,7 @@ def compare_table_results(
     )
 
 
-@sentry_sdk.tracing.trace
+@traces.trace
 def compare_tables_for_dashboard_widget_queries(
     widget_query: DashboardWidgetQuery,
 ) -> CompareTableResultDict:

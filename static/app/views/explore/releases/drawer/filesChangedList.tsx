@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Container} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -12,9 +13,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {t, tn} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {EmptyState} from 'sentry/views/explore/releases/detail/commitsAndFiles/emptyState';
 import {FileChange} from 'sentry/views/explore/releases/detail/commitsAndFiles/fileChange';
@@ -23,8 +22,9 @@ import {
   getFilesByRepository,
   getReposToRender,
 } from 'sentry/views/explore/releases/detail/utils';
-import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
 import {releaseCommitFilesApiOptions} from 'sentry/views/explore/releases/utils/releaseCommitFilesApiOptions';
+
+import {ReleasesDrawerFields} from './utils';
 
 interface FilesChangedProps {
   release: string;
@@ -32,17 +32,15 @@ interface FilesChangedProps {
 }
 
 export function FilesChangedList({releaseRepos, release}: FilesChangedProps) {
-  const navigate = useNavigate();
   const organization = useOrganization();
-  const {
-    [ReleasesDrawerFields.ACTIVE_REPO]: rdActiveRepo,
-    [ReleasesDrawerFields.FILES_CURSOR]: rdFilesCursor,
-  } = useLocationQuery({
-    fields: {
-      [ReleasesDrawerFields.FILES_CURSOR]: decodeScalar,
-      [ReleasesDrawerFields.ACTIVE_REPO]: decodeScalar,
-    },
-  });
+  const [rdActiveRepo] = useQueryState(
+    ReleasesDrawerFields.ACTIVE_REPO,
+    parseAsString.withDefault('')
+  );
+  const [rdFilesCursor, setRdFilesCursor] = useQueryState(
+    ReleasesDrawerFields.FILES_CURSOR,
+    parseAsString.withDefault('')
+  );
   const activeReleaseRepo =
     releaseRepos.find(repo => repo.name === rdActiveRepo) ?? releaseRepos[0];
 
@@ -107,13 +105,8 @@ export function FilesChangedList({releaseRepos, release}: FilesChangedProps) {
               );
             })}
             <Pagination
-              pageLinks={fileListPageLinks}
-              onCursor={(cursor, path, searchQuery) => {
-                navigate({
-                  pathname: path,
-                  query: {...searchQuery, [ReleasesDrawerFields.FILES_CURSOR]: cursor},
-                });
-              }}
+              {...getPaginationProps(fileListPageLinks)}
+              onCursor={cursor => setRdFilesCursor(cursor ?? '')}
             />
           </Fragment>
         ) : (

@@ -47,7 +47,7 @@ export type PreprodBuildEventParameters = {
   };
   'preprod.builds.distribution.download_csv': BasePreprodBuildEvent;
   'preprod.builds.install_modal.opened': BasePreprodBuildEvent & {
-    source: 'build_details_sidebar' | 'builds_table';
+    source: 'build_details_header' | 'build_details_sidebar' | 'builds_table';
   };
   'preprod.builds.list.metadata': {
     build_count_on_page: number;
@@ -78,6 +78,14 @@ export type PreprodBuildEventParameters = {
   'preprod.releases.snapshots.tab-clicked': {
     organization: Organization;
   };
+  'preprod.settings.pr_comment_rule_created': PreprodSettingsEvent;
+  'preprod.settings.pr_comment_rule_deleted': PreprodSettingsEvent;
+  'preprod.settings.pr_comment_rule_updated': PreprodSettingsEvent & {
+    artifact_type: ArtifactType;
+    measurement: string;
+    metric: string;
+    value: number;
+  };
   'preprod.settings.status_check_rule_created': PreprodSettingsEvent;
   'preprod.settings.status_check_rule_deleted': PreprodSettingsEvent;
   'preprod.settings.status_check_rule_updated': PreprodSettingsEvent & {
@@ -88,11 +96,17 @@ export type PreprodBuildEventParameters = {
   };
   'preprod.snapshots.details.approve_clicked': {
     build_id: string;
+    forced: boolean;
     organization: Organization;
   };
   'preprod.snapshots.details.diff_mode_changed': {
     diff_mode: string;
     organization: Organization;
+  };
+  'preprod.snapshots.details.group_viewed_toggled': {
+    image_count: number;
+    organization: Organization;
+    viewed: boolean;
   };
   'preprod.snapshots.details.image_link_copied': {
     diff_status: string | null;
@@ -100,6 +114,14 @@ export type PreprodBuildEventParameters = {
   };
   'preprod.snapshots.details.image_metadata_copied': {
     diff_status: string | null;
+    organization: Organization;
+  };
+  'preprod.snapshots.details.image_viewed_toggled': {
+    diff_status: string | null;
+    organization: Organization;
+    viewed: boolean;
+  };
+  'preprod.snapshots.details.keyboard_shortcuts_opened': {
     organization: Organization;
   };
   'preprod.snapshots.details.view_mode_changed': {
@@ -158,9 +180,15 @@ export const preprodBuildEventMap: Record<PreprodBuildAnalyticsKey, string | nul
   'preprod.snapshots.list.row_clicked': 'Preprod Snapshots: List Row Clicked',
   'preprod.snapshots.details.viewed': 'Preprod Snapshots: Details Viewed',
   'preprod.snapshots.details.approve_clicked': 'Preprod Snapshots: Approve Clicked',
+  'preprod.snapshots.details.group_viewed_toggled':
+    'Preprod Snapshots: Group Viewed Toggled',
   'preprod.snapshots.details.image_link_copied': 'Preprod Snapshots: Image Link Copied',
   'preprod.snapshots.details.image_metadata_copied':
     'Preprod Snapshots: Image Metadata Copied',
+  'preprod.snapshots.details.image_viewed_toggled':
+    'Preprod Snapshots: Image Viewed Toggled',
+  'preprod.snapshots.details.keyboard_shortcuts_opened':
+    'Preprod Snapshots: Keyboard Shortcuts Opened',
   'preprod.snapshots.details.view_mode_changed': 'Preprod Snapshots: View Mode Changed',
   'preprod.snapshots.details.diff_mode_changed': 'Preprod Snapshots: Diff Mode Changed',
   'preprod.settings.status_check_rule_created':
@@ -169,4 +197,7 @@ export const preprodBuildEventMap: Record<PreprodBuildAnalyticsKey, string | nul
     'Preprod Settings: Status Check Rule Deleted',
   'preprod.settings.status_check_rule_updated':
     'Preprod Settings: Status Check Rule Updated',
+  'preprod.settings.pr_comment_rule_created': 'Preprod Settings: PR Comment Rule Created',
+  'preprod.settings.pr_comment_rule_deleted': 'Preprod Settings: PR Comment Rule Deleted',
+  'preprod.settings.pr_comment_rule_updated': 'Preprod Settings: PR Comment Rule Updated',
 };

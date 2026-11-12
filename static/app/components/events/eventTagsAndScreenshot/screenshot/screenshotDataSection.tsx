@@ -8,10 +8,6 @@ import {
   useFetchEventAttachments,
 } from 'sentry/actionCreators/events';
 import {Screenshot} from 'sentry/components/events/eventTagsAndScreenshot/screenshot';
-import {
-  modalCss,
-  ScreenshotModal,
-} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
 import {t, tn} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {EventAttachment} from 'sentry/types/group';
@@ -24,16 +20,16 @@ import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {EventAttachmentFilter} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsFilter';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 
+import {modalCss, ScreenshotModal} from './modal';
+
 interface ScreenshotDataSectionProps {
   event: Event;
   projectSlug: Project['slug'];
-  isShare?: boolean;
 }
 
 export function ScreenshotDataSection({
   event,
   projectSlug,
-  isShare,
   ...props
 }: ScreenshotDataSectionProps) {
   const {openModal} = useModal();
@@ -46,7 +42,7 @@ export function ScreenshotDataSection({
       projectSlug,
       eventId: event.id,
     },
-    {enabled: !isShare}
+    {enabled: true}
   );
   const [screenshotInFocus, setScreenshotInFocus] = useState(0);
   const {mutate: deleteAttachment} = useDeleteEventAttachmentOptimistic();
@@ -54,7 +50,7 @@ export function ScreenshotDataSection({
     attachment.name.includes('screenshot')
   );
 
-  const showScreenshot = !isShare && !!screenshots?.length;
+  const showScreenshot = !!screenshots?.length;
   if (!showScreenshot) {
     return null;
   }

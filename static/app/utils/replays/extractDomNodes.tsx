@@ -1,8 +1,9 @@
-import type {Mirror} from '@sentry-internal/rrweb-snapshot';
+import type {Mirror} from '@sentry/rrweb-snapshot';
 
-import type {ReplayFrame} from 'sentry/utils/replays/types';
-import {getNodeIds} from 'sentry/utils/replays/types';
 import {constructSelector} from 'sentry/views/explore/replays/selectors/constructSelector';
+
+import type {ReplayFrame} from './types';
+import {getNodeIds} from './types';
 
 export type Extraction = {
   frame: ReplayFrame;
@@ -94,11 +95,13 @@ function removeChildLevel(max: number, collection: HTMLCollection, current = 0) 
       child.textContent = '/* Inline CSS */';
     }
     if (child.nodeName === 'svg') {
-      child.innerHTML = '<!-- SVG -->';
+      child.replaceChildren(document.createComment(' SVG '));
     }
     if (max <= current) {
       if (child.childElementCount > 0) {
-        child.innerHTML = `<!-- ${child.childElementCount} descendents -->`;
+        child.replaceChildren(
+          document.createComment(` ${child.childElementCount} descendents `)
+        );
       }
     } else {
       removeChildLevel(max, child.children, current + 1);

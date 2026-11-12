@@ -2,8 +2,8 @@ import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {CrossEventType} from 'sentry/views/explore/queryParams/crossEvent';
-import type {TraceTreeSource} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
-import type {TraceDrawerActionKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+import type {TraceTreeSource} from 'sentry/views/performance/traceDetails/traceAnalytics';
+import type {TraceDrawerActionKind} from 'sentry/views/performance/traceDetails/traceDrawer/details/utils';
 
 export type TracingEventParameters = {
   'compare_queries.add_query': {
@@ -21,6 +21,11 @@ export type TracingEventParameters = {
   };
   'trace.explorer.cross_event_removed': {
     type: CrossEventType;
+  };
+  'trace.explorer.extrapolation_toggled': {
+    enabled: boolean;
+    organization_id: string;
+    source: 'settings_dropdown' | 'enabled_alert';
   };
   'trace.explorer.metadata': {
     columns: readonly string[];
@@ -116,6 +121,9 @@ export type TracingEventParameters = {
     value: string | number;
   };
   'trace.trace_layout.ai_tab_clicked': Record<string, unknown>;
+  'trace.trace_layout.attribute_pin_changed': {
+    action: 'added' | 'removed';
+  };
   'trace.trace_layout.change': {
     layout: string;
   };
@@ -187,7 +195,7 @@ export type TracingEventParameters = {
   'trace_explorer.save_query_modal': {
     action: 'open' | 'submit';
     save_type: 'save_new_query' | 'rename_query';
-    ui_source: 'toolbar' | 'table';
+    ui_source: 'toolbar' | 'table' | 'explorer';
   };
   'trace_explorer.search_failure': {
     error: string;
@@ -208,6 +216,9 @@ export type TracingEventParameters = {
     save_type: 'star_query' | 'unstar_query';
     ui_source: 'table' | 'explorer';
   };
+  'trace_explorer.toggle_span_details': {
+    expanded: boolean;
+  };
   'trace_explorer.toggle_trace_details': {
     expanded: boolean;
     source: 'trace explorer' | 'new explore';
@@ -225,6 +236,7 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.explorer.cross_event_added': 'Trace Explorer: Cross Event Added',
   'trace.explorer.cross_event_changed': 'Trace Explorer: Cross Event Changed',
   'trace.explorer.cross_event_removed': 'Trace Explorer: Cross Event Removed',
+  'trace.explorer.extrapolation_toggled': 'Trace Explorer: Extrapolation Toggled',
   'trace.explorer.table_pagination': 'Trace Explorer Table Pagination',
   'trace.explorer.table_tab_changed': 'Trace Explorer: Table Tab Changed',
   'trace.trace_layout.change': 'Changed Trace Layout',
@@ -234,6 +246,7 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.trace_drawer_details.gen_ai_span_details_viewed':
     'Viewed Gen AI Span Details in Trace',
   'trace.trace_layout.ai_tab_clicked': 'Clicked AI Tab in Trace',
+  'trace.trace_layout.attribute_pin_changed': 'Trace Waterfall: Attribute Pin Changed',
   'trace.tracing_onboarding': 'Tracing Onboarding UI',
   'trace.tracing_onboarding_platform_docs_viewed':
     'Viewed Platform Docs for Onboarding UI',
@@ -275,6 +288,7 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace_explorer.open_trace_span': 'Trace Explorer: Open Trace Span in Trace Viewer',
   'trace_explorer.remove_span_condition': 'Trace Explorer: Remove Span',
   'trace_explorer.toggle_trace_details': 'Trace Explorer: Toggle Trace Details in Table',
+  'trace_explorer.toggle_span_details': 'Trace Explorer: Toggle Span Details in Table',
   'trace_explorer.search_failure': 'Trace Explorer: Search Failure',
   'trace_explorer.search_request': 'Trace Explorer: Search Request',
   'trace_explorer.search_success': 'Trace Explorer: Search Success',

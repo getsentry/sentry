@@ -1,9 +1,11 @@
 import uuid
 from datetime import timedelta
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from django.db.models import F
+from django.test import override_settings
+from urllib3.response import HTTPResponse
 
 from sentry.issues.grouptype import AIDetectedDBGroupType
 from sentry.models.project import Project
@@ -13,6 +15,7 @@ from sentry.tasks.llm_issue_detection import (
     detect_llm_issues_for_org,
 )
 from sentry.tasks.llm_issue_detection.detection import (
+    SEER_CHECK_BUDGET_ENDPOINT_PATH,
     START_TIME_DELTA_MINUTES,
     TRANSACTION_BATCH_SIZE,
     TraceMetadataWithSpanCount,
@@ -23,11 +26,11 @@ from sentry.tasks.llm_issue_detection.trace_data import (
 )
 from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import with_feature
+from sentry.viewer_context import ActorType, ViewerContext, decode_viewer_context
 
 
 class LLMIssueDetectionTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         patcher = patch("sentry.tasks.llm_issue_detection.detection.Project.objects.filter")
         self.mock_project_filter = patcher.start()
@@ -41,15 +44,55 @@ class LLMIssueDetectionTest(TestCase):
         response.data = b'{"has_budget": true}'
         return response
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(
+        SENTRY_SELF_HOSTED=False,
+        SEER_API_SHARED_SECRET="viewer-context-test-secret",
+    )
+    @patch(
+        "sentry.tasks.llm_issue_detection.trace_data.get_project_top_transaction_traces_for_llm_detection"
+    )
+    @patch(
+        "sentry.tasks.llm_issue_detection.detection.seer_issue_detection_connection_pool.urlopen"
+    )
+    def test_seer_requests_use_system_viewer_context(
+        self,
+        mock_urlopen: Mock,
+        mock_get_transactions: Mock,
+    ) -> None:
+        mock_get_transactions.return_value = [
+            TraceMetadataWithSpanCount(trace_id="trace-id", span_count=50)
+        ]
+        mock_urlopen.side_effect = [
+            HTTPResponse(b'{"has_budget":true}', status=200),
+            HTTPResponse(b"", status=202),
+        ]
+
+        detect_llm_issues_for_org(self.organization.id)
+
+        assert mock_urlopen.call_count == 2
+        for request in mock_urlopen.call_args_list:
+            viewer_context = decode_viewer_context(
+                request.kwargs["headers"]["X-Viewer-Context"],
+                key="viewer-context-test-secret",
+            )
+            assert isinstance(viewer_context, ViewerContext)
+            assert viewer_context.organization_id == self.organization.id
+            assert viewer_context.project_id == self.project.id
+            assert viewer_context.actor.actor_id is None
+            assert viewer_context.actor.type == ActorType.SYSTEM
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch(
         "sentry.tasks.llm_issue_detection.trace_data.get_project_top_transaction_traces_for_llm_detection"
     )
     def test_detect_llm_issues_no_transactions(
-        self, mock_get_transactions, mock_seer_request, mock_budget_request
-    ):
+        self,
+        mock_get_transactions: MagicMock,
+        mock_seer_request: MagicMock,
+        mock_budget_request: MagicMock,
+    ) -> None:
         mock_budget_request.return_value = self._budget_ok_response()
 
         mock_get_transactions.return_value = []
@@ -64,13 +107,16 @@ class LLMIssueDetectionTest(TestCase):
         )
         mock_seer_request.assert_not_called()
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
     @patch("sentry.tasks.llm_issue_detection.trace_data.Spans.run_table_query")
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     def test_detect_llm_issues_no_traces(
-        self, mock_seer_request, mock_spans_query, mock_budget_request
-    ):
+        self,
+        mock_seer_request: MagicMock,
+        mock_spans_query: MagicMock,
+        mock_budget_request: MagicMock,
+    ) -> None:
         mock_budget_request.return_value = self._budget_ok_response()
 
         mock_spans_query.side_effect = [
@@ -88,7 +134,9 @@ class LLMIssueDetectionTest(TestCase):
         mock_seer_request.assert_not_called()
 
     @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")
-    def test_create_issue_occurrence_from_detection(self, mock_produce_occurrence):
+    def test_create_issue_occurrence_from_detection(
+        self, mock_produce_occurrence: MagicMock
+    ) -> None:
         detected_issue = DetectedIssue(
             title="Inefficient Database Queries",
             explanation="Multiple sequential queries could be batched",
@@ -149,8 +197,8 @@ class LLMIssueDetectionTest(TestCase):
 
     @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")
     def test_create_issue_occurrence_fingerprint_uses_transaction_name(
-        self, mock_produce_occurrence
-    ):
+        self, mock_produce_occurrence: MagicMock
+    ) -> None:
         detected_issue = DetectedIssue(
             title="Inefficient Database Queries",
             explanation="Multiple queries in loop",
@@ -171,7 +219,9 @@ class LLMIssueDetectionTest(TestCase):
         assert occurrence.type == AIDetectedDBGroupType
 
     @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")
-    def test_general_type_skips_occurrence_creation(self, mock_produce_occurrence):
+    def test_general_type_skips_occurrence_creation(
+        self, mock_produce_occurrence: MagicMock
+    ) -> None:
         detected_issue = DetectedIssue(
             title="Other",
             explanation="Something unusual happening here",
@@ -189,16 +239,16 @@ class LLMIssueDetectionTest(TestCase):
         )
         assert not mock_produce_occurrence.called
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch("sentry.tasks.llm_issue_detection.trace_data.Spans.run_table_query")
     def test_detect_llm_issues_full_flow(
         self,
-        mock_spans_query,
-        mock_seer_request,
-        mock_budget_request,
-    ):
+        mock_spans_query: MagicMock,
+        mock_seer_request: MagicMock,
+        mock_budget_request: MagicMock,
+    ) -> None:
         mock_budget_request.return_value = self._budget_ok_response()
 
         mock_spans_query.side_effect = [
@@ -236,18 +286,18 @@ class LLMIssueDetectionTest(TestCase):
         assert seer_request.organization_id == self.organization.id
         assert len(seer_request.traces) == 1
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch("sentry.tasks.llm_issue_detection.trace_data.Spans.run_table_query")
     @patch("sentry.tasks.llm_issue_detection.detection.logger.error")
     def test_detect_llm_issues_seer_error_logged(
         self,
-        mock_logger_error,
-        mock_spans_query,
-        mock_seer_request,
-        mock_budget_request,
-    ):
+        mock_logger_error: MagicMock,
+        mock_spans_query: MagicMock,
+        mock_seer_request: MagicMock,
+        mock_budget_request: MagicMock,
+    ) -> None:
         mock_budget_request.return_value = self._budget_ok_response()
 
         mock_spans_query.side_effect = [
@@ -271,13 +321,15 @@ class LLMIssueDetectionTest(TestCase):
         assert mock_seer_request.call_count == 1
         assert mock_logger_error.call_count == 1
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch(
         "sentry.tasks.llm_issue_detection.trace_data.get_project_top_transaction_traces_for_llm_detection"
     )
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
-    def test_check_budget_fail_open(self, mock_budget_request, mock_get_transactions, _):
+    def test_check_budget_fail_open(
+        self, mock_budget_request: MagicMock, mock_get_transactions: MagicMock, _: object
+    ) -> None:
         mock_budget_response = Mock()
         mock_budget_response.status = 500
         mock_budget_response.data = b"Internal Server Error"
@@ -289,15 +341,18 @@ class LLMIssueDetectionTest(TestCase):
 
         mock_get_transactions.assert_called_once()
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch(
         "sentry.tasks.llm_issue_detection.trace_data.get_project_top_transaction_traces_for_llm_detection"
     )
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
     def test_check_budget_over_budget(
-        self, mock_budget_request, mock_get_transactions, mock_seer_request
-    ):
+        self,
+        mock_budget_request: MagicMock,
+        mock_get_transactions: MagicMock,
+        mock_seer_request: MagicMock,
+    ) -> None:
         mock_budget_response = Mock()
         mock_budget_response.status = 200
         mock_budget_response.data = b'{"has_budget": false}'
@@ -308,15 +363,18 @@ class LLMIssueDetectionTest(TestCase):
         mock_get_transactions.assert_not_called()
         mock_seer_request.assert_not_called()
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch(
         "sentry.tasks.llm_issue_detection.trace_data.get_project_top_transaction_traces_for_llm_detection"
     )
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
     def test_plan_tier_forwarded_to_seer(
-        self, mock_budget_request, mock_get_transactions, mock_seer_request
-    ):
+        self,
+        mock_budget_request: MagicMock,
+        mock_get_transactions: MagicMock,
+        mock_seer_request: MagicMock,
+    ) -> None:
         mock_budget_request.return_value = self._budget_ok_response()
         mock_get_transactions.return_value = []
 
@@ -324,16 +382,23 @@ class LLMIssueDetectionTest(TestCase):
 
         budget_url = mock_budget_request.call_args[0][1]
         assert "plan_tier=team" in budget_url
+        assert (
+            mock_budget_request.call_args.kwargs["metrics_endpoint"]
+            == f"{SEER_CHECK_BUDGET_ENDPOINT_PATH}/:organization_id"
+        )
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch(
         "sentry.tasks.llm_issue_detection.trace_data.get_project_top_transaction_traces_for_llm_detection"
     )
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
     def test_plan_tier_defaults_to_business(
-        self, mock_budget_request, mock_get_transactions, mock_seer_request
-    ):
+        self,
+        mock_budget_request: MagicMock,
+        mock_get_transactions: MagicMock,
+        mock_seer_request: MagicMock,
+    ) -> None:
         mock_budget_request.return_value = self._budget_ok_response()
         mock_get_transactions.return_value = []
 
@@ -342,15 +407,18 @@ class LLMIssueDetectionTest(TestCase):
         budget_url = mock_budget_request.call_args[0][1]
         assert "plan_tier=business" in budget_url
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch(
         "sentry.tasks.llm_issue_detection.trace_data.get_project_top_transaction_traces_for_llm_detection"
     )
     def test_traces_sent_per_plan_tier(
-        self, mock_get_transactions, mock_seer_request, mock_budget_request
-    ):
+        self,
+        mock_get_transactions: MagicMock,
+        mock_seer_request: MagicMock,
+        mock_budget_request: MagicMock,
+    ) -> None:
         mock_budget_request.return_value = self._budget_ok_response()
         mock_get_transactions.return_value = [
             TraceMetadataWithSpanCount(trace_id=f"t{i}", span_count=50) for i in range(4)
@@ -363,15 +431,18 @@ class LLMIssueDetectionTest(TestCase):
             assert len(seer_request.traces) == expected
             assert seer_request.plan_tier == plan_tier
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch(
         "sentry.tasks.llm_issue_detection.trace_data.get_project_top_transaction_traces_for_llm_detection"
     )
     def test_traces_per_invocation_option_override(
-        self, mock_get_transactions, mock_seer_request, mock_budget_request
-    ):
+        self,
+        mock_get_transactions: MagicMock,
+        mock_seer_request: MagicMock,
+        mock_budget_request: MagicMock,
+    ) -> None:
         mock_budget_request.return_value = self._budget_ok_response()
         mock_get_transactions.return_value = [
             TraceMetadataWithSpanCount(trace_id=f"t{i}", span_count=50) for i in range(4)
@@ -388,12 +459,14 @@ class LLMIssueDetectionTest(TestCase):
 
 
 class LLMIssueDetectionProjectFilterTest(TestCase):
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
     @patch(
         "sentry.tasks.llm_issue_detection.trace_data.get_project_top_transaction_traces_for_llm_detection"
     )
-    def test_skips_projects_without_transactions(self, mock_get_transactions, mock_budget_request):
+    def test_skips_projects_without_transactions(
+        self, mock_get_transactions: MagicMock, mock_budget_request: MagicMock
+    ) -> None:
         project_with_txns = self.create_project(organization=self.organization)
         project_with_txns.update(flags=F("flags").bitor(Project.flags.has_transactions))
 
@@ -438,7 +511,7 @@ class TestGetValidTraceIdsBySpanCount:
     )
     @patch("sentry.tasks.llm_issue_detection.trace_data.Spans.run_table_query")
     def test_filters_by_span_count(
-        self, mock_spans_query: Mock, query_result: dict, expected: dict[str, int]
+        self, mock_spans_query: Mock, query_result: dict[str, object], expected: dict[str, int]
     ) -> None:
         mock_spans_query.return_value = query_result
         mock_snuba_params = Mock()
@@ -459,7 +532,7 @@ class TestGetProjectTopTransactionTracesForLLMDetection(
         self.ten_mins_ago = before_now(minutes=10)
 
     @patch("sentry.tasks.llm_issue_detection.trace_data.get_valid_trace_ids_by_span_count")
-    def test_returns_sampled_traces(self, mock_span_count) -> None:
+    def test_returns_sampled_traces(self, mock_span_count: MagicMock) -> None:
         mock_span_count.side_effect = lambda trace_ids, *args: {tid: 50 for tid in trace_ids}
 
         trace_id_1 = uuid.uuid4().hex
@@ -499,7 +572,7 @@ class TestGetProjectTopTransactionTracesForLLMDetection(
         assert result_trace_ids == {trace_id_1, trace_id_2}
 
     @patch("sentry.tasks.llm_issue_detection.trace_data.get_valid_trace_ids_by_span_count")
-    def test_excludes_test_environment_traces(self, mock_span_count) -> None:
+    def test_excludes_test_environment_traces(self, mock_span_count: MagicMock) -> None:
         mock_span_count.side_effect = lambda trace_ids, *args: {tid: 50 for tid in trace_ids}
 
         prod_trace_id = uuid.uuid4().hex

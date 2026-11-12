@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import contextvars
 import logging
-from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple
+from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple, TypedDict
 
 from django.conf import settings
 from django.db import models, router, transaction
@@ -12,9 +13,15 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
+from sentry.inbox.types import SYSTEM_ACTOR, InboxActor
 from sentry.integrations.services.assignment_source import AssignmentSource
-from sentry.issues.action_log import publish_action_from_context
-from sentry.issues.action_log.types import AssignAction, UnassignAction
+from sentry.issues.derived.features import FIRST_ASSIGNMENT_ACTION_ID
+from sentry.issues.derived.framework import DerivedDataError
+from sentry.issues.derived.processing import PIPELINE
+from sentry.issues.derived.replay import FeatureHistoryLimitExceeded, replay_feature_from_log
+from sentry.issues.derived.reporting import report_derived_data_error
+from sentry.issues.derived.store import GroupDerivedDataStore
+from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupowner import GroupOwner
 from sentry.models.groupsubscription import GroupSubscription
@@ -23,6 +30,7 @@ from sentry.signals import issue_assigned, issue_unassigned
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor, ActorType
 from sentry.utils import metrics
+from sentry.utils.safe import safe_execute
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -36,6 +44,13 @@ logger = logging.getLogger(__name__)
 class NewAssignee(NamedTuple):
     id: int
     type: str
+
+
+class GroupAssignmentState(TypedDict):
+    """The outcome of an assignment attempt."""
+
+    new_assignment: bool
+    updated_assignment: bool
 
 
 class GroupAssigneeManager(BaseManager["GroupAssignee"]):
@@ -133,15 +148,43 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
         extra: dict[str, str] | None = None,
         force_autoassign: bool = False,
         assignment_source: AssignmentSource | None = None,
-    ) -> dict[str, bool]:
+    ) -> GroupAssignmentState:
+        from sentry.inbox.issue import record_issue_assignment
         from sentry.integrations.utils.sync import sync_group_assignee_outbound
-        from sentry.models.activity import Activity
+        from sentry.models.activity import Activity, ActivityIntegration
         from sentry.models.groupsubscription import GroupSubscription
         from sentry.users.models.user import User as UserModel
         from sentry.users.services.user import RpcUser
 
         if isinstance(assigned_to, (UserModel, RpcUser)) and assigned_to.is_active is False:
             return {"new_assignment": False, "updated_assignment": False}
+
+        is_first_assignment = False
+        if features.has(
+            "organizations:issue-summary-on-first-assignment", group.project.organization
+        ):
+            derived = GroupDerivedData.objects.get_or_none(group_id=group.id)
+            try:
+                if derived is None or derived.pipeline_hash != PIPELINE.pipeline_hash:
+                    is_first_assignment = (
+                        replay_feature_from_log(group.id, PIPELINE, FIRST_ASSIGNMENT_ACTION_ID)
+                        is None
+                    )
+                else:
+                    state = GroupDerivedDataStore.load(PIPELINE, derived)
+                    is_first_assignment = state[FIRST_ASSIGNMENT_ACTION_ID] is None
+            except FeatureHistoryLimitExceeded:
+                is_first_assignment = False
+            except DerivedDataError as error:
+                report_derived_data_error(
+                    error,
+                    derived=derived,
+                    group_id=group.id,
+                    operation="assign",
+                    pipeline_hash=PIPELINE.pipeline_hash,
+                )
+                # An optional summary must not prevent assignment or be sent twice.
+                is_first_assignment = False
 
         GroupSubscription.objects.subscribe_actor(
             group=group, actor=assigned_to, reason=GroupSubscriptionReason.assigned
@@ -170,9 +213,15 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
             affected = True
 
         if affected:
+            assignment_context = contextvars.copy_context()
             transaction.on_commit(
-                lambda: issue_assigned.send_robust(
-                    project=group.project, group=group, user=acting_user, sender=self.__class__
+                lambda: assignment_context.run(
+                    issue_assigned.send_robust,
+                    project=group.project,
+                    group=group,
+                    user=acting_user,
+                    is_first_assignment=is_first_assignment,
+                    sender=self.__class__,
                 ),
                 router.db_for_write(GroupAssignee),
             )
@@ -184,13 +233,25 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
                 user=acting_user,
                 data=data,
             )
+            integration = extra.get("integration") if extra is not None else None
+            try:
+                inbox_assignment_source = (
+                    ActivityIntegration(integration) if integration is not None else None
+                )
+            except ValueError:
+                logger.exception("groupassignee.inbox.invalid_integration")
+            else:
+                safe_execute(
+                    record_issue_assignment,
+                    group=group,
+                    assignee=assigned_to,
+                    assignment_source=inbox_assignment_source,
+                    actor=InboxActor.user(acting_user.id)
+                    if acting_user is not None
+                    else SYSTEM_ACTOR,
+                )
             record_group_history(group, GroupHistoryStatus.ASSIGNED, actor=acting_user)
 
-            publish_action_from_context(
-                AssignAction(),
-                group_id=group.id,
-                project=group.project,
-            )
             GroupOwner.invalidate_assignee_exists_cache(group.id)
 
             metrics.incr("group.assignee.change", instance="assigned", skip_internal=True)
@@ -233,12 +294,6 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
 
             record_group_history(group, GroupHistoryStatus.UNASSIGNED, actor=acting_user)
 
-            publish_action_from_context(
-                UnassignAction(),
-                group_id=group.id,
-                project=group.project,
-            )
-
             # Clear ownership cache for the deassigned group
             ownership = ProjectOwnership.get_ownership_cached(group.project.id)
             if not ownership:
@@ -255,8 +310,14 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
                     group, None, assign=False, assignment_source=assignment_source
                 )
 
-            issue_unassigned.send_robust(
-                project=group.project, group=group, user=acting_user, sender=self.__class__
+            # Deferred for the same reasons `assign` defers `issue_assigned`: the receiver
+            # publishes a snapshot, which must not happen for a transaction that may still
+            # roll back, nor while a caller holds row locks.
+            transaction.on_commit(
+                lambda: issue_unassigned.send_robust(
+                    project=group.project, group=group, user=acting_user, sender=self.__class__
+                ),
+                router.db_for_write(GroupAssignee),
             )
             self.remove_old_assignees(group, previous_groupassignee)
 

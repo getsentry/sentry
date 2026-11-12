@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {IconBusiness} from '@sentry/icons/business';
 import omit from 'lodash/omit';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -6,7 +7,6 @@ import {Flex} from '@sentry/scraps/layout';
 import type {SelectorItems} from 'sentry/components/timeRangeSelector/selectorItems';
 import type {TimeRangeItem} from 'sentry/components/timeRangeSelector/types';
 import {DEFAULT_RELATIVE_PERIODS, MAX_PICKABLE_DAYS} from 'sentry/constants';
-import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 import UpsellProvider from 'getsentry/components/upsellProvider';

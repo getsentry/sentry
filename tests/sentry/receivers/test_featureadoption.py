@@ -1,8 +1,16 @@
-from django.utils import timezone
+import logging
+from unittest.mock import patch
 
+import pytest
+from django.db import router, transaction
+from django.utils import timezone
+from redis.exceptions import ConnectionError as RedisConnectionError
+
+from sentry.adoption import manager
 from sentry.models.featureadoption import FeatureAdoption
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouptombstone import GroupTombstone
+from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.signals import (
     advanced_search,
@@ -15,15 +23,19 @@ from sentry.signals import (
     issue_resolved,
     member_joined,
     project_created,
+    receivers_raise_on_send,
     save_search_created,
     sso_enabled,
     user_feedback_received,
 )
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.workflow_engine.receivers.project_workflows import DEFAULT_RULE_DATA
 
 
 class FeatureAdoptionTest(TestCase, SnubaTestCase):
+    @pytest.fixture(autouse=True)
+    def inject_fixtures(self, caplog: pytest.LogCaptureFixture) -> None:
+        self.caplog = caplog
+
     def setUp(self) -> None:
         super().setUp()
         self.now = timezone.now()
@@ -53,6 +65,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="environment_tracking"
         )
+        assert feature_complete is not None
         assert feature_complete.complete
 
     def test_first_event(self) -> None:
@@ -65,6 +78,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         first_event = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="first_event"
         )
+        assert first_event is not None
         assert first_event.complete
 
     def test_javascript(self) -> None:
@@ -72,6 +86,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         js = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="javascript")
+        assert js is not None
         assert js.complete
 
     def test_python(self) -> None:
@@ -82,6 +97,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         python = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="python")
+        assert python is not None
         assert python.complete
 
     def test_node(self) -> None:
@@ -91,6 +107,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         node = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="node")
+        assert node is not None
         assert node.complete
 
     def test_ruby(self) -> None:
@@ -100,6 +117,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         ruby = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="ruby")
+        assert ruby is not None
         assert ruby.complete
 
     def test_java(self) -> None:
@@ -109,6 +127,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         java = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="java")
+        assert java is not None
         assert java.complete
 
     def test_cocoa(self) -> None:
@@ -118,6 +137,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         cocoa = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="cocoa")
+        assert cocoa is not None
         assert cocoa.complete
 
     def test_objc(self) -> None:
@@ -127,6 +147,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         objc = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="objc")
+        assert objc is not None
         assert objc.complete
 
     def test_php(self) -> None:
@@ -136,6 +157,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         php = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="php")
+        assert php is not None
         assert php.complete
 
     def test_go(self) -> None:
@@ -145,6 +167,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         go = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="go")
+        assert go is not None
         assert go.complete
 
     def test_csharp(self) -> None:
@@ -155,6 +178,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         csharp = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="csharp")
+        assert csharp is not None
         assert csharp.complete
 
     def test_perl(self) -> None:
@@ -164,6 +188,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         perl = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="perl")
+        assert perl is not None
         assert perl.complete
 
     def test_elixir(self) -> None:
@@ -174,6 +199,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         elixir = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="elixir")
+        assert elixir is not None
         assert elixir.complete
 
     def test_cfml(self) -> None:
@@ -183,6 +209,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         cfml = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="cfml")
+        assert cfml is not None
         assert cfml.complete
 
     def test_groovy(self) -> None:
@@ -193,6 +220,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         groovy = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="groovy")
+        assert groovy is not None
         assert groovy.complete
 
     def test_release_tracking(self) -> None:
@@ -359,9 +387,11 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
             organization=self.organization, slug="first_event"
         )
 
+        assert first_event is not None
         assert first_event.complete
 
         js = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="javascript")
+        assert js is not None
         assert js.complete
 
         full_event = self.store_event(
@@ -447,6 +477,56 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         )
         assert feature_complete
 
+    def test_project_created_records_after_commit(self) -> None:
+        first_project_id = manager.get_by_slug("first_project").id
+        assert not FeatureAdoption.objects.filter(
+            organization_id=self.organization.id, feature_id=first_project_id
+        ).exists()
+        assert not FeatureAdoption.objects.in_cache(self.organization.id, first_project_id)
+
+        with transaction.atomic(router.db_for_write(Project)):
+            with receivers_raise_on_send():
+                project_created.send_robust(
+                    project=self.project, user=self.owner, sender=type(self.project)
+                )
+            # With a clean cache, no row here means that record did not run
+            # inside the transaction, so it made no Redis call there.
+            assert not FeatureAdoption.objects.filter(
+                organization_id=self.organization.id, feature_id=first_project_id
+            ).exists()
+
+        assert FeatureAdoption.objects.filter(
+            organization_id=self.organization.id, feature_id=first_project_id, complete=True
+        ).exists()
+        assert FeatureAdoption.objects.in_cache(self.organization.id, first_project_id)
+
+    def test_project_created_record_failure_is_logged(self) -> None:
+        with (
+            patch.object(
+                FeatureAdoption.objects.cache_backend,
+                "in_cache",
+                side_effect=RedisConnectionError("redis is down"),
+            ),
+            self.caplog.at_level(logging.ERROR, logger="sentry.receivers.features"),
+            receivers_raise_on_send(),
+        ):
+            with transaction.atomic(router.db_for_write(Project)):
+                project_created.send_robust(
+                    project=self.project, user=self.owner, sender=type(self.project)
+                )
+
+        assert any(
+            r.message == "feature_adoption.first_project_failed"
+            and getattr(r, "organization_id", None) == self.organization.id
+            for r in self.caplog.records
+        )
+        assert (
+            FeatureAdoption.objects.get_by_slug(
+                organization=self.organization, slug="first_project"
+            )
+            is None
+        )
+
     def test_member_joined(self) -> None:
         member = self.create_member(
             organization=self.organization, teams=[self.team], user=self.create_user()
@@ -526,7 +606,24 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
 
     def test_alert_rules(self) -> None:
         rule = Rule.objects.create(
-            project=self.project, label="Trivially modified rule", data=DEFAULT_RULE_DATA
+            project=self.project,
+            label="Trivially modified rule",
+            data={
+                "action_match": "any",
+                "conditions": [
+                    {
+                        "id": "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition"
+                    },
+                ],
+                "actions": [
+                    {
+                        "id": "sentry.mail.actions.NotifyEmailAction",
+                        "targetType": "IssueOwners",
+                        "targetIdentifier": None,
+                        "fallthroughType": "ActiveMembers",
+                    }
+                ],
+            },
         )
 
         alert_rule_created.send(
@@ -567,3 +664,19 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
             organization=self.organization, slug="delete_and_discard"
         )
         assert feature_complete
+
+    def test_bulk_record_keeps_new_features_after_cache_loss(self) -> None:
+        org_id = self.organization.id
+        FeatureAdoption.objects.record(org_id, "python")
+
+        # The redis set expires on its own TTL, so a cold cache is a normal state.
+        key = FeatureAdoption.objects.cache_backend.key_tpl.format(org_id)
+        FeatureAdoption.objects.cache_backend.cluster.delete(key)
+
+        # This batch mixes a feature that is already in the database with a new one.
+        FeatureAdoption.objects.bulk_record(org_id, ["python", "source_maps"])
+
+        source_maps = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization, slug="source_maps"
+        )
+        assert source_maps

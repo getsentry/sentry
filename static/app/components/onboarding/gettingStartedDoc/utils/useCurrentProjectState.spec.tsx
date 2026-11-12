@@ -1,10 +1,7 @@
-import {createMemoryRouter, RouterProvider} from 'react-router-dom';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {SentryNuqsTestingAdapter} from 'sentry-test/nuqsTestingAdapter';
-import {act, renderHook} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {useCurrentProjectState} from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {
   feedbackOnboardingPlatforms,
@@ -15,27 +12,7 @@ import {OnboardingDrawerKey} from 'sentry/stores/onboardingDrawerStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 
-function createWrapper(projectSlug?: string) {
-  return function Wrapper({children}: any) {
-    const wrapped = <SentryNuqsTestingAdapter>{children}</SentryNuqsTestingAdapter>;
-    const memoryRouter = createMemoryRouter([
-      {
-        path: '/',
-        element: wrapped,
-      },
-      {
-        path: '/:projectId/',
-        element: wrapped,
-      },
-    ]);
-
-    if (projectSlug) {
-      memoryRouter.navigate(`/${projectSlug}/`);
-    }
-
-    return <RouterProvider router={memoryRouter} future={{v7_startTransition: true}} />;
-  };
-}
+import {useCurrentProjectState} from './useCurrentProjectState';
 
 function mockPageFilterStore(projects: Project[]) {
   PageFiltersStore.init();
@@ -68,29 +45,30 @@ describe('useCurrentProjectState', () => {
   it('should return currentProject=undefined when currentPanel != targetPanel', () => {
     ProjectsStore.loadInitialData([javascript]);
     mockPageFilterStore([javascript]);
-    const {result} = renderHook(useCurrentProjectState, {
+    const {result} = renderHookWithProviders(useCurrentProjectState, {
       initialProps: {
         currentPanel: OnboardingDrawerKey.REPLAYS_ONBOARDING,
         targetPanel: OnboardingDrawerKey.FEEDBACK_ONBOARDING,
         onboardingPlatforms: feedbackOnboardingPlatforms,
         allPlatforms: feedbackOnboardingPlatforms,
       },
-      wrapper: createWrapper(),
     });
     expect(result.current.currentProject).toBeUndefined();
   });
 
-  it('should return currentProject=undefined when project url param is present and currentPanel != targetPanel', () => {
+  it('should return currentProject=undefined when project query parameter is present and currentPanel != targetPanel', () => {
     ProjectsStore.loadInitialData([javascript, angular]);
     mockPageFilterStore([javascript, angular]);
-    const {result} = renderHook(useCurrentProjectState, {
+    const {result} = renderHookWithProviders(useCurrentProjectState, {
       initialProps: {
         currentPanel: OnboardingDrawerKey.REPLAYS_ONBOARDING,
         targetPanel: OnboardingDrawerKey.FEEDBACK_ONBOARDING,
         onboardingPlatforms: replayOnboardingPlatforms,
         allPlatforms: replayOnboardingPlatforms,
       },
-      wrapper: createWrapper(angular.id),
+      initialRouterConfig: {
+        location: {pathname: '/', query: {project: angular.id}},
+      },
     });
     expect(result.current.currentProject).toBeUndefined();
   });
@@ -98,44 +76,44 @@ describe('useCurrentProjectState', () => {
   it('should return the currentProject when currentPanel = targetPanel', () => {
     ProjectsStore.loadInitialData([javascript]);
     mockPageFilterStore([javascript]);
-    const {result} = renderHook(useCurrentProjectState, {
+    const {result} = renderHookWithProviders(useCurrentProjectState, {
       initialProps: {
         currentPanel: OnboardingDrawerKey.REPLAYS_ONBOARDING,
         targetPanel: OnboardingDrawerKey.REPLAYS_ONBOARDING,
         onboardingPlatforms: replayOnboardingPlatforms,
         allPlatforms: replayOnboardingPlatforms,
       },
-      wrapper: createWrapper(),
     });
     expect(result.current.currentProject).toBe(javascript);
   });
 
-  it('should return the currentProject when project url param is present and currentPanel = targetPanel', () => {
+  it('uses the project query parameter when no selected projects are loaded', () => {
     ProjectsStore.loadInitialData([javascript, angular]);
-    mockPageFilterStore([javascript, angular]);
-    const {result} = renderHook(useCurrentProjectState, {
+    mockPageFilterStore([rust_1]);
+    const {result} = renderHookWithProviders(useCurrentProjectState, {
       initialProps: {
         currentPanel: OnboardingDrawerKey.REPLAYS_ONBOARDING,
         targetPanel: OnboardingDrawerKey.REPLAYS_ONBOARDING,
         onboardingPlatforms: replayOnboardingPlatforms,
         allPlatforms: replayOnboardingPlatforms,
       },
-      wrapper: createWrapper(javascript.id),
+      initialRouterConfig: {
+        location: {pathname: '/', query: {project: angular.id}},
+      },
     });
-    expect(result.current.currentProject).toBe(javascript);
+    expect(result.current.currentProject).toBe(angular);
   });
 
   it('should return the first project if global selection does not have onboarding', () => {
     ProjectsStore.loadInitialData([rust_1, rust_2]);
     mockPageFilterStore([rust_1, rust_2]);
-    const {result} = renderHook(useCurrentProjectState, {
+    const {result} = renderHookWithProviders(useCurrentProjectState, {
       initialProps: {
         currentPanel: OnboardingDrawerKey.REPLAYS_ONBOARDING,
         targetPanel: OnboardingDrawerKey.REPLAYS_ONBOARDING,
         onboardingPlatforms: replayOnboardingPlatforms,
         allPlatforms: replayPlatforms,
       },
-      wrapper: createWrapper(),
     });
     expect(result.current.currentProject).toBe(rust_1);
   });
@@ -143,14 +121,13 @@ describe('useCurrentProjectState', () => {
   it('should return the first onboarding project', () => {
     ProjectsStore.loadInitialData([rust_1, javascript]);
     mockPageFilterStore([rust_1, javascript]);
-    const {result} = renderHook(useCurrentProjectState, {
+    const {result} = renderHookWithProviders(useCurrentProjectState, {
       initialProps: {
         currentPanel: OnboardingDrawerKey.FEEDBACK_ONBOARDING,
         targetPanel: OnboardingDrawerKey.FEEDBACK_ONBOARDING,
         onboardingPlatforms: feedbackOnboardingPlatforms,
         allPlatforms: feedbackOnboardingPlatforms,
       },
-      wrapper: createWrapper(),
     });
     expect(result.current.currentProject).toBe(rust_1);
   });
@@ -158,14 +135,13 @@ describe('useCurrentProjectState', () => {
   it('should return the first project if no selection', () => {
     ProjectsStore.loadInitialData([rust_1, javascript]);
     mockPageFilterStore([]);
-    const {result} = renderHook(useCurrentProjectState, {
+    const {result} = renderHookWithProviders(useCurrentProjectState, {
       initialProps: {
         currentPanel: OnboardingDrawerKey.REPLAYS_ONBOARDING,
         targetPanel: OnboardingDrawerKey.REPLAYS_ONBOARDING,
         onboardingPlatforms: replayOnboardingPlatforms,
         allPlatforms: replayPlatforms,
       },
-      wrapper: createWrapper(),
     });
     expect(result.current.currentProject).toBe(javascript);
   });
@@ -173,14 +149,13 @@ describe('useCurrentProjectState', () => {
   it('should return the first project if no selection and no projects have onboarding', () => {
     ProjectsStore.loadInitialData([rust_1, rust_2]);
     mockPageFilterStore([]);
-    const {result} = renderHook(useCurrentProjectState, {
+    const {result} = renderHookWithProviders(useCurrentProjectState, {
       initialProps: {
         currentPanel: OnboardingDrawerKey.REPLAYS_ONBOARDING,
         targetPanel: OnboardingDrawerKey.REPLAYS_ONBOARDING,
         onboardingPlatforms: replayOnboardingPlatforms,
         allPlatforms: replayPlatforms,
       },
-      wrapper: createWrapper(),
     });
     expect(result.current.currentProject).toBe(rust_1);
   });
@@ -188,14 +163,13 @@ describe('useCurrentProjectState', () => {
   it('should override current project if setCurrentProjects is called', () => {
     ProjectsStore.loadInitialData([javascript, angular]);
     mockPageFilterStore([javascript, angular]);
-    const {result} = renderHook(useCurrentProjectState, {
+    const {result} = renderHookWithProviders(useCurrentProjectState, {
       initialProps: {
         currentPanel: OnboardingDrawerKey.FEEDBACK_ONBOARDING,
         targetPanel: OnboardingDrawerKey.FEEDBACK_ONBOARDING,
         onboardingPlatforms: feedbackOnboardingPlatforms,
         allPlatforms: feedbackOnboardingPlatforms,
       },
-      wrapper: createWrapper(),
     });
     expect(result.current.currentProject).toBe(javascript);
     act(() => result.current.setCurrentProject(angular));
@@ -205,14 +179,13 @@ describe('useCurrentProjectState', () => {
   it('should update when the page filters store changes', () => {
     ProjectsStore.loadInitialData([javascript, angular]);
     mockPageFilterStore([angular]);
-    const {result} = renderHook(useCurrentProjectState, {
+    const {result} = renderHookWithProviders(useCurrentProjectState, {
       initialProps: {
         currentPanel: OnboardingDrawerKey.FEEDBACK_ONBOARDING,
         targetPanel: OnboardingDrawerKey.FEEDBACK_ONBOARDING,
         onboardingPlatforms: feedbackOnboardingPlatforms,
         allPlatforms: feedbackOnboardingPlatforms,
       },
-      wrapper: createWrapper(),
     });
 
     // Starts with angular

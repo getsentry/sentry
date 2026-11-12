@@ -6,9 +6,13 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.urls import reverse
 from django.utils import timezone
+from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
-from sentry.api.endpoints.organization_releases import ReleaseSerializerWithProjects
+from sentry.api.endpoints.organization_releases import (
+    ReleaseSerializerWithProjects,
+    debounce_update_release_health_data,
+)
 from sentry.api.release_search import FINALIZED_KEY, RELEASE_CREATED_KEY
 from sentry.api.serializers.rest_framework.release import ReleaseHeadCommitSerializer
 from sentry.auth import access
@@ -23,6 +27,7 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.environment import Environment
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
@@ -57,7 +62,7 @@ pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
     endpoint = "sentry-api-0-organization-releases"
 
-    def assert_expected_versions(self, response, expected):
+    def assert_expected_versions(self, response: Response, expected: list[Release]) -> None:
         assert [item["version"] for item in response.data] == [e.version for e in expected]
 
     def test_simple(self) -> None:
@@ -537,6 +542,12 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         )
         self.assert_expected_versions(response, [release_4, release_2, release_1])
 
+        # IN operator (list value) is unsupported for build and must 400, not 500
+        response = self.get_response(
+            self.organization.slug, query=f"{SEMVER_BUILD_ALIAS}:[124,125]"
+        )
+        assert response.status_code == 400
+
     def test_release_stage_filter(self) -> None:
         self.login_as(user=self.user)
 
@@ -690,6 +701,39 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
             # No environment
         )
         assert response.status_code == 400
+
+    def test_release_stage_filter_is_scoped_to_selected_environment(self) -> None:
+        self.login_as(user=self.user)
+        staging = self.create_environment(name="staging", project=self.project)
+        release = self.create_release(
+            version="adopted_in_production_only",
+            environments=[self.environment, staging],
+            adopted=timezone.now(),
+        )
+        ReleaseProjectEnvironment.objects.filter(release=release, environment=staging).update(
+            adopted=None
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED.value}",
+            environment=self.environment.name,
+        )
+        self.assert_expected_versions(response, [release])
+
+        response = self.get_success_response(
+            self.organization.slug,
+            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED.value}",
+            environment=staging.name,
+        )
+        self.assert_expected_versions(response, [])
+
+        response = self.get_success_response(
+            self.organization.slug,
+            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION.value}",
+            environment=staging.name,
+        )
+        self.assert_expected_versions(response, [release])
 
     def test_project_permissions(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -1478,6 +1522,30 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert release.organization == org
         assert ReleaseProject.objects.filter(release=release, project=project).exists()
         assert ReleaseProject.objects.filter(release=release, project=project2).exists()
+
+    def test_projects_with_dict_entries(self) -> None:
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+        project = self.create_project(name="foo", organization=org, teams=[team])
+
+        self.create_member(teams=[team], user=user, organization=org)
+        self.login_as(user=user)
+
+        url = reverse(
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": org.slug}
+        )
+        # Non-scalar project entries must 400 at validation, not raise an
+        # unhashable-type TypeError in the handler.
+        response = self.client.post(
+            url,
+            data={"version": "1.2.1", "projects": [{"slug": project.slug}]},
+        )
+
+        assert response.status_code == 400
 
     def test_duplicate(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -2375,7 +2443,11 @@ class OrganizationReleaseCommitRangesTest(SetRefsTestCase):
         self.assert_commit(commits[2], "current-commit-id-3")
 
         head_commits = ReleaseHeadCommit.objects.all()
-        self.assert_head_commit(head_commits[0], "current-commit-id-3", release_id=release.id)
+        self.assert_head_commit(
+            head_commits[0],
+            "current-commit-id-3",
+            release_id=release.id,
+        )
 
         refs_expected = [
             {
@@ -2426,7 +2498,11 @@ class OrganizationReleaseCommitRangesTest(SetRefsTestCase):
         self.assert_commit(commits[2], "current-commit-id-3")
 
         head_commits = ReleaseHeadCommit.objects.all()
-        self.assert_head_commit(head_commits[0], "current-commit-id-3", release_id=release.id)
+        self.assert_head_commit(
+            head_commits[0],
+            "current-commit-id-3",
+            release_id=release.id,
+        )
 
         refs_expected = [
             {
@@ -2482,7 +2558,11 @@ class OrganizationReleaseCommitRangesTest(SetRefsTestCase):
         self.assert_commit(commits[2], "current-commit-id-3")
 
         head_commits = ReleaseHeadCommit.objects.all()
-        self.assert_head_commit(head_commits[0], "current-commit-id-3", release_id=release.id)
+        self.assert_head_commit(
+            head_commits[0],
+            "current-commit-id-3",
+            release_id=release.id,
+        )
 
         refs_expected = [
             {
@@ -2574,12 +2654,12 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
         self.env2 = env2
         self.org = org
 
-    def make_environment(self, name, project):
+    def make_environment(self, name: str, project: Project) -> Environment:
         env = Environment.objects.create(organization_id=project.organization_id, name=name)
         env.add_project(project)
         return env
 
-    def assert_releases(self, response, releases):
+    def assert_releases(self, response: Response, releases: list[Release]) -> None:
         assert len(response.data) == len(releases)
 
         response_versions = sorted(r["version"] for r in response.data)
@@ -2686,7 +2766,7 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
 
 class OrganizationReleaseCreateCommitPatch(ReleaseCommitPatchTest):
     @cached_property
-    def url(self):
+    def url(self) -> str:
         return reverse(
             "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": self.org.slug}
         )
@@ -3124,3 +3204,44 @@ class OrganizationReleasesBaseEndpointGetProjectsTest(TestCase):
 
         # Should return the project since user is a member
         assert project in projects
+
+
+class DebounceUpdateReleaseHealthDataTest(TestCase):
+    def run_with_health_data(self, project: Project, version: str = "1.0") -> None:
+        with patch(
+            "sentry.api.endpoints.organization_releases.release_health"
+        ) as mock_release_health:
+            mock_release_health.backend.get_changed_project_release_model_adoptions.return_value = [
+                (project.id, version)
+            ]
+            mock_release_health.backend.get_oldest_health_data_for_releases.return_value = {
+                (project.id, version): timezone.now()
+            }
+            debounce_update_release_health_data(project.organization, [project.id])
+
+    def test_creates_release_from_health_data(self) -> None:
+        project = self.create_project()
+
+        self.run_with_health_data(project)
+
+        release = Release.objects.get(organization_id=project.organization_id, version="1.0")
+        assert ReleaseProject.objects.filter(release=release, project=project).exists()
+
+    def test_auto_creation_disabled_skips_creation(self) -> None:
+        project = self.create_project()
+        project.update_option("sentry:enable_auto_release_creation", False)
+
+        self.run_with_health_data(project)
+
+        assert not Release.objects.filter(organization_id=project.organization_id).exists()
+
+    def test_auto_creation_disabled_associates_existing_release(self) -> None:
+        # A release created out-of-band (e.g. via the CLI) is still associated even
+        # when auto-creation is disabled.
+        project = self.create_project()
+        project.update_option("sentry:enable_auto_release_creation", False)
+        release = Release.objects.create(organization_id=project.organization_id, version="1.0")
+
+        self.run_with_health_data(project)
+
+        assert ReleaseProject.objects.filter(release=release, project=project).exists()

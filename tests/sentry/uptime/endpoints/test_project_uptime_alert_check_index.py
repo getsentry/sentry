@@ -1,6 +1,7 @@
 import uuid
 from abc import abstractmethod
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from sentry.testutils.cases import SnubaTestCase, UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
@@ -26,7 +27,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
         )
         self.detector = self.create_uptime_detector(uptime_subscription=self.subscription)
 
-        test_scenarios: list[dict] = [
+        test_scenarios: list[dict[str, Any]] = [
             {"check_status": "success", "scheduled_check_time": before_now(minutes=10)},
             {"check_status": "failure", "scheduled_check_time": before_now(minutes=9)},
             {"check_status": "success", "scheduled_check_time": before_now(minutes=8)},
@@ -190,13 +191,13 @@ class ProjectUptimeAlertCheckIndexEndpointWithEAPTests(
 
     def store_uptime_data(
         self,
-        subscription_id,
-        check_status,
-        incident_status=IncidentStatus.NO_INCIDENT,
-        scheduled_check_time=None,
-        http_status=None,
-    ):
-        create_params = {
+        subscription_id: str,
+        check_status: str,
+        incident_status: IncidentStatus = IncidentStatus.NO_INCIDENT,
+        scheduled_check_time: datetime | None = None,
+        http_status: int | None = None,
+    ) -> None:
+        create_params: dict[str, Any] = {
             "subscription_id": uuid.UUID(subscription_id).hex,
             "guid": uuid.UUID(subscription_id).hex,
             "check_id": uuid.uuid4().hex,

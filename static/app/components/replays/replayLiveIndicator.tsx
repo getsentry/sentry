@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState, useSyncExternalStore} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
@@ -94,29 +94,52 @@ interface UseLiveBadgeParams {
 /**
  * Hook to determine if a replay is considered live
  */
-export function useLiveBadge({startedAt, finishedAt}: UseLiveBadgeParams) {
-  const [isLive, setIsLive] = useState(
-    // We check for getLiveDurationMs to avoid a flicker.
-
-    // There can exist a time where the replay hasn't expired (Date.now() < started_at + 1 hour), in which case the isLive would show True,
-    // but the liveDuration is 0 (Date.now() > finished_at + 5 minutes), so the setTimeout, having a live duration of 0, would immediately
-    // set isLive to false and cause this flicker
+/**
+ * We check for getLiveDurationMs to avoid a flicker.
+ * There can exist a time where the replay hasn't expired
+ * (Date.now() < started_at + 1 hour), in which case the isLive would show
+ * True, but the liveDuration is 0 (Date.now() > finished_at + 5 minutes),
+ * so the setTimeout, having a live duration of 0, would immediately set
+ * isLive to false and cause this flicker.
+ */
+function getIsLive(
+  startedAt: ReplayRecord['started_at'],
+  finishedAt: ReplayRecord['finished_at']
+) {
+  return (
     Date.now() < getReplayExpiresAtMs(startedAt) && getLiveDurationMs(finishedAt) > 0
   );
+}
 
-  const {start: startTimeout} = useTimeout({
-    timeMs: getLiveDurationMs(finishedAt),
-    onTimeout: () => {
-      setIsLive(false);
+export function useLiveBadge({startedAt, finishedAt}: UseLiveBadgeParams) {
+  // Whether a replay is live is not this component's state: it is the wall
+  // clock read against the replay's times, and it changes on its own at a
+  // moment nothing renders. Subscribing schedules that moment, and the
+  // snapshot reads `Date.now()` outside render, where it is allowed
+  // (pure-render-functions).
+  //
+  // Holding it in `useState` instead meant the answer was fixed when the hook
+  // mounted, so a caller that rendered before its replay record loaded passed
+  // empty times once and never went live.
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      const remainingMs = getLiveDurationMs(finishedAt);
+      if (remainingMs <= 0) {
+        return () => {};
+      }
+      const timeout = setTimeout(onStoreChange, remainingMs);
+      return () => clearTimeout(timeout);
     },
-  });
+    [finishedAt]
+  );
 
-  useEffect(() => {
-    startTimeout();
-  }, [startTimeout]);
+  const getSnapshot = useCallback(
+    () => getIsLive(startedAt, finishedAt),
+    [startedAt, finishedAt]
+  );
 
   return {
-    isLive,
+    isLive: useSyncExternalStore(subscribe, getSnapshot, getSnapshot),
   };
 }
 
@@ -132,12 +155,39 @@ export function useLiveRefresh({replay}: {replay: ReplayRecord | undefined}) {
   const projectSlug = useReplayProjectSlug({replayRecord: replay})!;
   const {startSummaryRequest} = useReplaySummaryContext();
   const startSummaryRequestRef = useRef(startSummaryRequest);
-  const isReplayExpired = Date.now() > getReplayExpiresAtMs(replay?.started_at ?? null);
+
+  // A replay stops receiving segments 1 hour after it started, so we stop
+  // polling then. `Date.now()` is impure and can't be read while rendering
+  // (pure-render-functions), so we seed the flag with a lazy initializer and
+  // flip it from a timer scheduled in the effect below.
+  const expiresAtMs = getReplayExpiresAtMs(replay?.started_at ?? null);
+  const [isReplayExpired, setIsReplayExpired] = useState(
+    // A null/absent start time (e.g. archived replays) counts as expired.
+    () => Date.now() > expiresAtMs
+  );
+  const {start: startExpiryTimeout, cancel: cancelExpiryTimeout} = useTimeout({
+    timeMs: 0,
+    onTimeout: () => setIsReplayExpired(true),
+  });
+  useEffect(() => {
+    // Re-run when the replay changes (paging through the playlist reuses this
+    // hook instance). `expiresAtMs` is a stable number, unlike `started_at`.
+    const remainingMs = expiresAtMs - Date.now();
+    if (expiresAtMs <= 0 || remainingMs <= 0) {
+      cancelExpiryTimeout();
+      // oxlint-disable-next-line react/set-state-in-effect
+      setIsReplayExpired(true);
+      return;
+    }
+    setIsReplayExpired(false);
+    startExpiryTimeout(remainingMs);
+  }, [expiresAtMs, startExpiryTimeout, cancelExpiryTimeout]);
   const polledReplayRecord = usePollReplayRecord({
     enabled: !isReplayExpired && Boolean(replayId),
     replayId,
     orgSlug,
   });
+  // oxlint-disable-next-line react/refs
   startSummaryRequestRef.current = startSummaryRequest;
 
   const doRefresh = useCallback(async () => {

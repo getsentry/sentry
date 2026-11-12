@@ -1,22 +1,20 @@
 import {useState} from 'react';
+import {IconDelete} from '@sentry/icons/delete';
+import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
 import {ConfirmDelete} from 'sentry/components/confirmDelete';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ApiApplication} from 'sentry/types/user';
-import {useApi} from 'sentry/utils/useApi';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 
 const ROUTE_PREFIX = '/settings/account/api/';
 
@@ -26,8 +24,15 @@ type Props = {
 };
 
 export function Row({app, onRemove}: Props) {
-  const api = useApi();
   const [isLoading, setLoading] = useState(false);
+
+  const {mutateAsync: deleteApplication} = useMutation({
+    mutationFn: () =>
+      fetchMutation({
+        url: getApiUrl('/api-applications/$appId/', {path: {appId: app.id}}),
+        method: 'DELETE',
+      }),
+  });
 
   async function handleRemove() {
     if (isLoading) {
@@ -35,17 +40,15 @@ export function Row({app, onRemove}: Props) {
     }
 
     setLoading(true);
-    addLoadingMessage();
+    toast.loading(t('Saving changes...'));
 
     try {
-      await api.requestPromise(`/api-applications/${app.id}/`, {
-        method: 'DELETE',
-      });
+      await deleteApplication();
 
-      clearIndicators();
+      toast.dismiss();
       onRemove(app);
     } catch (_err) {
-      addErrorMessage(t('Unable to remove application. Please try again.'));
+      toast.error(t('Unable to remove application. Please try again.'));
     }
   }
 
@@ -60,7 +63,7 @@ export function Row({app, onRemove}: Props) {
         </Stack>
       </SimpleTable.RowCell>
 
-      <SimpleTable.RowCell data-column-name="age">
+      <SimpleTable.RowCell>
         {app.dateCreated ? (
           <TimeSince date={app.dateCreated} suffix="" />
         ) : (
@@ -70,7 +73,7 @@ export function Row({app, onRemove}: Props) {
         )}
       </SimpleTable.RowCell>
 
-      <SimpleTable.RowCell justify="end" data-column-name="actions">
+      <SimpleTable.RowCell justify="end" padding="lg xl lg 0">
         <ConfirmDelete
           message={t(
             'Removing this API Application will break existing usages of the application!'

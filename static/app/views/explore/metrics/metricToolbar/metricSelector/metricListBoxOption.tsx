@@ -1,22 +1,20 @@
-import {useCallback, useRef} from 'react';
 import {useOption} from '@react-aria/listbox';
-import {mergeProps, mergeRefs} from '@react-aria/utils';
+import {mergeProps, useObjectRef} from '@react-aria/utils';
 import {type ComboBoxState} from '@react-stately/combobox';
 import type {Node} from '@react-types/shared';
+import {IconCheckmark} from '@sentry/icons/checkmark';
 
 import {LeadWrap} from '@sentry/scraps/compactSelect';
-import {MenuListItem, type MenuListItemProps} from '@sentry/scraps/menuListItem';
+import {ListItem, type ListItemProps} from '@sentry/scraps/menu';
 
-import {IconCheckmark} from 'sentry/icons';
-import type {MetricSelectorOption} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/types';
+import {isMetricSelectorOption, type MetricSelectorItem} from './types';
 
 interface MetricListBoxOptionProps {
   dataIndex: number;
-  item: Node<MetricSelectorOption>;
-  listState: ComboBoxState<MetricSelectorOption>;
-  size: MenuListItemProps['size'];
+  item: Node<MetricSelectorItem>;
+  listState: ComboBoxState<MetricSelectorItem>;
+  size: ListItemProps['size'];
   measureRef?: React.Ref<HTMLLIElement>;
-  updateSidePanelAnchorOffset?: (activeOptionElement?: HTMLElement | null) => void;
 }
 
 export function MetricListBoxOption({
@@ -25,14 +23,14 @@ export function MetricListBoxOption({
   size,
   dataIndex,
   measureRef,
-  updateSidePanelAnchorOffset,
 }: MetricListBoxOptionProps) {
-  const ref = useRef<HTMLLIElement>(null);
+  // Stable across renders, so the row isn't detached and re-measured each time.
+  const ref = useObjectRef(measureRef);
   const option = item.value!;
   const {optionProps, isFocused, isSelected, isDisabled, isPressed} = useOption(
     {
       key: item.key,
-      'aria-label': option.metricName,
+      'aria-label': isMetricSelectorOption(option) ? option.metricName : option.textValue,
       shouldUseVirtualFocus: true,
       shouldSelectOnPressUp: true,
     },
@@ -43,24 +41,15 @@ export function MetricListBoxOption({
     onMouseEnter: () => {
       listState.selectionManager.setFocused(true);
       listState.selectionManager.setFocusedKey(item.key);
-      updateSidePanelAnchorOffset?.(ref.current);
     },
   });
-  const activeOptionRef = useCallback(
-    (element: HTMLLIElement | null) => {
-      if (element && isFocused) {
-        updateSidePanelAnchorOffset?.(element);
-      }
-    },
-    [isFocused, updateSidePanelAnchorOffset]
-  );
 
   return (
-    <MenuListItem
+    <ListItem
       {...optionPropsMerged}
       as="li"
       data-index={dataIndex}
-      ref={mergeRefs(ref, measureRef, activeOptionRef)}
+      ref={ref}
       size={size}
       label={option.label}
       isFocused={isFocused}

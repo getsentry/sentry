@@ -5,8 +5,9 @@ import {
   type Action,
   type ActionHandler,
 } from 'sentry/types/workflowEngine/actions';
-import {IntegrationField} from 'sentry/views/automations/components/actions/integrationField';
-import {TargetDisplayField} from 'sentry/views/automations/components/actions/targetDisplayField';
+
+import {IntegrationField} from './integrationField';
+import {TargetDisplayField} from './targetDisplayField';
 
 export function MSTeamsDetails({
   action,
@@ -29,7 +30,7 @@ export function MSTeamsNode() {
   return tct('Send a [logo] Microsoft Teams notification to [team] team, to [channel]', {
     logo: ActionMetadata[ActionType.MSTEAMS]?.icon,
     team: <IntegrationField />,
-    channel: <TargetDisplayField />,
+    channel: <TargetDisplayField placeholder={t('channel name')} />,
   });
 }
 

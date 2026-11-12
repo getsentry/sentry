@@ -1,11 +1,12 @@
 import {Fragment, useState} from 'react';
 import {uuid4} from '@sentry/core';
 
-import {AssigneeBadge} from 'sentry/components/assigneeBadge';
 import * as Storybook from 'sentry/stories';
 import type {Actor} from 'sentry/types/core';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
+
+import {AssigneeBadge} from './assigneeBadge';
 
 export default Storybook.story('AssigneeBadge', story => {
   story('User Assignee', () => {
@@ -68,11 +69,7 @@ export default Storybook.story('AssigneeBadge', story => {
     return (
       <Fragment>
         <p onClick={() => setChevron1Toggle(chevron1Toggle === 'up' ? 'down' : 'up')}>
-          <AssigneeBadge
-            assignmentReason="suspectCommit"
-            assignedTo={teamActor}
-            chevronDirection={chevron1Toggle}
-          />
+          <AssigneeBadge assignedTo={teamActor} chevronDirection={chevron1Toggle} />
         </p>
         <p onClick={() => setChevron2Toggle(chevron2Toggle === 'up' ? 'down' : 'up')}>
           <AssigneeBadge

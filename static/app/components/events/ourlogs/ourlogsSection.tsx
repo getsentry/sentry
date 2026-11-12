@@ -1,20 +1,19 @@
 import {useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 import {useQuery} from '@tanstack/react-query';
 
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
-import {Stack} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 
 import {ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS} from 'sentry/components/events/issueDetailsLazyRender';
-import {OurlogsDrawer} from 'sentry/components/events/ourlogs/ourlogsDrawer';
 import {LazyRender} from 'sentry/components/lazyRender';
-import {IconChevron} from 'sentry/icons';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {IssueType} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
@@ -23,7 +22,6 @@ import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {TableBody} from 'sentry/views/explore/components/table';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {
   LogsPageDataProvider,
@@ -33,19 +31,15 @@ import {LOGS_DRAWER_QUERY_PARAM} from 'sentry/views/explore/logs/constants';
 import type {LogsFrozenContextProviderProps} from 'sentry/views/explore/logs/logsFrozenContext';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
+import {getLogBodySearchTerms} from 'sentry/views/explore/logs/utils';
 import {useQueryParamsSearch} from 'sentry/views/explore/queryParams/context';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
-export function OurlogsSection({
-  event,
-  project,
-  group,
-}: {
-  event: Event;
-  group: Group;
-  project: Project;
-}) {
+import {OurlogsDrawer} from './ourlogsDrawer';
+import {useEventLogsUrl} from './useEventLogsUrl';
+
+export function OurlogsSection({event, group}: {event: Event; group: Group}) {
   const location = useLocation();
   const organization = useOrganization();
   const traceId = event.contexts?.trace?.trace_id;
@@ -83,7 +77,7 @@ export function OurlogsSection({
       return {traceId};
     }
     return;
-  }, [replayId, replayData?.data, traceId]);
+  }, [replayId, replayData, traceId]);
 
   if (replayId && isReplayLoading) {
     return null;
@@ -110,12 +104,7 @@ export function OurlogsSection({
         freeze={freeze}
       >
         <LogsPageDataProvider disabled={false} staleTime={EXPLORE_FIVE_MIN_STALE_TIME}>
-          <OurlogsSectionContent
-            event={event}
-            group={group}
-            project={project}
-            freeze={freeze}
-          />
+          <OurlogsSectionContent event={event} freeze={freeze} />
         </LogsPageDataProvider>
       </LogsQueryParamsProvider>
     </LazyRender>
@@ -124,14 +113,10 @@ export function OurlogsSection({
 
 function OurlogsSectionContent({
   event,
-  project,
-  group,
   freeze,
 }: {
   event: Event;
   freeze: LogsFrozenContextProviderProps;
-  group: Group;
-  project: Project;
 }) {
   const organization = useOrganization();
   const navigate = useNavigate();
@@ -139,10 +124,12 @@ function OurlogsSectionContent({
   const feature = organization.features.includes('ourlogs-enabled');
   const tableData = useLogsPageDataQueryResult();
   const logsSearch = useQueryParamsSearch();
+  const highlightTerms = useMemo(() => getLogBodySearchTerms(logsSearch), [logsSearch]);
   const abbreviatedTableData = (tableData.data ?? []).slice(0, 5);
   const {openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const logsUrl = useEventLogsUrl(event);
 
   const onOpenLogsDrawer = useCallback(
     (e: React.MouseEvent, expandedLogId?: string) => {
@@ -190,9 +177,7 @@ function OurlogsSectionContent({
               staleTime={EXPLORE_FIVE_MIN_STALE_TIME}
             >
               <OurlogsDrawer
-                group={group}
                 event={event}
-                project={project}
                 embeddedOptions={
                   expandedLogId ? {openWithExpandedIds: [expandedLogId]} : undefined
                 }
@@ -227,7 +212,8 @@ function OurlogsSectionContent({
         }
       );
     }
-  }, [location.query, freeze, group, event, project, openDrawer, navigate, location]);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
+  }, [location.query, freeze, event, openDrawer, navigate, location]);
   if (!feature) {
     return null;
   }
@@ -236,15 +222,33 @@ function OurlogsSectionContent({
     return null;
   }
   return (
-    <FoldSection sectionKey={SectionKey.LOGS} title={t('Logs')}>
+    <FoldSection
+      actions={
+        logsUrl && (
+          <Grid flow="column" align="center" gap="md">
+            <LinkButton
+              analyticsEventKey="issue_details.logs_open_in_explore_action_button_clicked"
+              analyticsEventName="Issue Details: Logs Open in Explore Action Button Clicked"
+              size="xs"
+              to={logsUrl}
+            >
+              {t('Open in Explore')}
+            </LinkButton>
+          </Grid>
+        )
+      }
+      sectionKey={SectionKey.LOGS}
+      title={t('Logs')}
+    >
       <Stack>
         <SmallTable>
-          <TableBody>
+          <SimpleTable.Body>
             {abbreviatedTableData?.map((row, index) => (
               <LogRowContent
                 dataRow={row}
+                routingHint={tableData.routingHintsByRow.get(row)}
                 meta={tableData.meta}
-                highlightTerms={[]}
+                highlightTerms={highlightTerms}
                 embedded
                 sharedHoverTimeoutRef={sharedHoverTimeoutRef}
                 key={index}
@@ -252,7 +256,7 @@ function OurlogsSectionContent({
                 onEmbeddedRowClick={onEmbeddedRowClick}
               />
             ))}
-          </TableBody>
+          </SimpleTable.Body>
         </SmallTable>
         {tableData.data && tableData.data.length > 5 ? (
           <div>

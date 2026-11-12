@@ -12,10 +12,10 @@ __all__ = [
 from collections.abc import Generator
 from typing import TYPE_CHECKING, Any
 
-import sentry_sdk
 from django.conf import settings
+from sentry_sdk import traces
 
-from sentry.objectstore import get_attachments_session
+from sentry.objectstore import UsecaseId, get_session
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.imports import import_string
 
@@ -29,10 +29,10 @@ attachment_cache: BaseAttachmentCache = import_string(settings.SENTRY_ATTACHMENT
 )
 
 
-@sentry_sdk.trace
+@traces.trace
 def store_attachments_for_event(
-    project: Project, event: Any, attachments: list[CachedAttachment], timeout=None
-):
+    project: Project, event: Any, attachments: list[CachedAttachment], timeout: int
+) -> None:
     """
     Stores the given list of `attachments` belonging to `event` for processing.
 
@@ -61,10 +61,10 @@ def get_attachments_for_event(event: Any) -> Generator[CachedAttachment]:
     )
 
 
-@sentry_sdk.trace
+@traces.trace
 def delete_cached_and_ratelimited_attachments(
     project: Project, attachments: list[CachedAttachment]
-):
+) -> None:
     """
     This deletes all attachment payloads from the attachment cache
     (if those are stored there), as well as delete all the `rate_limited`
@@ -75,9 +75,7 @@ def delete_cached_and_ratelimited_attachments(
     for attachment in attachments:
         # deletes from objectstore if no long-term storage is desired
         if attachment.rate_limited and attachment.stored_id:
-            get_attachments_session(project.organization_id, project.id).delete(
-                attachment.stored_id
-            )
+            get_session(UsecaseId.ATTACHMENTS, project).delete(attachment.stored_id)
 
         # unconditionally deletes any payloads from the attachment cache
         attachment.delete()

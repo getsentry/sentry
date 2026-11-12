@@ -1,13 +1,14 @@
 import type {SelectOption} from '@sentry/scraps/compactSelect';
+import type {DropdownMenuProps} from '@sentry/scraps/dropdownMenu';
 
-import type {DropdownMenuProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import type {
   CrossEvent,
   CrossEventType,
 } from 'sentry/views/explore/queryParams/crossEvent';
-import type {CrossEventDatasetAvailability} from 'sentry/views/explore/spans/crossEvents/useCrossEventDatasetAvailability';
+
+import type {CrossEventDatasetAvailability} from './useCrossEventDatasetAvailability';
 
 export function getCrossEventDropdownItems(
   availability: CrossEventDatasetAvailability

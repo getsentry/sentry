@@ -1,8 +1,8 @@
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {useArithmeticBuilderAction} from 'sentry/components/arithmeticBuilder/action';
-import {Expression} from 'sentry/components/arithmeticBuilder/expression';
-import {tokenizeExpression} from 'sentry/components/arithmeticBuilder/tokenizer';
+import {useArithmeticBuilderAction} from './action';
+import {Expression} from './expression';
+import {tokenizeExpression} from './tokenizer';
 
 describe('useArithmeticBuilderAction', () => {
   it('returns initial state', () => {
@@ -142,5 +142,57 @@ describe('useArithmeticBuilderAction', () => {
         focusOverride: null,
       },
     });
+  });
+
+  it('resets expression when initialExpression prop changes', () => {
+    const {result, rerender} = renderHook(
+      ({initialExpression}) =>
+        useArithmeticBuilderAction({
+          initialExpression,
+        }),
+      {
+        initialProps: {
+          initialExpression: 'A + B',
+        },
+      }
+    );
+
+    expect(result.current.state.expression).toEqual(new Expression('A + B'));
+
+    rerender({initialExpression: 'C * D'});
+
+    expect(result.current.state.expression).toEqual(new Expression('C * D'));
+  });
+
+  it('preserves user edits until initialExpression changes', () => {
+    const tokens = tokenizeExpression('A + B');
+
+    const {result, rerender} = renderHook(
+      ({initialExpression}) =>
+        useArithmeticBuilderAction({
+          initialExpression,
+        }),
+      {
+        initialProps: {
+          initialExpression: 'A + B',
+        },
+      }
+    );
+
+    act(() =>
+      result.current.dispatch({
+        type: 'REPLACE_TOKEN',
+        token: tokens[0]!,
+        text: 'X',
+      })
+    );
+
+    expect(result.current.state.expression).toEqual(new Expression('X + B'));
+
+    rerender({initialExpression: 'A + B'});
+    expect(result.current.state.expression).toEqual(new Expression('X + B'));
+
+    rerender({initialExpression: 'C / D'});
+    expect(result.current.state.expression).toEqual(new Expression('C / D'));
   });
 });

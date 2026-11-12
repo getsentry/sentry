@@ -16,20 +16,10 @@ import type {SeerPreferencesResponse} from 'sentry/components/events/autofix/pre
 import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject} from 'sentry/types/project';
+import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import {ProjectSeerContainer as ProjectSeer} from 'sentry/views/settings/projectSeer';
 
-// Needed to mock useVirtualizer lists.
-jest.spyOn(window.Element.prototype, 'getBoundingClientRect').mockImplementation(() => ({
-  x: 0,
-  y: 0,
-  width: 0,
-  height: 30,
-  left: 0,
-  top: 0,
-  right: 0,
-  bottom: 0,
-  toJSON: jest.fn(),
-}));
+mockElementSize({width: 0, height: 30});
 
 describe('ProjectSeer', () => {
   let project: DetailedProject;
@@ -68,6 +58,7 @@ describe('ProjectSeer', () => {
       url: `/organizations/${organization.slug}/seer/setup-check/`,
       method: 'GET',
       body: {
+        hasFreeAutofixAccess: false,
         billing: {
           hasAutofixQuota: true,
           hasScannerQuota: true,
@@ -173,7 +164,7 @@ describe('ProjectSeer', () => {
           name: 'sentry',
           organizationId: '',
           owner: 'getsentry',
-          provider: 'github',
+          provider: 'integrations:github',
         },
       ],
     });
@@ -181,6 +172,28 @@ describe('ProjectSeer', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
+  });
+
+  it('shows settings with free Autofix access and no quota', async () => {
+    organization = OrganizationFixture({features: ['seer-billing']});
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/setup-check/`,
+      method: 'GET',
+      body: {
+        hasFreeAutofixAccess: true,
+        billing: {
+          hasAutofixQuota: false,
+          hasScannerQuota: false,
+        },
+      },
+    });
+
+    render(<ProjectSeer />, {
+      organization,
+      outletContext: {project},
+    });
+
+    expect(await screen.findByText('Scan Issues')).toBeInTheDocument();
   });
 
   it('can add a repository', async () => {
@@ -197,6 +210,8 @@ describe('ProjectSeer', () => {
 
     // Wait for initial repos to load
     expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
+    expect(screen.getByText('GitHub')).toBeInTheDocument();
+    expect(screen.queryByText('integrations:github')).not.toBeInTheDocument();
     expect(screen.queryByText('getsentry/seer')).not.toBeInTheDocument();
 
     // Open the add repo modal
@@ -489,6 +504,92 @@ describe('ProjectSeer', () => {
         expect.objectContaining({data: {}})
       );
     }
+  });
+
+  // Regression test for the removed `key` remount: the stopping-point field's
+  // initialValue depends on the seer settings infinite query, which resolves
+  // after mount. The select must reflect a loaded handoff without interaction —
+  // TanStack re-seeds the untouched field once the async value arrives.
+  it('reflects a handoff loaded after mount without interaction', async () => {
+    MockApiClient.clearMockResponses();
+
+    const org = OrganizationFixture({features: []});
+    const initialProject: DetailedProject = {
+      ...project,
+      autofixAutomationTuning: 'medium',
+      seerScannerAutomation: true,
+    };
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/seer/projects/`,
+      method: 'GET',
+      body: [
+        {
+          projectId: project.id,
+          projectSlug: project.slug,
+          agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+          integrationId: '123',
+          stoppingPoint: 'root_cause',
+          autoCreatePr: false,
+          automationTuning: 'medium',
+          scannerAutomation: true,
+          reposCount: 0,
+        },
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/`,
+      body: initialProject,
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/seer/repos/`,
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/seer/setup-check/`,
+      method: 'GET',
+      body: {billing: {hasAutofixQuota: true, hasScannerQuota: true}},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/repos/`,
+      query: {status: 'active'},
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/integrations/coding-agents/`,
+      method: 'GET',
+      body: {integrations: [{id: '123', name: 'Cursor', provider: 'cursor'}]},
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/seer/preferences/`,
+      method: 'GET',
+      body: {
+        preference: {
+          repositories: [],
+          automated_run_stopping_point: 'root_cause',
+          automation_handoff: {
+            handoff_point: 'root_cause',
+            target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+            integration_id: 123,
+            auto_create_pr: false,
+          },
+        },
+        code_mapping_repos: [],
+      },
+    });
+    mockSeerSettingsGet(org.slug);
+
+    render(<ProjectSeer />, {
+      organization: org,
+      outletContext: {project: initialProject},
+    });
+
+    // The loaded handoff shows without any user interaction...
+    expect(await screen.findByText('Hand off to Cursor Cloud Agent')).toBeInTheDocument();
+    // ...and the field is not stuck on the pre-load default.
+    expect(screen.queryByText('Root Cause (default)')).not.toBeInTheDocument();
   });
 
   it('can enable automation handoff to Cursor when Cursor integration is available', async () => {
@@ -976,6 +1077,143 @@ describe('ProjectSeer', () => {
             }),
           })
         );
+      });
+    });
+
+    // Regression test for the removed `key` remount on AutoSaveForm: the toggle
+    // must re-seed when its value changes from *outside* the form. Switching the
+    // stopping point to a handoff target resets autoCreatePr to false, and the
+    // untouched toggle has to reflect that without a key-forced remount.
+    it('re-seeds the toggle when a handoff switch resets autoCreatePr', async () => {
+      MockApiClient.clearMockResponses();
+
+      const orgWithIntegrations = OrganizationFixture({features: []});
+
+      const initialProject: DetailedProject = {
+        ...project,
+        autofixAutomationTuning: 'medium',
+        seerScannerAutomation: true,
+      };
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithIntegrations.slug}/seer/projects/`,
+        method: 'GET',
+        body: [
+          {
+            projectId: project.id,
+            projectSlug: project.slug,
+            agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+            integrationId: '123',
+            stoppingPoint: 'root_cause',
+            autoCreatePr: true,
+            automationTuning: 'medium',
+            scannerAutomation: true,
+            reposCount: 0,
+          },
+        ],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/projects/${orgWithIntegrations.slug}/${project.slug}/`,
+        body: initialProject,
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/projects/${orgWithIntegrations.slug}/${project.slug}/seer/repos/`,
+        method: 'GET',
+        body: [],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithIntegrations.slug}/seer/setup-check/`,
+        method: 'GET',
+        body: {billing: {hasAutofixQuota: true, hasScannerQuota: true}},
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithIntegrations.slug}/repos/`,
+        query: {status: 'active'},
+        method: 'GET',
+        body: [],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithIntegrations.slug}/integrations/coding-agents/`,
+        method: 'GET',
+        body: {
+          integrations: [
+            {id: '123', name: 'Cursor', provider: 'cursor'},
+            {id: '456', name: 'Claude', provider: 'claude_code'},
+          ],
+        },
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/projects/${orgWithIntegrations.slug}/${project.slug}/seer/preferences/`,
+        method: 'GET',
+        body: {
+          preference: {
+            repositories: [],
+            automated_run_stopping_point: 'root_cause',
+            automation_handoff: {
+              handoff_point: 'root_cause',
+              target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+              integration_id: 123,
+              auto_create_pr: true,
+            },
+          },
+          code_mapping_repos: [],
+        },
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/projects/${orgWithIntegrations.slug}/${project.slug}/seer/settings/`,
+        method: 'PUT',
+      });
+
+      mockSeerSettingsGet(orgWithIntegrations.slug);
+
+      render(<ProjectSeer />, {
+        organization: orgWithIntegrations,
+        outletContext: {project: initialProject},
+      });
+
+      // The toggle starts checked because the cursor handoff had autoCreatePr on.
+      const toggle = await screen.findByRole('checkbox', {
+        name: /Auto-Create Pull Requests/i,
+      });
+      expect(toggle).toBeChecked();
+
+      // The settings refetch after the handoff switch reports autoCreatePr off.
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithIntegrations.slug}/seer/projects/`,
+        method: 'GET',
+        body: [
+          {
+            projectId: project.id,
+            projectSlug: project.slug,
+            agent: CodingAgentProvider.CLAUDE_CODE_AGENT,
+            integrationId: '456',
+            stoppingPoint: 'root_cause',
+            autoCreatePr: false,
+            automationTuning: 'medium',
+            scannerAutomation: true,
+            reposCount: 0,
+          },
+        ],
+      });
+
+      const select = await screen.findByRole('textbox', {
+        name: /Where should Seer stop/i,
+      });
+      await userEvent.click(select);
+      await userEvent.click(await screen.findByText('Hand off to Claude Agent'));
+
+      // Without the key remount, the untouched toggle re-seeds to unchecked.
+      await waitFor(() => {
+        expect(
+          screen.getByRole('checkbox', {name: /Auto-Create Pull Requests/i})
+        ).not.toBeChecked();
       });
     });
 
@@ -1482,47 +1720,7 @@ describe('ProjectSeer', () => {
       }),
     ];
 
-    it('shows GitLab repos as selectable when seer-gitlab-support flag is on', async () => {
-      const orgWithGitlabSupport = OrganizationFixture({
-        features: ['seer-gitlab-support'],
-      });
-
-      // Override the repos mock from beforeEach to include a GitLab repo
-      MockApiClient.addMockResponse({
-        url: `/organizations/${orgWithGitlabSupport.slug}/repos/`,
-        query: {status: 'active'},
-        method: 'GET',
-        body: reposWithGitlab,
-      });
-
-      render(<ProjectSeer />, {
-        organization: orgWithGitlabSupport,
-        outletContext: {project},
-      });
-      renderGlobalModal({organization: orgWithGitlabSupport});
-
-      // Wait for repos to load (sentry is pre-selected via preference.repositories in beforeEach)
-      expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
-
-      // Open the add repo modal — it shows only unselected repos
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Add Repositories to Project'})
-      );
-
-      const modal = await screen.findByRole('dialog');
-
-      // GitLab repo should appear in the modal and not be visually disabled
-      const gitlabRepoItem = await within(modal).findByText('getsentry/gitlab-repo');
-      expect(gitlabRepoItem).toBeInTheDocument();
-
-      // The checkbox for GitLab repo should not be disabled (since the flag is on)
-      const gitlabCheckbox = within(modal).getByRole('checkbox', {
-        checked: false,
-      });
-      expect(gitlabCheckbox).toBeEnabled();
-    });
-
-    it('shows GitLab repos as disabled when seer-gitlab-support flag is off', async () => {
+    it('shows GitLab repos as selectable', async () => {
       // Override the repos mock from beforeEach to include a GitLab repo
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/repos/`,
@@ -1547,8 +1745,58 @@ describe('ProjectSeer', () => {
 
       const modal = await screen.findByRole('dialog');
 
-      // GitLab repo should appear in the list but be disabled (not selectable without the flag)
-      expect(within(modal).getByText('getsentry/gitlab-repo')).toBeInTheDocument();
+      const gitlabRepoItem = await within(modal).findByText('getsentry/gitlab-repo');
+      expect(gitlabRepoItem).toBeInTheDocument();
+
+      const gitlabCheckbox = within(modal).getByRole('checkbox', {
+        checked: false,
+      });
+      expect(gitlabCheckbox).toBeEnabled();
+    });
+  });
+
+  describe('Cursor Origin support', () => {
+    it('shows Origin repos as selectable when seer-cursor-origin-support flag is on', async () => {
+      const orgWithOriginSupport = OrganizationFixture({
+        features: ['seer-cursor-origin-support'],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithOriginSupport.slug}/repos/`,
+        query: {status: 'active'},
+        method: 'GET',
+        body: [
+          RepositoryFixture({
+            id: '1',
+            name: 'getsentry/sentry',
+            externalId: '101',
+            provider: {id: 'integrations:github', name: 'GitHub'},
+            integrationId: '201',
+          }),
+          RepositoryFixture({
+            id: '4',
+            name: 'acme/rocket',
+            externalId: 'r_01example',
+            provider: {id: 'integrations:cursor_origin', name: 'Cursor Origin'},
+            integrationId: '204',
+          }),
+        ],
+      });
+
+      render(<ProjectSeer />, {
+        organization: orgWithOriginSupport,
+        outletContext: {project},
+      });
+      renderGlobalModal({organization: orgWithOriginSupport});
+
+      expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Add Repositories to Project'})
+      );
+
+      const modal = await screen.findByRole('dialog');
+      expect(await within(modal).findByText('acme/rocket')).toBeInTheDocument();
+      expect(within(modal).getByRole('checkbox', {checked: false})).toBeEnabled();
     });
   });
 });

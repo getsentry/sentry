@@ -11,13 +11,6 @@ type RecordType = {
     | {
         nodeId: number;
         label?: string;
-      }
-    | {
-        element: {
-          element: string;
-          target: string[];
-        };
-        label: string;
       };
 };
 
@@ -26,16 +19,6 @@ function getNodeIdAndLabel(record: RecordType) {
     return;
   }
   const data = record.data;
-  if (
-    'element' in data &&
-    'target' in data.element &&
-    Array.isArray(data.element.target)
-  ) {
-    return {
-      selector: data.element.target.join(' '),
-      annotation: data.label,
-    };
-  }
   if ('nodeId' in data) {
     return {nodeIds: [data.nodeId], annotation: record.data.label};
   }

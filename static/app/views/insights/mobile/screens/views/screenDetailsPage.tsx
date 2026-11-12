@@ -16,11 +16,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
-import {PlatformizedAppStartsOverview} from 'sentry/views/insights/mobile/screens/views/platformizedAppStartsOverview';
-import {PlatformizedScreenLoadsOverview} from 'sentry/views/insights/mobile/screens/views/platformizedScreenLoadsOverview';
-import {PlatformizedScreenRenderingOverview} from 'sentry/views/insights/mobile/screens/views/platformizedScreenRenderingOverview';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {ModuleName} from 'sentry/views/insights/types';
+
+import {PlatformizedAppStartsOverview} from './platformizedAppStartsOverview';
+import {PlatformizedScreenLoadsOverview} from './platformizedScreenLoadsOverview';
+import {PlatformizedScreenRenderingOverview} from './platformizedScreenRenderingOverview';
 
 type Query = {
   project: string;
@@ -34,7 +35,6 @@ type Tab = {
   content: () => React.ReactNode;
   key: TabKey;
   label: string;
-  feature?: string;
   featureBadge?: FeatureBadgeProps['type'];
 };
 
@@ -88,10 +88,8 @@ function ScreenDetailsPage() {
   const tabList = (
     <TabList>
       {tabs.map(tab => {
-        const visible =
-          tab.feature === undefined || organization.features.includes(tab.feature);
         return (
-          <TabList.Item key={tab.key} hidden={!visible} textValue={tab.label}>
+          <TabList.Item key={tab.key} textValue={tab.label}>
             {tab.label}
             {tab.featureBadge && <FeatureBadge type={tab.featureBadge} />}
           </TabList.Item>
@@ -111,15 +109,7 @@ function ScreenDetailsPage() {
               hideDefaultTabs
               tabs={{tabList, value: selectedTabKey, onTabChange: handleTabChange}}
               headerTitle={transactionName}
-              breadcrumbs={[
-                {
-                  label: t('Mobile Vitals'),
-                  to: moduleURL,
-                },
-                {
-                  label: t('Screen Summary'),
-                },
-              ]}
+              breadcrumbs={[{type: 'link', label: t('Mobile Vitals'), to: moduleURL}]}
             />
             <Layout.Body>
               <Layout.Main width="full">

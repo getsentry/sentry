@@ -1,25 +1,25 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {
+  BreadcrumbListProps,
+  BreadcrumbTitleItem,
+} from '@sentry/scraps/breadcrumbList';
 import {Flex} from '@sentry/scraps/layout';
 
-import * as Layout from 'sentry/components/layouts/thirds';
-import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
+import {BreadcrumbTitle} from './settingsBreadcrumb/breadcrumbTitle';
 
 type Props = {
-  title: React.ReactNode;
+  title: string | BreadcrumbTitleItem;
   action?: React.ReactNode;
+  breadcrumbs?: BreadcrumbListProps['items'];
   subtitle?: React.ReactNode;
 };
 
-export function SettingsPageHeader({title, subtitle, action}: Props) {
+export function SettingsPageHeader({title, subtitle, action, breadcrumbs}: Props) {
   return (
     <Fragment>
-      {typeof title === 'string' ? (
-        <BreadcrumbTitle title={title} />
-      ) : (
-        title && <Layout.Title>{title}</Layout.Title>
-      )}
+      <BreadcrumbTitle title={title} breadcrumbs={breadcrumbs} />
       {(subtitle || action) && (
         <Flex marginBottom="xl" width="100%" justify="between" align="start" gap="md">
           <Subtitle>{subtitle}</Subtitle>
@@ -32,7 +32,6 @@ export function SettingsPageHeader({title, subtitle, action}: Props) {
 
 const Subtitle = styled('div')`
   width: 100%;
-  max-width: 72ch;
   color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.font.weight.sans.regular};
   font-size: ${p => p.theme.font.size.md};

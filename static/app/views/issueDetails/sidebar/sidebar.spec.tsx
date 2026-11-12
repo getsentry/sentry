@@ -4,6 +4,8 @@ import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {PullRequestFixture} from 'sentry-fixture/pullRequest';
+import {RepositoryFixture} from 'sentry-fixture/repository';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -13,28 +15,30 @@ import {GroupStore} from 'sentry/stores/groupStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {GroupActivityType} from 'sentry/types/group';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
-import {IssueDetailsSidebar} from 'sentry/views/issueDetails/sidebar/sidebar';
+
+import {IssueDetailsSidebar} from './sidebar';
 
 describe('IssueDetailsSidebar', () => {
   const user = UserFixture();
-  user.options.prefersIssueDetailsStreamlinedUI = true;
   ConfigStore.set('user', user);
 
   const activityContent = 'test-note';
   const issueTrackingKey = 'issue-key';
 
-  const organization = OrganizationFixture({features: ['gen-ai-features']});
+  const organization = OrganizationFixture();
   const project = ProjectFixture();
   const group = GroupFixture({
     activity: [
       {
         type: GroupActivityType.NOTE,
         id: 'note-1',
+        commentId: 'note-1',
         data: {text: activityContent},
         dateCreated: '2020-01-01T00:00:00',
         user,
       },
     ],
+    numComments: 1,
   });
   const event = EventFixture({group});
 
@@ -72,7 +76,6 @@ describe('IssueDetailsSidebar', () => {
       body: {
         hasSupportedScmIntegration: true,
         isAutofixEnabled: true,
-        isCodeReviewEnabled: true,
         isSeerConfigured: true,
       },
     });
@@ -80,6 +83,14 @@ describe('IssueDetailsSidebar', () => {
     mockFirstLastRelease = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
       method: 'GET',
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sentry-app-components/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sentry-app-installations/`,
+      body: [],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/1/external-issues/`,
@@ -140,12 +151,52 @@ describe('IssueDetailsSidebar', () => {
     expect(mockExternalIssues).toHaveBeenCalled();
 
     expect(screen.getByRole('heading', {name: 'Activity'})).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: /Add a comment/})).toBeInTheDocument();
+    expect(screen.getByRole('combobox', {name: 'Add a comment'})).toBeInTheDocument();
     expect(screen.getByText(activityContent)).toBeInTheDocument();
+
+    expect(screen.getByRole('button', {name: 'View 1 comment'})).toBeInTheDocument();
 
     expect(screen.getByRole('heading', {name: 'Similar Issues'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'View Similar Issues'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Merged Issues'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'View Merged Issues'})).toBeInTheDocument();
+  });
+
+  it('renders linked pull requests without a current event', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {
+        pullRequests: [
+          {
+            ...PullRequestFixture({
+              id: '123',
+              repository: RepositoryFixture({
+                id: '42',
+                name: 'example/widget-app',
+                provider: {id: 'integrations:github', name: 'GitHub'},
+              }),
+              externalUrl: 'https://github.com/example/widget-app/pull/123',
+            }),
+            attribution: null,
+            dateLinked: '2026-06-08T23:11:32.000000Z',
+            status: 'open',
+          },
+        ],
+      },
+    });
+
+    render(
+      <GroupDataContextProvider group={group} project={group.project}>
+        <IssueDetailsSidebar group={group} project={project} />
+      </GroupDataContextProvider>,
+      {organization}
+    );
+
+    expect(await screen.findByText('External Links')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('link', {
+        name: /Pull request #123 in example\/widget-app/,
+      })
+    ).toBeInTheDocument();
   });
 });

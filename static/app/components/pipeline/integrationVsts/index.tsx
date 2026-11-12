@@ -1,10 +1,10 @@
 import {useCallback, useEffect, useRef} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import type {OAuthCallbackData} from 'sentry/components/pipeline/shared/oauthLoginStep';
 import {OAuthLoginStep} from 'sentry/components/pipeline/shared/oauthLoginStep';
 import type {

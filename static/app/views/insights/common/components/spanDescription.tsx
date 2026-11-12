@@ -1,17 +1,17 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
+import {useQueryState} from 'nuqs';
 
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Flex} from '@sentry/scraps/layout';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import {releaseApiOptions} from 'sentry/utils/releaseApiOptions';
 import {SQLishFormatter} from 'sentry/utils/sqlish';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -28,7 +28,7 @@ import type {SpanResponse} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
 interface Props {
-  groupId: SpanResponse[SpanFields.SPAN_GROUP];
+  spanId: SpanResponse[SpanFields.ID];
   preliminaryDescription?: string;
   shouldClipHeight?: boolean;
   showBorder?: boolean;
@@ -37,33 +37,31 @@ interface Props {
 const formatter = new SQLishFormatter();
 
 export function DatabaseSpanDescription({
-  groupId,
+  spanId,
   preliminaryDescription,
   showBorder = true,
   shouldClipHeight = true,
 }: Props) {
-  const navigate = useNavigate();
-  const location = useLocation();
   const {projects} = useProjects();
   const organization = useOrganization();
 
   const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useSpans(
     {
-      search: MutableSearch.fromQueryObject({'span.group': groupId ?? undefined}),
+      search: MutableSearch.fromQueryObject({id: spanId}),
+      enabled: Boolean(spanId),
       limit: 1,
       fields: [
         SpanFields.PROJECT_ID,
         SpanFields.SPAN_DESCRIPTION,
-        SpanFields.DB_SYSTEM,
-        SpanFields.CODE_FILEPATH,
-        SpanFields.CODE_LINENO,
+        SpanFields.DB_SYSTEM_NAME,
+        SpanFields.CODE_FILE_PATH,
+        SpanFields.CODE_LINE_NUMBER,
         SpanFields.CODE_FUNCTION,
         SpanFields.SDK_NAME,
         SpanFields.SDK_VERSION,
         SpanFields.RELEASE,
         SpanFields.PLATFORM,
       ],
-      sorts: [{field: SpanFields.CODE_FILEPATH, kind: 'desc'}],
     },
     'api.insights.span-description'
   );
@@ -97,21 +95,33 @@ export function DatabaseSpanDescription({
   // isExpanded is a query param that is meant to be accessed only when clicking on the
   // "View full query" button from the hover tooltip. It is removed from the query params
   // on the initial load so the value is not persisted through the link
-  const [isExpanded] = useState<boolean>(() => Boolean(location.query.isExpanded));
+  const [isExpandedParam, setIsExpandedParam] = useQueryState('isExpanded');
+  const [isExpanded] = useState<boolean>(() => Boolean(isExpandedParam));
   useEffect(() => {
-    navigate(
-      {...location, query: {...location.query, isExpanded: undefined}},
-      {replace: true}
-    );
-    // Skip the `location` dependency because it will cause this effect to trigger infinitely, since
-    // `navigate` will update the location within this effect
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate]);
+    setIsExpandedParam(null);
+  }, [setIsExpandedParam]);
 
-  const system = indexedSpan?.['db.system'];
-  const codeFilepath = indexedSpan?.['code.filepath'];
-  const codeLineno = indexedSpan?.['code.lineno'];
-  const codeFunction = indexedSpan?.['code.function'];
+  const system = getAttributeValue(
+    indexedSpan ?? {},
+    SpanFields.DB_SYSTEM_NAME,
+    'string'
+  );
+  const codeFilepath = getAttributeValue(
+    indexedSpan ?? {},
+    SpanFields.CODE_FILE_PATH,
+    'string'
+  );
+  const codeLineNumber = getAttributeValue(
+    indexedSpan ?? {},
+    SpanFields.CODE_LINE_NUMBER,
+    'number'
+  );
+  const codeLineno = codeLineNumber === undefined ? undefined : Number(codeLineNumber);
+  const codeFunction = getAttributeValue(
+    indexedSpan ?? {},
+    SpanFields.CODE_FUNCTION,
+    'string'
+  );
 
   const formattedDescription = useMemo(() => {
     const rawDescription = indexedSpan?.['span.description'] || preliminaryDescription;

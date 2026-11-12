@@ -1,7 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PreprodBuildDetailsWithSizeInfoFixture} from 'sentry-fixture/preprod';
+import {
+  PreprodAppInfoFixture,
+  PreprodBuildDetailsWithSizeInfoFixture,
+} from 'sentry-fixture/preprod';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+
+import {DateTimeProvider} from '@sentry/scraps/datetime';
 
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {BuildDetailsSizeAnalysisState} from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -42,25 +47,35 @@ describe('InstallPage', () => {
     });
   });
 
-  function renderInstallPage() {
-    return render(
+  function ExampleInstallPage() {
+    return (
       <TopBar.Slot.Provider>
+        <TopBar.Slot.Outlet name="breadcrumbs">
+          {props => <div {...props} data-test-id="topbar-breadcrumbs-slot" />}
+        </TopBar.Slot.Outlet>
         <TopBar.Slot.Outlet name="title">
           {props => <div {...props} data-test-id="topbar-title-slot" />}
         </TopBar.Slot.Outlet>
         <InstallPage />
-      </TopBar.Slot.Provider>,
-      {organization, initialRouterConfig}
+      </TopBar.Slot.Provider>
     );
   }
 
-  it('renders the Releases breadcrumb linking to the mobile-builds distribution view', async () => {
-    renderInstallPage();
+  it('uses Releases as the loading title, then shows it as a parent link', async () => {
+    render(<ExampleInstallPage />, {organization, initialRouterConfig});
 
-    expect(await screen.findByText('Test App')).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Releases', level: 1})).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'Releases'})).not.toBeInTheDocument();
+    expect(screen.getByTestId('topbar-breadcrumbs-slot')).toBeEmptyDOMElement();
 
-    const topbarSlot = screen.getByTestId('topbar-title-slot');
-    const releasesLink = within(topbarSlot).getByRole('link', {name: 'Releases'});
+    expect(
+      await screen.findByRole('heading', {name: 'Test App - v1.0.0 (123)', level: 1})
+    ).toBeInTheDocument();
+
+    const releasesLink = within(screen.getByTestId('topbar-breadcrumbs-slot')).getByRole(
+      'link',
+      {name: 'Releases'}
+    );
 
     expect(releasesLink).toHaveAttribute(
       'href',
@@ -69,19 +84,81 @@ describe('InstallPage', () => {
   });
 
   it('renders the app info as the current crumb after Releases', async () => {
-    renderInstallPage();
+    render(<ExampleInstallPage />, {organization, initialRouterConfig});
 
-    expect(await screen.findByText('Test App')).toBeInTheDocument();
+    expect(await screen.findByText('Test App - v1.0.0 (123)')).toBeInTheDocument();
 
     const topbarSlot = screen.getByTestId('topbar-title-slot');
 
-    expect(within(topbarSlot).getByRole('link', {name: 'Releases'})).toBeInTheDocument();
-    expect(within(topbarSlot).getByText('Test App')).toBeInTheDocument();
-    expect(within(topbarSlot).getByText('v1.0.0 (123)')).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('topbar-breadcrumbs-slot')).getByRole('link', {
+        name: 'Releases',
+      })
+    ).toBeInTheDocument();
+    expect(within(topbarSlot).getByText('Test App - v1.0.0 (123)')).toBeInTheDocument();
     expect(within(topbarSlot).queryByText('Install')).not.toBeInTheDocument();
   });
 
-  it('keeps the Releases breadcrumb clickable when build details fail to load', async () => {
+  it('surfaces install groups from build details', async () => {
+    MockApiClient.addMockResponse({
+      url: BUILD_DETAILS_URL,
+      method: 'GET',
+      body: PreprodBuildDetailsWithSizeInfoFixture(
+        {
+          state: BuildDetailsSizeAnalysisState.COMPLETED,
+          size_metrics: [],
+          base_size_metrics: [],
+        },
+        {
+          distribution_info: {
+            is_installable: true,
+            download_count: 0,
+            release_notes: null,
+            install_groups: ['qa', 'beta'],
+          },
+        }
+      ),
+    });
+    MockApiClient.addMockResponse({
+      url: INSTALL_DETAILS_URL,
+      method: 'GET',
+      body: {platform: 'ios', install_url: 'https://example.com/install'},
+    });
+
+    render(<ExampleInstallPage />, {organization, initialRouterConfig});
+
+    expect(await screen.findByText('Install Groups')).toBeInTheDocument();
+    expect(screen.getByText('qa')).toBeInTheDocument();
+    expect(screen.getByText('beta')).toBeInTheDocument();
+  });
+
+  it('shows the upload time in the user timezone', async () => {
+    MockApiClient.addMockResponse({
+      url: BUILD_DETAILS_URL,
+      method: 'GET',
+      body: PreprodBuildDetailsWithSizeInfoFixture(
+        {
+          state: BuildDetailsSizeAnalysisState.COMPLETED,
+          size_metrics: [],
+          base_size_metrics: [],
+        },
+        {
+          app_info: PreprodAppInfoFixture({date_added: '2017-10-16T19:41:20+00:00'}),
+        }
+      ),
+    });
+
+    render(
+      <DateTimeProvider value={{timezone: 'America/Los_Angeles', clockDisplay: '12'}}>
+        <ExampleInstallPage />
+      </DateTimeProvider>,
+      {organization, initialRouterConfig}
+    );
+
+    expect(await screen.findByText('Oct 16, 12:41:20 PM PDT')).toBeInTheDocument();
+  });
+
+  it('keeps Releases as the title when build details fail to load', async () => {
     MockApiClient.addMockResponse({
       url: BUILD_DETAILS_URL,
       method: 'GET',
@@ -89,17 +166,10 @@ describe('InstallPage', () => {
       body: {detail: 'Internal Error'},
     });
 
-    renderInstallPage();
+    render(<ExampleInstallPage />, {organization, initialRouterConfig});
 
-    expect(await screen.findByText('Install')).toBeInTheDocument();
-
-    const topbarSlot = screen.getByTestId('topbar-title-slot');
-
-    const releasesLink = within(topbarSlot).getByRole('link', {name: 'Releases'});
-    expect(releasesLink).toHaveAttribute(
-      'href',
-      `/organizations/${organization.slug}/explore/releases/?tab=mobile-builds&display=distribution&query=installable%3Atrue`
-    );
-    expect(within(topbarSlot).getByText('Install')).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Retry'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Releases', level: 1})).toBeInTheDocument();
+    expect(screen.getByTestId('topbar-breadcrumbs-slot')).toBeEmptyDOMElement();
   });
 });

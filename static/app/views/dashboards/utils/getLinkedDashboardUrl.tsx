@@ -4,6 +4,7 @@ import qs from 'query-string';
 
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {FieldKind} from 'sentry/utils/fields';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import type {
   DashboardFilters,
   GlobalFilter,
@@ -89,14 +90,16 @@ export function getLinkedDashboardUrl({
     filterParams.project = projectIdOverride;
   }
 
-  const url = `/organizations/${organizationSlug}/dashboard/${linkedDashboard.dashboardId}/?${qs.stringify(
-    {
-      [DashboardFilterKeys.GLOBAL_FILTER]: newTemporaryFilters.map(filter =>
-        JSON.stringify(filter)
-      ),
-      ...filterParams,
-    }
-  )}`;
+  const url = normalizeUrl(
+    `/organizations/${organizationSlug}/dashboard/${linkedDashboard.dashboardId}/?${qs.stringify(
+      {
+        [DashboardFilterKeys.GLOBAL_FILTER]: newTemporaryFilters.map(filter =>
+          JSON.stringify(filter)
+        ),
+        ...filterParams,
+      }
+    )}`
+  );
 
   return url;
 }

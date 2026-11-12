@@ -27,9 +27,9 @@ from sentry.integrations.source_code_management.metrics import (
 )
 from sentry.integrations.source_code_management.repo_audit import log_repo_change
 from sentry.integrations.source_code_management.repository import (
-    HaltReason,
     RepositoryIntegration,
 )
+from sentry.integrations.types import HaltReason
 from sentry.integrations.utils.metrics import IntegrationEventLifecycle
 from sentry.locks import locks
 from sentry.organizations.services.organization import organization_service
@@ -63,6 +63,7 @@ SCM_SYNC_PROVIDERS = [
     "bitbucket_server",
     "vsts",
     "perforce",
+    "cursor_origin",
 ]
 
 SYNC_BATCH_SIZE = 100
@@ -224,11 +225,22 @@ def _sync_repos_for_org(organization_integration_id: int) -> None:
         disabled_repos = [
             r for r in all_repos if r.status == ObjectStatus.DISABLED and r.external_id
         ]
+        # Repos that are being deleted must be excluded from the "new" set so
+        # the sync doesn't attempt to re-create them while deletion is in flight.
+        pending_deletion_repos = [
+            r
+            for r in all_repos
+            if r.status in (ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS)
+            and r.external_id
+        ]
 
         sentry_active_ids = {r.external_id for r in active_repos}
         sentry_disabled_ids = {r.external_id for r in disabled_repos}
+        sentry_pending_ids = {r.external_id for r in pending_deletion_repos}
 
-        new_ids = provider_external_ids - sentry_active_ids - sentry_disabled_ids
+        new_ids = (
+            provider_external_ids - sentry_active_ids - sentry_disabled_ids - sentry_pending_ids
+        )
         # Skip removals entirely if we didn't manage to fetch all repos for this integration.
         # We have to do this, otherwise we'd incorrectly disable repos that weren't fetched
         removed_ids = set() if fetch_truncated else sentry_active_ids - provider_external_ids
@@ -469,6 +481,7 @@ def disable_repos_batch(
         organization_id=rpc_org.id,
         integration_id=integration.id,
         providers=[provider],
+        external_ids=external_ids,
     )
     repo_by_external_id = {r.external_id: r for r in all_repos}
 
@@ -505,7 +518,9 @@ def restore_repos_batch(
         organization_id=rpc_org.id,
         integration_id=integration.id,
         providers=[provider],
+        external_ids=external_ids,
     )
+    integration_repo_provider = get_integration_repository_provider(integration)
     restore_set = set(external_ids)
     for repo in all_repos:
         if repo.external_id in restore_set:
@@ -518,6 +533,19 @@ def restore_repos_batch(
                 source="automatic SCM syncing",
                 provider=provider_key,
             )
+            # the repo is already restored, so a failure here must not retry the batch
+            try:
+                integration_repo_provider.on_create_repository(repo, rpc_org)
+            except Exception:
+                logger.warning(
+                    "sync_repos.restore_repos_batch.on_create_failed",
+                    exc_info=True,
+                    extra={
+                        "organization_id": rpc_org.id,
+                        "integration_id": integration.id,
+                        "repository_id": repo.id,
+                    },
+                )
 
 
 @instrumented_task(

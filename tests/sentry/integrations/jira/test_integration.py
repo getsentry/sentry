@@ -1,15 +1,24 @@
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 from unittest.mock import patch
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 import responses
 from django.test.utils import override_settings
 from django.urls import reverse
+from requests import PreparedRequest
 
 from fixtures.integrations.jira.stub_client import StubJiraApiClient
 from fixtures.integrations.stub_service import StubService
-from sentry.integrations.jira.integration import JiraIntegrationProvider
+from sentry.constants import ObjectStatus
+from sentry.integrations.base import IntegrationInstallation
+from sentry.integrations.jira.integration import (
+    JiraIntegration,
+    JiraIntegrationProvider,
+    _build_project_mapping_audit_data,
+    _ProjectStatusMapping,
+)
 from sentry.integrations.jira.views import SALT
 from sentry.integrations.mixins.issues import IntegrationSyncTargetNotFound
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -19,6 +28,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.shared_integrations.exceptions import (
+    ApiError,
     IntegrationConfigurationError,
     IntegrationError,
     IntegrationFormError,
@@ -27,6 +37,8 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.users.services.user.serial import serialize_rpc_user
@@ -34,13 +46,88 @@ from sentry.utils import json
 from sentry.utils.signing import sign
 
 pytestmark = [requires_snuba]
+EXPLICIT_MAPPING_REMOVALS_FEATURE = "organizations:jira-explicit-mapping-removals"
 
 
-def get_client():
+def get_client() -> StubJiraApiClient:
     return StubJiraApiClient()
 
 
+def test_build_project_mapping_audit_data() -> None:
+    upserts = {
+        external_id: _ProjectStatusMapping(
+            on_resolve=f"resolve-{external_id}", on_unresolve=f"unresolve-{external_id}"
+        )
+        for external_id in ("1", "2", "3")
+    }
+    existing = {
+        external_id: _ProjectStatusMapping(
+            on_resolve=f"previous-resolve-{external_id}",
+            on_unresolve=f"previous-unresolve-{external_id}",
+        )
+        for external_id in ("2", "3", "4", "5", "6")
+    }
+
+    assert _build_project_mapping_audit_data(
+        additions=["1"],
+        updates=["2", "3"],
+        removals=["4", "5", "6"],
+        upserts=upserts,
+        existing=existing,
+    ) == {
+        "added_count": 1,
+        "updated_count": 2,
+        "removed_count": 3,
+        "added_project_mappings": [
+            {"external_id": "1", "on_resolve": "resolve-1", "on_unresolve": "unresolve-1"}
+        ],
+        "updated_project_mappings": [
+            {
+                "external_id": "2",
+                "on_resolve": "resolve-2",
+                "on_unresolve": "unresolve-2",
+                "previous_on_resolve": "previous-resolve-2",
+                "previous_on_unresolve": "previous-unresolve-2",
+            },
+            {
+                "external_id": "3",
+                "on_resolve": "resolve-3",
+                "on_unresolve": "unresolve-3",
+                "previous_on_resolve": "previous-resolve-3",
+                "previous_on_unresolve": "previous-unresolve-3",
+            },
+        ],
+        "removed_project_mappings": [
+            {
+                "external_id": "4",
+                "on_resolve": "previous-resolve-4",
+                "on_unresolve": "previous-unresolve-4",
+            },
+            {
+                "external_id": "5",
+                "on_resolve": "previous-resolve-5",
+                "on_unresolve": "previous-unresolve-5",
+            },
+            {
+                "external_id": "6",
+                "on_resolve": "previous-resolve-6",
+                "on_unresolve": "previous-unresolve-6",
+            },
+        ],
+    }
+
+    assert (
+        _build_project_mapping_audit_data(
+            additions=[], updates=[], removals=[], upserts={}, existing={}
+        )
+        is None
+    )
+
+
 class RegionJiraIntegrationTest(APITestCase):
+    def get_installation(self) -> JiraIntegration:
+        return get_installation_of_type(JiraIntegration, self.integration, self.organization.id)
+
     def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1).isoformat()
@@ -61,31 +148,44 @@ class RegionJiraIntegrationTest(APITestCase):
             self.user.save()
         self.login_as(self.user)
 
+    def test_issue_url(self) -> None:
+        installation = self.get_installation()
+        for path in ("browse/abc-123", "jira/software/projects/ABC/boards/1?selectedIssue=ABC-123"):
+            assert installation.get_issue_link_data(f"https://example.atlassian.net/{path}") == {
+                "externalIssue": "ABC-123"
+            }
+        for url in (
+            "https://other.atlassian.net/browse/ABC-123",
+            "https://user:password@example.atlassian.net/browse/ABC-123",
+        ):
+            with pytest.raises(IntegrationFormError):
+                installation.get_issue_link_data(url)
+
     def test_create_comment(self) -> None:
-        installation = self.integration.get_installation(self.organization.id)
+        installation = self.get_installation()
 
         group_note = mock.Mock()
         comment = "hello world\nThis is a comment.\n\n\n    Glad it's quoted"
         group_note.data = {"text": comment}
         with mock.patch.object(StubJiraApiClient, "create_comment") as mock_create_comment:
             with mock.patch.object(installation, "get_client", get_client):
-                installation.create_comment(1, self.user.id, group_note)
+                installation.create_comment("1", self.user.id, group_note)
                 assert (
                     mock_create_comment.call_args[0][1]
                     == "Sentry Admin wrote:\n\n{quote}%s{quote}" % comment
                 )
 
     def test_update_comment(self) -> None:
-        installation = self.integration.get_installation(self.organization.id)
+        installation = self.get_installation()
 
         group_note = mock.Mock()
         comment = "hello world\nThis is a comment.\n\n\n    I've changed it"
         group_note.data = {"text": comment, "external_id": "123"}
         with mock.patch.object(StubJiraApiClient, "update_comment") as mock_update_comment:
             with mock.patch.object(installation, "get_client", get_client):
-                installation.update_comment(1, self.user.id, group_note)
+                installation.update_comment("1", self.user.id, group_note)
                 assert mock_update_comment.call_args[0] == (
-                    1,
+                    "1",
                     "123",
                     "Sentry Admin wrote:\n\n{quote}%s{quote}" % comment,
                 )
@@ -103,7 +203,7 @@ class RegionJiraIntegrationTest(APITestCase):
         group = event.group
         assert group is not None
 
-        installation = self.integration.get_installation(self.organization.id)
+        installation = self.get_installation()
         search_url = reverse(
             "sentry-extensions-jira-search",
             args=[self.organization.slug, self.integration.id],
@@ -256,7 +356,7 @@ class RegionJiraIntegrationTest(APITestCase):
             },
         )
         # None, user, params=self.params
-        installation = self.integration.get_installation(self.organization.id)
+        installation = self.get_installation()
         fields = installation.get_create_issue_config(group=None, user=self.user)
 
         # Find the project field in the config
@@ -330,7 +430,7 @@ class RegionJiraIntegrationTest(APITestCase):
             },
         )
 
-        installation = self.integration.get_installation(self.organization.id)
+        installation = self.get_installation()
         fields = installation.get_create_issue_config(group, self.user)
 
         # Find the project field in the config
@@ -359,13 +459,15 @@ class RegionJiraIntegrationTest(APITestCase):
         )
         group = event.group
 
-        installation = self.integration.get_installation(self.organization.id)
+        installation = self.get_installation()
         with (
             self.feature("system:multi-region"),
             mock.patch.object(installation, "get_client", get_client),
         ):
             issue_config = installation.get_create_issue_config(group, self.user)
-            assert f"{self.organization.slug}.testserver" in issue_config[2]["default"]
+            default = issue_config[2]["default"]
+            assert isinstance(default, str)
+            assert f"{self.organization.slug}.testserver" in default
 
     def test_get_create_issue_config_with_persisted_reporter(self) -> None:
         event = self.store_event(
@@ -378,7 +480,7 @@ class RegionJiraIntegrationTest(APITestCase):
             default_event_type=EventType.DEFAULT,
         )
         group = event.group
-        installation = self.integration.get_installation(self.organization.id)
+        installation = self.get_installation()
 
         # When persisted reporter matches a user JIRA knows about, a default is picked.
         account_id = StubService.get_stub_data("jira", "user.json")["accountId"]
@@ -433,7 +535,7 @@ class RegionJiraIntegrationTest(APITestCase):
             default_event_type=EventType.DEFAULT,
         )
         group = event.group
-        installation = self.integration.get_installation(self.organization.id)
+        installation = self.get_installation()
 
         with mock.patch.object(installation, "get_client", get_client):
             # Initially all fields are present
@@ -455,10 +557,12 @@ class RegionJiraIntegrationTest(APITestCase):
             ]
             # After ignoring "customfield_10200", it no longer shows up
             with assume_test_silo_mode_of(OrganizationIntegration):
-                installation.org_integration = integration_service.update_organization_integration(
+                updated_org_integration = integration_service.update_organization_integration(
                     org_integration_id=installation.org_integration.id,
                     config={"issues_ignored_fields": ["customfield_10200"]},
                 )
+                assert updated_org_integration is not None
+                installation.org_integration = updated_org_integration
 
             fields = installation.get_create_issue_config(group, self.user)
             field_names = [field["name"] for field in fields]
@@ -488,13 +592,15 @@ class RegionJiraIntegrationTest(APITestCase):
         )
         group = event.group
         assert group is not None
-        installation = self.integration.get_installation(self.organization.id)
+        installation = self.get_installation()
 
         with assume_test_silo_mode_of(OrganizationIntegration):
-            installation.org_integration = integration_service.update_organization_integration(
+            updated_org_integration = integration_service.update_organization_integration(
                 org_integration_id=installation.org_integration.id,
                 config={"project_issue_defaults": {str(group.project_id): {"project": "10001"}}},
             )
+            assert updated_org_integration is not None
+            installation.org_integration = updated_org_integration
 
         with mock.patch.object(installation, "get_client", get_client):
             fields = installation.get_create_issue_config(
@@ -528,13 +634,15 @@ class RegionJiraIntegrationTest(APITestCase):
         )
         group = event.group
         assert group is not None
-        installation = self.integration.get_installation(self.organization.id)
+        installation = self.get_installation()
 
         with assume_test_silo_mode_of(OrganizationIntegration):
-            installation.org_integration = integration_service.update_organization_integration(
+            updated_org_integration = integration_service.update_organization_integration(
                 org_integration_id=installation.org_integration.id,
                 config={"project_issue_defaults": {str(group.project_id): {"project": "10001"}}},
             )
+            assert updated_org_integration is not None
+            installation.org_integration = updated_org_integration
 
         with mock.patch.object(installation, "get_client", get_client):
             fields = installation.get_create_issue_config(group, self.user)
@@ -556,8 +664,8 @@ class RegionJiraIntegrationTest(APITestCase):
 
     @patch("sentry.integrations.jira.integration.JiraIntegration.fetch_issue_create_meta")
     def test_get_create_issue_config_with_default_project_deleted(
-        self, mock_fetch_issue_create_meta
-    ):
+        self, mock_fetch_issue_create_meta: mock.MagicMock
+    ) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -569,13 +677,15 @@ class RegionJiraIntegrationTest(APITestCase):
         )
         group = event.group
         assert group is not None
-        installation = self.integration.get_installation(self.organization.id)
+        installation = self.get_installation()
 
         with assume_test_silo_mode_of(OrganizationIntegration):
-            installation.org_integration = integration_service.update_organization_integration(
+            updated_org_integration = integration_service.update_organization_integration(
                 org_integration_id=installation.org_integration.id,
                 config={"project_issue_defaults": {str(group.project_id): {"project": "10004"}}},
             )
+            assert updated_org_integration is not None
+            installation.org_integration = updated_org_integration
 
         with mock.patch.object(installation, "get_client", get_client):
             mock_fetch_issue_create_meta_return_value = json.loads(
@@ -622,14 +732,16 @@ class RegionJiraIntegrationTest(APITestCase):
         assert group is not None
         label_default = "hi"
 
-        installation = self.integration.get_installation(self.organization.id)
+        installation = self.get_installation()
         with assume_test_silo_mode_of(OrganizationIntegration):
-            installation.org_integration = integration_service.update_organization_integration(
+            updated_org_integration = integration_service.update_organization_integration(
                 org_integration_id=installation.org_integration.id,
                 config={
                     "project_issue_defaults": {str(group.project_id): {"labels": label_default}}
                 },
             )
+            assert updated_org_integration is not None
+            installation.org_integration = updated_org_integration
 
         with mock.patch.object(installation, "get_client", get_client):
             fields = installation.get_create_issue_config(group, self.user)
@@ -649,7 +761,7 @@ class RegionJiraIntegrationTest(APITestCase):
             data={"message": "oh no", "timestamp": self.min_ago}, project_id=self.project.id
         )
 
-        installation = self.integration.get_installation(self.organization.id)
+        installation = self.get_installation()
 
         # Simulate no projects available.
         responses.add(
@@ -667,7 +779,7 @@ class RegionJiraIntegrationTest(APITestCase):
             data={"message": "oh no", "timestamp": self.min_ago}, project_id=self.project.id
         )
 
-        installation = self.integration.get_installation(self.organization.id)
+        installation = self.get_installation()
 
         responses.add(
             responses.GET,
@@ -691,7 +803,7 @@ class RegionJiraIntegrationTest(APITestCase):
     def test_get_link_issue_config(self) -> None:
         group = self.create_group()
 
-        installation = self.integration.get_installation(self.organization.id)
+        installation = self.get_installation()
 
         assert installation.get_link_issue_config(group) == [
             {
@@ -707,7 +819,7 @@ class RegionJiraIntegrationTest(APITestCase):
         ]
 
     def test_create_issue(self) -> None:
-        installation = self.integration.get_installation(self.organization.id)
+        installation = self.get_installation()
 
         with mock.patch.object(installation, "get_client", get_client):
             assert installation.create_issue(
@@ -721,6 +833,8 @@ class RegionJiraIntegrationTest(APITestCase):
                 "title": "example summary",
                 "description": "example bug report",
                 "key": "APP-123",
+                # Jira's immutable id, kept so a project move can be followed.
+                "metadata": {"provider_issue_id": "10305"},
             }
 
     @responses.activate
@@ -739,7 +853,7 @@ class RegionJiraIntegrationTest(APITestCase):
             content_type="json",
         )
 
-        installation = self.integration.get_installation(self.organization.id)
+        installation = self.get_installation()
         with pytest.raises(IntegrationFormError):
             installation.create_issue(
                 {
@@ -765,7 +879,7 @@ class RegionJiraIntegrationTest(APITestCase):
             body=json.dumps({"error": "Jira had an oopsie"}),
             content_type="json",
         )
-        installation = self.integration.get_installation(self.organization.id)
+        installation = self.get_installation()
         with pytest.raises(IntegrationConfigurationError):
             installation.create_issue(
                 {
@@ -792,7 +906,7 @@ class RegionJiraIntegrationTest(APITestCase):
             body='<!DOCTYPE html>\n<html lang="en">\n    <head>\n        <title>Atlassian Cloud Notifications - Product Unavailable</title>\n    </head>\n    <body>\n        <h1>Jira has been deactivated</h1>\n    </body>\n</html>',
             content_type="text/html",
         )
-        installation = self.integration.get_installation(self.organization.id)
+        installation = self.get_installation()
         with pytest.raises(
             IntegrationConfigurationError,
             match="Something went wrong while communicating with Jira",
@@ -822,7 +936,7 @@ class RegionJiraIntegrationTest(APITestCase):
             body='<!DOCTYPE html>\n<html lang="en">\n    <head>\n        <title>Page Unavailable</title>\n    </head>\n    <body>\n        <h1>Page Unavailable</h1>\n    </body>\n</html>',
             content_type="text/html",
         )
-        installation = self.integration.get_installation(self.organization.id)
+        installation = self.get_installation()
         with pytest.raises(
             IntegrationConfigurationError,
             match="Something went wrong while communicating with Jira",
@@ -838,7 +952,7 @@ class RegionJiraIntegrationTest(APITestCase):
 
     @responses.activate
     def test_create_issue_labels_and_option(self) -> None:
-        installation = self.integration.get_installation(self.organization.id)
+        installation = self.get_installation()
 
         responses.add(
             responses.GET,
@@ -853,8 +967,8 @@ class RegionJiraIntegrationTest(APITestCase):
             content_type="json",
         )
 
-        def responder(request):
-            body = json.loads(request.body)
+        def responder(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
+            body = json.loads(cast("str | bytes", request.body))
             assert body["fields"]["labels"] == ["fuzzy", "bunnies"]
             assert body["fields"]["customfield_10200"] == {"value": "sad"}
             assert body["fields"]["customfield_10300"] == [
@@ -897,7 +1011,7 @@ class RegionJiraIntegrationTest(APITestCase):
                 unresolved_status="3",
             )
 
-        installation = self.integration.get_installation(self.organization.id)
+        installation = self.get_installation()
 
         with mock.patch.object(StubJiraApiClient, "transition_issue") as mock_transition_issue:
             with mock.patch.object(installation, "get_client", get_client):
@@ -913,7 +1027,7 @@ class RegionJiraIntegrationTest(APITestCase):
     def test_sync_assignee_outbound_case_insensitive(self) -> None:
         user = serialize_rpc_user(self.create_user(email="bob@example.com"))
         issue_id = "APP-123"
-        installation = self.integration.get_installation(self.organization.id)
+        installation = self.get_installation()
         assign_issue_url = "https://example.atlassian.net/rest/api/2/issue/%s/assignee" % issue_id
 
         external_issue = ExternalIssue.objects.create(
@@ -936,10 +1050,35 @@ class RegionJiraIntegrationTest(APITestCase):
         assert assign_issue_response.request.body == b'{"accountId": "deadbeef123"}'
 
     @responses.activate
+    def test_sync_assignee_outbound_stops_at_first_match(self) -> None:
+        user = self.create_user(email="bob@example.com")
+        self.create_useremail(user, "bob@other.example.com", is_verified=True)
+        issue_id = "APP-123"
+        installation = self.get_installation()
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id, integration_id=installation.model.id, key=issue_id
+        )
+        search_url = "https://example.atlassian.net/rest/api/2/user/assignable/search"
+
+        def search(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
+            email = parse_qs(urlparse(cast(str, request.url)).query)["query"][0]
+            return 200, {}, json.dumps([{"accountId": email, "emailAddress": email}])
+
+        responses.add_callback(responses.GET, search_url, callback=search)
+        responses.add(
+            responses.PUT,
+            "https://example.atlassian.net/rest/api/2/issue/%s/assignee" % issue_id,
+            json={},
+        )
+        installation.sync_assignee_outbound(external_issue, serialize_rpc_user(user))
+
+        assert [call.request.method for call in responses.calls] == ["GET", "PUT"]
+
+    @responses.activate
     def test_sync_assignee_outbound_no_email(self) -> None:
         user = serialize_rpc_user(self.create_user(email="bob@example.com"))
         issue_id = "APP-123"
-        installation = self.integration.get_installation(self.organization.id)
+        installation = self.get_installation()
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id,
             integration_id=installation.model.id,
@@ -961,7 +1100,7 @@ class RegionJiraIntegrationTest(APITestCase):
     def test_sync_assignee_outbound_use_email_api(self) -> None:
         user = serialize_rpc_user(self.create_user(email="bob@example.com"))
         issue_id = "APP-123"
-        installation = self.integration.get_installation(self.organization.id)
+        installation = self.get_installation()
         assign_issue_url = "https://example.atlassian.net/rest/api/2/issue/%s/assignee" % issue_id
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id,
@@ -995,7 +1134,7 @@ class RegionJiraIntegrationTest(APITestCase):
     def test_sync_assignee_outbound_api_unauthorized(self) -> None:
         user = serialize_rpc_user(self.create_user(email="bob@example.com"))
         issue_id = "APP-123"
-        installation = self.integration.get_installation(self.organization.id)
+        installation = self.get_installation()
         assign_issue_url = "https://example.atlassian.net/rest/api/2/issue/%s/assignee" % issue_id
 
         external_issue = ExternalIssue.objects.create(
@@ -1020,7 +1159,7 @@ class RegionJiraIntegrationTest(APITestCase):
     def test_sync_assignee_outbound_api_error(self) -> None:
         user = serialize_rpc_user(self.create_user(email="bob@example.com"))
         issue_id = "APP-123"
-        installation = self.integration.get_installation(self.organization.id)
+        installation = self.get_installation()
         assign_issue_url = "https://example.atlassian.net/rest/api/2/issue/%s/assignee" % issue_id
 
         external_issue = ExternalIssue.objects.create(
@@ -1131,7 +1270,8 @@ class JiraIntegrationTest(APITestCase):
             == 1
         )
 
-        # test disable forward
+        # Without explicit removals enabled, the payload is a complete replacement. An empty
+        # payload removes every mapping and disables forward sync.
         data = {
             "sync_comments": True,
             "sync_forward_assignment": True,
@@ -1209,11 +1349,71 @@ class JiraIntegrationTest(APITestCase):
         )
         integration.add_organization(self.organization, self.user)
 
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration_id=integration.id
+        )
+
+        org_integration.config = {
+            "sync_comments": True,
+            "sync_forward_assignment": True,
+            "sync_reverse_assignment": True,
+            "sync_status_reverse": True,
+            "sync_status_forward": True,
+        }
+        org_integration.save()
+
         responses.add(
             responses.GET,
             "https://example.atlassian.net/rest/api/2/project",
             json=[{"id": "12345", "name": "Example Project"}],
         )
+
+        # Create a valid project mapping
+        self.create_integration_external_project(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+            external_id="12345",
+            unresolved_status="in_progress",
+            resolved_status="done",
+        )
+
+        # Create a project mapping that is missing from the projects list response. It is
+        # hidden from the config response, but the row itself is left alone.
+        self.create_integration_external_project(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+            external_id="67890",
+            unresolved_status="in_progress",
+            resolved_status="done",
+        )
+
+        installation = integration.get_installation(self.organization.id)
+
+        assert installation.get_config_data() == {
+            "sync_comments": True,
+            "sync_forward_assignment": True,
+            "sync_reverse_assignment": True,
+            "sync_status_reverse": True,
+            "sync_status_forward": {"12345": {"on_resolve": "done", "on_unresolve": "in_progress"}},
+            "issues_ignored_fields": "",
+        }
+
+        # Building the response must not rewrite the stored config, which keeps a bool here.
+        assert installation.org_integration is not None
+        assert installation.org_integration.config["sync_status_forward"] is True
+
+    def test_get_config_data_returns_mappings_when_jira_api_fails(self) -> None:
+        integration = self.create_provider_integration(
+            provider="jira",
+            name="Example Jira",
+            metadata={
+                "oauth_client_id": "oauth-client-id",
+                "shared_secret": "a-super-secret-key-from-atlassian",
+                "base_url": "https://example.atlassian.net",
+                "domain_name": "example.atlassian.net",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
 
         org_integration = OrganizationIntegration.objects.get(
             organization_id=self.organization.id, integration_id=integration.id
@@ -1228,32 +1428,38 @@ class JiraIntegrationTest(APITestCase):
         }
         org_integration.save()
 
-        # Create a valid project mapping
-        IntegrationExternalProject.objects.create(
-            organization_integration_id=org_integration.id,
+        self.create_integration_external_project(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
             external_id="12345",
             unresolved_status="in_progress",
             resolved_status="done",
         )
 
-        # Create a project mapping that is missing from the projects list response.
-        # We expect this to be "healed" by the config query, and removed as the
-        # project is no longer visible in our integration.
-        IntegrationExternalProject.objects.create(
-            organization_integration_id=org_integration.id,
+        self.create_integration_external_project(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
             external_id="67890",
-            unresolved_status="in_progress",
-            resolved_status="done",
+            unresolved_status="todo",
+            resolved_status="resolved",
         )
 
         installation = integration.get_installation(self.organization.id)
 
-        assert installation.get_config_data() == {
+        with mock.patch.object(
+            installation, "_filter_active_projects", side_effect=ApiError("Jira is down")
+        ):
+            config = installation.get_config_data()
+
+        assert config == {
             "sync_comments": True,
             "sync_forward_assignment": True,
             "sync_reverse_assignment": True,
             "sync_status_reverse": True,
-            "sync_status_forward": {"12345": {"on_resolve": "done", "on_unresolve": "in_progress"}},
+            "sync_status_forward": {
+                "12345": {"on_resolve": "done", "on_unresolve": "in_progress"},
+                "67890": {"on_resolve": "resolved", "on_unresolve": "todo"},
+            },
             "issues_ignored_fields": "",
         }
 
@@ -1284,18 +1490,14 @@ class JiraIntegrationTest(APITestCase):
         }
         org_integration.save()
 
-        IntegrationExternalProject.objects.create(
-            organization_integration_id=org_integration.id,
-            external_id="12345",
-            unresolved_status="in_progress",
-            resolved_status="done",
-        )
-        IntegrationExternalProject.objects.create(
-            organization_integration_id=org_integration.id,
-            external_id="67890",
-            unresolved_status="in_progress",
-            resolved_status="done",
-        )
+        for external_id in ("12345", "67890"):
+            self.create_integration_external_project(
+                organization_id=self.organization.id,
+                integration_id=integration.id,
+                external_id=external_id,
+                unresolved_status="in_progress",
+                resolved_status="done",
+            )
 
         responses.add(
             responses.GET,
@@ -1315,6 +1517,443 @@ class JiraIntegrationTest(APITestCase):
         assert "rest/api/2/project/search" in responses.calls[0].request.url
         assert "id=12345" in responses.calls[0].request.url
         assert "id=67890" in responses.calls[0].request.url
+
+    def _mappings(self, org_integration_id: int) -> dict[str, tuple[str, str]]:
+        return {
+            iep.external_id: (iep.resolved_status, iep.unresolved_status)
+            for iep in IntegrationExternalProject.objects.filter(
+                organization_integration_id=org_integration_id
+            )
+        }
+
+    def _jira_installation_with_mappings(
+        self, *external_ids: str
+    ) -> tuple[IntegrationInstallation, OrganizationIntegration]:
+        integration = self.create_provider_integration(provider="jira", name="Example Jira")
+        integration.add_organization(self.organization, self.user)
+        for external_id in external_ids:
+            self.create_integration_external_project(
+                organization_id=self.organization.id,
+                integration_id=integration.id,
+                external_id=external_id,
+                resolved_status="done",
+                unresolved_status="in_progress",
+            )
+
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration_id=integration.id
+        )
+        return integration.get_installation(self.organization.id), org_integration
+
+    def test_update_organization_config_replaces_omitted_mappings_without_feature(self) -> None:
+        installation, org_integration = self._jira_installation_with_mappings("1", "2")
+
+        with patch("sentry.integrations.jira.integration.logger") as mock_logger:
+            audit_data = installation.update_organization_config(
+                {
+                    "sync_status_forward": {
+                        "1": {"on_resolve": "done", "on_unresolve": "in_progress"}
+                    }
+                }
+            )
+
+        assert self._mappings(org_integration.id) == {"1": ("done", "in_progress")}
+        mock_logger.info.assert_not_called()
+        assert audit_data == {
+            "sync_status_forward": {
+                "added_count": 0,
+                "updated_count": 0,
+                "removed_count": 1,
+                "added_project_mappings": [],
+                "updated_project_mappings": [],
+                "removed_project_mappings": [
+                    {"external_id": "2", "on_resolve": "done", "on_unresolve": "in_progress"}
+                ],
+            }
+        }
+
+    def test_update_organization_config_rejects_explicit_removal_without_feature(self) -> None:
+        installation, org_integration = self._jira_installation_with_mappings("1")
+
+        with pytest.raises(IntegrationError):
+            installation.update_organization_config({"sync_status_forward": {"1": None}})
+
+        assert self._mappings(org_integration.id) == {"1": ("done", "in_progress")}
+
+    @with_feature(EXPLICIT_MAPPING_REMOVALS_FEATURE)
+    def test_update_organization_config_only_touches_changed_mappings(self) -> None:
+        """
+        A mapping the payload doesn't mention is left alone -- absence is not a delete.
+
+        Untouched rows also keep their row rather than being deleted and recreated.
+        """
+        installation, org_integration = self._jira_installation_with_mappings("1", "2", "3")
+        unchanged_row_id = IntegrationExternalProject.objects.get(
+            organization_integration_id=org_integration.id, external_id="1"
+        ).id
+
+        audit_data = installation.update_organization_config(
+            {
+                "sync_status_forward": {
+                    # unchanged
+                    "1": {"on_resolve": "done", "on_unresolve": "in_progress"},
+                    # status changed
+                    "2": {"on_resolve": "closed", "on_unresolve": "open"},
+                    # "3" omitted -> untouched
+                    # new
+                    "4": {"on_resolve": "shipped", "on_unresolve": "todo"},
+                }
+            }
+        )
+
+        assert self._mappings(org_integration.id) == {
+            "1": ("done", "in_progress"),
+            "2": ("closed", "open"),
+            "3": ("done", "in_progress"),
+            "4": ("shipped", "todo"),
+        }
+
+        # An untouched mapping keeps its row instead of being deleted and recreated.
+        assert (
+            IntegrationExternalProject.objects.get(
+                organization_integration_id=org_integration.id, external_id="1"
+            ).id
+            == unchanged_row_id
+        )
+
+        # "3" was omitted, so it is absent from the audit entry -- nothing happened to it.
+        assert audit_data == {
+            "sync_status_forward": {
+                "added_count": 1,
+                "updated_count": 1,
+                "removed_count": 0,
+                "added_project_mappings": [
+                    {"external_id": "4", "on_resolve": "shipped", "on_unresolve": "todo"}
+                ],
+                "updated_project_mappings": [
+                    {
+                        "external_id": "2",
+                        "on_resolve": "closed",
+                        "on_unresolve": "open",
+                        "previous_on_resolve": "done",
+                        "previous_on_unresolve": "in_progress",
+                    }
+                ],
+                "removed_project_mappings": [],
+            }
+        }
+
+        # Removing "3" now takes an explicit removal.
+        audit_data = installation.update_organization_config({"sync_status_forward": {"3": None}})
+
+        assert self._mappings(org_integration.id) == {
+            "1": ("done", "in_progress"),
+            "2": ("closed", "open"),
+            "4": ("shipped", "todo"),
+        }
+        assert audit_data is not None
+        assert audit_data["sync_status_forward"]["removed_project_mappings"] == [
+            {"external_id": "3", "on_resolve": "done", "on_unresolve": "in_progress"}
+        ]
+
+    @with_feature(EXPLICIT_MAPPING_REMOVALS_FEATURE)
+    def test_update_organization_config_removes_only_explicit_removals(self) -> None:
+        """One explicit removal removes exactly one mapping and records its prior statuses."""
+        installation, org_integration = self._jira_installation_with_mappings("1", "2", "3")
+
+        audit_data = installation.update_organization_config({"sync_status_forward": {"2": None}})
+
+        assert self._mappings(org_integration.id) == {
+            "1": ("done", "in_progress"),
+            "3": ("done", "in_progress"),
+        }
+        assert audit_data == {
+            "sync_status_forward": {
+                "added_count": 0,
+                "updated_count": 0,
+                "removed_count": 1,
+                "added_project_mappings": [],
+                "updated_project_mappings": [],
+                "removed_project_mappings": [
+                    {"external_id": "2", "on_resolve": "done", "on_unresolve": "in_progress"}
+                ],
+            }
+        }
+        assert installation.org_integration is not None
+        assert installation.org_integration.config["sync_status_forward"] is True
+
+    @with_feature(EXPLICIT_MAPPING_REMOVALS_FEATURE)
+    def test_update_organization_config_empty_payload_leaves_mappings_alone(self) -> None:
+        """
+        The payload that caused the original incident -- a subset of the stored mappings, in
+        the limit case an empty one. It must not delete anything, and must not flip the bool.
+        """
+        installation, org_integration = self._jira_installation_with_mappings("1", "2")
+
+        # Nothing changed, so there is nothing to audit. The omission is recorded by the
+        # metric and log instead.
+        assert installation.update_organization_config({"sync_status_forward": {}}) is None
+
+        assert self._mappings(org_integration.id) == {
+            "1": ("done", "in_progress"),
+            "2": ("done", "in_progress"),
+        }
+        assert installation.org_integration is not None
+        assert installation.org_integration.config["sync_status_forward"] is True
+
+    @with_feature(EXPLICIT_MAPPING_REMOVALS_FEATURE)
+    def test_update_organization_config_empty_payload_with_no_mappings(self) -> None:
+        """With nothing stored, an empty payload leaves the derived bool off."""
+        installation, org_integration = self._jira_installation_with_mappings()
+
+        assert installation.update_organization_config({"sync_status_forward": {}}) is None
+
+        assert installation.org_integration is not None
+        assert installation.org_integration.config["sync_status_forward"] is False
+
+    @with_feature(EXPLICIT_MAPPING_REMOVALS_FEATURE)
+    def test_update_organization_config_upsert_only_payload_keeps_sync_enabled(self) -> None:
+        """
+        The config bool is derived from the surviving rows, not from the payload.
+
+        Deriving it from the payload would let a single-row upsert disable outbound sync for
+        every mapping it omitted -- a quieter replay of the original incident.
+        """
+        installation, org_integration = self._jira_installation_with_mappings("1", "2")
+
+        installation.update_organization_config(
+            {"sync_status_forward": {"3": {"on_resolve": "shipped", "on_unresolve": "todo"}}}
+        )
+
+        assert set(self._mappings(org_integration.id)) == {"1", "2", "3"}
+        assert installation.org_integration is not None
+        assert installation.org_integration.config["sync_status_forward"] is True
+
+    @with_feature(EXPLICIT_MAPPING_REMOVALS_FEATURE)
+    def test_update_organization_config_ignores_removal_for_unknown_mapping(self) -> None:
+        """
+        The settings form produces a stale removal by deleting a row twice before the
+        refetch lands, so an unknown id is a silent no-op rather than an error.
+        """
+        installation, org_integration = self._jira_installation_with_mappings("1")
+
+        assert (
+            installation.update_organization_config(
+                {
+                    "sync_status_forward": {
+                        "1": {"on_resolve": "done", "on_unresolve": "in_progress"},
+                        "999": None,
+                    }
+                }
+            )
+            is None
+        )
+
+        assert self._mappings(org_integration.id) == {"1": ("done", "in_progress")}
+
+    @with_feature(EXPLICIT_MAPPING_REMOVALS_FEATURE)
+    def test_update_organization_config_logs_omitted_mappings(self) -> None:
+        """
+        A payload that omits stored mappings leaves no audit entry, so the log is the only
+        record that a caller still expects absence to delete.
+        """
+        installation, _ = self._jira_installation_with_mappings("1", "2")
+
+        with patch("sentry.integrations.jira.integration.logger") as mock_logger:
+            installation.update_organization_config(
+                {"sync_status_forward": {"3": {"on_resolve": "shipped", "on_unresolve": "todo"}}}
+            )
+
+        mock_logger.info.assert_called_once_with(
+            "jira.sync_status_forward.omits_existing_mappings",
+            extra={
+                "organization_id": self.organization.id,
+                "integration_id": installation.model.id,
+                "omitted_count": 2,
+                "upsert_count": 1,
+                "removal_count": 0,
+            },
+        )
+
+    @with_feature(EXPLICIT_MAPPING_REMOVALS_FEATURE)
+    def test_update_organization_config_does_not_log_a_complete_payload(self) -> None:
+        installation, _ = self._jira_installation_with_mappings("1")
+
+        with patch("sentry.integrations.jira.integration.logger") as mock_logger:
+            installation.update_organization_config(
+                {"sync_status_forward": {"1": None, "999": None}}
+            )
+
+        mock_logger.info.assert_not_called()
+
+    def test_update_organization_config_audits_a_status_only_change(self) -> None:
+        """
+        Overwriting an existing mapping's statuses is audited too.
+
+        Nothing is added or removed in this case, but the prior statuses are gone from the
+        database -- so they have to be recorded or the change is unrecoverable.
+        """
+        integration = self.create_provider_integration(provider="jira", name="Example Jira")
+        integration.add_organization(self.organization, self.user)
+        self.create_integration_external_project(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+            external_id="1",
+            resolved_status="done",
+            unresolved_status="in_progress",
+        )
+
+        installation = integration.get_installation(self.organization.id)
+        audit_data = installation.update_organization_config(
+            {"sync_status_forward": {"1": {"on_resolve": "closed", "on_unresolve": "open"}}}
+        )
+
+        assert audit_data == {
+            "sync_status_forward": {
+                "added_count": 0,
+                "updated_count": 1,
+                "removed_count": 0,
+                "added_project_mappings": [],
+                "updated_project_mappings": [
+                    {
+                        "external_id": "1",
+                        "on_resolve": "closed",
+                        "on_unresolve": "open",
+                        "previous_on_resolve": "done",
+                        "previous_on_unresolve": "in_progress",
+                    }
+                ],
+                "removed_project_mappings": [],
+            }
+        }
+
+    def test_update_organization_config_returns_no_audit_data_when_unchanged(self) -> None:
+        integration = self.create_provider_integration(provider="jira", name="Example Jira")
+        integration.add_organization(self.organization, self.user)
+        self.create_integration_external_project(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+            external_id="1",
+            resolved_status="done",
+            unresolved_status="in_progress",
+        )
+
+        installation = integration.get_installation(self.organization.id)
+        assert (
+            installation.update_organization_config(
+                {
+                    "sync_status_forward": {
+                        "1": {"on_resolve": "done", "on_unresolve": "in_progress"}
+                    }
+                }
+            )
+            is None
+        )
+
+    def test_update_organization_config_rejects_incomplete_mappings(self) -> None:
+        """
+        An incomplete mapping is rejected before any row is touched.
+
+        `{}` in particular is an unfilled row in the settings form, so it has to keep raising
+        rather than being read as a delete -- only `None` deletes.
+        """
+        installation, org_integration = self._jira_installation_with_mappings("1")
+
+        payload: dict[str, Any]
+        for payload in (
+            {"2": {}},
+            {"2": {"on_resolve": "done"}},
+            {"2": {"on_resolve": "done", "on_unresolve": ""}},
+            {"2": {"on_resolve": "", "on_unresolve": "open"}},
+        ):
+            with pytest.raises(IntegrationError):
+                installation.update_organization_config({"sync_status_forward": payload})
+
+        assert self._mappings(org_integration.id) == {"1": ("done", "in_progress")}
+
+    def test_update_organization_config_rejects_malformed_mapping_payloads(self) -> None:
+        """
+        These all used to reach `.items()` or `.get()` and surface as an `AttributeError`,
+        which the endpoint doesn't catch -- so a malformed payload was a 500, not a 400.
+
+        `False` and `""` in particular must raise rather than being read as a delete.
+        """
+        installation, org_integration = self._jira_installation_with_mappings("1")
+
+        payload: Any
+        for payload in (
+            # The stored value of this key is a bool, so a caller round-tripping the raw
+            # config lands here.
+            True,
+            False,
+            "sync_status_forward",
+            ["1"],
+            5,
+            # Row values that aren't objects.
+            {"1": "done"},
+            {"1": []},
+            {"1": 5},
+            {"1": False},
+            {"1": ""},
+            # Blank project ids.
+            {"": {"on_resolve": "done", "on_unresolve": "open"}},
+            {"   ": None},
+            # Two keys that collide once normalized -- ambiguous, and would let one payload
+            # both upsert and remove the same mapping.
+            {10100: {"on_resolve": "done", "on_unresolve": "open"}, "10100": None},
+        ):
+            with pytest.raises(IntegrationError):
+                installation.update_organization_config({"sync_status_forward": payload})
+
+        assert self._mappings(org_integration.id) == {"1": ("done", "in_progress")}
+
+    @with_feature(EXPLICIT_MAPPING_REMOVALS_FEATURE)
+    def test_update_organization_config_mapping_write_is_atomic(self) -> None:
+        """A failure part-way through must not leave the mappings half-written."""
+        installation, org_integration = self._jira_installation_with_mappings("1", "2")
+
+        # The explicitly removed row is deleted before anything is written, so a failing
+        # insert has to bring it back.
+        with patch.object(
+            IntegrationExternalProject.objects,
+            "bulk_create",
+            side_effect=OSError("boom"),
+        ):
+            with pytest.raises(OSError):
+                installation.update_organization_config(
+                    {
+                        "sync_status_forward": {
+                            "1": None,
+                            "3": {"on_resolve": "closed", "on_unresolve": "open"},
+                        }
+                    }
+                )
+
+        assert self._mappings(org_integration.id) == {
+            "1": ("done", "in_progress"),
+            "2": ("done", "in_progress"),
+        }
+
+        # Same boundary, reached through the update path instead.
+        with patch.object(
+            IntegrationExternalProject.objects,
+            "bulk_update",
+            side_effect=OSError("boom"),
+        ):
+            with pytest.raises(OSError):
+                installation.update_organization_config(
+                    {
+                        "sync_status_forward": {
+                            "1": None,
+                            "2": {"on_resolve": "closed", "on_unresolve": "open"},
+                        }
+                    }
+                )
+
+        assert self._mappings(org_integration.id) == {
+            "1": ("done", "in_progress"),
+            "2": ("done", "in_progress"),
+        }
 
     @responses.activate
     def test_get_config_data_issue_keys(self) -> None:
@@ -1460,6 +2099,300 @@ class JiraIntegrationTest(APITestCase):
         assert config[0]["disabled"] is True
         assert "Unable to communicate" in config[0]["disabledReason"]
 
+    def _create_paginated_jira_integration(self) -> Integration:
+        integration = self.create_provider_integration(
+            provider="jira",
+            name="Example Jira",
+            metadata={
+                "oauth_client_id": "oauth-client-id",
+                "shared_secret": "a-super-secret-key-from-atlassian",
+                "base_url": "https://example.atlassian.net",
+                "domain_name": "example.atlassian.net",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+        return integration
+
+    @responses.activate
+    def test_get_organization_config_includes_configured_project_beyond_first_page(self) -> None:
+        integration = self._create_paginated_jira_integration()
+        self.create_integration_external_project(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+            external_id="99999",
+            unresolved_status="in_progress",
+            resolved_status="done",
+        )
+
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project/search",
+            json={
+                "values": [
+                    {"id": "10000", "name": "Project A"},
+                    {"id": "10001", "name": "Project B"},
+                ],
+                "maxResults": 50,
+                "total": 2,
+            },
+        )
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project/search",
+            json={"values": [{"id": "99999", "name": "Configured Project"}]},
+        )
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/statuses/search",
+            json={"values": []},
+        )
+
+        installation = integration.get_installation(self.organization.id)
+        with self.feature("organizations:jira-paginated-project-config"):
+            config = installation.get_organization_config()
+
+        assert config[0]["addDropdown"]["items"] == [
+            {"value": "10000", "label": "Project A"},
+            {"value": "10001", "label": "Project B"},
+            {"value": "99999", "label": "Configured Project"},
+        ]
+        project_search_calls = [
+            call for call in responses.calls if "project/search" in call.request.url
+        ]
+        assert len(project_search_calls) == 2
+        assert "maxResults=50" in project_search_calls[0].request.url
+        assert "id=99999" not in project_search_calls[0].request.url
+        assert "id=99999" in project_search_calls[1].request.url
+
+    @responses.activate
+    def test_get_organization_config_no_configured_projects_skips_supplemental_fetch(self) -> None:
+        integration = self._create_paginated_jira_integration()
+
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project/search",
+            json={
+                "values": [
+                    {"id": "10000", "name": "Project A"},
+                    {"id": "10001", "name": "Project B"},
+                ],
+                "maxResults": 50,
+                "total": 2,
+            },
+        )
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/statuses/search",
+            json={"values": []},
+        )
+
+        installation = integration.get_installation(self.organization.id)
+        with self.feature("organizations:jira-paginated-project-config"):
+            config = installation.get_organization_config()
+
+        assert config[0]["addDropdown"]["items"] == [
+            {"value": "10000", "label": "Project A"},
+            {"value": "10001", "label": "Project B"},
+        ]
+        project_search_calls = [
+            call for call in responses.calls if "project/search" in call.request.url
+        ]
+        assert len(project_search_calls) == 1
+        assert "id=" not in project_search_calls[0].request.url
+
+    @responses.activate
+    def test_get_organization_config_configured_project_in_first_page_not_duplicated(self) -> None:
+        integration = self._create_paginated_jira_integration()
+        self.create_integration_external_project(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+            external_id="10000",
+            unresolved_status="in_progress",
+            resolved_status="done",
+        )
+
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project/search",
+            json={
+                "values": [
+                    {"id": "10000", "name": "Project A"},
+                    {"id": "10001", "name": "Project B"},
+                ],
+                "maxResults": 50,
+                "total": 2,
+            },
+        )
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/statuses/search",
+            json={"values": []},
+        )
+
+        installation = integration.get_installation(self.organization.id)
+        with self.feature("organizations:jira-paginated-project-config"):
+            config = installation.get_organization_config()
+
+        assert config[0]["addDropdown"]["items"] == [
+            {"value": "10000", "label": "Project A"},
+            {"value": "10001", "label": "Project B"},
+        ]
+        project_search_calls = [
+            call for call in responses.calls if "project/search" in call.request.url
+        ]
+        assert len(project_search_calls) == 1
+        assert "id=" not in project_search_calls[0].request.url
+
+    @responses.activate
+    def test_get_organization_config_supplemental_fetch_failure_degrades_gracefully(self) -> None:
+        integration = self._create_paginated_jira_integration()
+        self.create_integration_external_project(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+            external_id="99999",
+            unresolved_status="in_progress",
+            resolved_status="done",
+        )
+
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project/search",
+            json={
+                "values": [
+                    {"id": "10000", "name": "Project A"},
+                    {"id": "10001", "name": "Project B"},
+                ],
+                "maxResults": 50,
+                "total": 2,
+            },
+        )
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project/search",
+            json={"errorMessages": ["Something went wrong"]},
+            status=500,
+        )
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/statuses/search",
+            json={"values": []},
+        )
+
+        installation = integration.get_installation(self.organization.id)
+        with self.feature("organizations:jira-paginated-project-config"):
+            config = installation.get_organization_config()
+
+        # The supplemental (name-resolving) fetch failing should not disable the whole config.
+        assert config[0].get("disabled") is not True
+        assert config[0]["addDropdown"]["items"] == [
+            {"value": "10000", "label": "Project A"},
+            {"value": "10001", "label": "Project B"},
+        ]
+        project_search_calls = [
+            call for call in responses.calls if "project/search" in call.request.url
+        ]
+        assert len(project_search_calls) == 2
+        assert "id=99999" in project_search_calls[1].request.url
+
+    def _setup_jira_with_status_responses(
+        self,
+        projects: list[dict[str, str]] | None = None,
+        statuses: list[dict[str, str]] | None = None,
+    ) -> tuple[Integration, Any]:
+        integration = self.create_provider_integration(
+            provider="jira",
+            name="Example Jira",
+            metadata={
+                "oauth_client_id": "oauth-client-id",
+                "shared_secret": "a-super-secret-key-from-atlassian",
+                "base_url": "https://example.atlassian.net",
+                "domain_name": "example.atlassian.net",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+        installation = integration.get_installation(self.organization.id)
+
+        if projects is None:
+            projects = [{"id": "10000", "name": "Project A"}]
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project",
+            json=projects,
+        )
+
+        if statuses is not None:
+            responses.add(
+                responses.GET,
+                "https://example.atlassian.net/rest/api/2/statuses/search",
+                json={"values": statuses},
+            )
+
+        return integration, installation
+
+    @responses.activate
+    @with_feature("organizations:jira-lazy-status-sync")
+    def test_get_organization_config_lazy_status_with_configured_projects(self) -> None:
+        integration, installation = self._setup_jira_with_status_responses(
+            projects=[
+                {"id": "10000", "name": "Project A"},
+                {"id": "10001", "name": "Project B"},
+            ],
+            statuses=[
+                {"id": "1", "name": "Open"},
+                {"id": "6", "name": "Closed"},
+            ],
+        )
+
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration=integration
+        )
+        IntegrationExternalProject.objects.create(
+            organization_integration_id=org_integration.id,
+            external_id="10000",
+            name="Project A",
+            resolved_status="6",
+            unresolved_status="1",
+        )
+
+        config = installation.get_organization_config()
+
+        assert config[0]["perItemMapping"] is True
+        assert "statusUrl" in config[0]
+        assert config[0]["mappedSelectors"]["10000"] == {
+            "on_resolve": {"choices": [("1", "Open"), ("6", "Closed")]},
+            "on_unresolve": {"choices": [("1", "Open"), ("6", "Closed")]},
+        }
+        assert "10001" not in config[0]["mappedSelectors"]
+
+    @responses.activate
+    @with_feature("organizations:jira-lazy-status-sync")
+    def test_get_organization_config_lazy_status_no_configured_projects(self) -> None:
+        _integration, installation = self._setup_jira_with_status_responses()
+
+        config = installation.get_organization_config()
+
+        assert config[0]["perItemMapping"] is True
+        assert "statusUrl" in config[0]
+        assert config[0]["mappedSelectors"] == {}
+
+    @responses.activate
+    def test_get_organization_config_flag_off_uses_existing_behavior(self) -> None:
+        _integration, installation = self._setup_jira_with_status_responses(
+            statuses=[
+                {"id": "1", "name": "Open"},
+                {"id": "6", "name": "Closed"},
+            ],
+        )
+
+        config = installation.get_organization_config()
+
+        assert config[0]["perItemMapping"] is True
+        assert "statusUrl" not in config[0]
+        assert config[0]["mappedSelectors"]["10000"] == {
+            "on_resolve": {"choices": [("1", "Open"), ("6", "Closed")]},
+            "on_unresolve": {"choices": [("1", "Open"), ("6", "Closed")]},
+        }
+
     def test_error_fields_from_json_issue_not_found(self) -> None:
         integration = self.create_provider_integration(provider="jira", name="Example Jira")
         integration.add_organization(self.organization, self.user)
@@ -1518,6 +2451,14 @@ class JiraApiPipelineTest(APITestCase):
             "base_url": "https://example.atlassian.net",
             "domain_name": "example.atlassian.net",
         }
+        # The `installed` webhook creates this row before Jira renders the
+        # configure link.
+        self.integration = self.create_provider_integration(
+            provider=self.provider.key,
+            external_id=self.external_id,
+            name="JIRA",
+            metadata=self.metadata,
+        )
 
     def _get_pipeline_url(self) -> str:
         return reverse(
@@ -1535,7 +2476,12 @@ class JiraApiPipelineTest(APITestCase):
         return self.client.post(self._get_pipeline_url(), data=data, format="json")
 
     def _signed_params(self) -> str:
-        return sign(salt=SALT, external_id=self.external_id, metadata=json.dumps(self.metadata))
+        return sign(salt=SALT, external_id=self.external_id)
+
+    def _assert_not_installed(self) -> None:
+        assert not OrganizationIntegration.objects.filter(
+            integration=self.integration, organization_id=self.organization.id
+        ).exists()
 
     def test_initialize_returns_confirmation_data(self) -> None:
         resp = self._initialize_pipeline(initial_data={"signedParams": self._signed_params()})
@@ -1547,7 +2493,31 @@ class JiraApiPipelineTest(APITestCase):
         assert "state" in data
         # Confirmation step does not auto-advance.
         assert "appDirectoryInstall" not in data
-        assert not Integration.objects.filter(provider=self.provider.key).exists()
+        self._assert_not_installed()
+
+    def test_initialize_ignores_metadata_in_link(self) -> None:
+        # Links minted by older versions also carried `metadata`. Only the
+        # stored record should be used.
+        legacy = sign(
+            salt=SALT,
+            external_id=self.external_id,
+            metadata=json.dumps({**self.metadata, "base_url": "https://other.atlassian.net"}),
+        )
+        resp = self._initialize_pipeline(initial_data={"signedParams": legacy})
+        assert resp.status_code == 200
+        assert resp.data["data"]["baseUrl"] == "https://example.atlassian.net"
+
+    def test_initialize_unknown_external_id(self) -> None:
+        signed = sign(salt=SALT, external_id="not-an-installed-site")
+        resp = self._initialize_pipeline(initial_data={"signedParams": signed})
+        assert resp.status_code == 400
+        self._assert_not_installed()
+
+    def test_initialize_disabled_integration(self) -> None:
+        self.integration.update(status=ObjectStatus.DISABLED)
+        resp = self._initialize_pipeline(initial_data={"signedParams": self._signed_params()})
+        assert resp.status_code == 400
+        self._assert_not_installed()
 
     def test_initialize_expired_signature(self) -> None:
         with patch("sentry.integrations.jira.integration.INSTALL_EXPIRATION_TIME", -1):
@@ -1557,11 +2527,7 @@ class JiraApiPipelineTest(APITestCase):
     def test_initialize_tampered_signature(self) -> None:
         # Signed with a different salt, so unsigning with SALT raises
         # BadSignature rather than SignatureExpired.
-        tampered = sign(
-            salt="not-the-jira-salt",
-            external_id=self.external_id,
-            metadata=json.dumps(self.metadata),
-        )
+        tampered = sign(salt="not-the-jira-salt", external_id=self.external_id)
         resp = self._initialize_pipeline(initial_data={"signedParams": tampered})
         assert resp.status_code == 400
 
@@ -1569,9 +2535,12 @@ class JiraApiPipelineTest(APITestCase):
         self._initialize_pipeline(initial_data={"signedParams": self._signed_params()})
         resp = self._advance_step({"state": "not-the-pipeline-signature"})
         assert resp.status_code == 400
-        assert not Integration.objects.filter(provider=self.provider.key).exists()
+        self._assert_not_installed()
 
+    @responses.activate
     def test_install(self) -> None:
+        # The install response serializes the org config, which fetches Jira projects.
+        responses.add(responses.GET, "https://example.atlassian.net/rest/api/2/project", status=401)
         resp = self._initialize_pipeline(initial_data={"signedParams": self._signed_params()})
         pipeline_signature = resp.data["data"]["state"]
 
@@ -1584,4 +2553,39 @@ class JiraApiPipelineTest(APITestCase):
         assert integration.metadata == self.metadata
         assert OrganizationIntegration.objects.filter(
             integration=integration, organization_id=self.organization.id
+        ).exists()
+
+    @responses.activate
+    def test_install_does_not_rewrite_integration(self) -> None:
+        responses.add(responses.GET, "https://example.atlassian.net/rest/api/2/project", status=401)
+        resp = self._initialize_pipeline(initial_data={"signedParams": self._signed_params()})
+        pipeline_signature = resp.data["data"]["state"]
+
+        # Written while the user is on the confirmation screen, e.g. by sync_metadata.
+        updated_metadata = {**self.metadata, "icon": "https://example.com/icon.png"}
+        self.integration.update(name="Example Site", metadata=updated_metadata)
+
+        resp = self._advance_step({"state": pipeline_signature})
+        assert resp.status_code == 200
+
+        self.integration.refresh_from_db()
+        assert self.integration.name == "Example Site"
+        assert self.integration.metadata == updated_metadata
+        assert OrganizationIntegration.objects.filter(
+            integration=self.integration, organization_id=self.organization.id
+        ).exists()
+
+    @responses.activate
+    def test_install_fails_when_site_was_uninstalled(self) -> None:
+        responses.add(responses.GET, "https://example.atlassian.net/rest/api/2/project", status=401)
+        resp = self._initialize_pipeline(initial_data={"signedParams": self._signed_params()})
+        pipeline_signature = resp.data["data"]["state"]
+
+        # The site uninstalls the app while the user is on the confirmation screen.
+        self.integration.update(status=ObjectStatus.DISABLED)
+
+        resp = self._advance_step({"state": pipeline_signature})
+        assert resp.status_code == 400
+        assert not OrganizationIntegration.objects.filter(
+            integration=self.integration, organization_id=self.organization.id
         ).exists()

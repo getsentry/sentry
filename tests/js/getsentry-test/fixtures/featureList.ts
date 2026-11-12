@@ -62,10 +62,6 @@ export function FeatureListFixture(): Record<string, Feature> {
       description:
         'Automatically forward processed Sentry events into third party tools such as Amazon SQS, Segment, and Splunk.',
     },
-    'weekly-reports': {
-      name: 'Weekly Reports',
-      description: "A weekly email summary of your organization's health.",
-    },
     'discover-basic': {
       name: 'Discover',
       description: 'Browse raw event data outside of Issues.',

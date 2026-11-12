@@ -23,7 +23,7 @@ function formatTime(d: DashboardDetails): string | null {
   return null;
 }
 
-function formatList(items: string[] | undefined): string {
+function formatList(items: string[] | undefined | null): string {
   const filtered = items?.filter(Boolean) ?? [];
   return filtered.length ? filtered.join(', ') : t('(none)');
 }

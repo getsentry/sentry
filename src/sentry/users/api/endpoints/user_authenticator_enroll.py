@@ -14,12 +14,12 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.decorators import primary_email_verification_required, sudo_required
-from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.api.serializers import serialize
 from sentry.auth.authenticators.base import EnrollmentStatus, NewEnrollmentDisallowed
 from sentry.auth.authenticators.sms import SmsInterface, SMSRateLimitExceeded
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.authenticators.u2f import U2fInterface
+from sentry.auth.principal import require_user
 from sentry.security.utils import capture_security_activity
 from sentry.users.api.bases.user import UserEndpoint
 from sentry.users.api.serializers.authenticator import get_interface_serializer
@@ -186,7 +186,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         :auth: required
         """
         if ratelimiter.backend.is_limited(
-            f"auth:authenticator-enroll:{request.user.id}:{interface_id}",
+            f"auth:authenticator-enroll:{require_user(request).id}:{interface_id}",
             limit=10,
             window=86400,  # 10 per day should be fine
         ):
@@ -200,9 +200,9 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         # error rather than silently switch to the superuser/staff user.
 
         # Using `request.user` here because superuser/staff should not be able to set a user's 2fa
-        if user.id != request.user.id:
-            assert request.user.id is not None
-            user = User.objects.get(id=request.user.id)
+        request_user_id = require_user(request).id
+        if user.id != request_user_id:
+            user = User.objects.get(id=request_user_id)
 
         # start activation
         serializer_cls = serializer_map.get(interface_id, None)
@@ -311,17 +311,4 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
 
         request.session[MFA_SESSION_KEY] = str(user.id)
 
-        response = Response(status=status.HTTP_204_NO_CONTENT)
-
-        # If there is a pending organization invite accept after the
-        # authenticator has been configured.
-        request.user = (
-            user  # Load in the canonical user object so the invite helper references it correctly.
-        )
-        invite_helper = ApiInviteHelper.from_session(request=request, logger=logger)
-
-        if invite_helper and (invite_helper.member_already_exists or invite_helper.valid_request):
-            invite_helper.accept_invite(user)
-            remove_invite_details_from_session(request)
-
-        return response
+        return Response(status=status.HTTP_204_NO_CONTENT)

@@ -1,9 +1,9 @@
 import math
 
+from sentry_sdk import traces
 from snuba_sdk import Column, Function
 
 from sentry.exceptions import InvalidParams
-from sentry.utils.tracing import set_span_data, start_span
 
 MAX_HISTOGRAM_BUCKET = 250
 
@@ -49,13 +49,14 @@ def rebucket_histogram(
 
     rv = {bucket: 0.0 for bucket in buckets}
 
-    with start_span(
-        op="sentry.snuba.metrics.fields.histogram.rebucket_histogram",
+    with traces.start_span(
         name="sentry.snuba.metrics.fields.histogram.rebucket_histogram",
-    ) as span:
-        set_span_data(span, "len_data", len(data))
-        set_span_data(span, "len_rv", len(rv))
-
+        attributes={
+            "sentry.op": "sentry.snuba.metrics.fields.histogram.rebucket_histogram",
+            "len_data": len(data),
+            "len_rv": len(rv),
+        },
+    ):
         # XXX: quadratic function
         assert len(data) < 300
         assert len(rv) < 300

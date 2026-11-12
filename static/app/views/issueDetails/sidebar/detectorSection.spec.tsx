@@ -8,21 +8,21 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import {IssueDetailsContext} from 'sentry/views/issueDetails/context';
-import {
-  DetectorSection,
-  getDetectorDetails,
-} from 'sentry/views/issueDetails/sidebar/detectorSection';
+
+import {DetectorSection, getDetectorDetails} from './detectorSection';
 
 describe('DetectorSection', () => {
   const detectorId = '123';
-  const organization = OrganizationFixture({features: ['workflow-engine-ui']});
+  const organization = OrganizationFixture();
   const project = ProjectFixture();
   const issueDetailsContext = {
     sectionData: {},
     detectorDetails: {},
     isSidebarOpen: true,
     navScrollMargin: 0,
+    scrollContext: 'page' as const,
     eventCount: 0,
+    eventNavigationHeight: 0,
     dispatch: jest.fn(),
   };
 
@@ -86,12 +86,15 @@ describe('DetectorSection', () => {
   });
 
   it('displays the detector details for a cron monitor', () => {
+    const monitorId = 'a7f8594c-66f8-4a2f-b4aa-bd8ad20c2741';
     const event = EventFixture({
+      occurrence: {
+        evidenceData: {detectorId: Number(detectorId)},
+        type: 4001,
+      },
       tags: [
-        {
-          key: 'monitor.slug',
-          value: detectorId,
-        },
+        {key: 'monitor.slug', value: 'my-cron-job'},
+        {key: 'monitor.id', value: monitorId},
       ],
     });
     const group = GroupFixture({
@@ -111,7 +114,7 @@ describe('DetectorSection', () => {
     const link = screen.getByRole('button', {name: 'View monitor details'});
     expect(link).toHaveAttribute(
       'href',
-      `/organizations/${organization.slug}/issues/alerts/rules/crons/${project.slug}/${detectorId}/details/`
+      `/organizations/${organization.slug}/monitors/${detectorId}/`
     );
     expect(
       screen.getByText(
@@ -179,54 +182,12 @@ describe('DetectorSection', () => {
     const link = screen.getByRole('button', {name: 'View monitor details'});
     expect(link).toHaveAttribute(
       'href',
-      `/organizations/${organization.slug}/issues/alerts/rules/uptime/${project.slug}/${detectorId}/details/`
+      `/organizations/${organization.slug}/monitors/${detectorId}/`
     );
     expect(
-      screen.getByText('This issue was created by an uptime monitoring alert rule.')
+      screen.getByText(
+        'This issue was created by an uptime monitor. View the monitor details to learn more.'
+      )
     ).toBeInTheDocument();
-  });
-
-  it('links to metric alert rule details when workflow engine UI is disabled', async () => {
-    const alertRuleId = 456;
-    const event = EventFixture({
-      occurrence: {
-        evidenceData: {
-          detectorId,
-        },
-        type: 8001,
-      },
-    });
-    const group = GroupFixture({
-      issueCategory: IssueCategory.METRIC,
-      issueType: IssueType.METRIC_ISSUE,
-    });
-    const orgWithOnlyMetricIssues = OrganizationFixture();
-    const metricDetector = MetricDetectorFixture({
-      id: detectorId,
-      alertRuleId,
-    });
-    const detectorDetails = getDetectorDetails({
-      event,
-      organization: orgWithOnlyMetricIssues,
-      project,
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${orgWithOnlyMetricIssues.slug}/detectors/${detectorId}/`,
-      body: metricDetector,
-    });
-
-    render(
-      <IssueDetailsContext value={{...issueDetailsContext, detectorDetails}}>
-        <DetectorSection group={group} project={project} />
-      </IssueDetailsContext>,
-      {organization: orgWithOnlyMetricIssues}
-    );
-
-    const link = await screen.findByRole('button', {name: 'View metric alert details'});
-    expect(link).toHaveAttribute(
-      'href',
-      `/organizations/${orgWithOnlyMetricIssues.slug}/issues/alerts/rules/details/${alertRuleId}/`
-    );
   });
 });

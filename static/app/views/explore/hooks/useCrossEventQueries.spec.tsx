@@ -2,7 +2,6 @@ import {useMemo, useState, type ReactNode} from 'react';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {useCrossEventQueries} from 'sentry/views/explore/hooks/useCrossEventQueries';
 import {
   defaultAggregateFields,
   defaultAggregateSortBys,
@@ -15,6 +14,8 @@ import {defaultCursor} from 'sentry/views/explore/queryParams/cursor';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import type {CrossEventDatasetAvailability} from 'sentry/views/explore/spans/crossEvents/useCrossEventDatasetAvailability';
+
+import {useCrossEventQueries} from './useCrossEventQueries';
 
 const mockSetQueryParams = jest.fn();
 const ALL_CROSS_EVENT_DATASETS_AVAILABLE: CrossEventDatasetAvailability = {
@@ -90,6 +91,34 @@ describe('useCrossEventQueries', () => {
     expect(result.current).toStrictEqual({
       logQuery: ['test:a'],
       spanQuery: ['test:b'],
+      metricQuery: [],
+    });
+  });
+
+  it.each(['', '   '])('ignores blank logs and spans queries (%j)', query => {
+    const {result} = renderHookWithProviders(useCrossEventQueries, {
+      additionalWrapper: wrapper([
+        {type: 'logs', query},
+        {type: 'spans', query},
+      ]),
+      initialProps: ALL_CROSS_EVENT_DATASETS_AVAILABLE,
+    });
+
+    expect(result.current).toBeUndefined();
+  });
+
+  it('preserves populated queries alongside blank queries', () => {
+    const {result} = renderHookWithProviders(useCrossEventQueries, {
+      additionalWrapper: wrapper([
+        {type: 'logs', query: '   '},
+        {type: 'spans', query: 'test:a'},
+      ]),
+      initialProps: ALL_CROSS_EVENT_DATASETS_AVAILABLE,
+    });
+
+    expect(result.current).toStrictEqual({
+      logQuery: [],
+      spanQuery: ['test:a'],
       metricQuery: [],
     });
   });
@@ -258,10 +287,6 @@ describe('useCrossEventQueries', () => {
       initialProps: ALL_CROSS_EVENT_DATASETS_AVAILABLE,
     });
 
-    expect(result.current).toStrictEqual({
-      logQuery: [],
-      spanQuery: [],
-      metricQuery: [],
-    });
+    expect(result.current).toBeUndefined();
   });
 });

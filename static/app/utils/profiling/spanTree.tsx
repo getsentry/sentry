@@ -115,7 +115,7 @@ class SpanTree {
   }
 
   buildCollapsedSpanTree(spans: SpanNodeData[]) {
-    const spansSortedByStartTime = [...spans].sort(sortByStartTimeAndDuration);
+    const spansSortedByStartTime = spans.toSorted(sortByStartTimeAndDuration);
     const MISSING_INSTRUMENTATION_THRESHOLD_S = 0.1;
 
     for (const span of spansSortedByStartTime) {

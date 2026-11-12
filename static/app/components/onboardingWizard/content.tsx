@@ -1,21 +1,21 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconNot} from '@sentry/icons/not';
 import partition from 'lodash/partition';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useMutateOnboardingTasks} from 'sentry/components/onboarding/useMutateOnboardingTasks';
-import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
-import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import {ProgressRing} from 'sentry/components/progressRing';
-import {IconCheckmark, IconChevron, IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DemoWalkthroughStore} from 'sentry/stores/demoWalkthroughStore';
 import {OnboardingTaskKey, type OnboardingTask} from 'sentry/types/onboarding';
@@ -28,6 +28,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useNavigationTour} from 'sentry/views/navigation/navigationTour';
+
+import {useOnboardingTasks} from './useOnboardingTasks';
+import {findCompleteTasks, taskIsDone} from './utils';
 
 /**
  * How long (in ms) to delay before beginning to mark tasks complete
@@ -92,13 +95,14 @@ function TaskCard({
         {title}
         {description && <p>{description}</p>}
       </TaskCardDescription>
-      <TaskCardActions>{actions}</TaskCardActions>
+      <Grid align="start" gap="md" autoColumns="20px" flow="column">
+        {actions}
+      </Grid>
     </TaskCardWrapper>
   );
 }
 
 interface TaskStatusIconProps {
-  progress?: number;
   status?: 'complete' | 'skipped';
   tooltipText?: string;
 }
@@ -136,7 +140,7 @@ interface SkipConfirmationProps {
 function SkipConfirmation({onConfirm, onDismiss}: SkipConfirmationProps) {
   return (
     <Alert variant="info">
-      <Flex direction="column" gap="md">
+      <Stack gap="md">
         {t("Not sure what to do? We're here for you!")}
         <Flex justify="between" gap="xs" flex={1}>
           <LinkButton external href="https://sentry.io/support/" size="xs">
@@ -164,7 +168,7 @@ function SkipConfirmation({onConfirm, onDismiss}: SkipConfirmationProps) {
             </Button>
           </Grid>
         </Flex>
-      </Flex>
+      </Stack>
     </Alert>
   );
 }
@@ -172,7 +176,6 @@ function SkipConfirmation({onConfirm, onDismiss}: SkipConfirmationProps) {
 interface TaskProps {
   hidePanel: () => void;
   task: OnboardingTask;
-  completed?: boolean;
 }
 
 function Task({task, hidePanel}: TaskProps) {
@@ -275,7 +278,7 @@ function Task({task, hidePanel}: TaskProps) {
           opacity: 50%;
         `}
       >
-        <TaskCard
+        <TaskListCard
           icon={<TaskStatusIcon status={task.status} tooltipText={iconTooltipText} />}
           description={task.description}
           title={<strong>{<s>{task.title}</s>}</strong>}
@@ -286,7 +289,7 @@ function Task({task, hidePanel}: TaskProps) {
 
   return (
     <TaskWrapper>
-      <TaskCard
+      <TaskListCard
         onClick={handleClick}
         icon={
           task.skippable ? (
@@ -365,6 +368,7 @@ function ExpandedTaskGroup({tasks, hidePanel}: ExpandedTaskGroupProps) {
     // opening of the group
     await completionTimeout(INITIAL_MARK_COMPLETE_TIMEOUT);
     markTasksAsSeen();
+    // oxlint-disable-next-line react/memo-dependencies
   }, [markTasksAsSeen]);
 
   useEffect(() => {
@@ -423,7 +427,7 @@ function TaskGroup({
   }, [tasks]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state, react/set-state-in-effect, react/no-deriving-state-in-effects
     setIsExpanded(expanded);
   }, [expanded]);
 
@@ -554,6 +558,8 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
 }
 
 const TaskGroupHeader = styled(TaskCard)<{hasProgress: boolean}>`
+  padding-left: ${p => p.theme.space.md};
+
   p {
     color: ${p =>
       p.hasProgress ? p.theme.tokens.content.accent : p.theme.tokens.content.secondary};
@@ -561,6 +567,9 @@ const TaskGroupHeader = styled(TaskCard)<{hasProgress: boolean}>`
 `;
 
 const TaskGroupBody = styled('ul')`
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
+  column-gap: ${p => p.theme.space.lg};
   border-radius: ${p => p.theme.radius.md};
   list-style-type: none;
   padding: 0;
@@ -568,7 +577,16 @@ const TaskGroupBody = styled('ul')`
 `;
 
 const TaskWrapper = styled('li')`
-  gap: ${p => p.theme.space.md};
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  row-gap: ${p => p.theme.space.md};
+  column-gap: inherit;
+
+  > * {
+    grid-column: 1 / -1;
+  }
+
   p {
     color: ${p => p.theme.tokens.content.secondary};
   }
@@ -577,7 +595,7 @@ const TaskWrapper = styled('li')`
 const TaskCardWrapper = styled('div')`
   position: relative;
   display: grid;
-  grid-template-columns: 22px 1fr max-content;
+  grid-template-columns: 22px minmax(0, 1fr) max-content;
   gap: ${p => p.theme.space.lg};
   cursor: ${p => (p.onClick ? 'pointer' : 'default')};
   border-radius: ${p => p.theme.radius.md};
@@ -596,17 +614,18 @@ const TaskCardWrapper = styled('div')`
   }
 `;
 
+const TaskListCard = styled(TaskCard)`
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+
+  > div:first-of-type {
+    margin-left: ${p => p.theme.space.md};
+  }
+`;
+
 const TaskCardDescription = styled('div')`
   line-height: 20px;
   strong {
     color: ${p => p.theme.tokens.content.primary};
   }
-`;
-
-const TaskCardActions = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 20px;
-  gap: ${p => p.theme.space.md};
-  align-items: flex-start;
 `;

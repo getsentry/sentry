@@ -1,15 +1,16 @@
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
-import {IssueListSortOptions} from 'sentry/views/issueList/actions/sortOptions';
-import {IssueSearch} from 'sentry/views/issueList/issueSearch';
-import {IssueViewSaveButton} from 'sentry/views/issueList/issueViews/issueViewSaveButton';
-import type {IssueSortOptions} from 'sentry/views/issueList/utils';
+
+import {IssueListSortOptions} from './actions/sortOptions';
+import {IssueViewSaveButton} from './issueViews/issueViewSaveButton';
+import {IssueSearch} from './issueSearch';
+import type {IssueSortOptions} from './utils';
 
 interface Props {
   onSearch: (query: string) => void;
@@ -22,7 +23,28 @@ const RESET_PARAMS_ON_CHANGE = ['page', 'cursor'];
 
 export function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
   return (
-    <FiltersContainer>
+    <Grid
+      columns={{
+        zero: '100%',
+        xl: '1fr auto',
+        '4xl': 'auto 1fr auto',
+      }}
+      areas={{
+        zero: `
+          "page-filters"
+          "search"
+          "sort-save"
+        `,
+        xl: `
+          "page-filters sort-save"
+          "search search"
+        `,
+        '4xl': '"page-filters search sort-save"',
+      }}
+      gap="md"
+      marginBottom="xl"
+      width="100%"
+    >
       <StyledPageFilterBar>
         <ProjectPageFilter resetParamsOnChange={RESET_PARAMS_ON_CHANGE} />
         <EnvironmentPageFilter resetParamsOnChange={RESET_PARAMS_ON_CHANGE} />
@@ -37,40 +59,13 @@ export function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
           sort={sort}
           onSelect={onSortChange}
           triggerSize="md"
-          showIcon={false}
         />
 
         <IssueViewSaveButton query={query} sort={sort} />
       </Flex>
-    </FiltersContainer>
+    </Grid>
   );
 }
-
-const FiltersContainer = styled('div')`
-  display: grid;
-  column-gap: ${p => p.theme.space.md};
-  row-gap: ${p => p.theme.space.md};
-  margin-bottom: ${p => p.theme.space.xl};
-  width: 100%;
-
-  grid-template-columns: 100%;
-  grid-template-areas:
-    'page-filters'
-    'search'
-    'sort-save';
-
-  @media (min-width: ${p => p.theme.breakpoints.xs}) {
-    grid-template-columns: 1fr auto;
-    grid-template-areas:
-      'page-filters sort-save'
-      'search search';
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    grid-template-columns: auto 1fr auto;
-    grid-template-areas: 'page-filters search sort-save';
-  }
-`;
 
 const Search = styled(IssueSearch)`
   grid-area: search;

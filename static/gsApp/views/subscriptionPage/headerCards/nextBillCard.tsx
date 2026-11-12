@@ -1,26 +1,36 @@
+import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
-import {useApiQuery} from 'sentry/utils/queryClient';
 
-import type {PreviewData, Subscription} from 'getsentry/types';
+import type {PreviewInvoiceItem, Subscription} from 'getsentry/types';
 import {
   displayBudgetName,
+  displayPriceWithCents,
   getCreditApplied,
   getCredits,
   getFees,
 } from 'getsentry/utils/billing';
-import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 import {SubscriptionHeaderCard} from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
+
+type NextBillInvoiceItem = Pick<PreviewInvoiceItem, 'amount' | 'type' | 'description'>;
+
+type NextBillPreview = {
+  billedAmount: number;
+  creditApplied: number;
+  effectiveAt: string;
+  invoiceItems: NextBillInvoiceItem[];
+  isAnnual: boolean;
+};
 
 export function NextBillCard({
   subscription,
@@ -33,17 +43,13 @@ export function NextBillCard({
     data: nextBill,
     isLoading,
     isError,
-  } = useApiQuery<PreviewData>(
-    [
-      getApiUrl('/customers/$organizationIdOrSlug/subscription/next-bill/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    {
-      staleTime: 0,
-      enabled: !!subscription.plan,
-    }
-  );
+  } = useQuery({
+    ...apiOptions.as<NextBillPreview>()(
+      '/customers/$organizationIdOrSlug/subscription/next-bill/',
+      {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
+    ),
+    enabled: !!subscription.plan,
+  });
 
   // recurring fees, PAYG, and credits are grouped together
   // only additional fees (ie. taxes) are listed individually
@@ -59,6 +65,9 @@ export function NextBillCard({
     .filter(item => item.type.startsWith('ondemand_'))
     .reduce((acc, item) => acc + item.amount, 0);
   const seerItem = invoiceItems.find(item => item.type === 'activated_seer_users');
+  const oneTimeAdjustments = invoiceItems.filter(
+    item => item.type === 'one_time_adjustment'
+  );
   const fees = getFees({invoiceItems});
   const credits = getCredits({invoiceItems}); // these should all be negative already
   const creditApplied =
@@ -101,17 +110,17 @@ export function NextBillCard({
           )}
         </Flex>,
         isLoading ? (
-          <Placeholder style={{flexGrow: 1}} />
+          <Placeholder key="content" style={{flexGrow: 1}} />
         ) : isError ? (
-          <Alert variant="danger">
+          <Alert key="content" variant="danger">
             {t('Could not compute next bill. Please try again later.')}
           </Alert>
         ) : (
-          <Flex direction="column" gap="lg" width="100%">
+          <Stack key="content" gap="lg" width="100%">
             <Text size="2xl" variant="accent" bold>
               {displayPriceWithCents({cents: nextBill?.billedAmount ?? 0})}
             </Text>
-            <Flex direction="column" gap="xs">
+            <Stack gap="xs">
               {reservedTotal > 0 && (
                 <Flex justify="between" align="center">
                   <Text variant="muted" size="sm">
@@ -144,8 +153,8 @@ export function NextBillCard({
                   </Text>
                 </Flex>
               )}
-              {fees.map(item => (
-                <Flex justify="between" align="center" key={item.type}>
+              {[...oneTimeAdjustments, ...fees].map((item, index) => (
+                <Flex justify="between" align="center" key={index}>
                   <Text variant="muted" size="sm">
                     {item.description}
                   </Text>
@@ -164,8 +173,8 @@ export function NextBillCard({
                   </Text>
                 </Flex>
               )}
-            </Flex>
-          </Flex>
+            </Stack>
+          </Stack>
         ),
       ]}
     />

@@ -22,6 +22,7 @@ from rest_framework.request import Request
 from sentry import features, options
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.helper import AuthHelper
+from sentry.auth.principal import acting_user_id
 from sentry.auth.provider import Provider
 from sentry.auth.store import FLOW_LOGIN
 from sentry.auth.view import AuthView
@@ -37,6 +38,14 @@ from sentry.web.frontend.base import BaseView, control_silo_view
 
 ERR_NO_SAML_SSO = _("The organization does not exist or does not have SAML SSO enabled.")
 ERR_SAML_FAILED = _("SAML SSO failed, {reason}")
+
+
+def strip_op_from_post(request: HttpRequest) -> None:
+    # op is only meaningful at /auth/sso/; strip it here.
+    if "op" in request.POST:
+        post = request.POST.copy()
+        del post["op"]
+        request.POST = post  # type: ignore[assignment]
 
 
 def get_provider(organization_slug: str) -> SAML2Provider | None:
@@ -98,6 +107,8 @@ class SAML2AcceptACSView(BaseView):
     def dispatch(self, request: HttpRequest, organization_slug: str) -> HttpResponseBase:
         from sentry.auth.helper import AuthHelper
 
+        strip_op_from_post(request)
+
         pipeline = AuthHelper.get_for_request(request)
 
         # SP initiated authentication, request helper is provided
@@ -138,6 +149,8 @@ class SAML2AcceptACSView(BaseView):
 class SAML2ACSView(AuthView):
     @method_decorator(csrf_exempt)
     def dispatch(self, request: HttpRequest, pipeline: AuthHelper) -> HttpResponseBase:
+        strip_op_from_post(request)
+
         provider = pipeline.provider
 
         # If we're authenticating during the setup pipeline the provider will
@@ -470,7 +483,10 @@ def handle_saml_single_logout(request: Request) -> OneLogin_Saml2_Auth:
     """
     # Do not handle SLO if a user is in more than 1 organization
     # Propagating it to multiple IdPs results in confusion for the user
-    organizations = user_service.get_organizations(user_id=request.user.id)
+    user_id = acting_user_id(request.user)
+    if user_id is None:
+        return
+    organizations = user_service.get_organizations(user_id=user_id)
     if not len(organizations) == 1:
         return
 

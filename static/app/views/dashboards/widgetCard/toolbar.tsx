@@ -1,17 +1,18 @@
 import styled from '@emotion/styled';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconEdit} from '@sentry/icons/edit';
+import {IconGrabbable} from '@sentry/icons/grabbable';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 
 import {Button} from '@sentry/scraps/button';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconCopy, IconDelete, IconEdit, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {DRAG_HANDLE_CLASS} from 'sentry/views/dashboards/dashboard';
+import {DRAG_HANDLE_CLASS} from 'sentry/views/dashboards/constants';
 
 type ToolbarProps = {
-  disableDelete?: boolean;
-  disableDrag?: boolean;
   disableDuplicate?: boolean;
   disableEdit?: boolean;
   disabledReason?: string;
@@ -26,8 +27,6 @@ export function Toolbar({
   onEdit,
   onDelete,
   onDuplicate,
-  disableDelete,
-  disableDrag,
   disableEdit,
   disableDuplicate,
   disabledReason,
@@ -36,20 +35,13 @@ export function Toolbar({
     <ToolbarPanel>
       <IconContainer>
         {!isMobile && (
-          <Tooltip
-            skipWrapper
-            title={disabledReason}
-            disabled={!disabledReason || !disableDrag}
-          >
-            <GrabbableButton
-              size="xs"
-              aria-label={t('Drag Widget')}
-              icon={<IconGrabbable />}
-              variant="transparent"
-              className={DRAG_HANDLE_CLASS}
-              disabled={disableDrag}
-            />
-          </Tooltip>
+          <GrabbableButton
+            size="xs"
+            aria-label={t('Drag Widget')}
+            icon={<IconGrabbable />}
+            variant="transparent"
+            className={DRAG_HANDLE_CLASS}
+          />
         )}
         {onEdit && (
           <Tooltip
@@ -85,21 +77,14 @@ export function Toolbar({
           </Tooltip>
         )}
         {onDelete && (
-          <Tooltip
-            skipWrapper
-            title={disabledReason}
-            disabled={!disabledReason || !disableDelete}
-          >
-            <Button
-              data-test-id="widget-delete"
-              aria-label={t('Delete Widget')}
-              variant="transparent"
-              size="xs"
-              onClick={onDelete}
-              icon={<IconDelete />}
-              disabled={disableDelete}
-            />
-          </Tooltip>
+          <Button
+            data-test-id="widget-delete"
+            aria-label={t('Delete Widget')}
+            variant="transparent"
+            size="xs"
+            onClick={onDelete}
+            icon={<IconDelete />}
+          />
         )}
       </IconContainer>
     </ToolbarPanel>

@@ -1,9 +1,8 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
-import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
-import debounce from 'lodash/debounce';
+import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 import startCase from 'lodash/startCase';
+import {parseAsString, useQueryState, useQueryStates} from 'nuqs';
 
 import {DocIntegrationAvatar, SentryAppAvatar} from '@sentry/scraps/avatar';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
@@ -11,10 +10,8 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Select} from '@sentry/scraps/select';
 
-import {
-  sentryAppApiOptions,
-  sentryAppsApiOptions,
-} from 'sentry/actionCreators/sentryApps';
+import {sentryAppApiOptions} from 'sentry/actionCreators/sentryApps';
+import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Panel} from 'sentry/components/panels/panel';
@@ -31,8 +28,8 @@ import type {
   SentryApp,
   SentryAppInstallation,
 } from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {uniq} from 'sentry/utils/array/uniq';
 import {
   getCategoriesForIntegration,
@@ -45,102 +42,133 @@ import {
   sortIntegrations,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
-import {CreateIntegrationButton} from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
-import {IntegrationRow} from 'sentry/views/settings/organizationIntegrations/integrationRow';
-import {ReinstallAlert} from 'sentry/views/settings/organizationIntegrations/reinstallAlert';
-import {legacyWebhooksQueryOptions} from 'sentry/views/settings/organizationIntegrations/webhookDetailedView';
+
+import {CreateIntegrationButton} from './createIntegrationButton';
+import {IntegrationRow} from './integrationRow';
+import {legacyWebhooksQueryOptions} from './legacyWebhooksQueryOptions';
+import {ReinstallAlert} from './reinstallAlert';
 
 const FirstPartyIntegrationAlert = OverrideOrDefault({
   overrideName: 'component:first-party-integration-alert',
   defaultComponent: () => null,
 });
 
+const WEBHOOK_ROW_CATEGORIES = ['notification action'];
+
 /**
- * Debounce the tracking of integration search events to avoid spamming the
- * analytics endpoint.
+ * Everything the directory renders for a search: the matching integrations
+ * plus the synthetic legacy webhook row. Search analytics report numResults
+ * so the count must stay in sync with what is shown.
  */
-const TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS = 1000;
-const debouncedTrackIntegrationSearch = debounce(
-  (props: {num_results: number; organization: Organization; search_term: string}) => {
-    trackIntegrationAnalytics('integrations.directory_item_searched', {
-      view: 'integrations_directory',
-      ...props,
-    });
-  },
-  TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS
-);
+function getDisplayedResults(
+  list: AppOrProviderOrPlugin[],
+  search: string,
+  category: string,
+  hasLegacyWebhooks: boolean
+) {
+  const term = search.toLowerCase();
+  const matches = list.filter(
+    integration =>
+      integration.name.toLowerCase().includes(term) &&
+      (!category || getCategoriesForIntegration(integration).includes(category))
+  );
+  const showLegacyWebhookRow =
+    hasLegacyWebhooks &&
+    t('Webhooks (Legacy)').toLowerCase().includes(term) &&
+    (!category || WEBHOOK_ROW_CATEGORIES.includes(category));
+  return {
+    matches,
+    showLegacyWebhookRow,
+    numResults: matches.length + (showLegacyWebhookRow ? 1 : 0),
+  };
+}
+
+function useIntegrationPages<T>(
+  options: ReturnType<ReturnType<typeof apiOptions.asInfinite<T[]>>>
+) {
+  const result = useInfiniteQuery(options);
+  useFetchAllPages({result});
+  const {data, hasNextPage, isError, isPending} = result;
+
+  const integrations = useMemo(() => data?.pages.flatMap(page => page.json), [data]);
+
+  return {
+    data: integrations,
+    isError,
+    isPending: isPending || (!isError && hasNextPage),
+  };
+}
 
 function useIntegrationList() {
   const queryOptions = {staleTime: 0};
   const organization = useOrganization();
-  const [searchParams] = useSearchParams();
-  const extraAppSlug = searchParams.get('extra_app');
+  const [extraAppSlug] = useQueryState('extra_app', parseAsString);
   const isExtraAppEnabled = !!extraAppSlug;
 
   const {
     data: config = {providers: []},
     isPending: isConfigPending,
     isError: isConfigError,
-  } = useApiQuery<{
-    providers: IntegrationProvider[];
-  }>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    queryOptions
+  } = useQuery(
+    apiOptions.as<{providers: IntegrationProvider[]}>()(
+      '/organizations/$organizationIdOrSlug/config/integrations/',
+      {path: {organizationIdOrSlug: organization.slug}, ...queryOptions}
+    )
   );
   const {
     data: integrations = [],
     isPending: isIntegrationsPending,
     isError: isIntegrationsError,
-  } = useApiQuery<Integration[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
+  } = useIntegrationPages(
+    apiOptions.asInfinite<Integration[]>()(
+      '/organizations/$organizationIdOrSlug/integrations/',
+      {
         path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: {includeConfig: 0}},
-    ],
-    queryOptions
+        query: {includeConfig: 0},
+        ...queryOptions,
+      }
+    )
   );
   const {
     data: orgOwnedApps = [],
     isPending: isOrgOwnedAppsPending,
     isError: isOrgOwnedAppsError,
-  } = useQuery(sentryAppsApiOptions({orgSlug: organization.slug}));
+  } = useIntegrationPages(
+    apiOptions.asInfinite<SentryApp[]>()(
+      '/organizations/$organizationIdOrSlug/sentry-apps/',
+      {path: {organizationIdOrSlug: organization.slug}, ...queryOptions}
+    )
+  );
   const {
     data: publishedApps = [],
     isPending: isPublishedAppsPending,
     isError: isPublishedAppsError,
-  } = useApiQuery<SentryApp[]>(
-    [getApiUrl('/sentry-apps/'), {query: {status: 'published'}}],
-    queryOptions
+  } = useIntegrationPages(
+    apiOptions.asInfinite<SentryApp[]>()('/sentry-apps/', {
+      query: {status: 'published'},
+      ...queryOptions,
+    })
   );
   const {
     data: appInstalls = [],
     isPending: isAppInstallsPending,
     isError: isAppInstallsError,
-  } = useApiQuery<SentryAppInstallation[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/sentry-app-installations/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    queryOptions
+  } = useIntegrationPages(
+    apiOptions.asInfinite<SentryAppInstallation[]>()(
+      '/organizations/$organizationIdOrSlug/sentry-app-installations/',
+      {path: {organizationIdOrSlug: organization.slug}, ...queryOptions}
+    )
   );
   const {
     data: docIntegrations = [],
     isPending: isDocIntegrationsPending,
     isError: isDocIntegrationsError,
-  } = useApiQuery<DocIntegration[]>([getApiUrl('/doc-integrations/')], queryOptions);
+  } = useIntegrationPages(
+    apiOptions.asInfinite<DocIntegration[]>()('/doc-integrations/', queryOptions)
+  );
 
   const {
     data: legacyWebhooks,
@@ -175,7 +203,7 @@ function useIntegrationList() {
     isLegacyWebhooksError;
 
   const sentryAppList = useMemo(() => {
-    const list = orgOwnedApps ?? [];
+    const list = [...orgOwnedApps];
     // Add the extra app if it exists
     if (extraApp) {
       list.push(extraApp);
@@ -206,8 +234,10 @@ function useIntegrationList() {
 export default function IntegrationListDirectory() {
   const title = t('Integrations');
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [{category, search}, setQueryParams] = useQueryStates({
+    category: parseAsString.withDefault(''),
+    search: parseAsString.withDefault(''),
+  });
   const {
     appInstalls,
     anyPending,
@@ -218,37 +248,19 @@ export default function IntegrationListDirectory() {
     legacyWebhooks,
   } = useIntegrationList();
 
-  const category = decodeScalar(location.query.category) ?? '';
-  const search = decodeScalar(location.query.search) ?? '';
+  const legacyWebhookProjectCount = legacyWebhooks?.projects?.length ?? 0;
 
-  const webhookName = t('Webhooks (Legacy)');
-  const webhookCategories = ['notification action'];
-  const showLegacyWebhookRow =
-    !!legacyWebhooks &&
-    (!search || webhookName.toLowerCase().includes(search.toLowerCase())) &&
-    (!category || webhookCategories.includes(category));
-
-  const displayList = useMemo(() => {
-    let listToDisplay = [...list];
-
-    if (search) {
-      listToDisplay = list.filter(integration =>
-        integration.name.toLowerCase().includes(search.toLowerCase())
-      );
-    }
-
-    if (category) {
-      listToDisplay = listToDisplay.filter(integration =>
-        getCategoriesForIntegration(integration).includes(category)
-      );
-    }
-
-    return sortIntegrations({
-      list: listToDisplay,
-      sentryAppInstalls: appInstalls,
-      integrationInstalls: integrations,
-    });
-  }, [list, appInstalls, integrations, category, search]);
+  const {displayList, showLegacyWebhookRow} = useMemo(() => {
+    const results = getDisplayedResults(list, search, category, !!legacyWebhooks);
+    return {
+      displayList: sortIntegrations({
+        list: results.matches,
+        sentryAppInstalls: appInstalls,
+        integrationInstalls: integrations,
+      }),
+      showLegacyWebhookRow: results.showLegacyWebhookRow,
+    };
+  }, [list, search, category, legacyWebhooks, appInstalls, integrations]);
 
   const getAppInstall = useCallback(
     (app: SentryApp) => appInstalls.find(i => i.app.slug === app.slug),
@@ -257,12 +269,7 @@ export default function IntegrationListDirectory() {
 
   const onCategoryChange = useCallback(
     ({value: newCategory}: SelectOption<string>) => {
-      navigate(
-        {
-          query: {...location.query, category: newCategory ? newCategory : undefined},
-        },
-        {replace: true}
-      );
+      setQueryParams({category: newCategory});
       if (newCategory) {
         trackIntegrationAnalytics('integrations.directory_category_selected', {
           view: 'integrations_directory',
@@ -271,26 +278,23 @@ export default function IntegrationListDirectory() {
         });
       }
     },
-    [location, navigate, organization]
+    [setQueryParams, organization]
   );
 
   const onSearchChange = useCallback(
     (newSearch: string) => {
-      navigate(
-        {
-          query: {...location.query, search: newSearch ? newSearch : undefined},
-        },
-        {replace: true}
-      );
+      setQueryParams({search: newSearch});
       if (newSearch) {
-        debouncedTrackIntegrationSearch({
+        trackIntegrationAnalytics('integrations.directory_item_searched', {
+          view: 'integrations_directory',
           search_term: newSearch,
-          num_results: list.length,
+          num_results: getDisplayedResults(list, newSearch, category, !!legacyWebhooks)
+            .numResults,
           organization,
         });
       }
     },
-    [location, navigate, organization, list.length]
+    [setQueryParams, organization, list, category, legacyWebhooks]
   );
 
   /**
@@ -424,6 +428,10 @@ export default function IntegrationListDirectory() {
     [renderSentryApp, renderDocIntegration, renderProvider]
   );
 
+  if (anyError) {
+    return <LoadingError />;
+  }
+
   if (anyPending) {
     return <LoadingIndicator />;
   }
@@ -456,12 +464,10 @@ export default function IntegrationListDirectory() {
                       type="firstParty"
                       slug="legacy-webhooks"
                       displayName={t('Webhooks (Legacy)')}
-                      status={
-                        legacyWebhooks.projects?.length ? 'Installed' : 'Not Installed'
-                      }
+                      status={legacyWebhookProjectCount ? 'Installed' : 'Not Installed'}
                       publishStatus="published"
-                      configurations={legacyWebhooks.projects?.length ?? 0}
-                      categories={webhookCategories}
+                      configurations={legacyWebhookProjectCount}
+                      categories={WEBHOOK_ROW_CATEGORIES}
                       customIcon={<PluginIcon pluginId="webhooks" size={36} />}
                     />
                   )}

@@ -76,6 +76,11 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
                 description="Optional repository fields to expand, such as `settings`.",
             ),
             CursorQueryParam,
+            OpenApiParameter(
+                "per_page",
+                type=int,
+                description="The maximum number of repositories to return per page (1–100).",
+            ),
         ],
         responses={
             200: inline_sentry_response_serializer(
@@ -131,7 +136,7 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
             count_hits=True,
         )
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         if not request.user.is_authenticated:
             return Response(status=401)
         provider_id = request.data.get("provider")

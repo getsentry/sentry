@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from datetime import timedelta
 from typing import Any, cast
 
@@ -27,21 +27,21 @@ from sentry.utils.sdk import set_current_event_project
 PREFERRED_GROUP_OWNERS = 2
 PREFERRED_GROUP_OWNER_AGE = timedelta(days=7)
 MIN_COMMIT_SCORE = 2
-DEBOUNCE_CACHE_KEY = lambda group_id: f"process-suspect-commits-{group_id}"
+DEBOUNCE_CACHE_KEY: Callable[[int], str] = lambda group_id: f"process-suspect-commits-{group_id}"
 TASK_DURATION_S = 90
 
 logger = logging.getLogger(__name__)
 
 
 def _process_suspect_commits(
-    event_id,
-    event_platform,
+    event_id: str,
+    event_platform: str | None,
     event_frames: Sequence[Mapping[str, Any]],
-    group_id,
-    project_id,
-    sdk_name=None,
-    **kwargs,
-):
+    group_id: int,
+    project_id: int,
+    sdk_name: str | None = None,
+    **kwargs: object,
+) -> None:
     """
     This is the logic behind SuspectCommitStrategy.RELEASE_BASED
     """
@@ -92,7 +92,7 @@ def _process_suspect_commits(
 
             if owner_scores:
                 for owner_id, _ in sorted(
-                    sorted(owner_scores.items(), reverse=True, key=lambda item: item[1])
+                    owner_scores.items(), reverse=True, key=lambda item: item[1]
                 )[:PREFERRED_GROUP_OWNERS]:
                     try:
                         group_owner, created = (
@@ -169,6 +169,8 @@ def _process_suspect_commits(
                 cache.set(
                     cache_key, True, PREFERRED_GROUP_OWNER_AGE.total_seconds()
                 )  # 1 week in seconds
+            else:
+                cache.set(cache_key, True, timedelta(days=1).total_seconds())
         except Commit.DoesNotExist:
             cache.set(cache_key, True, timedelta(days=1).total_seconds())
             logger.info(
@@ -191,14 +193,14 @@ def _process_suspect_commits(
     silo_mode=SiloMode.CELL,
 )
 def process_suspect_commits(
-    event_id,
-    event_platform,
+    event_id: str,
+    event_platform: str | None,
     event_frames: Sequence[Mapping[str, Any]],
-    group_id,
-    project_id,
-    sdk_name=None,
-    **kwargs,
-):
+    group_id: int,
+    project_id: int,
+    sdk_name: str | None = None,
+    **kwargs: object,
+) -> None:
     """
     This is the task behind SuspectCommitStrategy.RELEASE_BASED
     """

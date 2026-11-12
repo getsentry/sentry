@@ -33,10 +33,17 @@ type SetFlamegraphResultsAction = {
   type: 'set search results';
 };
 
-type FlamegraphSearchArrowNavigationAction = {
-  payload: number;
-  type: 'set search index position';
-};
+type FlamegraphSearchArrowNavigationAction =
+  | {
+      type: 'next search result';
+    }
+  | {
+      type: 'previous search result';
+    }
+  | {
+      payload: number;
+      type: 'set search index position';
+    };
 
 type SetHighlightAllFrames = {
   payload: {
@@ -80,6 +87,27 @@ export function flamegraphSearchReducer(
       const spans = action.payload.results.spans;
       const index = frames.size + spans.size > 0 ? 0 : null;
       return {...state, index, highlightFrames: null, ...action.payload};
+    }
+    case 'next search result': {
+      const resultCount = state.results.frames.size + state.results.spans.size;
+      if (resultCount === 0) {
+        return state;
+      }
+
+      const index = state.index === null ? 0 : (state.index + 1) % resultCount;
+      return {...state, index};
+    }
+    case 'previous search result': {
+      const resultCount = state.results.frames.size + state.results.spans.size;
+      if (resultCount === 0) {
+        return state;
+      }
+
+      const index =
+        state.index === null
+          ? resultCount - 1
+          : (state.index - 1 + resultCount) % resultCount;
+      return {...state, index};
     }
     case 'set search index position': {
       return {...state, index: action.payload};

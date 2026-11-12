@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 
 import {StructuredEventData} from 'sentry/components/structuredEventData';
 import * as Storybook from 'sentry/stories';
-import type {SyntaxHighlightLine} from 'sentry/utils/usePrismTokens';
-import {usePrismTokens} from 'sentry/utils/usePrismTokens';
+
+import type {SyntaxHighlightLine} from './usePrismTokens';
+import {usePrismTokens} from './usePrismTokens';
 
 const JS_CODE = `function foo() {
   // Returns 'bar'
@@ -73,12 +74,7 @@ export default Storybook.story('usePrismTokens', story => {
           <tr>
             <th>Output</th>
             <td>
-              <StructuredEventData
-                data={lines}
-                forceDefaultExpand
-                maxDefaultDepth={2}
-                config={config}
-              />
+              <StructuredEventData data={lines} forceDefaultExpand config={config} />
             </td>
           </tr>
         </table>

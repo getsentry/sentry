@@ -7,8 +7,9 @@ import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {FieldKind} from 'sentry/utils/fields';
-import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {useGetTraceItemAttributeValues} from './useGetTraceItemAttributeValues';
 
 describe('useGetTraceItemAttributeValues', () => {
   const attributeKey = 'test.attribute';
@@ -167,6 +168,26 @@ describe('useGetTraceItemAttributeValues', () => {
 
     expect(searchQueryMock).not.toHaveBeenCalled();
     expect(searchResults).toEqual([]); // This will always return an empty array because we don't suggest values for numbers
+  });
+
+  it('does not request attribute values when the tag key is empty', async () => {
+    const emptyKeyMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes//values/',
+      body: [],
+    });
+
+    const {result} = renderValuesHook();
+
+    let searchResults: ValueResult = [];
+    await act(async () => {
+      searchResults = await result.current({
+        tag: {key: '', name: '', kind: FieldKind.TAG},
+        searchQuery: '',
+      });
+    });
+
+    expect(emptyKeyMock).not.toHaveBeenCalled();
+    expect(searchResults).toEqual([]);
   });
 
   it('getTraceItemAttributeValues returns empty array for boolean type', async () => {

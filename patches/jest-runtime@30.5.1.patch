@@ -1,0 +1,34 @@
+diff --git a/build/index.js b/build/index.js
+index 710d49550694e539306c4d9e5292f8825b26e3e0..e6ee5427ac183c6ae223c38567785df63593d103 100644
+--- a/build/index.js
++++ b/build/index.js
+@@ -3722,10 +3722,14 @@ class TransformCache {
+     this.fileCache = fileCache;
+     this.getFullTransformationOptions = getFullTransformationOptions;
+   }
++  // The source is not read up front: the transformer memoizes its results for
++  // the life of the worker (keyed on the file's mtime) and ignores the source
++  // on a hit, and on a miss reads it into the same `cacheFS` this runtime
++  // shares with it. Reading it here re-read every module once per test file.
++  // https://github.com/jestjs/jest/pull/16477
+   transform(filename, options) {
+-    const source = this.fileCache.readFile(filename);
+-    if (options?.isInternalModule) return source;
+-    const transformedFile = this.scriptTransformer.transform(filename, this.getFullTransformationOptions(options), source);
++    if (options?.isInternalModule) return this.fileCache.readFile(filename);
++    const transformedFile = this.scriptTransformer.transform(filename, this.getFullTransformationOptions(options));
+     this.transforms.set(filename, transformedFile);
+     if (transformedFile.sourceMapPath) {
+       this.sourceMaps.set(filename, transformedFile.sourceMapPath);
+@@ -3733,9 +3737,8 @@ class TransformCache {
+     return transformedFile.code;
+   }
+   async transformAsync(filename, options) {
+-    const source = this.fileCache.readFile(filename);
+-    if (options?.isInternalModule) return source;
+-    const transformedFile = await this.scriptTransformer.transformAsync(filename, this.getFullTransformationOptions(options), source);
++    if (options?.isInternalModule) return this.fileCache.readFile(filename);
++    const transformedFile = await this.scriptTransformer.transformAsync(filename, this.getFullTransformationOptions(options));
+     this.transforms.set(filename, transformedFile);
+     if (transformedFile.sourceMapPath) {
+       this.sourceMaps.set(filename, transformedFile.sourceMapPath);

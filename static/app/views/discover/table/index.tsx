@@ -5,28 +5,26 @@ import type {Location} from 'history';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 import {Pagination} from '@sentry/scraps/pagination';
 
-import type {EventQuery} from 'sentry/actionCreators/events';
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {metric, trackAnalytics} from 'sentry/utils/analytics';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
-import type {EventView, LocationQuery} from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {isAPIPayloadSimilar, isFieldsSimilar} from 'sentry/utils/discover/eventView';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {Measurements} from 'sentry/utils/measurements/measurements';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import {withApi} from 'sentry/utils/withApi';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
 import {TableView} from './tableView';
 
 type TableProps = {
-  api: Client;
   confirmedQuery: boolean;
   eventView: EventView;
   location: Location;
@@ -60,7 +58,7 @@ type TableState = {
  * It will pass the data it fetched to `TableView`, where the state of the
  * Table is maintained and controlled
  */
-class Table extends PureComponent<TableProps, TableState> {
+export class Table extends PureComponent<TableProps, TableState> {
   static getDerivedStateFromProps(
     nextProps: Readonly<TableProps>,
     prevState: TableState
@@ -114,6 +112,12 @@ class Table extends PureComponent<TableProps, TableState> {
     }
   }
 
+  componentWillUnmount() {
+    this.api.clear();
+  }
+
+  api = new Client();
+
   didViewChange = (): boolean => {
     const {prevView} = this.state;
     const thisAPIPayload = this.props.eventView.getEventsAPIPayload(this.props.location);
@@ -154,8 +158,7 @@ class Table extends PureComponent<TableProps, TableState> {
     const url = `/organizations/${organization.slug}/events/`;
     const tableFetchID = Symbol('tableFetchID');
 
-    const apiPayload = eventView.getEventsAPIPayload(location) as LocationQuery &
-      EventQuery;
+    const apiPayload = eventView.getEventsAPIPayload(location);
 
     // We are now routing to the trace view on clicking event ids. Therefore, we need the trace slug associated to the event id.
     // Note: Event ID or 'id' is added to the fields in the API payload response by default for all non-aggregate queries.
@@ -196,24 +199,15 @@ class Table extends PureComponent<TableProps, TableState> {
     setError('', 200);
 
     this.setState({isLoading: true, tableFetchID});
-    metric.mark({name: `discover-events-start-${apiPayload.query}`});
 
-    this.props.api.clear();
-    this.props.api
+    this.api.clear();
+    this.api
       .requestPromise(url, {
         method: 'GET',
         includeAllArgs: true,
         query: apiPayload,
       })
       .then(([data, _, resp]) => {
-        // We want to measure this metric regardless of whether we use the result
-        metric.measure({
-          name: 'app.api.discover-query',
-          start: `discover-events-start-${apiPayload.query}`,
-          data: {
-            status: resp?.status,
-          },
-        });
         if (this.state.tableFetchID !== tableFetchID) {
           // invariant: a different request was initiated after this request
           return;
@@ -256,14 +250,6 @@ class Table extends PureComponent<TableProps, TableState> {
         }
       })
       .catch((err: any) => {
-        metric.measure({
-          name: 'app.api.discover-query',
-          start: `discover-events-start-${apiPayload.query}`,
-          data: {
-            status: err.status,
-          },
-        });
-
         const message = err?.responseJSON?.detail || t('An unknown error occurred.');
         this.setState({
           isLoading: false,
@@ -325,13 +311,11 @@ class Table extends PureComponent<TableProps, TableState> {
             );
           }}
         </Measurements>
-        <Pagination pageLinks={pageLinks} onCursor={onCursor} />
+        <Pagination {...getPaginationProps(pageLinks)} onCursor={onCursor} />
       </Container>
     );
   }
 }
-
-export default withApi(Table);
 
 const Container = styled('div')`
   min-width: 0;

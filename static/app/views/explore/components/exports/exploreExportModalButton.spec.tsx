@@ -9,9 +9,10 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {ExportQueryType} from 'sentry/components/exports/useDataExport';
-import {ExploreExportModalButton} from 'sentry/views/explore/components/exports/exploreExportModalButton';
-import type {ExploreExportConfig} from 'sentry/views/explore/components/exports/types';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {ExploreExportModalButton} from './exploreExportModalButton';
+import type {ExploreExportConfig} from './types';
 
 const organization = OrganizationFixture({features: ['discover-query']});
 
@@ -36,25 +37,20 @@ function makeConfig(): ExploreExportConfig {
   };
 }
 
-function renderButton(
-  props: Partial<React.ComponentProps<typeof ExploreExportModalButton>> = {}
+function ExampleExploreExportModalButton(
+  props: Partial<React.ComponentProps<typeof ExploreExportModalButton>>
 ) {
-  const onOpen = jest.fn();
-  const onClose = jest.fn();
-  render(
+  return (
     <ExploreExportModalButton
       config={makeConfig()}
       isDataEmpty={false}
       isDataError={false}
       isDataLoading={false}
-      onOpen={onOpen}
-      onClose={onClose}
+      onOpen={jest.fn()}
+      onClose={jest.fn()}
       {...props}
-    />,
-    {organization}
+    />
   );
-  renderGlobalModal();
-  return {onOpen, onClose};
 }
 
 describe('ExploreExportModalButton', () => {
@@ -63,18 +59,22 @@ describe('ExploreExportModalButton', () => {
   });
 
   it('opens the modal and fires onOpen when clicked', async () => {
-    const {onOpen} = renderButton();
+    const onOpen = jest.fn();
+    render(<ExampleExploreExportModalButton onOpen={onOpen} />, {organization});
+    renderGlobalModal();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
     expect(onOpen).toHaveBeenCalled();
   });
 
   it('fires onClose with escape_key when closed via Escape', async () => {
-    const {onClose} = renderButton();
+    const onClose = jest.fn();
+    render(<ExampleExploreExportModalButton onClose={onClose} />, {organization});
+    renderGlobalModal();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
 
     await userEvent.keyboard('{Escape}');
@@ -85,9 +85,11 @@ describe('ExploreExportModalButton', () => {
   });
 
   it('fires onClose once with cancel_button when the Cancel button is clicked', async () => {
-    const {onClose} = renderButton();
+    const onClose = jest.fn();
+    render(<ExampleExploreExportModalButton onClose={onClose} />, {organization});
+    renderGlobalModal();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
     await userEvent.click(await screen.findByRole('button', {name: 'Cancel'}));
 
     await waitFor(() => {
@@ -97,10 +99,11 @@ describe('ExploreExportModalButton', () => {
   });
 
   it('disables the button with a tooltip when data is empty', async () => {
-    renderButton({isDataEmpty: true});
+    render(<ExampleExploreExportModalButton isDataEmpty />, {organization});
+    renderGlobalModal();
 
-    const button = screen.getByRole('button', {name: 'Export Data'});
-    expect(button).toBeDisabled();
+    const button = screen.getByRole('button', {name: 'Export'});
+    expect(button).toHaveAttribute('aria-disabled', 'true');
     await userEvent.hover(button);
     expect(await screen.findByText('No data to export')).toBeInTheDocument();
   });

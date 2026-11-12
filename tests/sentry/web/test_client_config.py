@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 from django.conf import settings
 from django.core.cache import cache
+from django.http import HttpRequest
 from django.test import override_settings
 from django.urls import get_resolver
 
@@ -37,18 +38,23 @@ from sentry.testutils.silo import (
     no_silo_test,
 )
 from sentry.types import cell
+from sentry.users.models.user import User
 from sentry.web.client_config import get_client_config
 
 
 @request_factory
-def make_user_request_from_non_existant_org(org=None):
+def make_user_request_from_non_existant_org(
+    org: Organization | None = None,
+) -> tuple[HttpRequest, User]:
     request, user = make_user_request_from_org(org)
     # This is a non existant value that will fail lookup.
     request.session["activeorg"] = 47381
     return request, user
 
 
-def make_user_request_from_org_with_auth_identities(org=None):
+def make_user_request_from_org_with_auth_identities(
+    org: Organization | None = None,
+) -> tuple[HttpRequest, User]:
     request, user = make_user_request_from_org(org)
     with assume_test_silo_mode_of(Organization):
         org = Organization.objects.get_for_user_ids({user.id})[0]
@@ -71,12 +77,8 @@ def create_test_localities(
         cell.Locality(
             name=c.name,
             cells=frozenset([c.name]),
-            category=(
-                cell.RegionCategory.SINGLE_TENANT
-                if c.name in single_tenants
-                else cell.RegionCategory.MULTI_TENANT
-            ),
             new_org_cell=c.name,
+            visible=c.name not in single_tenants,
         )
         for c in cells
     )
@@ -98,28 +100,9 @@ def test_client_config_default() -> None:
 
 
 @multiregion_client_config_test
-@pytest.mark.parametrize(
-    "request_factory",
-    [
-        none_request,
-        make_request,
-        make_user_request,
-        make_user_request_from_org,
-        make_user_request_from_non_existant_org,
-        make_user_request_from_org_with_auth_identities,
-    ],
-)
 @django_db_all(transaction=True)
-def test_client_config_in_silo_modes(request_factory: RequestFactory) -> None:
-    request_ret = request_factory()
-    if request_ret is not None:
-        request, _ = request_ret
-    else:
-        request = None
-
-    base_line = dict(get_client_config(request))
-
-    def normalize(value: dict[str, Any]):
+def test_client_config_in_silo_modes(subtests: pytest.Subtests) -> None:
+    def normalize(value: dict[str, Any]) -> None:
         # Removing the region lists as it varies based on silo mode.
         # See Locality.to_url()
         value.pop("localities")
@@ -127,15 +110,35 @@ def test_client_config_in_silo_modes(request_factory: RequestFactory) -> None:
         value.pop("cells")
         value["links"].pop("regionUrl")
 
-    normalize(base_line)
-    cache.clear()
-
-    for silo_mode in SiloMode:
-        with override_settings(SILO_MODE=silo_mode):
-            result = dict(get_client_config(request))
-            normalize(result)
-            assert result == base_line
+    # The factories create independent users and orgs, so the cases can share one
+    # transactional DB setup instead of flushing every table per case.
+    request_factories: list[RequestFactory] = [
+        none_request,
+        make_request,
+        make_user_request,
+        make_user_request_from_org,
+        make_user_request_from_non_existant_org,
+        make_user_request_from_org_with_auth_identities,
+    ]
+    for make_request_fn in request_factories:
+        with subtests.test(msg=make_request_fn.__name__):
             cache.clear()
+            request_ret = make_request_fn()
+            if request_ret is not None:
+                request, _ = request_ret
+            else:
+                request = None
+
+            base_line = dict(get_client_config(request))
+            normalize(base_line)
+            cache.clear()
+
+            for silo_mode in SiloMode:
+                with override_settings(SILO_MODE=silo_mode):
+                    result = dict(get_client_config(request))
+                    normalize(result)
+                    assert result == base_line
+                    cache.clear()
 
 
 @no_silo_test
@@ -290,7 +293,7 @@ def test_client_config_with_staff_session_fills_cells_and_cells_are_sorted() -> 
     # Simulate an active staff session
     staff = Staff(request)
     staff.set_logged_in(user)
-    request.staff = staff
+    setattr(request, "staff", staff)
 
     result = get_client_config(request)
 
@@ -320,7 +323,7 @@ def test_client_config_with_staff_session_includes_hidden_cells() -> None:
     # Simulate an active staff session
     staff = Staff(request)
     staff.set_logged_in(user)
-    request.staff = staff
+    setattr(request, "staff", staff)
 
     result = get_client_config(request)
 
@@ -433,10 +436,25 @@ def test_client_config_no_preload_data_if_accept_invitation_view() -> None:
         role="owner",
     )
     invite_url = member.get_invite_link()
+    assert invite_url is not None
     invite_path = urllib.parse.urlparse(invite_url).path
     resolver = get_resolver()
     request.path = invite_path
     request.resolver_match = resolver.resolve(invite_path)
+
+    client_config = get_client_config(request)
+
+    assert client_config["shouldPreloadData"] is False
+
+
+@no_silo_test
+@django_db_all
+@pytest.mark.parametrize("path", ["/auth/login/", "/auth/login/test-org/"])
+def test_client_config_no_preload_data_on_login_views(path: str) -> None:
+    request, user = make_user_request_from_org()
+    request.user = user
+    request.path = path
+    request.resolver_match = get_resolver().resolve(path)
 
     client_config = get_client_config(request)
 

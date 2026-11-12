@@ -1,9 +1,12 @@
 import os
 import pickle
 import time
-from contextlib import contextmanager
+from collections.abc import Callable, Iterator, Sequence
+from contextlib import AbstractContextManager, contextmanager
+from typing import Any, cast
 from unittest import mock
 
+import orjson
 import pytest
 
 from sentry import nodestore
@@ -16,10 +19,12 @@ from sentry.grouping.variants import ComponentVariant
 from sentry.interfaces.user import User
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.environment import Environment
+from sentry.models.project import Project
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
@@ -30,7 +35,7 @@ pytestmark = [requires_snuba]
 
 
 @contextmanager
-def timezone_context(tz: str):
+def timezone_context(tz: str) -> Iterator[None]:
     old_tz = os.environ.get("TZ")
     try:
         os.environ["TZ"] = tz
@@ -44,6 +49,9 @@ def timezone_context(tz: str):
         time.tzset()
 
 
+# Snowflake org and project ids repeat when two tests start in the same second, so reset Snuba
+# rather than read back a previous test's rows for "our" project.
+@pytest.mark.usefixtures("reset_snuba")
 class EventTest(TestCase, PerformanceIssueTestCase):
     def test_pickling_compat(self) -> None:
         event = self.store_event(
@@ -260,7 +268,10 @@ class EventTest(TestCase, PerformanceIssueTestCase):
                     "username",
                     "timestamp_ms",
                 ],
-                filter_keys={"project_id": [self.project.id], "event_id": ["a" * 32]},
+                filter_keys=cast(
+                    "dict[str, Sequence[int]]",
+                    {"project_id": [self.project.id], "event_id": ["a" * 32]},
+                ),
                 tenant_ids={"referrer": "r", "organization_id": 1234},
             )["data"][0],
         )
@@ -277,7 +288,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         assert event_from_nodestore.culprit == event_from_snuba.culprit
 
         user_from_nodestore = event_from_nodestore.get_minimal_user()
-        user_from_nodestore = User.to_python(
+        user_from_nodestore_comparison = User.to_python(
             {
                 "id": user_from_nodestore._data.get("id"),
                 "email": user_from_nodestore._data.get("email"),
@@ -285,7 +296,8 @@ class EventTest(TestCase, PerformanceIssueTestCase):
                 "ip_address": user_from_nodestore._data.get("ip_address"),
             }
         )
-        assert user_from_nodestore == event_from_snuba.get_minimal_user()
+        assert user_from_nodestore_comparison is not None
+        assert user_from_nodestore_comparison == event_from_snuba.get_minimal_user()
 
         assert event_from_nodestore.ip_address == event_from_snuba.ip_address
         assert event_from_nodestore.tags == event_from_snuba.tags
@@ -332,7 +344,10 @@ class EventTest(TestCase, PerformanceIssueTestCase):
                     "tags.key",
                     "tags.value",
                 ],
-                filter_keys={"project_id": [self.project.id], "event_id": ["a" * 32]},
+                filter_keys=cast(
+                    "dict[str, Sequence[int]]",
+                    {"project_id": [self.project.id], "event_id": ["a" * 32]},
+                ),
                 tenant_ids={"referrer": "r", "organization_id": 1234},
             )["data"][0],
         )
@@ -620,16 +635,50 @@ class GroupEventOccurrenceTest(TestCase, OccurrenceTestMixin):
             assert fetch_mock.call_count == 2
 
 
+def test_trace_id_from_snuba() -> None:
+    event = Event(project_id=1, event_id="a" * 32, snuba_data={"trace_id": "b" * 32})
+    with mock.patch.object(nodestore.backend, "get") as get_body:
+        assert event.trace_id == "b" * 32
+    get_body.assert_not_called()
+
+
+def test_null_trace_id_from_snuba_does_not_load_body() -> None:
+    event = Event(project_id=1, event_id="a" * 32, snuba_data={"trace_id": None})
+    with mock.patch.object(nodestore.backend, "get") as get_body:
+        assert event.trace_id is None
+    get_body.assert_not_called()
+
+
+def test_trace_id_falls_back_to_body() -> None:
+    event = Event(project_id=1, event_id="a" * 32, snuba_data={})
+    with mock.patch.object(
+        nodestore.backend,
+        "get",
+        return_value={"contexts": {"trace": {"trace_id": "c" * 32, "span_id": "d" * 16}}},
+    ) as get_body:
+        assert event.trace_id == "c" * 32
+    get_body.assert_called_once_with(event.data.id)
+
+
 @django_db_all
-def test_renormalization(factories, task_runner, default_project) -> None:
+def test_renormalization(
+    factories: Factories,
+    task_runner: Callable[[], AbstractContextManager[None]],
+    default_project: Project,
+) -> None:
     from sentry_relay.processing import StoreNormalizer
 
     old_normalize = StoreNormalizer.normalize_event
     normalize_mock_calls = []
 
-    def normalize(*args, **kwargs):
+    def normalize(
+        normalizer: StoreNormalizer,
+        event: Any = None,
+        raw_event: Any = None,
+        json_loads: Callable[[str | bytes], Any] = orjson.loads,
+    ) -> dict[str, Any]:
         normalize_mock_calls.append(1)
-        return old_normalize(*args, **kwargs)
+        return old_normalize(normalizer, event, raw_event, json_loads)
 
     with (
         mock.patch("sentry_relay.processing.StoreNormalizer.normalize_event", normalize),
@@ -639,10 +688,9 @@ def test_renormalization(factories, task_runner, default_project) -> None:
             data={"event_id": "a" * 32, "environment": "production"}, project_id=default_project.id
         )
 
-    # Assert we only renormalize this once. If this assertion fails it's likely
-    # that you will encounter severe performance issues during event processing
-    # or postprocessing.
-    assert len(normalize_mock_calls) == 1
+    # Normalize during ingestion and when workflow processing reads the event.
+    # Post-processing reads the already normalized payload without normalizing it again.
+    assert len(normalize_mock_calls) == 2
 
 
 class EventNodeStoreTest(TestCase):
@@ -734,7 +782,10 @@ class EventNodeStoreTest(TestCase):
                         "timestamp",
                         "timestamp_ms",
                     ],
-                    filter_keys={"project_id": [self.project.id], "event_id": ["a" * 32]},
+                    filter_keys=cast(
+                        "dict[str, Sequence[int]]",
+                        {"project_id": [self.project.id], "event_id": ["a" * 32]},
+                    ),
                     tenant_ids={"referrer": "r", "organization_id": 1234},
                 )["data"][0],
             )
@@ -769,7 +820,10 @@ class EventNodeStoreTest(TestCase):
                     selected_columns=[
                         "timestamp",
                     ],
-                    filter_keys={"project_id": [self.project.id], "event_id": ["b" * 32]},
+                    filter_keys=cast(
+                        "dict[str, Sequence[int]]",
+                        {"project_id": [self.project.id], "event_id": ["b" * 32]},
+                    ),
                     tenant_ids={"referrer": "r", "organization_id": 1234},
                 )["data"][0],
             )
@@ -806,7 +860,10 @@ class EventNodeStoreTest(TestCase):
                 event_id="c" * 32,
                 snuba_data=snuba.raw_query(
                     selected_columns=["event_id"],
-                    filter_keys={"project_id": [self.project.id], "event_id": ["c" * 32]},
+                    filter_keys=cast(
+                        "dict[str, Sequence[int]]",
+                        {"project_id": [self.project.id], "event_id": ["c" * 32]},
+                    ),
                     tenant_ids={"referrer": "r", "organization_id": 1234},
                 )["data"][0],
             )

@@ -1,4 +1,5 @@
 import logging
+from typing import TypedDict
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import PermissionDenied
@@ -13,9 +14,10 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import DetectorParams, GlobalParams
-from sentry.incidents.models.alert_rule import AlertRule
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_threshold_data_from_seer
+from sentry.seer.anomaly_detection.types import AnomalyThresholdDataPoint
 from sentry.snuba.models import QuerySubscription
 from sentry.workflow_engine.models import Detector
 
@@ -26,6 +28,10 @@ class SubscriptionNotFound(Exception):
     """Raised when a QuerySubscription cannot be found."""
 
     pass
+
+
+class AnomalyThresholdDataResponse(TypedDict):
+    data: list[AnomalyThresholdDataPoint]
 
 
 @extend_schema(tags=["Workflows"])
@@ -59,51 +65,13 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
         except ValueError:
             raise SubscriptionNotFound
 
-    def _get_subscription_from_alert_rule(
-        self, alert_rule_id: str, organization: Organization
-    ) -> QuerySubscription:
-        """Look up QuerySubscription from a legacy alert rule ID."""
-        validated_alert_rule_id = to_valid_int_id("alert_rule_id", alert_rule_id, raise_404=True)
-        try:
-            alert_rule = AlertRule.objects.get(
-                id=validated_alert_rule_id, organization=organization
-            )
-            logger.info(
-                "anomaly_data.legacy_alert_found",
-                extra={
-                    "alert_rule_id": alert_rule_id,
-                    "snuba_query_id": alert_rule.snuba_query_id,
-                    "organization_id": organization.id,
-                },
-            )
-        except AlertRule.DoesNotExist:
-            logger.warning(
-                "anomaly_data.legacy_alert_not_found",
-                extra={"alert_rule_id": alert_rule_id, "organization_id": organization.id},
-            )
-            raise ResourceDoesNotExist
-
-        subscription = (
-            QuerySubscription.objects.select_related("project")
-            .filter(snuba_query_id=alert_rule.snuba_query_id)
-            .first()
-        )
-        if not subscription:
-            raise SubscriptionNotFound
-        logger.info(
-            "anomaly_data.subscription_found",
-            extra={
-                "alert_rule_id": alert_rule_id,
-                "subscription_id": subscription.id,
-            },
-        )
-        return subscription
-
     @extend_schema(
         operation_id="Retrieve Anomaly Detection Threshold Data for a Detector",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, DetectorParams.DETECTOR_ID],
         responses={
-            200: object,
+            200: inline_sentry_response_serializer(
+                "AnomalyThresholdDataResponse", AnomalyThresholdDataResponse
+            ),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -111,10 +79,7 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
     )
     def get(self, request: Request, organization: Organization, detector_id: str) -> Response:
         """
-        Return anomaly detection threshold data (yhat_lower, yhat_upper) for a detector
-        or legacy alert rule.
-
-        Pass `legacy_alert=true` query param to treat detector_id as a legacy alert rule ID.
+        Return anomaly detection threshold data (yhat_lower, yhat_upper) for a detector.
         """
         start = request.GET.get("start")
         end = request.GET.get("end")
@@ -128,13 +93,10 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
         except ValueError:
             return Response({"detail": "start and end must be valid timestamps"}, status=400)
 
-        is_legacy_alert = request.GET.get("legacy_alert", "").lower() == "true"
-
         logger.info(
             "anomaly_data.request",
             extra={
                 "detector_id": detector_id,
-                "is_legacy_alert": is_legacy_alert,
                 "start": start_float,
                 "end": end_float,
                 "organization_id": organization.id,
@@ -142,16 +104,10 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
         )
 
         try:
-            if is_legacy_alert:
-                query_subscription = self._get_subscription_from_alert_rule(
-                    detector_id, organization
-                )
-            else:
-                query_subscription = self._get_subscription_from_detector(detector_id, organization)
+            query_subscription = self._get_subscription_from_detector(detector_id, organization)
         except (QuerySubscription.DoesNotExist, SubscriptionNotFound):
-            model_type = "alert rule" if is_legacy_alert else "detector"
             return Response(
-                {"detail": f"Could not find query subscription for {model_type}"},
+                {"detail": "Could not find query subscription for detector"},
                 status=404,
             )
 
@@ -167,7 +123,6 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
                 "anomaly_data.seer_returned_none",
                 extra={
                     "subscription_id": query_subscription.id,
-                    "is_legacy_alert": is_legacy_alert,
                 },
             )
             return Response(
@@ -178,7 +133,6 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
             "anomaly_data.success",
             extra={
                 "subscription_id": query_subscription.id,
-                "is_legacy_alert": is_legacy_alert,
                 "data_points_count": len(data),
             },
         )

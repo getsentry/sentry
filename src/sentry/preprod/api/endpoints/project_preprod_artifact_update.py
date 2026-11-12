@@ -6,6 +6,7 @@ from typing import Any
 
 import jsonschema
 import orjson
+from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -24,9 +25,11 @@ from sentry.preprod.authentication import (
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactMobileAppInfo,
+    PreprodArtifactMobileAppInfoExtras,
     PreprodArtifactSizeMetrics,
 )
 from sentry.preprod.quotas import PreprodFeature, should_run_distribution, should_run_size
+from sentry.preprod.vcs.pr_comments.size_tasks import create_preprod_size_pr_comment_task
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 
 logger = logging.getLogger(__name__)
@@ -49,6 +52,7 @@ def validate_preprod_artifact_update_schema(
             "artifact_type": {"type": "integer", "minimum": 0, "maximum": 2},
             "build_version": {"type": "string", "maxLength": 255},
             "build_number": {"type": "integer"},
+            "build_number_raw": {"type": "string", "maxLength": 255},
             "error_code": {"type": "integer", "minimum": 0, "maximum": 3},
             "error_message": {"type": "string"},
             "app_id": {"type": "string", "maxLength": 255},
@@ -91,6 +95,7 @@ def validate_preprod_artifact_update_schema(
         "error_message": "The error_message field must be a string.",
         "build_version": "The build_version field must be a string with a maximum length of 255 characters.",
         "build_number": "The build_number field must be an integer.",
+        "build_number_raw": "The build_number_raw field must be a string with a maximum length of 255 characters.",
         "app_id": "The app_id field must be a string with a maximum length of 255 characters.",
         "app_name": "The app_name field must be a string with a maximum length of 255 characters.",
         "apple_app_info": "The apple_app_info field must be an object.",
@@ -289,6 +294,17 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
         if "app_name" in data:
             mobile_app_info_updates["app_name"] = data["app_name"]
 
+        if "build_number_raw" in data:
+            existing_extras = (
+                PreprodArtifactMobileAppInfo.objects.filter(preprod_artifact=head_artifact)
+                .values_list("extras", flat=True)
+                .first()
+            ) or {}
+            extras_update: PreprodArtifactMobileAppInfoExtras = {
+                "build_number_raw": data["build_number_raw"]
+            }
+            mobile_app_info_updates["extras"] = {**existing_extras, **extras_update}
+
         if mobile_app_info_updates:
             PreprodArtifactMobileAppInfo.objects.update_or_create(
                 preprod_artifact=head_artifact,
@@ -380,13 +396,6 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                 },
             )
 
-            create_preprod_status_check_task.apply_async(
-                kwargs={
-                    "preprod_artifact_id": artifact_id_int,
-                    "caller": "artifact_update_endpoint",
-                }
-            )
-
         mobile_app_info = head_artifact.get_mobile_app_info()
         build_version = mobile_app_info.build_version if mobile_app_info else None
         build_number = mobile_app_info.build_number if mobile_app_info else None
@@ -407,6 +416,24 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
 
         can_run_size, size_skip_reason = should_run_size(head_artifact)
         if can_run_size:
+            preprocessing_succeeded = head_artifact.state == PreprodArtifact.ArtifactState.PROCESSED
+            if preprocessing_succeeded:
+                # Launchpad will run size analysis when it receives this response,
+                # so mark the main metric as PROCESSING.
+                PreprodArtifactSizeMetrics.objects.filter(
+                    preprod_artifact=head_artifact,
+                    metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                    state__in=[
+                        PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+                        PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING,
+                        PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED,
+                    ],
+                ).update(
+                    state=PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING,
+                    error_code=None,
+                    error_message=None,
+                    date_updated=timezone.now(),
+                )
             requested_features.append(PreprodFeature.SIZE_ANALYSIS)
         else:
             # Update size metrics record to NOT_RAN with appropriate error code
@@ -454,6 +481,24 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                     "error_code": error_code,
                     "error_message": error_message,
                 },
+            )
+
+        # Refresh the status check and PR comment only after size eligibility is
+        # resolved, so workers cannot render stale PENDING metrics.
+        should_update_size_status_check = bool(updated_fields) or not can_run_size
+        if should_update_size_status_check:
+            create_preprod_status_check_task.delay(
+                preprod_artifact_id=artifact_id_int,
+                caller="artifact_update_endpoint",
+            )
+
+        should_update_size_pr_comment = not can_run_size
+        if should_update_size_pr_comment:
+            # If size analysis does not run, no completion task will update
+            # the comment, so update it now.
+            create_preprod_size_pr_comment_task.delay(
+                preprod_artifact_id=artifact_id_int,
+                caller="artifact_update_endpoint",
             )
 
         can_run_distro, distro_skip_reason = should_run_distribution(head_artifact)

@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -13,7 +14,6 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {IssueAssignee} from 'sentry/utils/dashboards/issueAssignee';
 import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import {EventView} from 'sentry/utils/discover/eventView';
 import type {FieldFormatterRenderFunctionPartial} from 'sentry/utils/discover/fieldRenderers';
@@ -24,6 +24,8 @@ import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {FieldKey} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
+
+import {IssueAssignee} from './issueAssignee';
 
 /**
  * Types, functions and definitions for rendering fields in discover results.
@@ -206,11 +208,9 @@ const issuesCountRenderer = (
   return (
     <Container>
       <Tooltip
-        isHoverable
         skipWrapper
-        overlayStyle={{padding: 0}}
         title={
-          <div>
+          <div data-tooltip-section>
             {filteredCount ? (
               <Fragment>
                 <StyledLink to={filteredDiscoverLink}>
@@ -286,19 +286,19 @@ export function getSortField(field: string): string | null {
   }
 }
 
-const contentStyle = css`
+const contentStyle = (theme: Theme) => css`
   width: 100%;
   justify-content: space-between;
   display: flex;
-  padding: 6px 10px;
+  padding: ${theme.space.md} ${theme.space.lg};
 `;
 
 const StyledContent = styled('div')`
-  ${contentStyle};
+  ${p => contentStyle(p.theme)};
 `;
 
 const StyledLink = styled(Link)`
-  ${contentStyle};
+  ${p => contentStyle(p.theme)};
   color: ${p => p.theme.colors.gray500};
   &:hover {
     color: ${p => p.theme.colors.gray500};
@@ -329,7 +329,7 @@ const WrappedCount = styled(({value, ...p}: any) => (
 const Divider = styled('div')`
   height: 1px;
   overflow: hidden;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   background-color: ${p => p.theme.tokens.border.secondary};
 `;
 

@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import UnsubscribeIssue from 'sentry/views/unsubscribe/issue';
+import UnsubscribeIssue from './issue';
 
 describe('UnsubscribeIssue', () => {
   let mockUpdate: jest.Mock;
@@ -8,7 +8,7 @@ describe('UnsubscribeIssue', () => {
 
   beforeEach(() => {
     mockUpdate = MockApiClient.addMockResponse({
-      url: '/organizations/acme/unsubscribe/issue/9876/?_=signature-value',
+      url: '/organizations/acme/unsubscribe/issue/9876/',
       method: 'POST',
       status: 201,
     });
@@ -57,8 +57,11 @@ describe('UnsubscribeIssue', () => {
     await userEvent.click(button);
 
     expect(mockUpdate).toHaveBeenCalledWith(
-      '/organizations/acme/unsubscribe/issue/9876/?_=signature-value',
-      expect.objectContaining({data: {cancel: 1}})
+      '/organizations/acme/unsubscribe/issue/9876/',
+      expect.objectContaining({
+        data: {cancel: 1},
+        query: {_: 'signature-value'},
+      })
     );
   });
 });

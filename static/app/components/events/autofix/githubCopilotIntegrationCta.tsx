@@ -1,16 +1,17 @@
 import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {organizationIntegrationsCodingAgents} from 'sentry/components/events/autofix/useAutofix';
 import {Placeholder} from 'sentry/components/placeholder';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+
+import {organizationIntegrationsCodingAgents} from './useAutofix';
 
 export function GithubCopilotIntegrationCta() {
   const organization = useOrganization();
@@ -59,7 +60,7 @@ export function GithubCopilotIntegrationCta() {
         marginTop="2xl"
         marginBottom="2xl"
       >
-        <Flex direction="column" gap="lg">
+        <Stack gap="lg">
           <Heading as="h3">
             <Flex direction="row" gap="sm" align="center">
               <PluginIcon pluginId="github" /> <span>GitHub Copilot Integration</span>
@@ -80,7 +81,7 @@ export function GithubCopilotIntegrationCta() {
               {t('Install GitHub Copilot Integration')}
             </LinkButton>
           </div>
-        </Flex>
+        </Stack>
       </Container>
     );
   }
@@ -93,7 +94,7 @@ export function GithubCopilotIntegrationCta() {
       marginTop="2xl"
       marginBottom="2xl"
     >
-      <Flex direction="column" gap="lg">
+      <Stack gap="lg">
         <Heading as="h3">
           <Flex direction="row" gap="sm" align="center">
             <PluginIcon pluginId="github" /> <span>GitHub Copilot Integration</span>
@@ -104,7 +105,7 @@ export function GithubCopilotIntegrationCta() {
             'GitHub Copilot integration is installed. You can trigger GitHub Copilot from Issue Fix to create pull requests.'
           )}
         </Text>
-      </Flex>
+      </Stack>
     </Container>
   );
 }

@@ -1,25 +1,41 @@
 import {useCallback} from 'react';
+import {useMutation} from '@tanstack/react-query';
 
-import {useApi} from 'sentry/utils/useApi';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useInvalidateSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
+
+import {
+  SavedQueryType,
+  useInvalidateSavedQueries,
+  type SavedQueryRef,
+} from './useGetSavedQueries';
 
 export function useDeleteQuery() {
-  const api = useApi();
   const organization = useOrganization();
   const invalidateSavedQueries = useInvalidateSavedQueries();
 
+  const {mutateAsync} = useMutation({
+    mutationFn: ({queryId, queryType}: SavedQueryRef) =>
+      fetchMutation({
+        url:
+          queryType === SavedQueryType.EXPLORE
+            ? getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/', {
+                path: {organizationIdOrSlug: organization.slug, id: String(queryId)},
+              })
+            : getApiUrl('/organizations/$organizationIdOrSlug/discover/saved/$queryId/', {
+                path: {organizationIdOrSlug: organization.slug, queryId: String(queryId)},
+              }),
+        method: 'DELETE',
+      }),
+  });
+
   const deleteQuery = useCallback(
-    async (id: number) => {
-      await api.requestPromise(
-        `/organizations/${organization.slug}/explore/saved/${id}/`,
-        {
-          method: 'DELETE',
-        }
-      );
+    async (savedQueryRef: SavedQueryRef) => {
+      await mutateAsync(savedQueryRef);
       invalidateSavedQueries();
     },
-    [api, organization.slug, invalidateSavedQueries]
+    [mutateAsync, invalidateSavedQueries]
   );
 
   return {deleteQuery};

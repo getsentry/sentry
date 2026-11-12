@@ -1,0 +1,83 @@
+---
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "in_app"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "in_app"
+  }
+}
+---
+contributing variants:
+  app*
+    hash: "c0dd63bbc946a04d1c23e3de5b704cb0"
+    contributing component: exception
+    hint: None
+    root_component:
+      app*
+        exception*
+          stacktrace*
+            frame* (marked in-app by the client)
+              module*
+                "GameBootstrap"
+              function*
+                "Start"
+            frame* (marked in-app by the client)
+              module*
+                "EnemySpawner+<SpawnWaves>d__4"
+              function*
+                "MoveNext"
+            frame* (marked in-app by the client)
+              module*
+                "CombatSystem"
+              function*
+                "ApplyDamage"
+          type*
+            "System.NullReferenceException"
+  system*
+    hash: "c717cb04db34bd54f07fcea7897bff32"
+    contributing component: exception
+    hint: None
+    root_component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "GameBootstrap"
+              function*
+                "Start"
+            frame*
+              module*
+                "UnityEngine.MonoBehaviour"
+              function*
+                "StartCoroutine"
+            frame*
+              module*
+                "UnityEngine.SetupCoroutine"
+              function*
+                "InvokeMoveNext"
+            frame*
+              module*
+                "EnemySpawner+<SpawnWaves>d__4"
+              function*
+                "MoveNext"
+            frame*
+              module*
+                "CombatSystem"
+              function*
+                "ApplyDamage"
+          type*
+            "System.NullReferenceException"

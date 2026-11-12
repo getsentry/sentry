@@ -220,7 +220,44 @@ describe('mapSeriesToChart func', () => {
     expect(mappedSeries.cardStats.rateLimited).toBe('11');
   });
 
-  it('should correctly format client discard data', () => {
+  it('shows pause reasons as written', () => {
+    const mappedSeries = mapSeriesToChart({
+      orgStats: {
+        start: '2021-01-01T00:00:00Z',
+        end: '2021-01-07T00:00:00Z',
+        intervals: ['2021-01-01T00:00:00Z'],
+        groups: [
+          {
+            by: {
+              outcome: 'rate_limited',
+              reason: 'project_category_pause_growth_limits',
+            },
+            totals: {'sum(quantity)': 1},
+            series: {'sum(quantity)': [1]},
+          },
+          {
+            by: {
+              outcome: 'rate_limited',
+              reason: 'organization_pause_cost_centers',
+            },
+            totals: {'sum(quantity)': 2},
+            series: {'sum(quantity)': [2]},
+          },
+        ],
+      },
+      chartDateInterval: '1h',
+      chartDateUtc: true,
+      dataCategory: DataCategory.ERRORS,
+      endpointQuery: {},
+    });
+
+    expect(mappedSeries.chartSubLabels.map(subLabel => subLabel.label)).toEqual([
+      'Pause (solutions.sentry.io)',
+      'Organization Pause (solutions.sentry.io)',
+    ]);
+  });
+
+  it('excludes no_parent_span from client discard data', () => {
     const mappedSeries = mapSeriesToChart({
       orgStats: {
         start: '2021-01-01T00:00:00Z',
@@ -240,6 +277,19 @@ describe('mapSeriesToChart func', () => {
               'sum(quantity)': [750, 750],
             },
           },
+          {
+            by: {
+              outcome: 'client_discard',
+              reason: 'no_parent_span',
+              category: 'span',
+            },
+            totals: {
+              'sum(quantity)': 1000,
+            },
+            series: {
+              'sum(quantity)': [400, 600],
+            },
+          },
         ],
       },
       chartDateInterval: '1h',
@@ -248,7 +298,20 @@ describe('mapSeriesToChart func', () => {
       endpointQuery: {},
     });
 
-    // should format client discard data correctly
     expect(mappedSeries.cardStats.clientDiscard).toBe('1.5K');
+    expect(mappedSeries.chartStats.clientDiscard).toEqual([
+      {value: [expect.any(String), 750]},
+      {value: [expect.any(String), 750]},
+    ]);
+    expect(mappedSeries.chartSubLabels).toEqual([
+      {
+        parentLabel: 'Client Discard',
+        label: 'Queue Overflow',
+        data: [
+          {name: '2021-01-01T00:00:00Z', value: 750},
+          {name: '2021-01-02T00:00:00Z', value: 750},
+        ],
+      },
+    ]);
   });
 });

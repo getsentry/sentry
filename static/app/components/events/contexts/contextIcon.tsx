@@ -1,6 +1,5 @@
+import {SvgIcon, type SVGIconProps} from '@sentry/icons/svgIcon';
 import {PlatformIcon, platforms} from 'platformicons';
-
-import {SvgIcon, type SVGIconProps} from 'sentry/icons/svgIcon';
 
 const LOGO_MAPPING: Readonly<Record<string, string>> = {
   'android-phone': 'android-phone',
@@ -94,14 +93,20 @@ export function getLogoImage(name: string): string | null {
 
 export interface ContextIconProps {
   name: string;
+  alt?: string;
   size?: SVGIconProps['size'];
 }
 
-export function ContextIcon({name, size: providedSize = 'xl'}: ContextIconProps) {
+export function ContextIcon({name, alt, size: providedSize = 'xl'}: ContextIconProps) {
   const size = SvgIcon.ICON_SIZES[providedSize];
   const platformIconName = getLogoImage(name);
 
   return (
-    <PlatformIcon platform={platformIconName ?? 'default'} size={size} format="lg" />
+    <PlatformIcon
+      platform={platformIconName ?? 'default'}
+      size={size}
+      format="lg"
+      alt={alt}
+    />
   );
 }

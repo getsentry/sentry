@@ -27,6 +27,7 @@ export default function SeerProjectFlyout() {
   const {openDrawer} = useDrawer();
 
   const queryRef = useRef(query);
+  // oxlint-disable-next-line react/refs
   queryRef.current = query;
 
   useEffect(() => {

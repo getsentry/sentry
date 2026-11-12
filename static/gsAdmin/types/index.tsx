@@ -21,6 +21,29 @@ declare global {
   }
 }
 
+export type BroadcastDetailsData = {
+  category: string | null;
+  createdBy: string | null;
+  dateExpires: string | null;
+  id: string;
+  isActive: boolean;
+  link: string;
+  mediaUrl: string | null;
+  message: string;
+  syncLocked: boolean;
+  title: string;
+  upstreamId: string | null;
+  userCount: number;
+  earlyAdopter?: boolean;
+  organizations?: number[];
+  plans?: string[];
+  platform?: string[];
+  product?: string[];
+  region?: string | null;
+  roles?: string[];
+  trialStatus?: string[] | string | null;
+};
+
 export type PromoCode = {
   amount: string;
   campaign: string;
@@ -32,7 +55,7 @@ export type PromoCode = {
   newOnly: boolean;
   numClaims: number;
   status: 'active' | 'inactive' | 'expired';
-  trialDays: number;
+  trialDays: number | null;
   userEmail: string | null;
   userId: number;
 };
@@ -78,67 +101,4 @@ export type Relocation = {
   uuid: string;
   wantOrgSlugs: string[];
   wantUsernames: string[];
-};
-
-export type ContractDate = {
-  day?: number;
-  month?: number;
-  year?: number;
-};
-
-type ContractPricingTier = {
-  end?: string;
-  ratePerUnitCpe?: string;
-  start?: string;
-};
-
-type ContractTieredPricingRate = {
-  tiers?: ContractPricingTier[];
-};
-
-export type ContractSKUConfig = {
-  basePriceCents?: string;
-  paygBudgetCents?: string;
-  paygRate?: ContractTieredPricingRate;
-  reservedRate?: ContractTieredPricingRate;
-  reservedVolume?: string;
-  sku?: string;
-};
-
-export type ContractSharedSKUBudget = {
-  paygBudgetCents?: string;
-  reservedBudgetCents?: string;
-  skus?: string[];
-};
-
-type ContractMetadata = {
-  id?: string;
-  organizationId?: string;
-};
-
-type ContractAddress = {
-  countryCode?: string;
-};
-
-type ContractBillingConfig = {
-  address?: ContractAddress;
-  billingType?: string;
-  channel?: string;
-  contractEndDate?: ContractDate;
-  contractStartDate?: ContractDate;
-};
-
-type ContractPricingConfig = {
-  basePriceCents?: string;
-  billingPeriodEndDate?: ContractDate;
-  billingPeriodStartDate?: ContractDate;
-  maxSpendCents?: string;
-  sharedSkuBudgets?: ContractSharedSKUBudget[];
-  skuConfigs?: ContractSKUConfig[];
-};
-
-export type Contract = {
-  billingConfig?: ContractBillingConfig;
-  metadata?: ContractMetadata;
-  pricingConfig?: ContractPricingConfig;
 };

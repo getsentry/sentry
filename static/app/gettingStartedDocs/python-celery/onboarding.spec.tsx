@@ -85,7 +85,9 @@ describe('celery onboarding docs', () => {
       selectedProducts: [ProductSolution.LOGS],
     });
 
-    const logMatches = screen.getAllByText(textWithMarkupMatcher(/enable_logs=True,/));
+    const logMatches = screen.getAllByText(
+      textWithMarkupMatcher(/LoggingIntegration\(capture_sentry_logs=True\)/)
+    );
     expect(logMatches.length).toBeGreaterThan(0);
     logMatches.forEach(match => expect(match).toBeInTheDocument());
   });
@@ -96,7 +98,9 @@ describe('celery onboarding docs', () => {
     });
 
     expect(
-      screen.queryByText(textWithMarkupMatcher(/enable_logs=True,/))
+      screen.queryByText(
+        textWithMarkupMatcher(/LoggingIntegration\(capture_sentry_logs=True\)/)
+      )
     ).not.toBeInTheDocument();
   });
 

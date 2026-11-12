@@ -2,14 +2,6 @@ import type {ReactNode} from 'react';
 import {createContext, useCallback, useContext, useMemo} from 'react';
 
 import {defined} from 'sentry/utils/defined';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {canUseMetricsEquations} from 'sentry/views/explore/metrics/metricsFlags';
-import {
-  MetricsFrozenContextProvider,
-  type MetricsFrozenForTracesProviderProps,
-} from 'sentry/views/explore/metrics/metricsFrozenContext';
-import {MetricsStateQueryParamsProvider} from 'sentry/views/explore/metrics/metricsStateQueryParamsProvider';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {
   QueryParamsContextProvider,
@@ -27,6 +19,12 @@ import {
   Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
+
+import {type TraceMetric} from './metricQuery';
+import {
+  MetricsFrozenContextProvider,
+  type MetricsFrozenForTracesProviderProps,
+} from './metricsFrozenContext';
 
 interface TraceMetricContextValue {
   metric: TraceMetric;
@@ -54,7 +52,6 @@ interface MetricsQueryParamsProviderProps {
   setTraceMetric: (traceMetric: TraceMetric) => void;
   traceMetric: TraceMetric;
   freeze?: MetricsFrozenForTracesProviderProps;
-  isStateBased?: boolean;
 }
 
 export function MetricsQueryParamsProvider({
@@ -65,7 +62,6 @@ export function MetricsQueryParamsProvider({
   removeMetric,
   traceMetric,
   freeze,
-  isStateBased,
 }: MetricsQueryParamsProviderProps) {
   const setWritableQueryParams = useCallback(
     (writableQueryParams: WritableQueryParams) => {
@@ -91,24 +87,20 @@ export function MetricsQueryParamsProvider({
     [setTraceMetric, removeMetric, traceMetric]
   );
 
-  const QueryContextProvider = isStateBased
-    ? MetricsStateQueryParamsProvider
-    : QueryParamsContextProvider;
-
   return (
     <TraceMetricContext value={traceMetricContextValue}>
       <MetricsFrozenContextProvider
         traceIds={freeze?.traceIds ?? []}
         tracePeriod={freeze?.tracePeriod}
       >
-        <QueryContextProvider
+        <QueryParamsContextProvider
           queryParams={queryParams}
           setQueryParams={setWritableQueryParams}
           isUsingDefaultFields
           shouldManageFields={false}
         >
           {children}
-        </QueryContextProvider>
+        </QueryParamsContextProvider>
       </MetricsFrozenContextProvider>
     </TraceMetricContext>
   );
@@ -130,13 +122,10 @@ function getUpdatedValue<T>(
 }
 
 export function useMetricVisualize(): Visualize {
-  const organization = useOrganization();
   const visualizes = useQueryParamsVisualizes();
-  const hasEquations = canUseMetricsEquations(organization);
   if (
     visualizes.length > 0 &&
-    (isVisualizeFunction(visualizes[0]!) ||
-      (isVisualizeEquation(visualizes[0]!) && hasEquations))
+    (isVisualizeFunction(visualizes[0]!) || isVisualizeEquation(visualizes[0]!))
   ) {
     return visualizes[0];
   }
@@ -144,14 +133,10 @@ export function useMetricVisualize(): Visualize {
 }
 
 export function useMetricVisualizes(): readonly Visualize[] {
-  const organization = useOrganization();
   const visualizes = useQueryParamsVisualizes();
-  const hasEquations = canUseMetricsEquations(organization);
   if (
     visualizes.length > 0 &&
-    visualizes.every(
-      v => isVisualizeFunction(v) || (isVisualizeEquation(v) && hasEquations)
-    )
+    visualizes.every(v => isVisualizeFunction(v) || isVisualizeEquation(v))
   ) {
     return visualizes;
   }

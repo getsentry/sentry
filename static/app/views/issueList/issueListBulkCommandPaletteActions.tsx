@@ -1,17 +1,19 @@
 import {Fragment, useMemo} from 'react';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconClock} from '@sentry/icons/clock';
+import {IconIssues} from '@sentry/icons/issues';
+import {IconUser} from '@sentry/icons/user';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {ActorAvatar, TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 
 import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
-import {openConfirmModal} from 'sentry/components/confirm';
-import {IconCheckmark, IconClock, IconIssues, IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {PageFilters} from 'sentry/types/core';
-import type {BaseGroup} from 'sentry/types/group';
 import {GroupStatus, GroupSubstatus, PriorityLevel} from 'sentry/types/group';
 import type {Member} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -19,23 +21,25 @@ import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useUser} from 'sentry/utils/useUser';
+
+import {BULK_LIMIT, BULK_LIMIT_STR} from './actions/constants';
 import {
-  BULK_LIMIT,
-  BULK_LIMIT_STR,
   invalidateIssueQueries,
   performBulkUpdate as performSharedBulkUpdate,
-} from 'sentry/views/issueList/actions/utils';
+} from './actions/utils';
 import {
   useIssueSelectionActions,
   useIssueSelectionSummary,
-} from 'sentry/views/issueList/issueSelectionContext';
-import type {IssueUpdateData} from 'sentry/views/issueList/types';
+} from './issueSelectionContext';
+import type {IssueUpdateData} from './types';
+import type {IssueSortOptions} from './utils';
 
 interface IssueListBulkCommandPaletteActionsProps {
   groupIds: string[];
   query: string;
   queryCount: number;
   selection: PageFilters;
+  sort: IssueSortOptions;
   onActionTaken?: (itemIds: string[], data: IssueUpdateData) => void;
 }
 
@@ -69,7 +73,7 @@ function AssignActionItems({
   const {data: members = []} = useOrgMembers();
 
   const sortedTeams = useMemo(
-    () => [...teams].sort((a, b) => a.slug.localeCompare(b.slug)),
+    () => teams.toSorted((a, b) => a.slug.localeCompare(b.slug)),
     [teams]
   );
 
@@ -157,15 +161,13 @@ function AssignActionItems({
 function AssignActions({
   onConfirmBulkUpdate,
   onBulkUpdate,
-  label = t('Assign to'),
 }: {
   onBulkUpdate: (data: Record<string, unknown>) => void;
-  label?: string;
   onConfirmBulkUpdate?: (actionLabel: string, onConfirm: () => void) => void;
 }) {
   return (
     <CMDKAction
-      display={{label, icon: <IconUser />}}
+      display={{label: t('Assign to'), icon: <IconUser />}}
       keywords={['assign', 'owner', 'assignee']}
       prompt={t('Search assignees...')}
     >
@@ -188,7 +190,7 @@ function PriorityActions({
       keywords={['priority', 'urgency', 'critical', 'high', 'medium', 'low']}
     >
       <CMDKAction
-        display={{label: t('High'), icon: <IconCellSignal bars={3} />}}
+        display={{label: t('High'), icon: <IconCellSignal />}}
         onAction={() =>
           onConfirmUpdate(t('set issue priority to high'), {
             priority: PriorityLevel.HIGH,
@@ -219,6 +221,7 @@ function useIssueListBulkCommandPaletteActions({
   query,
   queryCount,
   selection,
+  sort,
   groupIds,
   onActionTaken,
 }: IssueListBulkCommandPaletteActionsProps) {
@@ -232,9 +235,9 @@ function useIssueListBulkCommandPaletteActions({
 
   const selectedIssues = useMemo(
     () =>
-      [...selectedIdsSet]
-        .map(issueId => GroupStore.get(issueId))
-        .filter((issue): issue is BaseGroup => !!issue),
+      Array.from(selectedIdsSet, issueId => GroupStore.get(issueId)).filter(
+        issue => issue !== undefined
+      ),
     [selectedIdsSet]
   );
 
@@ -264,6 +267,7 @@ function useIssueListBulkCommandPaletteActions({
       organizationSlug: organization.slug,
       query,
       selection,
+      sort,
       onSuccess: updatedItemIds => {
         onSuccess?.(updatedItemIds);
         invalidateIssueQueries({

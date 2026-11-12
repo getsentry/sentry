@@ -1,5 +1,5 @@
 from datetime import UTC, datetime, timedelta
-from typing import Any, Mapping
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -7,13 +7,14 @@ from jsonschema import ValidationError
 
 from sentry.models.environment import Environment
 from sentry.models.release import Release
-from sentry.rules.age import AgeComparisonType
-from sentry.rules.filters.latest_adopted_release_filter import (
-    LatestAdoptedReleaseFilter,
-    get_first_last_release_for_group_cache_key,
-)
 from sentry.search.utils import LatestReleaseOrders
-from sentry.utils.cache import cache
+from sentry.workflow_engine.handlers.condition.utils.age import AgeComparisonType, ModelAgeType
+from sentry.workflow_engine.handlers.condition.utils.releases import (
+    FirstLastReleaseCacheKey,
+    LatestAdoptedReleaseCacheKey,
+    first_last_release_cache,
+    latest_adopted_release_cache,
+)
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
@@ -21,16 +22,11 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestLatestAdoptedReleaseCondition(ConditionTestCase):
     condition = Condition.LATEST_ADOPTED_RELEASE
-    payload: Mapping[str, Any] = {
-        "id": LatestAdoptedReleaseFilter.id,
-        "oldest_or_newest": "oldest",
-        "older_or_newer": "newer",
-        "environment": "prod",
-    }
 
     def create_new_group_event(self, fingerprint: str) -> tuple[Any, Any]:
         event = self.store_event(data={"fingerprint": [fingerprint]}, project_id=self.project.id)
         group = event.group
+        assert group is not None
         group_event = self.event.for_group(group)
         return group, group_event
 
@@ -40,7 +36,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         self.prod_env = self.create_environment(name="prod")
         self.test_env = self.create_environment(name="test")
         self.newest_release = self.create_release(
-            project=self.event.group.project,
+            project=self.group.project,
             version="test@2.0",
             date_added=self.now - timedelta(days=2),
             environments=[self.test_env],
@@ -48,7 +44,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         )
 
         self.oldest_release = self.create_release(
-            project=self.event.group.project,
+            project=self.group.project,
             version="test@1.0",
             date_added=self.now - timedelta(days=1),
             environments=[self.prod_env],
@@ -56,7 +52,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         )
 
         self.middle_release = self.create_release(
-            project=self.event.group.project,
+            project=self.group.project,
             version="test@1.5",
             date_added=self.now,
             environments=[self.prod_env],
@@ -73,19 +69,6 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
             },
             condition_result=True,
         )
-
-    def test_dual_write(self) -> None:
-        dcg = self.create_data_condition_group()
-        dc = self.translate_to_data_condition(self.payload, dcg)
-
-        assert dc.type == self.condition
-        assert dc.comparison == {
-            "release_age_type": "oldest",
-            "age_comparison": "newer",
-            "environment": "prod",
-        }
-        assert dc.condition_result is True
-        assert dc.condition_group == dcg
 
     def test_json_schema(self) -> None:
         self.dc.comparison.update({"age_comparison": AgeComparisonType.OLDER})
@@ -133,7 +116,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         self.assert_passes(self.dc, WorkflowEventData(event=group_event_4, group=group_4))
 
         self.create_release(
-            project=self.event.group.project,
+            project=self.group.project,
             version="test@3.0",
             date_added=self.now - timedelta(days=5),
             environments=[self.prod_env],
@@ -155,6 +138,51 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         group_3, group_event_3 = self.create_new_group_event("group3")
         self.create_group_release(group=group_3, release=self.middle_release)
         self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_3, group=group_3))
+
+    @patch("sentry.workflow_engine.handlers.condition.latest_adopted_release_handler.logger")
+    def test_logs_evaluation_result(self, mock_logger: MagicMock) -> None:
+        self.create_group_release(group=self.group, release=self.newest_release)
+
+        self.assert_passes(self.dc, self.event_data)
+
+        mock_logger.debug.assert_called_once_with(
+            "workflow_engine.handlers.latest_adopted_release_handler",
+            extra={
+                "configured_environment": self.prod_env.name,
+                "environment": self.prod_env.name,
+                "latest_project_release": self.middle_release.version,
+                "event_release": self.newest_release.version,
+                "release_age_type": "oldest",
+                "order_type": "SEMVER",
+                "age_comparison": "newer",
+                "evaluation_result": True,
+            },
+        )
+
+    @patch("sentry.workflow_engine.handlers.condition.latest_adopted_release_handler.logger")
+    def test_logs_missing_environment(self, mock_logger: MagicMock) -> None:
+        self.dc.update(
+            comparison={
+                **self.dc.comparison,
+                "environment": "missing",
+            }
+        )
+
+        self.assert_does_not_pass(self.dc, self.event_data)
+
+        mock_logger.debug.assert_called_once_with(
+            "workflow_engine.handlers.latest_adopted_release_handler",
+            extra={
+                "configured_environment": "missing",
+                "environment": None,
+                "latest_project_release": None,
+                "event_release": None,
+                "release_age_type": "oldest",
+                "order_type": "SEMVER",
+                "age_comparison": "newer",
+                "evaluation_result": False,
+            },
+        )
 
     def test_oldest_older(self) -> None:
         self.dc.update(
@@ -217,7 +245,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
 
         self.create_group_release(group=self.event.group, release=self.newest_release)
         self.assert_does_not_pass(
-            self.dc, WorkflowEventData(event=self.event, group=self.group_event.group)
+            self.dc, WorkflowEventData(event=self.group_event, group=self.group)
         )
 
         group_2, group_event_2 = self.create_new_group_event("group2")
@@ -230,29 +258,42 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_3, group=group_3))
 
     def test_caching(self) -> None:
-        cache_key = get_first_last_release_for_group_cache_key(
-            self.group.id, "oldest", LatestReleaseOrders.SEMVER
+        cache_key = FirstLastReleaseCacheKey(
+            self.group.id, ModelAgeType.OLDEST, LatestReleaseOrders.SEMVER
         )
-        assert cache.get(cache_key) is None
+        assert first_last_release_cache.get(cache_key) is None
 
         self.create_group_release(group=self.group, release=self.newest_release)
         self.assert_passes(self.dc, self.event_data)
-        assert cache.get(cache_key) is not None
+        assert first_last_release_cache.get(cache_key) is not None
 
         # ensure we clear the cache after creating a new release
         oldest_group_release = self.create_group_release(
             group=self.group, release=self.oldest_release
         )
-        assert cache.get(cache_key) is None
+        assert first_last_release_cache.get(cache_key) is None
 
         self.assert_does_not_pass(self.dc, self.event_data)
-        assert cache.get(cache_key) is not None
+        assert first_last_release_cache.get(cache_key) is not None
 
         # ensure we clear the cache when a release is deleted
         oldest_group_release.delete()
-        assert cache.get(cache_key) is None
+        assert first_last_release_cache.get(cache_key) is None
 
         self.assert_passes(self.dc, self.event_data)
+
+    def test_release_environment_clears_cache(self) -> None:
+        cache_key = LatestAdoptedReleaseCacheKey(self.project.id, self.prod_env.id)
+        latest_adopted_release_cache.set(cache_key, self.oldest_release)
+
+        self.create_release(
+            project=self.project,
+            version="test@3.0",
+            environments=[self.prod_env],
+            adopted=self.now,
+        )
+
+        assert latest_adopted_release_cache.get(cache_key) is None
 
     @patch("sentry.search.utils.get_first_last_release_for_group", side_effect=Release.DoesNotExist)
     def test_release_does_not_exist(self, mock_get_first_last_release: MagicMock) -> None:

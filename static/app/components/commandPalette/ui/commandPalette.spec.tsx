@@ -1,8 +1,10 @@
 import {Fragment} from 'react';
+import {QueryClientProvider} from '@tanstack/react-query';
 
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-jest.unmock('lodash/debounce');
+jest.unmock('@tanstack/react-pacer');
 
 jest.mock('@tanstack/react-virtual', () => ({
   useVirtualizer: ({count}: {count: number}) => {
@@ -28,24 +30,22 @@ import {
   makeClosableHeader,
   ModalBody,
   ModalFooter,
+  closeModal,
 } from '@sentry/scraps/modal';
+import * as modalActions from '@sentry/scraps/modal';
 
-import {closeModal} from 'sentry/actionCreators/modal';
-import * as modalActions from 'sentry/actionCreators/modal';
 import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
-import {
-  CMDKAction,
-  CommandPaletteProvider,
-} from 'sentry/components/commandPalette/ui/cmdk';
-import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
-import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
-import type {CommandPaletteDispatch} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
+
+import {CMDKAction, CommandPaletteProvider} from './cmdk';
+import {CommandPalette} from './commandPalette';
+import {CommandPaletteSlot} from './commandPaletteSlot';
+import type {CommandPaletteDispatch} from './commandPaletteStateContext';
 import {
   CommandPaletteHotkeys,
   useCommandPaletteDispatch,
   useCommandPaletteState,
-} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
+} from './commandPaletteStateContext';
 
 function makeRenderProps(onClose: () => void) {
   return {
@@ -129,7 +129,7 @@ describe('CommandPalette', () => {
         <AllActions />
       </GlobalActionsComponent>
     );
-    await screen.findByRole('textbox', {name: 'Search commands'});
+    await screen.findByRole('searchbox', {name: 'Search commands'});
     // First item should already be highlighted, arrow down will go highlight "other"
     await userEvent.keyboard('{ArrowDown}{Enter}');
 
@@ -162,7 +162,7 @@ describe('CommandPalette', () => {
       </GlobalActionsComponent>
     );
 
-    await screen.findByRole('textbox', {name: 'Search commands'});
+    await screen.findByRole('searchbox', {name: 'Search commands'});
     await userEvent.keyboard('{ArrowUp}{Enter}');
 
     expect(closeSpy).not.toHaveBeenCalled();
@@ -177,7 +177,7 @@ describe('CommandPalette', () => {
       </GlobalActionsComponent>
     );
 
-    await screen.findByRole('textbox', {name: 'Search commands'});
+    await screen.findByRole('searchbox', {name: 'Search commands'});
     await userEvent.keyboard('{ArrowUp}{ArrowDown}{Enter}');
 
     await waitFor(() => expect(router.location.pathname).toBe('/target/'));
@@ -194,7 +194,7 @@ describe('CommandPalette', () => {
       </GlobalActionsComponent>
     );
 
-    await screen.findByRole('textbox', {name: 'Search commands'});
+    await screen.findByRole('searchbox', {name: 'Search commands'});
     await userEvent.keyboard('{Shift>}{Enter}{/Shift}');
 
     expect(openSpy).toHaveBeenCalledWith(
@@ -263,7 +263,7 @@ describe('CommandPalette', () => {
 
     // Textbox changes placeholder to parent Label label
     await waitFor(() => {
-      expect(screen.getByRole('textbox', {name: 'Search commands'})).toHaveAttribute(
+      expect(screen.getByRole('searchbox', {name: 'Search commands'})).toHaveAttribute(
         'placeholder',
         'Search inside Parent Group Action...'
       );
@@ -335,7 +335,7 @@ describe('CommandPalette', () => {
           <AllActions />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('searchbox', {name: 'Search commands'});
       await userEvent.type(input, 'route');
 
       expect(
@@ -353,10 +353,33 @@ describe('CommandPalette', () => {
           <AllActions />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('searchbox', {name: 'Search commands'});
       await userEvent.type(input, 'xyzzy');
 
       expect(screen.queryAllByRole('option')).toHaveLength(0);
+    });
+
+    it('waits for search to settle before showing the Seer fallback', async () => {
+      render(
+        <CommandPaletteProvider>
+          <CMDKAction to="/known/" display={{label: 'Known Action'}} />
+          <CommandPalette {...makeRenderProps(jest.fn())} openSeerExplorer={jest.fn()} />
+        </CommandPaletteProvider>
+      );
+
+      await userEvent.type(
+        screen.getByRole('searchbox', {name: 'Search commands'}),
+        'xyzzy'
+      );
+
+      expect(screen.getByTestId('command-palette-loading')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'Ask Seer: xyzzy'})
+      ).not.toBeInTheDocument();
+
+      expect(
+        await screen.findByRole('option', {name: 'Ask Seer: xyzzy'})
+      ).toBeInTheDocument();
     });
 
     it('clearing the query restores all top-level items', async () => {
@@ -365,7 +388,7 @@ describe('CommandPalette', () => {
           <AllActions />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('searchbox', {name: 'Search commands'});
       await userEvent.type(input, 'route');
       expect(
         await screen.findByRole('option', {name: 'Go to route'})
@@ -399,7 +422,7 @@ describe('CommandPalette', () => {
           <AllActions />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('searchbox', {name: 'Search commands'});
       await userEvent.type(input, 'child');
 
       // The item now renders with its parent group as a prefix, so match by regex
@@ -414,7 +437,7 @@ describe('CommandPalette', () => {
           <AllActions />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('searchbox', {name: 'Search commands'});
       await userEvent.type(input, 'test query');
 
       expect(input).toHaveValue('test query');
@@ -426,7 +449,7 @@ describe('CommandPalette', () => {
           <AllActions />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('searchbox', {name: 'Search commands'});
       await userEvent.type(input, 'ROUTE');
 
       expect(
@@ -441,7 +464,7 @@ describe('CommandPalette', () => {
           <CMDKAction to="/b/" display={{label: 'Issues'}} />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('searchbox', {name: 'Search commands'});
       await userEvent.type(input, 'issues');
 
       const options = (await screen.findAllByRole('option')).filter(
@@ -460,7 +483,7 @@ describe('CommandPalette', () => {
           <CMDKAction to="/top/" display={{label: 'Issues'}} />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('searchbox', {name: 'Search commands'});
       await userEvent.type(input, 'issues');
 
       const options = (await screen.findAllByRole('option')).filter(
@@ -480,7 +503,7 @@ describe('CommandPalette', () => {
           />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('searchbox', {name: 'Search commands'});
       await userEvent.type(input, 'hotkeys');
 
       expect(
@@ -503,7 +526,7 @@ describe('CommandPalette', () => {
       await screen.findByRole('option', {name: 'Light'});
 
       // Now type a query that only matches one child
-      const input = screen.getByRole('textbox', {name: 'Search commands'});
+      const input = screen.getByRole('searchbox', {name: 'Search commands'});
       await userEvent.type(input, 'dark');
 
       expect(await screen.findByRole('option', {name: 'Dark'})).toBeInTheDocument();
@@ -520,7 +543,7 @@ describe('CommandPalette', () => {
         </GlobalActionsComponent>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('searchbox', {name: 'Search commands'});
       await userEvent.type(input, 'help');
 
       expect(
@@ -683,7 +706,7 @@ describe('CommandPalette', () => {
       // Searching for "Beta" should surface items 3 and 4 even though they are
       // beyond the default limit — the limit must be applied after filtering,
       // not before, so it never hides matching results from the user.
-      const input = screen.getByRole('textbox', {name: 'Search commands'});
+      const input = screen.getByRole('searchbox', {name: 'Search commands'});
       await userEvent.type(input, 'Beta');
 
       expect(await screen.findByRole('option', {name: 'Beta 3'})).toBeInTheDocument();
@@ -702,7 +725,7 @@ describe('CommandPalette', () => {
         </GlobalActionsComponent>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('searchbox', {name: 'Search commands'});
       await userEvent.type(input, 'Item');
 
       expect(await screen.findByRole('option', {name: 'Item 1'})).toBeInTheDocument();
@@ -729,7 +752,7 @@ describe('CommandPalette', () => {
         </GlobalActionsComponent>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('searchbox', {name: 'Search commands'});
       // "Project" matches both the nested group label "Project Keys" and all four items.
       await userEvent.type(input, 'Project');
 
@@ -784,7 +807,7 @@ describe('CommandPalette', () => {
         </GlobalActionsComponent>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('searchbox', {name: 'Search commands'});
       await userEvent.type(input, 'Action');
 
       expect(await screen.findByRole('option', {name: 'Action 1'})).toBeInTheDocument();
@@ -862,7 +885,7 @@ describe('CommandPalette', () => {
         </GlobalActionsComponent>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('searchbox', {name: 'Search commands'});
       await userEvent.type(input, 'Item');
       await userEvent.click(await screen.findByRole('option', {name: 'See all'}));
 
@@ -883,7 +906,7 @@ describe('CommandPalette', () => {
         </GlobalActionsComponent>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('searchbox', {name: 'Search commands'});
       await userEvent.type(input, 'Item');
       await userEvent.click(await screen.findByRole('option', {name: 'See all'}));
 
@@ -944,7 +967,7 @@ describe('CommandPalette', () => {
         </GlobalActionsComponent>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('searchbox', {name: 'Search commands'});
       await userEvent.type(input, 'java');
 
       const previewOptions = screen
@@ -981,7 +1004,7 @@ describe('CommandPalette', () => {
         </GlobalActionsComponent>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('searchbox', {name: 'Search commands'});
       await userEvent.type(input, 'path');
 
       const options = screen
@@ -990,6 +1013,42 @@ describe('CommandPalette', () => {
         .map(option => option.textContent);
 
       expect(options).toEqual(['path-b', 'path-aaa', 'See all']);
+    });
+  });
+
+  describe('lazy resources', () => {
+    it('does not create a query until a disabled resource is selected', async () => {
+      const queryClient = makeTestQueryClient();
+      const queryKey = ['test-lazy-resource'];
+      const queryFn = jest.fn(() => []);
+
+      render(
+        <QueryClientProvider client={queryClient}>
+          <GlobalActionsComponent>
+            <CMDKAction display={{label: 'Resource Group'}}>
+              <CMDKAction
+                display={{label: 'Lazy Resource'}}
+                prompt="Enter a value..."
+                resource={(_query, {state}) =>
+                  cmdkQueryOptions({
+                    queryKey,
+                    queryFn,
+                    enabled: state === 'selected',
+                  })
+                }
+              />
+            </CMDKAction>
+          </GlobalActionsComponent>
+        </QueryClientProvider>
+      );
+
+      await screen.findByRole('option', {name: 'Lazy Resource'});
+      expect(queryClient.getQueryCache().find({queryKey})).toBeUndefined();
+
+      await userEvent.click(screen.getByRole('option', {name: 'Lazy Resource'}));
+
+      await waitFor(() => expect(queryFn).toHaveBeenCalledTimes(1));
+      expect(queryClient.getQueryCache().find({queryKey})).toBeDefined();
     });
   });
 
@@ -1071,7 +1130,7 @@ describe('CommandPalette', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByRole('textbox', {name: 'Search commands'})).toHaveAttribute(
+        expect(screen.getByRole('searchbox', {name: 'Search commands'})).toHaveAttribute(
           'placeholder',
           'Paste a DSN...'
         );
@@ -1085,7 +1144,7 @@ describe('CommandPalette', () => {
         </GlobalActionsComponent>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('searchbox', {name: 'Search commands'});
       await userEvent.type(input, 'reverse');
       await userEvent.click(
         await screen.findByRole('option', {name: 'Reverse DSN lookup'})
@@ -1101,7 +1160,7 @@ describe('CommandPalette', () => {
         </GlobalActionsComponent>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('searchbox', {name: 'Search commands'});
       await userEvent.type(input, 'reverse');
       await userEvent.click(
         await screen.findByRole('option', {name: 'Reverse DSN lookup'})
@@ -1121,7 +1180,7 @@ describe('CommandPalette', () => {
           <AllActions />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('searchbox', {name: 'Search commands'});
 
       // Type a query that shows the group in search results
       await userEvent.type(input, 'parent');
@@ -1139,7 +1198,7 @@ describe('CommandPalette', () => {
           <AllActions />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('searchbox', {name: 'Search commands'});
 
       // Type a query, then drill into the group that appears in search results
       await userEvent.type(input, 'parent');
@@ -1160,7 +1219,7 @@ describe('CommandPalette', () => {
           <AllActions />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('searchbox', {name: 'Search commands'});
 
       // Type a query, then drill into the group that appears in search results
       await userEvent.type(input, 'parent');
@@ -1256,6 +1315,7 @@ describe('CommandPalette', () => {
     let testDispatch: CommandPaletteDispatch;
 
     function DispatchCapture() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       testDispatch = useCommandPaletteDispatch();
       return null;
     }
@@ -1598,7 +1658,7 @@ describe('CommandPalette', () => {
         </CommandPaletteProvider>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('searchbox', {name: 'Search commands'});
       await userEvent.type(input, 'navigate');
 
       // Wait for search to take effect — 'Other' should be filtered out since it doesn't match
@@ -1625,7 +1685,7 @@ describe('CommandPalette', () => {
         </CommandPaletteProvider>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('searchbox', {name: 'Search commands'});
       await userEvent.type(input, 'async');
 
       // Wait for search to take effect — 'Other' should be filtered out since it doesn't match

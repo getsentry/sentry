@@ -1,18 +1,22 @@
 import styled from '@emotion/styled';
 
-import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {ProgressState} from 'sentry/types/group';
 import {getProgressIcon} from 'sentry/views/issueList/utils/progress';
 
 import {formatActivityMarkerState, type ActivityMarkerState} from './variant';
 
 interface ProgressMarkerProps {
   state: ActivityMarkerState;
-  tooltipProps?: Omit<TooltipProps, 'children' | 'skipWrapper' | 'title'>;
+  label?: string;
 }
 
-export function ActivityProgressMarker({state, tooltipProps}: ProgressMarkerProps) {
-  const label = formatActivityMarkerState(state);
+export function ActivityProgressMarker({
+  label: labelOverride,
+  state,
+}: ProgressMarkerProps) {
+  const label = labelOverride ?? formatActivityMarkerState(state);
   const marker =
     state === 'activity' ? (
       <ProgressDotFrame aria-label={label} role="img">
@@ -24,8 +28,12 @@ export function ActivityProgressMarker({state, tooltipProps}: ProgressMarkerProp
       </ProgressIconFrame>
     );
 
+  if (state === 'activity' || state === ProgressState.FIX_APPLIED) {
+    return marker;
+  }
+
   return (
-    <Tooltip title={label} {...tooltipProps} skipWrapper>
+    <Tooltip title={label} skipWrapper>
       {marker}
     </Tooltip>
   );
@@ -57,6 +65,6 @@ const ProgressDot = styled('span')`
   height: 10px;
   border-radius: 100%;
   background: ${p => p.theme.tokens.graphics.neutral.moderate};
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 0 0 0 4px ${p => p.theme.tokens.background.primary};
 `;

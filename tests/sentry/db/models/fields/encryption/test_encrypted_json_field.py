@@ -28,7 +28,7 @@ def test_encrypted_json_field_plaintext_encryption() -> None:
         assert decrypted == test_data
 
 
-def test_encrypted_json_field_fernet_encryption(fernet_keys_store):
+def test_encrypted_json_field_fernet_encryption(fernet_keys_store: tuple[str, bytes]) -> None:
     """Test EncryptedJSONField encryption with Fernet method."""
     key_id, _ = fernet_keys_store
 
@@ -68,9 +68,14 @@ def test_encrypted_json_field_fernet_encryption(fernet_keys_store):
         {"numbers": 123.456},
         # test case when JSON contains encrypted field key used to store it
         {EncryptedJSONField._encrypted_field_key: "value"},
+        # top-level lists
+        [["Authorization", "Bearer token"], ["X-Custom", "value"]],
+        [],
     ],
 )
-def test_encrypted_json_field_roundtrip(encryption_method, test_value, fernet_keys_store):
+def test_encrypted_json_field_roundtrip(
+    encryption_method: str, test_value: object, fernet_keys_store: tuple[str, bytes]
+) -> None:
     """Test that JSON encryption and decryption work correctly in roundtrip."""
     key_id, _ = fernet_keys_store
 
@@ -119,7 +124,7 @@ class EncryptedJSONFieldModel(models.Model):
 
 
 @pytest.mark.django_db
-def test_encrypted_json_field_fernet_end_to_end(fernet_keys_store):
+def test_encrypted_json_field_fernet_end_to_end(fernet_keys_store: tuple[str, bytes]) -> None:
     """Test complete save/retrieve cycle with EncryptedJSONField and Fernet."""
     key_id, _fernet_key = fernet_keys_store
 
@@ -182,7 +187,7 @@ def test_encrypted_json_field_plaintext_end_to_end() -> None:
 
 
 @pytest.mark.django_db
-def test_encrypted_json_field_migration_compatibility(fernet_keys_store):
+def test_encrypted_json_field_migration_compatibility(fernet_keys_store: tuple[str, bytes]) -> None:
     """Test that EncryptedJSONField can read unencrypted legacy data."""
     key_id, _fernet_key = fernet_keys_store
 
@@ -224,7 +229,9 @@ def test_encrypted_json_field_migration_compatibility(fernet_keys_store):
 
 
 @pytest.mark.django_db
-def test_encrypted_json_field_fake_encrypted_format_fallback(fernet_keys_store):
+def test_encrypted_json_field_fake_encrypted_format_fallback(
+    fernet_keys_store: tuple[str, bytes],
+) -> None:
     """
     Test that EncryptedJSONField falls back gracefully when data has the encrypted
     wrapper structure but contains non-encrypted plain text values.

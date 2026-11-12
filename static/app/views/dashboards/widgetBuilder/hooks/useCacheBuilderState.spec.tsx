@@ -1,39 +1,17 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {renderHook} from 'sentry-test/reactTestingLibrary';
-
-import {useLocation} from 'sentry/utils/useLocation';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {
-  useWidgetBuilderContext,
-  WidgetBuilderProvider,
-} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {
-  BuilderStateAction,
-  type WidgetBuilderState,
-} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 
 import {useCacheBuilderState} from './useCacheBuilderState';
-
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: jest.fn(),
-}));
-jest.mock('sentry/utils/useLocation');
+import {BuilderStateAction, type WidgetBuilderState} from './useWidgetBuilderState';
 
 jest.mock('sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext', () => ({
   useWidgetBuilderContext: jest.fn(),
-  WidgetBuilderProvider: jest.requireActual(
-    'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext'
-  ).WidgetBuilderProvider,
 }));
 
 const mockUseWidgetBuilderContext = jest.mocked(useWidgetBuilderContext);
-const mockUseLocation = jest.mocked(useLocation);
-
-function Wrapper({children}: {children: React.ReactNode}) {
-  return <WidgetBuilderProvider>{children}</WidgetBuilderProvider>;
-}
 
 describe('useCacheBuilderState', () => {
   let mockLocalStorage: Record<string, string>;
@@ -44,8 +22,6 @@ describe('useCacheBuilderState', () => {
       state: {},
       dispatch: jest.fn(),
     });
-    mockUseLocation.mockReturnValue(LocationFixture());
-
     Storage.prototype.getItem = jest.fn(key => mockLocalStorage[key] ?? null);
     Storage.prototype.setItem = jest.fn((key, value) => {
       mockLocalStorage[key] = value;
@@ -76,9 +52,7 @@ describe('useCacheBuilderState', () => {
       dispatch: jest.fn(),
     });
 
-    const {result} = renderHook(() => useCacheBuilderState(), {
-      wrapper: Wrapper,
-    });
+    const {result} = renderHookWithProviders(() => useCacheBuilderState());
 
     result.current.cacheBuilderState(WidgetType.ERRORS);
 
@@ -133,9 +107,7 @@ describe('useCacheBuilderState', () => {
       JSON.stringify(convertBuilderStateToWidget(cachedWidget))
     );
 
-    const {result} = renderHook(() => useCacheBuilderState(), {
-      wrapper: Wrapper,
-    });
+    const {result} = renderHookWithProviders(() => useCacheBuilderState());
 
     // Call the restore helper on the cached dataset
     result.current.restoreOrSetBuilderState(WidgetType.ERRORS);
@@ -189,9 +161,7 @@ describe('useCacheBuilderState', () => {
       JSON.stringify(convertBuilderStateToWidget(cachedWidget))
     );
 
-    const {result} = renderHook(() => useCacheBuilderState(), {
-      wrapper: Wrapper,
-    });
+    const {result} = renderHookWithProviders(() => useCacheBuilderState());
 
     // Call the restore helper on the cached dataset
     result.current.restoreOrSetBuilderState(WidgetType.TRANSACTIONS);

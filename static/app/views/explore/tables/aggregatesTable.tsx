@@ -1,48 +1,32 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconStack} from '@sentry/icons/stack';
 
-import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
-import {Tooltip} from '@sentry/scraps/tooltip';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Pagination} from '@sentry/scraps/pagination';
 
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
-import {IconArrow} from 'sentry/icons/iconArrow';
-import {IconStack} from 'sentry/icons/iconStack';
-import {IconWarning} from 'sentry/icons/iconWarning';
+import {getNextDirection} from 'sentry/components/tables/getNextSort';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {parseCursor} from 'sentry/utils/cursor';
-import {defined} from 'sentry/utils/defined';
-import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
-import {prettifyTagKey} from 'sentry/utils/fields';
+import {getQueryErrorMessage} from 'sentry/utils/discover/genericDiscoverQuery';
+import {prettifyTagKey, type FieldValueType} from 'sentry/utils/fields';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {CellAction} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
-import {
-  Table,
-  TableBody,
-  TableBodyCell,
-  TableHead,
-  TableHeadCell,
-  TableHeadCellContent,
-  TableRow,
-  TableStatus,
-  useTableStyles,
-} from 'sentry/views/explore/components/table';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
+import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/topEventsConstants';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
-import {TOP_EVENTS_LIMIT, useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
-import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
+import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {
   useQueryParamsAggregateCursor,
   useQueryParamsAggregateFields,
@@ -51,24 +35,36 @@ import {
   useQueryParamsGroupBys,
   useQueryParamsQuery,
   useQueryParamsVisualizes,
+  useSetQueryParamsAggregateCursor,
   useSetQueryParamsAggregateSortBys,
 } from 'sentry/views/explore/queryParams/context';
-import {SPANS_AGGREGATE_CURSOR} from 'sentry/views/explore/spans/spansQueryParams';
-import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
 import {prettifyAggregation, viewSamplesTarget} from 'sentry/views/explore/utils';
 import {SpanFields} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
+
+import {FieldRenderer} from './fieldRenderer';
+import {addValidatedFieldTypesToMeta} from './spansTable';
 
 interface AggregatesTableProps {
   aggregatesTableResult: AggregatesTableResult;
+  booleanTags: TagCollection;
+  numberTags: TagCollection;
+  stringTags: TagCollection;
+  validatedFieldTypes: Partial<Record<string, FieldValueType>>;
 }
 
-export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
+export function AggregatesTable({
+  aggregatesTableResult,
+  booleanTags,
+  numberTags,
+  stringTags,
+  validatedFieldTypes,
+}: AggregatesTableProps) {
   const theme = useTheme();
   const location = useLocation();
-  const navigate = useNavigate();
   const {projects} = useProjects();
+  const setAggregateCursor = useSetQueryParamsAggregateCursor();
 
   const {result, eventView} = aggregatesTableResult;
 
@@ -95,33 +91,26 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
     [aggregateFields]
   );
 
-  const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles, onResizeMouseDown} = useTableStyles(
-    visibleAggregateFields.map(aggregateField => {
-      if (isGroupBy(aggregateField)) {
-        return aggregateField.groupBy;
-      }
-      return aggregateField.yAxis;
-    }),
-    tableRef,
-    {
-      minimumColumnWidth: 50,
-      prefixColumnWidth: 'min-content',
-    }
+  const visibleFields = useMemo(
+    () =>
+      visibleAggregateFields.map(aggregateField =>
+        isGroupBy(aggregateField) ? aggregateField.groupBy : aggregateField.yAxis
+      ),
+    [visibleAggregateFields]
   );
 
-  const meta = result.meta ?? {};
-
-  const {attributes: numberTags} = useSpanItemAttributes({}, 'number');
-  const {attributes: stringTags} = useSpanItemAttributes({}, 'string');
-  const {attributes: booleanTags} = useSpanItemAttributes({}, 'boolean');
+  const meta = useMemo(
+    () =>
+      addValidatedFieldTypesToMeta({
+        meta: result.meta ?? {},
+        validatedFieldTypes,
+      }),
+    [result.meta, validatedFieldTypes]
+  );
 
   const numberOfRowsNeedingColor = Math.min(result.data?.length ?? 0, TOP_EVENTS_LIMIT);
 
   const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 1);
-
-  const cursorHandler: CursorHandler = (cursor, path, q) =>
-    navigate({pathname: path, query: {...q, [SPANS_AGGREGATE_CURSOR]: cursor}});
 
   const paginationAnalyticsEvent = usePaginationAnalytics(
     'aggregates',
@@ -130,25 +119,27 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
 
   const columns = useMemo(() => {
     return eventView
-      .getColumns()
+      .getColumns(meta)
       .reduce<Record<string, TableColumn<string>>>((acc, col) => {
         acc[col.key] = col;
         return acc;
       }, {});
-  }, [eventView]);
+  }, [eventView, meta]);
 
   return (
     <Fragment>
-      <Table ref={tableRef} style={initialTableStyles}>
-        <TableHead>
-          <TableRow>
-            <TableHeadCell isFirst={false}>
-              <TableHeadCellContent />
-            </TableHeadCell>
+      <SimpleTable
+        columns={visibleFields.map(field => ({key: field, resizable: true}))}
+        minimumColumnWidth={50}
+        prependColumnWidths={['min-content']}
+        scrollable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell />
             {visibleAggregateFields.map((aggregateField, i) => {
               // Hide column names before alignment is determined
               if (result.isPending) {
-                return <TableHeadCell key={i} isFirst={i === 0} />;
+                return <SimpleTable.HeaderCell key={i} />;
               }
 
               const field = isGroupBy(aggregateField)
@@ -162,143 +153,122 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
               const direction = sorts.find(s => s.field === field)?.kind;
 
               function updateSort() {
-                const kind = direction === 'desc' ? 'asc' : 'desc';
-                setSorts([{field, kind}]);
+                setSorts([{field, kind: getNextDirection(direction)}]);
               }
 
               return (
-                <TableHeadCell align={align} key={i} isFirst={i === 0}>
-                  <TableHeadCellContent onClick={updateSort}>
-                    <Tooltip showOnlyOnOverflow title={label}>
-                      {label}
-                    </Tooltip>
-                    {defined(direction) && (
-                      <IconArrow
-                        size="xs"
-                        direction={
-                          direction === 'desc'
-                            ? 'down'
-                            : direction === 'asc'
-                              ? 'up'
-                              : undefined
-                        }
-                      />
-                    )}
-                  </TableHeadCellContent>
-                  {i !== visibleAggregateFields.length - 1 && (
-                    <GridResizer
-                      dataRows={
-                        !result.isError && !result.isPending && result.data
-                          ? result.data.length
-                          : 0
-                      }
-                      onMouseDown={e => onResizeMouseDown(e, i)}
-                    />
-                  )}
-                </TableHeadCell>
+                <SimpleTable.HeaderCell
+                  align={align}
+                  columnIndex={i}
+                  key={i}
+                  handleSortClick={updateSort}
+                  sort={direction}
+                >
+                  {label}
+                </SimpleTable.HeaderCell>
               );
             })}
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {result.isPending ? (
-            <TableStatus>
-              <LoadingIndicator />
-            </TableStatus>
-          ) : result.isError ? (
-            <TableStatus>
-              <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-            </TableStatus>
-          ) : result.isFetched && result.data?.length ? (
-            result.data?.map((row, i) => {
-              const menuItems: MenuItemProps[] = [
-                {
-                  key: 'view-samples',
-                  label: t('View Samples'),
-                  to: viewSamplesTarget({
-                    location,
-                    query,
-                    fields,
-                    groupBys,
-                    visualizes,
-                    sorts,
-                    row,
-                    projects,
-                  }),
-                },
-              ];
+          </SimpleTable.HeaderRow>
+        }
+      >
+        {result.isPending ? (
+          <SimpleTable.Loading />
+        ) : result.isError ? (
+          <SimpleTable.Error message={getQueryErrorMessage(result.error)} />
+        ) : result.isFetched && result.data?.length ? (
+          result.data?.map((row, i) => {
+            const menuItems: MenuItemProps[] = [
+              {
+                key: 'view-samples',
+                label: t('View Samples'),
+                to: viewSamplesTarget({
+                  location,
+                  query,
+                  fields,
+                  groupBys,
+                  visualizes,
+                  sorts,
+                  row,
+                  projects,
+                }),
+              },
+            ];
 
-              const traceSlug = row[`any(${SpanFields.TRACE})`];
-              const timestamp = row[`any(${SpanFields.TIMESTAMP})`];
-              if (traceSlug && timestamp) {
-                menuItems.push({
-                  key: 'view-random-trace',
-                  label: t('View Random Trace'),
-                  to: getTraceDetailsUrl({
-                    organization,
-                    traceSlug,
-                    timestamp,
-                    targetId: undefined,
-                    eventId: undefined,
-                    location,
-                    source: TraceViewSources.TRACES,
-                    dateSelection: normalizeDateTimeParams(selection.datetime),
-                  }),
-                });
-              }
+            const traceSlug = row[`any(${SpanFields.TRACE})`];
+            const timestamp = row[`any(${SpanFields.TIMESTAMP})`];
+            if (traceSlug && timestamp) {
+              menuItems.push({
+                key: 'view-random-trace',
+                label: t('View Random Trace'),
+                to: getTraceDetailsUrl({
+                  organization,
+                  traceSlug,
+                  timestamp,
+                  targetId: undefined,
+                  eventId: undefined,
+                  location,
+                  source: TraceViewSources.TRACES,
+                  dateSelection: normalizeDateTimeParams(selection.datetime),
+                }),
+              });
+            }
 
-              return (
-                <TableRow key={i}>
-                  <TableBodyCell>
-                    {topEvents &&
-                      i < topEvents &&
-                      !parseCursor(aggregateCursor)?.offset && (
-                        <TopResultsIndicator color={palette[i]!} />
-                      )}
-                    <CellAction
-                      column={VIEW_SAMPLES_COLUMN}
-                      dataRow={row}
-                      handleCellAction={() => null}
-                      allowActions={[]}
-                      extraMenuItems={menuItems}
-                    >
-                      <IconTriggerContent>
-                        <IconStack />
-                      </IconTriggerContent>
-                    </CellAction>
-                  </TableBodyCell>
-                  {visibleAggregateFields.map((aggregateField, j) => {
-                    const field = isGroupBy(aggregateField)
-                      ? aggregateField.groupBy
-                      : aggregateField.yAxis;
+            return (
+              <SimpleTable.Row key={i}>
+                <SimpleTable.RowCell>
+                  {topEvents &&
+                    i < topEvents &&
+                    !parseCursor(aggregateCursor)?.offset && (
+                      <TopResultsIndicator color={palette[i]!} />
+                    )}
+                  <DropdownMenu
+                    items={menuItems}
+                    usePortal
+                    strategy="fixed"
+                    size="sm"
+                    offset={4}
+                    minMenuWidth={0}
+                    trigger={triggerProps => (
+                      <OverlayTrigger.IconButton
+                        {...triggerProps}
+                        aria-label={t('View Samples')}
+                        icon={<IconStack />}
+                        variant="transparent"
+                        size="zero"
+                      />
+                    )}
+                  />
+                </SimpleTable.RowCell>
+                {visibleAggregateFields.map((aggregateField, j) => {
+                  const field = isGroupBy(aggregateField)
+                    ? aggregateField.groupBy
+                    : aggregateField.yAxis;
 
-                    return (
-                      <TableBodyCell key={j}>
-                        <FieldRenderer
-                          column={columns[field]}
-                          data={row}
-                          unit={meta?.units?.[field]}
-                          meta={meta}
-                        />
-                      </TableBodyCell>
-                    );
-                  })}
-                </TableRow>
-              );
-            })
-          ) : (
-            <TableStatus>
-              <EmptyStateWarning>
-                <p>{t('No spans found')}</p>
-              </EmptyStateWarning>
-            </TableStatus>
-          )}
-        </TableBody>
-      </Table>
+                  return (
+                    <SimpleTable.RowCell key={j}>
+                      <FieldRenderer
+                        column={columns[field]}
+                        data={row}
+                        disableTraceLinks
+                        unit={meta?.units?.[field]}
+                        meta={meta}
+                      />
+                    </SimpleTable.RowCell>
+                  );
+                })}
+              </SimpleTable.Row>
+            );
+          })
+        ) : (
+          <SimpleTable.Empty>{t('No spans found')}</SimpleTable.Empty>
+        )}
+      </SimpleTable>
       <Pagination
-        pageLinks={result.pageLinks}
-        paginationAnalyticsEvent={paginationAnalyticsEvent}
-        onCursor={cursorHandler}
+        {...getPaginationProps(result.pageLinks)}
+        onPageChange={(_cursor, delta) =>
+          paginationAnalyticsEvent(delta === -1 ? 'Previous' : 'Next')
+        }
+        onCursor={setAggregateCursor}
       />
     </Fragment>
   );
@@ -310,12 +280,17 @@ function prettifyField(
   numberTags: TagCollection,
   booleanTags: TagCollection
 ): string {
+  const prettifiedAggregation = prettifyAggregation(field);
+  if (prettifiedAggregation) {
+    return prettifiedAggregation;
+  }
+
   const tag = stringTags[field] ?? numberTags[field] ?? booleanTags[field] ?? null;
   if (tag) {
     return tag.name;
   }
 
-  return prettifyAggregation(field) ?? prettifyTagKey(field);
+  return prettifyTagKey(field);
 }
 
 const TopResultsIndicator = styled('div')<{color: string}>`
@@ -327,19 +302,3 @@ const TopResultsIndicator = styled('div')<{color: string}>`
 
   background-color: ${p => p.color};
 `;
-
-const IconTriggerContent = styled('span')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  line-height: 0;
-`;
-
-const VIEW_SAMPLES_COLUMN: TableColumn<keyof TableDataRow> = {
-  key: 'view-samples',
-  name: 'view-samples',
-  column: {kind: 'field', field: 'view-samples'},
-  isSortable: false,
-  type: 'string',
-};

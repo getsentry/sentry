@@ -2,10 +2,8 @@ import {Container} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {Csp} from 'sentry/components/events/interfaces/csp';
-import {Generic} from 'sentry/components/events/interfaces/generic';
 import {Message} from 'sentry/components/events/interfaces/message';
 import {Request} from 'sentry/components/events/interfaces/request';
 import {Template} from 'sentry/components/events/interfaces/template';
@@ -19,6 +17,8 @@ import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {SharedViewOrganization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 interface Props {
   event: Event | undefined;
@@ -43,12 +43,12 @@ export function SharedEventContent({organization, project, event, group}: Props)
     <div>
       {userReport && (
         <ErrorBoundary mini>
-          <EventDataSection title={t('User Feedback')} type="user-feedback">
+          <FoldSection sectionKey={SectionKey.USER_FEEDBACK} title={t('User Feedback')}>
             <EventUserFeedback
               report={userReport}
               eventLink={`/organizations/${organization.slug}/issues/${group.id}/events/${userReport.eventID}/?referrer=user-feedback`}
             />
-          </EventDataSection>
+          </FoldSection>
         </ErrorBoundary>
       )}
       <ErrorBoundary mini>
@@ -98,18 +98,11 @@ function SharedEventEntry({
       return <Template event={event} data={entry.data} />;
     case EntryType.CSP:
       return <Csp event={event} data={entry.data} />;
-    case EntryType.EXPECTCT:
-    case EntryType.EXPECTSTAPLE:
-      return <Generic type={entry.type} data={entry.data} />;
-    case EntryType.HPKP:
-      return (
-        <Generic type={entry.type} data={entry.data} meta={event._meta?.hpkp ?? {}} />
-      );
     case EntryType.THREADS:
       return (
         <Threads
           event={event}
-          group={group}
+          group={undefined}
           data={entry.data}
           projectSlug={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}

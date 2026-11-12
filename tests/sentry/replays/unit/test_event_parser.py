@@ -7,10 +7,12 @@ from sentry.replays.usecases.ingest.event_parser import (
     EventContext,
     EventType,
     HighlightedEventsBuilder,
+    OptionsEvent,
     _get_testid,
     _parse_classes,
     as_trace_item,
     as_trace_item_context,
+    get_timestamp_ms,
     parse_events,
     parse_multiclick_event,
     set_if,
@@ -55,7 +57,7 @@ def test_parse_highlighted_events_mutation_events() -> None:
 
 
 def test_parse_highlighted_events_options_events() -> None:
-    event = {
+    event: dict[str, Any] = {
         "data": {
             "payload": {
                 "blockAllMedia": True,
@@ -79,13 +81,31 @@ def test_parse_highlighted_events_options_events() -> None:
     builder.add(which(event), event, sampled=True)
     result = builder.result
     assert len(result.options_events) == 1
-    assert result.options_events[0] == event
+    assert result.options_events[0] == OptionsEvent(event["data"]["payload"])
 
     # Not sampled.
     builder = HighlightedEventsBuilder()
     builder.add(which(event), event, sampled=False)
     result = builder.result
     assert len(result.options_events) == 0
+
+
+@pytest.mark.parametrize(
+    ("data", "expected"),
+    [
+        ({"payload": "[Filtered]"}, {"payload": "[Filtered]"}),
+        ({"payload": "x" * 1000}, {"payload": "x" * 256}),
+        ({"payload": ["a", "b"]}, {"payload": "['a', 'b']"}),
+        ({}, {}),
+    ],
+)
+def test_parse_highlighted_events_options_events_unexpected_payload(
+    data: dict[str, Any], expected: dict[str, Any]
+) -> None:
+    event = {"data": {"tag": "options", **data}, "timestamp": 1680009712.507, "type": 5}
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=True)
+    assert builder.result.options_events == [OptionsEvent(expected)]
 
 
 def test_parse_highlighted_events_hydration_errors() -> None:
@@ -387,6 +407,56 @@ def test_parse_highlighted_events_click_events_missing_node() -> None:
     builder = HighlightedEventsBuilder()
     builder.add(which(event), event, sampled=False)
     assert len(builder.result.click_events) == 0
+
+
+def test_parse_highlighted_events_click_events_scrubbed_timestamp() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1674298825,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "timestamp": "[Filtered]",
+                "type": "default",
+                "category": "ui.click",
+                "message": "div#hello.hello.world",
+                "data": {
+                    "nodeId": 1,
+                    "node": {
+                        "id": 1,
+                        "tagName": "div",
+                        "attributes": {"id": "hello"},
+                        "textContent": "Hello, world!",
+                    },
+                },
+            },
+        },
+    }
+
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=False)
+    assert len(builder.result.click_events) == 0
+
+
+def test_parse_highlighted_events_with_tap_event_scrubbed_timestamp() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1758523985314,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": "[Filtered]",
+                "category": "ui.tap",
+                "message": "send_user_feedback",
+                "data": {"view.id": "send_user_feedback"},
+            },
+        },
+    }
+
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=True)
+    assert len(builder.result.tap_events) == 0
 
 
 def test_parse_highlighted_events_click_event_str_payload() -> None:
@@ -1198,6 +1268,19 @@ def test_parse_highlighted_events_fault_tolerance(event: dict[str, Any]) -> None
     # If the test raises an exception we fail. All of these events are invalid.
     builder = HighlightedEventsBuilder()
     builder.add(which(event), event, sampled=True)
+
+
+def test_parse_highlighted_events_contains_value_error() -> None:
+    event = {"type": 5, "data": {"tag": "breadcrumb", "payload": {"category": "ui.click"}}}
+
+    with mock.patch(
+        "sentry.replays.usecases.ingest.event_parser.as_highlighted_event",
+        side_effect=ValueError("Value was not a string."),
+    ):
+        builder = HighlightedEventsBuilder()
+        builder.add(which(event), event, sampled=True)
+
+    assert builder.result.click_events == []
 
 
 # Tests for trace item functions
@@ -2050,3 +2133,28 @@ def test_set_if() -> None:
 
     with pytest.raises(ValueError):
         assert set_if(["a", "b"], {"b": "hello"}, int)
+
+
+@pytest.mark.parametrize(
+    "timestamp, event_type, expected",
+    [
+        (1.5, EventType.NAVIGATION_SPAN, 1500.0),
+        (1500, EventType.CLICK, 1500.0),
+        ("1500", EventType.CLICK, 1500.0),
+        (None, EventType.CLICK, None),
+        ("[Filtered]", EventType.CLICK, None),
+        ("", EventType.CLICK, None),
+        (True, EventType.CLICK, None),
+        ([1], EventType.CLICK, None),
+        ({}, EventType.CLICK, None),
+        (float("nan"), EventType.CLICK, None),
+        (float("inf"), EventType.CLICK, None),
+    ],
+)
+def test_get_timestamp_ms(timestamp: Any, event_type: EventType, expected: float | None) -> None:
+    assert get_timestamp_ms({"timestamp": timestamp}, event_type) == expected
+
+
+def test_get_timestamp_ms_missing() -> None:
+    assert get_timestamp_ms({}, EventType.CLICK) is None
+    assert get_timestamp_ms(None, EventType.CLICK) is None

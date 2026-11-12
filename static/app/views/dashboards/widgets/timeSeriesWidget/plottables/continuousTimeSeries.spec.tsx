@@ -1,6 +1,6 @@
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
-import {LineSeries} from 'sentry/components/charts/series/lineSeries';
+import {createLineSeries} from 'sentry/components/charts/series/lineSeries';
 
 import {ContinuousTimeSeries} from './continuousTimeSeries';
 import type {Plottable} from './plottable';
@@ -101,6 +101,60 @@ describe('ContinuousTimeSeries', () => {
     });
   });
 
+  describe('confidence', () => {
+    it('is full when no points are sampled', () => {
+      expect(new Dots(TimeSeriesFixture()).confidence).toBe('full');
+
+      const unsampled = TimeSeriesFixture({
+        values: [
+          {timestamp: 1, value: 1, sampleRate: 1, confidence: 'high'},
+          {timestamp: 2, value: 2, sampleRate: 1, confidence: 'high'},
+        ],
+      });
+      expect(new Dots(unsampled).confidence).toBe('full');
+    });
+
+    it('is high when some points are sampled but none are low confidence', () => {
+      const timeSeries = TimeSeriesFixture({
+        values: [
+          {timestamp: 1, value: 1, sampleRate: 1, confidence: 'high'},
+          {timestamp: 2, value: 2, sampleRate: 0.5, confidence: 'high'},
+        ],
+      });
+      expect(new Dots(timeSeries).confidence).toBe('high');
+    });
+
+    it('is mixed when some points are low confidence', () => {
+      const timeSeries = TimeSeriesFixture({
+        values: [
+          {timestamp: 1, value: 1, sampleRate: 0.5, confidence: 'high'},
+          {timestamp: 2, value: 2, sampleRate: 0.01, confidence: 'low'},
+        ],
+      });
+      expect(new Dots(timeSeries).confidence).toBe('mixed');
+    });
+
+    it('is low when every point is low confidence', () => {
+      const timeSeries = TimeSeriesFixture({
+        values: [
+          {timestamp: 1, value: 1, sampleRate: 0.01, confidence: 'low'},
+          {timestamp: 2, value: 2, sampleRate: 0.01, confidence: 'low'},
+        ],
+      });
+      expect(new Dots(timeSeries).confidence).toBe('low');
+    });
+
+    it('ignores points without a value', () => {
+      const timeSeries = TimeSeriesFixture({
+        values: [
+          {timestamp: 1, value: 1, sampleRate: 0.01, confidence: 'low'},
+          {timestamp: 2, value: null, sampleRate: 1, confidence: 'high'},
+        ],
+      });
+      expect(new Dots(timeSeries).confidence).toBe('low');
+    });
+  });
+
   describe('name', () => {
     it('name is properly formatted', () => {
       const timeSeries = TimeSeriesFixture({
@@ -115,6 +169,6 @@ describe('ContinuousTimeSeries', () => {
 
 class Dots extends ContinuousTimeSeries implements Plottable {
   toSeries(_plottingOptions: any) {
-    return [LineSeries({})];
+    return [createLineSeries({})];
   }
 }

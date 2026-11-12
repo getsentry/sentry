@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import Any, cast
 
 from django import forms
 from django.conf import settings
@@ -60,7 +60,7 @@ class ChangePasswordRecoverForm(forms.Form):
         super().__init__(*args, **kwargs)
 
     def clean_password(self) -> str:
-        password = self.cleaned_data["password"]
+        password = cast("str", self.cleaned_data["password"])
         password_validation.validate_password(password, user=self.user)
         return password
 
@@ -121,12 +121,12 @@ class RelocationForm(forms.Form):
         value = re.sub(r"[ \n\t\r\0]*", "", value)
         if not value:
             return None
-        if User.objects.filter(username__iexact=value).exclude(id=self.user.id).exists():
+        if not User.is_username_available(value, exclude_user_id=self.user.id):
             raise forms.ValidationError(_("An account is already registered with that username."))
         return value.lower()
 
     def clean_password(self) -> str:
-        password = self.cleaned_data["password"]
+        password = cast("str", self.cleaned_data["password"])
         password_validation.validate_password(password, user=self.user)
         return password
 

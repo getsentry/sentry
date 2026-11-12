@@ -7,14 +7,15 @@ import moment from 'moment-timezone';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {ProgressBar} from 'sentry/components/progressBar';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation} from 'sentry/utils/queryClient';
 
 import {openOnDemandBudgetEditModal} from 'getsentry/actionCreators/modal';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
@@ -23,8 +24,7 @@ import {
   type OnDemandBudgets,
   type Subscription,
 } from 'getsentry/types';
-import {displayBudgetName, hasBillingAccess} from 'getsentry/utils/billing';
-import {displayPrice} from 'getsentry/views/amCheckout/utils';
+import {displayBudgetName, displayPrice, hasBillingAccess} from 'getsentry/utils/billing';
 import {openSpendLimitsPricingModal} from 'getsentry/views/spendLimits/pricingModal';
 import {
   getTotalBudget,
@@ -46,7 +46,6 @@ export function PaygCard({
     subscription.isSelfServePartner ||
     subscription.onDemandInvoicedManual
   );
-  const api = useApi();
   const theme = useTheme();
   const paygBudget = parseOnDemandBudgetsFromSubscription(subscription);
   const totalBudget = getTotalBudget(paygBudget);
@@ -62,7 +61,10 @@ export function PaygCard({
 
   const {mutate: handleSubmit} = useMutation({
     mutationFn: () => {
-      return api.requestPromise(`/customers/${organization.slug}/ondemand-budgets/`, {
+      return fetchMutation<OnDemandBudgets>({
+        url: getApiUrl('/customers/$organizationIdOrSlug/ondemand-budgets/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         method: 'POST',
         data: {
           budgetMode: OnDemandBudgetMode.SHARED,
@@ -115,6 +117,7 @@ export function PaygCard({
 
   useEffect(() => {
     if (window.location.hash === '#open-ondemand-modal') {
+      // oxlint-disable-next-line react/set-state-in-effect
       handleEditPayg(true);
 
       // Clear hash to prevent modal reopening or focus state on refresh
@@ -139,7 +142,7 @@ export function PaygCard({
       sections={
         isEditing
           ? [
-              <Flex key="payg-form" direction="column" gap="xl" width="100%">
+              <Stack key="payg-form" gap="xl" width="100%">
                 {error && (
                   <Alert variant="danger" key="error">
                     {error}
@@ -193,7 +196,7 @@ export function PaygCard({
                     })}
                   </Button>
                 </Flex>
-              </Flex>,
+              </Stack>,
             ]
           : [
               <Flex justify="between" align="start" key="title" width="100%" gap="sm">

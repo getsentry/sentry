@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any, Protocol
 
 from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME
+from django.core.files.base import File as DjangoFile
 from django.http import (
     HttpRequest,
     HttpResponse,
@@ -51,7 +52,6 @@ from sentry.utils.auth import construct_link_with_query, is_valid_redirect
 from sentry.utils.http import absolute_uri, is_using_customer_domain, origin_from_request
 from sentry.web.constants import FOREVER_CACHE
 from sentry.web.helpers import render_to_response
-from sudo.views import redirect_to_sudo
 
 if TYPE_CHECKING:
     from sentry.hybridcloud.apigateway.cell_request_resolvers import CellRequestResolver
@@ -130,7 +130,7 @@ class ViewSiloLimit(SiloLimit):
 
 class CellSiloView(ViewSiloLimit):
     def __init__(
-        self, cell_resolver: CellRequestResolver | None = None, *args, **kwargs: Any
+        self, cell_resolver: CellRequestResolver | None = None, *args: bool, **kwargs: Any
     ) -> None:
         super().__init__([SiloMode.CELL], *args, **kwargs)
         self.cell_resolver = cell_resolver
@@ -399,23 +399,18 @@ class OrganizationMixin:
 
 class BaseView(View, OrganizationMixin):
     auth_required = True
-    # TODO(dcramer): change sudo so it can be required only on POST
-    sudo_required = False
 
     csrf_protect = True
 
     def __init__(
         self,
         auth_required: bool | None = None,
-        sudo_required: bool | None = None,
         csrf_protect: bool | None = None,
         *args: Any,
         **kwargs: Any,
     ) -> None:
         if auth_required is not None:
             self.auth_required = auth_required
-        if sudo_required is not None:
-            self.sudo_required = sudo_required
         if csrf_protect is not None:
             self.csrf_protect = csrf_protect
         super().__init__(*args, **kwargs)
@@ -496,9 +491,6 @@ class BaseView(View, OrganizationMixin):
         if self.is_auth_required(request, *args, **kwargs):
             return self.handle_auth_required(request, *args, **kwargs)
 
-        if self.is_sudo_required(request):
-            return self.handle_sudo_required(request, *args, **kwargs)
-
         args, kwargs = self.convert_args(request, *args, **kwargs)
 
         try:
@@ -556,12 +548,6 @@ class BaseView(View, OrganizationMixin):
         }
         redirect_uri = construct_link_with_query(path=redirect_to, query_params=query_params)
         return self.redirect(redirect_uri, headers={"X-Robots-Tag": "noindex, nofollow"})
-
-    def is_sudo_required(self, request: HttpRequest) -> bool:
-        return self.sudo_required and not request.is_sudo()
-
-    def handle_sudo_required(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
-        return redirect_to_sudo(request.get_full_path())
 
     def has_permission(self, request: HttpRequest, *args: Any, **kwargs: Any) -> bool:
         return True
@@ -895,7 +881,7 @@ class AvatarPhotoView(View):
         if size_s:
             try:
                 size = int(size_s)
-                photo_file = avatar.get_cached_photo(size)
+                photo_file: bytes | DjangoFile[bytes] | None = avatar.get_cached_photo(size)
             except ValueError:
                 return HttpResponseBadRequest()
         else:
@@ -909,5 +895,6 @@ class AvatarPhotoView(View):
             res["Access-Control-Allow-Origin"] = "*"
         else:
             res["Access-Control-Allow-Origin"] = origin
+            res["Vary"] = "Origin"
 
         return res

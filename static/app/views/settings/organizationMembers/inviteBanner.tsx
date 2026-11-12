@@ -1,28 +1,32 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
+import {IconCommit} from '@sentry/icons/commit';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconGithub} from '@sentry/icons/github';
+import {IconMail} from '@sentry/icons/mail';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMissingMembersModal} from 'sentry/actionCreators/modal';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Card} from 'sentry/components/card';
 import {Carousel} from 'sentry/components/carousel';
-import {openConfirmModal} from 'sentry/components/confirm';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {FloatingFeedbackButton} from 'sentry/components/feedbackButton/floatingFeedbackButton';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
-import {IconCommit, IconEllipsis, IconGithub, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {MissingMember, OrgRole} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import {useApi} from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 const MAX_MEMBERS_TO_SHOW = 5;
@@ -43,7 +47,7 @@ export function InviteBanner({allowedRoles, onSendInvite, onModalClose}: Props) 
   const api = useApi();
   // NOTE: this is currently used for Github only
   const promptsFeature = 'github_missing_members';
-  const location = useLocation();
+  const [inviteMissingMembers] = useQueryState('inviteMissingMembers', parseAsString);
 
   const snoozePrompt = useCallback(async () => {
     trackAnalytics('github_invite_banner.snoozed', {
@@ -69,7 +73,9 @@ export function InviteBanner({allowedRoles, onSendInvite, onModalClose}: Props) 
   const fetchMissingMembers = useCallback(async () => {
     try {
       const data = await api.requestPromise(
-        `/organizations/${organization.slug}/missing-members/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/missing-members/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET',
         }
@@ -84,7 +90,7 @@ export function InviteBanner({allowedRoles, onSendInvite, onModalClose}: Props) 
       setMissingMembers(githubEntry.users ?? []);
     } catch (err: any) {
       if (err.status !== 403) {
-        addErrorMessage(t('Unable to fetching missing commit authors'));
+        toast.error(t('Unable to fetching missing commit authors'));
       }
     }
   }, [api, organization]);
@@ -93,6 +99,7 @@ export function InviteBanner({allowedRoles, onSendInvite, onModalClose}: Props) 
     if (!isEligibleForBanner) {
       return;
     }
+    // oxlint-disable-next-line react/set-state-in-effect
     fetchMissingMembers();
     promptsCheck(api, {
       organization,
@@ -103,12 +110,10 @@ export function InviteBanner({allowedRoles, onSendInvite, onModalClose}: Props) 
   }, [api, organization, promptsFeature, isEligibleForBanner, fetchMissingMembers]);
 
   useEffect(() => {
-    const {inviteMissingMembers} = qs.parse(location.search);
-
     if (isEligibleForBanner && inviteMissingMembers) {
       openInviteModal();
     }
-  }, [openInviteModal, location, isEligibleForBanner]);
+  }, [openInviteModal, inviteMissingMembers, isEligibleForBanner]);
 
   if (isEligibleForBanner && showBanner && missingMembers.length > 0) {
     trackAnalytics('github_invite_banner.viewed', {
@@ -142,20 +147,22 @@ export function InviteBanner({allowedRoles, onSendInvite, onModalClose}: Props) 
     setSendingInvite(true);
     try {
       await api.requestPromise(
-        `/organizations/${organization.slug}/members/?referrer=github_nudge_invite`,
+        `${getApiUrl('/organizations/$organizationIdOrSlug/members/', {
+          path: {organizationIdOrSlug: organization.slug},
+        })}?referrer=github_nudge_invite`,
         {
           method: 'POST',
           data: {email},
         }
       );
-      addSuccessMessage(tct('Sent invite to [email]', {email}));
+      toast.success(tct('Sent invite to [email]', {email}));
       onSendInvite();
       const updatedMissingMembers = missingMembers.filter(
         member => member.email !== email
       );
       setMissingMembers(updatedMissingMembers);
     } catch {
-      addErrorMessage(t('Error sending invite'));
+      toast.error(t('Error sending invite'));
     }
     setSendingInvite(false);
   };
@@ -172,7 +179,7 @@ export function InviteBanner({allowedRoles, onSendInvite, onModalClose}: Props) 
               {tct('[missingMemberCount] missing members', {
                 missingMemberCount: missingMembers.length,
               })}
-              <QuestionTooltip
+              <InfoTip
                 title={t(
                   "Based on the last 30 days of GitHub commit data, there are team members committing code to Sentry projects that aren't in your Sentry organization"
                 )}
@@ -192,12 +199,14 @@ export function InviteBanner({allowedRoles, onSendInvite, onModalClose}: Props) 
             </Button>
             <DropdownMenu
               items={menuItems}
-              triggerProps={{
-                size: 'xs',
-                showChevron: false,
-                icon: <IconEllipsis direction="down" size="sm" />,
-                'aria-label': t('Actions'),
-              }}
+              trigger={triggerProps => (
+                <OverlayTrigger.IconButton
+                  {...triggerProps}
+                  size="xs"
+                  icon={<IconEllipsis direction="down" size="sm" />}
+                  aria-label={t('Actions')}
+                />
+              )}
             />
           </Grid>
         </Flex>

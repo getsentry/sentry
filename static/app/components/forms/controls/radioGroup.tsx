@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
-import type {PopperProps} from 'react-popper';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
+import type {OverlayPlacement} from '@sentry/scraps/overlayPositioning';
 import {Radio} from '@sentry/scraps/radio';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -30,8 +30,7 @@ interface BaseRadioGroupProps<C extends string> {
    * Switch the radio items to flow left to right, instead of vertically.
    */
   orientInline?: boolean;
-  tooltipIsHoverable?: boolean;
-  tooltipPosition?: PopperProps<any>['placement'];
+  tooltipPosition?: OverlayPlacement;
 }
 
 /**
@@ -58,7 +57,6 @@ export function RadioGroup<C extends string>({
   onChange,
   orientInline,
   tooltipPosition,
-  tooltipIsHoverable,
   ...props
 }: RadioGroupProps<C>) {
   return (
@@ -84,7 +82,6 @@ export function RadioGroup<C extends string>({
             disabled={!disabledChoiceReason}
             title={disabledChoiceReason}
             position={tooltipPosition}
-            isHoverable={tooltipIsHoverable}
           >
             <RadioLineItem index={index} aria-checked={value === id} disabled={disabled}>
               <Radio

@@ -1,52 +1,25 @@
 import type {LineSeriesOption} from 'echarts';
 
-import {LineSeries} from 'sentry/components/charts/series/lineSeries';
+import {createLineSeries} from 'sentry/components/charts/series/lineSeries';
 import {scaleTimeSeriesData} from 'sentry/utils/timeSeries/scaleTimeSeriesData';
-import {segmentTimeSeriesByIncompleteData} from 'sentry/utils/timeSeries/segmentTimeSeriesByIncompleteData';
-import {timeSeriesItemToEChartsDataPoint} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
-import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import {
+  segmentTimeSeriesByDisplayStyle,
+  type TimeSeriesDisplayStyle,
+} from 'sentry/utils/timeSeries/segmentTimeSeriesByDisplayStyle';
 
 import {
   ContinuousTimeSeries,
-  type ContinuousTimeSeriesConfig,
+  DEFAULT_SEGMENT_BY,
   type ContinuousTimeSeriesPlottingOptions,
 } from './continuousTimeSeries';
 import type {Plottable} from './plottable';
 
 export class Line extends ContinuousTimeSeries implements Plottable {
-  #timeSeriesAndIsIncomplete: Array<[TimeSeries, boolean]>;
-
-  constructor(timeSeries: TimeSeries, config?: ContinuousTimeSeriesConfig) {
-    super(timeSeries, config);
-
-    this.#timeSeriesAndIsIncomplete = segmentTimeSeriesByIncompleteData(timeSeries);
-  }
-
-  onHighlight(seriesDataIndex: number): void {
-    const {config = {}} = this;
-    // The incomplete series prepends the final data point from the complete
-    // series. This causes off-by-one errors with `seriesDataIndex`, since the
-    // complete series has one more data points than we'd expect. Account for
-    // this by reconstructing the data points from the split series
-    const mergedData = this.#timeSeriesAndIsIncomplete.flatMap(([timeSeries]) => {
-      return timeSeries.values;
-    });
-
-    const datum = mergedData.at(seriesDataIndex);
-
-    if (!datum) {
-      return;
-    }
-
-    config.onHighlight?.(datum);
-  }
-
   toSeries(plottingOptions: ContinuousTimeSeriesPlottingOptions) {
     const {config = {}} = this;
+    const segmentBy = plottingOptions.segmentBy ?? DEFAULT_SEGMENT_BY;
 
     const color = plottingOptions.color ?? config.color ?? undefined;
-
-    const plottableSeries: LineSeriesOption[] = [];
 
     const commonOptions: LineSeriesOption = {
       name: this.name,
@@ -55,34 +28,24 @@ export class Line extends ContinuousTimeSeries implements Plottable {
       yAxisIndex: plottingOptions.yAxisPosition === 'left' ? 0 : 1,
     };
 
-    this.#timeSeriesAndIsIncomplete.forEach(([timeSeries, isIncomplete]) => {
-      if (isIncomplete) {
-        plottableSeries.push(
-          LineSeries({
-            ...commonOptions,
-            data: scaleTimeSeriesData(timeSeries, plottingOptions.unit).values.map(
-              timeSeriesItemToEChartsDataPoint
-            ),
-            lineStyle: {
-              type: 'dotted',
-            },
-            silent: true,
-          })
-        );
-      }
-
-      if (!isIncomplete) {
-        plottableSeries.push(
-          LineSeries({
-            ...commonOptions,
-            data: scaleTimeSeriesData(timeSeries, plottingOptions.unit).values.map(
-              timeSeriesItemToEChartsDataPoint
-            ),
-          })
-        );
-      }
+    const segments = segmentTimeSeriesByDisplayStyle(this.timeSeries, {
+      segmentBy,
     });
 
-    return plottableSeries;
+    return segments.map(([timeSeries, style]) =>
+      createLineSeries({
+        ...commonOptions,
+        ...STYLE_OPTIONS[style],
+        data: scaleTimeSeriesData(timeSeries, plottingOptions.unit).values.map(item =>
+          this.toDataPoint(item, segmentBy)
+        ),
+      })
+    );
   }
 }
+
+const STYLE_OPTIONS: Record<TimeSeriesDisplayStyle, Partial<LineSeriesOption>> = {
+  normal: {},
+  lowConfidence: {lineStyle: {type: 'dashed', opacity: 0.6}},
+  incomplete: {lineStyle: {type: 'dotted'}, silent: true},
+};

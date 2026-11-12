@@ -4,9 +4,9 @@ import {Link} from '@sentry/scraps/link';
 
 import {Count} from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
-import {Card} from 'sentry/components/keyValueData';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
+import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tn} from 'sentry/locale';
 import type {ReleaseMeta} from 'sentry/types/release';
@@ -53,6 +53,7 @@ export function GeneralCard({
         key: t('Semver'),
         subject: t('Semver'),
         value: releaseDetails ? (
+          releaseDetails.versionInfo &&
           isVersionInfoSemver(releaseDetails.versionInfo.version) ? (
             t('Yes')
           ) : (
@@ -68,7 +69,7 @@ export function GeneralCard({
         key: t('Package'),
         subject: t('Package'),
         value: releaseDetails ? (
-          (releaseDetails.versionInfo.package ?? '\u2014')
+          (releaseDetails.versionInfo?.package ?? '\u2014')
         ) : (
           <TinyPlaceholder />
         ),
@@ -133,7 +134,7 @@ export function GeneralCard({
     },
   ];
 
-  return <Card title={t('General')} contentItems={generalContentItems} />;
+  return <KeyValueTableCard title={t('General')} contentItems={generalContentItems} />;
 }
 
 const TinyPlaceholder = styled(Placeholder)`

@@ -1,13 +1,14 @@
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import type {TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
-import {ParticipantList} from 'sentry/views/issueDetails/sidebar/participantList';
+
+import {ParticipantList} from './participantList';
 
 export function PeopleSection({
   userParticipants,
@@ -26,7 +27,7 @@ export function PeopleSection({
       title={<Title>{t('People')}</Title>}
       sectionKey={SectionKey.PEOPLE}
     >
-      <Flex direction="column" gap="md">
+      <Stack gap="md">
         {hasParticipants && (
           <Flex gap="xs" align="center">
             <ParticipantList
@@ -43,7 +44,7 @@ export function PeopleSection({
             {t('viewed')}
           </Flex>
         )}
-      </Flex>
+      </Stack>
     </SidebarFoldSection>
   );
 }

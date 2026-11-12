@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Collection, Iterable
-from enum import Enum
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urljoin
 
@@ -16,12 +15,10 @@ from sentry.silo.base import SiloMode, SingleProcessSiloModeState, control_silo_
 from sentry.utils.env import in_test_environment
 
 if TYPE_CHECKING:
+    from sentry.hybridcloud.services.organization_mapping.model import (
+        RpcOrganizationMapping,
+    )
     from sentry.sentry_apps.models.sentry_app import SentryApp
-
-
-class RegionCategory(Enum):
-    MULTI_TENANT = "MULTI_TENANT"
-    SINGLE_TENANT = "SINGLE_TENANT"
 
 
 @dataclass(frozen=True, eq=True)
@@ -33,8 +30,6 @@ class Locality:
 
     cells: frozenset[str]
     """The set of cell names that belong to this locality."""
-
-    category: RegionCategory
 
     new_org_cell: str
     """The cell within this locality where new organizations are provisioned."""
@@ -259,7 +254,6 @@ def generate_monolith_cell_directory() -> CellDirectory:
     )
     locality = Locality(
         name=cell.name,
-        category=RegionCategory.MULTI_TENANT,
         cells=frozenset([cell.name]),
         new_org_cell=cell.name,
         visible=cell.visible,
@@ -273,7 +267,6 @@ def _parse_locality_config(
     for config_value in locality_config:
         yield Locality(
             name=config_value["name"],
-            category=RegionCategory(config_value["category"]),
             cells=frozenset(config_value["cells"]),
             new_org_cell=config_value["new_org_cell"],
             visible=bool(config_value.get("visible", True)),
@@ -459,6 +452,19 @@ def find_cells_for_orgs(org_ids: Iterable[int]) -> set[str]:
         )
 
 
+def find_cells_for_org_mappings(organizations: Iterable[RpcOrganizationMapping]) -> set[str]:
+    """The cells for organizations whose mappings the caller already holds.
+
+    Same answer as ``find_cells_for_orgs`` without the query — ``cell_name`` is already
+    on the mapping. Monolith keeps the short-circuit because ``SENTRY_FALLBACK_CELL`` is
+    synthetic and appears in no mapping row.
+    """
+    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+        return {settings.SENTRY_FALLBACK_CELL}
+
+    return {org.cell_name for org in organizations}
+
+
 @control_silo_function
 def find_cells_for_user(user_id: int) -> set[str]:
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:
@@ -495,11 +501,7 @@ def find_all_multitenant_locality_names() -> list[str]:
     """
     Return all visible multi-tenant localities.
     """
-    return [
-        loc.name
-        for loc in get_global_directory().localities
-        if loc.category == RegionCategory.MULTI_TENANT and loc.visible
-    ]
+    return [loc.name for loc in get_global_directory().localities if loc.visible]
 
 
 def find_all_signup_locality_names() -> list[str]:
@@ -507,7 +509,5 @@ def find_all_signup_locality_names() -> list[str]:
     Return all locality names that are visible to org signup.
     """
     return [
-        loc.name
-        for loc in get_global_directory().localities
-        if loc.category == RegionCategory.MULTI_TENANT and loc.visible and loc.signup_visible
+        loc.name for loc in get_global_directory().localities if loc.visible and loc.signup_visible
     ]

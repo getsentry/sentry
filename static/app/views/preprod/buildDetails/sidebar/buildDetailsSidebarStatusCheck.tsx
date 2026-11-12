@@ -1,9 +1,11 @@
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconWarning} from '@sentry/icons/warning';
+
 import {Alert} from '@sentry/scraps/alert';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {IconCheckmark, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {
   BuildDetailsVcsInfo,
@@ -40,7 +42,7 @@ export function BuildDetailsSidebarStatusCheck({
     const errorMessage = getErrorMessage(statusCheck.error_type, providerName);
     return (
       <Alert variant="muted" showIcon={false}>
-        <Flex direction="column" gap="sm">
+        <Stack gap="sm">
           <Flex align="center" gap="xs">
             <IconWarning size="xs" variant="danger" />
             <Text size="sm" bold>
@@ -55,7 +57,7 @@ export function BuildDetailsSidebarStatusCheck({
               {t('View CI setup docs')}
             </ExternalLink>
           </Text>
-        </Flex>
+        </Stack>
       </Alert>
     );
   }

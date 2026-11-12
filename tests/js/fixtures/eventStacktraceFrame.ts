@@ -1,6 +1,6 @@
 import type {Frame} from 'sentry/types/event';
 
-export function EventStacktraceFrameFixture(params = {}): Frame {
+export function EventStacktraceFrameFixture(params: Partial<Frame> = {}): Frame {
   return {
     filename: 'raven/base.py',
     absPath: '/home/ubuntu/.virtualenvs/getsentry/src/raven/raven/base.py',

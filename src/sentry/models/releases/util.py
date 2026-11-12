@@ -4,7 +4,8 @@ import logging
 from collections import namedtuple
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Self
+from datetime import datetime
+from typing import TYPE_CHECKING, Self, cast
 
 from django.db import models
 from django.db.models import Case, Exists, F, Func, OuterRef, Q, Subquery, Value, When
@@ -21,6 +22,13 @@ if TYPE_CHECKING:
     from sentry.models.release import Release  # noqa: F401
 
 logger = logging.getLogger(__name__)
+
+
+def release_order_date(
+    date_added: datetime, date_released: datetime | None, *, use_finalized_order: bool
+) -> datetime:
+    """Prefer the finalized date when finalized release ordering is enabled."""
+    return (date_released or date_added) if use_finalized_order else date_added
 
 
 class SemverVersion(
@@ -160,7 +168,7 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
         self,
         organization_id: int,
         operator: str,
-        value,
+        value: str | list[str],
         project_ids: Sequence[int] | None = None,
         environments: Sequence[str | int] | None = None,
     ) -> Self:
@@ -169,8 +177,9 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
 
         if not environments or len(environments) != 1:
             raise InvalidSearchQuery("Choose a single environment to filter by release stage.")
+        environment = environments[0]
 
-        filters = {
+        filters: dict[str, Q] = {
             ReleaseStages.ADOPTED: Q(adopted__isnull=False, unadopted__isnull=True),
             ReleaseStages.REPLACED: Q(adopted__isnull=False, unadopted__isnull=False),
             ReleaseStages.LOW_ADOPTION: Q(adopted__isnull=True, unadopted__isnull=True),
@@ -186,6 +195,16 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
         rpes = ReleaseProjectEnvironment.objects.filter(
             release__organization_id=organization_id,
         ).select_related("release")
+
+        # Tag value autocomplete passes environment ids; search filters pass names.
+        if isinstance(environment, int):
+            rpes = rpes.filter(environment_id=environment)
+        elif isinstance(environment, str):
+            rpes = rpes.filter(environment__name=environment)
+        else:
+            raise TypeError(
+                f"Expected an environment name or id, got {type(environment).__name__}."
+            )
 
         if project_ids:
             rpes = rpes.filter(project_id__in=project_ids)
@@ -239,7 +258,7 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
         return self.order_by("-date_added", "-id")
 
     @staticmethod
-    def massage_semver_cols_into_release_object_data(kwargs):
+    def massage_semver_cols_into_release_object_data(kwargs: dict[str, object]) -> None:
         """
         Helper function that takes kwargs as an argument and massages into it the release semver
         columns (if possible)
@@ -248,7 +267,7 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
         """
         if "version" in kwargs:
             try:
-                version_info = parse_release(kwargs["version"])
+                version_info = parse_release(cast(str, kwargs["version"]))
                 package = version_info.get("package")
                 version_parsed = version_info.get("version_parsed")
 
@@ -276,7 +295,7 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
                 pass
 
     @staticmethod
-    def _convert_build_code_to_build_number(build_code):
+    def _convert_build_code_to_build_number(build_code: str | None) -> int | None:
         """
         Helper function that takes the build_code and checks if that build code can be parsed into
         a 64 bit integer
@@ -296,7 +315,7 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
         return build_number
 
 
-def parse_semver_pre_save(instance, **kwargs):
+def parse_semver_pre_save(instance: Release, **kwargs: object) -> None:
     if instance.id:
         return
     ReleaseQuerySet.massage_semver_cols_into_release_object_data(instance.__dict__)

@@ -1,11 +1,11 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQueries} from '@tanstack/react-query';
-import {parseAsStringEnum, useQueryState} from 'nuqs';
+import {parseAsString, parseAsStringEnum, useQueryState} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Grid, type GridProps} from '@sentry/scraps/layout';
-import {Pagination} from '@sentry/scraps/pagination';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import {GroupList} from 'sentry/components/issues/groupList';
@@ -15,9 +15,11 @@ import {t, tct} from 'sentry/locale';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
 import {EmptyState} from 'sentry/views/explore/releases/detail/commitsAndFiles/emptyState';
 import type {ReleaseBounds} from 'sentry/views/explore/releases/utils';
 import {getReleaseParams} from 'sentry/views/explore/releases/utils';
@@ -55,6 +57,11 @@ interface Props {
 const parseAsIssuesType = parseAsStringEnum(Object.values(IssuesType)).withDefault(
   IssuesType.NEW
 );
+
+const releasePeriodParsers = {
+  pageStart: parseAsString,
+  pageStatsPeriod: parseAsString,
+};
 
 function getIssuesEndpoint(
   version: string,
@@ -188,7 +195,7 @@ export function ReleaseIssues({
   const organization = useOrganization();
 
   const [pageLinks, setPageLinks] = useState<string | null>(null);
-  const [onCursor, setOnCursor] = useState<(() => void) | undefined>();
+  const [onCursor, setOnCursor] = useState<CursorHandler | undefined>();
 
   const [issuesType, setIssuesType] = useQueryState(
     'issuesType',
@@ -250,8 +257,11 @@ export function ReleaseIssues({
     }, []);
 
   const renderEmptyMessage = useCallback(() => {
-    const isEntireReleasePeriod =
-      !location.query.pageStatsPeriod && !location.query.pageStart;
+    const {pageStart, pageStatsPeriod} = loadQueryParamsFromLocation(
+      releasePeriodParsers,
+      location
+    );
+    const isEntireReleasePeriod = !pageStatsPeriod && !pageStart;
 
     const {statsPeriod} = getReleaseParams({
       location,
@@ -321,56 +331,81 @@ export function ReleaseIssues({
 
   return (
     <Fragment>
-      <ControlsWrapper>
+      <Flex
+        align={{zero: 'stretch', md: 'center'}}
+        direction={{zero: 'column', md: 'row'}}
+        justify="between"
+        wrap="wrap"
+      >
         <DemoTourElement
           id={DemoTourStep.RELEASES_ISSUES}
           title={t('New and regressed issues')}
           description={t(
             'Along with reviewing how your release is trending over time compared to previous releases, you can view new and regressed issues here.'
           )}
-          position="top-start"
         >
           {tourProps => (
-            <div {...tourProps}>
-              <SegmentedControl
-                aria-label={t('Issue type')}
-                size="xs"
-                value={issuesType}
-                onChange={setIssuesType}
-              >
-                {issuesTypes.map(({value, label, issueCount}) => (
-                  <SegmentedControl.Item key={value} textValue={label}>
-                    {label}&nbsp;
-                    <QueryCount
-                      count={issueCount}
-                      max={99}
-                      hideParens
-                      hideIfEmpty={false}
-                    />
-                  </SegmentedControl.Item>
-                ))}
-              </SegmentedControl>
-            </div>
+            <Container {...tourProps} width={{zero: '100%', md: 'max-content'}}>
+              <Container width="100%">
+                {containerProps => (
+                  <SegmentedControl<IssuesType>
+                    {...containerProps}
+                    aria-label={t('Issue type')}
+                    size="xs"
+                    value={issuesType}
+                    onChange={setIssuesType}
+                  >
+                    {issuesTypes.map(({value, label, issueCount}) => (
+                      <SegmentedControl.Item key={value} textValue={label}>
+                        {label}&nbsp;
+                        <QueryCount
+                          count={issueCount}
+                          max={99}
+                          hideParens
+                          hideIfEmpty={false}
+                        />
+                      </SegmentedControl.Item>
+                    ))}
+                  </SegmentedControl>
+                )}
+              </Container>
+            </Container>
           )}
         </DemoTourElement>
 
-        <OpenInButtonBar>
-          <LinkButton
-            to={getIssuesUrl(
-              version,
-              location,
-              releaseBounds,
-              issuesType,
-              organization.slug
+        <Grid
+          align="center"
+          columns={{zero: '1fr', md: 'repeat(2, max-content)'}}
+          gap="md"
+          margin="md 0"
+        >
+          <Container width={{zero: '100%', md: 'max-content'}}>
+            {containerProps => (
+              <LinkButton
+                {...containerProps}
+                to={getIssuesUrl(
+                  version,
+                  location,
+                  releaseBounds,
+                  issuesType,
+                  organization.slug
+                )}
+                size="xs"
+              >
+                {t('Open in Issues')}
+              </LinkButton>
             )}
-            size="xs"
-          >
-            {t('Open in Issues')}
-          </LinkButton>
+          </Container>
 
-          <StyledPagination pageLinks={pageLinks} onCursor={onCursor} size="xs" />
-        </OpenInButtonBar>
-      </ControlsWrapper>
+          <Container justifySelf="end">
+            <StyledPagination
+              {...getPaginationProps(pageLinks)}
+              onCursor={onCursor}
+              size="xs"
+            />
+          </Container>
+        </Grid>
+      </Flex>
       <div data-test-id="release-wrapper">
         <GroupList
           endpoint={endpoint}
@@ -389,22 +424,6 @@ export function ReleaseIssues({
     </Fragment>
   );
 }
-
-const ControlsWrapper = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: block;
-  }
-`;
-
-const OpenInButtonBar = styled((props: GridProps) => (
-  <Grid flow="column" align="center" gap="md" {...props} />
-))`
-  margin: ${p => p.theme.space.md} 0;
-`;
 
 const StyledPagination = styled(Pagination)`
   margin: 0;

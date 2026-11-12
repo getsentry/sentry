@@ -1,6 +1,7 @@
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Aggregation} from 'sentry/utils/discover/fields';
+import {attributeTypeFromKind} from 'sentry/utils/fields';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
@@ -24,7 +25,7 @@ export function combineBaseFieldsWithTags(
       label: tag.name,
       value: {
         kind: FieldValueKind.TAG,
-        meta: {name: tag.key, dataType: tag.kind === 'tag' ? 'string' : 'number'},
+        meta: {name: tag.key, dataType: attributeTypeFromKind(tag.kind)},
       },
     };
     return acc;

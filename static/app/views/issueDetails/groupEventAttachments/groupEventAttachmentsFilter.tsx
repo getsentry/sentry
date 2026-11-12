@@ -1,9 +1,9 @@
+import {parseAsString, useQueryStates} from 'nuqs';
+
 import {Flex} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import {t} from 'sentry/locale';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 
 export const enum EventAttachmentFilter {
   ALL = 'all',
@@ -20,27 +20,22 @@ interface GroupEventAttachmentsFilterProps {
 export function GroupEventAttachmentsFilter({
   onChange,
 }: GroupEventAttachmentsFilterProps) {
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [{attachmentFilter}, setQueryParams] = useQueryStates({
+    attachmentFilter: parseAsString,
+    cursor: parseAsString,
+  });
 
   const activeFilter =
-    (location.query.attachmentFilter as AttachmentFilterValue | undefined) ??
-    EventAttachmentFilter.ALL;
+    (attachmentFilter as AttachmentFilterValue | null) ?? EventAttachmentFilter.ALL;
 
   return (
-    <Flex justify="end">
+    <Flex maxWidth="100%">
       <SegmentedControl
         aria-label={t('Attachment Filter')}
         size="sm"
         value={activeFilter}
         onChange={key => {
-          navigate(
-            {
-              pathname: location.pathname,
-              query: {...location.query, attachmentFilter: key},
-            },
-            {replace: true}
-          );
+          setQueryParams({attachmentFilter: key, cursor: null});
           onChange?.(key as EventAttachmentFilter);
         }}
       >

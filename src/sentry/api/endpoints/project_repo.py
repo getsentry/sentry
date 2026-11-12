@@ -1,6 +1,7 @@
 from typing import Any, TypedDict
 
-from drf_spectacular.utils import extend_schema, inline_serializer
+from django.db.models import Count
+from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -9,6 +10,12 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
+from sentry.api.paginator import OffsetPaginator
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.project_repository import (
+    ProjectRepositorySerializer,
+    ProjectRepositorySerializerResponse,
+)
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_NOT_FOUND
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import (
@@ -16,6 +23,7 @@ from sentry.apidocs.response_types import (
     ValidationErrorResponse,
     as_validation_errors,
 )
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
@@ -30,14 +38,14 @@ class _ProjectRepoLinkResponse(TypedDict):
     created: bool
 
 
-class ProjectRepoSerializer(serializers.Serializer[ProjectRepository]):
+class ProjectRepoLinkRequestSerializer(serializers.Serializer[ProjectRepository]):
     repositoryId = serializers.IntegerField(
         required=True, help_text="The ID of the repository to link."
     )
 
-    def __init__(self, *args: Any, project: Project, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        self.project = project
+    @property
+    def project(self) -> Project:
+        return self.context["project"]
 
     def validate_repositoryId(self, value: int) -> int:
         if not Repository.objects.filter(
@@ -63,9 +71,71 @@ class ProjectRepoSerializer(serializers.Serializer[ProjectRepository]):
 class ProjectRepoEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset({"POST"})
     permission_classes = (ProjectPermission,)
+
+    @extend_schema(
+        operation_id="listProjectRepositories",
+        summary="List Repositories Linked to a Project",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            OpenApiParameter(
+                name="includeMappingCount",
+                location="query",
+                required=False,
+                type=str,
+                description=(
+                    "When set to `1`, each row includes a `mappingCount` field "
+                    "with the number of code path mappings for that repository. "
+                    "Omitted by default to keep the response lightweight."
+                ),
+            ),
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ProjectRepoListResponse",
+                list[ProjectRepositorySerializerResponse],
+            ),
+        },
+    )
+    def get(
+        self, request: Request, project: Project
+    ) -> Response[list[ProjectRepositorySerializerResponse]]:
+        """
+        List all repositories linked to a project.
+
+        Pass `?includeMappingCount=1` to include the number of code path mappings
+        per repository. Omitting it keeps the query cheaper for callers that
+        only need the list of connections.
+        """
+        include_mapping_count = request.GET.get("includeMappingCount") == "1"
+
+        qs = (
+            ProjectRepository.objects.filter(
+                project=project,
+                repository__status=ObjectStatus.ACTIVE,
+            )
+            .select_related("repository")
+            .order_by("repository__name", "id")
+        )
+
+        if include_mapping_count:
+            qs = qs.annotate(mapping_count=Count("repositoryprojectpathconfig"))
+
+        return self.paginate(
+            request=request,
+            queryset=qs,
+            paginator_cls=OffsetPaginator,
+            on_results=lambda items: serialize(
+                items,
+                request.user,
+                ProjectRepositorySerializer(include_mapping_count=include_mapping_count),
+            ),
+        )
 
     @extend_schema(
         operation_id="linkProjectRepository",
@@ -74,23 +144,22 @@ class ProjectRepoEndpoint(ProjectEndpoint):
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
         ],
-        request=inline_serializer(
-            "ProjectRepoLinkRequest",
-            fields={
-                "repositoryId": serializers.IntegerField(
-                    help_text="The ID of the repository to link."
-                ),
-            },
-        ),
+        request=ProjectRepoLinkRequestSerializer,
         responses={
             201: inline_serializer(
                 "ProjectRepoLinkResponse",
                 fields={
-                    "id": serializers.CharField(),
-                    "projectId": serializers.CharField(),
-                    "repositoryId": serializers.CharField(),
-                    "source": serializers.CharField(),
-                    "created": serializers.BooleanField(),
+                    "id": serializers.CharField(
+                        help_text="ID of the link between the project and the repository."
+                    ),
+                    "projectId": serializers.CharField(help_text="ID of the project."),
+                    "repositoryId": serializers.CharField(help_text="ID of the repository."),
+                    "source": serializers.CharField(
+                        help_text="How the link was made: manual, scm_onboarding, auto_event, auto_name_match or seer_preference."
+                    ),
+                    "created": serializers.BooleanField(
+                        help_text="Whether the request created the link. False when it already existed."
+                    ),
                 },
             ),
             400: RESPONSE_BAD_REQUEST,
@@ -109,7 +178,9 @@ class ProjectRepoEndpoint(ProjectEndpoint):
         in the organization (connected via a VCS integration). Idempotent:
         returns 200 if the link already exists, 201 if created.
         """
-        serializer = ProjectRepoSerializer(data=request.data, project=project)
+        serializer = ProjectRepoLinkRequestSerializer(
+            data=request.data, context={"project": project}
+        )
         if not serializer.is_valid():
             errors = serializer.errors
             repo_errors = errors.get("repositoryId", [])

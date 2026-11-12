@@ -2,9 +2,9 @@ import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {Flex} from '@sentry/scraps/layout';
 
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Body, Hovercard} from 'sentry/components/hovercard';
 import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
@@ -95,23 +95,16 @@ type HoverHeaderProps = {
   title: string;
   copyContent?: string;
   copyLabel?: React.ReactNode;
-  hideCopy?: boolean;
 };
 
-function HoverHeader({
-  title,
-  hideCopy = false,
-  copyLabel,
-  copyContent,
-  organization,
-}: HoverHeaderProps) {
+function HoverHeader({title, copyLabel, copyContent, organization}: HoverHeaderProps) {
   return (
     <Flex align="center" justify="between">
       {title}
       <Flex flex="1" align="center" justify="end" gap="xs">
         {copyLabel}
 
-        {!hideCopy && copyContent && (
+        {copyContent && (
           <CopyToClipboardButton
             variant="transparent"
             aria-label={t('Copy to clipboard')}

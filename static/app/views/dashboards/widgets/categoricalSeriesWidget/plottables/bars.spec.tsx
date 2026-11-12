@@ -3,7 +3,8 @@ import {CategoricalSeriesFixture} from 'sentry-fixture/categoricalSeries';
 import {sampleCountCategoricalData} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/fixtures/countCategorical';
 import {sampleDurationCategoricalData} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/fixtures/durationCategorical';
 import {sampleStackedCategoricalData} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/fixtures/stackedCategorical';
-import {Bars} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/plottables/bars';
+
+import {Bars} from './bars';
 
 describe('Bars', () => {
   describe('Properties', () => {
@@ -98,15 +99,6 @@ describe('Bars', () => {
       bar.onHighlight(1);
 
       expect(onHighlightMock).toHaveBeenCalledWith({category: 'Firefox', value: 890}, 1);
-    });
-
-    it('calls onDownplay handler with correct item', () => {
-      const onDownplayMock = jest.fn();
-      const bar = new Bars(sampleCountCategoricalData, {onDownplay: onDownplayMock});
-
-      bar.onDownplay(2);
-
-      expect(onDownplayMock).toHaveBeenCalledWith({category: 'Safari', value: 650}, 2);
     });
 
     it('does not throw when handler not provided', () => {

@@ -8,26 +8,14 @@ import type {Project} from 'sentry/types/project';
 import type {Detector, DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  EditExistingCronDetectorForm,
-  NewCronDetectorForm,
-} from 'sentry/views/detectors/components/forms/cron';
-import {
-  EditExistingErrorDetectorForm,
-  NewErrorDetectorForm,
-} from 'sentry/views/detectors/components/forms/error';
-import {
-  EditExistingMetricDetectorForm,
-  NewMetricDetectorForm,
-} from 'sentry/views/detectors/components/forms/metric/metric';
-import {
-  EditExistingPreprodDetectorForm,
-  NewPreprodDetectorForm,
-} from 'sentry/views/detectors/components/forms/mobileBuild';
-import {
-  EditExistingUptimeDetectorForm,
-  NewUptimeDetectorForm,
-} from 'sentry/views/detectors/components/forms/uptime';
+import {detectorTypeIsAvailableForCreation} from 'sentry/views/detectors/utils/detectorTypeConfig';
+
+import {EditExistingMetricDetectorForm, NewMetricDetectorForm} from './metric/metric';
+import {useDetectorFormContext} from './context';
+import {EditExistingCronDetectorForm, NewCronDetectorForm} from './cron';
+import {EditExistingErrorDetectorForm, NewErrorDetectorForm} from './error';
+import {EditExistingPreprodDetectorForm, NewPreprodDetectorForm} from './mobileBuild';
+import {EditExistingUptimeDetectorForm, NewUptimeDetectorForm} from './uptime';
 
 function PlaceholderForm() {
   return (
@@ -43,23 +31,52 @@ function PlaceholderForm() {
 
 export function NewDetectorForm({detectorType}: {detectorType: DetectorType}) {
   const organization = useOrganization();
+  const {duplicateDetector} = useDetectorFormContext();
+
+  const detectorCopy = duplicateDetector
+    ? {...duplicateDetector, name: t('%s (Copy)', duplicateDetector.name)}
+    : undefined;
 
   switch (detectorType) {
     case 'metric_issue':
-      return <NewMetricDetectorForm />;
+      return (
+        <NewMetricDetectorForm
+          duplicateDetector={
+            detectorCopy?.type === 'metric_issue' ? detectorCopy : undefined
+          }
+        />
+      );
     case 'uptime_domain_failure':
-      return <NewUptimeDetectorForm />;
+      return (
+        <NewUptimeDetectorForm
+          duplicateDetector={
+            detectorCopy?.type === 'uptime_domain_failure' ? detectorCopy : undefined
+          }
+        />
+      );
     case 'error':
       return <NewErrorDetectorForm />;
     case 'monitor_check_in_failure':
-      return <NewCronDetectorForm />;
+      return (
+        <NewCronDetectorForm
+          duplicateDetector={
+            detectorCopy?.type === 'monitor_check_in_failure' ? detectorCopy : undefined
+          }
+        />
+      );
     case 'issue_stream':
       return <PlaceholderForm />;
     case 'preprod_size_analysis':
-      if (!organization.features.includes('preprod-size-monitors-frontend')) {
+      if (!detectorTypeIsAvailableForCreation(detectorType, organization)) {
         return <PlaceholderForm />;
       }
-      return <NewPreprodDetectorForm />;
+      return (
+        <NewPreprodDetectorForm
+          duplicateDetector={
+            detectorCopy?.type === 'preprod_size_analysis' ? detectorCopy : undefined
+          }
+        />
+      );
     default:
       unreachable(detectorType);
       return <PlaceholderForm />;

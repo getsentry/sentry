@@ -5,14 +5,14 @@ from datetime import datetime, timedelta, timezone
 from time import time
 from typing import Any
 
+from django.db.models import Exists, OuterRef
 from django.utils import timezone as django_timezone
 
 from sentry import analytics
 from sentry.analytics.events.issue_auto_resolved import IssueAutoResolvedEvent
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues import grouptype
-from sentry.issues.action_log import ActionSource, publish_action
-from sentry.issues.action_log.types import ResolveAction
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
@@ -26,7 +26,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.types.activity import ActivityType
 
-ONE_HOUR = 3600
+TEN_MINUTES = 10 * 60
 
 
 @instrumented_task(
@@ -35,7 +35,7 @@ ONE_HOUR = 3600
     processing_deadline_duration=75,
     silo_mode=SiloMode.CELL,
 )
-def schedule_auto_resolution():
+def schedule_auto_resolution() -> None:
     options_qs = ProjectOption.objects.filter(
         key__in=["sentry:resolve_age", "sentry:_last_auto_resolve"]
     )
@@ -43,7 +43,7 @@ def schedule_auto_resolution():
     for opt in options_qs:
         opts_by_project[opt.project_id][opt.key] = opt.value
 
-    cutoff = time() - ONE_HOUR
+    cutoff = time() - TEN_MINUTES
     for project_id, options in opts_by_project.items():
         if not options.get("sentry:resolve_age"):
             # kill the option to avoid it coming up in the future
@@ -57,7 +57,7 @@ def schedule_auto_resolution():
 
         auto_resolve_project_issues.apply_async(
             args=[project_id],
-            expires=ONE_HOUR,
+            expires=TEN_MINUTES,
             headers={"sentry-propagate-traces": False},
         )
 
@@ -68,12 +68,12 @@ def schedule_auto_resolution():
     processing_deadline_duration=90,
     silo_mode=SiloMode.CELL,
 )
-def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwargs):
-    from sentry.incidents.grouptype import MetricIssue
-    from sentry.workflow_engine.models.incident_groupopenperiod import (
-        update_incident_based_on_open_period_status_change,
-    )
-
+def auto_resolve_project_issues(
+    project_id: int,
+    cutoff: int | None = None,
+    chunk_size: int = 1000,
+    **kwargs: Any,
+) -> None:
     project = Project.objects.get_from_cache(id=project_id)
     age = project.get_option("sentry:resolve_age", None)
     if not age:
@@ -82,13 +82,13 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
     project.update_option("sentry:_last_auto_resolve", int(time()))
 
     if cutoff:
-        cutoff = datetime.fromtimestamp(cutoff, timezone.utc)
+        cutoff_dt = datetime.fromtimestamp(cutoff, timezone.utc)
     else:
-        cutoff = django_timezone.now() - timedelta(hours=int(age))
+        cutoff_dt = django_timezone.now() - timedelta(hours=int(age))
 
-    filter_conditions = {
+    filter_conditions: dict[str, Any] = {
         "project": project,
-        "last_seen__lte": cutoff,
+        "last_seen__lte": cutoff_dt,
         "status": GroupStatus.UNRESOLVED,
     }
 
@@ -99,76 +99,79 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
     ]
     filter_conditions["type__in"] = enabled_auto_resolve_types
 
-    queryset = list(Group.objects.filter(**filter_conditions)[:chunk_size])
+    recently_reopened = Exists(
+        Activity.objects.get_recent_unresolved_activities(project.id, cutoff_dt).filter(
+            group_id=OuterRef("id")
+        )
+    )
+    queryset = list(
+        Group.objects.filter(**filter_conditions).exclude(recently_reopened)[:chunk_size]
+    )
 
     might_have_more = len(queryset) == chunk_size
 
     for group in queryset:
         resolution_time = django_timezone.now()
-        happened = Group.objects.filter(
-            id=group.id,
-            status=GroupStatus.UNRESOLVED,
-            last_seen__lte=cutoff,
-        ).update(
-            status=GroupStatus.RESOLVED,
-            resolved_at=resolution_time,
-            substatus=None,
+        # Recheck this issue's Activity in the UPDATE: it may have been reopened
+        # after candidate selection. Status and Activity writes are not atomic,
+        # so a reopening whose Activity is not yet committed can still race.
+        happened = (
+            Group.objects.filter(id=group.id, **filter_conditions)
+            .exclude(recently_reopened)
+            .update(status=GroupStatus.RESOLVED, resolved_at=resolution_time, substatus=None)
         )
+        if not happened:
+            continue
+
+        group.status = GroupStatus.RESOLVED
+        group.resolved_at = resolution_time
+        group.substatus = None
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
 
-        if happened:
-            publish_action(
-                ResolveAction(),
-                source=ActionSource.SYSTEM,
-                group_id=group.id,
-                project=project,
-            )
-            activity = Activity.objects.create(
+        with action_context_scope(ActionSource.SYSTEM, SYSTEM_ACTOR):
+            Activity.objects.create(
                 group=group,
                 project=project,
                 type=ActivityType.SET_RESOLVED_BY_AGE.value,
                 data={"age": age},
             )
             record_group_history(group, GroupHistoryStatus.AUTO_RESOLVED)
-            update_group_open_period(
-                group=group,
-                new_status=GroupStatus.RESOLVED,
-                resolution_time=resolution_time,
-                resolution_activity=activity,
-            )
-            if group.issue_type == MetricIssue:
-                update_incident_based_on_open_period_status_change(group, GroupStatus.RESOLVED)
+        update_group_open_period(
+            group=group,
+            new_status=GroupStatus.RESOLVED,
+            resolution_time=resolution_time,
+        )
 
-            kick_off_status_syncs.apply_async(
-                kwargs={"project_id": group.project_id, "group_id": group.id}
-            )
+        kick_off_status_syncs.apply_async(
+            kwargs={"project_id": group.project_id, "group_id": group.id}
+        )
 
-            analytics.record(
-                IssueAutoResolvedEvent(
-                    project_id=project.id,
-                    organization_id=project.organization_id,
-                    group_id=group.id,
-                    issue_type=group.issue_type.slug,
-                    issue_category=group.issue_category.name.lower(),
-                )
-            )
-            # auto-resolve is a kind of resolve and this signal makes
-            # sure all things that need to happen after resolve are triggered
-            # examples are analytics and webhooks
-            issue_resolved.send_robust(
+        analytics.record(
+            IssueAutoResolvedEvent(
+                project_id=project.id,
                 organization_id=project.organization_id,
-                user=None,
-                group=group,
-                project=project,
-                resolution_type="autoresolve",
-                commit_id=None,
-                sender="auto_resolve_issues",
+                group_id=group.id,
+                issue_type=group.issue_type.slug,
+                issue_category=group.issue_category.name.lower(),
             )
+        )
+        # auto-resolve is a kind of resolve and this signal makes
+        # sure all things that need to happen after resolve are triggered
+        # examples are analytics and webhooks
+        issue_resolved.send_robust(
+            organization_id=project.organization_id,
+            user=None,
+            group=group,
+            project=project,
+            resolution_type="autoresolve",
+            commit_id=None,
+            sender="auto_resolve_issues",
+        )
 
     if might_have_more:
         auto_resolve_project_issues.apply_async(
             args=[project_id],
-            kwargs={"cutoff": int(cutoff.strftime("%s")), "chunk_size": chunk_size},
-            expires=ONE_HOUR,
+            kwargs={"cutoff": int(cutoff_dt.strftime("%s")), "chunk_size": chunk_size},
+            expires=TEN_MINUTES,
             headers={"sentry-propagate-traces": False},
         )

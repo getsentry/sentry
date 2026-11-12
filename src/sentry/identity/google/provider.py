@@ -1,3 +1,6 @@
+from collections.abc import Mapping
+from typing import Any, cast
+
 import orjson
 
 from sentry import options
@@ -13,6 +16,15 @@ from sentry.utils.signing import urlsafe_b64decode
 DEFAULT_GOOGLE_DOMAIN = "gmail.com"
 
 
+def normalize_email_verified(value: Any) -> bool:
+    """Coerce Google's email_verified claim to a bool.
+
+    Google's docs define this as a bool but their example (and the tokeninfo endpoint) show the string "true".
+    Only True or "true" counts as verified.
+    """
+    return value is True or (isinstance(value, str) and value.strip().lower() == "true")
+
+
 class GoogleIdentityProvider(OAuth2Provider):
     key = "google"
     name = "Google"
@@ -22,17 +34,19 @@ class GoogleIdentityProvider(OAuth2Provider):
 
     oauth_scopes = ("email",)
 
-    def get_oauth_client_id(self):
-        return options.get("auth-google.client-id")
+    def get_oauth_client_id(self) -> str:
+        client_id = options.get("auth-google.client-id")
+        return client_id
 
-    def get_oauth_client_secret(self):
-        return options.get("auth-google.client-secret")
+    def get_oauth_client_secret(self) -> str:
+        client_secret = options.get("auth-google.client-secret")
+        return client_secret
 
-    def build_identity(self, state):
-        data = state.get("data", {})
+    def build_identity(self, state: Mapping[str, object]) -> Mapping[str, object]:
+        data = cast(Mapping[str, object], state.get("data", {}))
 
         try:
-            id_token = data["id_token"]
+            id_token = cast(str, data["id_token"])
         except KeyError:
             raise IdentityNotValid("Missing id_token in OAuth response: %s" % data)
 
@@ -56,7 +70,7 @@ class GoogleIdentityProvider(OAuth2Provider):
             "type": "google",
             "id": user_id,
             "email": user_data["email"],
-            "email_verified": user_data["email_verified"],
+            "email_verified": normalize_email_verified(user_data["email_verified"]),
             "name": user_data["email"],
             "domain": user_data.get("hd", DEFAULT_GOOGLE_DOMAIN),
             "scopes": sorted(self.oauth_scopes),

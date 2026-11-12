@@ -4,7 +4,8 @@ import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {PageFilters} from 'sentry/types/core';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import ProjectBaseEventsChart from 'sentry/views/projectDetail/charts/projectBaseEventsChart';
+
+import {ProjectBaseEventsChart} from './projectBaseEventsChart';
 
 describe('ProjectBaseEventsChart', () => {
   let mockApi: jest.Mock;
@@ -29,7 +30,7 @@ describe('ProjectBaseEventsChart', () => {
     yAxis: 'count()',
     query: '',
     field: ['count()'],
-    dataset: DiscoverDatasets.METRICS_ENHANCED,
+    dataset: DiscoverDatasets.SPANS,
     onTotalValuesChange: jest.fn(),
     location: {
       pathname: '/test',
@@ -164,9 +165,6 @@ describe('ProjectBaseEventsChart', () => {
     const changedSelection = getChangedSelection();
 
     rerender(<ProjectBaseEventsChart {...defaultProps} selection={changedSelection} />);
-
-    // Wait a bit to ensure no additional calls are made
-    await new Promise(resolve => setTimeout(resolve, 100));
 
     expect(mockApi).toHaveBeenCalledTimes(1);
   });

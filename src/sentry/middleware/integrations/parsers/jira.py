@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
+from typing import Any
 
 import sentry_sdk
 from django.http.response import HttpResponseBase
@@ -14,6 +16,7 @@ from sentry.integrations.jira.views import (
 )
 from sentry.integrations.jira.views.sentry_issue_details import JiraSentryIssueDetailsControlView
 from sentry.integrations.jira.webhooks import (
+    JiraForgeInstallationWebhook,
     JiraIssueUpdatedWebhook,
     JiraSentryInstalledWebhook,
     JiraSentryUninstalledWebhook,
@@ -36,6 +39,7 @@ class JiraRequestParser(BaseRequestParser):
 
     control_classes = [
         JiraDescriptorEndpoint,
+        JiraForgeInstallationWebhook,
         JiraSentryInstallationView,
         JiraSentryInstalledWebhook,
         JiraSentryUninstalledWebhook,
@@ -58,7 +62,7 @@ class JiraRequestParser(BaseRequestParser):
         if self.view_class in self.control_classes:
             return self.get_response_from_control_silo()
 
-        integration = self.get_integration_from_request()
+        integration = self.integration_for_request()
         if not integration:
             raise Integration.DoesNotExist()
 
@@ -79,7 +83,15 @@ class JiraRequestParser(BaseRequestParser):
 
         if self.view_class in self.outbox_response_cell_classes:
             return self.get_response_from_webhookpayload(
-                cells=cells, identifier=integration.id, integration_id=integration.id
+                cells=cells,
+                mailbox=self.get_mailbox(integration, self.get_request_body()),
+                integration_id=integration.id,
             )
 
         return self.get_response_from_control_silo()
+
+    def mailbox_bucket_id(self, data: Mapping[str, Any]) -> int | None:
+        """The Connect descriptor registers only `jira:issue_updated`, so the issue is
+        the only axis a Jira mailbox can be split on.
+        """
+        return self.bucket_key_at(data, "issue", "id")

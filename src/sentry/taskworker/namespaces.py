@@ -66,6 +66,11 @@ digests_tasks = app.taskregistry.create_namespace(
     app_feature="shared",
 )
 
+debug_files_migration_tasks = app.taskregistry.create_namespace(
+    "debug-files-migration",
+    app_feature="debug_files",
+)
+
 export_tasks = app.taskregistry.create_namespace(
     name="export",
     processing_deadline_duration=15,
@@ -82,9 +87,17 @@ hybridcloud_control_tasks = app.taskregistry.create_namespace(
     app_feature="hybrid_cloud",
 )
 
+# TODO(STREAM-1191): remove once infra has fully migrated to
+# ingest_profiling_raw_tasks below.
 ingest_profiling_passthrough_tasks = app.taskregistry.create_namespace(
     "ingest.profiling.passthrough",
     app_feature="profiles",
+)
+
+ingest_profiling_raw_tasks = app.taskregistry.create_namespace(
+    "ingest.profiling.raw",
+    app_feature="profiles",
+    is_raw_mode=True,
 )
 
 ingest_transactions_tasks = app.taskregistry.create_namespace(
@@ -102,9 +115,10 @@ ingest_attachments_tasks = app.taskregistry.create_namespace(
     app_feature="attachments",
 )
 
-ingest_events_passthrough_tasks = app.taskregistry.create_namespace(
-    "ingest.events.passthrough",
+ingest_events_raw_tasks = app.taskregistry.create_namespace(
+    "ingest.events.raw",
     app_feature="errors",
+    is_raw_mode=True,
 )
 
 ingest_errors_tasks = app.taskregistry.create_namespace(
@@ -120,26 +134,25 @@ ingest_errors_postprocess_tasks = app.taskregistry.create_namespace(
 snuba_events_subscriptions_raw_tasks = app.taskregistry.create_namespace(
     "snuba.subscriptions.events.raw",
     app_feature="errors",
+    is_raw_mode=True,
 )
 
 snuba_transactions_subscriptions_raw_tasks = app.taskregistry.create_namespace(
     "snuba.subscriptions.transactions.raw",
     app_feature="transactions",
+    is_raw_mode=True,
 )
 
 snuba_metrics_subscriptions_raw_tasks = app.taskregistry.create_namespace(
     "snuba.subscriptions.metrics.raw",
     app_feature="sessions",
-)
-
-snuba_generic_metrics_subscriptions_raw_tasks = app.taskregistry.create_namespace(
-    "snuba.subscriptions.generic_metrics.raw",
-    app_feature="transactions",
+    is_raw_mode=True,
 )
 
 snuba_eap_subscriptions_raw_tasks = app.taskregistry.create_namespace(
     "snuba.subscriptions.eap.raw",
     app_feature="transactions",
+    is_raw_mode=True,
 )
 
 issues_tasks = app.taskregistry.create_namespace(
@@ -147,8 +160,23 @@ issues_tasks = app.taskregistry.create_namespace(
     app_feature="issueplatform",
 )
 
+issues_action_log_tasks = app.taskregistry.create_namespace(
+    "issues.action_log",
+    app_feature="issueplatform",
+)
+
 issues_merge_tasks = app.taskregistry.create_namespace(
     "issues.merge",
+    app_feature="issueplatform",
+)
+
+issues_reprocessing_tasks = app.taskregistry.create_namespace(
+    "issues.reprocessing",
+    app_feature="issueplatform",
+)
+
+issues_long_tasks = app.taskregistry.create_namespace(
+    "issues.long",
     app_feature="issueplatform",
 )
 
@@ -192,9 +220,14 @@ performance_tasks = app.taskregistry.create_namespace(
     app_feature="transactions",
 )
 
-preprod_tasks = app.taskregistry.create_namespace(
-    "preprod",
-    app_feature="preprod",
+preprod_size_tasks = app.taskregistry.create_namespace(
+    "preprod.size",
+    app_feature="preprod_size",
+)
+
+preprod_snapshots_tasks = app.taskregistry.create_namespace(
+    "preprod.snapshots",
+    app_feature="preprod_snapshots",
 )
 
 profiling_tasks = app.taskregistry.create_namespace(
@@ -204,6 +237,14 @@ profiling_tasks = app.taskregistry.create_namespace(
 
 relay_tasks = app.taskregistry.create_namespace(
     "relay",
+    app_feature="shared",
+)
+# Namespace used for lower priority project config invalidations.
+#
+# Project configs requested by Relay must be computed as soon as possible to serve traffic,
+# invalidations can be slightly delayed.
+relay_invalidation_tasks = app.taskregistry.create_namespace(
+    "relay.invalidation",
     app_feature="shared",
 )
 
@@ -227,11 +268,17 @@ replays_tasks = app.taskregistry.create_namespace(
     app_feature="replays",
 )
 
+replays_long_tasks = app.taskregistry.create_namespace(
+    "replays.long",
+    app_feature="replays",
+)
+
 # Dedicated namespace for the raw ingest-replay-recordings topic, consumed by
 # taskbroker in "raw mode" (one raw topic maps 1:1 to a namespace).
 replays_raw_tasks = app.taskregistry.create_namespace(
     "replays.raw",
     app_feature="replays",
+    is_raw_mode=True,
 )
 
 reports_tasks = app.taskregistry.create_namespace(
@@ -282,6 +329,28 @@ sentryapp_control_tasks = app.taskregistry.create_namespace(
 symbolication_tasks = app.taskregistry.create_namespace(
     "symbolication",
     app_feature="errors",
+)
+
+symbolication_js_tasks = app.taskregistry.create_namespace(
+    "symbolication.js",
+    app_feature="errors",
+)
+
+symbolication_jvm_tasks = app.taskregistry.create_namespace(
+    "symbolication.jvm",
+    app_feature="errors",
+)
+
+# GPU crash symbolication (teapot), isolated from `symbolication` so a slow
+# teapot can't back up the native CPU symbolication queue.
+gpu_crash_dump_tasks = app.taskregistry.create_namespace(
+    "gpu.crash_dump",
+    app_feature="errors",
+)
+
+telemetry_classifiers_tasks = app.taskregistry.create_namespace(
+    "telemetry.classifiers",
+    app_feature="telemetry_classifiers",
 )
 
 telemetry_experience_tasks = app.taskregistry.create_namespace(

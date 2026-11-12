@@ -6,17 +6,19 @@ import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Separator} from '@sentry/scraps/separator';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 export type ReprocessEventModalOptions = {
@@ -42,7 +44,10 @@ export function ReprocessingEventModal({
   const mutation = useMutation({
     mutationFn: (data: FormValues) => {
       return fetchMutation({
-        url: `/organizations/${organization.slug}/issues/${groupId}/reprocessing/`,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/issues/$issueId/reprocessing/',
+          {path: {organizationIdOrSlug: organization.slug, issueId: groupId}}
+        ),
         method: 'POST',
         data,
       });
@@ -64,9 +69,14 @@ export function ReprocessingEventModal({
         })
         .catch((error: unknown) => {
           const handled =
-            error instanceof RequestError ? setFieldErrors(formApi, error) : false;
+            error instanceof RequestError
+              ? setFieldErrors(
+                  formApi,
+                  requestErrorToFieldErrors(error, formApi.state.values)
+                )
+              : false;
           if (!handled) {
-            addErrorMessage(t('Failed to reprocess. Please check your input.'));
+            toast.error(t('Failed to reprocess. Please check your input.'));
           }
         }),
   });
@@ -139,25 +149,25 @@ export function ReprocessingEventModal({
             {isDisabled => (
               <form.AppField name="remainingEvents">
                 {field => (
-                  <field.Radio.Group
+                  <field.RadioGroup
                     value={field.state.value}
-                    onChange={value => {
-                      if (value === 'keep' || value === 'delete') {
-                        field.handleChange(value);
-                      }
-                    }}
+                    onChange={field.handleChange}
                     disabled={isDisabled}
                   >
-                    <field.Layout.Row
-                      label={t('Remaining events')}
-                      hintText={t('What to do with the events that are not reprocessed.')}
-                    >
-                      <Flex gap="2xl">
-                        <field.Radio.Item value="keep">{t('Keep')}</field.Radio.Item>
-                        <field.Radio.Item value="delete">{t('Delete')}</field.Radio.Item>
-                      </Flex>
-                    </field.Layout.Row>
-                  </field.Radio.Group>
+                    {({Item}) => (
+                      <field.Layout.Row
+                        label={t('Remaining events')}
+                        hintText={t(
+                          'What to do with the events that are not reprocessed.'
+                        )}
+                      >
+                        <Flex gap="2xl">
+                          <Item value="keep">{t('Keep')}</Item>
+                          <Item value="delete">{t('Delete')}</Item>
+                        </Flex>
+                      </field.Layout.Row>
+                    )}
+                  </field.RadioGroup>
                 )}
               </form.AppField>
             )}

@@ -1,5 +1,6 @@
 import {useCallback, useState} from 'react';
 import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
+import {useQueryState} from 'nuqs';
 
 import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -10,11 +11,12 @@ import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
+import {parseAsBooleanLiteral} from 'sentry/utils/url/parseAsBooleanLiteral';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
+import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 
 import {List} from './list';
@@ -36,8 +38,12 @@ const EMPTY_SET: ReadonlySet<string> = new Set();
 export function SimilarStackTrace({project}: Props) {
   const api = useApi({persistInFlight: true});
   const location = useLocation();
+  const [similarityEmbeddings] = useQueryState(
+    'similarityEmbeddings',
+    parseAsBooleanLiteral
+  );
   const organization = useOrganization();
-  const params = useParams<{groupId: string; orgId: string}>();
+  const groupId = useGroupId();
   const navigate = useNavigate();
 
   const [checkedIds, setCheckedIds] = useState(new Set<string>());
@@ -50,7 +56,7 @@ export function SimilarStackTrace({project}: Props) {
   // similarity-embeddings feature is only available on project details
   const hasEmbeddings =
     projectData?.features.includes('similarity-embeddings') ||
-    location.query.similarityEmbeddings === '1';
+    similarityEmbeddings === true;
 
   const canFetch = !isProjectPending && (hasSimilarityFeature || hasEmbeddings);
 
@@ -66,7 +72,7 @@ export function SimilarStackTrace({project}: Props) {
         : '/organizations/$organizationIdOrSlug/issues/$issueId/similar/',
       {
         path: canFetch
-          ? {organizationIdOrSlug: organization.slug, issueId: params.groupId}
+          ? {organizationIdOrSlug: organization.slug, issueId: groupId}
           : skipToken,
         query: hasEmbeddings ? {k: 10, threshold: 0.01} : {...location.query, limit: 50},
         staleTime: 0,
@@ -91,27 +97,16 @@ export function SimilarStackTrace({project}: Props) {
   } = useMutation<
     {merge?: {parent?: string}} | undefined,
     Error,
-    {ids: string[]; projectSlug: string; query?: string}
+    {ids: string[]; projectSlug: string}
   >({
-    mutationFn: ({ids, projectSlug, query}) =>
-      new Promise((resolve, reject) => {
-        mergeGroups(
-          api,
-          {
-            orgId: organization.slug,
-            projectId: projectSlug,
-            itemIds: [...ids, params.groupId],
-            query,
-          },
-          {
-            success: (data: any) => resolve(data),
-            error: (err: any) =>
-              reject(err instanceof Error ? err : new Error('Failed to merge issues')),
-          }
-        );
+    mutationFn: ({ids, projectSlug}) =>
+      mergeGroups(api, {
+        orgId: organization.slug,
+        projectId: projectSlug,
+        itemIds: [...ids, groupId],
       }),
     onSuccess: data => {
-      if (data?.merge?.parent && data.merge.parent !== params.groupId) {
+      if (data?.merge?.parent && data.merge.parent !== groupId) {
         navigate(
           `/organizations/${organization.slug}/issues/${data.merge.parent}/similar/`
         );
@@ -154,12 +149,11 @@ export function SimilarStackTrace({project}: Props) {
     mergeMutate({
       ids: Array.from(checkedIds),
       projectSlug: firstIssue.issue.project.slug,
-      query: location.query.query as string,
     });
-  }, [checkedIds, similar, filtered, location.query, mergeMutate]);
+  }, [checkedIds, similar, filtered, mergeMutate]);
 
   const {data: event, isPending: isEventPending} = useGroupEvent({
-    groupId: params.groupId,
+    groupId,
     eventId: 'latest',
   });
   const platformSupportsLongStacktraces = LONG_STACKTRACE_PLATFORMS.includes(
@@ -192,7 +186,7 @@ export function SimilarStackTrace({project}: Props) {
         checkedIds={checkedIds}
         busyIds={busyIds}
         project={project}
-        groupId={params.groupId}
+        groupId={groupId}
         pageLinks={pageLinks}
         hasSimilarityEmbeddingsFeature={hasEmbeddings}
       />

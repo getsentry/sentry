@@ -3,17 +3,17 @@ from __future__ import annotations
 from collections.abc import Iterable
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Annotated, TypedDict
 
 from django.db import models
 from django.utils import timezone
+from sentry_sdk import traces
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.issues.action_log import publish_action_from_context
-from sentry.issues.action_log.types import MarkReviewedAction
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouphistory import (
@@ -22,7 +22,6 @@ from sentry.models.grouphistory import (
     record_group_history,
 )
 from sentry.types.activity import ActivityType
-from sentry.utils.tracing import start_span
 
 if TYPE_CHECKING:
     from sentry.models.team import Team
@@ -105,11 +104,6 @@ def remove_group_from_inbox(
             )
             record_group_history(group, GroupHistoryStatus.REVIEWED, actor=user)
 
-            publish_action_from_context(
-                MarkReviewedAction(),
-                group_id=group_inbox.group_id,
-                project=group_inbox.group.project,
-            )
     except GroupInbox.DoesNotExist:
         pass
 
@@ -119,7 +113,7 @@ def bulk_remove_groups_from_inbox(
     action: GroupInboxRemoveAction | None = None,
     user: User | RpcUser | Team | None = None,
 ) -> None:
-    with start_span(name="bulk_remove_groups_from_inbox"):
+    with traces.start_span(name="bulk_remove_groups_from_inbox"):
         try:
             group_inbox = GroupInbox.objects.filter(group__in=groups)
             group_inbox.delete()
@@ -143,17 +137,37 @@ def bulk_remove_groups_from_inbox(
 
 
 class InboxReasonDetails(TypedDict):
-    until: str | None  # datetime str
-    count: int | None
-    window: int | None
-    user_count: int | None
-    user_window: int | None
+    until: Annotated[
+        str | None, ApiDescription("When the ignore that ended was set to expire (ISO 8601)")
+    ]
+    count: Annotated[
+        int | None,
+        ApiDescription("Number of occurrences the ignore that ended was set to wait for"),
+    ]
+    window: Annotated[int | None, ApiDescription("Window in minutes for count")]
+    user_count: Annotated[
+        int | None,
+        ApiDescription("Number of affected users the ignore that ended was set to wait for"),
+    ]
+    user_window: Annotated[int | None, ApiDescription("Window in minutes for user_count")]
 
 
 class InboxDetails(TypedDict):
-    reason: int
-    reason_details: InboxReasonDetails | None
-    date_added: datetime
+    reason: Annotated[
+        int,
+        ApiDescription(
+            "Why the issue is in the inbox: 0 new, 1 unignored, 2 regression, 3 manual, 4 reprocessed, 5 escalating or 6 ongoing"
+        ),
+    ]
+    reason_details: Annotated[
+        InboxReasonDetails | None,
+        ApiDescription(
+            "Details of the ignore that ended when the issue came back to the inbox. Null otherwise"
+        ),
+    ]
+    date_added: Annotated[
+        datetime, ApiDescription("When the issue was added to the inbox (ISO 8601)")
+    ]
 
 
 def get_inbox_details(group_list: Iterable[Group]) -> dict[int, InboxDetails]:

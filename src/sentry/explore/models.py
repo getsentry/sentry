@@ -1,21 +1,27 @@
 from __future__ import annotations
 
-from typing import ClassVar
+from collections.abc import Iterable
+from typing import ClassVar, Literal
 
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import models, router, transaction
-from django.db.models import Q, UniqueConstraint
+from django.db.models import CheckConstraint, Q, UniqueConstraint
 from django.utils import timezone
 
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.bounded import BoundedBigIntegerField, BoundedPositiveIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
+from sentry.models.dashboard import QueryPriorities
 from sentry.models.dashboard_widget import TypesClass
 from sentry.models.organization import Organization
 from sentry.search.eap.types import SupportedTraceItemType
+from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS
+from sentry.users.models.user import User
 
 
 class ExploreSavedQueryDataset(TypesClass):
@@ -84,6 +90,14 @@ class ExploreSavedQuery(DefaultFieldsModel):
     projects = models.ManyToManyField("sentry.Project", through=ExploreSavedQueryProject)
     organization = FlexibleForeignKey("sentry.Organization")
     created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+    # Service accounts and org auth tokens authenticate without a user, so they need their
+    # own creator columns. At most one creator column is set.
+    created_by_service_account_id = HybridCloudForeignKey(
+        "service_accounts.ServiceAccount", null=True, on_delete="SET_NULL"
+    )
+    created_by_org_auth_token_id = HybridCloudForeignKey(
+        "sentry.OrgAuthToken", null=True, on_delete="SET_NULL"
+    )
     name = models.CharField(max_length=255)
     query = models.JSONField()
     visits = BoundedBigIntegerField(null=True, default=1)
@@ -101,15 +115,36 @@ class ExploreSavedQuery(DefaultFieldsModel):
     # This field is to be used for the discover -> explore migration. This contains the reason why any part
     # of the saved query was changed so we can display our reasonings in the UI
     changed_reason = models.JSONField(null=True, default=None)
+    # Null means normal.
+    query_priority = BoundedPositiveIntegerField(choices=QueryPriorities.as_choices(), null=True)
 
     class Meta:
         app_label = "explore"
         db_table = "explore_exploresavedquery"
         unique_together = (("organization", "prebuilt_id"),)
+        constraints = [
+            CheckConstraint(
+                condition=(
+                    Q(created_by_service_account_id__isnull=True)
+                    & Q(created_by_org_auth_token_id__isnull=True)
+                )
+                | (Q(created_by_id__isnull=True) & Q(created_by_org_auth_token_id__isnull=True))
+                | (Q(created_by_id__isnull=True) & Q(created_by_service_account_id__isnull=True)),
+                name="explore_exploresavedquery_single_creator",
+            ),
+        ]
 
     __repr__ = sane_repr("organization_id", "created_by_id", "name")
 
-    def set_projects(self, project_ids):
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> int | None:
+        # Org auth tokens are imported after every other model, so their new pks can't be mapped
+        # here. Drop the reference rather than dropping the whole row.
+        self.created_by_org_auth_token_id = None
+        return super().normalize_before_relocation_import(pk_map, scope, flags)
+
+    def set_projects(self, project_ids: Iterable[int]) -> None:
         with transaction.atomic(router.db_for_write(ExploreSavedQueryProject)):
             ExploreSavedQueryProject.objects.filter(explore_saved_query=self).exclude(
                 project__in=project_ids
@@ -130,21 +165,6 @@ class ExploreSavedQuery(DefaultFieldsModel):
 
 
 class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
-    def get_last_position(self, organization: Organization, user_id: int) -> int:
-        """
-        Returns the last position of a user's starred queries in an organization.
-        """
-        last_starred_query = (
-            self.filter(
-                organization=organization, user_id=user_id, position__isnull=False, starred=True
-            )
-            .order_by("-position")
-            .first()
-        )
-        if last_starred_query:
-            return last_starred_query.position  # type: ignore[return-value]
-        return 0
-
     def get_starred_query(
         self, organization: Organization, user_id: int, query: ExploreSavedQuery
     ) -> ExploreSavedQueryStarred | None:
@@ -155,48 +175,10 @@ class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
             organization=organization, user_id=user_id, explore_saved_query=query
         ).first()
 
-    def reorder_starred_queries(
-        self, organization: Organization, user_id: int, new_query_positions: list[int]
-    ):
-        """
-        Reorders the positions of starred queries for a user in an organization.
-        Does NOT add or remove starred queries.
-
-        Args:
-            organization: The organization the queries belong to
-            user_id: The ID of the user whose starred queries are being reordered
-            new_query_positions: List of query IDs in their new order
-
-        Raises:
-            ValueError: If there's a mismatch between existing starred queries and the provided list
-        """
-        existing_starred_queries = self.filter(
-            organization=organization,
-            user_id=user_id,
-            position__isnull=False,
-            starred=True,
-        )
-
-        existing_query_ids = {query.explore_saved_query.id for query in existing_starred_queries}
-        new_query_ids = set(new_query_positions)
-
-        if existing_query_ids != new_query_ids:
-            raise ValueError("Mismatch between existing and provided starred queries.")
-
-        position_map = {query_id: idx for idx, query_id in enumerate(new_query_positions)}
-
-        queries_to_update = list(existing_starred_queries)
-
-        for query in queries_to_update:
-            query.position = position_map[query.explore_saved_query.id]
-
-        if queries_to_update:
-            self.bulk_update(queries_to_update, ["position"])
-
     def insert_starred_query(
         self,
         organization: Organization,
-        user_id: int,
+        user: User,
         query: ExploreSavedQuery,
         starred: bool = True,
     ) -> bool:
@@ -205,21 +187,23 @@ class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
 
         Args:
             organization: The organization the queries belong to
-            user_id: The ID of the user whose starred queries are being updated
+            user: The user whose starred queries are being updated
             explore_saved_query: The query to insert
 
         Returns:
             True if the query was starred, False if the query was already starred
         """
+        from sentry.explore.utils import next_starred_position
+
         with transaction.atomic(using=router.db_for_write(ExploreSavedQueryStarred)):
-            if self.get_starred_query(organization, user_id, query):
+            if self.get_starred_query(organization, user.id, query):
                 return False
 
-            position = self.get_last_position(organization, user_id) + 1
-
+            position: int
+            position = next_starred_position(organization, user.id)
             self.create(
                 organization=organization,
-                user_id=user_id,
+                user_id=user.id,
                 explore_saved_query=query,
                 position=position,
                 starred=starred,
@@ -229,7 +213,7 @@ class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
     def insert_starred_query_alphabetically(
         self,
         organization: Organization,
-        user_id: int,
+        user: User,
         query: ExploreSavedQuery,
     ) -> bool:
         """
@@ -237,14 +221,16 @@ class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
         whose name sorts after this one, shifting later positions by 1. Falls back
         to appending at the end when nothing sorts later.
         """
+        from sentry.explore.utils import next_starred_position, shift_starred_positions
+
         with transaction.atomic(using=router.db_for_write(ExploreSavedQueryStarred)):
-            if self.get_starred_query(organization, user_id, query):
+            if self.get_starred_query(organization, user.id, query):
                 return False
 
             next_prebuilt = (
                 self.filter(
                     organization=organization,
-                    user_id=user_id,
+                    user_id=user.id,
                     starred=True,
                     position__isnull=False,
                     explore_saved_query__prebuilt_id__isnull=False,
@@ -256,18 +242,16 @@ class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
 
             position: int
             if next_prebuilt is None or next_prebuilt.position is None:
-                position = self.get_last_position(organization, user_id) + 1
+                position = next_starred_position(organization, user.id)
             else:
                 position = next_prebuilt.position
-                self.filter(
-                    organization=organization,
-                    user_id=user_id,
-                    position__gte=position,
-                ).update(position=models.F("position") + 1)
+                shift_starred_positions(
+                    organization, user.id, from_position=position, delta=1, inclusive=True
+                )
 
             self.create(
                 organization=organization,
-                user_id=user_id,
+                user_id=user.id,
                 explore_saved_query=query,
                 position=position,
                 starred=True,
@@ -275,7 +259,7 @@ class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
             return True
 
     def delete_starred_query(
-        self, organization: Organization, user_id: int, query: ExploreSavedQuery
+        self, organization: Organization, user: User, query: ExploreSavedQuery
     ) -> bool:
         """
         Deletes a starred query from the list.
@@ -283,41 +267,46 @@ class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
 
         Args:
             organization: The organization the queries belong to
-            user_id: The ID of the user whose starred queries are being updated
+            user: The user whose starred queries are being updated
             explore_saved_query: The query to delete
 
         Returns:
             True if the query was unstarred, False if the query was already unstarred
         """
+        from sentry.explore.utils import shift_starred_positions
+
         with transaction.atomic(using=router.db_for_write(ExploreSavedQueryStarred)):
-            if not (starred_query := self.get_starred_query(organization, user_id, query)):
+            if not (starred_query := self.get_starred_query(organization, user.id, query)):
                 return False
 
             deleted_position = starred_query.position
             starred_query.delete()
 
-            self.filter(
-                organization=organization, user_id=user_id, position__gt=deleted_position
-            ).update(position=models.F("position") - 1)
+            if deleted_position is not None:
+                shift_starred_positions(
+                    organization, user.id, from_position=deleted_position, delta=-1
+                )
             return True
 
     def updated_starred_query(
         self,
         organization: Organization,
-        user_id: int,
+        user: User,
         query: ExploreSavedQuery,
         starred: bool,
     ) -> bool:
         """
         Updates the starred status of a query.
         """
+        from sentry.explore.utils import next_starred_position
+
         with transaction.atomic(using=router.db_for_write(ExploreSavedQueryStarred)):
-            if not (starred_query := self.get_starred_query(organization, user_id, query)):
+            if not (starred_query := self.get_starred_query(organization, user.id, query)):
                 return False
 
             starred_query.starred = starred
             if starred:
-                starred_query.position = self.get_last_position(organization, user_id) + 1
+                starred_query.position = next_starred_position(organization, user.id)
             else:
                 starred_query.position = None
 
@@ -371,6 +360,7 @@ class TraceItemTypes(TypesClass):
     PROCESSING_ERRORS = 7
     OCCURRENCES = 8
     REPLAYS = 9
+    ENRICHMENT_ATTRIBUTES = 10
 
     TYPES = [
         (SPANS, SupportedTraceItemType.SPANS.value),
@@ -383,6 +373,7 @@ class TraceItemTypes(TypesClass):
         (PROCESSING_ERRORS, SupportedTraceItemType.PROCESSING_ERRORS.value),
         (OCCURRENCES, SupportedTraceItemType.OCCURRENCES.value),
         (REPLAYS, SupportedTraceItemType.REPLAYS.value),
+        (ENRICHMENT_ATTRIBUTES, SupportedTraceItemType.ENRICHMENT_ATTRIBUTES.value),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 
@@ -488,15 +479,12 @@ class TraceItemAttributeValueContext(DefaultFieldsModel):
 
     Under the hood metric names are attribute values, so for v0 ``attribute_name`` is
     typically ``metric.name`` and ``attribute_value`` is the metric's name. Context is
-    scoped to an organization and, optionally, a project (a null project means the
-    context applies org-wide).
+    always scoped to the whole organization; per-project context is not supported.
     """
 
     __relocation_scope__ = RelocationScope.Organization
 
     organization = FlexibleForeignKey("sentry.Organization")
-    # A null project means the context applies to the whole organization.
-    project = FlexibleForeignKey("sentry.Project", null=True)
 
     # The attribute and value this context is for, e.g. "metric.name" / "my.counter".
     attribute_name = models.CharField()
@@ -516,22 +504,7 @@ class TraceItemAttributeValueContext(DefaultFieldsModel):
     class Meta:
         app_label = "explore"
         db_table = "explore_traceitemattributevaluecontext"
-        # project is nullable, so unique_together would treat each null project as
-        # distinct and allow duplicate org-wide rows. Use partial unique constraints
-        # to enforce uniqueness for both the project-scoped and org-wide cases.
         constraints = [
-            UniqueConstraint(
-                fields=[
-                    "organization",
-                    "project",
-                    "item_type",
-                    "attribute_name",
-                    "attribute_value",
-                    "attribute_type",
-                ],
-                name="explore_traceitemvalue_unique_project_scoped",
-                condition=Q(project__isnull=False),
-            ),
             UniqueConstraint(
                 fields=[
                     "organization",
@@ -541,11 +514,168 @@ class TraceItemAttributeValueContext(DefaultFieldsModel):
                     "attribute_type",
                 ],
                 name="explore_traceitemvalue_unique_org_scoped",
-                condition=Q(project__isnull=True),
             ),
         ]
         indexes = [
             models.Index(fields=["organization", "item_type", "attribute_name", "attribute_value"]),
         ]
 
-    __repr__ = sane_repr("organization_id", "project_id", "item_type", "attribute_name")
+    __repr__ = sane_repr("organization_id", "item_type", "attribute_name")
+
+
+@cell_silo_model
+class ExploreSavedFormula(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Organization
+
+    organization = FlexibleForeignKey("sentry.Organization")
+
+    created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+    # Service accounts and org auth tokens authenticate without a user, so they need their
+    # own creator columns. At most one creator column is set.
+    created_by_service_account_id = HybridCloudForeignKey(
+        "service_accounts.ServiceAccount", null=True, on_delete="SET_NULL"
+    )
+    created_by_org_auth_token_id = HybridCloudForeignKey(
+        "sentry.OrgAuthToken", null=True, on_delete="SET_NULL"
+    )
+    updated_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+
+    # Matching 280 from attribute.brief
+    description = models.CharField(max_length=280, null=True)
+    # Making this 200 to match the max length of a tag
+    name = models.CharField(max_length=200)
+    unit = models.CharField(max_length=200, null=True)
+    # max operators is 10 (so 3 characters each assuming a space)
+    # which means 11 terms, assuming we eventually allow attributes, 200 characters each
+    # for a total of 2230, rounding to 2500 for now
+    formula = models.CharField(max_length=2500)
+    # Formulas need to have a dataset since functions differ dataset to dataset
+    dataset = BoundedPositiveIntegerField(
+        choices=ExploreSavedQueryDataset.as_choices(), db_default=ExploreSavedQueryDataset.SPANS
+    )
+    # The corresponding prebuilt_id found in hardcoded prebuilt formulas from
+    # src/sentry/explore/endpoints/organization_explore_formulas.py
+    # If the saved query is not a prebuilt query, this will be None
+    prebuilt_id = BoundedPositiveIntegerField(null=True, db_default=None)
+    # Tombstone for prebuilts so we don't recreate them if a user decides to delete it
+    prebuilt_deleted = models.BooleanField(db_default=False)
+
+    class Meta:
+        app_label = "explore"
+        db_table = "explore_exploresavedformula"
+        constraints = [
+            UniqueConstraint(
+                fields=["organization_id", "name"],
+                name="explore_exploresavedformula_unique_name_per_organization",
+            ),
+            CheckConstraint(
+                condition=Q(prebuilt_id__isnull=False) | Q(prebuilt_deleted=False),
+                name="explore_exploresavedformula_prebuilt_deleted_requires_prebuilt",
+            ),
+            CheckConstraint(
+                condition=(
+                    Q(created_by_service_account_id__isnull=True)
+                    & Q(created_by_org_auth_token_id__isnull=True)
+                )
+                | (Q(created_by_id__isnull=True) & Q(created_by_org_auth_token_id__isnull=True))
+                | (Q(created_by_id__isnull=True) & Q(created_by_service_account_id__isnull=True)),
+                name="explore_exploresavedformula_single_creator",
+            ),
+        ]
+
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> int | None:
+        # Org auth tokens are imported after every other model, so their new pks can't be mapped
+        # here. Drop the reference rather than dropping the whole row.
+        self.created_by_org_auth_token_id = None
+        return super().normalize_before_relocation_import(pk_map, scope, flags)
+
+    @property
+    def formula_type(self) -> Literal["duration", "size", "number"]:
+        if self.unit in DURATION_UNITS:
+            return "duration"
+        elif self.unit in SIZE_UNITS:
+            return "size"
+        else:
+            return "number"
+
+    def delete(
+        self, using: str | None = None, keep_parents: bool = False
+    ) -> tuple[int, dict[str, int]]:
+        if self.prebuilt_id is not None:
+            self.prebuilt_deleted = True
+            self.save(using=using)
+            return (1, {self._meta.label: 1})
+        return super().delete(using=using, keep_parents=keep_parents)
+
+
+class ParamItemTypes(TypesClass):
+    COLUMN = 0
+    NUMBER = 1
+    CALCULATION = 2
+
+    TYPES = [
+        (COLUMN, "column"),
+        (NUMBER, "number"),
+        (CALCULATION, "calculation"),
+    ]
+    TYPE_NAMES = [t[1] for t in TYPES]
+
+
+class KindItemTypes(TypesClass):
+    PARAM = 0
+    REFERENCE = 1
+
+    TYPES = [
+        (PARAM, "param"),
+        (REFERENCE, "reference"),
+    ]
+    TYPE_NAMES = [t[1] for t in TYPES]
+
+
+@cell_silo_model
+class ExploreSavedVariable(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Organization
+
+    organization = FlexibleForeignKey("sentry.Organization")
+
+    # Matching 280 from attribute.brief
+    description = models.CharField(max_length=280, null=True)
+    # Making this 200 to match the max length of a tag
+    name = models.CharField(max_length=200)
+    # Where does this param go in the list of function arguments
+    order = BoundedPositiveIntegerField(null=True)
+    kind = BoundedPositiveIntegerField(choices=KindItemTypes.as_choices())
+    param_type = BoundedPositiveIntegerField(choices=ParamItemTypes.as_choices(), null=True)
+    # TODO(wmak): Should this be longer?
+    value = models.CharField(max_length=200)
+    explore_saved_formula = FlexibleForeignKey(
+        "explore.ExploreSavedFormula",
+        related_name="variables",
+    )
+
+    class Meta:
+        app_label = "explore"
+        db_table = "explore_exploresavedvariable"
+        constraints = [
+            UniqueConstraint(
+                fields=["explore_saved_formula_id", "order"],
+                name="explore_exploresavedvariable_unique_order_per_formula",
+                condition=Q(kind=KindItemTypes.PARAM),
+            ),
+            UniqueConstraint(
+                fields=["explore_saved_formula_id", "name"],
+                name="explore_exploresavedvariable_unique_name_per_formula",
+            ),
+            CheckConstraint(
+                condition=Q(kind=KindItemTypes.PARAM, order__isnull=False)
+                | ~Q(kind=KindItemTypes.PARAM),
+                name="explore_exploresavedvariable_order_required_for_param",
+            ),
+            CheckConstraint(
+                condition=Q(kind=KindItemTypes.PARAM, param_type__isnull=False)
+                | ~Q(kind=KindItemTypes.PARAM),
+                name="explore_exploresavedvariable_param_type_required_for_param",
+            ),
+        ]

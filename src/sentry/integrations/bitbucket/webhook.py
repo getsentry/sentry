@@ -5,7 +5,7 @@ import logging
 from abc import ABC
 from collections.abc import Mapping
 from datetime import timezone
-from typing import Any
+from typing import Any, cast
 
 import orjson
 from dateutil.parser import parse as parse_date
@@ -14,6 +14,7 @@ from django.http import Http404, HttpRequest, HttpResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, cell_silo_endpoint
@@ -26,8 +27,9 @@ from sentry.integrations.source_code_management.webhook import SCMWebhook
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
+from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
 from sentry.models.commit import Commit
-from sentry.models.commitauthor import CommitAuthor
+from sentry.models.commitauthor import COMMIT_AUTHOR_EMAIL_LENGTH, CommitAuthor
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
@@ -114,12 +116,14 @@ class PushEventWebhook(BitbucketWebhook):
     def event_type(self) -> IntegrationWebhookEventType:
         return IntegrationWebhookEventType.PUSH
 
-    def __call__(self, event: Mapping[str, Any], **kwargs) -> None:
+    def __call__(self, event: Mapping[str, Any], **kwargs: object) -> None:
         authors = {}
 
-        if not (repo := kwargs.get("repo")):
+        repo = cast(Repository, kwargs.get("repo"))
+        if not repo:
             raise ValueError("Missing repo")
-        if not (organization := kwargs.get("organization")):
+        organization = cast(Organization, kwargs.get("organization"))
+        if not organization:
             raise ValueError("Missing organization")
 
         # while we're here, make sure repo data is up to date
@@ -134,7 +138,7 @@ class PushEventWebhook(BitbucketWebhook):
 
                 # TODO(dcramer): we need to deal with bad values here, but since
                 # its optional, lets just throw it out for now
-                if author_email is None or len(author_email) > 75:
+                if author_email is None or len(author_email) > COMMIT_AUTHOR_EMAIL_LENGTH:
                     author = None
                 elif author_email not in authors:
                     authors[author_email] = author = CommitAuthor.objects.get_or_create(
@@ -168,11 +172,11 @@ class BitbucketWebhookEndpoint(Endpoint):
     permission_classes = ()
     _handlers: dict[str, type[BitbucketWebhook]] = {"repo:push": PushEventWebhook}
 
-    def get_handler(self, event_type) -> type[BitbucketWebhook] | None:
+    def get_handler(self, event_type: str) -> type[BitbucketWebhook] | None:
         return self._handlers.get(event_type)
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405)
 
@@ -245,7 +249,10 @@ class BitbucketWebhookEndpoint(Endpoint):
         except Repository.DoesNotExist:
             raise Http404()
 
-        integration = integration_service.get_integration(integration_id=repo.integration_id)
+        integration = integration_service.get_integration(
+            integration_id=repo.integration_id,
+            using_replica=options.get("integration_service.get_integration.using_replica"),
+        )
         if integration and "webhook_secret" in integration.metadata:
             secret = integration.metadata["webhook_secret"]
             try:
@@ -268,6 +275,7 @@ class BitbucketWebhookEndpoint(Endpoint):
                 domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
                 provider_key=event_handler.provider,
             ).capture(),
+            action_context_scope(ActionSource.BITBUCKET, GroupActionActor.org(organization.id)),
         ):
             event_handler(event, repo=repo, organization=organization)
 

@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {TextCopyInput} from 'sentry/components/textCopyInput';
+import {TextCopyInput} from './textCopyInput';
 
 describe('TextCopyInput', () => {
   beforeEach(() => {
@@ -30,14 +30,5 @@ describe('TextCopyInput', () => {
     await userEvent.click(input);
 
     expect(selectSpy).toHaveBeenCalled();
-  });
-
-  it('handles RTL text selection', async () => {
-    render(<TextCopyInput rtl>Text to Copy</TextCopyInput>);
-    const input = screen.getByRole<HTMLInputElement>('textbox');
-    const setSelectionRangeSpy = jest.spyOn(input, 'setSelectionRange');
-
-    await userEvent.click(input);
-    expect(setSelectionRangeSpy).toHaveBeenCalledWith(1, input.value.length - 1);
   });
 });

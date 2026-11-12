@@ -5,10 +5,12 @@ import type {Client} from 'sentry/api';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {AvatarProject, Project} from 'sentry/types/project';
-import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
-import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {getApiUrl} from './api/getApiUrl';
+import type {RequestError} from './requestError/requestError';
+import {parseLinkHeader} from './parseLinkHeader';
+import {useApi} from './useApi';
+import {useOrganization} from './useOrganization';
 
 type ProjectPlaceholder = AvatarProject;
 
@@ -127,10 +129,15 @@ async function fetchProjects(
 
   let hasMore: null | boolean = false;
   let nextCursor: null | string = null;
-  const [data, , resp] = await api.requestPromise(`/organizations/${orgId}/projects/`, {
-    includeAllArgs: true,
-    query,
-  });
+  const [data, , resp] = await api.requestPromise(
+    getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
+      path: {organizationIdOrSlug: orgId},
+    }),
+    {
+      includeAllArgs: true,
+      query,
+    }
+  );
 
   const pageLinks = resp?.getResponseHeader('Link');
   if (pageLinks) {
@@ -276,6 +283,7 @@ export function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
   useEffect(() => {
     // Load specified team slugs
     if (shouldLoadSlugs) {
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       loadProjectsBySlug();
       return;
     }
@@ -294,6 +302,7 @@ export function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
       return;
     }
 
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setState(prev => ({...prev, initiallyLoaded: storeLoaded}));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store.loading]);

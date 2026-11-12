@@ -8,12 +8,13 @@ import {
 } from 'react';
 import styled from '@emotion/styled';
 
+import {HighlightQuery} from 'sentry/components/searchSyntax/renderer';
+
 import {
   useSearchQueryBuilderConfig,
   useSearchQueryBuilderLayout,
   useSearchQueryBuilderState,
-} from 'sentry/components/searchQueryBuilder/context';
-import {HighlightQuery} from 'sentry/components/searchSyntax/renderer';
+} from './context';
 
 interface PlainTextQueryInputProps {
   label?: string;
@@ -26,20 +27,23 @@ export function PlainTextQueryInput({label}: PlainTextQueryInputProps) {
   const {size} = useSearchQueryBuilderLayout();
   const [cursorPosition, setCursorPosition] = useState(0);
 
-  const setCursorPositionOnEvent = (event: SyntheticEvent<HTMLTextAreaElement>) => {
-    if (event.currentTarget === document.activeElement) {
-      setCursorPosition(event.currentTarget.selectionStart);
-    } else {
-      setCursorPosition(-1);
-    }
-  };
+  const setCursorPositionOnEvent = useCallback(
+    (event: SyntheticEvent<HTMLTextAreaElement>) => {
+      if (event.currentTarget === document.activeElement) {
+        setCursorPosition(event.currentTarget.selectionStart);
+      } else {
+        setCursorPosition(-1);
+      }
+    },
+    []
+  );
 
   const onChange = useCallback(
     (e: ChangeEvent<HTMLTextAreaElement>) => {
       setCursorPositionOnEvent(e);
       dispatch({type: 'UPDATE_QUERY', query: e.target.value});
     },
-    [dispatch]
+    [dispatch, setCursorPositionOnEvent]
   );
 
   const onKeyDown = useCallback(
@@ -51,7 +55,7 @@ export function PlainTextQueryInput({label}: PlainTextQueryInputProps) {
         handleSearch(query);
       }
     },
-    [handleSearch, query]
+    [handleSearch, query, setCursorPositionOnEvent]
   );
 
   return (

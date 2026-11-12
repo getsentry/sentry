@@ -36,6 +36,17 @@ _SLACK_PERMALINK_PATH_RE = re.compile(
 # Cap how many linked messages we will fetch per prompt to bound API + token cost.
 _MAX_LINKED_MESSAGES = 5
 
+_ANY_MENTION_RE = re.compile(r"<@[^>]+>")
+
+
+def has_prompt_content(text: str) -> bool:
+    """Whether the text holds anything beyond Slack mentions and whitespace.
+
+    Takes no bot_user_id: Slack omits `authorizations` in some cases, and
+    `extract_prompt` strips nothing when the id is missing.
+    """
+    return bool(_ANY_MENTION_RE.sub("", text).strip())
+
 
 def extract_prompt(text: str, bot_user_id: str) -> str:
     """Remove the bot mention from text to get the user's clean prompt.
@@ -161,7 +172,8 @@ def _extract_rich_text_element_text(element: Mapping[str, Any]) -> str:
     """Extract text from a single rich_text sub-element (text, link, user, channel, etc.)."""
     elem_type = element.get("type")
     if elem_type == "text":
-        return element.get("text", "")
+        text = element.get("text", "")
+        return text
     if elem_type == "link":
         url = element.get("url", "")
         label = element.get("text", "")
@@ -212,7 +224,8 @@ def _extract_block_text(block: Mapping[str, Any]) -> str:
     if block_type in ("header", "markdown"):
         text_obj = block.get("text")
         if isinstance(text_obj, dict):
-            return text_obj.get("text", "")
+            text = text_obj.get("text", "")
+            return text
         if isinstance(text_obj, str):
             return text_obj
 
@@ -276,7 +289,8 @@ def _extract_attachment_text(attachment: Mapping[str, Any]) -> str:
     if parts:
         return "\n".join(parts)
 
-    return attachment.get("fallback", "")
+    fallback = attachment.get("fallback", "")
+    return fallback
 
 
 def _extract_text_from_attachments(attachments: Sequence[Mapping[str, Any]]) -> str:

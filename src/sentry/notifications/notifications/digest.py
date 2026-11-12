@@ -6,7 +6,6 @@ from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import UTC, tzinfo
 from typing import TYPE_CHECKING, Any
-from urllib.parse import urlencode
 
 import sentry_sdk
 
@@ -146,32 +145,13 @@ class DigestNotification(ProjectNotification):
             self.project.organization,
             self.project,
         )
-        context = DigestNotification.build_context(
+        return DigestNotification.build_context(
             self.digest,
             self.project,
             self.project.organization,
             rule_details,
             notification_uuid=self.notification_uuid,
         )
-
-        sentry_query_params = self.get_sentry_query_params(ExternalProviders.EMAIL)
-
-        if not features.has("organizations:workflow-engine-ui", self.project.organization):
-            # TODO(iamrajjoshi): This actually mutes a rule for a user, something we have not ported over in the new system
-            # By not including this context, the template will not show the mute button
-            snooze_alert = len(rule_details) > 0
-            snooze_alert_urls = {
-                rule.id: f"{rule.status_url}{sentry_query_params}&{urlencode({'mute': '1'})}"
-                for rule in rule_details
-            }
-
-            context["snooze_alert"] = snooze_alert
-            context["snooze_alert_urls"] = snooze_alert_urls
-        else:
-            context["snooze_alert"] = False
-            context["snooze_alert_urls"] = {}
-
-        return context
 
     @staticmethod
     def build_context(
@@ -280,7 +260,7 @@ class DigestNotification(ProjectNotification):
 
     def get_log_params(self, recipient: Actor) -> Mapping[str, Any]:
         try:
-            alert_id = list(self.digest.digest)[0].id
+            alert_id = list(self.digest.digest)[0].link_id
         except Exception:
             alert_id = None
 

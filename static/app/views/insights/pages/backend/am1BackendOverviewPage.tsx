@@ -1,9 +1,10 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {parseAsBoolean, parseAsString, useQueryStates} from 'nuqs';
 
 import {ExternalLink} from '@sentry/scraps/link';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
 import {
@@ -16,27 +17,21 @@ import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPa
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SearchBar as TransactionNameSearchBar} from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {
-  canUseMetricsData,
-  useMEPSettingContext,
-} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayContext} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import {canUseMetricsData} from 'sentry/utils/performance/contexts/useMEPSettingContext';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
 import {
   OVERVIEW_PAGE_ALLOWED_OPS as FRONTEND_OVERVIEW_PAGE_OPS,
   FRONTEND_PLATFORMS,
@@ -53,7 +48,6 @@ import {
   DoubleChartRow,
   TripleChartRow,
 } from 'sentry/views/performance/landing/widgets/components/widgetChartRow';
-import {filterAllowedChartsMetrics} from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 import {Table} from 'sentry/views/performance/table';
@@ -61,6 +55,8 @@ import {
   getTransactionSearchQuery,
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
+
+import {OVERVIEW_PAGE_ALLOWED_OPS} from './settings';
 
 const APDEX_TOOLTIP = tct(
   'An industry-standard metric used to measure user satisfaction based on your application response times. [link:Learn more.]',
@@ -72,18 +68,24 @@ const APDEX_TOOLTIP = tct(
 );
 
 const BACKEND_COLUMN_TITLES = [
-  {title: 'http method'},
-  {title: 'transaction'},
-  {title: 'operation'},
-  {title: 'project'},
-  {title: 'tpm'},
+  {title: 'HTTP method'},
+  {title: 'Transaction'},
+  {title: 'Operation'},
+  {title: 'Project'},
+  {title: 'TPM'},
   {title: 'p50()'},
   {title: 'p95()'},
-  {title: 'failure rate'},
-  {title: 'apdex', tooltip: APDEX_TOOLTIP},
-  {title: 'users'},
-  {title: 'user misery', tooltip: USER_MISERY_TOOLTIP},
+  {title: 'Failure rate'},
+  {title: 'Apdex', tooltip: APDEX_TOOLTIP},
+  {title: 'Users'},
+  {title: 'User misery', tooltip: USER_MISERY_TOOLTIP},
 ];
+
+const searchParamsParsers = {
+  cursor: parseAsString,
+  query: parseAsString,
+  isDefaultQuery: parseAsBoolean,
+};
 
 interface AM1BackendOverviewPageProps {
   datePageFilterProps: DatePageFilterProps;
@@ -93,15 +95,13 @@ interface AM1BackendOverviewPageProps {
 export function Am1BackendOverviewPage({
   datePageFilterProps,
 }: AM1BackendOverviewPageProps) {
-  const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
   const {setPageDanger} = usePageAlert();
   const {projects} = useProjects();
   const onboardingProject = useOnboardingProject();
-  const navigate = useNavigate();
+  const [, setSearchParams] = useQueryStates(searchParamsParsers);
   const {teams} = useUserTeams();
-  const mepSetting = useMEPSettingContext();
   const {selection} = usePageFilters();
 
   const withStaticFilters = canUseMetricsData(organization);
@@ -174,20 +174,15 @@ export function Am1BackendOverviewPage({
     PerformanceWidgetSetting.SLOW_DB_OPS,
     PerformanceWidgetSetting.MOST_RELATED_ISSUES,
   ];
-  const tripleChartRowCharts = filterAllowedChartsMetrics(
-    organization,
-    [
-      PerformanceWidgetSetting.TPM_AREA,
-      PerformanceWidgetSetting.DURATION_HISTOGRAM,
-      PerformanceWidgetSetting.P50_DURATION_AREA,
-      PerformanceWidgetSetting.P75_DURATION_AREA,
-      PerformanceWidgetSetting.P95_DURATION_AREA,
-      PerformanceWidgetSetting.P99_DURATION_AREA,
-      PerformanceWidgetSetting.FAILURE_RATE_AREA,
-      PerformanceWidgetSetting.APDEX_AREA,
-    ],
-    mepSetting
-  );
+  const tripleChartRowCharts = [
+    PerformanceWidgetSetting.TPM_AREA,
+    PerformanceWidgetSetting.P50_DURATION_AREA,
+    PerformanceWidgetSetting.P75_DURATION_AREA,
+    PerformanceWidgetSetting.P95_DURATION_AREA,
+    PerformanceWidgetSetting.P99_DURATION_AREA,
+    PerformanceWidgetSetting.FAILURE_RATE_AREA,
+    PerformanceWidgetSetting.APDEX_AREA,
+  ];
 
   if (organization.features.includes('insight-modules')) {
     doubleChartRowCharts.unshift(
@@ -216,15 +211,14 @@ export function Am1BackendOverviewPage({
   function handleSearch(searchQuery: string) {
     trackAnalytics('performance.domains.backend.search', {organization});
 
-    navigate({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        cursor: undefined,
-        query: String(searchQuery).trim() || undefined,
+    setSearchParams(
+      {
+        cursor: null,
+        query: String(searchQuery).trim() || null,
         isDefaultQuery: false,
       },
-    });
+      {history: 'push'}
+    );
   }
 
   const derivedQuery = getTransactionSearchQuery(location, eventView.query);
@@ -284,7 +278,6 @@ export function Am1BackendOverviewPage({
                       {...sharedProps}
                     />
                     <Table
-                      theme={theme}
                       projects={projects}
                       columnTitles={BACKEND_COLUMN_TITLES}
                       setError={setPageDanger}

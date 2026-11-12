@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import builtins
 import logging
-from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, ClassVar, TypedDict
+from collections.abc import Callable, Iterable
+from typing import TYPE_CHECKING, Any, ClassVar, Self, TypedDict
 
 from django.conf import settings
 from django.db import models
+from django.db.models import Q
 from jsonschema import ValidationError
 
 from sentry.backup.scopes import RelocationScope
@@ -20,13 +21,18 @@ from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.models.owner_base import OwnerModel
 from sentry.utils.cache import cache
+from sentry.utils.registry import NoRegistrationExistsError
+from sentry.workflow_engine.endpoints.utils.detector_filters import get_detector_type_filters
 from sentry.workflow_engine.models import DataCondition
-from sentry.workflow_engine.types import DetectorSettings
+from sentry.workflow_engine.registry import detector_settings_registry
+from sentry.workflow_engine.types import DetectorSettings, DetectorType
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 from .json_config import JSONConfigBase
 
 if TYPE_CHECKING:
-    from sentry.workflow_engine.handlers.detector import DetectorHandler
+    from sentry.models.project import Project
+    from sentry.workflow_engine.handlers.detector import BaseDetectorHandler
     from sentry.workflow_engine.models.data_condition_group import DataConditionGroupSnapshot
 
 logger = logging.getLogger(__name__)
@@ -45,15 +51,127 @@ class DetectorSnapshot(TypedDict):
     trigger_condition: DataConditionGroupSnapshot | None
 
 
-class DetectorManager(BaseManager["Detector"]):
-    def get_queryset(self) -> BaseQuerySet[Detector]:
-        return (
-            super()
-            .get_queryset()
-            .exclude(status__in=(ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS))
-        )
+class DetectorQuerySet(BaseQuerySet["Detector"]):
+    # For write methods which skip signals, enforce detector config validation. (In addition to the
+    # methods overridden here, this also covers `instance.update()`, since that calls
+    # `QuerySet.update()`. And `save()` triggers the `enforce_config_schema_signal` pre-save signal,
+    # so it does validation on its own.)
 
-    def with_type_filters(self) -> BaseQuerySet[Detector]:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        # Set by our overridden `bulk_update()` and then checked by the overridden `update`, to
+        # prevent running validation twice
+        self._config_validated = False
+
+    def _clone(self) -> Self:
+        # Ensure that our validation flag doesn't get lost in the process of cloning the queryset
+        cloned_queryset = super()._clone()
+        cloned_queryset._config_validated = self._config_validated
+        return cloned_queryset
+
+    def update(self, **kwargs: Any) -> int:
+        # With the post-update signal enabled, `super().update()` goes through
+        # `update_with_returning()`, which does the validation itself
+        if not self._with_post_update_signal and not self._config_validated:
+            self._validate_config(kwargs)
+        return super().update(**kwargs)
+
+    def update_with_returning(
+        self, returned_fields: list[str], **kwargs: Any
+    ) -> list[tuple[Any, ...]]:
+        self._validate_config(kwargs)
+        return super().update_with_returning(returned_fields, **kwargs)
+
+    def bulk_create(self, objs: Iterable[Detector], *args: Any, **kwargs: Any) -> list[Detector]:
+        # Force `objs` to be a list so it can be iterated multiple times (here in this method and in
+        # `super`'s `bulk_create`).
+        objs = list(objs)
+
+        for detector in objs:
+            detector.enforce_config_schema()
+
+        return super().bulk_create(objs, *args, **kwargs)
+
+    def bulk_update(
+        self, objs: Iterable[Detector], fields: Iterable[str], *args: Any, **kwargs: Any
+    ) -> int:
+        # Force `objs` and `fields` to be lists so they can iterated them multiple times (here in
+        # this method and in `super`'s `bulk_update`).
+        objs = list(objs)
+        fields = list(fields)
+
+        # Django's `bulk_update()` writes the objects by passing `Case` objects to `update()`, which
+        # our overridden `update()` won't be able to validate, so do the validation here and then
+        # mark the queryset as already validated. (We clone first so that the flag doesn't persist
+        # past this `bulk_update` call.)
+        if "config" in fields or "type" in fields:
+            for detector in objs:
+                detector.enforce_config_schema()
+        cloned_queryset = self._clone()
+        cloned_queryset._config_validated = True
+
+        return super(DetectorQuerySet, cloned_queryset).bulk_update(objs, fields, *args, **kwargs)
+
+    def _validate_config(self, updated_values: dict[str, Any]) -> None:
+        """
+        Ensure that if the given updates are applied, every row in the queryset will end up with a
+        valid config for its type.
+        """
+        if self._config_validated:
+            return
+
+        for field_name in ("config", "type"):
+            if field_name in updated_values and hasattr(
+                updated_values[field_name], "resolve_expression"
+            ):
+                raise ValueError(
+                    f"Detector `{field_name}` can't be set to a database expression, since then it"
+                    + " can't be validated against the detector type's config schema"
+                )
+
+        new_detector_type = updated_values.get("type")
+        new_config = updated_values.get("config")
+
+        # Neither updated
+        if new_config is None and new_detector_type is None:
+            return
+        # Both updated
+        elif new_config is not None and new_detector_type is not None:
+            self.model(type=new_detector_type, config=new_config).enforce_config_schema()
+        # Only config updated
+        elif new_config is not None and new_detector_type is None:
+            # We need a blank `order_by` here in order to clear any existing ordering on the
+            # queryset, because Django includes columns used for ordering in the `distinct`
+            # expression in the underlying SQL
+            existing_types_in_queryset = (
+                self._without_select_for_update_lock()
+                .order_by()
+                .values_list("type", flat=True)
+                .distinct()
+            )
+            for existing_detector_type in existing_types_in_queryset:
+                self.model(type=existing_detector_type, config=new_config).enforce_config_schema()
+        # Only type updated
+        elif new_config is None and new_detector_type is not None:
+            existing_configs_in_queryset = self._without_select_for_update_lock().values_list(
+                "config", flat=True
+            )
+            for existing_config in existing_configs_in_queryset:
+                self.model(config=existing_config, type=new_detector_type).enforce_config_schema()
+
+    def _without_select_for_update_lock(self) -> Self:
+        """
+        Return a copy of the queryset with `select_for_update()` disabled. Used for the reads done
+        during `config` validation, since they would crash were the validation ever done as part of
+        a `select_for_update().update(...)` call outside of a transaction. (One branch of the
+        validation also uses a `distinct()` call, which is incompatible with the row lock even if a
+        transaction is used.)
+        """
+        queryset = self._clone()
+        queryset.query.select_for_update = False
+        return queryset
+
+    def with_type_filters(self) -> Self:
         """
         Returns a queryset with detector type-specific filters applied. This
         filters out detectors based on their type settings
@@ -62,7 +180,37 @@ class DetectorManager(BaseManager["Detector"]):
         code to ensure filtered detectors are hidden. This is the recommended
         way to query detectors.
         """
-        return self.get_queryset().filter(grouptype.registry.get_detector_type_filters())
+        return self.filter(get_detector_type_filters())
+
+    def by_organization(self, organization_id: int) -> Self:
+        """
+        Returns a queryset of detectors scoped to the given organization.
+        Project-scoped detectors are matched via project__organization.
+        Null-project (all-projects) detectors are matched via config__organization_id.
+        """
+        from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
+
+        return self.filter(
+            Q(project__organization_id=organization_id)
+            | Q(
+                project__isnull=True,
+                type=IssueStreamGroupType.slug,
+                config__organization_id=organization_id,
+            )
+        )
+
+
+class DetectorManager(BaseManager["Detector"]):
+    def get_queryset(self) -> DetectorQuerySet:
+        return DetectorQuerySet(self.model, using=self._db).exclude(
+            status__in=(ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS)
+        )
+
+    def with_type_filters(self) -> DetectorQuerySet:
+        return self.get_queryset().with_type_filters()
+
+    def by_organization(self, organization_id: int) -> DetectorQuerySet:
+        return self.get_queryset().by_organization(organization_id)
 
 
 @cell_silo_model
@@ -72,7 +220,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     objects: ClassVar[DetectorManager] = DetectorManager()
     objects_for_deletion: ClassVar[BaseManager[Detector]] = BaseManager()
 
-    project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE)
+    project = FlexibleForeignKey("sentry.Project", null=True, on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
 
     # The data sources that the detector is watching
@@ -101,7 +249,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         on_delete=models.SET_NULL,
     )
 
-    # maps to registry (sentry.issues.grouptype.registry) entries for GroupType.slug in sentry.issues.grouptype.GroupType
+    # A DetectorType value selecting an implementation in detector_settings_registry.
     type = models.CharField(max_length=200)
 
     # The user that created the detector
@@ -109,6 +257,13 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     class Meta(OwnerModel.Meta):
         constraints = OwnerModel.Meta.constraints
+        indexes = [
+            models.Index(
+                models.F("config__organization_id"),
+                name="detector_all_projects_org_idx",
+                condition=models.Q(project__isnull=True, type=IssueStreamGroupType.slug),
+            )
+        ]
 
     error_detector_project_options = {
         "fingerprinting_rules": "sentry:fingerprinting_rules",
@@ -116,6 +271,12 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     }
 
     CACHE_TTL = 60 * 10
+
+    @property
+    def linked_project(self) -> Project:
+        if self.project is None:
+            raise ValueError("Detector is not project-scoped")
+        return self.project
 
     @classmethod
     def get_default_detector_for_project(cls, project_id: int, detector_type: str) -> Detector:
@@ -147,29 +308,41 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         return group_type
 
     @property
-    def detector_handler(self) -> DetectorHandler[Any] | None:
-        group_type = self.group_type
-
-        if self.settings.handler is None:
+    def detector_handler(self) -> BaseDetectorHandler[Any, Any] | None:
+        handler = self.settings.handler
+        if handler is None:
             logger.error(
-                "Registered grouptype for detector has no detector_handler",
+                "Registered detector type has no detector_handler",
                 extra={
-                    "group_type": str(group_type),
                     "detector_id": self.id,
                     "detector_type": self.type,
                 },
             )
             return None
-        return self.settings.handler(self)
+        return handler(self)
 
     @property
-    def settings(self) -> DetectorSettings:
-        settings = self.group_type.detector_settings
+    def settings(self) -> builtins.type[DetectorSettings]:
+        try:
+            detector_type = DetectorType(self.type)
+        except ValueError as exc:
+            # Report unexpected types on existing detectors; new instances only raise.
+            if not self._state.adding:
+                logger.exception(
+                    "Existing detector has a type outside DetectorType",
+                    extra={"detector_id": self.id, "detector_type": self.type},
+                )
+            raise ValueError(f"Detector type '{self.type}' not registered") from exc
 
-        if settings is None:
-            raise ValueError("Registered grouptype has no detector settings")
-
-        return settings
+        try:
+            return detector_settings_registry.get(detector_type)
+        except NoRegistrationExistsError:
+            if not self._state.adding:
+                logger.exception(
+                    "Existing detector's DetectorType has no registered settings",
+                    extra={"detector_id": self.id, "detector_type": self.type},
+                )
+            raise
 
     def get_snapshot(self) -> DetectorSnapshot:
         trigger_condition = None
@@ -216,18 +389,15 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     def enforce_config_schema(self) -> None:
         """
-        Ensures the detector type is valid in the grouptype registry.
+        Validates enum membership, registered settings, and configuration.
         This needs to be available independently so callers can validate configs
         without saving.
         """
-        group_type = self.group_type
-        if not group_type:
-            raise ValueError(f"No group type found with type {self.type}")
-
-        if not group_type.detector_settings:
+        config_schema = self.settings.config_schema
+        if config_schema is None:
             return
 
         if not isinstance(self.config, dict):
             raise ValidationError("Detector config must be a dictionary")
 
-        self.validate_config(group_type.detector_settings.config_schema)
+        self.validate_config(config_schema)

@@ -1,55 +1,40 @@
 import {useState} from 'react';
-import styled from '@emotion/styled';
+import {IconSearch} from '@sentry/icons/search';
 
-import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {DrawerHeader} from '@sentry/scraps/drawer';
 import {InputGroup} from '@sentry/scraps/input';
-import {Grid} from '@sentry/scraps/layout';
 
 import {
-  CrumbContainer,
+  DrawerBreadcrumbs,
   EventDrawerBody,
   EventDrawerContainer,
-  EventDrawerHeader,
   EventNavigator,
-  Header,
-  NavigationCrumbs,
   SearchInput,
-  ShortId,
 } from 'sentry/components/events/eventDrawer';
-import {FeatureFlagSort} from 'sentry/components/events/featureFlags/featureFlagSort';
-import {
-  FlagControlOptions,
-  ORDER_BY_OPTIONS,
-  sortedFlags,
-  type OrderBy,
-} from 'sentry/components/events/featureFlags/utils';
 import {useFocusControl} from 'sentry/components/events/useFocusControl';
 import {
-  KeyValueData,
-  type KeyValueDataContentProps,
-} from 'sentry/components/keyValueData';
-import {IconSearch} from 'sentry/icons';
+  KeyValueColumns,
+  KeyValueTableDataRow,
+  type KeyValueTableDataRowProps,
+} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getShortEventId} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {FeatureFlagSort} from './featureFlagSort';
+import {FlagControlOptions, ORDER_BY_OPTIONS, sortedFlags, type OrderBy} from './utils';
+
 interface FlagDrawerProps {
   event: Event;
-  group: Group;
-  hydratedFlags: KeyValueDataContentProps[];
+  hydratedFlags: KeyValueTableDataRowProps[];
   initialOrderBy: OrderBy;
-  project: Project;
   focusControl?: FlagControlOptions;
 }
 
 export function EventFeatureFlagDrawer({
-  group,
   event,
-  project,
   initialOrderBy,
   hydratedFlags,
   focusControl: initialFocusControl,
@@ -63,92 +48,60 @@ export function EventFeatureFlagDrawer({
     f.item.key.includes(search)
   );
 
-  const actions = (
-    <Grid flow="column" align="center" gap="md">
-      <InputGroup>
-        <SearchInput
-          size="xs"
-          value={search}
-          onChange={e => {
-            setSearch(e.target.value.toLowerCase());
-          }}
-          aria-label={t('Search Flags')}
-          {...getFocusProps(FlagControlOptions.SEARCH)}
-        />
-        <InputGroup.TrailingItems disablePointerEvents>
-          <IconSearch size="xs" />
-        </InputGroup.TrailingItems>
-      </InputGroup>
-      <FeatureFlagSort
-        orderByOptions={ORDER_BY_OPTIONS}
-        orderBy={orderBy}
-        setOrderBy={value => {
-          setOrderBy(value);
-          trackAnalytics('flags.sort_flags', {
-            organization,
-            sortMethod: value as string,
-          });
+  const searchInput = (
+    <InputGroup>
+      <SearchInput
+        size="sm"
+        value={search}
+        onChange={e => {
+          setSearch(e.target.value.toLowerCase());
         }}
+        aria-label={t('Search Flags')}
+        placeholder={t('Filter feature flags')}
+        {...getFocusProps(FlagControlOptions.SEARCH)}
       />
-    </Grid>
+      <InputGroup.TrailingItems disablePointerEvents>
+        <IconSearch size="xs" />
+      </InputGroup.TrailingItems>
+    </InputGroup>
+  );
+
+  const actions = (
+    <FeatureFlagSort
+      size="sm"
+      variant="transparent"
+      orderByOptions={ORDER_BY_OPTIONS}
+      orderBy={orderBy}
+      setOrderBy={value => {
+        setOrderBy(value);
+        trackAnalytics('flags.sort_flags', {
+          organization,
+          sortMethod: value as string,
+        });
+      }}
+    />
   );
 
   return (
     <EventDrawerContainer>
-      <EventDrawerHeader>
-        <NavigationCrumbs
-          crumbs={[
-            {
-              label: (
-                <CrumbContainer>
-                  <ProjectAvatar project={project} />
-                  <ShortId>{group.shortId}</ShortId>
-                </CrumbContainer>
-              ),
-            },
-            {label: getShortEventId(event.id)},
-            {label: t('Feature Flags')},
-          ]}
+      <DrawerHeader>
+        <DrawerBreadcrumbs
+          current={{
+            label: t('Feature Flags'),
+            labelTooltip: t('Event ID: %s', getShortEventId(event.id)),
+          }}
         />
-      </EventDrawerHeader>
-      <EventNavigator>
-        <Header>{t('Feature Flags')}</Header>
-        {actions}
-      </EventNavigator>
+      </DrawerHeader>
+      <EventNavigator leadingItems={searchInput} trailingItems={actions} />
       <EventDrawerBody>
-        <CardContainer numCols={1}>
-          <KeyValueData.Card expandLeft contentItems={searchResults} />
-        </CardContainer>
+        <KeyValueColumns columnCount={1} maxKeyWidth="70%">
+          {() => [
+            searchResults.map((rowProps, index) => (
+              <KeyValueTableDataRow key={index} {...rowProps} />
+            )),
+          ]}
+        </KeyValueColumns>
       </EventDrawerBody>
     </EventDrawerContainer>
   );
 }
-
-export const CardContainer = styled('div')<{numCols: number}>`
-  display: grid;
-  grid-template-columns: repeat(${p => p.numCols}, 1fr);
-  align-items: start;
-
-  div {
-    border: none;
-    border-radius: ${p => p.theme.space.xs};
-  }
-
-  > * {
-    padding-left: 0px;
-
-    &:first-child {
-      margin-left: -${p => p.theme.space.md};
-    }
-    :not(:last-child) {
-      border-right: 1.5px solid ${p => p.theme.tokens.border.secondary};
-      padding-right: ${p => p.theme.space.xl};
-    }
-    :not(:first-child) {
-      border-left: 1.5px solid ${p => p.theme.tokens.border.secondary};
-      padding-left: ${p => p.theme.space.xl};
-      padding-right: 0;
-      margin-left: -1px;
-    }
-  }
-`;

@@ -3,27 +3,26 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import type {ComboBoxState} from '@react-stately/combobox';
 import type {Node} from '@react-types/shared';
 
-import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {useSeerAcknowledgeMutation} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
 import {
-  useSearchQueryBuilderAI,
   useSearchQueryBuilderConfig,
-  useSearchQueryBuilderLayout,
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
 import type {CustomComboboxMenu} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {FilterKeyListBox} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox';
-import type {
-  FilterKeyItem,
-  RecentQueryItem,
-  Section,
-} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
-import {useRecentSearches} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/useRecentSearches';
-import {useRecentSearchFilters} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/useRecentSearchFilters';
+import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
+import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
+import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
+import {getKeyName} from 'sentry/components/searchSyntax/utils';
+import type {RecentSearch, TagCollection} from 'sentry/types/group';
+import {clamp} from 'sentry/utils/number/clamp';
+import {usePrevious} from 'sentry/utils/usePrevious';
+
+import type {FilterKeyItem, RecentQueryItem, Section} from './types';
+import {useRecentSearches} from './useRecentSearches';
+import {useRecentSearchFilters} from './useRecentSearchFilters';
 import {
   ALL_CATEGORY,
   ALL_CATEGORY_VALUE,
-  createAskSeerItem,
   createLogicFilterItem,
   createRecentFilterItem,
   createRecentFilterOptionKey,
@@ -33,16 +32,7 @@ import {
   LOGIC_CATEGORY_VALUE,
   RECENT_SEARCH_CATEGORY,
   RECENT_SEARCH_CATEGORY_VALUE,
-} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
-import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
-import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
-import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
-import {getKeyName} from 'sentry/components/searchSyntax/utils';
-import type {RecentSearch, TagCollection} from 'sentry/types/group';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {clamp} from 'sentry/utils/number/clamp';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {usePrevious} from 'sentry/utils/usePrevious';
+} from './utils';
 
 const MAX_OPTIONS_WITHOUT_SEARCH = 100;
 const MAX_OPTIONS_WITH_SEARCH = 8;
@@ -179,7 +169,7 @@ function useFilterKeySections({
   const previousNumSections = usePrevious(numSections);
   useEffect(() => {
     if (previousNumSections !== numSections) {
-      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
+      // eslint-disable-next-line react/set-state-in-effect
       setSelectedSection(sections[0]!.value);
     }
   }, [numSections, previousNumSections, sections]);
@@ -201,30 +191,18 @@ interface UseFilterKeyListBoxArgs {
 export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
   const {filterKeys, getFieldDefinition, disallowLogicalOperators} =
     useSearchQueryBuilderConfig();
-  const {setAutoSubmitSeer, setDisplayAskSeer, enableAISearch} =
-    useSearchQueryBuilderAI();
-  const {currentInputValueRef} = useSearchQueryBuilderLayout();
-  const analyticsArea = useAnalyticsArea();
   const {sectionedItems} = useFilterKeyItems();
-  const recentFilters = useRecentSearchFilters();
   const {data: recentSearches} = useRecentSearches();
+  const recentFilters = useRecentSearchFilters(recentSearches);
   const {sections, selectedSection, setSelectedSection} = useFilterKeySections({
     recentSearches,
   });
 
-  const organization = useOrganization();
-
   const filterKeyMenuItems = useMemo(() => {
     const recentFilterItems = makeRecentFilterItems({recentFilters});
 
-    const askSeerItem = [];
-    if (enableAISearch) {
-      askSeerItem.push(createAskSeerItem());
-    }
-
     if (selectedSection === RECENT_SEARCH_CATEGORY_VALUE) {
       return [
-        ...askSeerItem,
         ...recentFilterItems,
         ...makeRecentSearchQueryItems({
           recentSearches,
@@ -235,7 +213,7 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
     }
 
     if (!disallowLogicalOperators && selectedSection === LOGIC_CATEGORY_VALUE) {
-      return [...askSeerItem, ...logicFilterItems];
+      return logicFilterItems;
     }
 
     const filteredByCategory = sectionedItems.filter(item => {
@@ -249,10 +227,9 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
       return true;
     });
 
-    return [...askSeerItem, ...recentFilterItems, ...filteredByCategory];
+    return [...recentFilterItems, ...filteredByCategory];
   }, [
     disallowLogicalOperators,
-    enableAISearch,
     filterKeys,
     getFieldDefinition,
     recentFilters,
@@ -417,53 +394,11 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
     [handleArrowUpDown, handleCycleRecentFilterKeys, handleCycleSections]
   );
 
-  const {mutate: seerAcknowledgeMutate} = useSeerAcknowledgeMutation();
-
-  const handleOptionSelected = useCallback(
-    (option: FilterKeyItem) => {
-      if (option.type === 'ask-seer') {
-        trackAnalytics('ai_query.interface', {
-          organization,
-          area: analyticsArea,
-          action: 'opened',
-        });
-        setDisplayAskSeer(true);
-
-        if (currentInputValueRef.current?.trim()) {
-          setAutoSubmitSeer(true);
-        } else {
-          setAutoSubmitSeer(false);
-        }
-
-        return;
-      }
-
-      if (option.type === 'ask-seer-consent') {
-        trackAnalytics('ai_query.interface', {
-          organization,
-          area: analyticsArea,
-          action: 'consent_accepted',
-        });
-        seerAcknowledgeMutate();
-        return;
-      }
-    },
-    [
-      analyticsArea,
-      currentInputValueRef,
-      organization,
-      seerAcknowledgeMutate,
-      setAutoSubmitSeer,
-      setDisplayAskSeer,
-    ]
-  );
-
   return {
     sectionItems: filterKeyMenuItems,
     customMenu: shouldShowExplorationMenu ? customMenu : undefined,
     maxOptions:
       filterValue.length === 0 ? MAX_OPTIONS_WITHOUT_SEARCH : MAX_OPTIONS_WITH_SEARCH,
     onKeyDownCapture: shouldShowExplorationMenu ? onKeyDownCapture : undefined,
-    handleOptionSelected,
   };
 }

@@ -2,7 +2,6 @@ import type {LocationDescriptor} from 'history';
 
 import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {t} from 'sentry/locale';
-import type {ParsedOwnershipRule} from 'sentry/types/ownership';
 import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
@@ -16,6 +15,7 @@ import type {
   Repository,
 } from './integrations';
 import type {Team} from './organization';
+import type {ParsedOwnershipRule} from './ownership';
 import type {PlatformKey} from './platform';
 import type {AvatarProject, Project} from './project';
 import type {AvatarUser, User} from './user';
@@ -47,7 +47,7 @@ export type SavedSearch = {
   visibility: SavedSearchVisibility;
 };
 
-export enum SavedSearchVisibility {
+enum SavedSearchVisibility {
   ORGANIZATION = 'organization',
   OWNER = 'owner',
   OWNER_PINNED = 'owner_pinned',
@@ -130,6 +130,48 @@ export const VALID_ISSUE_CATEGORIES = [
   IssueCategory.PREPROD,
   IssueCategory.CONFIGURATION,
 ];
+
+/**
+ * Numeric values used by issue category workflow conditions.
+ * These must match GroupCategory in src/sentry/issues/grouptype.py.
+ */
+export enum GroupCategory {
+  ERROR = 1,
+  PERFORMANCE = 2,
+  CRON = 4,
+  REPLAY = 5,
+  FEEDBACK = 6,
+  UPTIME = 7,
+  METRIC_ALERT = 8,
+  OUTAGE = 10,
+  METRIC = 11,
+  DB_QUERY = 12,
+  HTTP_CLIENT = 13,
+  FRONTEND = 14,
+  MOBILE = 15,
+  AI_DETECTED = 16,
+  PREPROD = 17,
+  CONFIGURATION = 19,
+}
+
+export const ISSUE_CATEGORY_TO_GROUP_CATEGORY: Record<IssueCategory, GroupCategory> = {
+  [IssueCategory.ERROR]: GroupCategory.ERROR,
+  [IssueCategory.PERFORMANCE]: GroupCategory.PERFORMANCE,
+  [IssueCategory.CRON]: GroupCategory.CRON,
+  [IssueCategory.REPLAY]: GroupCategory.REPLAY,
+  [IssueCategory.FEEDBACK]: GroupCategory.FEEDBACK,
+  [IssueCategory.UPTIME]: GroupCategory.UPTIME,
+  [IssueCategory.METRIC_ALERT]: GroupCategory.METRIC_ALERT,
+  [IssueCategory.OUTAGE]: GroupCategory.OUTAGE,
+  [IssueCategory.METRIC]: GroupCategory.METRIC,
+  [IssueCategory.DB_QUERY]: GroupCategory.DB_QUERY,
+  [IssueCategory.HTTP_CLIENT]: GroupCategory.HTTP_CLIENT,
+  [IssueCategory.FRONTEND]: GroupCategory.FRONTEND,
+  [IssueCategory.MOBILE]: GroupCategory.MOBILE,
+  [IssueCategory.AI_DETECTED]: GroupCategory.AI_DETECTED,
+  [IssueCategory.PREPROD]: GroupCategory.PREPROD,
+  [IssueCategory.CONFIGURATION]: GroupCategory.CONFIGURATION,
+};
 
 export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
   [IssueCategory.ERROR]: t('Runtime errors or exceptions.'),
@@ -399,13 +441,25 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   11003: IssueType.PREPROD_SIZE_ANALYSIS,
 };
 
-// Occurrence type IDs for hidden issue types - used to filter API queries.
-// Note: This only works for issuePlatform events not discover/error events.
-export const HIDDEN_OCCURRENCE_TYPE_IDS: number[] = Object.entries(
-  OCCURRENCE_TYPE_TO_ISSUE_TYPE
-)
-  .filter(([_, issueType]) => HIDDEN_ISSUE_TYPES.includes(issueType))
-  .map(([id]) => Number(id));
+/**
+ * The inverse of `OCCURRENCE_TYPE_TO_ISSUE_TYPE` above, derived from it rather than maintained
+ * separately so the two can't drift. A few issue types have more than one occurrence type id (the
+ * same issue classified as either a regular or experimental version of the same grouptype, e.g.
+ * 1006 and 1906, which correspond to the backend's `PerformanceNPlusOneGroupType.type_id` and
+ * `PerformanceNPlusOneExperimentalGroupType.type_id`, respectively). Because of the way this is
+ * constructed, the last one mapped to a given issue type wins. That's arbitrary but harmless today
+ * (there's nowhere where we treat regular and experimental versions of the same grouptype
+ * differently, and in fact the experimental ones are currently unused), but if that ever changes,
+ * this shouldn't be relied upon to give the "right" answer.
+ *
+ * @internal used in tests
+ */
+export const ISSUE_TYPE_TO_OCCURRENCE_TYPE = Object.fromEntries(
+  Object.entries(OCCURRENCE_TYPE_TO_ISSUE_TYPE).map(([typeId, issueType]) => [
+    issueType,
+    Number(typeId), // Necessary because `Object.entries` stringifies keys
+  ])
+);
 
 const PERFORMANCE_REGRESSION_TYPE_IDS = new Set([1017, 1018, 2010, 2011]);
 
@@ -459,6 +513,12 @@ export type Tag = {
   name: string;
   alias?: string;
 
+  /**
+   * For trace-item attributes, whether the attribute was defined by Sentry
+   * ('sentry') or sent by the user ('user').
+   */
+  attributeSource?: 'sentry' | 'user';
+
   isInput?: boolean;
 
   kind?: FieldKind;
@@ -484,7 +544,9 @@ export type TagValue = {
   firstSeen: string;
   lastSeen: string;
   name: string;
-  value: string;
+  // Missing tags come back as '' or, for tags Snuba stores in their own
+  // column (like user), null.
+  value: string | null;
   email?: string;
   identifier?: string;
   ipAddress?: string;
@@ -499,7 +561,7 @@ type Topvalue = {
   key: string;
   lastSeen: string;
   name: string;
-  value: string;
+  value: string | null;
   // Might not actually exist.
   query?: string;
   readable?: string;
@@ -550,11 +612,12 @@ export type SuggestedOwnerReason =
   | 'suspectCommit'
   | 'ownershipRule'
   | 'projectOwnership'
+  | 'seerSuggested'
   // TODO: codeowners may no longer exist
   | 'codeowners';
 
 // Received from the backend to denote suggested owners of an issue
-type SuggestedOwner = {
+export type SuggestedOwner = {
   date_added: string;
   owner: string;
   type: SuggestedOwnerReason;
@@ -607,9 +670,18 @@ export enum GroupActivityType {
   SEER_CODING_STARTED = 'seer_coding_started',
   SEER_CODING_COMPLETED = 'seer_coding_completed',
   SEER_PR_CREATED = 'seer_pr_created',
+  SEER_PR_READY_FOR_REVIEW = 'seer_pr_ready_for_review',
   SEER_ITERATION_STARTED = 'seer_iteration_started',
   SEER_ITERATION_COMPLETED = 'seer_iteration_completed',
   PULL_REQUEST_CLOSED = 'pull_request_closed',
+  PULL_REQUEST_REOPENED = 'pull_request_reopened',
+  PULL_REQUEST_MERGED = 'pull_request_merged',
+  PULL_REQUEST_UNLINKED = 'pull_request_unlinked',
+  TRIGGER_AUTOFIX = 'trigger_autofix',
+  UNLINK_EXTERNAL_ISSUE = 'unlink_external_issue',
+  UNLINK_PLATFORM_EXTERNAL_ISSUE = 'unlink_platform_external_issue',
+  IMPACT_ASSESSMENT = 'impact_assessment',
+  INVESTIGATION_LINKED = 'investigation_linked',
 }
 
 export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
@@ -622,6 +694,8 @@ export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
   GroupActivityType.SEER_PR_CREATED,
   GroupActivityType.SEER_ITERATION_STARTED,
   GroupActivityType.SEER_ITERATION_COMPLETED,
+  GroupActivityType.SEER_PR_READY_FOR_REVIEW,
+  GroupActivityType.TRIGGER_AUTOFIX,
 ]);
 
 interface GroupActivityBase {
@@ -630,10 +704,21 @@ interface GroupActivityBase {
   assignee?: string;
   issue?: Group;
   sentry_app?: AvatarSentryApp;
+  /**
+   * Where the action came from, e.g. `web`, `api`, `sentry-cli`, `mcp:cursor`
+   */
+  source?: null | string;
   user?: null | User;
 }
 
-interface GroupActivityNote extends GroupActivityBase {
+export interface GroupActivityIntegrationData {
+  integration_id?: number | string;
+  provider?: string;
+  provider_key?: string;
+}
+
+export interface GroupActivityNote extends GroupActivityBase {
+  commentId: string;
   data: {
     text: string;
   };
@@ -641,7 +726,7 @@ interface GroupActivityNote extends GroupActivityBase {
 }
 
 interface GroupActivitySetResolved extends GroupActivityBase {
-  data: Record<string, string>;
+  data: GroupActivityIntegrationData & Record<string, string>;
   type: GroupActivityType.SET_RESOLVED;
 }
 
@@ -664,12 +749,12 @@ interface GroupActivitySetResolvedIntegration extends GroupActivityBase {
 }
 
 interface GroupActivitySetUnresolved extends GroupActivityBase {
-  data: Record<string, string>;
+  data: GroupActivityIntegrationData & Record<string, string>;
   type: GroupActivityType.SET_UNRESOLVED;
 }
 
 interface GroupActivitySetUnresolvedForecast extends GroupActivityBase {
-  data: {
+  data: GroupActivityIntegrationData & {
     forecast: number;
   };
   type: GroupActivityType.SET_UNRESOLVED;
@@ -742,26 +827,25 @@ interface GroupActivityRegression extends GroupActivityBase {
   type: GroupActivityType.SET_REGRESSION;
 }
 
-interface GroupActivitySetByResolvedInNextSemverRelease extends GroupActivityBase {
-  data: {
-    // Set for semver releases
-    current_release_version: string;
-    inNextRelease?: boolean;
-    integration_id?: number;
-    provider?: string;
-    provider_key?: string;
-  };
-  type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
+interface GroupActivityResolvedInReleaseData extends GroupActivityIntegrationData {
+  /** The commit that caused the release to resolve the issue. */
+  commit?: Commit | null;
+  inNextRelease?: boolean;
+}
+
+interface GroupActivityResolvedAfterCurrentReleaseData extends GroupActivityResolvedInReleaseData {
+  /** The current release; later releases resolve the issue. */
+  current_release_version: string;
+}
+
+interface GroupActivityResolvedInSpecificReleaseData extends GroupActivityResolvedInReleaseData {
+  version?: string;
 }
 
 interface GroupActivitySetByResolvedInRelease extends GroupActivityBase {
-  data: {
-    inNextRelease?: boolean;
-    integration_id?: number;
-    provider?: string;
-    provider_key?: string;
-    version?: string;
-  };
+  data:
+    | GroupActivityResolvedAfterCurrentReleaseData
+    | GroupActivityResolvedInSpecificReleaseData;
   type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
 }
 
@@ -791,6 +875,53 @@ export interface GroupActivityPullRequestClosed extends GroupActivityBase {
     pullRequest?: PullRequest | null;
   };
   type: GroupActivityType.PULL_REQUEST_CLOSED;
+}
+
+interface GroupActivityPullRequestReopened extends GroupActivityBase {
+  data: {
+    pullRequest?: PullRequest | null;
+  };
+  type: GroupActivityType.PULL_REQUEST_REOPENED;
+}
+
+interface GroupActivityPullRequestMerged extends GroupActivityBase {
+  data: {
+    pullRequest?: PullRequest | null;
+  };
+  type: GroupActivityType.PULL_REQUEST_MERGED;
+}
+
+interface GroupActivityPullRequestUnlinked extends GroupActivityBase {
+  data: {
+    pullRequest?: PullRequest | null;
+  };
+  type: GroupActivityType.PULL_REQUEST_UNLINKED;
+}
+
+/**
+ * Mirrors `sentry.seer.autofix.constants.AutofixReferrer` on the backend.
+ * Keep these values in sync when the backend enum changes.
+ */
+type AutofixReferrer =
+  | 'api.cli'
+  | 'api.group_ai_autofix'
+  | 'api.linear_agent'
+  | 'api.mcp'
+  | 'api.web'
+  | 'autofix.on_completion_hook'
+  | 'github.check_suite'
+  | 'github.pr_comment'
+  | 'github.pr_review'
+  | 'issue_summary.post_process_fixability'
+  | 'night_shift'
+  | 'slack'
+  | 'unknown';
+
+interface GroupActivityTriggerAutofix extends GroupActivityBase {
+  data: {
+    referrer?: AutofixReferrer;
+  };
+  type: GroupActivityType.TRIGGER_AUTOFIX;
 }
 
 export interface GroupActivitySetIgnored extends GroupActivityBase {
@@ -866,7 +997,7 @@ export interface GroupActivitySetEscalating extends GroupActivityBase {
   type: GroupActivityType.SET_ESCALATING;
 }
 
-export interface GroupActivitySetPriority extends GroupActivityBase {
+interface GroupActivitySetPriority extends GroupActivityBase {
   data: {
     priority: PriorityLevel;
     reason: string;
@@ -888,7 +1019,8 @@ export interface GroupActivityAssigned extends GroupActivityBase {
       | 'codeowners'
       | 'slack'
       | 'msteams'
-      | 'suspectCommitter';
+      | 'suspectCommitter'
+      | 'seerSuggested';
     /** Codeowner or Project owner rule as a string */
     rule?: string;
     user?: Team | User;
@@ -896,7 +1028,7 @@ export interface GroupActivityAssigned extends GroupActivityBase {
   type: GroupActivityType.ASSIGNED;
 }
 
-export interface GroupActivityCreateIssue extends GroupActivityBase {
+interface GroupActivityCreateIssue extends GroupActivityBase {
   data: {
     location: string;
     provider: string;
@@ -970,10 +1102,25 @@ interface GroupActivitySeerPrCreated extends GroupActivityBase {
   };
   type: GroupActivityType.SEER_PR_CREATED;
 }
+interface GroupActivitySeerPrReadyForReview extends GroupActivityBase {
+  data: {
+    pull_requests?: Array<{
+      provider: string;
+      pull_request: {
+        pr_number: number;
+        pr_url: string;
+      };
+      repo_name: string;
+    }>;
+    run_id?: number;
+  };
+  type: GroupActivityType.SEER_PR_READY_FOR_REVIEW;
+}
 
 interface GroupActivitySeerIterationStarted extends GroupActivityBase {
   data: {
     iteration_index?: number;
+    referrer?: AutofixReferrer;
     run_id?: number;
   };
   type: GroupActivityType.SEER_ITERATION_STARTED;
@@ -996,7 +1143,65 @@ interface GroupActivitySeerIterationCompleted extends GroupActivityBase {
   type: GroupActivityType.SEER_ITERATION_COMPLETED;
 }
 
+interface GroupActivityUnlinkExternalIssue extends GroupActivityBase {
+  data: {external_issue_key: string; provider: string};
+  type: GroupActivityType.UNLINK_EXTERNAL_ISSUE;
+}
+
+interface GroupActivityUnlinkPlatformExternalIssue extends GroupActivityBase {
+  data: {display_name: string; service_type: string; web_url: string};
+  type: GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE;
+}
+
+type ImpactLevel = 'super_low' | 'low' | 'moderate' | 'high' | 'super_high';
+
+interface ImpactCitation {
+  claim: string;
+  reference: string;
+  source: string;
+}
+
+interface ImpactAssessment {
+  citations: ImpactCitation[];
+  description: string;
+  level: ImpactLevel | null;
+  score: number | null;
+  sourceEventId: string;
+}
+
+export interface GroupActivityImpactAssessment extends GroupActivityBase {
+  data: ImpactAssessment;
+  type: GroupActivityType.IMPACT_ASSESSMENT;
+}
+
+interface LinkedInvestigation {
+  id: string;
+  status: 'active' | 'archived';
+  title: string;
+}
+
+export interface GroupActivityInvestigationLinked extends GroupActivityBase {
+  data: {
+    hypothesisId: string;
+    /**
+     * The confirmed hypothesis whose evidence named this issue.
+     */
+    hypothesisStatement: string;
+    /**
+     * Null once the investigation is deleted.
+     */
+    investigation: LinkedInvestigation | null;
+    /**
+     * Seer's note on the evidence, usually counts and culprits.
+     */
+    reason: string | null;
+  };
+  type: GroupActivityType.INVESTIGATION_LINKED;
+}
+
 export type GroupActivity =
+  | GroupActivityUnlinkExternalIssue
+  | GroupActivityUnlinkPlatformExternalIssue
   | GroupActivityNote
   | GroupActivitySetResolved
   | GroupActivitySetResolvedIntegration
@@ -1006,7 +1211,6 @@ export type GroupActivity =
   | GroupActivitySetIgnored
   | GroupActivitySetByAge
   | GroupActivitySetByResolvedInRelease
-  | GroupActivitySetByResolvedInNextSemverRelease
   | GroupActivitySetByResolvedInCommit
   | GroupActivityReferencedInCommit
   | GroupActivitySetByResolvedInPullRequest
@@ -1033,9 +1237,16 @@ export type GroupActivity =
   | GroupActivitySeerCodingStarted
   | GroupActivitySeerCodingCompleted
   | GroupActivitySeerPrCreated
+  | GroupActivitySeerPrReadyForReview
   | GroupActivitySeerIterationStarted
   | GroupActivitySeerIterationCompleted
-  | GroupActivityPullRequestClosed;
+  | GroupActivityPullRequestClosed
+  | GroupActivityPullRequestReopened
+  | GroupActivityPullRequestMerged
+  | GroupActivityPullRequestUnlinked
+  | GroupActivityTriggerAutofix
+  | GroupActivityImpactAssessment
+  | GroupActivityInvestigationLinked;
 
 export type Activity = GroupActivity;
 
@@ -1070,7 +1281,6 @@ export interface IgnoredStatusDetails {
 }
 export interface ResolvedStatusDetails {
   actor?: AvatarUser;
-  autoResolved?: boolean;
   inCommit?: {
     commit?: string;
     dateCreated?: string;
@@ -1144,6 +1354,25 @@ export const enum FixabilityScoreThresholds {
   SUPER_LOW = 'super_low',
 }
 
+export enum ProgressState {
+  IDENTIFIED = 'identified',
+  ASSIGNED = 'assigned',
+  DIAGNOSED = 'diagnosed',
+  FIX_PROPOSED = 'fix_proposed',
+  FIX_APPLIED = 'fix_applied',
+}
+
+interface GroupDerivedData {
+  hasOpenFixPr: boolean;
+  hasRootCause: boolean;
+  isAssigned: boolean;
+  lastProgressedAt: string | null;
+  progress: ProgressState;
+  status: 'open' | 'closed';
+  viewCount: number;
+  impact?: ImpactAssessment | null;
+}
+
 // TODO(ts): incomplete
 export interface BaseGroup {
   activity: GroupActivity[];
@@ -1178,6 +1407,7 @@ export interface BaseGroup {
   title: string;
   type: EventOrGroupType;
   userReportCount: number;
+  derivedData?: GroupDerivedData;
   inbox?: InboxDetails | null | false;
   integrationIssues?: ExternalIssue[];
   latestEvent?: Event;
@@ -1201,10 +1431,12 @@ export interface GroupOpenPeriodActivity {
 export interface GroupOpenPeriod {
   activities: GroupOpenPeriodActivity[];
   duration: string;
-  end: string;
+  end: string | null;
+  groupId: string;
   id: string;
   isOpen: boolean;
   lastChecked: string;
+  shortId: string | null;
   start: string;
 }
 
@@ -1317,11 +1549,7 @@ export type KeyValueListDataItem = {
    * If true, the action button will always be visible, not just on hover.
    */
   actionButtonAlwaysVisible?: boolean;
-  isContextData?: boolean;
-  isMultiValue?: boolean;
-  meta?: Meta;
   subjectDataTestId?: string;
-  subjectIcon?: React.ReactNode;
   subjectNode?: React.ReactNode;
   value?: React.ReactNode | Record<string, string | number>;
 };

@@ -1,14 +1,16 @@
 from typing import Literal
 
+import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
+from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.services import eventstore
 from sentry.types.actor import Actor
@@ -17,11 +19,12 @@ from sentry.types.actor import Actor
 @cell_silo_endpoint
 class EventOwnersEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, project, event_id) -> Response:
+    def get(self, request: Request, project: Project, event_id: str) -> Response:
         """
         Retrieve suggested owners information for an event
         ``````````````````````````````````````````````````
@@ -34,6 +37,8 @@ class EventOwnersEndpoint(ProjectEndpoint):
         event = eventstore.backend.get_event_by_id(project.id, event_id)
         if event is None:
             return Response({"detail": "Event not found"}, status=404)
+
+        sentry_sdk.set_attribute("event.type", event.get_event_type())
 
         owners, rules = ProjectOwnership.get_owners(project.id, event.data)
 

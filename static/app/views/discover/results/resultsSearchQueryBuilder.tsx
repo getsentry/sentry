@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 import omit from 'lodash/omit';
 
 import {fetchFeatureFlagValues, fetchTagValues} from 'sentry/actionCreators/tags';
@@ -57,8 +58,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTags} from 'sentry/utils/useTags';
 import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
-import {IssueListSeerComboBox} from 'sentry/views/discover/results/issueListSeerComboBox';
-import {useFetchOrganizationFeatureFlags} from 'sentry/views/issueList/utils/useFetchOrganizationFeatureFlags';
+import {organizationFeatureFlagsApiOptions} from 'sentry/views/issueList/utils/organizationFeatureFlagsApiOptions';
+
+import {IssueListSeerComboBox} from './issueListSeerComboBox';
 
 type DataProviderProps = {
   customMeasurements?: CustomMeasurementCollection;
@@ -75,7 +77,6 @@ type Props = {
   enableAISearch?: boolean;
   onChange?: (query: string, state: CallbackSearchState) => void;
   onSearch?: (query: string) => void;
-  placeholder?: string;
   portalTarget?: HTMLElement | null;
   query?: string;
   recentSearches?: SavedSearchType;
@@ -134,7 +135,6 @@ function ErrorsSearchBar({
 
 export function ResultsSearchQueryBuilder(props: Props) {
   const {
-    placeholder,
     portalTarget,
     disabled,
     omitTags,
@@ -144,12 +144,10 @@ export function ResultsSearchQueryBuilder(props: Props) {
     customMeasurements,
     dataset,
     includeTransactions = true,
-    enableAISearch: enableAISearchProp = false,
+    enableAISearch = false,
   } = props;
 
-  const placeholderText = useMemo(() => {
-    return placeholder ?? t('Search for events, users, tags, and more');
-  }, [placeholder]);
+  const placeholderText = t('Search for events, users, tags, and more');
 
   const {getFilterKeys, getFilterKeySections, getTagValues} =
     useResultsSearchBarDataProvider({
@@ -162,13 +160,7 @@ export function ResultsSearchQueryBuilder(props: Props) {
       includeTransactions,
     });
 
-  // AI search is only enabled for Errors dataset if translate endpoint is enabled.
   const isErrorsDataset = dataset === DiscoverDatasets.ERRORS;
-  const organization = useOrganization();
-  const hasTranslateEndpoint = organization.features.includes(
-    'gen-ai-search-agent-translate'
-  );
-  const enableAISearch = hasTranslateEndpoint && enableAISearchProp;
 
   const searchBarProps = {
     placeholderText,
@@ -190,7 +182,6 @@ export function ResultsSearchQueryBuilder(props: Props) {
       <SearchQueryBuilderProvider
         initialQuery={props.query ?? ''}
         enableAISearch={enableAISearch}
-        aiSearchBadgeType="beta"
         disabled={disabled}
         fieldDefinitionGetter={undefined}
         filterKeys={getFilterKeys()}
@@ -260,15 +251,14 @@ export function useResultsSearchBarDataProvider(props: DataProviderProps): Searc
   const measurements = useMemo(() => getMeasurements(), []);
   const functionTags = useMemo(() => getFunctionTags(fields), [fields]);
 
-  const featureFlagsQuery = useFetchOrganizationFeatureFlags(
-    {
+  const featureFlagsQuery = useQuery({
+    ...organizationFeatureFlagsApiOptions({
       orgSlug: organization.slug,
       projectIds: projectIdStrings,
-      enabled: includeFeatureFlags,
       ...dateTimeParams,
-    },
-    {}
-  );
+    }),
+    enabled: includeFeatureFlags,
+  });
   const featureFlagTags = useMemo(
     () =>
       featureFlagsQuery.data?.reduce<TagCollection>((acc, tag) => {
@@ -376,7 +366,7 @@ export function useResultsSearchBarDataProvider(props: DataProviderProps): Searc
           sort: '-count' as const,
           organization,
         });
-        return results.map(({value}) => value);
+        return results.map(({value}) => value).filter(defined);
       }
 
       if (isAggregateField(tag.key) || isMeasurement(tag.key)) {

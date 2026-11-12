@@ -1,7 +1,7 @@
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
+import {Frame} from 'sentry/utils/profiling/frame';
 import {assertValidProfilingUnit} from 'sentry/utils/profiling/units/units';
 
-import {Frame} from './../frame';
 import {Profile} from './profile';
 import type {createFrameIndex} from './utils';
 import {resolveFlamegraphSamplesProfileIds} from './utils';

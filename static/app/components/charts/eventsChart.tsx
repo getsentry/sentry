@@ -1,6 +1,7 @@
-import {isValidElement, memo, useState} from 'react';
+import {isValidElement, memo, useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
+import {IconWarning} from '@sentry/icons/warning';
 import type {
   EChartsOption,
   LegendComponentOption,
@@ -12,23 +13,12 @@ import type {Location, Query} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import type {Client} from 'sentry/api';
-import type {AreaChartProps} from 'sentry/components/charts/areaChart';
-import {AreaChart} from 'sentry/components/charts/areaChart';
-import type {BarChartProps} from 'sentry/components/charts/barChart';
-import {BarChart} from 'sentry/components/charts/barChart';
-import type {ZoomRenderProps} from 'sentry/components/charts/chartZoom';
-import ChartZoom from 'sentry/components/charts/chartZoom';
-import {ErrorPanel} from 'sentry/components/charts/errorPanel';
-import type {LineChartProps} from 'sentry/components/charts/lineChart';
-import {LineChart} from 'sentry/components/charts/lineChart';
-import ReleaseSeries from 'sentry/components/charts/releaseSeries';
-import {TransitionChart} from 'sentry/components/charts/transitionChart';
-import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
-import {getInterval, RELEASE_LINES_THRESHOLD} from 'sentry/components/charts/utils';
-import {IconWarning} from 'sentry/icons';
+import {mergeDroppedDataBand} from 'sentry/components/droppedData/band/mergeDroppedDataBand';
+import {useDroppedDataBand} from 'sentry/components/droppedData/band/useDroppedDataBand';
+import type {DroppedDataProps} from 'sentry/components/droppedData/types';
 import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
+import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {
@@ -36,7 +26,6 @@ import {
   axisLabelFormatterUsingAggregateOutputType,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
-import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
   aggregateMultiPlotType,
@@ -48,7 +37,20 @@ import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 
+import type {AreaChartProps} from './areaChart';
+import {AreaChart} from './areaChart';
+import type {BarChartProps} from './barChart';
+import {BarChart} from './barChart';
+import type {ZoomRenderProps} from './chartZoom';
+import ChartZoom from './chartZoom';
+import {ErrorPanel} from './errorPanel';
 import {EventsRequest} from './eventsRequest';
+import type {LineChartProps} from './lineChart';
+import {LineChart} from './lineChart';
+import {useReleaseSeries} from './releaseSeries';
+import {TransitionChart} from './transitionChart';
+import {TransparentLoadingMask} from './transparentLoadingMask';
+import {getInterval, RELEASE_LINES_THRESHOLD} from './utils';
 
 type ChartComponent =
   | React.ComponentType<BarChartProps>
@@ -61,7 +63,6 @@ type ChartProps = {
   previousSeriesNames: string[];
   reloading: boolean;
   stacked: boolean;
-  tableData: TableDataWithTitle[];
   theme: Theme;
   timeseriesData: Series[];
   yAxis: string;
@@ -78,6 +79,7 @@ type ChartProps = {
    * a list of series names that are also disableable.
    */
   disableableSeries?: string[];
+  droppedData?: DroppedDataProps;
   forceChartType?: string;
   fromDiscover?: boolean;
   height?: number;
@@ -126,32 +128,16 @@ function Chart({
   chartComponent,
   forceChartType,
   disableableSeries = [],
+  droppedData,
   ...props
 }: ChartProps) {
   const [seriesSelection, setSeriesSelection] = useState<Record<string, boolean>>({});
-
-  function getChartComponent(): ChartComponent {
-    if (defined(chartComponent)) {
-      return chartComponent;
-    }
-
-    if (showDaily) {
-      return BarChart;
-    }
-
-    if (timeseriesData.length > 1) {
-      switch (forceChartType || aggregateMultiPlotType(yAxis)) {
-        case 'line':
-          return LineChart;
-        case 'area':
-          return AreaChart;
-        default:
-          throw new Error(`Unknown multi plot type for ${yAxis}`);
-      }
-    }
-
-    return AreaChart;
-  }
+  const chartRef = useRef<ReactEchartsRef>(null);
+  const droppedDataBand = useDroppedDataBand({
+    chartRef,
+    droppedData,
+    utc: zoomRenderProps.utc,
+  });
 
   function handleLegendSelectChanged(legendChange: any) {
     const {selected} = legendChange;
@@ -170,7 +156,16 @@ function Chart({
     setSeriesSelection(newSeriesSelection);
   }
 
-  const ChartComponent = getChartComponent();
+  const multiPlotType =
+    !defined(chartComponent) && !showDaily && timeseriesData.length > 1
+      ? forceChartType || aggregateMultiPlotType(yAxis)
+      : null;
+  if (multiPlotType !== null && multiPlotType !== 'line' && multiPlotType !== 'area') {
+    throw new Error(`Unknown multi plot type for ${yAxis}`);
+  }
+  const ChartComponent =
+    chartComponent ??
+    (showDaily ? BarChart : multiPlotType === 'line' ? LineChart : AreaChart);
 
   const data = [
     ...(currentSeriesNames.length > 0 ? currentSeriesNames : [t('Current')]),
@@ -236,14 +231,39 @@ function Chart({
   if (chartColors?.length && hasOther) {
     chartColors.push(theme.tokens.content.secondary);
   }
+  const timeframeXAxis = timeframe
+    ? {min: timeframe.start, max: timeframe.end}
+    : undefined;
+  const defaultYAxis = {
+    axisLabel: {
+      color: theme.tokens.content.secondary,
+      formatter: (value: number) => {
+        if (timeseriesResultsTypes) {
+          const outputType =
+            new Set(Object.values(timeseriesResultsTypes)).size === 1
+              ? timeseriesResultsTypes[yAxis]!
+              : 'number';
+          return axisLabelFormatterUsingAggregateOutputType(value, outputType);
+        }
+        return axisLabelFormatter(value, aggregateOutputType(yAxis));
+      },
+    },
+  };
+
+  const band = mergeDroppedDataBand(
+    {
+      grid: {left: '24px', right: '24px', top: '32px', bottom: 12},
+      xAxis: timeframeXAxis,
+      yAxes: [chartOptionsProp?.yAxis ?? defaultYAxis],
+      series: additionalSeries,
+    },
+    droppedDataBand,
+    droppedData?.onClick
+  );
+
   const chartOptions = {
     colors: chartColors,
-    grid: {
-      left: '24px',
-      right: '24px',
-      top: '32px',
-      bottom: '12px',
-    },
+    grid: band.grid,
     seriesOptions: {
       showSymbol: false,
     },
@@ -261,32 +281,13 @@ function Chart({
             ? tooltipFormatter(value, timeseriesResultsTypes[aggregateName])
             : tooltipFormatter(value, aggregateOutputType(aggregateName));
         }
-        return tooltipFormatter(value, 'number');
+        return tooltipFormatter(value);
       },
     },
-    xAxis: timeframe
-      ? {
-          min: timeframe.start,
-          max: timeframe.end,
-        }
-      : undefined,
-    yAxis: {
-      axisLabel: {
-        color: theme.tokens.content.secondary,
-        formatter: (value: number) => {
-          if (timeseriesResultsTypes) {
-            // Check to see if all series output types are the same. If not, then default to number.
-            const outputType =
-              new Set(Object.values(timeseriesResultsTypes)).size === 1
-                ? timeseriesResultsTypes[yAxis]!
-                : 'number';
-            return axisLabelFormatterUsingAggregateOutputType(value, outputType);
-          }
-          return axisLabelFormatter(value, aggregateOutputType(yAxis));
-        },
-      },
-    },
+    xAxis: band.xAxis,
+    yAxis: defaultYAxis,
     ...chartOptionsProp,
+    yAxes: band.yAxes.length > 1 ? band.yAxes : undefined,
     animation: typeof ChartComponent === typeof BarChart ? false : undefined,
   };
 
@@ -295,12 +296,14 @@ function Chart({
       {...props}
       {...zoomRenderProps}
       {...chartOptions}
+      ref={chartRef}
       legend={legend}
       onLegendSelectChanged={handleLegendSelectChanged}
+      onClick={band.onClick}
       series={series}
       previousPeriod={previousSeries ? previousSeries : undefined}
       height={height}
-      additionalSeries={additionalSeries}
+      additionalSeries={band.series}
     />
   );
 }
@@ -314,8 +317,8 @@ const ThemedChart = memo(withTheme(Chart), (prevProps, nextProps) => {
     isEqual(prevProps.timeseriesData, nextProps.timeseriesData) &&
     isEqual(prevProps.releaseSeries, nextProps.releaseSeries) &&
     isEqual(prevProps.previousTimeseriesData, nextProps.previousTimeseriesData) &&
-    isEqual(prevProps.tableData, nextProps.tableData) &&
-    isEqual(prevProps.additionalSeries, nextProps.additionalSeries)
+    isEqual(prevProps.additionalSeries, nextProps.additionalSeries) &&
+    isEqual(prevProps.droppedData, nextProps.droppedData)
   ) {
     return true;
   }
@@ -436,27 +439,13 @@ export type EventsChartProps = {
   | 'showLegend'
   | 'minutesThresholdToDisplaySeconds'
   | 'disableableSeries'
+  | 'droppedData'
   | 'legendOptions'
   | 'chartOptions'
   | 'chartComponent'
   | 'height'
   | 'fromDiscover'
 >;
-
-type ChartDataProps = {
-  errored: boolean;
-  loading: boolean;
-  reloading: boolean;
-  zoomRenderProps: ZoomRenderProps;
-  previousTimeseriesData?: Series[] | null;
-  releaseSeries?: Series[];
-  results?: Series[];
-  tableData?: TableDataWithTitle[];
-  timeframe?: {end: number; start: number};
-  timeseriesData?: Series[];
-  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-  topEvents?: number;
-};
 
 export function EventsChart(props: EventsChartProps) {
   const {
@@ -493,6 +482,7 @@ export function EventsChart(props: EventsChartProps) {
     preserveReleaseQueryParams,
     releaseQueryExtra,
     disableableSeries,
+    droppedData,
     chartComponent,
     usePageZoom,
     height,
@@ -525,90 +515,18 @@ export function EventsChart(props: EventsChartProps) {
 
   const intervalVal = showDaily ? '1d' : interval || getInterval(props, 'high');
 
-  let chartImplementation = ({
-    zoomRenderProps,
-    releaseSeries,
-    errored,
-    loading,
-    reloading,
-    results,
-    timeseriesData,
-    previousTimeseriesData,
-    timeframe,
-    tableData,
-    timeseriesResultsTypes,
-  }: ChartDataProps) => {
-    if (errored) {
-      return (
-        <ErrorPanel>
-          <IconWarning variant="muted" size="lg" />
-        </ErrorPanel>
-      );
-    }
-    const seriesData = results ? results : timeseriesData;
-
-    return (
-      <TransitionChart
-        loading={loading}
-        reloading={reloading || !!reloadingAdditionalSeries}
-        height={height ? `${height}px` : undefined}
-      >
-        <TransparentLoadingMask visible={reloading || !!reloadingAdditionalSeries} />
-
-        {isValidElement(chartHeader) && chartHeader}
-
-        <ThemedChart
-          forceChartType={forceChartType}
-          zoomRenderProps={zoomRenderProps}
-          loading={loading || !!loadingAdditionalSeries}
-          reloading={reloading || !!reloadingAdditionalSeries}
-          showLegend={showLegend}
-          minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
-          releaseSeries={releaseSeries || []}
-          timeseriesData={seriesData ?? []}
-          previousTimeseriesData={previousTimeseriesData}
-          currentSeriesNames={currentSeriesNames}
-          previousSeriesNames={previousSeriesNames}
-          seriesTransformer={seriesTransformer}
-          additionalSeries={additionalSeries}
-          previousSeriesTransformer={previousSeriesTransformer}
-          stacked={isStacked}
-          yAxis={yAxisArray[0]!}
-          showDaily={showDaily}
-          colors={colors}
-          legendOptions={legendOptions}
-          chartOptions={chartOptions}
-          disableableSeries={disableableSeries}
-          chartComponent={chartComponent}
-          height={height}
-          timeframe={timeframe}
-          topEvents={topEvents}
-          tableData={tableData ?? []}
-          fromDiscover={fromDiscover}
-          timeseriesResultsTypes={timeseriesResultsTypes}
-        />
-      </TransitionChart>
-    );
-  };
-
-  if (!disableReleases) {
-    const previousChart = chartImplementation;
-    chartImplementation = chartProps => (
-      <ReleaseSeries
-        utc={utc}
-        period={period}
-        start={start}
-        end={end}
-        projects={projects}
-        environments={environments}
-        emphasizeReleases={emphasizeReleases}
-        preserveQueryParams={preserveReleaseQueryParams}
-        queryExtra={releaseQueryExtra}
-      >
-        {({releaseSeries}) => previousChart({...chartProps, releaseSeries})}
-      </ReleaseSeries>
-    );
-  }
+  const {releaseSeries} = useReleaseSeries({
+    utc,
+    period,
+    start,
+    end,
+    projects,
+    environments,
+    emphasizeReleases,
+    preserveQueryParams: preserveReleaseQueryParams,
+    queryExtra: releaseQueryExtra,
+    enabled: !disableReleases,
+  });
 
   return (
     <ChartZoom
@@ -644,10 +562,71 @@ export function EventsChart(props: EventsChartProps) {
             dataset={dataset}
           >
             {eventData => {
-              return chartImplementation({
-                ...eventData,
-                zoomRenderProps,
-              });
+              const {
+                errored,
+                loading,
+                reloading,
+                results,
+                timeseriesData,
+                previousTimeseriesData,
+                timeframe,
+                timeseriesResultsTypes,
+              } = eventData;
+
+              if (errored) {
+                return (
+                  <ErrorPanel>
+                    <IconWarning variant="muted" size="lg" />
+                  </ErrorPanel>
+                );
+              }
+
+              const seriesData = results ?? timeseriesData;
+
+              return (
+                <TransitionChart
+                  loading={loading || !!loadingAdditionalSeries}
+                  reloading={reloading || !!reloadingAdditionalSeries}
+                  height={height ? `${height}px` : undefined}
+                >
+                  <TransparentLoadingMask
+                    visible={reloading || !!reloadingAdditionalSeries}
+                  />
+
+                  {isValidElement(chartHeader) && chartHeader}
+
+                  <ThemedChart
+                    forceChartType={forceChartType}
+                    zoomRenderProps={zoomRenderProps}
+                    loading={loading || !!loadingAdditionalSeries}
+                    reloading={reloading || !!reloadingAdditionalSeries}
+                    showLegend={showLegend}
+                    minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
+                    releaseSeries={releaseSeries}
+                    timeseriesData={seriesData ?? []}
+                    previousTimeseriesData={previousTimeseriesData}
+                    currentSeriesNames={currentSeriesNames}
+                    previousSeriesNames={previousSeriesNames}
+                    seriesTransformer={seriesTransformer}
+                    additionalSeries={additionalSeries}
+                    previousSeriesTransformer={previousSeriesTransformer}
+                    stacked={isStacked}
+                    yAxis={yAxisArray[0]!}
+                    showDaily={showDaily}
+                    colors={colors}
+                    legendOptions={legendOptions}
+                    chartOptions={chartOptions}
+                    disableableSeries={disableableSeries}
+                    droppedData={droppedData}
+                    chartComponent={chartComponent}
+                    height={height}
+                    timeframe={timeframe}
+                    topEvents={topEvents}
+                    fromDiscover={fromDiscover}
+                    timeseriesResultsTypes={timeseriesResultsTypes}
+                  />
+                </TransitionChart>
+              );
             }}
           </EventsRequest>
         );

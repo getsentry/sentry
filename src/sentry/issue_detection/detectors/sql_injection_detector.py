@@ -6,7 +6,11 @@ from collections.abc import Sequence
 from typing import Any
 
 from sentry.issue_detection.base import DetectorType, PerformanceDetector
-from sentry.issue_detection.detectors.utils import get_notification_attachment_body
+from sentry.issue_detection.detectors.utils import (
+    get_notification_attachment_body,
+    get_span_description,
+    is_redis_span,
+)
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issue_detection.types import Span
 from sentry.issues.grouptype import QueryInjectionVulnerabilityGroupType
@@ -93,9 +97,15 @@ class SQLInjectionDetector(PerformanceDetector):
         First, any pairs where the key and value are the same are ignored. This is so that when we look for user inputs in the description, we don't match on the key.
         Second, if the value is a SQL keyword, it is ignored. For example, we don't want to match on the value "SELECT".
         """
-        self.query_string = event.get("request", {}).get("query_string", None)
-        self.request_body = event.get("request", {}).get("data", None)
-        self.request_url = event.get("request", {}).get("url", None)
+        # Use `or {}` rather than `.get("request", {})` because some SDKs (e.g.
+        # the Next.js SDK for server actions) explicitly send `"request": null`
+        # when there is no HTTP request context. `dict.get(key, default)` only
+        # falls back to the default when the key is *absent*; it still returns
+        # `None` when the key is present with a null value.
+        request = event.get("request") or {}
+        self.query_string = request.get("query_string", None)
+        self.request_body = request.get("data", None)
+        self.request_url = request.get("url", None)
 
         if not self.query_string and not self.request_body:
             return
@@ -132,9 +142,10 @@ class SQLInjectionDetector(PerformanceDetector):
         self.request_parameters = valid_parameters
 
     def visit_span(self, span: Span) -> None:
-        if not self._is_span_eligible(span) or not self.request_parameters:
+        # Check the event-level parameters first: free, unlike the span regexes.
+        if not self.request_parameters or not self._is_span_eligible(span):
             return
-        description = span.get("description") or ""
+        description = get_span_description(span)
         op = span.get("op") or ""
         spans_involved = [span["span_id"]]
         vulnerable_parameters = []
@@ -221,12 +232,7 @@ class SQLInjectionDetector(PerformanceDetector):
         op = span.get("op", None)
 
         # If the span is not a database span, we can skip the detection. `db.sql.active_record` is known to cause false positives so it is excluded.
-        if (
-            not op
-            or not op.startswith("db")
-            or op.startswith("db.redis")
-            or op == "db.sql.active_record"
-        ):
+        if not op or not op.startswith("db") or is_redis_span(span) or op == "db.sql.active_record":
             return False
 
         # Auto-generated rails queries can contain interpolated values
@@ -241,12 +247,11 @@ class SQLInjectionDetector(PerformanceDetector):
         if span_data and span_data.get("db.sql.bindings"):
             return False
 
-        description = span.get("description", None)
+        description = get_span_description(span)
         if not description:
             return False
 
         # Only look at SELECT queries that have a WHERE clause and don't have any parameterized keywords
-        description = description.strip()
         if (
             description[:6].upper() != "SELECT"
             or "WHERE" not in description.upper()

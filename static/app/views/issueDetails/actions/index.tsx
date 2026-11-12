@@ -1,41 +1,35 @@
 import type {MouseEvent} from 'react';
 import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconClock} from '@sentry/icons/clock';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconSubscribed} from '@sentry/icons/subscribed';
+import {IconUnsubscribed} from '@sentry/icons/unsubscribed';
+import {IconUpload} from '@sentry/icons/upload';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {toast} from '@sentry/scraps/toast';
 
 import {bulkDelete, bulkUpdate} from 'sentry/actionCreators/group';
-import {
-  addLoadingMessage,
-  addSuccessMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openReprocessEventModal} from 'sentry/actionCreators/modal';
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {ArchiveActions} from 'sentry/components/actions/archive';
 import {ResolveActions} from 'sentry/components/actions/resolve';
-import {renderArchiveReason} from 'sentry/components/archivedBox';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
-import {openConfirmModal} from 'sentry/components/confirm';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {ResolutionReason} from 'sentry/components/resolutionBox';
-import {
-  IconCheckmark,
-  IconClock,
-  IconCopy,
-  IconEllipsis,
-  IconSubscribed,
-  IconUnsubscribed,
-  IconUpload,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import type {Event} from 'sentry/types/event';
@@ -43,28 +37,35 @@ import type {Group, GroupStatusResolution, MarkReviewed} from 'sentry/types/grou
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 import {getAnalyticsDataForGroup, getMessage, getTitle} from 'sentry/utils/events';
 import {getStacktraceBody} from 'sentry/utils/getStacktraceBody';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {isVersionInfoSemver} from 'sentry/views/explore/releases/utils';
-import {SeerCommandPaletteActions} from 'sentry/views/issueDetails/actions/seerCommandPaletteActions';
-import {ShareIssueModal} from 'sentry/views/issueDetails/actions/shareModal';
-import {SubscribeAction} from 'sentry/views/issueDetails/actions/subscribeAction';
 import {discardIssueMutationOptions} from 'sentry/views/issueDetails/discardIssueMutationOptions';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {GroupPriorityCommandPaletteAction} from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderAssigneeCommandPaletteAction} from 'sentry/views/issueDetails/header/assigneeSelector';
-import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
+import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {useProjectReleaseVersionIsSemver} from 'sentry/views/issueDetails/useProjectReleaseVersionIsSemver';
-import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
+import {
+  getGroupReprocessingStatus,
+  ReprocessingStatus,
+} from 'sentry/views/issueDetails/utils';
+
+import {SeerCommandPaletteActions} from './seerCommandPaletteActions';
+import {ShareIssueModal} from './shareModal';
+import {StatusBanner} from './statusBanner';
+import {SubscribeAction} from './subscribeAction';
 
 type UpdateData =
   | {isBookmarked: boolean; inbox?: boolean}
@@ -100,52 +101,157 @@ const getUpdateSuccessMessage = (group: Group, data: UpdateData) => {
 };
 
 interface GroupActionsProps {
-  disabled: boolean;
   event: Event | null;
   group: Group;
   project: Project;
 }
 
-export function GroupActions({group, project, disabled, event}: GroupActionsProps) {
+interface GroupResolutionActionsProps extends GroupActionsProps {
+  disabled: boolean;
+  onUpdate: (data: GroupStatusResolution) => void;
+  variant?: 'primary' | 'secondary';
+}
+
+export function GroupResolutionActions({
+  disabled,
+  event,
+  group,
+  onUpdate,
+  project,
+  variant = 'primary',
+}: GroupResolutionActionsProps) {
+  const hasRelease = !!project.features?.includes('releases');
+  const eventReleaseVersion = event?.release?.versionInfo?.version;
+  const projectHasSemverRelease = useProjectReleaseVersionIsSemver({
+    version: project.latestRelease?.version,
+    enabled: !eventReleaseVersion,
+  });
+  const hasSemverReleaseFeature = eventReleaseVersion
+    ? isVersionInfoSemver(eventReleaseVersion)
+    : projectHasSemverRelease;
+  const config = useMemo(() => getConfigForIssueType(group, project), [group, project]);
+  const {resolve: resolveCap, resolveInRelease: resolveInReleaseCap} = config.actions;
+
+  if (group.status === GroupStatus.RESOLVED) {
+    return resolveCap.enabled ? (
+      <Button
+        size="sm"
+        disabled={disabled}
+        onClick={() =>
+          onUpdate({
+            status: GroupStatus.UNRESOLVED,
+            statusDetails: {},
+            substatus: GroupSubstatus.ONGOING,
+          })
+        }
+      >
+        {t('Unresolve')}
+      </Button>
+    ) : null;
+  }
+
+  if (group.status === GroupStatus.IGNORED) {
+    return (
+      <Button
+        size="sm"
+        disabled={disabled}
+        onClick={() =>
+          onUpdate({
+            status: GroupStatus.UNRESOLVED,
+            statusDetails: {},
+            substatus: GroupSubstatus.ONGOING,
+          })
+        }
+      >
+        {t('Unarchive')}
+      </Button>
+    );
+  }
+
+  if (!resolveCap.enabled) {
+    return null;
+  }
+
+  return (
+    <ResolveActions
+      disableResolveInRelease={!resolveInReleaseCap.enabled}
+      disabled={disabled}
+      disableDropdown={disabled}
+      hasRelease={hasRelease}
+      latestRelease={project.latestRelease}
+      hasSemverReleaseFeature={hasSemverReleaseFeature}
+      onUpdate={onUpdate}
+      project={project}
+      size="sm"
+      variant={variant}
+    />
+  );
+}
+
+export function GroupActions({
+  group,
+  project,
+  event,
+  onUpdateSuccess,
+  resolveVariant = 'primary',
+}: GroupActionsProps & {
+  onUpdateSuccess?: () => void;
+  resolveVariant?: 'primary' | 'secondary';
+}) {
+  const disabled = [
+    ReprocessingStatus.REPROCESSING,
+    ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
+  ].includes(getGroupReprocessingStatus(group));
   const {openModal} = useModal();
 
   const theme = useTheme();
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   const navigate = useNavigate();
-  const location = useLocation();
+  const [{alert_date, alert_rule_id, alert_type}] = useQueryStates({
+    alert_date: parseAsString,
+    alert_rule_id: parseAsString,
+    alert_type: parseAsString,
+  });
   const queryClient = useQueryClient();
-  const environments = useEnvironmentsFromUrl();
   const {mutate: discardIssue} = useMutation(discardIssueMutationOptions({navigate}));
+  const {mutate: assessImpact, isPending: isAssessingImpact} = useMutation({
+    mutationFn: () =>
+      fetchMutation<{runId: string}>({
+        method: 'POST',
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/issues/$issueId/impact/assess/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              issueId: group.id,
+            },
+          }
+        ),
+      }),
+    onMutate: () => {
+      toast.loading(t('Starting impact assessment\u2026'));
+    },
+    onSuccess: () => {
+      toast.dismiss();
+      toast.success(t('Impact assessment started'));
+    },
+    onError: () => {
+      toast.dismiss();
+      toast.error(t('Unable to start impact assessment'));
+    },
+  });
 
   const bookmarkKey = group.isBookmarked ? 'unbookmark' : 'bookmark';
   const bookmarkTitle = group.isBookmarked ? t('Remove bookmark') : t('Bookmark');
-  const hasRelease = !!project.features?.includes('releases');
-
-  const eventReleaseVersion = event?.release?.versionInfo?.version;
-
-  const projHasSemverRelease = useProjectReleaseVersionIsSemver({
-    version: project.latestRelease?.version,
-    enabled: !eventReleaseVersion,
-  });
-
-  const hasSemverRelease = eventReleaseVersion
-    ? isVersionInfoSemver(eventReleaseVersion)
-    : projHasSemverRelease;
-
-  const hasSemverReleaseFeature = hasSemverRelease;
-
   const isResolved = group.status === 'resolved';
-  const isAutoResolved =
-    group.status === 'resolved' ? group.statusDetails.autoResolved : undefined;
   const isIgnored = group.status === 'ignored';
   const hasDeleteAccess = organization.access.includes('event:admin');
 
   const config = useMemo(() => getConfigForIssueType(group, project), [group, project]);
   const issueCommandLabel = useMemo(() => {
-    const {title: rawIssueTitle} = getTitle(group);
-    const title = rawIssueTitle ?? '';
-    const message = getMessage(group);
+    const title = stripAnsi(getTitle(group).title ?? '');
+    const message = stripAnsi(getMessage(group) ?? '');
     return message && message !== title ? `${title}: ${message}` : title;
   }, [group]);
 
@@ -163,7 +269,6 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
       delete: deleteCap,
       deleteAndDiscard: deleteDiscardCap,
       resolve: resolveCap,
-      resolveInRelease: resolveInReleaseCap,
       share: shareCap,
     },
     customCopy: {resolution: resolvedCopyCap},
@@ -181,78 +286,46 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     substatus?: GroupSubstatus | null,
     statusDetailsKey?: string
   ) => {
-    const {alert_date, alert_rule_id, alert_type} = location.query;
     trackAnalytics('issue_details.action_clicked', {
       organization,
       action_type: action,
       action_substatus: substatus ?? undefined,
       action_status_details: statusDetailsKey,
       // Alert properties track if the user came from email/slack alerts
-      alert_date:
-        typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
-      alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
-      alert_type: typeof alert_type === 'string' ? alert_type : undefined,
+      alert_date: alert_date === null ? undefined : getUtcDateString(Number(alert_date)),
+      alert_rule_id: alert_rule_id ?? undefined,
+      alert_type: alert_type ?? undefined,
       ...getAnalyticsDataForGroup(group),
       ...getAnalyicsDataForProject(project),
       org_streamline_only: organization.streamlineOnly ?? undefined,
     });
   };
 
-  const onDelete = () => {
-    addLoadingMessage(t('Delete event\u2026'));
-
-    bulkDelete(
-      api,
-      {
-        orgId: organization.slug,
-        projectId: project.slug,
-        itemIds: [group.id],
-      },
-      {
-        complete: () => {
-          clearIndicators();
-
-          addSuccessMessage(t('Issue deleted'));
-          navigate({
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query: {project: project.id},
-          });
-        },
-      }
-    );
-
+  const onDelete = async () => {
+    toast.loading(t('Delete event\u2026'));
     trackIssueAction('deleted');
     IssueListCacheStore.reset();
-  };
 
-  const onUpdate = (data: UpdateData, onComplete?: () => void) => {
-    const successMessage = getUpdateSuccessMessage(group, data);
-
-    bulkUpdate(
-      api,
-      {
+    try {
+      await bulkDelete(api, {
         orgId: organization.slug,
         projectId: project.slug,
         itemIds: [group.id],
-        data,
-      },
-      {
-        complete: () => {
-          clearIndicators();
-          if (successMessage) {
-            addSuccessMessage(successMessage);
-          }
-          onComplete?.();
-          queryClient.invalidateQueries({
-            queryKey: groupApiOptions({
-              organizationSlug: organization.slug,
-              groupId: group.id,
-              environments,
-            }).queryKey,
-          });
-        },
-      }
-    );
+      });
+      toast.dismiss();
+
+      toast.success(t('Issue deleted'));
+      navigate({
+        pathname: `/organizations/${organization.slug}/issues/`,
+        query: {project: project.id},
+      });
+    } catch {
+      // GroupStore already shows the error
+    }
+  };
+
+  const onUpdate = async (data: UpdateData, onComplete?: () => void) => {
+    const successMessage = getUpdateSuccessMessage(group, data);
 
     if (isResolutionStatus(data)) {
       trackIssueAction(
@@ -265,6 +338,31 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
       trackIssueAction('mark_reviewed');
     }
     IssueListCacheStore.reset();
+
+    try {
+      await bulkUpdate(api, {
+        orgId: organization.slug,
+        projectId: project.slug,
+        itemIds: [group.id],
+        data,
+      });
+      toast.dismiss();
+      if (successMessage) {
+        toast.success(successMessage);
+      }
+      onComplete?.();
+      onUpdateSuccess?.();
+    } catch {
+      // GroupStore already shows the error
+      // oxlint-disable-next-line react/todo
+    } finally {
+      queryClient.invalidateQueries({
+        queryKey: groupQueryKey({
+          organizationSlug: organization.slug,
+          groupId: group.id,
+        }),
+      });
+    }
   };
 
   const onReprocessEvent = () => {
@@ -284,7 +382,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   const onToggleBookmark = () => {
     onUpdate({isBookmarked: !group.isBookmarked}, () => {
       trackIssueAction('bookmarked');
-      addSuccessMessage(
+      toast.success(
         group.isBookmarked ? t('Issue bookmark removed') : t('Issue bookmarked')
       );
     });
@@ -293,7 +391,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   const onToggleSubscribe = () => {
     onUpdate({isSubscribed: !group.isSubscribed}, () => {
       trackIssueAction('subscribed');
-      addSuccessMessage(
+      toast.success(
         group.isSubscribed ? t('Unsubscribed from issue') : t('Subscribed to issue')
       );
     });
@@ -434,7 +532,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
                 }
               />
             )}
-            {isResolved && resolveCap.enabled && !isAutoResolved && (
+            {isResolved && resolveCap.enabled && (
               <CMDKAction
                 display={{label: t('Unresolve'), icon: <IconCheckmark />}}
                 onAction={() =>
@@ -481,78 +579,32 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
       <Flex align="center" gap="xs">
         {isResolved || isIgnored ? (
           <Flex align="center" gap="md">
-            <ResolvedWrapper>
-              <IconCheckmark size="md" />
-              <Flex direction="column">
-                {isResolved ? resolvedCopyCap || t('Resolved') : t('Archived')}
-                <ReasonBanner>
-                  {group.status === 'resolved' ? (
-                    <ResolutionReason
-                      statusDetails={group.statusDetails}
-                      activities={group.activity}
-                      project={project}
-                    />
-                  ) : null}
-                  {group.status === 'ignored'
-                    ? renderArchiveReason({
-                        substatus: group.substatus,
-                        statusDetails: group.statusDetails,
-                      })
-                    : null}
-                </ReasonBanner>
-              </Flex>
-            </ResolvedWrapper>
+            <StatusBanner
+              group={group}
+              project={project}
+              resolvedCopy={resolvedCopyCap}
+            />
 
             <Divider />
-            {resolveCap.enabled && isResolved && (
-              <Button
-                size="sm"
-                disabled={disabled || isAutoResolved}
-                onClick={() =>
-                  onUpdate({
-                    status: GroupStatus.UNRESOLVED,
-                    statusDetails: {},
-                    substatus: GroupSubstatus.ONGOING,
-                  })
-                }
-              >
-                {t('Unresolve')}
-              </Button>
-            )}
-            {isIgnored && (
-              <Button
-                size="sm"
-                disabled={disabled || isAutoResolved}
-                onClick={() =>
-                  onUpdate({
-                    status: GroupStatus.UNRESOLVED,
-                    statusDetails: {},
-                    substatus: GroupSubstatus.ONGOING,
-                  })
-                }
-              >
-                {t('Unarchive')}
-              </Button>
-            )}
+            <GroupResolutionActions
+              disabled={disabled}
+              event={event}
+              group={group}
+              onUpdate={onUpdate}
+              project={project}
+              variant={resolveVariant}
+            />
           </Flex>
         ) : (
           <Fragment>
-            {resolveCap.enabled && (
-              <ResolveActions
-                disableResolveInRelease={!resolveInReleaseCap.enabled}
-                disabled={disabled}
-                disableDropdown={disabled}
-                hasRelease={hasRelease}
-                latestRelease={project.latestRelease}
-                hasSemverReleaseFeature={hasSemverReleaseFeature}
-                onUpdate={onUpdate}
-                projectSlug={project.slug}
-                isResolved={isResolved}
-                isAutoResolved={isAutoResolved}
-                size="sm"
-                priority="primary"
-              />
-            )}
+            <GroupResolutionActions
+              disabled={disabled}
+              event={event}
+              group={group}
+              onUpdate={onUpdate}
+              project={project}
+              variant={resolveVariant}
+            />
             <ArchiveActions
               size="sm"
               isArchived={isIgnored}
@@ -581,13 +633,26 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
           analyticsEventName="Issue Details: Share Action Clicked"
         />
         <DropdownMenu
-          triggerProps={{
-            'aria-label': t('More Actions'),
-            icon: <IconEllipsis />,
-            showChevron: false,
-            size: 'sm',
-          }}
+          trigger={triggerProps => (
+            <OverlayTrigger.IconButton
+              {...triggerProps}
+              aria-label={t('More Actions')}
+              icon={<IconEllipsis />}
+              size="sm"
+            />
+          )}
           items={[
+            {
+              key: 'impact-assessment',
+              label: t('Assess impact'),
+              trailingItems: <FeatureBadge type="alpha" />,
+              hidden: !organization.features.includes('seer-impact-assessment'),
+              disabled: disabled || isAssessingImpact,
+              details: isAssessingImpact
+                ? t('Impact assessment is being started')
+                : undefined,
+              onAction: () => assessImpact(),
+            },
             {
               key: 'mark-review',
               label: t('Mark reviewed'),
@@ -632,18 +697,3 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     </Fragment>
   );
 }
-
-const ResolvedWrapper = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.lg};
-  align-items: center;
-  color: ${p => p.theme.colors.green500};
-  font-weight: bold;
-  font-size: ${p => p.theme.font.size.lg};
-`;
-
-const ReasonBanner = styled('div')`
-  font-weight: normal;
-  color: ${p => p.theme.colors.green500};
-  font-size: ${p => p.theme.font.size.sm};
-`;

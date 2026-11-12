@@ -1,8 +1,7 @@
 import {useEffect, useMemo} from 'react';
 import type {mat3} from 'gl-matrix';
 
-import type {CanvasView} from 'sentry/utils/profiling/canvasView';
-
+import type {CanvasView} from './canvasView';
 import type {FlamegraphFrame} from './flamegraphFrame';
 import type {SpanChartNode} from './spanChart';
 import type {Rect} from './speedscope';
@@ -39,15 +38,15 @@ export class CanvasScheduler {
   requestAnimationFrame: number | null = null;
 
   events: EventStore = {
-    ['show in table view']: new Set<FlamegraphEvents['show in table view']>(),
-    ['reset zoom']: new Set<FlamegraphEvents['reset zoom']>(),
-    ['highlight frame']: new Set<FlamegraphEvents['highlight frame']>(),
-    ['highlight span']: new Set<FlamegraphEvents['highlight span']>(),
-    ['highlight ui frame']: new Set<FlamegraphEvents['highlight ui frame']>(),
-    ['set config view']: new Set<FlamegraphEvents['set config view']>(),
-    ['transform config view']: new Set<FlamegraphEvents['transform config view']>(),
-    ['zoom at frame']: new Set<FlamegraphEvents['zoom at frame']>(),
-    ['zoom at span']: new Set<FlamegraphEvents['zoom at span']>(),
+    'show in table view': new Set<FlamegraphEvents['show in table view']>(),
+    'reset zoom': new Set<FlamegraphEvents['reset zoom']>(),
+    'highlight frame': new Set<FlamegraphEvents['highlight frame']>(),
+    'highlight span': new Set<FlamegraphEvents['highlight span']>(),
+    'highlight ui frame': new Set<FlamegraphEvents['highlight ui frame']>(),
+    'set config view': new Set<FlamegraphEvents['set config view']>(),
+    'transform config view': new Set<FlamegraphEvents['transform config view']>(),
+    'zoom at frame': new Set<FlamegraphEvents['zoom at frame']>(),
+    'zoom at span': new Set<FlamegraphEvents['zoom at span']>(),
   };
 
   onDispose(cb: () => void): void {

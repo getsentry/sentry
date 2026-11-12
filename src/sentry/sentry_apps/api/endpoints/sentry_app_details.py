@@ -27,6 +27,7 @@ from sentry.apidocs.response_types import (
     as_validation_errors,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id, require_user
 from sentry.auth.staff import is_active_staff
 from sentry.constants import SentryAppStatus
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
@@ -44,8 +45,7 @@ from sentry.sentry_apps.installations import SentryAppInstallationNotifier
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
-from sentry.users.models.user import User
-from sentry.users.services.user.model import RpcUser
+from sentry.sentry_apps.utils.webhooks import has_error_events
 from sentry.utils.audit import create_audit_entry
 
 logger = logging.getLogger(__name__)
@@ -74,6 +74,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (SentryAppDetailsEndpointPermission,)
     allow_disabled_sentry_app_for_methods = {"DELETE", "PUT", "GET"}
 
@@ -139,7 +140,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         )
         if (
             owner_context
-            and self._has_hook_events(request)
+            and has_error_events(request.data.get("events"))
             and not features.has(
                 "organizations:integrations-event-hooks",
                 owner_context.organization,
@@ -170,7 +171,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         if serializer.is_valid():
             result = serializer.validated_data
 
-            assert isinstance(request.user, (User, RpcUser)), (
+            assert request.user.is_authenticated, (
                 "User must be authenticated to update a Sentry App"
             )
             updated_app = SentryAppUpdater(
@@ -208,7 +209,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 name = "sentry_app.schema_validation_error"
                 log_info = {
                     "schema": orjson.dumps(request.data["schema"]).decode(),
-                    "user_id": request.user.id,
+                    "user_id": acting_user_id(request.user),
                     "sentry_app_id": sentry_app.id,
                     "sentry_app_name": sentry_app.name,
                     "organization_id": sentry_app.owner_id,
@@ -218,7 +219,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 analytics.record(
                     SentryAppSchemaValidationError(
                         schema=orjson.dumps(request.data["schema"]).decode(),
-                        user_id=request.user.id,
+                        user_id=acting_user_id(request.user),
                         sentry_app_id=sentry_app.id,
                         sentry_app_name=sentry_app.name,
                         organization_id=sentry_app.owner_id,
@@ -237,11 +238,12 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         responses={204: RESPONSE_NO_CONTENT, 403: RESPONSE_FORBIDDEN},
     )
     def delete(
-        self, request: Request, sentry_app
+        self, request: Request, sentry_app: SentryApp
     ) -> Response[None] | Response[DetailResponse] | Response[_PublishedAppErrorResponse]:
         """
         Delete a custom integration.
         """
+        user = require_user(request)
         if sentry_app.metadata.get("partnership_restricted", False):
             return Response(
                 {"detail": PARTNERSHIP_RESTRICTED_ERROR_MESSAGE},
@@ -252,11 +254,10 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 for install in sentry_app.installations.all():
                     try:
                         with transaction.atomic(using=router.db_for_write(SentryAppInstallation)):
-                            assert request.user.is_authenticated, (
-                                "User must be authenticated to delete installation"
-                            )
                             SentryAppInstallationNotifier(
-                                sentry_app_installation=install, user=request.user, action="deleted"
+                                sentry_app_installation=install,
+                                user=user,
+                                action="deleted",
                             ).run()
                     except RequestException as exc:
                         sentry_sdk.capture_exception(exc)
@@ -272,20 +273,13 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                     data={"sentry_app": sentry_app.name},
                     transaction_id=scheduled.id,
                 )
-            if request.user.is_authenticated:
-                analytics.record(
-                    SentryAppDeletedEvent(
-                        user_id=request.user.id,
-                        organization_id=sentry_app.owner_id,
-                        sentry_app=sentry_app.slug,
-                    )
+            analytics.record(
+                SentryAppDeletedEvent(
+                    user_id=user.id,
+                    organization_id=sentry_app.owner_id,
+                    sentry_app=sentry_app.slug,
                 )
+            )
             return Response(status=204)
 
         return Response({"detail": ["Published apps cannot be removed."]}, status=403)
-
-    def _has_hook_events(self, request: Request):
-        if not request.data.get("events"):
-            return False
-
-        return "error" in request.data["events"]

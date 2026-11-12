@@ -6,11 +6,12 @@ various backends to see if their external behavior makes sense, and that e.g.
 the mock indexer actually behaves the same as the postgres indexer.
 """
 
-from collections.abc import Mapping
+from collections.abc import Generator, Mapping
+from typing import cast
 
 import pytest
 
-from sentry.sentry_metrics.indexer.base import FetchType, FetchTypeExt, Metadata
+from sentry.sentry_metrics.indexer.base import FetchType, FetchTypeExt, Metadata, StringIndexer
 from sentry.sentry_metrics.indexer.cache import (
     BULK_RECORD_CACHE_NAMESPACE,
     CachingIndexer,
@@ -27,21 +28,21 @@ BACKENDS = [
     pytest.param(PGStringIndexerV2, marks=pytest.mark.django_db),
 ]
 
-USE_CASE_IDS = [UseCaseID.SESSIONS, UseCaseID.TRANSACTIONS]
+USE_CASE_IDS = [UseCaseID.SESSIONS]
 
 
 @pytest.fixture(params=BACKENDS)
-def indexer_cls(request):
+def indexer_cls(request: pytest.FixtureRequest) -> type[StringIndexer]:
     return request.param
 
 
 @pytest.fixture
-def indexer(indexer_cls):
+def indexer(indexer_cls: type[StringIndexer]) -> StringIndexer:
     return indexer_cls()
 
 
 @pytest.fixture
-def indexer_cache():
+def indexer_cache() -> Generator[StringIndexerCache]:
     indexer_cache = StringIndexerCache(
         cache_name="default",
         partition_key="test",
@@ -53,24 +54,24 @@ def indexer_cache():
 
 
 @pytest.fixture(params=USE_CASE_IDS)
-def use_case_id(request):
+def use_case_id(request: pytest.FixtureRequest) -> UseCaseID:
     return request.param
 
 
 @pytest.fixture
-def writes_limiter_option_name(use_case_id):
-    if use_case_id is UseCaseID.SESSIONS:
-        return "sentry-metrics.writes-limiter.limits.releasehealth"
-    return "sentry-metrics.writes-limiter.limits.performance"
+def writes_limiter_option_name(use_case_id: UseCaseID) -> str:
+    return "sentry-metrics.writes-limiter.limits.releasehealth"
 
 
 def assert_fetch_type_for_tag_string_set(
     meta: Mapping[str, Metadata], fetch_type: FetchType, str_set: set[str]
-):
+) -> None:
     assert all([meta[string].fetch_type == fetch_type for string in str_set])
 
 
-def test_static_and_non_static_strings_release_health(indexer, use_case_id) -> None:
+def test_static_and_non_static_strings_release_health(
+    indexer: StringIndexer, use_case_id: UseCaseID
+) -> None:
     static_indexer = StaticStringIndexer(indexer)
     strings = {
         use_case_id: {
@@ -100,112 +101,9 @@ def test_static_and_non_static_strings_release_health(indexer, use_case_id) -> N
     assert_fetch_type_for_tag_string_set(meta[use_case_id][3], FetchType.FIRST_SEEN, {"2.0.0"})
 
 
-def test_static_and_non_static_strings_generic_metrics(indexer) -> None:
-    static_indexer = StaticStringIndexer(indexer)
-    strings = {
-        UseCaseID.TRANSACTIONS: {
-            1: {"production", "environment", "BBB", "CCC"},
-            2: {"AAA", "release", "1.0.0"},
-            3: {"production", "environment", "release", "AAA", "BBB"},
-            4: {"EEE"},
-        },
-        UseCaseID.SPANS: {
-            3: {"production", "environment", "BBB", "CCC"},
-            4: {"AAA", "release", "1.0.0"},
-            5: {"production", "environment", "release", "AAA", "BBB"},
-            6: {"EEE"},
-        },
-    }
-    static_string_params = [
-        (UseCaseID.TRANSACTIONS, 1, "production"),
-        (UseCaseID.TRANSACTIONS, 1, "environment"),
-        (UseCaseID.TRANSACTIONS, 2, "release"),
-        (UseCaseID.TRANSACTIONS, 3, "production"),
-        (UseCaseID.TRANSACTIONS, 3, "environment"),
-        (UseCaseID.TRANSACTIONS, 3, "release"),
-        (UseCaseID.SPANS, 3, "production"),
-        (UseCaseID.SPANS, 3, "environment"),
-        (UseCaseID.SPANS, 4, "release"),
-        (UseCaseID.SPANS, 5, "production"),
-        (UseCaseID.SPANS, 5, "environment"),
-        (UseCaseID.SPANS, 5, "release"),
-    ]
-    first_seen_strings_params = [
-        (UseCaseID.TRANSACTIONS, 1, "BBB"),
-        (UseCaseID.TRANSACTIONS, 1, "CCC"),
-        (UseCaseID.TRANSACTIONS, 2, "AAA"),
-        (UseCaseID.TRANSACTIONS, 2, "1.0.0"),
-        (UseCaseID.TRANSACTIONS, 3, "AAA"),
-        (UseCaseID.TRANSACTIONS, 3, "BBB"),
-        (UseCaseID.TRANSACTIONS, 4, "EEE"),
-        (UseCaseID.SPANS, 3, "BBB"),
-        (UseCaseID.SPANS, 3, "CCC"),
-        (UseCaseID.SPANS, 4, "AAA"),
-        (UseCaseID.SPANS, 4, "1.0.0"),
-        (UseCaseID.SPANS, 5, "AAA"),
-        (UseCaseID.SPANS, 5, "BBB"),
-        (UseCaseID.SPANS, 6, "EEE"),
-    ]
-    with override_options(
-        {
-            "sentry-metrics.writes-limiter.limits.spans.global": [],
-            "sentry-metrics.writes-limiter.limits.spans.per-org": [],
-        },
-    ):
-        results = static_indexer.bulk_record(strings=strings)
-
-    first_seen_strings = {}
-    for params in first_seen_strings_params:
-        first_seen_strings[params] = static_indexer.resolve(*params)
-
-    for use_case_id, org_id, string in static_string_params:
-        assert results[use_case_id][org_id][string] == SHARED_STRINGS[string]
-
-    for (use_case_id, org_id, string), id in first_seen_strings.items():
-        assert results[use_case_id][org_id][string] == id
-
-    meta = results.get_fetch_metadata()
-
-    assert_fetch_type_for_tag_string_set(
-        meta[UseCaseID.TRANSACTIONS][1], FetchType.HARDCODED, {"production", "environment"}
-    )
-    assert_fetch_type_for_tag_string_set(
-        meta[UseCaseID.TRANSACTIONS][2],
-        FetchType.HARDCODED,
-        {"release"},
-    )
-    assert_fetch_type_for_tag_string_set(
-        meta[UseCaseID.TRANSACTIONS][3],
-        FetchType.HARDCODED,
-        {"release", "production", "environment"},
-    )
-    assert_fetch_type_for_tag_string_set(
-        meta[UseCaseID.TRANSACTIONS][3],
-        FetchType.HARDCODED,
-        set(),
-    )
-
-    assert_fetch_type_for_tag_string_set(
-        meta[UseCaseID.TRANSACTIONS][1], FetchType.FIRST_SEEN, {"BBB", "CCC"}
-    )
-    assert_fetch_type_for_tag_string_set(
-        meta[UseCaseID.TRANSACTIONS][2],
-        FetchType.FIRST_SEEN,
-        {"AAA", "1.0.0"},
-    )
-    assert_fetch_type_for_tag_string_set(
-        meta[UseCaseID.TRANSACTIONS][3],
-        FetchType.FIRST_SEEN,
-        {"AAA", "BBB"},
-    )
-    assert_fetch_type_for_tag_string_set(
-        meta[UseCaseID.TRANSACTIONS][4],
-        FetchType.FIRST_SEEN,
-        {"EEE"},
-    )
-
-
-def test_indexer(indexer, indexer_cache, use_case_id) -> None:
+def test_indexer(
+    indexer: StringIndexer, indexer_cache: StringIndexerCache, use_case_id: UseCaseID
+) -> None:
     with override_options(
         {
             "sentry-metrics.indexer.read-new-cache-namespace": False,
@@ -262,7 +160,9 @@ def test_indexer(indexer, indexer_cache, use_case_id) -> None:
         assert not results[use_case_id].results.get(999)
 
 
-def test_resolve_and_reverse_resolve(indexer, indexer_cache, use_case_id) -> None:
+def test_resolve_and_reverse_resolve(
+    indexer: StringIndexer, indexer_cache: StringIndexerCache, use_case_id: UseCaseID
+) -> None:
     """
     Test `resolve` and `reverse_resolve` methods
     """
@@ -281,20 +181,22 @@ def test_resolve_and_reverse_resolve(indexer, indexer_cache, use_case_id) -> Non
         indexer.bulk_record({use_case_id: org_strings})
 
         # test resolve and reverse_resolve
-        id = indexer.resolve(use_case_id=use_case_id, org_id=org1_id, string="hello")
+        id = indexer.resolve(use_case_id, org1_id, "hello")
         assert id is not None
-        assert indexer.reverse_resolve(use_case_id=use_case_id, org_id=org1_id, id=id) == "hello"
+        assert indexer.reverse_resolve(use_case_id, org1_id, id) == "hello"
 
         # test record on a string that already exists
-        indexer.record(use_case_id=use_case_id, org_id=org1_id, string="hello")
-        assert indexer.resolve(use_case_id=use_case_id, org_id=org1_id, string="hello") == id
+        indexer.record(use_case_id, org1_id, "hello")
+        assert indexer.resolve(use_case_id, org1_id, "hello") == id
 
         # test invalid values
-        assert indexer.resolve(use_case_id=use_case_id, org_id=org1_id, string="beep") is None
-        assert indexer.reverse_resolve(use_case_id=use_case_id, org_id=org1_id, id=1234) is None
+        assert indexer.resolve(use_case_id, org1_id, "beep") is None
+        assert indexer.reverse_resolve(use_case_id, org1_id, 1234) is None
 
 
-def test_already_created_plus_written_results(indexer, indexer_cache, use_case_id) -> None:
+def test_already_created_plus_written_results(
+    indexer: StringIndexer, indexer_cache: StringIndexerCache, use_case_id: UseCaseID
+) -> None:
     """
     Test that we correctly combine db read results with db write results
     for the same organization.
@@ -346,7 +248,9 @@ def test_already_created_plus_written_results(indexer, indexer_cache, use_case_i
         )
 
 
-def test_invalid_timestamp_in_indexer_cache(indexer, indexer_cache) -> None:
+def test_invalid_timestamp_in_indexer_cache(
+    indexer: StringIndexer, indexer_cache: StringIndexerCache
+) -> None:
     """
     Test that the caching indexer will incur a miss if the data is staying in the cache for too long
     """
@@ -358,12 +262,13 @@ def test_invalid_timestamp_in_indexer_cache(indexer, indexer_cache) -> None:
     ):
         indexer = CachingIndexer(indexer_cache, indexer)
 
-        use_case_id = UseCaseID.SPANS
+        use_case_id = UseCaseID.SESSIONS
         org_id = 1
         s = "str"
 
         res = indexer.bulk_record({use_case_id: {org_id: {s}}})
         id = res.get_mapped_results()[use_case_id][org_id][s]
+        assert id is not None
         assert res.get_fetch_metadata()[use_case_id][org_id][s].fetch_type == FetchType.FIRST_SEEN
 
         indexer.cache.cache.set(
@@ -398,7 +303,9 @@ def test_invalid_timestamp_in_indexer_cache(indexer, indexer_cache) -> None:
         )
 
 
-def test_already_cached_plus_read_results(indexer, indexer_cache, use_case_id) -> None:
+def test_already_cached_plus_read_results(
+    indexer: StringIndexer, indexer_cache: StringIndexerCache, use_case_id: UseCaseID
+) -> None:
     """
     Test that we correctly combine cached results with read results
     for the same organization.
@@ -446,7 +353,7 @@ def test_already_cached_plus_read_results(indexer, indexer_cache, use_case_id) -
         )
 
 
-def test_read_when_bulk_record(indexer, use_case_id) -> None:
+def test_read_when_bulk_record(indexer: StringIndexer, use_case_id: UseCaseID) -> None:
     with override_options(
         {
             "sentry-metrics.indexer.read-new-cache-namespace": False,
@@ -472,7 +379,12 @@ def test_read_when_bulk_record(indexer, use_case_id) -> None:
         )
 
 
-def test_rate_limited(indexer, indexer_cache, use_case_id, writes_limiter_option_name) -> None:
+def test_rate_limited(
+    indexer: StringIndexer,
+    indexer_cache: StringIndexerCache,
+    use_case_id: UseCaseID,
+    writes_limiter_option_name: str,
+) -> None:
     """
     Assert that rate limits per-org and globally are applied at all.
 
@@ -537,7 +449,7 @@ def test_rate_limited(indexer, indexer_cache, use_case_id, writes_limiter_option
             fetch_type_ext=FetchTypeExt(is_global=False),
         )
 
-    org_strings2 = {1: rate_limited_strings}
+    org_strings2 = {1: cast(set[str], rate_limited_strings)}
 
     # assert that if we reconfigure limits, the quota resets
     with override_options(
@@ -559,7 +471,7 @@ def test_rate_limited(indexer, indexer_cache, use_case_id, writes_limiter_option
     assert len(rate_limited_strings - rate_limited_strings2) == 2
 
 
-def test_bulk_reverse_resolve(indexer) -> None:
+def test_bulk_reverse_resolve(indexer: StringIndexer) -> None:
     """
     Tests reverse resolve properly returns the corresponding strings
     in the proper order when given a combination of shared and non-shared ids.
@@ -583,6 +495,9 @@ def test_bulk_reverse_resolve(indexer) -> None:
         unknown1 = 6666
         unknown2 = 6667
 
+        assert a is not None
+        assert b is not None
+        assert c is not None
         indexes = [a, production, b, unknown1, release, environment, c, unknown2]
         # we expect the indexer to resolve the indexes to the original strings and return None for unknown indexes
         expected_result = {

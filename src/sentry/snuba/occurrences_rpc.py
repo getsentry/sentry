@@ -3,7 +3,6 @@ from collections import defaultdict
 from enum import Enum
 from typing import Any
 
-import sentry_sdk
 from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
     AttributeDistributionsRequest,
     StatsType,
@@ -16,6 +15,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     NotFilter,
     TraceItemFilter,
 )
+from sentry_sdk import traces
 
 from sentry.models.group import Group
 from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute, ResolvedColumn
@@ -55,7 +55,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
     DEFINITIONS = OCCURRENCE_DEFINITIONS
 
     @classmethod
-    @sentry_sdk.trace
+    @traces.trace
     def run_table_query(
         cls,
         *,
@@ -99,7 +99,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
         )
 
     @classmethod
-    @sentry_sdk.trace
+    @traces.trace
     def run_table_query_with_tags(
         cls,
         tag_names: set[str],
@@ -161,7 +161,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
         )
 
     @classmethod
-    @sentry_sdk.trace
+    @traces.trace
     def run_grouped_timeseries_query(
         cls,
         *,
@@ -269,7 +269,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
         return results
 
     @classmethod
-    @sentry_sdk.trace
+    @traces.trace
     def run_stats_query(
         cls,
         *,
@@ -345,7 +345,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
                             attrs[public_alias].append(
                                 {"label": bucket.label, "value": bucket.value}
                             )
-                stats.append({"attribute_distributions": {"data": attrs}})
+                stats.append({"attributeDistributions": {"data": attrs}})
 
         return stats
 

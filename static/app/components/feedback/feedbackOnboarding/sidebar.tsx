@@ -13,7 +13,6 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {SelectValue} from '@sentry/scraps/select';
 
-import {FeedbackOnboardingLayout} from 'sentry/components/feedback/feedbackOnboarding/feedbackOnboardingLayout';
 import {CRASH_REPORT_HASH} from 'sentry/components/feedback/useFeedbackOnboarding';
 import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {IdBadge} from 'sentry/components/idBadge';
@@ -39,18 +38,19 @@ import {t, tct} from 'sentry/locale';
 import {
   OnboardingDrawerKey,
   OnboardingDrawerStore,
+  useIsOnboardingDrawerOpen,
 } from 'sentry/stores/onboardingDrawerStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {FeedbackOnboardingLayout} from './feedbackOnboardingLayout';
+
 export function useFeedbackOnboardingDrawer() {
   const organization = useOrganization();
-  const currentPanel = useLegacyStore(OnboardingDrawerStore);
-  const isActive = currentPanel === OnboardingDrawerKey.FEEDBACK_ONBOARDING;
+  const isActive = useIsOnboardingDrawerOpen(OnboardingDrawerKey.FEEDBACK_ONBOARDING);
   const hasProjectAccess = organization.access.includes('project:read');
 
   const {openDrawer} = useDrawer();
@@ -95,6 +95,7 @@ function SidebarContent() {
         platform: currentProject?.platform ?? 'unknown',
       });
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [currentProject, organization, setCurrentProject]);
 
   const projectSelectOptions = useMemo(() => {
@@ -185,7 +186,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       textValue: platform.name,
       label: (
         <Flex align="center" gap="md">
-          <PlatformIcon platform={platform.id} size={16} />
+          <PlatformIcon platform={platform.id} size={16} alt="" />
           <TextOverflow>{platform.name}</TextOverflow>
         </Flex>
       ),
@@ -259,7 +260,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   const isExcluded = excludedPlatformOptions.includes(currentPlatform.id);
 
   const radioButtons = (
-    <Header>
+    <Container padding="md 0">
       {showRadioButtons ? (
         <Container padding="md 0">
           <RadioGroup<typeof setupMode>
@@ -323,7 +324,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           </Flex>
         )
       )}
-    </Header>
+    </Container>
   );
 
   if (isLoading) {
@@ -395,10 +396,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     </Fragment>
   );
 }
-
-const Header = styled('div')`
-  padding: ${p => p.theme.space.md} 0;
-`;
 
 const TopRightBackgroundImage = styled('img')`
   position: absolute;

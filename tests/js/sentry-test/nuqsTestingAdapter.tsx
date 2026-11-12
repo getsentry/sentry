@@ -1,13 +1,13 @@
-import {useCallback, useMemo, useRef, type ReactElement, type ReactNode} from 'react';
+import {createContext, use, useCallback, type ReactElement, type ReactNode} from 'react';
+import {UNSAFE_DataRouterContext, type DataRouter} from 'react-router';
 import {
   unstable_createAdapterProvider as createAdapterProvider,
   renderQueryString,
 } from 'nuqs/adapters/custom';
 import type {unstable_AdapterInterface as AdapterInterface} from 'nuqs/adapters/custom';
-import type {OnUrlUpdateFunction} from 'nuqs/adapters/testing';
+import {NuqsTestingAdapter, type OnUrlUpdateFunction} from 'nuqs/adapters/testing';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 
 type SentryNuqsTestingAdapterProps = {
   children: ReactNode;
@@ -26,78 +26,79 @@ type SentryNuqsTestingAdapterProps = {
   onUrlUpdate?: OnUrlUpdateFunction;
 };
 
-/**
- * Custom nuqs adapter component for Sentry that reads location from our
- * useLocation hook instead of maintaining its own internal state.
- *
- * This ensures nuqs uses the same location source as the rest of the
- * application during tests.
- */
+const UrlUpdateContext = createContext<OnUrlUpdateFunction | undefined>(undefined);
+
+// Stands in for production's retained queue: serve a write's URL until the router leaves it.
+const writtenLocationKeys = new WeakMap<DataRouter, string>();
+
+function useSentryAdapter(): AdapterInterface {
+  const routerContext = use(UNSAFE_DataRouterContext);
+  if (!routerContext) {
+    throw new Error('SentryNuqsTestingAdapter requires a data router');
+  }
+  const {router} = routerContext;
+  const onUrlUpdate = use(UrlUpdateContext);
+  const location = useLocation();
+  const searchParams = new URLSearchParams(
+    router.state.historyAction !== 'POP' &&
+      router.state.location.key === writtenLocationKeys.get(router)
+      ? router.state.location.search
+      : location.search
+  );
+
+  const updateUrl = useCallback<AdapterInterface['updateUrl']>(
+    (search, options) => {
+      const queryString = renderQueryString(search);
+      onUrlUpdate?.({
+        searchParams: new URLSearchParams(search),
+        queryString,
+        options,
+      });
+
+      const current = router.state.location;
+      const navigation = router.navigate(
+        {pathname: current.pathname, search: queryString, hash: current.hash},
+        {replace: options.history === 'replace', state: current.state}
+      );
+      writtenLocationKeys.set(router, router.state.location.key);
+      return navigation;
+    },
+    [onUrlUpdate, router]
+  );
+
+  // A queued write can follow navigation before React renders the new
+  // location. Compose onto router state so that earlier writes are retained.
+  const getSearchParamsSnapshot = useCallback(
+    () => new URLSearchParams(router.state.location.search),
+    [router]
+  );
+
+  return {
+    searchParams,
+    updateUrl,
+    getSearchParamsSnapshot,
+    rateLimitFactor: 0,
+    // Production resets the queue on window.history changes, which the memory router never makes.
+    autoResetQueueOnUpdate: true,
+  };
+}
+
+const AdapterProvider = createAdapterProvider(useSentryAdapter);
+
 export function SentryNuqsTestingAdapter({
   children,
   defaultOptions,
   onUrlUpdate,
 }: SentryNuqsTestingAdapterProps): ReactElement {
-  // Create a hook that nuqs will call to get the adapter interface
-  // This hook needs to be defined inside a component that has access to location/navigate
-  const useSentryAdapter = useCallback(
-    (_watchKeys: string[]): AdapterInterface => {
-      // eslint-disable-next-line react-hooks/rules-of-hooks
-      const location = useLocation();
-      // eslint-disable-next-line react-hooks/rules-of-hooks
-      const navigate = useNavigate();
-
-      // nuqs flushes updates on a deferred tick, so read location through a ref
-      // to compose onto the live URL instead of a stale render snapshot.
-      // eslint-disable-next-line react-hooks/rules-of-hooks
-      const locationRef = useRef(location);
-      locationRef.current = location;
-
-      // Get search params from the current location
-      const searchParams = new URLSearchParams(location.search || '');
-
-      const updateUrl: AdapterInterface['updateUrl'] = (search, options) => {
-        const newSearchParams = new URLSearchParams(search);
-        const queryString = renderQueryString(newSearchParams);
-
-        // Call the onUrlUpdate callback if provided
-        onUrlUpdate?.({
-          searchParams: new URLSearchParams(search), // make a copy
-          queryString,
-          options,
-        });
-
-        // Navigate to the new location using Sentry's navigate
-        // We need to construct the full path with the search string
-        const newPath = queryString
-          ? `${locationRef.current.pathname}${queryString}`
-          : locationRef.current.pathname;
-
-        // The navigate function from TestRouter already wraps this in act()
-        navigate(newPath, {replace: options.history === 'replace'});
-      };
-
-      const getSearchParamsSnapshot = () => {
-        // Always read from the current location
-        return new URLSearchParams(locationRef.current.search || '');
-      };
-
-      return {
-        searchParams,
-        updateUrl,
-        getSearchParamsSnapshot,
-        rateLimitFactor: 0, // No throttling in tests
-        autoResetQueueOnUpdate: true, // Reset update queue after each update
-      };
-    },
-    [onUrlUpdate]
+  return (
+    // nuqs keeps its URL update queue in a global, and only its own testing
+    // adapter clears it on mount, so a previous test's pending write would
+    // otherwise become this test's initial state. The inner provider overrides
+    // its adapter.
+    <NuqsTestingAdapter>
+      <UrlUpdateContext value={onUrlUpdate}>
+        <AdapterProvider defaultOptions={defaultOptions}>{children}</AdapterProvider>
+      </UrlUpdateContext>
+    </NuqsTestingAdapter>
   );
-
-  // Create the adapter provider (memoized to prevent remounting)
-  const AdapterProvider = useMemo(
-    () => createAdapterProvider(useSentryAdapter),
-    [useSentryAdapter]
-  );
-
-  return <AdapterProvider defaultOptions={defaultOptions}>{children}</AdapterProvider>;
 }

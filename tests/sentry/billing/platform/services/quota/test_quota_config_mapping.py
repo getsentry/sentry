@@ -1,7 +1,14 @@
+from unittest.mock import patch
+
+import pytest
 from sentry_protos.billing.v1.data_category_pb2 import DataCategory as ProtoDataCategory
 from sentry_protos.billing.v1.quota_config_pb2 import QuotaConfig as ProtoQuotaConfig
 from sentry_protos.billing.v1.quota_config_pb2 import QuotaScope as ProtoQuotaScope
 
+from sentry.billing.platform.services.category_mapping import (
+    PROTO_TO_SENTRY_CATEGORY,
+    proto_to_sentry_category,
+)
 from sentry.billing.platform.services.quota.quota_config_mapping import (
     proto_to_sentry_quota_config,
     sentry_to_proto_quota_config,
@@ -10,8 +17,25 @@ from sentry.constants import DataCategory
 from sentry.quotas.base import QuotaConfig, QuotaScope
 
 
+class TestProtoToSentryCategory:
+    @pytest.mark.parametrize("proto_category, sentry_category", PROTO_TO_SENTRY_CATEGORY.items())
+    def test_mapped_category(self, proto_category: int, sentry_category: int) -> None:
+        assert proto_to_sentry_category(proto_category) == sentry_category
+
+    @pytest.mark.parametrize(
+        "proto_category",
+        [
+            ProtoDataCategory.DATA_CATEGORY_UNKNOWN,
+            ProtoDataCategory.DATA_CATEGORY_SEER_USAGE_MICRO_CENTS,
+            9999,
+        ],
+    )
+    def test_unmapped_category_returns_negative_one(self, proto_category: int) -> None:
+        assert proto_to_sentry_category(proto_category) == -1
+
+
 class TestSentryToProtoQuotaConfig:
-    def test_basic_conversion(self):
+    def test_basic_conversion(self) -> None:
         quota = QuotaConfig(
             id="test_quota",
             categories=[DataCategory.ERROR, DataCategory.TRANSACTION],
@@ -32,7 +56,7 @@ class TestSentryToProtoQuotaConfig:
             ProtoDataCategory.DATA_CATEGORY_TRANSACTION,
         }
 
-    def test_reject_all_quota(self):
+    def test_reject_all_quota(self) -> None:
         quota = QuotaConfig(
             id=None,
             categories=[DataCategory.ERROR],
@@ -45,7 +69,7 @@ class TestSentryToProtoQuotaConfig:
         assert proto.id == ""
         assert proto.limit == 0
 
-    def test_scope_id_included(self):
+    def test_scope_id_included(self) -> None:
         quota = QuotaConfig(
             id="q",
             categories=[DataCategory.ERROR],
@@ -60,7 +84,7 @@ class TestSentryToProtoQuotaConfig:
 
 
 class TestProtoToSentryQuotaConfig:
-    def test_basic_conversion(self):
+    def test_basic_conversion(self) -> None:
         proto = ProtoQuotaConfig(
             id="test_quota",
             categories=[
@@ -83,7 +107,7 @@ class TestProtoToSentryQuotaConfig:
         assert DataCategory.ERROR in result.categories
         assert DataCategory.TRANSACTION in result.categories
 
-    def test_unspecified_scope_defaults_to_organization(self):
+    def test_unspecified_scope_defaults_to_organization(self) -> None:
         proto = ProtoQuotaConfig(
             id="q",
             categories=[ProtoDataCategory.DATA_CATEGORY_ERROR],
@@ -97,9 +121,16 @@ class TestProtoToSentryQuotaConfig:
         assert result is not None
         assert result.scope == QuotaScope.ORGANIZATION
 
-    def test_unknown_category_skipped(self):
-        """Unmapped proto category values are skipped instead of raising."""
-        unmapped_value = ProtoDataCategory.ValueType(9999)
+    @pytest.mark.parametrize(
+        "unmapped_value",
+        [
+            ProtoDataCategory.DATA_CATEGORY_UNKNOWN,
+            ProtoDataCategory.DATA_CATEGORY_SEER_USAGE_MICRO_CENTS,
+            ProtoDataCategory.ValueType(9999),
+        ],
+    )
+    def test_unknown_category_skipped(self, unmapped_value: ProtoDataCategory.ValueType) -> None:
+        """Skip unmapped categories even when their ints match Sentry categories."""
         proto = ProtoQuotaConfig(
             id="q",
             categories=[
@@ -117,11 +148,21 @@ class TestProtoToSentryQuotaConfig:
         assert len(result.categories) == 1
         assert DataCategory.ERROR in result.categories
 
-    def test_all_categories_unmapped_returns_none(self):
+    @pytest.mark.parametrize(
+        "unmapped_value",
+        [
+            ProtoDataCategory.DATA_CATEGORY_UNKNOWN,
+            ProtoDataCategory.DATA_CATEGORY_SEER_USAGE_MICRO_CENTS,
+            ProtoDataCategory.ValueType(9999),
+        ],
+    )
+    def test_all_categories_unmapped_returns_none(
+        self, unmapped_value: ProtoDataCategory.ValueType
+    ) -> None:
         """If all categories are unmapped, return None to avoid broadening quota."""
         proto = ProtoQuotaConfig(
             id="q",
-            categories=[ProtoDataCategory.ValueType(9999), ProtoDataCategory.ValueType(9998)],
+            categories=[unmapped_value],
             scope=ProtoQuotaScope.QUOTA_SCOPE_ORGANIZATION,
             limit=100,
             window=60,
@@ -131,7 +172,36 @@ class TestProtoToSentryQuotaConfig:
 
         assert result is None
 
-    def test_empty_categories_preserved(self):
+    @patch.dict(PROTO_TO_SENTRY_CATEGORY, {ProtoDataCategory.DATA_CATEGORY_ERROR: 9999})
+    def test_invalid_mapped_category_skipped(self) -> None:
+        proto = ProtoQuotaConfig(
+            categories=[
+                ProtoDataCategory.DATA_CATEGORY_ERROR,
+                ProtoDataCategory.DATA_CATEGORY_TRANSACTION,
+            ],
+            limit=0,
+            reason_code="blocked",
+        )
+
+        result = proto_to_sentry_quota_config(proto)
+
+        assert result is not None
+        assert result.categories == {DataCategory.TRANSACTION}
+
+    def test_default_category_preserved(self) -> None:
+        proto = ProtoQuotaConfig(
+            categories=[ProtoDataCategory.DATA_CATEGORY_DEFAULT],
+            limit=0,
+            reason_code="blocked",
+        )
+
+        result = proto_to_sentry_quota_config(proto)
+
+        assert result is not None
+        assert result.categories == {DataCategory.DEFAULT}
+        assert result.limit == 0
+
+    def test_empty_categories_preserved(self) -> None:
         """Proto with no categories should map to empty (all-data quota), not None."""
         proto = ProtoQuotaConfig(
             id="q",
@@ -145,7 +215,7 @@ class TestProtoToSentryQuotaConfig:
         assert result is not None
         assert len(result.categories) == 0
 
-    def test_unknown_scope_falls_back_to_organization(self):
+    def test_unknown_scope_falls_back_to_organization(self) -> None:
         """Unknown scope values fall back to ORGANIZATION instead of raising."""
         proto = ProtoQuotaConfig(
             id="q",
@@ -160,7 +230,7 @@ class TestProtoToSentryQuotaConfig:
         assert result is not None
         assert result.scope == QuotaScope.ORGANIZATION
 
-    def test_project_scope(self):
+    def test_project_scope(self) -> None:
         proto = ProtoQuotaConfig(
             id="q",
             categories=[ProtoDataCategory.DATA_CATEGORY_ERROR],
@@ -176,7 +246,7 @@ class TestProtoToSentryQuotaConfig:
         assert result.scope == QuotaScope.PROJECT
         assert result.scope_id == "42"
 
-    def test_key_scope(self):
+    def test_key_scope(self) -> None:
         proto = ProtoQuotaConfig(
             id="q",
             categories=[ProtoDataCategory.DATA_CATEGORY_ERROR],
@@ -190,7 +260,7 @@ class TestProtoToSentryQuotaConfig:
         assert result is not None
         assert result.scope == QuotaScope.KEY
 
-    def test_reject_all_quota(self):
+    def test_reject_all_quota(self) -> None:
         proto = ProtoQuotaConfig(
             categories=[ProtoDataCategory.DATA_CATEGORY_ERROR],
             scope=ProtoQuotaScope.QUOTA_SCOPE_ORGANIZATION,
@@ -205,7 +275,7 @@ class TestProtoToSentryQuotaConfig:
 
 
 class TestRoundTrip:
-    def test_roundtrip_sentry_to_proto_to_sentry(self):
+    def test_roundtrip_sentry_to_proto_to_sentry(self) -> None:
         original = QuotaConfig(
             id="roundtrip",
             categories=[DataCategory.ERROR, DataCategory.SPAN],

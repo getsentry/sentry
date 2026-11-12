@@ -4,11 +4,10 @@ import logging
 from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import IO, Any
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import orjson
 from django.apps import apps
-from django.core import serializers
 from django.core.exceptions import FieldDoesNotExist
 from django.db import DatabaseError, connections, router, transaction
 from sentry_sdk import capture_exception
@@ -43,6 +42,7 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.services.nodestore.django.models import Node
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
+from sentry.utils import json
 from sentry.utils.env import is_split_db
 
 __all__ = (
@@ -67,7 +67,7 @@ class ImportingError(Exception):
         self.context = context
 
 
-def _clear_model_tables_before_import():
+def _clear_model_tables_before_import() -> None:
     reversed = reversed_dependencies()
 
     # Outbox models are cleared last: some models (e.g. ProjectKey) use pre_delete signals
@@ -115,9 +115,9 @@ def _import(
     *,
     decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
-    filter_by: Filter | None = None,
+    filter_by: Filter[Any] | None = None,
     printer: Printer,
-):
+) -> None:
     """
     Imports core data for a Sentry installation.
 
@@ -190,22 +190,18 @@ def _import(
             user_filter: Filter[int] = Filter[int](model=User, field="pk")
             filters.append(user_filter)
 
-            # TODO(getsentry#team-ospo/190): It turns out that Django's "streaming" JSON
-            # deserializer does no such thing, and actually loads the entire JSON into memory! If we
-            # don't want to choke on large imports, we'll need use a truly "chunkable" JSON
-            # importing library like ijson for this.
-            for obj in serializers.deserialize("json", content):
-                o = obj.object
-                model_name = get_model_name(o)
+            record_data = json.loads(content)
+            for item in record_data:
+                model_name = NormalizedModelName(item.get("model"))
                 if model_name == org_model_name:
-                    pk = getattr(o, "pk", None)
-                    slug = getattr(o, "slug", None)
+                    pk = item["pk"]
+                    slug = item["fields"].get("slug", None)
                     if pk is not None and slug in filter_by.values:
                         filtered_org_pks.add(pk)
                 elif model_name == org_member_model_name:
                     seen_first_org_member_model = True
-                    user = getattr(o, "user_id", None)
-                    org = getattr(o, "organization_id", None)
+                    user = item["fields"].get("user_id", None)
+                    org = item["fields"].get("organization", None)
                     if user is not None and org in filtered_org_pks:
                         user_filter.values.add(user)
                 elif seen_first_org_member_model:
@@ -285,7 +281,7 @@ def _import(
     # serialized JSON string containing some number of such model instances, and 3. an offset
     # representing how many instances of this model have already been produced by this generator,
     # NOT including the current instance.
-    def yield_json_models(content) -> Iterator[tuple[NormalizedModelName, str, int]]:
+    def yield_json_models(content: bytes | str) -> Iterator[tuple[NormalizedModelName, str, int]]:
         # TODO(getsentry#team-ospo/190): Better error handling for unparsable JSON.
         models = orjson.loads(content)
 
@@ -387,7 +383,9 @@ def _import(
             # can't be races here, since there is only one task running at a time, pushing
             # updates in a synchronous manner.
             existing_control_import_chunk_replica = ControlImportChunkReplica.objects.filter(
-                import_uuid=flags.import_uuid, model=model_name_str, min_ordinal=result.min_ordinal
+                import_uuid=UUID(flags.import_uuid),
+                model=model_name_str,
+                min_ordinal=result.min_ordinal,
             ).first()
             if existing_control_import_chunk_replica is not None:
                 logger.info("import_by_model.control_replica_already_exists", extra=extra)
@@ -408,7 +406,7 @@ def _import(
                 ]
 
                 control_import_chunk_replica = ControlImportChunkReplica(
-                    import_uuid=flags.import_uuid,
+                    import_uuid=UUID(flags.import_uuid),
                     model=model_name_str,
                     min_ordinal=result.min_ordinal,
                     max_ordinal=result.max_ordinal,
@@ -443,7 +441,7 @@ def _import(
 
     # Resolves slugs for all imported organization models via the PrimaryKeyMap and reconciles
     # their slug globally via control silo by issuing a slug update.
-    def resolve_org_slugs_from_pk_map(pk_map: PrimaryKeyMap):
+    def resolve_org_slugs_from_pk_map(pk_map: PrimaryKeyMap) -> None:
         from sentry.services.organization import organization_provisioning_service
 
         org_pk_mapping = pk_map.mapping[str(org_model_name)]
@@ -456,21 +454,13 @@ def _import(
             slug_mapping[org_id] = org_slug or ""
 
         if len(slug_mapping) > 0:
-            # HACK(azaslavsky): Okay, this gets a bit complicated, but bear with me: the following
-            # `bulk_create...` calls will result in some actions on the control silo that call back
-            # into this region. So the client (this region) calls the server (the control silo)
-            # which may need to make one or more calls back into the client (this region). Because
-            # some of our `OrganizationMemberTeam` outboxes may not be drained due to the HACK we
-            # performed in `import_export/impl.py` (see that file for more details), there may be a
-            # massive backlog of `OrganizationMemberTeam` outboxes that need to clear before this
-            # region can respond. In the worst case scenario, this will result in a timeout of the
-            # original, outer `bulk_create...` call.
+            # The `bulk_create...` call below is reentrant: this region calls the control silo,
+            # which may call back into this region before it can answer. Any backlog on an
+            # imported organization's `ORGANIZATION_SCOPE` shard has to clear before this region
+            # can serve that callback, which in the worst case times out the outer call.
             #
-            # So, the solution we take here is to manually clear all `ORGANIZATION_SCOPE` outboxes
-            # for each imported organization on this side first, so that when this region responds
-            # to the call triggered from the server-side of `bulk_create...`, the
-            # `ORGANIZATION`-scoped outbox queue is empty and is free to only serve requests
-            # specifically related to slug provisioning.
+            # Draining each organization's shard up front keeps that queue free to serve only the
+            # slug-provisioning callback.
             for id in slug_mapping.keys():
                 # To combat ephemeral errors, we'll try this a few times before accepting failure.
                 for attempt in range(MAX_SHARD_DRAIN_ATTEMPTS):
@@ -534,7 +524,7 @@ def import_in_user_scope(
     flags: ImportFlags | None = None,
     user_filter: set[str] | None = None,
     printer: Printer,
-):
+) -> None:
     """
     Perform an import in the `User` scope, meaning that only models with `RelocationScope.User` will
     be imported from the provided `src` file.
@@ -563,7 +553,7 @@ def import_in_organization_scope(
     flags: ImportFlags | None = None,
     org_filter: set[str] | None = None,
     printer: Printer,
-):
+) -> None:
     """
     Perform an import in the `Organization` scope, meaning that only models with
     `RelocationScope.User` or `RelocationScope.Organization` will be imported from the provided
@@ -594,7 +584,7 @@ def import_in_config_scope(
     flags: ImportFlags | None = None,
     user_filter: set[str] | None = None,
     printer: Printer,
-):
+) -> None:
     """
     Perform an import in the `Config` scope, meaning that we will import all models required to
     globally configure and administrate a Sentry instance from the provided `src` file. This
@@ -625,7 +615,7 @@ def import_in_global_scope(
     decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
     printer: Printer,
-):
+) -> None:
     """
     Perform an import in the `Global` scope, meaning that all models will be imported from the
     provided source file. Because a `Global` import is really only useful when restoring to a fresh

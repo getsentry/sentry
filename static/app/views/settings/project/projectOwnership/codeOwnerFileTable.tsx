@@ -1,24 +1,35 @@
-import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconOpen} from '@sentry/icons/open';
 
-import {Flex} from '@sentry/scraps/layout';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {PanelTable} from 'sentry/components/panels/panelTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconEllipsis, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {CodeOwner, CodeownersFile} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getCodeOwnerIcon} from 'sentry/utils/integrationUtil';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {modalCss, ViewCodeOwnerModal} from './viewCodeOwnerModal';
+
+const CODEOWNER_COLUMNS: TableColumnConfig[] = [
+  {key: 'codeowners', width: '1fr'},
+  {key: 'stackRoot', width: '1fr'},
+  {key: 'sourceRoot', width: '1fr'},
+  {key: 'lastSynced', width: 'auto'},
+  {key: 'file', width: 'min-content'},
+  {key: 'actions', width: 'min-content'},
+];
 
 interface CodeOwnerFileTableProps {
   codeowners: CodeOwner[];
@@ -60,69 +71,98 @@ export function CodeOwnerFileTable({
   const handleSync = (codeowner: CodeOwner) => async () => {
     try {
       const codeownerFile: CodeownersFile = await api.requestPromise(
-        `/organizations/${organization.slug}/code-mappings/${codeowner.codeMappingId}/codeowners/`,
+        getApiUrl(
+          '/organizations/$organizationIdOrSlug/code-mappings/$configId/codeowners/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              configId: codeowner.codeMappingId,
+            },
+          }
+        ),
         {
           method: 'GET',
         }
       );
 
       const data = await api.requestPromise(
-        `/projects/${organization.slug}/${project.slug}/codeowners/${codeowner.id}/`,
+        getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/codeowners/$codeownersId/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: project.slug,
+              codeownersId: codeowner.id,
+            },
+          }
+        ),
         {
           method: 'PUT',
           data: {raw: codeownerFile.raw},
         }
       );
       onUpdate({...codeowner, ...data});
-      addSuccessMessage(t('CODEOWNERS file sync successful.'));
+      toast.success(t('CODEOWNERS file sync successful.'));
     } catch (_err) {
-      addErrorMessage(t('An error occurred trying to sync CODEOWNERS file.'));
+      toast.error(t('An error occurred trying to sync CODEOWNERS file.'));
     }
   };
 
   const handleDelete = (codeowner: CodeOwner) => async () => {
     try {
       await api.requestPromise(
-        `/projects/${organization.slug}/${project.slug}/codeowners/${codeowner.id}/`,
+        getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/codeowners/$codeownersId/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: project.slug,
+              codeownersId: codeowner.id,
+            },
+          }
+        ),
         {
           method: 'DELETE',
         }
       );
       onDelete(codeowner);
-      addSuccessMessage(t('Deletion successful'));
+      toast.success(t('Deletion successful'));
     } catch {
       // no 4xx errors should happen on delete
-      addErrorMessage(t('An error occurred'));
+      toast.error(t('An error occurred'));
     }
   };
 
   return (
-    <StyledPanelTable
-      headers={[
-        t('codeowners'),
-        t('Stack Trace Root'),
-        t('Source Code Root'),
-        t('Last Synced'),
-        t('File'),
-        '',
-      ]}
+    <StyledSimpleTable
+      columns={CODEOWNER_COLUMNS}
+      header={
+        <SimpleTable.HeaderRow>
+          <SimpleTable.HeaderCell>{t('codeowners')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Stack Trace Root')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Source Code Root')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Last Synced')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('File')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell />
+        </SimpleTable.HeaderRow>
+      }
     >
       {codeowners.map(codeowner => (
-        <Fragment key={codeowner.id}>
-          <Flex align="center" gap="md">
+        <SimpleTable.Row key={codeowner.id}>
+          <SimpleTable.RowCell gap="md">
             {getCodeOwnerIcon(codeowner.provider)}
             {codeowner.codeMapping?.repoName}
-          </Flex>
-          <Flex align="center" gap="md">
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell gap="md">
             <code>{codeowner.codeMapping?.stackRoot}</code>
-          </Flex>
-          <Flex align="center" gap="md">
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell gap="md">
             <code>{codeowner.codeMapping?.sourceRoot}</code>
-          </Flex>
-          <Flex align="center" gap="md">
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell gap="md">
             <TimeSince date={codeowner.dateSynced ?? codeowner.dateUpdated} />
-          </Flex>
-          <Flex align="center" gap="md">
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell gap="md">
             {codeowner.codeOwnersUrl === 'unknown' ? null : (
               <StyledExternalLink href={codeowner.codeOwnersUrl}>
                 <IconOpen size="xs" />
@@ -132,8 +172,8 @@ export function CodeOwnerFileTable({
                 )}
               </StyledExternalLink>
             )}
-          </Flex>
-          <Flex align="center" gap="md">
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell gap="md">
             <DropdownMenu
               items={[
                 {
@@ -154,25 +194,26 @@ export function CodeOwnerFileTable({
                 },
               ]}
               position="bottom-end"
-              triggerProps={{
-                'aria-label': t('Actions'),
-                size: 'xs',
-                icon: <IconEllipsis />,
-                showChevron: false,
-                disabled,
-              }}
+              strategy="fixed"
+              trigger={triggerProps => (
+                <OverlayTrigger.IconButton
+                  {...triggerProps}
+                  aria-label={t('Actions')}
+                  size="xs"
+                  icon={<IconEllipsis />}
+                  disabled={disabled}
+                />
+              )}
               disabledKeys={disabled ? ['sync', 'delete'] : []}
             />
-          </Flex>
-        </Fragment>
+          </SimpleTable.RowCell>
+        </SimpleTable.Row>
       ))}
-    </StyledPanelTable>
+    </StyledSimpleTable>
   );
 }
 
-const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: 1fr 1fr 1fr auto min-content min-content;
-  position: static;
+const StyledSimpleTable = styled(SimpleTable)`
   overflow: auto;
   white-space: nowrap;
 `;

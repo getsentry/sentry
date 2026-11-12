@@ -14,26 +14,6 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import ProjectsDashboard from 'sentry/views/projectsDashboard';
 
-jest.unmock('lodash/debounce');
-jest.mock('lodash/debounce', () => {
-  const debounceMap = new Map();
-  const mockDebounce =
-    (fn: (...args: any[]) => void, timeout: number) =>
-    (...args: any[]) => {
-      if (debounceMap.has(fn)) {
-        clearTimeout(debounceMap.get(fn));
-      }
-      debounceMap.set(
-        fn,
-        setTimeout(() => {
-          fn.apply(fn, args);
-          debounceMap.delete(fn);
-        }, timeout)
-      );
-    };
-  return mockDebounce;
-});
-
 describe('ProjectsDashboard', () => {
   const org = OrganizationFixture();
   const team = TeamFixture();
@@ -73,7 +53,7 @@ describe('ProjectsDashboard', () => {
         screen.getByPlaceholderText('Search for projects by name')
       ).toBeInTheDocument();
       expect(screen.getByText('My Teams')).toBeInTheDocument();
-      expect(await screen.findByTestId('resources')).toBeInTheDocument();
+      expect(await screen.findByAltText('The Sentry Workflow')).toBeInTheDocument();
       expect(await screen.findByTestId('badge-display-name')).toBeInTheDocument();
     });
   });
@@ -185,6 +165,7 @@ describe('ProjectsDashboard', () => {
       expect(await screen.findByText('Other Teams')).toBeInTheDocument();
       expect(screen.getByText('#team2')).toBeInTheDocument();
       expect(router.location.query).toEqual({team: ''});
+      expect(router.historyAction).toBe('PUSH');
     });
 
     it('renders projects for specific team that user is not a member of', async () => {

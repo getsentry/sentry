@@ -1,10 +1,6 @@
 import type {Actor} from 'sentry/types/core';
 import type {SimpleGroup} from 'sentry/types/group';
 import type {
-  DataConditionGroupLogicType,
-  DataConditionType,
-} from 'sentry/types/workflowEngine/dataConditions';
-import type {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
   Dataset,
@@ -14,12 +10,14 @@ import type {
 import type {
   UptimeAssertion,
   UptimeMonitorMode,
-} from 'sentry/views/alerts/rules/uptime/types';
+} from 'sentry/views/detectors/components/uptime/types';
 import type {Monitor, MonitorConfig} from 'sentry/views/insights/crons/types';
 import type {
   MetricType as PreprodMeasurement,
   MeasurementType as PreprodThresholdType,
 } from 'sentry/views/settings/project/preprod/types';
+
+import type {DataConditionGroupLogicType, DataConditionType} from './dataConditions';
 
 export type {PreprodMeasurement, PreprodThresholdType};
 
@@ -127,6 +125,10 @@ interface UptimeDetectorConfig {
   recoveryThreshold: number;
 }
 
+interface AllProjectsDetectorConfig {
+  organizationId: number;
+}
+
 type BaseDetector = Readonly<{
   createdBy: string | null;
   dateCreated: string;
@@ -166,9 +168,14 @@ export interface ErrorDetector extends BaseDetector {
   // TODO: Add error detector type fields
   readonly type: 'error';
 }
-
 export interface IssueStreamDetector extends BaseDetector {
   // TODO: Add issue stream detector type fields
+  readonly type: 'issue_stream';
+}
+
+export interface AllProjectsDetector extends Omit<BaseDetector, 'projectId'> {
+  config: AllProjectsDetectorConfig;
+  projectId: null;
   readonly type: 'issue_stream';
 }
 
@@ -193,6 +200,7 @@ export type Detector =
   | CronDetector
   | ErrorDetector
   | IssueStreamDetector
+  | AllProjectsDetector
   | PreprodDetector;
 
 interface UpdateConditionGroupPayload {
@@ -225,7 +233,8 @@ interface UpdateUptimeDataSourcePayload {
 export interface BaseDetectorUpdatePayload {
   name: string;
   owner: string | null;
-  projectId: Detector['projectId'];
+  // Note: projectId is null for the AllProjectsDetector, but it cannot be updated.
+  projectId: string;
   type: Detector['type'];
   workflowIds: string[];
   description?: string | null;

@@ -1,3 +1,6 @@
+import {IconAdd} from '@sentry/icons/add';
+import {IconSeer} from '@sentry/icons/seer';
+
 import {Tag} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
@@ -6,7 +9,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {useIsSeerSupportedProvider} from 'sentry/components/events/autofix/utils';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelItem} from 'sentry/components/panels/panelItem';
-import {IconAdd, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {IntegrationProvider, IntegrationWithConfig} from 'sentry/types/integrations';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
@@ -27,7 +29,7 @@ export function NoIntegrationsEmptyState({providers, onAddIntegration}: Props) {
       {providers.map(provider => (
         <PanelItem key={provider.key} center>
           <Flex align="center" gap="md" flex="1">
-            {getIntegrationIcon(provider.key, 'md')}
+            {getIntegrationIcon(provider.key)}
             <Heading as="h4">{provider.name}</Heading>
             {isSeerSupported({id: provider.key, name: provider.name}) && (
               <Tooltip title={t('Compatible with Seer.')}>

@@ -1,4 +1,4 @@
-import {Fragment, useRef} from 'react';
+import {Fragment, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react-lite';
@@ -26,6 +26,11 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {
+  DEFAULT_CHECKIN_MARGIN,
+  DEFAULT_MAX_RUNTIME,
+  MAX_RUNTIME_LIMIT,
+} from 'sentry/utils/monitor/cron';
 import {slugify} from 'sentry/utils/slugify';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -46,20 +51,8 @@ const SCHEDULE_OPTIONS: Array<SelectValue<string>> = [
   {value: ScheduleType.INTERVAL, label: t('Interval')},
 ];
 
-export const DEFAULT_MONITOR_TYPE = 'cron_job';
-export const DEFAULT_CRONTAB = '0 0 * * *';
+const DEFAULT_CRONTAB = '0 0 * * *';
 
-// Maps the value from the SentryMemberTeamSelectorField -> the expected alert
-// rule key and vice-versa.
-//
-// XXX(epurkhiser): For whatever reason the rules API wants the team and member
-// to be capitalized.
-const RULE_TARGET_MAP = {team: 'Team', user: 'Member'} as const;
-const RULES_SELECTOR_MAP = {Team: 'team', Member: 'user'} as const;
-
-// In minutes
-export const DEFAULT_MAX_RUNTIME = 30;
-export const DEFAULT_CHECKIN_MARGIN = 1;
 const CHECKIN_MARGIN_MINIMUM = 1;
 const TIMEOUT_MINIMUM = 1;
 
@@ -68,18 +61,16 @@ type Props = {
   apiMethod: FormProps['apiMethod'];
   onSubmitSuccess: FormProps['onSubmitSuccess'];
   monitor?: Monitor;
-  submitLabel?: string;
 };
 
-interface TransformedData extends Partial<Omit<Monitor, 'config' | 'alertRule'>> {
-  alertRule?: Partial<Monitor['alertRule']>;
+interface TransformedData extends Partial<Omit<Monitor, 'config'>> {
   config?: Partial<Monitor['config']>;
 }
 
 /**
  * Transform sub-fields for what the API expects
  */
-export function transformMonitorFormData(_data: Record<string, any>, model: FormModel) {
+function transformMonitorFormData(_data: Record<string, any>, model: FormModel) {
   const schedType = model.getValue('config.scheduleType');
   // Remove interval fields if the monitor schedule is crontab
   const filteredFields = model.fields
@@ -94,28 +85,6 @@ export function transformMonitorFormData(_data: Record<string, any>, model: Form
 
   const result = filteredFields.reduce<TransformedData>((data, [k, v]) => {
     data.config ??= {};
-    data.alertRule ??= {};
-
-    if (k === 'alertRule.targets') {
-      const alertTargets = (v as string[] | undefined)?.map(item => {
-        // See SentryMemberTeamSelectorField to understand why these are strings
-        const [type, id] = item.split(':');
-
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        const targetType = RULE_TARGET_MAP[type!];
-
-        return {targetType, targetIdentifier: Number(id)};
-      });
-
-      data.alertRule.targets = alertTargets;
-      return data;
-    }
-
-    if (k === 'alertRule.environment') {
-      const environment = v === '' ? undefined : (v as string);
-      data.alertRule.environment = environment;
-      return data;
-    }
 
     if (k === 'config.schedule.frequency' || k === 'config.schedule.interval') {
       if (!Array.isArray(data.config.schedule)) {
@@ -144,18 +113,13 @@ export function transformMonitorFormData(_data: Record<string, any>, model: Form
     return data;
   }, {});
 
-  // If targets are not specified, don't send alert rule config to backend
-  if (!result.alertRule?.targets) {
-    result.alertRule = undefined;
-  }
-
   return result;
 }
 
 /**
  * Transform config field errors from the error response
  */
-export function mapMonitorFormErrors(responseJson?: any) {
+function mapMonitorFormErrors(responseJson?: any) {
   if (responseJson.config === undefined) {
     return responseJson;
   }
@@ -169,21 +133,11 @@ export function mapMonitorFormErrors(responseJson?: any) {
   return {...responseRest, ...configErrors};
 }
 
-export function MonitorForm({
-  monitor,
-  submitLabel,
-  apiEndpoint,
-  apiMethod,
-  onSubmitSuccess,
-}: Props) {
+export function MonitorForm({monitor, apiEndpoint, apiMethod, onSubmitSuccess}: Props) {
   const theme = useTheme();
   const organization = useOrganization();
-  const form = useRef(
-    new FormModel({
-      transformData: transformMonitorFormData,
-    })
-  );
-  const {onFieldChange} = useFormEagerValidation(form.current);
+  const [form] = useState(() => new FormModel({transformData: transformMonitorFormData}));
+  const {onFieldChange} = useFormEagerValidation(form);
 
   const {projects} = useProjects();
   const {selection} = usePageFilters();
@@ -217,20 +171,7 @@ export function MonitorForm({
   const isSuperuser = isActiveSuperuser();
   const filteredProjects = projects.filter(project => isSuperuser || project.isMember);
 
-  const alertRuleTarget = monitor?.alertRule?.targets.map(
-    target => `${RULES_SELECTOR_MAP[target.targetType]}:${target.targetIdentifier}`
-  );
-
   const owner = monitor?.owner ? `${monitor.owner.type}:${monitor.owner.id}` : null;
-
-  const envOptions = selectedProject?.environments.map(e => ({value: e, label: e})) ?? [];
-  const alertRuleEnvs = [
-    {
-      label: 'All Environments',
-      value: '',
-    },
-    ...envOptions,
-  ];
 
   return (
     <Form
@@ -238,7 +179,7 @@ export function MonitorForm({
       requireChanges
       apiEndpoint={apiEndpoint}
       apiMethod={apiMethod}
-      model={form.current}
+      model={form}
       onFieldChange={onFieldChange}
       initialData={
         monitor
@@ -247,8 +188,6 @@ export function MonitorForm({
               slug: monitor.slug,
               owner,
               project: monitor.project.slug,
-              'alertRule.targets': alertRuleTarget,
-              'alertRule.environment': monitor.alertRule?.environment,
               ...formDataFromConfig(monitor.config),
             }
           : {
@@ -256,7 +195,6 @@ export function MonitorForm({
             }
       }
       onSubmitSuccess={onSubmitSuccess}
-      submitLabel={submitLabel}
       mapFormErrors={mapMonitorFormErrors}
     >
       <StyledList symbol="colored-numeric">
@@ -335,12 +273,12 @@ export function MonitorForm({
           />
           <Observer>
             {() => {
-              const scheduleType = form.current.getValue('config.scheduleType');
+              const scheduleType = form.getValue('config.scheduleType');
 
               const parsedSchedule =
                 scheduleType === 'crontab'
                   ? crontabAsText(
-                      form.current.getValue<string>('config.schedule')?.toString() ?? ''
+                      form.getValue<string>('config.schedule')?.toString() ?? ''
                     )
                   : null;
 
@@ -401,7 +339,7 @@ export function MonitorForm({
                       label={t('Interval Type')}
                       hideLabel
                       options={getScheduleIntervals(
-                        Number(form.current.getValue('config.schedule.frequency') ?? 1)
+                        Number(form.getValue('config.schedule.frequency') ?? 1)
                       )}
                       defaultValue="day"
                       required
@@ -436,13 +374,14 @@ export function MonitorForm({
               <NumberField
                 name="config.maxRuntime"
                 min={TIMEOUT_MINIMUM}
+                max={MAX_RUNTIME_LIMIT}
                 placeholder={tn(
                   'Defaults to %s minute',
                   'Defaults to %s minutes',
                   DEFAULT_MAX_RUNTIME
                 )}
                 help={t(
-                  'Number of minutes before an in-progress check-in is marked timed out.'
+                  'Number of minutes before an in-progress check-in is marked timed out. The maximum is 10080 minutes (7 days).'
                 )}
                 label={t('Max Runtime')}
               />
@@ -496,66 +435,25 @@ export function MonitorForm({
             </PanelBody>
           </Panel>
         </InputGroup>
-        <StyledListItem>{t('Notifications')}</StyledListItem>
-        <ListItemSubText>
-          {t('Configure who to notify upon issue creation and when.')}
-        </ListItemSubText>
-        <InputGroup>
-          {monitor?.config.alert_rule_id && (
-            <AlertLink
-              variant="muted"
-              to={makeAlertsPathname({
-                path: `/rules/${monitor.project.slug}/${monitor.config.alert_rule_id}/`,
-                organization,
-              })}
-            >
-              {t('Customize this monitors notification configuration in Alerts')}
-            </AlertLink>
-          )}
-          <Panel>
-            <PanelBody>
-              <Observer>
-                {() => {
-                  const projectSlug = form.current
-                    .getValue<string>('project')
-                    ?.toString();
-                  return (
-                    <SentryMemberTeamSelectorField
-                      label={t('Notify')}
-                      help={t('Send notifications to a member or team.')}
-                      name="alertRule.targets"
-                      memberOfProjectSlugs={projectSlug ? [projectSlug] : undefined}
-                      multiple
-                    />
-                  );
-                }}
-              </Observer>
-              <Observer>
-                {() => {
-                  const selectedAssignee = form.current.getValue('alertRule.targets');
-                  // Check for falsey value or empty array value
-
-                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                  const disabled = !selectedAssignee || !selectedAssignee.toString();
-
-                  return (
-                    <SelectField
-                      label={t('Environment')}
-                      help={t('Only receive notifications from a specific environment.')}
-                      name="alertRule.environment"
-                      options={alertRuleEnvs}
-                      disabled={disabled}
-                      defaultValue=""
-                      disabledReason={t(
-                        'Please select which teams or members to notify first.'
-                      )}
-                    />
-                  );
-                }}
-              </Observer>
-            </PanelBody>
-          </Panel>
-        </InputGroup>
+        {!!monitor?.config.alert_rule_id && (
+          <Fragment>
+            <StyledListItem>{t('Notifications')}</StyledListItem>
+            <ListItemSubText>
+              {t('Manage notification configuration in Alerts.')}
+            </ListItemSubText>
+            <InputGroup>
+              <AlertLink
+                variant="muted"
+                to={makeAlertsPathname({
+                  path: `/rules/${monitor.project.slug}/${monitor.config.alert_rule_id}/`,
+                  organization,
+                })}
+              >
+                {t('Customize notification configuration in Alerts')}
+              </AlertLink>
+            </InputGroup>
+          </Fragment>
+        )}
       </StyledList>
     </Form>
   );

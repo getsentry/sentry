@@ -1,11 +1,13 @@
 import moment from 'moment-timezone';
 
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
+import {ResultGrid} from 'sentry/components/resultGrid';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import type {User} from 'sentry/types/user';
 
 import {CustomerContact} from 'admin/components/customerContact';
-import {ResultGrid} from 'admin/components/resultGrid';
 import type {PromoCode} from 'admin/types';
 
 type Props = {
@@ -27,31 +29,33 @@ const getRow = (row: PromoClaimant) => {
 
   if (!customer) {
     return [
-      <td key="customer">(unknown organization)</td>,
-      <td key="clamimant">
+      <SimpleTable.RowCell key="customer">(unknown organization)</SimpleTable.RowCell>,
+      <SimpleTable.RowCell key="clamimant">
         {user ? <CustomerContact owner={user} /> : '(unknown user)'}
-      </td>,
-      <td key="date" style={{textAlign: 'right'}}>
+      </SimpleTable.RowCell>,
+      <SimpleTable.RowCell key="date" justify="end">
         {moment(row.dateCreated).format('MMMM YYYY')}
-        <br />
-      </td>,
+      </SimpleTable.RowCell>,
     ];
   }
 
   return [
-    <td key="customer">
-      <strong>
-        <Link to={`/_admin/customers/${customer.slug}/`}>
-          {customer.name || customer.slug}
-        </Link>
-      </strong>
-      <small> — {customer.slug}</small>
-    </td>,
-    <td key="claimant">{user ? <CustomerContact owner={user} /> : '(unknown user)'}</td>,
-    <td key="date" style={{textAlign: 'right'}}>
+    <SimpleTable.RowCell key="customer">
+      <Text>
+        <strong>
+          <Link to={`/_admin/customers/${customer.slug}/`}>
+            {customer.name || customer.slug}
+          </Link>
+        </strong>
+        <Text size="xs"> — {customer.slug}</Text>
+      </Text>
+    </SimpleTable.RowCell>,
+    <SimpleTable.RowCell key="claimant">
+      {user ? <CustomerContact owner={user} /> : '(unknown user)'}
+    </SimpleTable.RowCell>,
+    <SimpleTable.RowCell key="date" justify="end">
       {moment(row.dateCreated).format('MMMM YYYY')}
-      <br />
-    </td>,
+    </SimpleTable.RowCell>,
   ];
 };
 
@@ -62,13 +66,10 @@ export function PromoCodeClaimants({promoCode}: Props) {
       panelTitle="Claimants"
       path={`/_admin/promocodes/${promoCode.code}/claimants/`}
       endpoint={`/promocodes/${promoCode.code}/claimants/`}
-      method="GET"
       columns={[
-        <th key="customer">Customer</th>,
-        <th key="claimant">Claimant</th>,
-        <th key="date" style={{width: 200, textAlign: 'right'}}>
-          Date Claimed
-        </th>,
+        {key: 'customer', label: 'Customer'},
+        {key: 'claimant', label: 'Claimant'},
+        {key: 'date', label: 'Date Claimed', width: 200, align: 'right'},
       ]}
       columnsForRow={getRow}
       defaultParams={{

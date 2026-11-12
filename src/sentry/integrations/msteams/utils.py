@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import enum
 import logging
+from collections.abc import Mapping
+from typing import cast
 
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
@@ -13,6 +15,8 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
+from sentry.notifications.platform.shadow.capture import record_legacy_render
+from sentry.notifications.platform.types import NotificationProviderKey
 
 from .client import MsTeamsClient, MsTeamsPreInstallClient, get_token_data
 
@@ -31,11 +35,12 @@ class ACTION_TYPE(str, enum.Enum):
     UNASSIGN = "5"
 
 
-def channel_filter(channel, name):
+def channel_filter(channel: Mapping[str, object], name: str) -> bool:
     # the general channel has no name in the list
     # retrieved from the REST API call
-    if channel.get("name"):
-        return name.lower() == channel.get("name").lower()
+    channel_name = channel.get("name")
+    if channel_name:
+        return name.lower() == cast(str, channel_name).lower()
     else:
         return name.lower() == "general"
 
@@ -65,7 +70,7 @@ def find_channel_id(integration: Integration | RpcIntegration, name: str) -> str
 
     # handle searching for channels first
     channel_list = client.get_channel_list(team_id)
-    filtered_channels = list(filter(lambda x: channel_filter(x, name), channel_list))
+    filtered_channels = [channel for channel in channel_list if channel_filter(channel, name)]
     if len(filtered_channels) > 0:
         return filtered_channels[0].get("id")
 
@@ -119,6 +124,16 @@ def send_incident_alert_notification(
 
     if notification_context.target_identifier is None:
         raise ValueError("Can't send without `target_identifier`")
+    if notification_context.integration_id is None:
+        return False
+
+    if (
+        integration_service.organization_context(
+            organization_id=organization.id, integration_id=notification_context.integration_id
+        ).active()
+        is None
+    ):
+        return False
 
     attachment = build_incident_attachment(
         alert_context=alert_context,
@@ -127,6 +142,7 @@ def send_incident_alert_notification(
         date_started=open_period_context.date_started,
         notification_uuid=notification_uuid,
     )
+    record_legacy_render(NotificationProviderKey.MSTEAMS, attachment)
     success = integration_service.send_msteams_incident_alert_notification(
         integration_id=notification_context.integration_id,
         channel=notification_context.target_identifier,
@@ -135,7 +151,7 @@ def send_incident_alert_notification(
     return success
 
 
-def get_preinstall_client(service_url):
+def get_preinstall_client(service_url: str) -> MsTeamsPreInstallClient:
     # may want try/catch here since this makes an external API call
     access_token = get_token_data()["access_token"]
     return MsTeamsPreInstallClient(access_token, service_url)

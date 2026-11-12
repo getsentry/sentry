@@ -1,4 +1,4 @@
-import styled from '@emotion/styled';
+import {Container} from '@sentry/scraps/layout';
 
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import {t} from 'sentry/locale';
@@ -45,18 +45,16 @@ export function ReleasesSortOptions({
   };
 
   return (
-    <StyledReleasesDropdown
-      label={t('Sort By')}
-      options={sortOptions}
-      selected={selected}
-      onSelect={onSelect}
-    />
+    <Container width={{zero: '100%', '2xl': 'max-content'}}>
+      {containerProps => (
+        <ReleasesDropdown
+          {...containerProps}
+          label={t('Sort By')}
+          options={sortOptions}
+          selected={selected}
+          onSelect={onSelect}
+        />
+      )}
+    </Container>
   );
 }
-
-const StyledReleasesDropdown = styled(ReleasesDropdown)`
-  z-index: 2;
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    order: 2;
-  }
-`;

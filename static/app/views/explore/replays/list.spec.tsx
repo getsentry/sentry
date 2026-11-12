@@ -12,11 +12,12 @@ import {
   useReplayOnboardingSidebarPanel,
 } from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
-import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobileProj';
-import ListPage from 'sentry/views/explore/replays/list';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+
+import {useAllMobileProj} from './detail/useAllMobileProj';
+import ListPage from './list';
 
 jest.mock('sentry/utils/replays/hooks/useDeadRageSelectors');
 jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
@@ -65,6 +66,13 @@ function TopBarActionsWrapper({children}: {children: ReactNode}) {
   return (
     <SecondaryNavigationContextProvider>
       <TopBar.Slot.Provider>
+        <TopBar.Slot.Outlet name="breadcrumbs">
+          {props => <div {...props} data-test-id="topbar-breadcrumbs-slot" />}
+        </TopBar.Slot.Outlet>
+        {/* Mirror the real TopBar, which renders the title slot as an <h1>. */}
+        <TopBar.Slot.Outlet name="title">
+          {props => <h1 {...props} data-test-id="topbar-title-slot" />}
+        </TopBar.Slot.Outlet>
         <TopBar.Slot.Outlet name="actions">
           {props => <div {...props} data-test-id="topbar-actions-slot" />}
         </TopBar.Slot.Outlet>

@@ -30,7 +30,9 @@ class Dataset(Enum):
 
     PerformanceMetrics = "generic_metrics"
     """
-    PerformanceMetrics contains all generic metrics platform metrics.
+    Deprecated. Snuba no longer has this dataset, so nothing can be queried, subscribed to,
+    or deleted through it. It remains only so stored rows that reference it, such as
+    `SnubaQuery.dataset`, still deserialize. Do not add new uses.
     """
 
     Replays = "replays"
@@ -67,10 +69,7 @@ class EntityKey(Enum):
     MetricsCounters = "metrics_counters"
     OrgMetricsCounters = "org_metrics_counters"
     MetricsDistributions = "metrics_distributions"
-    GenericMetricsDistributions = "generic_metrics_distributions"
-    GenericMetricsSets = "generic_metrics_sets"
     GenericMetricsCounters = "generic_metrics_counters"
-    GenericMetricsGauges = "generic_metrics_gauges"
     GenericOrgMetricsCounters = "generic_org_metrics_counters"
     IssuePlatform = "search_issues"
     Functions = "functions"

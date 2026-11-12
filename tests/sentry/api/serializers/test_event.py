@@ -1,6 +1,9 @@
 from datetime import UTC, datetime
 from unittest import mock
 
+from django.core.cache import cache
+from django.test import override_settings
+
 from sentry.api.serializers import SimpleEventSerializer, serialize
 from sentry.api.serializers.models.event import (
     IssueEventSerializer,
@@ -11,6 +14,7 @@ from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_t
 from sentry.models.eventerror import EventErrorType
 from sentry.models.release import Release
 from sentry.sdk_updates import SdkIndexState
+from sentry.tasks.release_registry import SDK_INDEX_CACHE_KEY
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.issue_detection.event_generators import get_event
@@ -204,10 +208,10 @@ class EventSerializerTest(TestCase, OccurrenceTestMixin):
         )
 
         result = serialize(event)
-        # Expect 3 custom tags + derived "level". The ``None``` entry is removed
+        # Expect 3 custom tags + derived "level" + derived "interface_type". The ``None``` entry is removed
         # by the serializer as it cannot be rendered. Such entries are generated
         # by Relay normalization.
-        assert len(result["tags"]) == 4
+        assert len(result["tags"]) == 5
         assert result["tags"][0]["value"] == "bar"
         assert result["tags"][1]["value"] == "foo"
         assert result["_meta"]["tags"]["0"]["key"] == {"": {"err": ["bar error"]}}
@@ -262,7 +266,15 @@ class EventSerializerTest(TestCase, OccurrenceTestMixin):
         assert not any(e["type"] == "request" for e in result["entries"])
         assert result["user"] is None
         assert result["sdk"] is None
-        assert result["contexts"] == {}
+        # Relay normalization always synthesizes a trace context.
+        assert result["contexts"] == {
+            "trace": {
+                "type": "trace",
+                "trace_id": "a" * 32,
+                "span_id": "a" * 16,
+                "status": "unknown",
+            }
+        }
         assert "startTimestamp" not in result
 
     def test_transaction_event(self) -> None:
@@ -351,7 +363,7 @@ class SimpleEventSerializerTest(TestCase):
         assert result["user"]["username"] == event.get_minimal_user().username
         assert result["user"]["ip_address"] == event.get_minimal_user().ip_address
         assert result["tags"] == [
-            {"key": "interface_type", "value": "user"},
+            {"key": "interface_type", "value": "contexts"},
             {"key": "level", "value": "error"},
             {"key": "user", "value": "email:test@test.com", "query": 'user.email:"test@test.com"'},
         ]
@@ -457,6 +469,74 @@ class IssueEventSerializerTest(TestCase):
 
         result = serialize(event, None, IssueEventSerializer())
         assert result["sdkUpdates"] == []
+
+    @override_settings(SENTRY_RELEASE_REGISTRY_BASEURL="https://release-registry.example.com")
+    def test_sdk_updates_fetch_sdk_index_once(self) -> None:
+        cache.set(
+            SDK_INDEX_CACHE_KEY,
+            {"example.sdk": {"version": "2.0.0", "main_docs_url": "https://example.com/docs"}},
+            60,
+        )
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "oh no",
+                "timestamp": before_now(minutes=1).isoformat(),
+                "fingerprint": ["group-1"],
+                "sdk": {"name": "example.sdk", "version": "1.0.0"},
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+
+        with mock.patch("sentry.sdk_updates.cache.get", wraps=cache.get) as cache_get:
+            result = serialize(event, None, IssueEventSerializer())
+
+        assert result["sdkUpdates"] == [
+            {
+                "enables": [],
+                "newSdkVersion": "2.0.0",
+                "sdkName": "example.sdk",
+                "sdkUrl": "https://example.com/docs",
+                "type": "updateSdk",
+            }
+        ]
+        sdk_index_gets = [c for c in cache_get.call_args_list if c.args[0] == SDK_INDEX_CACHE_KEY]
+        assert len(sdk_index_gets) == 1
+
+    def test_resolved_with_skips_frames_without_resolution(self) -> None:
+        min_ago = before_now(minutes=1).isoformat()
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": min_ago,
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [
+                                    {"function": "foo"},
+                                    {"function": "bar"},
+                                    {"function": "baz"},
+                                ]
+                            },
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+
+        # resolved_with is written into frame data by symbolication, after
+        # normalization; inject it the same way.
+        frames = event.data["exception"]["values"][0]["stacktrace"]["frames"]
+        frames[0].setdefault("data", {})["resolved_with"] = "scraping"
+        frames[1].setdefault("data", {})["symbolicated"] = True
+
+        result = serialize(event, None, IssueEventSerializer())
+        assert result["resolvedWith"] == ["scraping"]
 
 
 class SqlFormatEventSerializerTest(TestCase):

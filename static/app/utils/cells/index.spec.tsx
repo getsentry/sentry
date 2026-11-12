@@ -29,28 +29,6 @@ describe('getLocalityUrlOptions', () => {
       label: '🇪🇺 European Union (EU)',
     });
     expect(res[1]).toEqual({value: 'https://ja.sentry.io', label: 'ja'});
-
-    // Excluding the only included option = empty set.
-    const none = getLocalityUrlOptions(
-      [{name: 'us', url: 'https://us.sentry.io', displayName: 'us', label: 'us'}],
-      ['us']
-    );
-    expect(none).toHaveLength(0);
-  });
-
-  it('limits to only parameter', () => {
-    ConfigStore.set('localities', [
-      {name: 'us', url: 'https://us.sentry.io'},
-      {name: 'de', url: 'https://de.sentry.io'},
-      {name: 'ja', url: 'https://ja.sentry.io'},
-    ]);
-
-    const res = getLocalityUrlOptions([], ['us']);
-    expect(res).toHaveLength(1);
-    expect(res[0]).toEqual({
-      value: 'https://us.sentry.io',
-      label: '🇺🇸 United States of America (US)',
-    });
   });
 });
 

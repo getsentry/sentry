@@ -20,7 +20,7 @@ from sentry.api.serializers.models.organization_member import OrganizationMember
 from sentry.api.serializers.models.organization_member.response import OrganizationMemberResponse
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.organization_member_examples import OrganizationMemberExamples
-from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
 from sentry.apidocs.response_types import (
     DetailResponse,
     ValidationErrorResponse,
@@ -28,6 +28,7 @@ from sentry.apidocs.response_types import (
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.authenticators import available_authenticators
+from sentry.auth.principal import require_user
 from sentry.core.endpoints.organization_member_utils import (
     ERR_RATE_LIMITED,
     ROLE_CHOICES,
@@ -50,15 +51,15 @@ from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
 
-@extend_schema_serializer(
-    deprecate_fields=["role", "teams"], exclude_fields=["regenerate", "role", "teams"]
-)
+@extend_schema_serializer(deprecate_fields=["role", "teams"])
 class OrganizationMemberRequestSerializer(serializers.Serializer[dict[str, Any]]):
     email = AllowedEmailField(
         max_length=75, required=True, help_text="The email address to send the invitation to."
     )
     role = serializers.ChoiceField(
-        choices=roles.get_choices(), default=organization_roles.get_default().id
+        choices=roles.get_choices(),
+        default=organization_roles.get_default().id,
+        help_text="Deprecated, use `orgRole`. The organization-level role to assign.",
     )  # deprecated, use orgRole
     orgRole = serializers.ChoiceField(
         choices=ROLE_CHOICES,
@@ -67,7 +68,10 @@ class OrganizationMemberRequestSerializer(serializers.Serializer[dict[str, Any]]
         help_text="The organization-level role of the new member. Roles include:",  # choices will follow in the docs
     )
     teams = serializers.ListField(
-        required=False, allow_null=False, default=list
+        required=False,
+        allow_null=False,
+        default=list,
+        help_text="Deprecated, use `teamRoles`. Slugs of teams to add the member to.",
     )  # deprecated, use teamRoles
     teamRoles = serializers.ListField(
         required=False,
@@ -88,7 +92,10 @@ class OrganizationMemberRequestSerializer(serializers.Serializer[dict[str, Any]]
         required=False,
         help_text="Whether or not to re-invite a user who has already been invited to the organization. Defaults to True.",
     )
-    regenerate = serializers.BooleanField(required=False)
+    regenerate = serializers.BooleanField(
+        required=False,
+        help_text="Reissue the invite token, invalidating any previously sent invite link.",
+    )
 
     def validate_email(self, email: str) -> str:
         users = user_service.get_many_by_email(
@@ -173,6 +180,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
 
     rate_limits = RateLimitConfig(
         limit_overrides={
@@ -197,6 +205,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         summary="List an Organization's Members",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
+            OrganizationParams.MEMBER_QUERY,
             CursorQueryParam,
         ],
         responses={
@@ -254,7 +263,9 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                     )
 
                 elif key == "scope":
-                    queryset = queryset.filter(role__in=[r.id for r in roles.with_any_scope(value)])
+                    queryset = queryset.filter(
+                        role__in=[r.id for r in organization.get_roles().with_any_scope(value)]
+                    )
 
                 elif key == "role":
                     queryset = queryset.filter(role__in=value)
@@ -343,6 +354,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         """
         Add or invite a member to an organization.
         """
+        inviter = require_user(request)
         assigned_org_role = (
             request.data.get("orgRole")
             or request.data.get("role")
@@ -387,7 +399,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         if ratelimits.for_organization_member_invite(
             organization=organization,
             email=result["email"],
-            user=request.user,
+            user=inviter,
             auth=request.auth,
         ):
             metrics.incr(
@@ -411,7 +423,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             requester_teams = set(
                 OrganizationMember.objects.filter(
                     organization=organization,
-                    user_id=request.user.id,
+                    user_id=inviter.id,
                     user_is_active=True,
                 ).values_list("teams__slug", flat=True)
             )
@@ -451,7 +463,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 organization=organization,
                 email=result["email"],
                 role=assigned_org_role,
-                inviter_id=request.user.id,
+                inviter_id=inviter.id,
             )
 
             if settings.SENTRY_ENABLE_INVITES:
@@ -471,7 +483,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             referrer = request.query_params.get("referrer")
             om.send_invite_email(referrer)
             member_invited.send_robust(
-                member=om, user=request.user, sender=self, referrer=request.data.get("referrer")
+                member=om, user=inviter, sender=self, referrer=request.data.get("referrer")
             )
 
         self.create_audit_entry(

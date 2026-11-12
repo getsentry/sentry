@@ -1,11 +1,13 @@
+import {IconLock} from '@sentry/icons/lock';
+
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
+import {docsFlowGamingOrigin} from 'sentry/components/onboarding/gettingStartedDoc/docsFlowAnalytics';
 import {
   StepType,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {IconLock} from 'sentry/icons/iconLock';
 import {t, tct} from 'sentry/locale';
 
 export const onboarding: OnboardingConfig = {
@@ -47,7 +49,7 @@ export const onboarding: OnboardingConfig = {
               gamingPlatform="xbox"
               organization={params.organization}
               projectId={params.project.id}
-              origin={params.newOrg ? 'onboarding' : 'project-creation'}
+              origin={docsFlowGamingOrigin(params.docsFlow)}
             />
           ),
         },

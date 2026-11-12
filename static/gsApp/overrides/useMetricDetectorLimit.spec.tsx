@@ -8,7 +8,7 @@ import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {useMetricDetectorLimit} from './useMetricDetectorLimit';
 
 const mockOrganization = OrganizationFixture({
-  features: ['workflow-engine-metric-detector-limit', 'workflow-engine-ui'],
+  features: ['workflow-engine-metric-detector-limit'],
 });
 
 const mockOrganizationWithoutFeature = OrganizationFixture({

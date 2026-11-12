@@ -4,9 +4,9 @@ import {setForceHide} from 'sentry/actionCreators/guides';
 import {demoSignupModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getUTMState} from 'sentry/utils/demoMode/utm';
 
 import {isDemoModeActive} from './index';
+import {getUTMState} from './utm';
 
 const SIGN_UP_MODAL_DELAY = 2 * 60 * 1000;
 
@@ -76,8 +76,9 @@ function initDemoAnalytics() {
 
     const queueScript = document.createElement('script');
     queueScript.id = 'plausible-queue-script';
-    queueScript.textContent =
-      'window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }';
+    queueScript.append(
+      'window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }'
+    );
 
     document.head.appendChild(mainScript);
     document.head.appendChild(queueScript);

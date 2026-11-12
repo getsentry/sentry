@@ -1,6 +1,6 @@
 import {useCallback, useEffect} from 'react';
 
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {useLocalStorageState} from './useLocalStorageState';
 
 type SyncedLocalStorageEvent<S> = CustomEvent<{key: string; value: S}>;
 
@@ -56,6 +56,7 @@ export function useSyncedLocalStorageState<S>(
     return () => {
       window.removeEventListener(SYNCED_STORAGE_EVENT, handleNewSyncedLocalStorageEvent);
     };
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [key, setValue, value]);
 
   return [value, setValueAndNotify];

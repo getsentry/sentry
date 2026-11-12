@@ -19,11 +19,23 @@ class ProjectUptimeAlertDetailsGetEndpointTest(ProjectUptimeAlertDetailsBaseEndp
     def test_simple(self) -> None:
         detector = self.create_uptime_detector()
 
-        resp = self.get_success_response(self.organization.slug, detector.project.slug, detector.id)
+        resp = self.get_success_response(
+            self.organization.slug, detector.linked_project.slug, detector.id
+        )
         assert resp.data == serialize(detector, self.user, UptimeDetectorSerializer())
 
     def test_not_found(self) -> None:
         resp = self.get_error_response(self.organization.slug, self.project.slug, 3)
+        assert resp.status_code == 404
+
+    def test_non_integer_detector_id(self) -> None:
+        resp = self.get_error_response(self.organization.slug, self.project.slug, "invalid")
+        assert resp.status_code == 404
+
+    def test_out_of_range_detector_id(self) -> None:
+        resp = self.get_error_response(
+            self.organization.slug, self.project.slug, "999999999999999999999"
+        )
         assert resp.status_code == 404
 
     def test_onboarding_detector_returns_404(self) -> None:
@@ -34,7 +46,7 @@ class ProjectUptimeAlertDetailsGetEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         )
 
         resp = self.get_error_response(
-            self.organization.slug, onboarding_detector.project.slug, onboarding_detector.id
+            self.organization.slug, onboarding_detector.linked_project.slug, onboarding_detector.id
         )
         assert resp.status_code == 404
 
@@ -43,7 +55,9 @@ class ProjectUptimeAlertDetailsGetEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         detector = self.create_uptime_detector()
         detector.update(status=ObjectStatus.DISABLED, enabled=False)
 
-        resp = self.get_success_response(self.organization.slug, detector.project.slug, detector.id)
+        resp = self.get_success_response(
+            self.organization.slug, detector.linked_project.slug, detector.id
+        )
         assert resp.data == serialize(detector, self.user, UptimeDetectorSerializer())
 
 
@@ -55,7 +69,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         uptime_sub = get_uptime_subscription(detector)
         resp = self.get_success_response(
             self.organization.slug,
-            detector.project.slug,
+            detector.linked_project.slug,
             detector.id,
             environment="uptime-prod",
             name="test",
@@ -83,7 +97,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
 
         resp = self.get_success_response(
             self.organization.slug,
-            detector.project.slug,
+            detector.linked_project.slug,
             detector.id,
             name="test",
             owner=f"user:{self.user.id}",
@@ -106,12 +120,39 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         assert uptime_sub.body is None
         assert uptime_sub.trace_sampling is False
 
+    def test_update_without_environment(self) -> None:
+        detector = self.create_uptime_detector()
+        detector.update(config={**detector.config, "environment": None})
+
+        self.get_success_response(
+            self.organization.slug,
+            detector.linked_project.slug,
+            detector.id,
+            name="test",
+        )
+        detector.refresh_from_db()
+        assert detector.name == "test"
+        assert detector.config.get("environment") is None
+
+    def test_update_keeps_environment(self) -> None:
+        env = self.create_environment(project=self.project, name="uptime-prod")
+        detector = self.create_uptime_detector(env=env)
+
+        self.get_success_response(
+            self.organization.slug,
+            detector.linked_project.slug,
+            detector.id,
+            name="test",
+        )
+        detector.refresh_from_db()
+        assert detector.config.get("environment") == "uptime-prod"
+
     def test_enviroment(self) -> None:
         detector = self.create_uptime_detector()
 
         resp = self.get_success_response(
             self.organization.slug,
-            detector.project.slug,
+            detector.linked_project.slug,
             detector.id,
             name="test",
             environment="uptime-prod",
@@ -126,7 +167,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
 
         resp = self.get_success_response(
             self.organization.slug,
-            detector.project.slug,
+            detector.linked_project.slug,
             detector.id,
             name="test",
             owner=f"user:{self.user.id}",
@@ -141,7 +182,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         detector = self.create_uptime_detector()
         resp = self.get_success_response(
             self.organization.slug,
-            detector.project.slug,
+            detector.linked_project.slug,
             detector.id,
             name="test_2",
             owner=f"team:{self.team.id}",
@@ -158,7 +199,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
 
         resp = self.get_error_response(
             self.organization.slug,
-            detector.project.slug,
+            detector.linked_project.slug,
             detector.id,
             owner=f"user:{bad_user.id}",
         )
@@ -172,7 +213,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
 
         resp = self.get_error_response(
             self.organization.slug,
-            detector.project.slug,
+            detector.linked_project.slug,
             detector.id,
             owner=f"team:{bad_team.id}",
         )
@@ -202,7 +243,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         detector = self.create_uptime_detector()
         resp = self.get_error_response(
             self.organization.slug,
-            detector.project.slug,
+            detector.linked_project.slug,
             detector.id,
             status_code=400,
             url="https://test-two.example.com",
@@ -216,7 +257,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         detector = self.create_uptime_detector()
         resp = self.get_success_response(
             self.organization.slug,
-            detector.project.slug,
+            detector.linked_project.slug,
             detector.id,
             name="test_2",
             status="disabled",
@@ -230,7 +271,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         detector = self.create_uptime_detector(enabled=False)
         resp = self.get_success_response(
             self.organization.slug,
-            detector.project.slug,
+            detector.linked_project.slug,
             detector.id,
             name="test_2",
             status="active",
@@ -246,7 +287,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
 
         resp = self.get_success_response(
             self.organization.slug,
-            detector.project.slug,
+            detector.linked_project.slug,
             detector.id,
             name="test",
             response_capture_enabled=False,
@@ -258,7 +299,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
 
         resp = self.get_success_response(
             self.organization.slug,
-            detector.project.slug,
+            detector.linked_project.slug,
             detector.id,
             name="test",
             response_capture_enabled=True,
@@ -276,7 +317,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
 
         self.get_success_response(
             self.organization.slug,
-            detector.project.slug,
+            detector.linked_project.slug,
             detector.id,
             name="test",
             response_capture_enabled=False,
@@ -301,7 +342,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         detector = self.create_uptime_detector(enabled=False)
         resp = self.get_error_response(
             self.organization.slug,
-            detector.project.slug,
+            detector.linked_project.slug,
             detector.id,
             name="test_2",
             status="active",
@@ -321,7 +362,7 @@ class ProjectUptimeAlertDetailsDeleteEndpointTest(ProjectUptimeAlertDetailsBaseE
         with self.tasks():
             self.get_success_response(
                 self.organization.slug,
-                detector.project.slug,
+                detector.linked_project.slug,
                 detector.id,
                 status_code=202,
             )

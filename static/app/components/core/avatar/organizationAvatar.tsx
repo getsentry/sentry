@@ -24,7 +24,7 @@ export function OrganizationAvatar({organization, ...props}: OrganizationAvatarP
   );
 }
 
-function getOrganizationAvatarProps(
+export function getOrganizationAvatarProps(
   organization: OrganizationSummary
 ): LetterBaseAvatarProps | UploadBaseAvatarProps | GravatarBaseAvatarProps {
   const identifier = organization.slug;

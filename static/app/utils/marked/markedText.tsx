@@ -4,7 +4,8 @@ import {
   asyncSanitizedMarked,
   sanitizedMarked,
   singleLineRenderer,
-} from 'sentry/utils/marked/marked';
+} from '@sentry/scraps/markdown';
+
 import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
 
 interface BaseMarkedTextProps<T extends React.ElementType> {
@@ -60,6 +61,7 @@ export function MarkedText<T extends React.ElementType = typeof defaultElement>(
         setRenderedHtml(html);
       }
     });
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [markedHtmlPromise, text, inline, isMountedRef]);
 
   const Component = as || defaultElement;

@@ -1,14 +1,12 @@
-import logging
 import re
 import time
 from collections.abc import Mapping
 from typing import Any, overload
 
 from sentry.attachments import CachedAttachment, get_attachments_for_event
+from sentry.lang.native.gpu import GPU_CRASH_DUMP_ATTACHMENT_TYPE
 from sentry.stacktraces.processing import StacktraceInfo
 from sentry.utils.safe import get_path
-
-logger = logging.getLogger(__name__)
 
 # Regex to guess whether we're dealing with Windows or Unix paths.
 WINDOWS_PATH_RE = re.compile(r"^([a-z]:\\|\\\\)", re.IGNORECASE)
@@ -38,11 +36,11 @@ STORE_CRASH_REPORTS_ALL = -1
 STORE_CRASH_REPORTS_MAX = 100
 
 
-def is_native_platform(platform):
+def is_native_platform(platform: object) -> bool:
     return platform in NATIVE_PLATFORMS
 
 
-def is_native_image(image):
+def is_native_image(image: Mapping[str, object]) -> bool:
     return (
         bool(image)
         and image.get("type") in NATIVE_IMAGE_TYPES
@@ -50,8 +48,9 @@ def is_native_image(image):
     )
 
 
-def native_images_from_data(data):
-    return get_path(data, "debug_meta", "images", default=(), filter=is_native_image)
+def native_images_from_data(data: Mapping[str, object]) -> list[dict[str, Any]]:
+    images = get_path(data, "debug_meta", "images", default=(), filter=is_native_image)
+    return images
 
 
 def is_native_event(data: Mapping[str, Any], stacktraces: list[StacktraceInfo]) -> bool:
@@ -61,6 +60,11 @@ def is_native_event(data: Mapping[str, Any], stacktraces: list[StacktraceInfo]) 
     if is_native_platform(data.get("platform")):
         return True
 
+    return has_native_stacktraces(stacktraces)
+
+
+def has_native_stacktraces(stacktraces: list[StacktraceInfo]) -> bool:
+    """Returns whether any of the supplied stacktraces are native."""
     for stacktrace in stacktraces:
         if any(is_native_platform(x) for x in stacktrace.platforms):
             return True
@@ -68,14 +72,22 @@ def is_native_event(data: Mapping[str, Any], stacktraces: list[StacktraceInfo]) 
     return False
 
 
-def image_name(pkg):
+@overload
+def image_name(pkg: str) -> str: ...
+
+
+@overload
+def image_name(pkg: None) -> None: ...
+
+
+def image_name(pkg: str | None) -> str | None:
     if not pkg:
         return pkg
     split = "\\" if WINDOWS_PATH_RE.match(pkg) else "/"
     return pkg.rsplit(split, 1)[-1]
 
 
-def get_os_from_event(event) -> str | None:
+def get_os_from_event(event: Mapping[str, object]) -> str | None:
     """
     Gets the OS name from either the OS context, or the SDK Info, which represents
     the runtime SDK and *NOT* the Sentry SDK.
@@ -93,7 +105,7 @@ def get_os_from_event(event) -> str | None:
     return None
 
 
-def signal_from_data(data):
+def signal_from_data(data: Mapping[str, object]) -> int | None:
     exceptions = get_path(data, "exception", "values", filter=True)
     signal = get_path(exceptions, 0, "mechanism", "meta", "signal", "number")
     if signal is not None:
@@ -138,7 +150,7 @@ def convert_crashreport_count(value: bool | None, allow_none: bool = False) -> i
     return int(value)
 
 
-def is_minidump_event(data):
+def is_minidump_event(data: Mapping[str, object]) -> bool:
     """
     Checks whether an event indicates that it has an associated minidump.
 
@@ -149,7 +161,7 @@ def is_minidump_event(data):
     return get_path(exceptions, 0, "mechanism", "type") == "minidump"
 
 
-def is_applecrashreport_event(data):
+def is_applecrashreport_event(data: Mapping[str, object]) -> bool:
     """
     Checks whether an event indicates that it has an apple crash report.
 
@@ -160,27 +172,71 @@ def is_applecrashreport_event(data):
     return get_path(exceptions, 0, "mechanism", "type") == "applecrashreport"
 
 
+def find_gpu_crash_dump_attachment(data: Any) -> CachedAttachment | None:
+    """Return the `.nv-gpudmp` GPU crash dump attachment for this event, or None.
+
+    Relay classifies it as `event.nv_gpudmp` when it splits the GPU crash onto
+    its own event, so matching that type alone is enough.
+    """
+    return get_event_attachment(data, GPU_CRASH_DUMP_ATTACHMENT_TYPE)
+
+
+# CPU crash-report attachment types. Their presence means the event is the CPU
+# crash (symbolicator's job), not the GPU event Relay split off.
+_CPU_CRASH_REPORT_TYPES = ("event.minidump", "event.applecrashreport", "playstation.prosperodump")
+
+
+def is_gpu_crash_event(data: Any) -> bool:
+    """True for a GPU crash event that teapot should symbolicate.
+
+    Relay splits a GPU dump onto its own event — a `.nv-gpudmp` and no CPU crash
+    report — for opted-in orgs. When an org hasn't opted in, Relay leaves the dump
+    on the CPU crash event; a crash report on the same event means "leave it to
+    CPU symbolication", so we must not route it to teapot.
+    """
+    if find_gpu_crash_dump_attachment(data) is None:
+        return False
+    return all(get_event_attachment(data, ty) is None for ty in _CPU_CRASH_REPORT_TYPES)
+
+
+# Shader debug info accompanies the `.nv-gpudmp`, one `.nvdbg` per shader. Relay
+# classifies each as `event.nv_shader_debug`; teapot recovers the shader's
+# `shader_debug_info_uid` from the attachment filename at decode time.
+SHADER_DEBUG_INFO_ATTACHMENT_TYPE = "event.nv_shader_debug"
+
+
+def find_all_shader_debug_attachments(data: Any) -> list[CachedAttachment]:
+    """Return every shader-debug-info (`.nvdbg`) attachment for this event.
+
+    Relay already selected the right set and typed each `event.nv_shader_debug`,
+    so we forward them all untouched — no filename parsing or uid matching here.
+    """
+    return [
+        a for a in get_attachments_for_event(data) if a.type == SHADER_DEBUG_INFO_ATTACHMENT_TYPE
+    ]
+
+
 class Backoff:
     """
     Creates a new exponential backoff.
     """
 
-    def __init__(self, initial, max):
+    def __init__(self, initial: float, max: float) -> None:
         """
         :param initial: The initial backoff time in seconds.
         :param max: The maximum backoff time in seconds.
         """
         self.initial = initial
         self.max = max
-        self._current = 0
+        self._current: float = 0
 
-    def reset(self):
+    def reset(self) -> None:
         """
         Resets the backoff time zero.
         """
         self._current = 0
 
-    def sleep_failure(self):
+    def sleep_failure(self) -> None:
         """
         Sleeps until the next retry attempt and increases the backoff time for the next failure.
         """

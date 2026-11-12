@@ -1,19 +1,24 @@
-import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 import {setWindowLocation} from 'sentry-test/utils';
 
-import * as modalActions from 'sentry/actionCreators/modal';
-import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
+import * as modalActions from '@sentry/scraps/modal';
+
+import type {
+  IntegrationProvider,
+  OrganizationIntegration,
+} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import {useAutoOpenPermissionsModal} from 'sentry/utils/integrations/useAutoOpenPermissionsModal';
+
+import {useAutoOpenPermissionsModal} from './useAutoOpenPermissionsModal';
 
 interface Params {
   isConfigurationsLoading: boolean;
   organization: Organization;
-  outdatedConfigurations: Integration[];
+  outdatedConfigurations: OrganizationIntegration[];
   provider: IntegrationProvider | undefined;
 }
 
@@ -21,7 +26,7 @@ function makeProps(overrides: Partial<Params> = {}): Params {
   return {
     provider: GitHubIntegrationProviderFixture(),
     organization: OrganizationFixture(),
-    outdatedConfigurations: [GitHubIntegrationFixture()],
+    outdatedConfigurations: [OrganizationIntegrationsFixture()],
     isConfigurationsLoading: false,
     ...overrides,
   };
@@ -102,7 +107,9 @@ describe('useAutoOpenPermissionsModal', () => {
     expect(router.location.query.showPermsModal).toBe('1');
 
     rerender(
-      makeProps({outdatedConfigurations: [GitHubIntegrationFixture({id: 'fresh'})]})
+      makeProps({
+        outdatedConfigurations: [OrganizationIntegrationsFixture({id: 'fresh'})],
+      })
     );
 
     await waitFor(() => {
@@ -125,13 +132,13 @@ describe('useAutoOpenPermissionsModal', () => {
   });
 
   it.each([
-    ['zero', [] as Integration[]],
+    ['zero', [] as OrganizationIntegration[]],
     [
       'multiple',
       [
-        GitHubIntegrationFixture({id: '1'}),
-        GitHubIntegrationFixture({id: '2'}),
-      ] as Integration[],
+        OrganizationIntegrationsFixture({id: '1'}),
+        OrganizationIntegrationsFixture({id: '2'}),
+      ],
     ],
   ])(
     'does not open but still clears the param with %s outdated configs',

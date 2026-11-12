@@ -4,13 +4,13 @@ import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {
   useTraceItemSearchQueryBuilderProps,
   type TraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {HiddenLogSearchFields} from 'sentry/views/explore/logs/constants';
 import {
   useQueryParamsFields,
   useQueryParamsSearch,
@@ -20,8 +20,12 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {findSuggestedColumns} from 'sentry/views/explore/utils';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
 
+import {HiddenLogSearchFields} from './constants';
+
 export function useLogsSearchQueryBuilderProps({
   attributeQuery,
+  arrayAttributes = {},
+  arraySecondaryAliases = {},
   booleanAttributes,
   booleanSecondaryAliases,
   numberAttributes,
@@ -36,9 +40,13 @@ export function useLogsSearchQueryBuilderProps({
   numberSecondaryAliases: TagCollection;
   stringAttributes: TagCollection;
   stringSecondaryAliases: TagCollection;
+  arrayAttributes?: TagCollection;
+  arraySecondaryAliases?: TagCollection;
   attributeQuery?: string;
   validatedSearchQueryData?: EventValidationData;
 }) {
+  const organization = useOrganization();
+  const supportsArrays = organization.features.includes('trace-item-array-query-support');
   const logsSearch = useQueryParamsSearch();
   const oldLogsSearch = usePrevious(logsSearch);
   const fields = useQueryParamsFields();
@@ -46,12 +54,14 @@ export function useLogsSearchQueryBuilderProps({
   const [caseInsensitive, setCaseInsensitive] = useCaseInsensitivity();
 
   const {
+    validatedArrayAttributes,
     validatedBooleanAttributes,
     validatedNumberAttributes,
     validatedStringAttributes,
     invalidFilterKeys,
   } = useMemo(() => {
     const localInvalidFilterKeys: string[] = [];
+    const localArrayAttributes = supportsArrays ? {...arrayAttributes} : {};
     const localBooleanAttributes = {...booleanAttributes};
     const localNumberAttributes = {...numberAttributes};
     const localStringAttributes = {...stringAttributes};
@@ -60,6 +70,7 @@ export function useLogsSearchQueryBuilderProps({
       for (const item of validatedSearchQueryData.query.fields) {
         if (item.valid) {
           if (item.attrType === 'boolean' && item.name) {
+            // oxlint-disable-next-line react/todo
             localBooleanAttributes[item.name] ??= {
               key: item.name,
               name: prettifyAttributeName(item.name),
@@ -68,6 +79,7 @@ export function useLogsSearchQueryBuilderProps({
           }
 
           if (item.attrType === 'number' && item.name) {
+            // oxlint-disable-next-line react/todo
             localNumberAttributes[item.name] ??= {
               key: item.name,
               name: prettifyAttributeName(item.name),
@@ -76,10 +88,20 @@ export function useLogsSearchQueryBuilderProps({
           }
 
           if (item.attrType === 'string' && item.name) {
+            // oxlint-disable-next-line react/todo
             localStringAttributes[item.name] ??= {
               key: item.name,
               name: prettifyAttributeName(item.name),
               kind: FieldKind.TAG,
+            };
+          }
+
+          if (supportsArrays && item.attrType === 'array' && item.name) {
+            // oxlint-disable-next-line react/todo
+            localArrayAttributes[item.name] ??= {
+              key: item.name,
+              name: prettifyAttributeName(item.name),
+              kind: FieldKind.ARRAY,
             };
           }
 
@@ -93,16 +115,19 @@ export function useLogsSearchQueryBuilderProps({
     }
 
     return {
+      validatedArrayAttributes: localArrayAttributes,
       validatedBooleanAttributes: localBooleanAttributes,
       validatedNumberAttributes: localNumberAttributes,
       validatedStringAttributes: localStringAttributes,
       invalidFilterKeys: localInvalidFilterKeys,
     };
   }, [
+    arrayAttributes,
     booleanAttributes,
     numberAttributes,
     stringAttributes,
-    validatedSearchQueryData?.query.fields,
+    supportsArrays,
+    validatedSearchQueryData,
   ]);
 
   const onSearch = useCallback(
@@ -138,10 +163,12 @@ export function useLogsSearchQueryBuilderProps({
       initialQuery,
       searchSource: 'ourlogs',
       onSearch,
+      arrayAttributes: validatedArrayAttributes,
       booleanAttributes: validatedBooleanAttributes,
       numberAttributes: validatedNumberAttributes,
       stringAttributes: validatedStringAttributes,
-      itemType: TraceItemDataset.LOGS as TraceItemDataset.LOGS,
+      itemType: TraceItemDataset.LOGS,
+      arraySecondaryAliases,
       booleanSecondaryAliases,
       numberSecondaryAliases,
       stringSecondaryAliases,
@@ -154,6 +181,7 @@ export function useLogsSearchQueryBuilderProps({
       invalidFilterKeys,
     }),
     [
+      arraySecondaryAliases,
       attributeQuery,
       booleanSecondaryAliases,
       caseInsensitive,
@@ -163,6 +191,7 @@ export function useLogsSearchQueryBuilderProps({
       setCaseInsensitive,
       stringSecondaryAliases,
       invalidFilterKeys,
+      validatedArrayAttributes,
       validatedBooleanAttributes,
       validatedNumberAttributes,
       validatedStringAttributes,

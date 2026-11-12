@@ -1,0 +1,41 @@
+[
+  {
+    "query": "message://GET (api) v2// level:error",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "message", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "//GET (api) v2//", "quoted": false}
+      },
+      {"type": "spaces", "value": " "},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "level", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "error", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "!message://a//b//",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": true,
+        "key": {"type": "keySimple", "value": "message", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "//a//b//", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

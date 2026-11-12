@@ -1,11 +1,17 @@
 import {Fragment, useMemo} from 'react';
+import {IconBookmark} from '@sentry/icons/bookmark';
+import {IconFilter} from '@sentry/icons/filter';
+import {IconGroup} from '@sentry/icons/group';
+import {IconIssues} from '@sentry/icons/issues';
+import {IconSort} from '@sentry/icons/sort';
+import {useQueryClient} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {useModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {fetchFeatureFlagValues, fetchTagValues} from 'sentry/actionCreators/tags';
+import {fetchFeatureFlagValues} from 'sentry/actionCreators/tags';
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 import {
   CMDKAction,
@@ -14,12 +20,12 @@ import {
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {SearchGroup} from 'sentry/components/searchBar/types';
-import {IconBookmark, IconFilter, IconGroup, IconIssues, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import {
   DEVICE_CLASS_TAG_VALUES,
   FieldKey,
@@ -31,22 +37,18 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import {mergeAndSortTagValues} from 'sentry/views/issueDetails/utils';
-import {IssueListMarkAllCommandPaletteAction} from 'sentry/views/issueList/issueListBulkCommandPaletteActions';
-import {createIssueViewFromUrl} from 'sentry/views/issueList/issueViews/createIssueViewFromUrl';
-import {CreateIssueViewModal} from 'sentry/views/issueList/issueViews/createIssueViewModal';
-import {useIssueViewUnsavedChanges} from 'sentry/views/issueList/issueViews/useIssueViewUnsavedChanges';
-import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useSelectedGroupSeachView';
-import {canEditIssueView} from 'sentry/views/issueList/issueViews/utils';
-import {useUpdateGroupSearchView} from 'sentry/views/issueList/mutations/useUpdateGroupSearchView';
-import type {IssueUpdateData} from 'sentry/views/issueList/types';
-import {
-  FOR_REVIEW_QUERIES,
-  getSortLabel,
-  IssueSortOptions,
-} from 'sentry/views/issueList/utils';
-import {useIssueListFilterKeys} from 'sentry/views/issueList/utils/useIssueListFilterKeys';
+import {fetchIssueTagValues} from 'sentry/views/issueDetails/utils';
+
+import {createIssueViewFromUrl} from './issueViews/createIssueViewFromUrl';
+import {CreateIssueViewModal} from './issueViews/createIssueViewModal';
+import {useIssueViewUnsavedChanges} from './issueViews/useIssueViewUnsavedChanges';
+import {useSelectedGroupSearchView} from './issueViews/useSelectedGroupSeachView';
+import {canEditIssueView} from './issueViews/utils';
+import {useUpdateGroupSearchView} from './mutations/useUpdateGroupSearchView';
+import {useIssueListFilterKeys} from './utils/useIssueListFilterKeys';
+import {IssueListMarkAllCommandPaletteAction} from './issueListBulkCommandPaletteActions';
+import type {IssueUpdateData} from './types';
+import {FOR_REVIEW_QUERIES, getSortLabel, IssueSortOptions} from './utils';
 
 interface IssueListCommandPaletteActionsProps {
   groupIds: string[];
@@ -91,6 +93,7 @@ function FilterActions({
   onQueryChange,
 }: Pick<IssueListCommandPaletteActionsProps, 'query' | 'onQueryChange'>) {
   const api = useApi();
+  const queryClient = useQueryClient();
   const organization = useOrganization();
   const user = useUser();
   const {selection: pageFilters} = usePageFilters();
@@ -130,7 +133,6 @@ function FilterActions({
     const tagKey = key === FieldKey.FIRST_RELEASE ? 'release' : key;
 
     const fetchParams = {
-      api,
       orgSlug: organization.slug,
       tagKey,
       search: '',
@@ -140,18 +142,13 @@ function FilterActions({
     };
 
     if (filterKeys[key]?.kind === FieldKind.FEATURE_FLAG) {
-      const values = await fetchFeatureFlagValues({...fetchParams, organization});
-      return values.map(v => v.value);
+      const values = await fetchFeatureFlagValues({...fetchParams, api, organization});
+      return values.map(v => v.value).filter(defined);
     }
 
-    const [errorsValues, platformValues] = await Promise.all([
-      fetchTagValues({...fetchParams, dataset: Dataset.ERRORS}),
-      fetchTagValues({...fetchParams, dataset: Dataset.ISSUE_PLATFORM}),
-    ]);
-
-    const values = mergeAndSortTagValues(errorsValues, platformValues, 'count').map(
-      v => v.value
-    );
+    const values = (await fetchIssueTagValues(queryClient, fetchParams, 'count'))
+      .map(v => v.value)
+      .filter(defined);
 
     if (key === FieldKey.RELEASE || key === FieldKey.FIRST_RELEASE) {
       return ['latest', ...values];
@@ -197,7 +194,6 @@ function FilterActions({
       prompt: t('Select a value...'),
       limit: 4,
       resource: (_q: string, ctx: CMDKResourceContext) =>
-        // eslint-disable-next-line @tanstack/query/exhaustive-deps
         cmdkQueryOptions({
           queryKey: ['cmdk-filter-values', tag.key, query, pageFilterCacheKey],
           queryFn: async () => {
@@ -279,6 +275,7 @@ function SortActions({
   onSortChange,
 }: Pick<IssueListCommandPaletteActionsProps, 'sort' | 'query' | 'onSortChange'>) {
   const sortKeys = [
+    IssueSortOptions.RECOMMENDED,
     ...(FOR_REVIEW_QUERIES.includes(query) ? [IssueSortOptions.INBOX] : []),
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,
@@ -356,7 +353,7 @@ function SaveViewActions({
         },
         {
           onSuccess: () => {
-            addSuccessMessage(t('Saved changes'));
+            toast.success(t('Saved changes'));
           },
         }
       );
@@ -400,6 +397,7 @@ export function IssueListCommandPaletteActions({
           query={query}
           queryCount={queryCount}
           selection={selection}
+          sort={sort}
           onActionTaken={onActionTaken}
         />
         <SortActions sort={sort} query={query} onSortChange={onSortChange} />

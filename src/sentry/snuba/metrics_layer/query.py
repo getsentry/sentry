@@ -13,7 +13,6 @@ from snuba_sdk import (
     Condition,
     CurriedFunction,
     Direction,
-    Entity,
     Formula,
     Metric,
     MetricsQuery,
@@ -618,10 +617,6 @@ def _query_meta_table(
         )
 
     requests = [build_request(counters_query)]
-    for mtype in ["sets", "gauges", "distributions"]:
-        new_query = counters_query.set_match(Entity(f"generic_metrics_{mtype}_meta"))
-        new_request = build_request(new_query)
-        requests.append(new_request)
 
     results = bulk_snuba_queries(requests, f"generic_metrics_meta_{column_name}")
     indexed_ids = []

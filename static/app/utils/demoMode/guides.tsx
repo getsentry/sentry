@@ -104,6 +104,8 @@ export function getDemoModeGuides(): GuidesContent {
           ),
         },
         {
+          // TODO: Update this to use the new title when the feature is fully released.
+          // It cannot be done right now because organization is not available in demo mode.
           title: t('Discover'),
           target: 'discover',
           description: t(

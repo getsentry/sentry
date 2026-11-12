@@ -1,15 +1,21 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {closeModal} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {closeModal} from '@sentry/scraps/modal';
+
 import {HighlightModalContainer} from 'sentry/components/highlightModalContainer';
 import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
 import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
-import {getTrialDaysLeft, getTrialLength, hasPerformance} from 'getsentry/utils/billing';
+import {
+  getTrialDaysLeft,
+  getTrialLength,
+  hasPerformance,
+  isTrial,
+} from 'getsentry/utils/billing';
 
 import {Details} from './details';
 
@@ -20,8 +26,8 @@ type Props = ModalRenderProps & {
 };
 
 function UpsellModal({source, organization, subscription}: Props) {
-  const canTrial = subscription.canTrial && !subscription.isTrial;
-  const headerMessage = subscription.isTrial ? (
+  const canTrial = subscription.canTrial && !isTrial(subscription);
+  const headerMessage = isTrial(subscription) ? (
     <div>
       <Subheader>
         {tn(

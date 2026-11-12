@@ -1,14 +1,12 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import {LinkButton} from '@sentry/scraps/button';
 
-import {OnboardingAdditionalFeatures} from 'sentry/components/events/featureFlags/onboarding/onboardingAdditionalFeatures';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {
-  OnboardingCopyMarkdownButton,
-  useCopySetupInstructionsEnabled,
-} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
 import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
@@ -17,9 +15,10 @@ import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingSt
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {OnboardingAdditionalFeatures} from './onboardingAdditionalFeatures';
 
 interface FeatureFlagOnboardingLayoutProps extends OnboardingLayoutProps {
   integration: string;
@@ -39,8 +38,10 @@ export function FeatureFlagOnboardingLayout({
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
-  const copyEnabled = useCopySetupInstructionsEnabled();
+  const {isSelfHosted, urlPrefix} = useStore(
+    ConfigStore,
+    useShallow(state => ({isSelfHosted: state.isSelfHosted, urlPrefix: state.urlPrefix}))
+  );
 
   const {steps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
@@ -101,7 +102,7 @@ export function FeatureFlagOnboardingLayout({
                 stepIndex={index}
                 {...step}
                 trailingItems={
-                  index === 0 && copyEnabled ? (
+                  index === 0 ? (
                     <OnboardingCopyMarkdownButton
                       borderless
                       steps={steps}
@@ -111,7 +112,10 @@ export function FeatureFlagOnboardingLayout({
                 }
               />
             ))}
-            <StyledLinkButton to="/issues/" variant="primary">
+            <StyledLinkButton
+              to={`/organizations/${organization.slug}/issues/`}
+              variant="primary"
+            >
               {t('Take me to Issues')}
             </StyledLinkButton>
           </Steps>
@@ -157,7 +161,7 @@ const Divider = styled('div')`
     height: 1px;
     left: 0;
     right: 0;
-    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.primary};
   }
 `;

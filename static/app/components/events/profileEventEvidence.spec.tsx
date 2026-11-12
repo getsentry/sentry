@@ -3,8 +3,9 @@ import {GroupFixture} from 'sentry-fixture/group';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {ProfileEventEvidence} from 'sentry/components/events/profileEventEvidence';
 import {IssueType} from 'sentry/types/group';
+
+import {ProfileEventEvidence} from './profileEventEvidence';
 
 describe('ProfileEventEvidence', () => {
   const defaultProps = {
@@ -36,14 +37,14 @@ describe('ProfileEventEvidence', () => {
   it('displays profile ID and data in evidence display', () => {
     render(<ProfileEventEvidence {...defaultProps} />);
 
-    expect(screen.getByRole('cell', {name: 'Transaction Name'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: /SomeTransaction/})).toBeInTheDocument();
+    expect(screen.getByText('Transaction Name')).toBeInTheDocument();
+    expect(screen.getByText(/SomeTransaction/)).toBeInTheDocument();
 
-    expect(screen.getByRole('cell', {name: 'Profile ID'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: /profile-id/})).toBeInTheDocument();
+    expect(screen.getByText('Profile ID')).toBeInTheDocument();
+    expect(screen.getByText(/profile-id/)).toBeInTheDocument();
 
-    expect(screen.getByRole('cell', {name: 'Evidence name'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'Evidence value'})).toBeInTheDocument();
+    expect(screen.getByText('Evidence name')).toBeInTheDocument();
+    expect(screen.getByText('Evidence value')).toBeInTheDocument();
   });
 
   it('correctly links to the profile frame', () => {
@@ -60,7 +61,7 @@ describe('ProfileEventEvidence', () => {
 
     expect(screen.getByRole('button', {name: 'View Transaction'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/traces/trace/trace-id/?referrer=issue&statsPeriod=14d'
+      '/organizations/org-slug/explore/traces/trace/trace-id/?eventId=transaction-id&referrer=issue&statsPeriod=14d'
     );
   });
 });

@@ -1,4 +1,4 @@
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -21,6 +21,7 @@ export default function SentryConfigurationPage() {
               initialQuery={QUERY}
               title={CONFIG.label}
               titleDescription={CONFIG.description}
+              titleBadge={CONFIG.badge}
             />
           </NoProjectMessage>
         </PageFiltersContainer>

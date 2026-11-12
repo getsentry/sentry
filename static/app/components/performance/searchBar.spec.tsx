@@ -4,10 +4,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import type {SearchBarProps} from 'sentry/components/performance/searchBar';
-import {SearchBar} from 'sentry/components/performance/searchBar';
 import {EventView} from 'sentry/utils/discover/eventView';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+
+import type {SearchBarProps} from './searchBar';
+import {SearchBar} from './searchBar';
 
 describe('SearchBar', () => {
   let eventsMock: any;
@@ -180,12 +180,7 @@ describe('SearchBar', () => {
       },
     });
 
-    render(
-      <SearchBar
-        {...testProps}
-        additionalConditions={new MutableSearch(['transaction.op:ui.load'])}
-      />
-    );
+    render(<SearchBar {...testProps} />);
 
     await userEvent.click(screen.getByRole('textbox'));
     await userEvent.paste('proje');
@@ -196,7 +191,7 @@ describe('SearchBar', () => {
       '/organizations/org-slug/events/',
       expect.objectContaining({
         query: expect.objectContaining({
-          query: 'transaction.op:ui.load transaction:*proje* event.type:transaction',
+          query: 'transaction:*proje* event.type:transaction',
         }),
       })
     );

@@ -9,7 +9,6 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -94,11 +93,31 @@ conditions and name may differ between queries on the same widget.
 http_error_count_percent.
 - Do not use widget_type "discover" or "transaction-like" — they are deprecated. Use "spans" or \
 "error-events" instead.
+- In logs and spans widgets, refer to a numeric custom attribute (anything other than a \
+built-in field like `span.duration`) as `tags[<name>,number]`, e.g. \
+`p95(tags[queue_wait_ms,number])` rather than `p95(queue_wait_ms)`. A bare custom attribute name \
+is treated as a string, so numeric aggregates over it fail.
+
+Projects:
+- If the user names one or more projects for the dashboard, set the dashboard's `projects` field \
+to the numeric IDs of exactly those projects. If you do not already have a project's numeric ID, \
+look it up with a tool call before writing the dashboard. Never put project slugs in `projects`.
+- Scope the whole dashboard with the `projects` field, not with `project:` filters on every widget. \
+Only add a `project:<slug>` filter to a widget query when the user wants that one widget limited \
+to a project and the rest of the dashboard not. Never use numeric project IDs in widget queries.
+- If the user does not name a project, leave `projects` empty.
 
 Widget-type-specific rules:
 - For text widgets, widget_type must be null and queries must be empty.
 - Description must not exceed 255 characters for non-text widgets. For text widgets,
 description must not exceed 15,000 characters.
+- For heatmap widgets (display_type "heatmap"):
+  - widget_type must be "tracemetrics"; heatmaps are not supported on any other dataset.
+  - Use exactly one filter (one query) with exactly one aggregate.
+  - That aggregate must use the "count" function over a distribution-type trace metric, \
+in the 4-argument tracemetric form: count(value, <metric_name>, distribution, <metric_unit>). \
+Only "count" is supported; counter and gauge metrics are not.
+  - Do not use equations, group-by columns, or thresholds.
 
 Limits:
 - A dashboard can have at most {Dashboard.MAX_WIDGETS} widgets.
@@ -129,8 +148,11 @@ class DashboardGenerateSerializer(serializers.Serializer[dict[str, Any]]):
 
 class OrganizationDashboardGeneratePermission(OrganizationPermission):
     scope_map = {
-        "POST": ["org:read"],
+        "POST": ["org:read", "dashboard:read"],
     }
+
+    # dashboard:read replaces org:read in orgs with granular scopes.
+    rejects_deprecated_scopes = True
 
 
 @cell_silo_endpoint
@@ -152,12 +174,7 @@ class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationDashboardGeneratePermission,)
 
     def post(self, request: Request, organization: Organization) -> Response:
-        if not features.has(
-            "organizations:dashboards-ai-generate", organization, actor=request.user
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
-
-        has_access, error = has_seer_access_with_detail(organization, request.user)
+        has_access, error = has_seer_access_with_detail(organization)
         if not has_access:
             raise PermissionDenied(error)
 
@@ -171,12 +188,17 @@ class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
 
         # If current_dashboard is provided, we're editing; otherwise generating a new dashboard.
         if current_dashboard is not None:
+            projects = self.get_projects(request, organization)
             dashboard_serializer = DashboardDetailsSerializer(
                 data=current_dashboard,
                 context={
                     "organization": organization,
                     "request": request,
-                    "projects": self.get_projects(request, organization),
+                    "projects": projects,
+                    # allow_joinleave grants project access without team membership.
+                    "validation_projects": projects
+                    or self.get_projects(request, organization, include_all_accessible=True),
+                    "environment": request.GET.getlist("environment"),
                 },
             )
             if not dashboard_serializer.is_valid():

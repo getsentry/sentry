@@ -1,8 +1,9 @@
 import type {LinkButtonProps} from '@sentry/scraps/button';
 import {LinkButton} from '@sentry/scraps/button';
 
-import {DiscoverFeature} from 'sentry/components/discover/discoverFeature';
 import {t} from 'sentry/locale';
+
+import {DiscoverFeature} from './discover/discoverFeature';
 
 /**
  * Provide a button that turns itself off if the current organization
@@ -14,7 +15,7 @@ export function DiscoverButton(buttonProps: LinkButtonProps) {
       {({hasFeature}) => (
         <LinkButton
           disabled={!hasFeature}
-          aria-label={t('Open in Discover')}
+          aria-label={t('Open in Explore')}
           {...buttonProps}
         />
       )}

@@ -6,11 +6,10 @@ import orderBy from 'lodash/orderBy';
 import {Observer} from 'mobx-react-lite';
 import {parseAsNativeArrayOf, parseAsString, useQueryState} from 'nuqs';
 
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {FormModel} from 'sentry/components/forms/model';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -24,29 +23,28 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+
 import {
   AutomationBuilderContext,
   useAutomationBuilderReducer,
-} from 'sentry/views/automations/components/automationBuilderContext';
-import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
-import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
-import {AutomationForm} from 'sentry/views/automations/components/automationForm';
-import type {AutomationFormData} from 'sentry/views/automations/components/automationFormData';
+} from './components/automationBuilderContext';
+import {AutomationBuilderErrorContext} from './components/automationBuilderErrorContext';
+import {AutomationFeedbackButton} from './components/automationFeedbackButton';
+import {AutomationForm} from './components/automationForm';
+import type {AutomationFormData} from './components/automationFormData';
 import {
   getNewAutomationData,
   validateAutomationBuilderState,
-} from 'sentry/views/automations/components/automationFormData';
-import {EditableAutomationName} from 'sentry/views/automations/components/editableAutomationName';
-import {getAutomationAnalyticsPayload} from 'sentry/views/automations/components/forms/common/getAutomationAnalyticsPayload';
-import {AutomationFormProvider} from 'sentry/views/automations/components/forms/context';
-import {useCreateAutomation} from 'sentry/views/automations/hooks';
-import {useAutomationBuilderErrors} from 'sentry/views/automations/hooks/useAutomationBuilderErrors';
-import {
-  makeAutomationBasePathname,
-  makeAutomationDetailsPathname,
-} from 'sentry/views/automations/pathnames';
-import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
-import {TopBar} from 'sentry/views/navigation/topBar';
+} from './components/automationFormData';
+import {EditableAutomationName} from './components/editableAutomationName';
+import {getAutomationAnalyticsPayload} from './components/forms/common/getAutomationAnalyticsPayload';
+import {AutomationFormProvider} from './components/forms/context';
+import {useAutomationBuilderErrors} from './hooks/useAutomationBuilderErrors';
+import {mapAutomationFormErrors} from './utils/mapAutomationFormErrors';
+import {hasAutomationWriteAccess} from './utils/permissions';
+import {resolveDetectorIdsForProjects} from './utils/resolveDetectorIdsForProjects';
+import {useCreateAutomation} from './hooks';
+import {makeAutomationBasePathname, makeAutomationDetailsPathname} from './pathnames';
 
 function AutomationDocumentTitle() {
   const title = useFormField('name');
@@ -55,22 +53,8 @@ function AutomationDocumentTitle() {
   );
 }
 
-function AutomationBreadcrumbs() {
-  const organization = useOrganization();
-  return (
-    <Breadcrumbs
-      crumbs={[
-        {
-          label: t('Alerts'),
-          to: makeAutomationBasePathname(organization.slug),
-        },
-        {label: <EditableAutomationName />},
-      ]}
-    />
-  );
-}
-
 const INITIAL_FORM_DATA_DEFAULTS = {
+  allProjects: false,
   name: '',
   environment: null,
   frequency: 0,
@@ -80,6 +64,7 @@ const INITIAL_FORM_DATA_DEFAULTS = {
 };
 
 function useInitialFormData() {
+  const organization = useOrganization();
   const {selection} = usePageFilters();
   const [connectedIds] = useQueryState(
     'connectedIds',
@@ -87,6 +72,9 @@ function useInitialFormData() {
   );
   const [projectId] = useQueryState('project', parseAsString);
   const {projects} = useProjects();
+  const writableProjects = projects.filter(project =>
+    hasAutomationWriteAccess({organization, project})
+  );
 
   // If URL params are passed, use them
   if (connectedIds.length > 0) {
@@ -95,7 +83,7 @@ function useInitialFormData() {
       detectorIds: connectedIds,
     };
   }
-  if (projectId) {
+  if (projectId && writableProjects.some(project => project.id === projectId)) {
     return {
       ...INITIAL_FORM_DATA_DEFAULTS,
       projectIds: [projectId],
@@ -103,17 +91,19 @@ function useInitialFormData() {
   }
 
   // If any specific projects are selected, use the first one
-  const intitialSelectedProject = selection.projects.find(p => p > 0);
-  if (intitialSelectedProject) {
+  const initialSelectedProject = writableProjects.find(project =>
+    selection.projects.includes(Number(project.id))
+  );
+  if (initialSelectedProject) {
     return {
       ...INITIAL_FORM_DATA_DEFAULTS,
-      projectIds: [String(intitialSelectedProject)],
+      projectIds: [initialSelectedProject.id],
     };
   }
 
-  // Otherwise use the first project that the user has access to
+  // Otherwise use the first project where the user can create an alert.
   const sortedUserProjects = orderBy(
-    projects,
+    writableProjects,
     ['isMember', 'isBookmarked'],
     ['desc', 'desc']
   );
@@ -140,7 +130,24 @@ export default function AutomationNewSettings() {
     removeError,
   } = useAutomationBuilderErrors();
 
-  const {mutateAsync: createAutomation, error} = useCreateAutomation();
+  const {mutateAsync: createAutomation, error} = useCreateAutomation({
+    suppressErrorMessage: true,
+  });
+
+  const errorContextValue = useMemo(
+    () => ({
+      errors: automationBuilderErrors,
+      setErrors: setAutomationBuilderErrors,
+      removeError,
+      mutationErrors: error?.responseJSON,
+    }),
+    [automationBuilderErrors, setAutomationBuilderErrors, removeError, error]
+  );
+
+  const builderContextValue = useMemo(
+    () => ({state, actions, showTriggerLogicTypeSelector: false}),
+    [state, actions]
+  );
 
   const handleSubmit = useCallback<OnSubmitCallback>(
     async (data, onSubmitSuccess, onSubmitError, _event, formModel) => {
@@ -189,7 +196,7 @@ export default function AutomationNewSettings() {
       try {
         const automation = await createAutomation(newAutomationData);
         onSubmitSuccess(formModel.getData());
-        addSuccessMessage(t('Alert created'));
+        toast.success(t('Alert created'));
         trackAnalytics('automation.created', {
           organization,
           ...analyticsPayload,
@@ -227,31 +234,17 @@ export default function AutomationNewSettings() {
       initialData={initialData}
       onSubmit={handleSubmit}
       model={model}
+      mapFormErrors={mapAutomationFormErrors}
     >
       <AutomationFormProvider>
         <AutomationDocumentTitle />
         <Stack flex={1}>
-          <TopBar.Slot name="title">
-            <AutomationBreadcrumbs />
-          </TopBar.Slot>
+          <EditableAutomationName />
           <AutomationFeedbackButton />
           <Layout.Body maxWidth={maxWidth}>
             <Layout.Main width="full">
-              <AutomationBuilderErrorContext.Provider
-                value={{
-                  errors: automationBuilderErrors,
-                  setErrors: setAutomationBuilderErrors,
-                  removeError,
-                  mutationErrors: error?.responseJSON,
-                }}
-              >
-                <AutomationBuilderContext.Provider
-                  value={{
-                    state,
-                    actions,
-                    showTriggerLogicTypeSelector: false,
-                  }}
-                >
+              <AutomationBuilderErrorContext.Provider value={errorContextValue}>
+                <AutomationBuilderContext.Provider value={builderContextValue}>
                   <AutomationForm model={model} />
                 </AutomationBuilderContext.Provider>
               </AutomationBuilderErrorContext.Provider>
@@ -266,6 +259,12 @@ export default function AutomationNewSettings() {
             gap="md"
             justify="end"
           >
+            <LinkButton
+              variant="secondary"
+              to={makeAutomationBasePathname(organization.slug)}
+            >
+              {t('Cancel')}
+            </LinkButton>
             <Observer>
               {() => (
                 <Button variant="primary" type="submit" busy={model.isSaving}>

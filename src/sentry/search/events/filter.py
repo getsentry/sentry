@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from datetime import datetime
-from typing import Any, TypedDict, Union
+from typing import Any, TypedDict, Union, cast
 
 import orjson
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
@@ -32,6 +32,8 @@ from sentry.search.events.constants import (
     NO_CONVERSION_FIELDS,
     OPERATOR_NEGATION_MAP,
     OPERATOR_TO_DJANGO,
+    PROFILER_ID_ALIAS,
+    PROFILER_ID_CONTEXT_COLUMN,
     PROJECT_ALIAS,
     PROJECT_NAME_ALIAS,
     RELEASE_ALIAS,
@@ -47,6 +49,7 @@ from sentry.search.events.constants import (
     USER_DISPLAY_ALIAS,
 )
 from sentry.search.events.fields import FIELD_ALIASES
+from sentry.search.events.types import ParamsType
 from sentry.search.utils import parse_release
 from sentry.utils.strings import oxfordize_list
 from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
@@ -193,7 +196,7 @@ def _user_display_filter_converter(
     params: FilterConvertParams | None,
 ) -> list[Any]:
     value = search_filter.value.value
-    user_display_expr = FIELD_ALIASES[USER_DISPLAY_ALIAS].get_expression(params)
+    user_display_expr = FIELD_ALIASES[USER_DISPLAY_ALIAS].get_expression(cast("ParamsType", params))
 
     # Handle 'has' condition
     if search_filter.value.raw_value == "":
@@ -244,13 +247,55 @@ def _error_handled_filter_converter(
     raise InvalidSearchQuery("Invalid value for error.handled condition. Accepted values are 1, 0")
 
 
+def _profiler_id_filter_converter(
+    search_filter: SearchFilter,
+    name: str,
+    params: FilterConvertParams | None,
+) -> list[Any]:
+    # This converter is only reached by the errors/issue platform group-search path (this
+    # alias resolves to a real, indexed column on transactions elsewhere). Keep existence
+    # checks null-safe because missing profiler ids can read as NULL through this group
+    # search path.
+
+    # Generic wildcard-list splitting returns nested legacy conditions whose boolean
+    # behavior is inconsistent in group search. Keep wildcard lists as one regex union
+    # so `profiler.id:[abc*, exact]` means `(abc* OR exact)` and the negated form means
+    # `NOT (abc* OR exact)`.
+    if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
+        return [["ifNull", [PROFILER_ID_CONTEXT_COLUMN, "''"]], search_filter.operator, ""]
+
+    if search_filter.operator in ("IN", "NOT IN") and search_filter.value.is_wildcard():
+        operator = "!=" if search_filter.operator == "NOT IN" else "="
+        return [
+            ["match", [PROFILER_ID_CONTEXT_COLUMN, f"'(?i){search_filter.value.value}'"]],
+            operator,
+            1,
+        ]
+
+    if search_filter.value.is_wildcard():
+        converted_filter = convert_search_filter_to_snuba_query(
+            SearchFilter(
+                SearchKey(PROFILER_ID_CONTEXT_COLUMN),
+                search_filter.operator,
+                search_filter.value,
+            ),
+            params=params,
+        )
+        assert converted_filter is not None
+        return list(converted_filter)
+
+    return [PROFILER_ID_CONTEXT_COLUMN, search_filter.operator, search_filter.value.value]
+
+
 def _team_key_transaction_filter_converter(
     search_filter: SearchFilter,
     name: str,
     params: FilterConvertParams | None,
 ) -> list[Any]:
     value = search_filter.value.value
-    key_transaction_expr = FIELD_ALIASES[TEAM_KEY_TRANSACTION_ALIAS].get_field(params)
+    key_transaction_expr = FIELD_ALIASES[TEAM_KEY_TRANSACTION_ALIAS].get_field(
+        cast("ParamsType", params)
+    )
 
     if search_filter.value.raw_value == "":
         operator = "!=" if search_filter.operator == "!=" else "="
@@ -533,6 +578,7 @@ key_conversion_map: dict[
     USER_DISPLAY_ALIAS: _user_display_filter_converter,
     ERROR_UNHANDLED_ALIAS: _error_unhandled_filter_converter,
     "error.handled": _error_handled_filter_converter,
+    PROFILER_ID_ALIAS: _profiler_id_filter_converter,
     TEAM_KEY_TRANSACTION_ALIAS: _team_key_transaction_filter_converter,
     RELEASE_STAGE_ALIAS: _release_stage_filter_converter,
     SEMVER_ALIAS: _semver_filter_converter,
@@ -652,7 +698,7 @@ def convert_search_filter_to_snuba_query(
         # name_expr may become a snuba expression (list) for aliases/tags
         name_expr: Any = name
         if name in FIELD_ALIASES:
-            name_expr = FIELD_ALIASES[name].get_field(params)
+            name_expr = FIELD_ALIASES[name].get_field(cast("ParamsType", params))
 
         # Tags are never null, but promoted tags are columns and so can be null.
         # To handle both cases, use `ifNull` to convert to an empty string and
@@ -765,7 +811,7 @@ def format_search_filter(
         value = to_list(value)
         # `unknown` is a special value for when there is no issue associated with the event
         group_short_ids = [v for v in value if v and v != "unknown"]
-        filter_values = ["" for v in value if not v or v == "unknown"]
+        filter_values: list[str | int] = ["" for v in value if not v or v == "unknown"]
 
         if group_short_ids and params and "organization_id" in params:
             try:
@@ -783,7 +829,12 @@ def format_search_filter(
         term = SearchFilter(
             SearchKey("issue.id"),
             operator,
-            SearchValue(filter_values if term.is_in_filter else filter_values[0]),
+            SearchValue(
+                cast(
+                    "Sequence[str] | str",
+                    filter_values if term.is_in_filter else filter_values[0],
+                )
+            ),
         )
         converted_filter = convert_search_filter_to_snuba_query(term)
         if converted_filter:

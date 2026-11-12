@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Banner} from 'sentry/components/banner';
+import {Banner} from './banner';
 
 describe('Banner', () => {
   it('can be dismissed', async () => {
@@ -11,10 +11,5 @@ describe('Banner', () => {
 
     expect(screen.queryByText('test')).not.toBeInTheDocument();
     expect(localStorage.getItem('test-banner-dismissed')).toBe('true');
-  });
-
-  it('is not dismissable', () => {
-    render(<Banner isDismissable={false} />);
-    expect(screen.queryByLabelText('Close')).not.toBeInTheDocument();
   });
 });

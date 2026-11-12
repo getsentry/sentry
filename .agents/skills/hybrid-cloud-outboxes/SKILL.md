@@ -254,9 +254,9 @@ Existing rows need outboxes created retroactively. Set `replication_version = 2`
 
 ## Step 6: Set Up a Backfill
 
-The backfill system creates outboxes for existing model rows that predate the outbox integration. It processes rows in batches, tracked via Redis state.
+The backfill system creates outboxes for existing model rows that predate the outbox integration. It processes rows in batches, tracked by a watermark row in Postgres.
 
-Load `references/backfill.md` for the `replication_version` mechanism, option key format, Redis state tracking, and SaaS vs self-hosted rollout procedures.
+Load `references/backfill.md` for the `replication_version` mechanism, option key format, watermark state tracking, and SaaS vs self-hosted rollout procedures.
 
 ## Step 7: Test Outbox-Based Replication
 

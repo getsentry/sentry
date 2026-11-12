@@ -1,7 +1,8 @@
-import {LinkButton} from '@sentry/scraps/button';
+import {IconSettings} from '@sentry/icons/settings';
 
-import {SpanEvidenceTraceView} from 'sentry/components/events/interfaces/performance/spanEvidenceTraceView';
-import {IconSettings} from 'sentry/icons';
+import {LinkButton} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import {
@@ -16,6 +17,7 @@ import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {SpanEvidenceKeyValueList} from './spanEvidenceKeyValueList';
+import {SpanEvidenceTraceView} from './spanEvidenceTraceView';
 
 interface Props {
   event: EventTransaction;
@@ -83,14 +85,16 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
       organization={organization}
       projectSlug={projectSlug}
     >
-      <SpanEvidenceKeyValueList event={event} projectSlug={projectSlug} />
-      {traceId && (
-        <SpanEvidenceTraceView
-          event={event}
-          organization={organization}
-          traceId={traceId}
-        />
-      )}
+      <Stack gap="lg">
+        <SpanEvidenceKeyValueList event={event} projectSlug={projectSlug} />
+        {traceId && (
+          <SpanEvidenceTraceView
+            event={event}
+            organization={organization}
+            traceId={traceId}
+          />
+        )}
+      </Stack>
     </SpanEvidenceFoldSection>
   );
 }

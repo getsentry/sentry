@@ -1,0 +1,124 @@
+---
+source: tests/sentry/grouping/test_variants.py::test_variants
+---
+app:
+  hash: "f63a7669760e8a0c2dcecbc06dc16f93"
+  contributing component: exception
+  hint: None
+  root_component:
+    app*
+      exception*
+        type*
+          "EXC_BAD_ACCESS"
+        value (ignored because stacktrace takes precedence)
+          "Attempted to dereference null pointer."
+        stacktrace*
+          frame (marked out of app by built-in stacktrace rule (category:internals -app))
+            function*
+              "__libc_init"
+          frame (non app frame)
+            function*
+              "android_main"
+          frame (marked out of app by built-in stacktrace rule (category:framework -app))
+            function*
+              "UnityPlayerLoop"
+          frame (marked out of app by built-in stacktrace rule (category:framework -app))
+            function*
+              "ScriptingInvocation::Invoke"
+          frame (marked out of app by built-in stacktrace rule (category:il2cpp -app))
+            filename*
+              "il2cppinvokertable.cpp"
+            function*
+              "RuntimeInvoker_TrueVoid_t22962CB4C05B1D89B55A6E1139F0E87A90987017"
+          frame* (marked in-app by built-in stacktrace rule (category:il2cpp path:**/Assets/** +app))
+            filename*
+              "enemyspawner.cs"
+            function*
+              "EnemySpawner_Update"
+          frame* (marked in-app by built-in stacktrace rule (category:il2cpp path:**/Packages/** +app))
+            filename*
+              "combatsystem.cs"
+            function*
+              "CombatSystem_ApplyDamage"
+          frame (marked out of app by built-in stacktrace rule (category:il2cpp path:**/Library/PackageCache/** -app))
+            filename*
+              "tmp_text.cs"
+            function*
+              "TMP_Text_SetText"
+          frame (marked out of app by built-in stacktrace rule (category:il2cpp path:**/unity/Modules/** -app))
+            filename*
+              "animation.bindings.cs"
+            function*
+              "Animation_Play"
+          frame (marked out of app by built-in stacktrace rule (category:il2cpp -app))
+            filename*
+              "il2cppcodegen.cpp"
+            function*
+              "il2cpp_codegen_raise_null_reference_exception"
+          frame (marked out of app by built-in stacktrace rule (category:telemetry -app))
+            function*
+              "sentry__handle_signal"
+          frame (marked out of app by built-in stacktrace rule (category:telemetry -app))
+            function*
+              "sentry_android_capture_envelope"
+--------------------------------------------------------------------------
+system:
+  hash: "c6d72dd5829e54954efeebeb8410db6f"
+  contributing component: exception
+  hint: None
+  root_component:
+    system*
+      exception*
+        type*
+          "EXC_BAD_ACCESS"
+        value (ignored because stacktrace takes precedence)
+          "Attempted to dereference null pointer."
+        stacktrace*
+          frame (ignored by built-in stacktrace rule (category:internals -group))
+            function*
+              "__libc_init"
+          frame*
+            function*
+              "android_main"
+          frame*
+            function*
+              "UnityPlayerLoop"
+          frame*
+            function*
+              "ScriptingInvocation::Invoke"
+          frame*
+            filename*
+              "il2cppinvokertable.cpp"
+            function*
+              "RuntimeInvoker_TrueVoid_t22962CB4C05B1D89B55A6E1139F0E87A90987017"
+          frame*
+            filename*
+              "enemyspawner.cs"
+            function*
+              "EnemySpawner_Update"
+          frame*
+            filename*
+              "combatsystem.cs"
+            function*
+              "CombatSystem_ApplyDamage"
+          frame*
+            filename*
+              "tmp_text.cs"
+            function*
+              "TMP_Text_SetText"
+          frame*
+            filename*
+              "animation.bindings.cs"
+            function*
+              "Animation_Play"
+          frame*
+            filename*
+              "il2cppcodegen.cpp"
+            function*
+              "il2cpp_codegen_raise_null_reference_exception"
+          frame (ignored by built-in stacktrace rule (category:telemetry -group))
+            function*
+              "sentry__handle_signal"
+          frame (ignored by built-in stacktrace rule (category:telemetry -group))
+            function*
+              "sentry_android_capture_envelope"

@@ -1,12 +1,15 @@
 import {Fragment} from 'react';
+import {IconAdd} from '@sentry/icons/add';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconSubtract} from '@sentry/icons/subtract';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 
-import {IconAdd, IconCopy, IconSubtract} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
-import {SectionKey} from 'sentry/views/issueDetails/context';
-import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+
+import {SectionKey} from './context';
+import {FoldSection} from './foldSection';
 
 export default Storybook.story('FoldSection', story => {
   story('Usage', () => (

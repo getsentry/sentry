@@ -39,6 +39,15 @@ describe('formatYAxisValue', () => {
     ])('Formats %s as %s', (value, formattedValue) => {
       expect(formatYAxisValue(value, 'percentage')).toEqual(formattedValue);
     });
+
+    it.each([
+      [0, 'percent', '0'],
+      [71.2, 'percent', '71.2%'],
+      [100, 'percent', '100%'],
+      [0.712, 'ratio', '71.2%'],
+    ])('Formats %s %s as %s', (value, unit, formattedValue) => {
+      expect(formatYAxisValue(value, 'percentage', unit)).toEqual(formattedValue);
+    });
   });
 
   describe('duration', () => {
@@ -54,7 +63,7 @@ describe('formatYAxisValue', () => {
   describe('size', () => {
     it.each([
       [0, 'byte', '0'],
-      [0.712, 'megabyte', '712 KB'],
+      [0.712, 'megabyte', '712 kB'],
       [1231, 'kibibyte', '1.2 MiB'],
     ])('Formats %s as %s', (value, unit, formattedValue) => {
       expect(formatYAxisValue(value, 'size', unit)).toEqual(formattedValue);

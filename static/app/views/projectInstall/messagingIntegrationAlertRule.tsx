@@ -1,74 +1,67 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Select, SelectOption} from '@sentry/scraps/select';
+import {Select, type SelectValue} from '@sentry/scraps/select';
 
 import {FormField} from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import type {OrganizationIntegration} from 'sentry/types/integrations';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
 import {
+  providerDetails,
   type IntegrationChannel,
   type IssueAlertNotificationProps,
-  providerDetails,
-} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
-import {useValidateChannel} from 'sentry/views/projectInstall/useValidateChannel';
-
-type Channel = {
-  display: string;
-  id: string;
-  name: string;
-  type: string;
-};
-
-type ChannelListResponse = {
-  results: Channel[];
-};
+} from './messagingIntegrationTypes';
+import {useMessagingChannel} from './useMessagingChannel';
 
 /**
  * Shared data + handlers for the messaging-integration alert rule. Owns the
- * channels query, channel validation, and the provider/integration/channel
- * option lists and change handlers, so the classic inline layout
- * (`MessagingIntegrationAlertRule`) and the SCM stacked layout
- * (`ScmMessagingIntegrationAlertRule`) build identical controls and feed them
- * to the same provider sentence, differing only in presentation.
+ * provider/integration option lists and change handlers; delegates channel
+ * loading, validation, and option shaping to `useMessagingChannel`.
  *
- * @public Consumed by the SCM layout in a downstream PR.
+ * The classic inline layout (`MessagingIntegrationAlertRule`) and the SCM
+ * stacked layout (`ScmMessagingIntegrationAlertRule`) both call this hook so
+ * their controls build channels through one code path and can never drift.
  */
-export function useMessagingIntegrationAlertRule({
-  channel,
-  integration,
-  provider,
-  setChannel,
-  setIntegration,
-  setProvider,
-  providersToIntegrations,
-}: IssueAlertNotificationProps) {
+export function useMessagingIntegrationAlertRule(
+  {
+    channel,
+    integration,
+    provider,
+    setChannel,
+    setIntegration,
+    setProvider,
+    providersToIntegrations,
+  }: IssueAlertNotificationProps,
+  // For project creation, `variant` identifies the SCM or legacy experience.
+  // Other flows leave it undefined and do not emit these change events.
+  variant?: 'scm' | 'legacy'
+) {
   const organization = useOrganization();
 
-  const {data: channels, isPending} = useApiQuery<ChannelListResponse>(
-    [
-      getApiUrl(
-        '/organizations/$organizationIdOrSlug/integrations/$integrationId/channels/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            integrationId: integration?.id!,
-          },
-        }
-      ),
-    ],
-    {
-      staleTime: Infinity,
-      enabled: !!provider && !!integration?.id,
-    }
-  );
-
-  const validateChannel = useValidateChannel({
+  const {
+    channelOptions,
+    isChannelLoading,
+    isChannelsError,
+    channelsData,
+    channelError,
+    clearChannelValidation,
+    onChannelChange,
+    onCreateChannel,
+  } = useMessagingChannel({
     channel,
-    integrationId: integration?.id,
-    enabled: !!integration?.id && !!channel?.new,
+    integration,
+    provider,
+    setChannel,
+    onChannelSelected: variant
+      ? () =>
+          trackAnalytics('project_creation.notify_channel_changed', {
+            organization,
+            variant,
+          })
+      : undefined,
   });
 
   const providerOptions = useMemo(
@@ -90,16 +83,6 @@ export function useMessagingIntegrationAlertRule({
     [providersToIntegrations, provider]
   );
 
-  const channelOptions = useMemo(
-    () =>
-      channels?.results.map(ch =>
-        provider === 'slack'
-          ? {label: ch.display, value: ch.display}
-          : {label: `${ch.display} (${ch.id})`, value: ch.id}
-      ),
-    [channels, provider]
-  );
-
   return {
     provider,
     integration,
@@ -107,42 +90,53 @@ export function useMessagingIntegrationAlertRule({
     providerOptions,
     integrationOptions,
     channelOptions,
-    isChannelLoading: isPending || validateChannel.isFetching,
-    channelError: validateChannel.error,
+    isChannelLoading,
+    isChannelsError,
+    channelsData,
+    channelError,
     providerDisabled: Object.keys(providersToIntegrations).length === 1,
     integrationDisabled: integrationOptions.length === 1,
-    onProviderChange: (option: any) => {
+    onProviderChange: (option: SelectValue<string>) => {
       setProvider(option.value);
       setIntegration(providersToIntegrations[option.value]![0]);
       setChannel(undefined);
-      validateChannel.clear();
+      clearChannelValidation();
+      if (variant) {
+        trackAnalytics('project_creation.notify_provider_changed', {
+          organization,
+          provider: option.value,
+          variant,
+        });
+      }
     },
-    onIntegrationChange: (option: any) => {
+    onIntegrationChange: (option: SelectValue<OrganizationIntegration>) => {
       setIntegration(option.value);
       setChannel(undefined);
-      validateChannel.clear();
+      clearChannelValidation();
+      if (variant) {
+        trackAnalytics('project_creation.notify_integration_changed', {
+          organization,
+          variant,
+        });
+      }
     },
-    onChannelChange: (option: {label: React.ReactNode; value: string} | null) => {
-      setChannel(
-        option ? {value: option.value, label: option.label, new: false} : undefined
-      );
-      validateChannel.clear();
-    },
-    onCreateChannel: (newOption: string) => {
-      setChannel({value: newOption, label: newOption, new: true});
-    },
+    onChannelChange,
+    onCreateChannel,
   };
 }
 
 type ChannelSelectProps = {
   disabled: boolean;
   isLoading: boolean;
-  onChange: (option: {label: React.ReactNode; value: string} | null) => void;
+  onChange: (option: IntegrationChannel | null) => void;
   onCreateOption: (value: string) => void;
-  options: Array<{label: React.ReactNode; value: string}> | undefined;
+  options: IntegrationChannel[] | undefined;
   provider: string;
   value: IntegrationChannel | undefined;
+  autoFocus?: boolean;
   className?: string;
+  /** Lets a visible `label` reference the select through `htmlFor`. */
+  inputId?: string;
 };
 
 /**
@@ -153,7 +147,9 @@ type ChannelSelectProps = {
  * @public Consumed by the SCM layout in a downstream PR.
  */
 export function ChannelSelect({
+  autoFocus,
   className,
+  inputId,
   provider,
   options,
   value,
@@ -162,34 +158,30 @@ export function ChannelSelect({
   onChange,
   onCreateOption,
 }: ChannelSelectProps) {
+  const selectedOption = value ?? null;
+  const optionsWithSelectedValue =
+    selectedOption && !options?.some(option => option.value === selectedOption.value)
+      ? [selectedOption, ...(options ?? [])]
+      : options;
+
   return (
     <Select
       className={className}
+      id={inputId}
+      autoFocus={autoFocus}
       aria-label={t('channel')}
       placeholder={providerDetails[provider as keyof typeof providerDetails]?.placeholder}
-      isSearchable
-      options={options}
+      searchable
+      options={optionsWithSelectedValue ?? []}
       isLoading={isLoading}
       disabled={disabled}
-      value={value ? {label: value.label, value: value.value} : undefined}
+      value={value?.value ?? null}
       onChange={onChange}
       onCreateOption={onCreateOption}
       clearable
       creatable
       formatCreateLabel={(inputValue: string) => inputValue}
-      components={{
-        Option: optionProps => (
-          <SelectOption
-            {...(optionProps as any)}
-            data={{
-              ...optionProps.data,
-              // Hide IconAdd for new channel options by setting __isNew__ to false.
-              // We do that to not give the impression that the user can create a new channel.
-              __isNew__: false,
-            }}
-          />
-        ),
-      }}
+      showCreateOptionIcon={false}
     />
   );
 }
@@ -210,7 +202,7 @@ export function MessagingIntegrationAlertRule(props: IssueAlertNotificationProps
     onIntegrationChange,
     onChannelChange,
     onCreateChannel,
-  } = useMessagingIntegrationAlertRule(props);
+  } = useMessagingIntegrationAlertRule(props, 'legacy');
 
   if (!provider) {
     return null;
@@ -232,7 +224,7 @@ export function MessagingIntegrationAlertRule(props: IssueAlertNotificationProps
           <InlineSelectControl
             aria-label={t('integration')}
             disabled={integrationDisabled}
-            value={integration}
+            value={integration ?? null}
             options={integrationOptions}
             onChange={onIntegrationChange}
           />
@@ -269,7 +261,7 @@ const Rule = styled('div')`
 
 const InlineSelectControl = styled(Select)`
   width: 180px;
-`;
+` as typeof Select;
 
 // Preserves the classic inline channel-select width.
 const InlineChannelSelect = styled(ChannelSelect)`

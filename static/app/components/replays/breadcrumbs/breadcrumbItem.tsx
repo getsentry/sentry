@@ -4,14 +4,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {BreadcrumbCodeSnippet} from 'sentry/components/replays/breadcrumbs/breadcrumbCodeSnippet';
-import {BreadcrumbComparisonButton} from 'sentry/components/replays/breadcrumbs/breadcrumbComparisonButton';
-import {BreadcrumbDescription} from 'sentry/components/replays/breadcrumbs/breadcrumbDescription';
-import {BreadcrumbIssueLink} from 'sentry/components/replays/breadcrumbs/breadcrumbIssueLink';
-import {BreadcrumbStructuredData} from 'sentry/components/replays/breadcrumbs/breadcrumbStructuredData';
-import {BreadcrumbWebVital} from 'sentry/components/replays/breadcrumbs/breadcrumbWebVital';
 import {Timeline} from 'sentry/components/timeline';
-import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import {getFrameDetails} from 'sentry/utils/replays/getFrameDetails';
 import {useExtractDomNodes} from 'sentry/utils/replays/hooks/useExtractDomNodes';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
@@ -19,6 +12,13 @@ import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {isErrorFrame} from 'sentry/utils/replays/types';
 import {TimestampButton} from 'sentry/views/explore/replays/detail/timestampButton';
 import type {OnExpandCallback} from 'sentry/views/explore/replays/detail/useVirtualizedInspector';
+
+import {BreadcrumbCodeSnippet} from './breadcrumbCodeSnippet';
+import {BreadcrumbComparisonButton} from './breadcrumbComparisonButton';
+import {BreadcrumbDescription} from './breadcrumbDescription';
+import {BreadcrumbIssueLink} from './breadcrumbIssueLink';
+import {BreadcrumbStructuredData} from './breadcrumbStructuredData';
+import {BreadcrumbWebVital} from './breadcrumbWebVital';
 
 type MouseCallback = (frame: ReplayFrame, nodeId?: number) => void;
 
@@ -34,7 +34,6 @@ interface Props {
   startTimestampMs: number;
   className?: string;
   expandPaths?: string[];
-  extraction?: Extraction;
   index?: number;
   ref?: React.Ref<HTMLDivElement>;
   style?: CSSProperties;
@@ -164,7 +163,7 @@ const StyledTimelineItem = styled(Timeline.Item)`
   cursor: pointer;
   /* vertical line connecting items */
   &:not(:last-child) {
-    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
     background-image: linear-gradient(
       ${p => p.theme.tokens.border.primary},
       ${p => p.theme.tokens.border.primary}

@@ -33,6 +33,9 @@ class NotificationRolloutService:
             "organizations:notification-platform.internal-testing", self.organization
         )
         is_sentry = features.has("organizations:notification-platform.is-sentry", self.organization)
+        limited_access = features.has(
+            "organizations:notification-platform.limited-access", self.organization
+        )
         early_adopter = features.has(
             "organizations:notification-platform.early-adopter", self.organization
         )
@@ -45,6 +48,8 @@ class NotificationRolloutService:
             option_key = "notifications.platform-rollout.internal-testing"
         elif is_sentry:
             option_key = "notifications.platform-rollout.is-sentry"
+        elif limited_access:
+            option_key = "notifications.platform-rollout.limited-access"
         elif early_adopter:
             option_key = "notifications.platform-rollout.early-adopter"
         elif general_access:

@@ -38,10 +38,10 @@ describe('UserBlock', () => {
     await userEvent.hover(container.firstChild as HTMLElement);
 
     expect(
-      screen.queryByRole('button', {name: 'Feedback Thumbs Up'})
+      screen.queryByRole('button', {name: 'I like this response'})
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('button', {name: 'Copy block content'})
+      screen.queryByRole('button', {name: 'Copy to clipboard'})
     ).not.toBeInTheDocument();
   });
 });

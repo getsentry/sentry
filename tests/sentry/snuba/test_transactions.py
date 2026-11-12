@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import timedelta
 
 import pytest
@@ -8,6 +9,7 @@ from django.utils import timezone
 from sentry.discover.arithmetic import ArithmeticValidationError
 from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models.project import Project
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.releaseprojectenvironment import ReleaseStages
 from sentry.models.transaction_threshold import (
@@ -41,18 +43,18 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
 
         self.event_time = self.one_min_ago
         # error event
-        data = load_data("javascript")
-        data["timestamp"] = before_now(minutes=10).isoformat()
-        self.store_event(data=data, project_id=self.project.id)
+        event_data = load_data("javascript")
+        event_data["timestamp"] = before_now(minutes=10).isoformat()
+        self.store_event(data=event_data, project_id=self.project.id)
 
         # transaction event
-        data = load_data("transaction", timestamp=self.event_time)
-        data["transaction"] = "a" * 32
-        data["user"] = {"id": "99", "email": "bruce@example.com", "username": "brucew"}
-        data["release"] = "first-release"
-        data["environment"] = self.environment.name
-        data["tags"] = [["key1", "value1"]]
-        self.event = self.store_event(data=data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=self.event_time)
+        event_data["transaction"] = "a" * 32
+        event_data["user"] = {"id": "99", "email": "bruce@example.com", "username": "brucew"}
+        event_data["release"] = "first-release"
+        event_data["environment"] = self.environment.name
+        event_data["tags"] = [["key1", "value1"]]
+        self.event = self.store_event(data=event_data, project_id=self.project.id)
 
         self.snuba_params = SnubaParams(
             organization=self.organization,
@@ -146,13 +148,13 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         project2 = self.create_project(organization=self.organization)
         project3 = self.create_project(organization=self.organization)
 
-        data = load_data("transaction", timestamp=before_now(seconds=3))
-        data["transaction"] = "b" * 32
-        self.event = self.store_event(data=data, project_id=project2.id)
+        event_data = load_data("transaction", timestamp=before_now(seconds=3))
+        event_data["transaction"] = "b" * 32
+        self.event = self.store_event(data=event_data, project_id=project2.id)
 
-        data = load_data("transaction", timestamp=before_now(seconds=3))
-        data["transaction"] = "c" * 32
-        self.event = self.store_event(data=data, project_id=project3.id)
+        event_data = load_data("transaction", timestamp=before_now(seconds=3))
+        event_data["transaction"] = "c" * 32
+        self.event = self.store_event(data=event_data, project_id=project3.id)
 
         result = transactions.query(
             selected_columns=["project", "transaction"],
@@ -174,21 +176,21 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
     def test_nested_conditional_filter(self) -> None:
         project2 = self.create_project(organization=self.organization)
 
-        data = load_data("transaction", timestamp=before_now(seconds=3))
-        data["release"] = "a" * 32
-        self.event = self.store_event(data=data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=before_now(seconds=3))
+        event_data["release"] = "a" * 32
+        self.event = self.store_event(data=event_data, project_id=self.project.id)
 
-        data = load_data("transaction", timestamp=before_now(seconds=3))
-        data["release"] = "b" * 32
-        self.event = self.store_event(data=data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=before_now(seconds=3))
+        event_data["release"] = "b" * 32
+        self.event = self.store_event(data=event_data, project_id=self.project.id)
 
-        data = load_data("transaction", timestamp=before_now(seconds=3))
-        data["release"] = "c" * 32
-        self.event = self.store_event(data=data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=before_now(seconds=3))
+        event_data["release"] = "c" * 32
+        self.event = self.store_event(data=event_data, project_id=self.project.id)
 
-        data = load_data("transaction", timestamp=before_now(seconds=3))
-        data["release"] = "a" * 32
-        self.event = self.store_event(data=data, project_id=project2.id)
+        event_data = load_data("transaction", timestamp=before_now(seconds=3))
+        event_data["release"] = "a" * 32
+        self.event = self.store_event(data=event_data, project_id=project2.id)
 
         result = transactions.query(
             selected_columns=["release"],
@@ -313,13 +315,13 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         assert "event_id" not in data[0]
 
     def test_message_filter(self) -> None:
-        data = load_data("transaction", timestamp=before_now(seconds=3))
-        data["transaction"] = "oh yeah"
-        self.event = self.store_event(data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=before_now(seconds=3))
+        event_data["transaction"] = "oh yeah"
+        self.event = self.store_event(event_data, project_id=self.project.id)
 
-        data = load_data("transaction", timestamp=before_now(seconds=3))
-        data["transaction"] = "oh no"
-        self.event = self.store_event(data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=before_now(seconds=3))
+        event_data["transaction"] = "oh no"
+        self.event = self.store_event(event_data, project_id=self.project.id)
 
         tests: list[tuple[str, list[str]]] = [
             ('message:"oh no"', ["oh no"]),
@@ -373,29 +375,29 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         release_2 = self.create_release(version="test@1.2.4")
         release_3 = self.create_release(version="test@1.2.5")
 
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["release"] = release_1.version
-        release_1_e_1 = self.store_event(data, project_id=self.project.id).event_id
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["release"] = release_1.version
+        release_1_e_1 = self.store_event(event_data, project_id=self.project.id).event_id
 
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["release"] = release_1.version
-        release_1_e_2 = self.store_event(data, project_id=self.project.id).event_id
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["release"] = release_1.version
+        release_1_e_2 = self.store_event(event_data, project_id=self.project.id).event_id
 
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["release"] = release_2.version
-        release_2_e_1 = self.store_event(data, project_id=self.project.id).event_id
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["release"] = release_2.version
+        release_2_e_1 = self.store_event(event_data, project_id=self.project.id).event_id
 
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["release"] = release_2.version
-        release_2_e_2 = self.store_event(data, project_id=self.project.id).event_id
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["release"] = release_2.version
+        release_2_e_2 = self.store_event(event_data, project_id=self.project.id).event_id
 
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["release"] = release_3.version
-        release_3_e_1 = self.store_event(data, project_id=self.project.id).event_id
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["release"] = release_3.version
+        release_3_e_1 = self.store_event(event_data, project_id=self.project.id).event_id
 
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["release"] = release_3.version
-        release_3_e_2 = self.store_event(data, project_id=self.project.id).event_id
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["release"] = release_3.version
+        release_3_e_2 = self.store_event(event_data, project_id=self.project.id).event_id
 
         result = transactions.query(
             selected_columns=["id"],
@@ -458,25 +460,25 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         )
         self.create_release(version="not_adopted_release", environments=[self.environment])
 
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["release"] = adopted_release.version
-        data["environment"] = self.environment.name
-        adopted_release_e_1 = self.store_event(data, project_id=self.project.id).event_id
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["release"] = adopted_release.version
+        event_data["environment"] = self.environment.name
+        adopted_release_e_1 = self.store_event(event_data, project_id=self.project.id).event_id
 
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["release"] = adopted_release.version
-        data["environment"] = self.environment.name
-        adopted_release_e_2 = self.store_event(data, project_id=self.project.id).event_id
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["release"] = adopted_release.version
+        event_data["environment"] = self.environment.name
+        adopted_release_e_2 = self.store_event(event_data, project_id=self.project.id).event_id
 
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["release"] = replaced_release.version
-        data["environment"] = self.environment.name
-        replaced_release_e_1 = self.store_event(data, project_id=self.project.id).event_id
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["release"] = replaced_release.version
+        event_data["environment"] = self.environment.name
+        replaced_release_e_1 = self.store_event(event_data, project_id=self.project.id).event_id
 
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["release"] = replaced_release.version
-        data["environment"] = self.environment.name
-        replaced_release_e_2 = self.store_event(data, project_id=self.project.id).event_id
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["release"] = replaced_release.version
+        event_data["environment"] = self.environment.name
+        replaced_release_e_2 = self.store_event(event_data, project_id=self.project.id).event_id
 
         self.snuba_params.environments = [self.environment]
 
@@ -520,20 +522,20 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         release_1 = self.create_release(version="test@1.2.3")
         release_2 = self.create_release(version="test2@1.2.4")
 
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["release"] = release_1.version
-        data["environment"] = self.environment.name
-        release_1_e_1 = self.store_event(data, project_id=self.project.id).event_id
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["release"] = release_1.version
+        event_data["environment"] = self.environment.name
+        release_1_e_1 = self.store_event(event_data, project_id=self.project.id).event_id
 
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["release"] = release_1.version
-        data["environment"] = self.environment.name
-        release_1_e_2 = self.store_event(data, project_id=self.project.id).event_id
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["release"] = release_1.version
+        event_data["environment"] = self.environment.name
+        release_1_e_2 = self.store_event(event_data, project_id=self.project.id).event_id
 
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["release"] = release_2.version
-        data["environment"] = self.environment.name
-        release_2_e_1 = self.store_event(data, project_id=self.project.id).event_id
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["release"] = release_2.version
+        event_data["environment"] = self.environment.name
+        release_2_e_1 = self.store_event(event_data, project_id=self.project.id).event_id
 
         result = transactions.query(
             selected_columns=["id"],
@@ -559,20 +561,20 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         release_1 = self.create_release(version="test@1.2.3+123")
         release_2 = self.create_release(version="test2@1.2.4+124")
 
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["release"] = release_1.version
-        data["environment"] = self.environment.name
-        release_1_e_1 = self.store_event(data, project_id=self.project.id).event_id
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["release"] = release_1.version
+        event_data["environment"] = self.environment.name
+        release_1_e_1 = self.store_event(event_data, project_id=self.project.id).event_id
 
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["release"] = release_1.version
-        data["environment"] = self.environment.name
-        release_1_e_2 = self.store_event(data, project_id=self.project.id).event_id
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["release"] = release_1.version
+        event_data["environment"] = self.environment.name
+        release_1_e_2 = self.store_event(event_data, project_id=self.project.id).event_id
 
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["release"] = release_2.version
-        data["environment"] = self.environment.name
-        release_2_e_1 = self.store_event(data, project_id=self.project.id).event_id
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["release"] = release_2.version
+        event_data["environment"] = self.environment.name
+        release_2_e_1 = self.store_event(event_data, project_id=self.project.id).event_id
 
         result = transactions.query(
             selected_columns=["id"],
@@ -602,13 +604,13 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         assert {r["id"] for r in result["data"]} == {release_1_e_1, release_1_e_2, release_2_e_1}
 
     def test_message_orderby(self) -> None:
-        data = load_data("transaction", timestamp=before_now(seconds=3))
-        data["transaction"] = "oh yeah"
-        self.event = self.store_event(data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=before_now(seconds=3))
+        event_data["transaction"] = "oh yeah"
+        self.event = self.store_event(event_data, project_id=self.project.id)
 
-        data = load_data("transaction", timestamp=before_now(seconds=3))
-        data["transaction"] = "oh no"
-        self.event = self.store_event(data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=before_now(seconds=3))
+        event_data["transaction"] = "oh no"
+        self.event = self.store_event(event_data, project_id=self.project.id)
 
         tests = [
             ("message", ["a" * 32, "oh no", "oh yeah"]),
@@ -641,9 +643,9 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         for project_name in ["a" * 32, "z" * 32, "m" * 32]:
             other_project = self.create_project(organization=self.organization, slug=project_name)
             projects.append(other_project)
-            data = load_data("transaction", timestamp=before_now(seconds=3))
-            data["transaction"] = "ohh no"
-            self.event = self.store_event(data, project_id=other_project.id)
+            event_data = load_data("transaction", timestamp=before_now(seconds=3))
+            event_data["transaction"] = "ohh no"
+            self.event = self.store_event(event_data, project_id=other_project.id)
 
         self.snuba_params.projects = projects
 
@@ -663,13 +665,13 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         assert [item["project"] for item in data] == ["a" * 32, "z" * 32]
 
     def test_offsets(self) -> None:
-        data = load_data("transaction", timestamp=before_now(seconds=3))
-        data["transaction"] = "hello1"
-        self.event = self.store_event(data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=before_now(seconds=3))
+        event_data["transaction"] = "hello1"
+        self.event = self.store_event(event_data, project_id=self.project.id)
 
-        data = load_data("transaction", timestamp=before_now(seconds=3))
-        data["transaction"] = "hello2"
-        self.event = self.store_event(data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=before_now(seconds=3))
+        event_data["transaction"] = "hello2"
+        self.event = self.store_event(event_data, project_id=self.project.id)
 
         result = transactions.query(
             selected_columns=["message"],
@@ -694,11 +696,11 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
             ("c" * 32, "aborted", None),
         )
         for event in events:
-            data = load_data("transaction", timestamp=before_now(minutes=10))
-            data["event_id"] = event[0]
-            data["transaction"] = event[0]
-            data["contexts"]["trace"]["status"] = event[1]
-            self.store_event(data=data, project_id=self.project.id)
+            event_data = load_data("transaction", timestamp=before_now(minutes=10))
+            event_data["event_id"] = event[0]
+            event_data["transaction"] = event[0]
+            event_data["contexts"]["trace"]["status"] = event[1]
+            self.store_event(data=event_data, project_id=self.project.id)
 
         queries = [
             ("transaction.status", [0, 6, 10]),
@@ -725,20 +727,20 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
             assert [x["transaction.status"] for x in data] == expected
 
     def test_transaction_status(self) -> None:
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["transaction"] = "/test_transaction/success"
-        data["contexts"]["trace"]["status"] = "ok"
-        self.store_event(data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["transaction"] = "/test_transaction/success"
+        event_data["contexts"]["trace"]["status"] = "ok"
+        self.store_event(event_data, project_id=self.project.id)
 
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["transaction"] = "/test_transaction/aborted"
-        data["contexts"]["trace"]["status"] = "aborted"
-        self.store_event(data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["transaction"] = "/test_transaction/aborted"
+        event_data["contexts"]["trace"]["status"] = "aborted"
+        self.store_event(event_data, project_id=self.project.id)
 
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["transaction"] = "/test_transaction/already_exists"
-        data["contexts"]["trace"]["status"] = "already_exists"
-        self.store_event(data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["transaction"] = "/test_transaction/already_exists"
+        event_data["contexts"]["trace"]["status"] = "already_exists"
+        self.store_event(event_data, project_id=self.project.id)
 
         result = transactions.query(
             selected_columns=["transaction.status"],
@@ -781,9 +783,9 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         other_project = self.create_project(organization=self.organization)
         self.snuba_params.projects = [other_project]
 
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["transaction"] = "hello"
-        self.store_event(data, project_id=other_project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["transaction"] = "hello"
+        self.store_event(event_data, project_id=other_project.id)
 
         result = transactions.query(
             selected_columns=["project", "message"],
@@ -802,8 +804,8 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         for project_name in ["a" * 32, "z" * 32, "m" * 32]:
             other_project = self.create_project(organization=self.organization, slug=project_name)
             projects.append(other_project)
-            data = load_data("transaction", timestamp=before_now(minutes=1))
-            self.store_event(data, project_id=other_project.id)
+            event_data = load_data("transaction", timestamp=before_now(minutes=1))
+            self.store_event(event_data, project_id=other_project.id)
 
         self.snuba_params.projects = projects
 
@@ -830,9 +832,9 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         assert [item["project"] for item in data] == ["a" * 32, "m" * 32, "z" * 32]
 
     def test_tags_colliding_with_fields(self) -> None:
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["tags"] = [["id", "new"]]
-        event = self.store_event(data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["tags"] = [["id", "new"]]
+        event = self.store_event(event_data, project_id=self.project.id)
 
         tests = [
             ("id", "", sorted([self.event.event_id, event.event_id])),
@@ -854,9 +856,9 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
             assert [item[column] for item in data] == expected
 
     def test_tags_orderby(self) -> None:
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["tags"] = [["key1", "value2"]]
-        self.store_event(data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["tags"] = [["key1", "value2"]]
+        self.store_event(event_data, project_id=self.project.id)
 
         tests = [
             ("key1", "key1", ["value1", "value2"]),
@@ -878,9 +880,9 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
             assert [item[column] for item in data] == expected
 
     def test_tags_filter(self) -> None:
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["tags"] = [["key1", "value2"]]
-        self.store_event(data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["tags"] = [["key1", "value2"]]
+        self.store_event(event_data, project_id=self.project.id)
 
         tests: list[tuple[str, str, list[str]]] = [
             ("key1", "", ["value1", "value2"]),
@@ -930,20 +932,20 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         ]
 
         for transaction in txns:
-            data = load_data(
+            event_data = load_data(
                 "transaction",
                 timestamp=before_now(minutes=(5)),
             )
-            data["transaction"] = transaction
-            self.store_event(data, project_id=self.project.id)
+            event_data["transaction"] = transaction
+            self.store_event(event_data, project_id=self.project.id)
 
         for team, transaction in key_txns:
-            data = load_data(
+            event_data = load_data(
                 "transaction",
                 timestamp=before_now(minutes=(5)),
             )
-            data["transaction"] = transaction
-            self.store_event(data, project_id=self.project.id)
+            event_data["transaction"] = transaction
+            self.store_event(event_data, project_id=self.project.id)
             TeamKeyTransaction.objects.create(
                 organization=self.organization,
                 transaction=transaction,
@@ -1000,8 +1002,8 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         three_day_ago = before_now(days=3)
         self.snuba_params.start = three_day_ago
 
-        data = load_data("transaction", timestamp=two_day_ago)
-        self.store_event(data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=two_day_ago)
+        self.store_event(event_data, project_id=self.project.id)
 
         result = transactions.query(
             selected_columns=["timestamp.to_hour", "timestamp.to_day"],
@@ -1019,22 +1021,22 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
 
     def test_user_display(self) -> None:
         # `user.display` should give `username`
-        data = load_data("transaction", timestamp=self.event_time)
-        data["transaction"] = "a" * 32
-        data["user"] = {"username": "brucew", "id": "1234", "ip": "127.0.0.1"}
-        self.event = self.store_event(data=data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=self.event_time)
+        event_data["transaction"] = "a" * 32
+        event_data["user"] = {"username": "brucew", "id": "1234", "ip": "127.0.0.1"}
+        self.event = self.store_event(data=event_data, project_id=self.project.id)
 
         # `user.display` should give `id`
-        data = load_data("transaction", timestamp=self.event_time)
-        data["transaction"] = "a" * 32
-        data["user"] = {"id": "1234", "ip": "127.0.0.1"}
-        self.event = self.store_event(data=data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=self.event_time)
+        event_data["transaction"] = "a" * 32
+        event_data["user"] = {"id": "1234", "ip": "127.0.0.1"}
+        self.event = self.store_event(data=event_data, project_id=self.project.id)
 
         # `user.display` should give `ip`
-        data = load_data("transaction", timestamp=self.event_time)
-        data["transaction"] = "a" * 32
-        data["user"] = {"ip_address": "127.0.0.1"}
-        self.event = self.store_event(data=data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=self.event_time)
+        event_data["transaction"] = "a" * 32
+        event_data["user"] = {"ip_address": "127.0.0.1"}
+        self.event = self.store_event(data=event_data, project_id=self.project.id)
 
         result = transactions.query(
             selected_columns=["user.display"],
@@ -1053,10 +1055,10 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
 
     def test_user_display_filter(self) -> None:
         # `user.display` should give `username`
-        data = load_data("transaction", timestamp=self.event_time)
-        data["transaction"] = "a" * 32
-        data["user"] = {"username": "brucew", "ip": "127.0.0.1"}
-        self.event = self.store_event(data=data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=self.event_time)
+        event_data["transaction"] = "a" * 32
+        event_data["user"] = {"username": "brucew", "ip": "127.0.0.1"}
+        self.event = self.store_event(data=event_data, project_id=self.project.id)
 
         result = transactions.query(
             selected_columns=["user.display"],
@@ -1073,8 +1075,8 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         for project_name in ["a" * 32, "z" * 32, "m" * 32]:
             other_project = self.create_project(organization=self.organization, slug=project_name)
             projects.append(other_project)
-            data = load_data("transaction", timestamp=self.event_time)
-            self.store_event(data=data, project_id=other_project.id)
+            event_data = load_data("transaction", timestamp=self.event_time)
+            self.store_event(data=event_data, project_id=other_project.id)
 
         self.snuba_params.projects = projects
 
@@ -1117,14 +1119,14 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
             ("d" * 10, 3000),
         ]
         for idx, event in enumerate(events):
-            data = load_data(
+            event_data = load_data(
                 "transaction",
                 timestamp=before_now(minutes=(3 + idx)),
                 start_timestamp=before_now(minutes=(3 + idx), milliseconds=event[1]),
             )
-            data["event_id"] = f"{idx}" * 32
-            data["transaction"] = event[0]
-            self.store_event(data, project_id=self.project.id)
+            event_data["event_id"] = f"{idx}" * 32
+            event_data["transaction"] = event[0]
+            self.store_event(event_data, project_id=self.project.id)
 
             if idx % 2:
                 ProjectTransactionThresholdOverride.objects.create(
@@ -1135,11 +1137,11 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
                     metric=TransactionMetric.DURATION.value,
                 )
 
-        data = load_data(
+        event_data = load_data(
             "transaction", timestamp=before_now(minutes=3), start_timestamp=before_now(minutes=4)
         )
-        data["transaction"] = "e" * 10
-        self.store_event(data, project_id=project2.id)
+        event_data["transaction"] = "e" * 10
+        self.store_event(event_data, project_id=project2.id)
 
         expected_transaction = ["a" * 10, "b" * 10, "c" * 10, "d" * 10, "e" * 10]
         expected_project_threshold_config = [
@@ -1208,20 +1210,20 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         project = self.create_project()
 
         for i in range(3):
-            data = load_data("transaction", timestamp=before_now(minutes=5))
-            data["transaction"] = f"/to_other/{i}"
-            data["release"] = "aaaa"
-            self.store_event(data, project_id=project.id)
+            event_data = load_data("transaction", timestamp=before_now(minutes=5))
+            event_data["transaction"] = f"/to_other/{i}"
+            event_data["release"] = "aaaa"
+            self.store_event(event_data, project_id=project.id)
 
-        data = load_data("transaction", timestamp=before_now(minutes=5))
-        data["transaction"] = "/to_other/y"
-        data["release"] = "yyyy"
-        self.store_event(data, project_id=project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=5))
+        event_data["transaction"] = "/to_other/y"
+        event_data["release"] = "yyyy"
+        self.store_event(event_data, project_id=project.id)
 
-        data = load_data("transaction", timestamp=before_now(minutes=5))
-        data["transaction"] = "/to_other/z"
-        data["release"] = "zzzz"
-        self.store_event(data, project_id=project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=5))
+        event_data["transaction"] = "/to_other/z"
+        event_data["release"] = "zzzz"
+        self.store_event(event_data, project_id=project.id)
 
         columns1 = ["transaction", 'to_other(release,"aaaa")']
         columns2 = ["transaction", 'to_other(release,"aaaa",old,new)']
@@ -1250,17 +1252,17 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
 
     def test_count_if_function(self) -> None:
         for i in range(3):
-            data = load_data("transaction", timestamp=before_now(minutes=5))
-            data["release"] = "aaaa"
-            self.store_event(data, project_id=self.project.id)
+            event_data = load_data("transaction", timestamp=before_now(minutes=5))
+            event_data["release"] = "aaaa"
+            self.store_event(event_data, project_id=self.project.id)
 
-        data = load_data("transaction", timestamp=before_now(minutes=5))
-        data["release"] = "bbbb"
-        self.store_event(data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=5))
+        event_data["release"] = "bbbb"
+        self.store_event(event_data, project_id=self.project.id)
 
-        data = load_data("transaction", timestamp=before_now(minutes=5))
-        data["release"] = "cccc"
-        self.store_event(data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=5))
+        event_data["release"] = "cccc"
+        self.store_event(event_data, project_id=self.project.id)
 
         columns1 = ["count()", "count_if(release,equals,aaaa)", "count_if(release,notEquals,aaaa)"]
         columns2 = ["count()", "count_if(release,less,bbbb)", "count_if(release,lessOrEquals,bbbb)"]
@@ -1306,13 +1308,13 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         unicode_phrase1 = "\u716e\u6211\u66f4\u591a\u7684\u98df\u7269\uff0c\u6211\u9913\u4e86"
         unicode_phrase2 = "\u53cd\u6b63\u611b\u60c5\u4e0d\u5c31\u90a3\u6837"
         for i in range(3):
-            data = load_data("transaction", timestamp=before_now(minutes=5))
-            data["release"] = unicode_phrase1
-            self.store_event(data, project_id=self.project.id)
+            event_data = load_data("transaction", timestamp=before_now(minutes=5))
+            event_data["release"] = unicode_phrase1
+            self.store_event(event_data, project_id=self.project.id)
 
-        data = load_data("transaction", timestamp=before_now(minutes=5))
-        data["release"] = unicode_phrase2
-        self.store_event(data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=5))
+        event_data["release"] = unicode_phrase2
+        self.store_event(event_data, project_id=self.project.id)
 
         columns1 = [
             "count()",
@@ -1351,25 +1353,25 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
     def test_failure_count_function(self) -> None:
         project = self.create_project()
 
-        data = load_data("transaction", timestamp=before_now(minutes=5))
-        data["transaction"] = "/failure_count/success"
-        self.store_event(data, project_id=project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=5))
+        event_data["transaction"] = "/failure_count/success"
+        self.store_event(event_data, project_id=project.id)
 
-        data = load_data("transaction", timestamp=before_now(minutes=5))
-        data["transaction"] = "/failure_count/unknown"
-        data["contexts"]["trace"]["status"] = "unknown_error"
-        self.store_event(data, project_id=project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=5))
+        event_data["transaction"] = "/failure_count/unknown"
+        event_data["contexts"]["trace"]["status"] = "unknown_error"
+        self.store_event(event_data, project_id=project.id)
 
         for i in range(6):
-            data = load_data("transaction", timestamp=before_now(minutes=5))
-            data["transaction"] = f"/failure_count/{i}"
-            data["contexts"]["trace"]["status"] = "unauthenticated"
-            self.store_event(data, project_id=project.id)
+            event_data = load_data("transaction", timestamp=before_now(minutes=5))
+            event_data["transaction"] = f"/failure_count/{i}"
+            event_data["contexts"]["trace"]["status"] = "unauthenticated"
+            self.store_event(event_data, project_id=project.id)
 
-        data = load_data("transaction", timestamp=before_now(minutes=5))
-        data["transaction"] = "/failure_count/0"
-        data["contexts"]["trace"]["status"] = "unauthenticated"
-        self.store_event(data, project_id=project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=5))
+        event_data["transaction"] = "/failure_count/0"
+        event_data["contexts"]["trace"]["status"] = "unauthenticated"
+        self.store_event(event_data, project_id=project.id)
 
         queries = [
             ("", 8, True),
@@ -1429,20 +1431,22 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
             ("zorp", 3000),
         ]
         for idx, event in enumerate(events):
-            data = load_data(
+            event_data = load_data(
                 "transaction",
                 timestamp=before_now(minutes=(5 + idx)),
                 start_timestamp=before_now(minutes=(5 + idx), milliseconds=event[1]),
             )
-            data["measurements"]["lcp"]["value"] = 3000
-            data["event_id"] = f"{idx}" * 32
-            data["transaction"] = f"/apdex/{event[0]}"
-            data["user"] = {"email": f"{idx}@example.com"}
+            event_data["measurements"]["lcp"]["value"] = 3000
+            event_data["event_id"] = f"{idx}" * 32
+            event_data["transaction"] = f"/apdex/{event[0]}"
+            event_data["user"] = {"email": f"{idx}@example.com"}
 
             if event[0] == "zorp":
-                self.store_event(data, project_id=project2.id)  # No custom thresholds for project2
+                self.store_event(
+                    event_data, project_id=project2.id
+                )  # No custom thresholds for project2
             else:
-                self.store_event(data, project_id=project.id)
+                self.store_event(event_data, project_id=project.id)
 
         queries = [
             ("", [0.5, 0.5, 0.25, 0.0, 0.25], ["apdex(100)"], "apdex_100"),
@@ -1504,20 +1508,22 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
             ("zorp", 3000),
         ]
         for idx, event in enumerate(events):
-            data = load_data(
+            event_data = load_data(
                 "transaction",
                 timestamp=before_now(minutes=(5 + idx)),
                 start_timestamp=before_now(minutes=(5 + idx), milliseconds=event[1]),
             )
-            data["measurements"]["lcp"]["value"] = 3000
-            data["event_id"] = f"{idx}" * 32
-            data["transaction"] = f"/count_miserable/{event[0]}"
-            data["user"] = {"email": f"{idx}@example.com"}
+            event_data["measurements"]["lcp"]["value"] = 3000
+            event_data["event_id"] = f"{idx}" * 32
+            event_data["transaction"] = f"/count_miserable/{event[0]}"
+            event_data["user"] = {"email": f"{idx}@example.com"}
 
             if event[0] == "zorp":
-                self.store_event(data, project_id=project2.id)  # No custom thresholds for project2
+                self.store_event(
+                    event_data, project_id=project2.id
+                )  # No custom thresholds for project2
             else:
-                self.store_event(data, project_id=project.id)
+                self.store_event(event_data, project_id=project.id)
 
         queries = [
             (
@@ -1595,20 +1601,22 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
             ("zorp", 3000),
         ]
         for idx, event in enumerate(events):
-            data = load_data(
+            event_data = load_data(
                 "transaction",
                 timestamp=before_now(minutes=(5 + idx)),
                 start_timestamp=before_now(minutes=(5 + idx), milliseconds=event[1]),
             )
-            data["measurements"]["lcp"]["value"] = 3000
-            data["event_id"] = f"{idx}" * 32
-            data["transaction"] = f"/user_misery/{event[0]}"
-            data["user"] = {"email": f"{idx}@example.com"}
+            event_data["measurements"]["lcp"]["value"] = 3000
+            event_data["event_id"] = f"{idx}" * 32
+            event_data["transaction"] = f"/user_misery/{event[0]}"
+            event_data["user"] = {"email": f"{idx}@example.com"}
 
             if event[0] == "zorp":
-                self.store_event(data, project_id=project2.id)  # No custom thresholds for project2
+                self.store_event(
+                    event_data, project_id=project2.id
+                )  # No custom thresholds for project2
             else:
-                self.store_event(data, project_id=project.id)
+                self.store_event(event_data, project_id=project.id)
 
         queries = [
             (
@@ -1632,7 +1640,7 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
             ),
         ]
 
-        similar = lambda a, b: abs(a - b) < 0.001
+        similar: Callable[[float, float], bool] = lambda a, b: abs(a - b) < 0.001
 
         for query, expected_user_misery, col, alias in queries:
             result = transactions.query(
@@ -1658,13 +1666,13 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         project = self.create_project()
 
         for i in range(6):
-            data = load_data("transaction", timestamp=before_now(minutes=5))
-            data["transaction"] = "/count/6"
-            self.store_event(data, project_id=project.id)
+            event_data = load_data("transaction", timestamp=before_now(minutes=5))
+            event_data["transaction"] = "/count/6"
+            self.store_event(event_data, project_id=project.id)
         for i in range(8):
-            data = load_data("transaction", timestamp=before_now(minutes=5))
-            data["transaction"] = "/count/8"
-            self.store_event(data, project_id=project.id)
+            event_data = load_data("transaction", timestamp=before_now(minutes=5))
+            event_data["transaction"] = "/count/8"
+            self.store_event(event_data, project_id=project.id)
 
         queries = [
             ("", 2, (6, 8), True),
@@ -1695,13 +1703,13 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         project = self.create_project()
 
         for i in range(6):
-            data = load_data(
+            event_data = load_data(
                 "transaction",
                 timestamp=before_now(minutes=3),
                 start_timestamp=before_now(minutes=4 + i),
             )
-            data["transaction"] = "/percentile"
-            self.store_event(data, project_id=project.id)
+            event_data["transaction"] = "/percentile"
+            self.store_event(event_data, project_id=project.id)
 
         fields = [
             (
@@ -1752,14 +1760,14 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         expected_timestamp = before_now(minutes=3)
         string_condition_timestamp = before_now(minutes=4).strftime("%Y-%m-%dT%H:%M:%S+00:00")
 
-        data = load_data("transaction", timestamp=expected_timestamp)
-        data["transaction"] = "/last_seen"
-        self.store_event(data, project_id=project.id)
+        event_data = load_data("transaction", timestamp=expected_timestamp)
+        event_data["transaction"] = "/last_seen"
+        self.store_event(event_data, project_id=project.id)
 
         for i in range(6):
-            data = load_data("transaction", timestamp=before_now(minutes=i + 4))
-            data["transaction"] = "/last_seen"
-            self.store_event(data, project_id=project.id)
+            event_data = load_data("transaction", timestamp=before_now(minutes=i + 4))
+            event_data["transaction"] = "/last_seen"
+            self.store_event(event_data, project_id=project.id)
 
         queries = [
             ("", 1, True),
@@ -1789,14 +1797,14 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         project = self.create_project()
 
         expected_timestamp = before_now(minutes=3)
-        data = load_data("transaction", timestamp=expected_timestamp)
-        data["transaction"] = "/latest_event"
-        stored_event = self.store_event(data, project_id=project.id)
+        event_data = load_data("transaction", timestamp=expected_timestamp)
+        event_data["transaction"] = "/latest_event"
+        stored_event = self.store_event(event_data, project_id=project.id)
 
         for i in range(6):
-            data = load_data("transaction", timestamp=before_now(minutes=i + 4))
-            data["transaction"] = "/latest_event"
-            self.store_event(data, project_id=project.id)
+            event_data = load_data("transaction", timestamp=before_now(minutes=i + 4))
+            event_data["transaction"] = "/latest_event"
+            self.store_event(event_data, project_id=project.id)
 
         result = transactions.query(
             selected_columns=["transaction", "latest_event()"],
@@ -1819,23 +1827,23 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         project = self.create_project()
 
         for i in range(6):
-            data = load_data("transaction", timestamp=before_now(minutes=5))
-            data["transaction"] = "/failure_rate/over"
-            data["contexts"]["trace"]["status"] = "unauthenticated"
-            self.store_event(data, project_id=project.id)
+            event_data = load_data("transaction", timestamp=before_now(minutes=5))
+            event_data["transaction"] = "/failure_rate/over"
+            event_data["contexts"]["trace"]["status"] = "unauthenticated"
+            self.store_event(event_data, project_id=project.id)
         for i in range(4):
-            data = load_data("transaction", timestamp=before_now(minutes=5))
-            data["transaction"] = "/failure_rate/over"
-            self.store_event(data, project_id=project.id)
+            event_data = load_data("transaction", timestamp=before_now(minutes=5))
+            event_data["transaction"] = "/failure_rate/over"
+            self.store_event(event_data, project_id=project.id)
         for i in range(7):
-            data = load_data("transaction", timestamp=before_now(minutes=5))
-            data["transaction"] = "/failure_rate/under"
-            self.store_event(data, project_id=project.id)
+            event_data = load_data("transaction", timestamp=before_now(minutes=5))
+            event_data["transaction"] = "/failure_rate/under"
+            self.store_event(event_data, project_id=project.id)
         for i in range(3):
-            data = load_data("transaction", timestamp=before_now(minutes=5))
-            data["transaction"] = "/failure_rate/under"
-            data["contexts"]["trace"]["status"] = "unauthenticated"
-            self.store_event(data, project_id=project.id)
+            event_data = load_data("transaction", timestamp=before_now(minutes=5))
+            event_data["transaction"] = "/failure_rate/under"
+            event_data["contexts"]["trace"]["status"] = "unauthenticated"
+            self.store_event(event_data, project_id=project.id)
 
         queries = [
             ("", 2, True),
@@ -1863,17 +1871,17 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
             if expected_length > 1:
                 assert data[1]["failure_rate"] == 0.3
 
-    def _create_percentile_events(self, project):
+    def _create_percentile_events(self, project: Project) -> None:
         for i in range(6):
             start = before_now(minutes=3)
             end = start - timedelta(minutes=1 + i)
-            data = load_data(
+            event_data = load_data(
                 "transaction",
                 timestamp=start,
                 start_timestamp=end,
             )
-            data["transaction"] = "/p50"
-            self.store_event(data, project_id=project.id)
+            event_data["transaction"] = "/p50"
+            self.store_event(event_data, project_id=project.id)
 
     def test_percentile(self) -> None:
         project = self.create_project()
@@ -2085,15 +2093,15 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         project = self.create_project()
 
         for i in range(6):
-            data = load_data(
+            event_data = load_data(
                 "transaction",
                 timestamp=before_now(minutes=3),
                 start_timestamp=before_now(minutes=4 + i),
             )
-            data["transaction"] = "/p100"
-            data["measurements"]["frames_total"] = {"value": 100 * i}
-            data["measurements"]["frames_slow"] = {"value": 50 * i}
-            self.store_event(data, project_id=project.id)
+            event_data["transaction"] = "/p100"
+            event_data["measurements"]["frames_total"] = {"value": 100 * i}
+            event_data["measurements"]["frames_slow"] = {"value": 50 * i}
+            self.store_event(event_data, project_id=project.id)
 
         queries = [
             ("", 1, True),
@@ -2126,13 +2134,13 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
 
     def test_count_unique(self) -> None:
         for idx in range(3):
-            data = load_data(
+            event_data = load_data(
                 "transaction",
                 timestamp=before_now(minutes=3),
             )
-            data["user"] = {"email": f"{idx}@example.com"}
-            data["tags"] = {"foo": "bar" if idx < 1 else "baz"}
-            self.store_event(data, project_id=self.project.id)
+            event_data["user"] = {"email": f"{idx}@example.com"}
+            event_data["tags"] = {"foo": "bar" if idx < 1 else "baz"}
+            self.store_event(event_data, project_id=self.project.id)
 
         result = transactions.query(
             selected_columns=["count_unique(user.display)", "count_unique(foo)"],
@@ -2156,12 +2164,12 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         for idx in range(3):
             start = before_now(minutes=3)
             end = start - timedelta(minutes=1 + idx)
-            data = load_data(
+            event_data = load_data(
                 "transaction",
                 timestamp=start,
                 start_timestamp=end,
             )
-            self.store_event(data, project_id=self.project.id)
+            self.store_event(event_data, project_id=self.project.id)
 
         result = transactions.query(
             selected_columns=[
@@ -2187,12 +2195,12 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         for idx in range(3):
             start = before_now(minutes=3)
             end = start - timedelta(minutes=1 + idx)
-            data = load_data(
+            event_data = load_data(
                 "transaction",
                 timestamp=start,
                 start_timestamp=end,
             )
-            self.store_event(data, project_id=self.project.id)
+            self.store_event(event_data, project_id=self.project.id)
 
         queries = [
             ("var(transaction.duration)", "var_transaction_duration", 3600000000),
@@ -2232,12 +2240,12 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         start_one_minute = end - timedelta(minutes=1)
         start_two_minute = end - timedelta(minutes=2)
         for idx in range(3):
-            data = load_data(
+            event_data = load_data(
                 "transaction",
                 timestamp=end,
                 start_timestamp=start_one_minute if idx < 1 else start_two_minute,
             )
-            self.store_event(data, project_id=self.project.id)
+            self.store_event(event_data, project_id=self.project.id)
 
         result = transactions.query(
             selected_columns=[
@@ -2263,12 +2271,12 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         project = self.create_project()
 
         for _ in range(6):
-            data = load_data(
+            event_data = load_data(
                 "transaction",
                 timestamp=before_now(minutes=3),
             )
-            data["transaction"] = "/eps"
-            self.store_event(data, project_id=project.id)
+            event_data["transaction"] = "/eps"
+            self.store_event(event_data, project_id=project.id)
 
         queries = [
             ("", 1, True),
@@ -2316,12 +2324,12 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         project = self.create_project()
 
         for _ in range(6):
-            data = load_data(
+            event_data = load_data(
                 "transaction",
                 timestamp=before_now(minutes=3),
             )
-            data["transaction"] = "/epm"
-            self.store_event(data, project_id=project.id)
+            event_data["transaction"] = "/epm"
+            self.store_event(event_data, project_id=project.id)
 
         queries = [
             ("", 1, True),
@@ -2366,18 +2374,18 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
                 assert data[0]["tpm_60"] == 6
 
     def test_transaction_status_filter(self) -> None:
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["transaction"] = "/test_transaction/success"
-        data["contexts"]["trace"]["status"] = "ok"
-        self.store_event(data, project_id=self.project.id)
-        self.store_event(data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["transaction"] = "/test_transaction/success"
+        event_data["contexts"]["trace"]["status"] = "ok"
+        self.store_event(event_data, project_id=self.project.id)
+        self.store_event(event_data, project_id=self.project.id)
 
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["transaction"] = "/test_transaction/already_exists"
-        data["contexts"]["trace"]["status"] = "already_exists"
-        self.store_event(data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["transaction"] = "/test_transaction/already_exists"
+        event_data["contexts"]["trace"]["status"] = "already_exists"
+        self.store_event(event_data, project_id=self.project.id)
 
-        def run_query(query, expected_statuses, message):
+        def run_query(query: str, expected_statuses: list[int], message: str) -> None:
             result = transactions.query(
                 selected_columns=["transaction.status"],
                 query=query,
@@ -2412,25 +2420,25 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
     def test_orderby_aggregate_function(self) -> None:
         project = self.create_project()
 
-        data = load_data("transaction", timestamp=before_now(minutes=5))
-        data["transaction"] = "/failure_count/success"
-        self.store_event(data, project_id=project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=5))
+        event_data["transaction"] = "/failure_count/success"
+        self.store_event(event_data, project_id=project.id)
 
-        data = load_data("transaction", timestamp=before_now(minutes=5))
-        data["transaction"] = "/failure_count/unknown"
-        data["contexts"]["trace"]["status"] = "unknown_error"
-        self.store_event(data, project_id=project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=5))
+        event_data["transaction"] = "/failure_count/unknown"
+        event_data["contexts"]["trace"]["status"] = "unknown_error"
+        self.store_event(event_data, project_id=project.id)
 
         for i in range(6):
-            data = load_data("transaction", timestamp=before_now(minutes=5))
-            data["transaction"] = f"/failure_count/{i}"
-            data["contexts"]["trace"]["status"] = "unauthenticated"
-            self.store_event(data, project_id=project.id)
+            event_data = load_data("transaction", timestamp=before_now(minutes=5))
+            event_data["transaction"] = f"/failure_count/{i}"
+            event_data["contexts"]["trace"]["status"] = "unauthenticated"
+            self.store_event(event_data, project_id=project.id)
 
-        data = load_data("transaction", timestamp=before_now(minutes=5))
-        data["transaction"] = "/failure_count/0"
-        data["contexts"]["trace"]["status"] = "unauthenticated"
-        self.store_event(data, project_id=project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=5))
+        event_data["transaction"] = "/failure_count/0"
+        event_data["contexts"]["trace"]["status"] = "unauthenticated"
+        self.store_event(event_data, project_id=project.id)
 
         orderbys = [
             ("failure_count()", [0, 1, 1, 1, 1, 1, 1, 2]),
@@ -2469,10 +2477,10 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
             "hash": "a" * 16,
             "exclusive_time": 1.2345,
         }
-        data = load_data(
+        event_data = load_data(
             "transaction", timestamp=before_now(minutes=10), trace_context=trace_context, spans=[]
         )
-        self.store_event(data=data, project_id=self.project.id)
+        self.store_event(data=event_data, project_id=self.project.id)
 
         queries = [
             ("has:spans_op", 1),
@@ -2542,12 +2550,12 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
 
     def test_conditions_with_special_columns(self) -> None:
         for val in ["b", "c", "d"]:
-            data = load_data("transaction")
-            data["timestamp"] = self.one_min_ago.isoformat()
-            data["transaction"] = val * 32
-            data["logentry"] = {"formatted": val * 32}
-            data["tags"] = {"sub_customer.is-Enterprise-42": val * 32}
-            self.store_event(data=data, project_id=self.project.id)
+            event_data = load_data("transaction")
+            event_data["timestamp"] = self.one_min_ago.isoformat()
+            event_data["transaction"] = val * 32
+            event_data["logentry"] = {"formatted": val * 32}
+            event_data["tags"] = {"sub_customer.is-Enterprise-42": val * 32}
+            self.store_event(data=event_data, project_id=self.project.id)
 
         result = transactions.query(
             selected_columns=["title", "message"],
@@ -2590,12 +2598,12 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         for ev in events:
             val = ev[0] * 32
             for i in range(ev[1]):
-                data = load_data("transaction")
-                data["timestamp"] = self.one_min_ago.isoformat()
-                data["transaction"] = f"{val}-{i}"
-                data["logentry"] = {"formatted": val}
-                data["tags"] = {"trek": val}
-                self.store_event(data=data, project_id=self.project.id)
+                event_data = load_data("transaction")
+                event_data["timestamp"] = self.one_min_ago.isoformat()
+                event_data["transaction"] = f"{val}-{i}"
+                event_data["logentry"] = {"formatted": val}
+                event_data["tags"] = {"trek": val}
+                self.store_event(data=event_data, project_id=self.project.id)
 
         result = transactions.query(
             selected_columns=["trek", "count()"],
@@ -2622,12 +2630,12 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         for ev in events:
             val = ev[0] * 32
             for i in range(ev[1]):
-                data = load_data("transaction")
-                data["timestamp"] = self.one_min_ago.isoformat()
-                data["transaction"] = f"{val}-{i}"
-                data["logentry"] = {"formatted": val}
-                data["tags"] = {"trek": val}
-                self.store_event(data=data, project_id=self.project.id)
+                event_data = load_data("transaction")
+                event_data["timestamp"] = self.one_min_ago.isoformat()
+                event_data["transaction"] = f"{val}-{i}"
+                event_data["logentry"] = {"formatted": val}
+                event_data["tags"] = {"trek": val}
+                self.store_event(data=event_data, project_id=self.project.id)
 
         result = transactions.query(
             selected_columns=["trek", "count()"],
@@ -2671,9 +2679,11 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         for t, ev in enumerate(events):
             val = ev[0] * 32
             for i in range(ev[1]):
-                data = load_data("transaction", timestamp=self.now - timedelta(seconds=3 * t + 1))
-                data["transaction"] = f"{val}"
-                self.store_event(data=data, project_id=self.project.id)
+                event_data = load_data(
+                    "transaction", timestamp=self.now - timedelta(seconds=3 * t + 1)
+                )
+                event_data["transaction"] = f"{val}"
+                self.store_event(data=event_data, project_id=self.project.id)
 
         results = transactions.query(
             selected_columns=["transaction", "count()"],
@@ -2719,9 +2729,9 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         }
 
     def test_count_with_or(self) -> None:
-        data = load_data("transaction", timestamp=before_now(seconds=3))
-        data["transaction"] = "a" * 32
-        self.store_event(data=data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=before_now(seconds=3))
+        event_data["transaction"] = "a" * 32
+        self.store_event(data=event_data, project_id=self.project.id)
 
         results = transactions.query(
             selected_columns=["transaction", "count()"],
@@ -2738,14 +2748,14 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["count"] == 2
 
     def test_array_join(self) -> None:
-        data = load_data("transaction", timestamp=before_now(seconds=90))
-        data["transaction"] = "foo"
-        data["measurements"] = {
+        event_data = load_data("transaction", timestamp=before_now(seconds=90))
+        event_data["transaction"] = "foo"
+        event_data["measurements"] = {
             "fp": {"value": 1000},
             "fcp": {"value": 1000},
             "lcp": {"value": 1000},
         }
-        self.store_event(data=data, project_id=self.project.id)
+        self.store_event(data=event_data, project_id=self.project.id)
 
         results = transactions.query(
             selected_columns=["array_join(measurements_key)"],
@@ -2805,13 +2815,13 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
                 )
 
     def test_sum_array_combinator(self) -> None:
-        data = load_data("transaction", timestamp=before_now(seconds=3))
-        data["measurements"] = {
+        event_data = load_data("transaction", timestamp=before_now(seconds=3))
+        event_data["measurements"] = {
             "fp": {"value": 1000},
             "fcp": {"value": 1000},
             "lcp": {"value": 1000},
         }
-        self.store_event(data=data, project_id=self.project.id)
+        self.store_event(data=event_data, project_id=self.project.id)
 
         results = transactions.query(
             selected_columns=["sumArray(measurements_value)"],

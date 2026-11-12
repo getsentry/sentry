@@ -2,13 +2,18 @@ import type {ReactNode} from 'react';
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconWarning} from '@sentry/icons/warning';
 import {useQuery} from '@tanstack/react-query';
 import omit from 'lodash/omit';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -16,8 +21,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {Count} from 'sentry/components/count';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -26,9 +29,6 @@ import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {ScoreBar} from 'sentry/components/scoreBar';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconChevron} from 'sentry/icons/iconChevron';
-import {IconEllipsis} from 'sentry/icons/iconEllipsis';
-import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -36,6 +36,7 @@ import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {getShortEventId} from 'sentry/utils/events';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {Frame} from 'sentry/utils/profiling/frame';
 import type {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {
@@ -100,6 +101,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
   const [expandedIndex, setExpandedIndex] = useState(0);
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setSortFunction(DEFAULT_SORTING_OPTION);
     setExpandedIndex(0);
   }, [
@@ -107,6 +109,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
     setExpandedIndex,
     // we want to reset the sorting option and expanded index to the default
     // every time the breakdown function changes.
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     breakdownFunction,
   ]);
 
@@ -116,25 +119,23 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
   );
 
   const handleCursor = useCallback(
-    (cursor: any, pathname: any, query: any) => {
+    (cursor: string | undefined) => {
+      const {pathname, query} = location;
       navigate({
         pathname,
         query: {...query, [cursorName]: cursor},
       });
     },
-    [cursorName, navigate]
+    [cursorName, location, navigate]
   );
 
-  const paginationAnalyticsEvent = useCallback(
-    (direction: string) => {
-      trackAnalytics('profiling_views.landing.widget.pagination', {
-        organization,
-        direction,
-        source: analyticsSource,
-      });
-    },
-    [organization, analyticsSource]
-  );
+  const paginationAnalyticsEvent = (direction: string) => {
+    trackAnalytics('profiling_views.landing.widget.pagination', {
+      organization,
+      direction,
+      source: analyticsSource,
+    });
+  };
 
   const functionsQueryOptions = useProfileFunctionsOptions<FunctionsField>({
     fields: functionsFields.includes(sortFunction as any)
@@ -250,13 +251,15 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
           </Flex>
         </Subtitle>
         <StyledPagination
-          pageLinks={functionsQuery.data?.headers.Link ?? null}
+          {...getPaginationProps(functionsQuery.data?.headers.Link ?? null)}
           size="xs"
           onCursor={handleCursor}
-          paginationAnalyticsEvent={paginationAnalyticsEvent}
+          onPageChange={(_cursor, delta) =>
+            paginationAnalyticsEvent(delta === -1 ? 'Previous' : 'Next')
+          }
         />
       </HeaderContainer>
-      <Flex flex="1 1 auto" direction="column" justify="center">
+      <Stack flex="1 1 auto" justify="center">
         {isLoading && (
           <StatusContainer>
             <LoadingIndicator />
@@ -303,7 +306,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
             })}
           </Accordion>
         )}
-      </Flex>
+      </Stack>
     </WidgetContainer>
   );
 }
@@ -436,13 +439,15 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
         </Tooltip>
         <DropdownMenu
           position="bottom-end"
-          triggerProps={{
-            icon: <IconEllipsis size="xs" />,
-            variant: 'transparent',
-            showChevron: false,
-            size: 'xs',
-            'aria-label': t('Example Profiles'),
-          }}
+          trigger={triggerProps => (
+            <OverlayTrigger.IconButton
+              {...triggerProps}
+              icon={<IconEllipsis size="xs" />}
+              variant="transparent"
+              size="xs"
+              aria-label={t('Example Profiles')}
+            />
+          )}
           onOpenChange={isOpen => {
             if (isOpen) {
               trackAnalytics('profiling_views.landing.widget.open_list', {
@@ -453,17 +458,17 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
           }}
           items={examples}
           menuTitle={t('Example Profiles')}
-          maxMenuHeight={300}
+          maxHeight={300}
         />
       </AccordionItem>
       {isExpanded && (
-        <Flex flex="1 1 auto" direction="column" justify="center">
+        <Stack flex="1 1 auto" justify="center">
           <FunctionChart
             func={func}
             breakdownFunction={breakdownFunction}
             stats={stats}
           />
-        </Flex>
+        </Stack>
       )}
     </Fragment>
   );

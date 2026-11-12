@@ -3,10 +3,8 @@ import {EventFixture} from 'sentry-fixture/event';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
-import {
-  getCultureContextData,
-  type CultureContext,
-} from 'sentry/components/events/contexts/knownContext/culture';
+
+import {getCultureContextData, type CultureContext} from './culture';
 
 const MOCK_CULTURE_CONTEXT: CultureContext = {
   calendar: 'GregorianCalendar',
@@ -20,7 +18,7 @@ const MOCK_CULTURE_CONTEXT: CultureContext = {
 };
 
 const MOCK_REDACTION = {
-  ['timezone']: {
+  timezone: {
     '': {
       chunks: [
         {

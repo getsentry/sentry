@@ -1,12 +1,12 @@
 import {useCallback} from 'react';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
 import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowEngine/getWorkflowEngineResponseErrorMessage';
 import {t} from 'sentry/locale';
 import type {
   BaseDetectorUpdatePayload,
-  Detector,
   DetectorType,
 } from 'sentry/types/workflowEngine/detectors';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -26,8 +26,6 @@ interface UseCreateDetectorFormSubmitOptions<TFormData, TUpdatePayload> {
    * Function to transform form data to API payload
    */
   formDataToEndpointPayload: (formData: TFormData) => TUpdatePayload;
-  onError?: (error: unknown) => void;
-  onSuccess?: (detector: Detector) => void;
 }
 
 export function useCreateDetectorFormSubmit<
@@ -36,8 +34,6 @@ export function useCreateDetectorFormSubmit<
 >({
   detectorType,
   formDataToEndpointPayload,
-  onError,
-  onSuccess,
 }: UseCreateDetectorFormSubmitOptions<TFormData, TUpdatePayload>): OnSubmitCallback {
   const organization = useOrganization();
   const navigate = useNavigate();
@@ -72,13 +68,9 @@ export function useCreateDetectorFormSubmit<
           success: true,
         });
 
-        addSuccessMessage(t('Monitor created'));
+        toast.success(t('Monitor created'));
 
-        if (onSuccess) {
-          onSuccess(resultDetector);
-        } else {
-          navigate(makeMonitorDetailsPathname(organization.slug, resultDetector.id));
-        }
+        navigate(makeMonitorDetailsPathname(organization.slug, resultDetector.id));
 
         onSubmitSuccess?.(resultDetector);
       } catch (error: unknown) {
@@ -88,27 +80,15 @@ export function useCreateDetectorFormSubmit<
           success: false,
         });
 
-        addErrorMessage(
+        toast.error(
           (error instanceof RequestError
             ? getWorkflowEngineResponseErrorMessage(error.responseJSON)
             : null) ?? t('Unable to create monitor')
         );
 
-        if (onError) {
-          onError(error);
-        }
-
         onSubmitError?.(error);
       }
     },
-    [
-      detectorType,
-      formDataToEndpointPayload,
-      createDetector,
-      organization,
-      navigate,
-      onSuccess,
-      onError,
-    ]
+    [detectorType, formDataToEndpointPayload, createDetector, organization, navigate]
   );
 }

@@ -3,10 +3,12 @@ import * as Sentry from '@sentry/react';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 
-import {LoadingError} from 'sentry/components/loadingError';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {isWebpackChunkLoadingError} from 'sentry/utils';
+
+import {InitialLoadingIndicator} from './initialLoadingIndicator';
+import {LoadingError} from './loadingError';
+import {LoadingIndicator} from './loadingIndicator';
 
 type Props<C extends React.LazyExoticComponent<C>> = React.ComponentProps<C> & {
   /**
@@ -62,11 +64,17 @@ export function LazyLoad<C extends React.LazyExoticComponent<any>>({
       <Suspense
         fallback={
           loadingFallback ?? (
-            <Flex flex="1" align="center" column="1 / -1">
-              <DeferredLoader fallback={<LoadingIndicator style={{display: 'none'}} />}>
-                <LoadingIndicator />
-              </DeferredLoader>
-            </Flex>
+            <InitialLoadingIndicator
+              fallback={
+                <Flex flex="1" align="center" column="1 / -1">
+                  <DeferredLoader
+                    fallback={<LoadingIndicator style={{display: 'none'}} />}
+                  >
+                    <LoadingIndicator />
+                  </DeferredLoader>
+                </Flex>
+              }
+            />
           )
         }
       >
@@ -98,6 +106,8 @@ class ErrorBoundary extends Component<{children: React.ReactNode}, ErrorBoundary
     // This ensures that when React Fast Refresh occurs, the error boundary
     // doesn't persist stale error state after code fixes
     if (process.env.NODE_ENV === 'development') {
+      // https://github.com/oxc-project/tsgolint/issues/1278
+      // oxlint-disable-next-line typescript/prefer-optional-chain
       if (typeof module !== 'undefined' && module.hot) {
         module.hot.accept(this.handleRetry);
 
@@ -135,6 +145,8 @@ class ErrorBoundary extends Component<{children: React.ReactNode}, ErrorBoundary
   componentWillUnmount(): void {
     // Clean up HMR listeners to prevent memory leaks
     if (process.env.NODE_ENV === 'development') {
+      // https://github.com/oxc-project/tsgolint/issues/1278
+      // oxlint-disable-next-line typescript/prefer-optional-chain
       if (typeof module !== 'undefined' && module.hot) {
         module.hot.dispose(this.handleRetry);
       }

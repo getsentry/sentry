@@ -1,26 +1,13 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
-import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {
-  OnboardingCopyMarkdownButton,
-  useCopySetupInstructionsEnabled,
-} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
-import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
-import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {
-  ProductSolution,
-  type ConfigType,
-  type Docs,
-  type DocsParams,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
-import {injectCopyDsnButtonIntoFirstConfigureStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   PlatformOptionsControl,
   useUrlPlatformOptions,
@@ -29,12 +16,33 @@ import {ProductSelection} from 'sentry/components/onboarding/productSelection';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {AuthTokenGeneratorProvider} from './authTokenGenerator';
+import {
+  docsFlowMarkdownParams,
+  docsFlowProjectIdParams,
+  docsFlowVariantParams,
+  DSN_COPIED_EVENT,
+  NEXT_STEP_CLICKED_EVENT,
+  resolveDocsFlowEvent,
+} from './docsFlowAnalytics';
+import {OnboardingCopyMarkdownButton} from './onboardingCopyMarkdownButton';
+import {TabSelectionScope} from './selectedCodeTabContext';
+import {Step} from './step';
+import {
+  ProductSolution,
+  type ConfigType,
+  type Docs,
+  type DocsFlow,
+  type DocsParams,
+} from './types';
+import {useSourcePackageRegistries} from './useSourcePackageRegistries';
+import {injectCopyDsnButtonIntoFirstConfigureStep} from './utils';
 
 const ProductSelectionAvailabilityHook = OverrideOrDefault({
   overrideName: 'component:product-selection-availability',
@@ -49,8 +57,7 @@ export type OnboardingLayoutProps = {
   projectKeyId: ProjectKey['id'];
   activeProductSelection?: ProductSolution[];
   configType?: ConfigType;
-  hasScmOnboarding?: boolean;
-  newOrg?: boolean;
+  docsFlow?: DocsFlow;
   /**
    * Fires after every product toggle in addition to the doc's
    * onProductSelectionChange. Used by SCM onboarding to keep its context in
@@ -67,20 +74,21 @@ export function OnboardingLayout({
   platformKey,
   project,
   activeProductSelection = EMPTY_ARRAY,
-  newOrg,
+  docsFlow,
   projectKeyId,
   configType = 'onboarding',
   onProductSelectionSync,
-  hasScmOnboarding,
 }: OnboardingLayoutProps) {
   const api = useApi();
   const organization = useOrganization();
-  const copyEnabled = useCopySetupInstructionsEnabled('project_creation');
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
   const {platformOptions} = docsConfig;
-  const {urlPrefix, isSelfHosted} = useLegacyStore(ConfigStore);
+  const {urlPrefix, isSelfHosted} = useStore(
+    ConfigStore,
+    useShallow(state => ({urlPrefix: state.urlPrefix, isSelfHosted: state.isSelfHosted}))
+  );
 
   const {
     introduction,
@@ -115,8 +123,7 @@ export function OnboardingLayout({
       urlPrefix,
       isSelfHosted,
       platformOptions: selectedOptions,
-      newOrg,
-      hasScmOnboarding,
+      docsFlow,
       profilingOptions: {
         defaultProfilingMode: organization.features.includes('continuous-profiling')
           ? 'continuous'
@@ -133,13 +140,12 @@ export function OnboardingLayout({
           configureSteps: doc.configure(docParams),
           dsn,
           onCopyDsn: () => {
-            trackAnalytics(
-              hasScmOnboarding ? 'onboarding.scm_dsn_copied' : 'onboarding.dsn-copied',
-              {
-                organization,
-                platform: platformKey,
-              }
-            );
+            trackAnalytics(resolveDocsFlowEvent(DSN_COPIED_EVENT, docsFlow), {
+              organization,
+              platform: platformKey,
+              ...docsFlowProjectIdParams(docsFlow, project.id),
+              ...docsFlowVariantParams(docsFlow),
+            });
           },
         }),
         ...doc.verify(docParams),
@@ -155,7 +161,7 @@ export function OnboardingLayout({
     docsConfig,
     dsn,
     isLoadingRegistry,
-    newOrg,
+    docsFlow,
     organization,
     platformKey,
     project,
@@ -166,7 +172,6 @@ export function OnboardingLayout({
     isSelfHosted,
     api,
     projectKeyId,
-    hasScmOnboarding,
   ]);
 
   useEffect(() => {
@@ -209,11 +214,11 @@ export function OnboardingLayout({
           <Divider withBottomMargin />
           <div>
             {steps.map((step, index) => {
-              const showCopy = copyEnabled && index === 0 && !hideInstructionsCopy;
+              const showCopy = index === 0 && !hideInstructionsCopy;
               const copyButton = showCopy ? (
                 <OnboardingCopyMarkdownButton
                   steps={steps}
-                  source={newOrg ? 'first_time_setup' : 'project_getting_started'}
+                  {...docsFlowMarkdownParams(docsFlow)}
                 />
               ) : null;
 
@@ -253,16 +258,15 @@ export function OnboardingLayout({
                         href={step.link}
                         onClick={() =>
                           trackAnalytics(
-                            hasScmOnboarding
-                              ? 'onboarding.scm_next_step_clicked'
-                              : 'onboarding.next_step_clicked',
+                            resolveDocsFlowEvent(NEXT_STEP_CLICKED_EVENT, docsFlow),
                             {
                               organization,
                               platform: platformKey,
                               project_id: project.id,
                               products: activeProductSelection,
                               step: step.name,
-                              newOrg: newOrg ?? false,
+                              newOrg: docsFlow === 'onboarding-scm',
+                              ...docsFlowVariantParams(docsFlow),
                             }
                           )
                         }
@@ -285,7 +289,7 @@ export function OnboardingLayout({
 const Divider = styled('hr')<{withBottomMargin?: boolean}>`
   height: 1px;
   width: 100%;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.primary};
   border: none;
   ${p => p.withBottomMargin && `margin-bottom: ${p.theme.space['2xl']}`}

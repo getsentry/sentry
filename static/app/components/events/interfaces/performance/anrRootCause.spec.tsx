@@ -2,19 +2,18 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
 import type {Event, Thread} from 'sentry/types/event';
 import {EntryType, EventOrGroupType, LockType} from 'sentry/types/event';
-import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/traceDetails/traceState/tracePreferences';
+import {TraceStateProvider} from 'sentry/views/performance/traceDetails/traceState/traceStateProvider';
 
-jest.mock('sentry/views/performance/newTraceDetails/traceApi/useTrace', () => {
+import {AnrRootCause} from './anrRootCause';
+
+jest.mock('sentry/views/performance/traceDetails/traceApi/useTrace', () => {
   return {
     useTrace: jest.fn(() => ({
-      data: {
-        transactions: [],
-        orphan_errors: [],
-      },
+      data: [],
+      status: 'success',
     })),
   };
 });
@@ -149,7 +148,10 @@ const makeEventWithThreads = (threads: Thread[]): Event => {
       type: 'ZeroDivisionError',
       value: 'divided by 0',
     },
-    tags: [{key: 'level', value: 'error'}],
+    tags: [
+      {key: 'level', value: 'error'},
+      {key: 'mechanism', value: 'ANR'},
+    ],
     platform: 'other',
     dateReceived: '2021-10-28T12:28:22.318469Z',
     errors: [],
@@ -175,6 +177,10 @@ const makeEventWithThreads = (threads: Thread[]): Event => {
 describe('anrRootCause', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sentry-app-components/',
+      body: [],
+    });
     MockApiClient.addMockResponse({
       url: '/customers/org-slug/',
       method: 'GET',
@@ -251,12 +257,8 @@ describe('anrRootCause', () => {
         )
       )
     ).toBeInTheDocument();
-    expect(screen.getByTestId('stack-trace-content')).toBeInTheDocument();
-    expect(
-      screen.getByText(textWithMarkupMatcher('Thread.java in wait at line 10'))
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(textWithMarkupMatcher('MainActivity.java in onCreate at line 366'))
-    ).toBeInTheDocument();
+    expect(screen.getByText('Suspect Frame')).toBeInTheDocument();
+    expect(screen.getByText('wait')).toBeInTheDocument();
+    expect(screen.getByText('onCreate')).toBeInTheDocument();
   });
 });

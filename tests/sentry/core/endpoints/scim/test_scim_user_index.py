@@ -1,7 +1,9 @@
 import unittest
 from datetime import timedelta
+from typing import Any
 from unittest.mock import MagicMock, call, patch
 
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -11,12 +13,14 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import SCIMAzureTestCase, SCIMTestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
-def post_data():
+def post_data() -> dict[str, Any]:
     return {
         "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
         "userName": "test.user@okta.local",
@@ -26,7 +30,7 @@ def post_data():
     }
 
 
-def merge_dictionaries(dict1, dict2):
+def merge_dictionaries(dict1: dict[str, Any], dict2: dict[str, Any]) -> dict[str, Any]:
     return {**dict1, **dict2}
 
 
@@ -47,6 +51,26 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         }
         assert response.status_code == 200, response.content
         assert response.data == correct_get_data
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_cannot_provision_users(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["member:read", "member:write"]
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+        url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
+
+        response = self.client.post(url, post_data(), HTTP_X_VIEWER_CONTEXT=viewer_context)
+
+        assert response.status_code == 403, response.content
+        assert not OrganizationMember.objects.filter(email="test.user@okta.local").exists()
 
     @patch("sentry.core.endpoints.scim.members.metrics")
     def test_post_users_successful(self, mock_metrics: MagicMock) -> None:
@@ -82,6 +106,16 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
             "sentry.scim.member.provision",
             tags={"organization": self.organization},
         )
+
+    @patch("sentry.core.endpoints.scim.members.member_invited")
+    def test_post_users_does_not_send_invite_email(self, mock_member_invited: MagicMock) -> None:
+        url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
+        with outbox_runner():
+            with patch.object(OrganizationMember, "send_invite_email") as mock_send:
+                response = self.client.post(url, post_data())
+        assert response.status_code == 201, response.content
+        mock_send.assert_not_called()
+        mock_member_invited.send_robust.assert_not_called()
 
     @patch("sentry.core.endpoints.scim.members.metrics")
     def test_update_role_metric_called_when_role_specified(self, mock_metrics: MagicMock) -> None:

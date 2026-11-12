@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterable
+from typing import Any, cast
 
 from django.apps import apps
 from django.db import connections
@@ -69,34 +70,67 @@ class SiloRouter:
         "authidentity_duplicate": SiloMode.CONTROL,
         "authprovider_duplicate": SiloMode.CONTROL,
         "feedback_feedback": SiloMode.CELL,
+        "hybridcloud_externalactorreplica": SiloMode.CONTROL,
         "hybridcloud_organizationslugreservationreplica": SiloMode.CELL,
+        "investigations_investigation": SiloMode.CELL,
+        "investigations_investigationactionrequest": SiloMode.CELL,
+        "investigations_investigationblock": SiloMode.CELL,
+        "investigations_investigationblockdependency": SiloMode.CELL,
+        "investigations_investigationblockexecution": SiloMode.CELL,
+        "investigations_investigationblockexecutionproject": SiloMode.CELL,
+        "investigations_investigationblockparameter": SiloMode.CELL,
+        "investigations_investigationcell": SiloMode.CELL,
+        "investigations_investigationcelldependency": SiloMode.CELL,
+        "investigations_investigationcellexecution": SiloMode.CELL,
+        "investigations_investigationcellexecutionproject": SiloMode.CELL,
+        "investigations_investigationcellparameter": SiloMode.CELL,
+        "investigations_investigationcomment": SiloMode.CELL,
+        "investigations_investigationfavoriteuser": SiloMode.CELL,
+        "investigations_investigationparameter": SiloMode.CELL,
+        "investigations_investigationproject": SiloMode.CELL,
+        "investigations_investigationseen": SiloMode.CELL,
         "prevent_ai_configuration": SiloMode.CELL,
         "releases_commit": SiloMode.CELL,
         "releases_commitfilechange": SiloMode.CELL,
         "sentry_actor": SiloMode.CELL,
         "sentry_alertruleactivations": SiloMode.CELL,
         "sentry_alertruleactivationcondition": SiloMode.CELL,
+        "sentry_alertruleactivity": SiloMode.CELL,
+        "sentry_alertruletrigger": SiloMode.CELL,
+        "sentry_alertruletriggeraction": SiloMode.CELL,
+        "sentry_celloutboxbackfillwatermark": SiloMode.CELL,
         "sentry_code_review_event": SiloMode.CELL,
+        "sentry_controloutboxbackfillwatermark": SiloMode.CONTROL,
         "sentry_customdynamicsamplingrule": SiloMode.CELL,
         "sentry_customdynamicsamplingruleproject": SiloMode.CELL,
+        "sentry_dashboardhiddenuser": SiloMode.CELL,
         "sentry_dashboardlastvisited": SiloMode.CELL,
         "sentry_dashboardtombstone": SiloMode.CELL,
         "sentry_dashboardwidgetsnapshot": SiloMode.CELL,
         "sentry_datasecrecywaiver": SiloMode.CELL,
         "sentry_email": SiloMode.CONTROL,
+        "sentry_grouprulestatus": SiloMode.CELL,
+        "sentry_incident": SiloMode.CELL,
+        "sentry_incidentactivity": SiloMode.CELL,
+        "sentry_incidentproject": SiloMode.CELL,
         "sentry_incidentseen": SiloMode.CELL,
         "sentry_incidentsubscription": SiloMode.CELL,
         "sentry_incidenttrigger": SiloMode.CELL,
         "sentry_monitorlocation": SiloMode.CELL,
         "sentry_notificationsetting": SiloMode.CONTROL,
         "sentry_pagerdutyservice": SiloMode.CELL,
+        "sentry_perfstringindexer": SiloMode.CELL,
         "sentry_projectavatar": SiloMode.CELL,
         "sentry_scheduledjob": SiloMode.CONTROL,
         "sentry_projecttemplate": SiloMode.CELL,
         "sentry_projecttemplateoption": SiloMode.CELL,
         "sentry_neglectedrule": SiloMode.CELL,
+        "sentry_ruleactivity": SiloMode.CELL,
         "sentry_rulefirehistory": SiloMode.CELL,
+        "sentry_rulesnooze": SiloMode.CELL,
         "sentry_savedsearch": SiloMode.CELL,
+        "sentry_teamreplica": SiloMode.CONTROL,
+        "sentry_organizationmember_teamsreplica": SiloMode.CONTROL,
         "uptime_projectuptimesubscription": SiloMode.CELL,
         "workflow_engine_actiongroupstatus": SiloMode.CELL,
         "workflow_engine_workflowaction": SiloMode.CELL,
@@ -108,7 +142,7 @@ class SiloRouter:
     we can provide compatibility for existing migrations.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         # Memoized results of table : silo pairings
         self.__table_to_silo: dict[str, str | None] = {}
         try:
@@ -121,7 +155,7 @@ class SiloRouter:
             logging.debug("Cannot use simulated silos", extra={"error": str(err)})
             self.__is_simulated = False
 
-    def use_simulated(self, value: bool):
+    def use_simulated(self, value: bool) -> None:
         if not in_test_environment():
             raise ValueError("Cannot mutate simulation mode outside of tests")
         self.__is_simulated = value
@@ -206,19 +240,23 @@ class SiloRouter:
 
         return self.__table_to_silo[table]
 
-    def db_for_read(self, model, **hints):
+    def db_for_read(self, model: type[Model], **hints: Any) -> str | None:
         return self._db_for_model(model)
 
-    def db_for_write(self, model, **hints):
+    def db_for_write(self, model: type[Model], **hints: Any) -> str | None:
         return self._db_for_model(model)
 
-    def allow_relation(self, obj1, obj2, **hints):
-        return self._db_for_model(obj1) == self._db_for_model(obj2)
+    def allow_relation(self, obj1: object, obj2: object, **hints: Any) -> bool:
+        return self._db_for_model(cast(type[Model], obj1)) == self._db_for_model(
+            cast(type[Model], obj2)
+        )
 
-    def allow_syncdb(self, db, model):
+    def allow_syncdb(self, db: str, model: type[Model]) -> bool:
         return self._db_for_model(model) == db
 
-    def allow_migrate(self, db, app_label, model=None, **hints):
+    def allow_migrate(
+        self, db: str, app_label: str, model: type[Model] | None = None, **hints: Any
+    ) -> bool:
         if model:
             return self._db_for_table(model._meta.db_table, app_label) == db
 
@@ -244,6 +282,7 @@ class TestSiloMultiDatabaseRouter(SiloRouter):
     secondary_db_models = {
         "sentry_monitor",
         "sentry_monitorcheckin",
+        "sentry_monitorcheckinconfig",
         "sentry_monitorenvironment",
         "sentry_monitorincident",
         "sentry_monitorlocation",

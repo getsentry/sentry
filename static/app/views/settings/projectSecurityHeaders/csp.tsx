@@ -1,6 +1,4 @@
-import {mutationOptions} from '@tanstack/react-query';
-import {useQuery} from '@tanstack/react-query';
-import {useQueryClient} from '@tanstack/react-query';
+import {mutationOptions, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
@@ -15,6 +13,7 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {DetailedProject, ProjectKey} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   makeDetailedProjectQueryKey,
   useDetailedProject,
@@ -25,10 +24,8 @@ import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {
-  getSecurityDsn,
-  ReportUri,
-} from 'sentry/views/settings/projectSecurityHeaders/reportUri';
+
+import {getSecurityDsn, ReportUri} from './reportUri';
 
 const cspSchema = z.object({
   'sentry:csp_ignored_sources_defaults': z.boolean(),
@@ -100,7 +97,12 @@ export default function ProjectCspReports() {
     );
   }
 
-  const projectEndpoint = `/projects/${organization.slug}/${projectId}/`;
+  const projectEndpoint = getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+    path: {
+      organizationIdOrSlug: organization.slug,
+      projectIdOrSlug: projectId,
+    },
+  });
   const projectQueryKey = makeDetailedProjectQueryKey({
     orgSlug: organization.slug,
     projectSlug: projectId,

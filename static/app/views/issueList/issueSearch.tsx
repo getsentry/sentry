@@ -21,7 +21,7 @@ function IssueSearchBar({query, onSearch, className}: IssueSearchProps) {
   const {displayAskSeer} = useSearchQueryBuilderAI();
 
   if (displayAskSeer) {
-    return <IssueListSeerComboBox />;
+    return <IssueListSeerComboBox className={className} />;
   }
 
   return (
@@ -42,9 +42,7 @@ export function IssueSearch({query, onSearch, className}: IssueSearchProps) {
     useIssueListSearchBarDataProvider({pageFilters});
 
   const organization = useOrganization();
-  const hasTranslateEndpoint =
-    organization.features.includes('gen-ai-search-agent-translate') &&
-    organization.features.includes('gen-ai-issues-search');
+  const enableAISearch = organization.features.includes('gen-ai-issues-search');
 
   return (
     <SearchQueryBuilderProvider
@@ -53,8 +51,7 @@ export function IssueSearch({query, onSearch, className}: IssueSearchProps) {
       filterKeySections={getFilterKeySections()}
       getTagValues={getTagValues}
       searchSource="main_search"
-      enableAISearch={hasTranslateEndpoint}
-      aiSearchBadgeType="beta"
+      enableAISearch={enableAISearch}
       onSearch={onSearch}
       recentSearches={SavedSearchType.ISSUE}
       disallowLogicalOperators

@@ -9,6 +9,7 @@ from sentry.issue_detection.base import DetectorType
 from sentry.issue_detection.detectors.n_plus_one_db_span_detector import NPlusOneDBSpanDetector
 from sentry.issue_detection.detectors.utils import total_span_time
 from sentry.issue_detection.performance_detection import (
+    DETECTOR_CLASSES,
     PERFORMANCE_DETECTOR_CONFIG_MAPPINGS,
     SETTINGS_PROJECT_OPTION_KEY,
     SettingsMode,
@@ -17,13 +18,13 @@ from sentry.issue_detection.performance_detection import (
     get_detection_settings,
     reset_performance_settings,
     reset_wfe_detector_configs,
+    run_detector_on_data,
     sync_project_options_to_wfe_detectors,
     update_performance_settings,
 )
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issue_detection.types import Span
 from sentry.issues.grouptype import (
-    PerformanceConsecutiveHTTPQueriesGroupType,
     PerformanceNPlusOneGroupType,
     PerformanceSlowDBQueryGroupType,
     registry,
@@ -36,11 +37,9 @@ from sentry.workflow_engine.models.detector import Detector
 
 BASE_DETECTOR_OPTIONS = {
     "performance.issues.n_plus_one_db.problem-creation": 1.0,
-    "performance.issues.n_plus_one_db_ext.problem-creation": 1.0,
 }
 BASE_DETECTOR_OPTIONS_OFF = {
     "performance.issues.n_plus_one_db.problem-creation": 0.0,
-    "performance.issues.n_plus_one_db_ext.problem-creation": 0.0,
 }
 
 
@@ -134,6 +133,102 @@ class PerformanceDetectionTest(TestCase):
 
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
         assert perf_problems == []
+
+    @override_options(BASE_DETECTOR_OPTIONS)
+    def test_fetches_detection_settings_when_not_given_any(self) -> None:
+        n_plus_one_event = get_event("n-plus-one-db/n-plus-one-in-django-index-view")
+
+        with patch(
+            "sentry.issue_detection.performance_detection.get_detection_settings",
+            wraps=get_detection_settings,
+        ) as get_detection_settings_spy:
+            detect_performance_problems(n_plus_one_event, self.project)
+
+            get_detection_settings_spy.assert_called_once_with(self.project)
+
+    @override_options(BASE_DETECTOR_OPTIONS)
+    def test_uses_given_detection_settings_if_provided(self) -> None:
+        n_plus_one_event = get_event("n-plus-one-db/n-plus-one-in-django-index-view")
+
+        detection_settings = get_detection_settings(self.project)
+        # Change the N+1 settings so that the N+1 problem which would normally be caught will be
+        # ignored instead. This way, when we run detection and find no problems, it'll prove these
+        # settings were used.
+        detection_settings[DetectorType.N_PLUS_ONE_DB_QUERIES]["duration_threshold"] = 100000
+
+        with patch(
+            "sentry.issue_detection.performance_detection.get_detection_settings",
+            wraps=get_detection_settings,
+        ) as get_detection_settings_spy:
+            detected_problems = detect_performance_problems(
+                n_plus_one_event, self.project, detection_settings=detection_settings
+            )
+
+            get_detection_settings_spy.assert_not_called()
+            assert detected_problems == []
+
+    def test_every_detector_class_has_detection_settings(self) -> None:
+        """
+        `_detect_performance_problems` looks each detector's settings up by `settings_key`, so a
+        detector added to `DETECTOR_CLASSES` without a matching entry in `get_detection_settings`
+        raises a `KeyError` for every event. Worse, `detect_performance_problems` swallows that
+        error, so detection would quietly stop finding anything at all.
+        """
+        detection_settings = get_detection_settings(self.project)
+
+        detectors_missing_settings = {
+            detector_class.settings_key for detector_class in DETECTOR_CLASSES
+        } - set(detection_settings.keys())
+
+        assert detectors_missing_settings == set()
+
+    @override_options(BASE_DETECTOR_OPTIONS)
+    def test_uses_default_detectors_when_not_given_any(self) -> None:
+        n_plus_one_event = get_event("n-plus-one-db/n-plus-one-in-django-index-view")
+
+        with patch(
+            "sentry.issue_detection.performance_detection.run_detector_on_data",
+            wraps=run_detector_on_data,
+        ) as run_detector_spy:
+            detected_problems = detect_performance_problems(n_plus_one_event, self.project)
+
+            detectors_run = [type(call.args[0]) for call in run_detector_spy.call_args_list]
+            assert detectors_run == [
+                detector_class
+                for detector_class in DETECTOR_CLASSES
+                if detector_class.is_detection_allowed_for_system()
+            ]
+            assert_n_plus_one_db_problem(detected_problems)
+
+    @override_options(BASE_DETECTOR_OPTIONS)
+    def test_runs_only_the_given_detectors(self) -> None:
+        n_plus_one_event = get_event("n-plus-one-db/n-plus-one-in-django-index-view")
+
+        with patch(
+            "sentry.issue_detection.performance_detection.run_detector_on_data",
+            wraps=run_detector_on_data,
+        ) as run_detector_spy:
+            detected_problems = detect_performance_problems(
+                n_plus_one_event, self.project, detector_classes=[NPlusOneDBSpanDetector]
+            )
+
+            detectors_run = [type(call.args[0]) for call in run_detector_spy.call_args_list]
+            assert detectors_run == [NPlusOneDBSpanDetector]
+            # The one detector we asked for still found its problem
+            assert_n_plus_one_db_problem(detected_problems)
+
+    @override_options(BASE_DETECTOR_OPTIONS)
+    def test_runs_no_detectors_when_given_an_empty_list(self) -> None:
+        n_plus_one_event = get_event("n-plus-one-db/n-plus-one-in-django-index-view")
+
+        with patch(
+            "sentry.issue_detection.performance_detection.run_detector_on_data",
+            wraps=run_detector_on_data,
+        ) as run_detector_spy:
+            detect_performance_problems(n_plus_one_event, self.project, detector_classes=[])
+
+            # Passing in an empty list of detectors should result in no detectors running
+            run_detector_spy.assert_not_called()
 
     def test_project_options_overrides_default_detection_settings(self) -> None:
         default_settings = get_detection_settings(self.project)
@@ -304,53 +399,6 @@ class PerformanceDetectionTest(TestCase):
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
         assert perf_problems == []
 
-    @override_options({"performance.issues.consecutive_http.problem-creation": True})
-    def test_boolean_system_option_disables_detector_issue_creation(self) -> None:
-        event = get_event("consecutive-http/consecutive-http-basic")
-        sdk_span_mock = Mock()
-
-        perf_problems = _detect_performance_problems(event, sdk_span_mock, self.project)
-        assert perf_problems == []
-
-    @override_options({"performance.issues.consecutive_http.problem-creation": False})
-    def test_boolean_system_option_enables_detector_issue_creation(self) -> None:
-        event = get_event("consecutive-http/consecutive-http-basic")
-        sdk_span_mock = Mock()
-
-        perf_problems = _detect_performance_problems(event, sdk_span_mock, self.project)
-        assert perf_problems == [
-            PerformanceProblem(
-                fingerprint="1-1009-6654ad4d1d494222ce02c656386e6955575c17ed",
-                op="http",
-                desc="GET https://my-api.io/api/users?page=1",
-                type=PerformanceConsecutiveHTTPQueriesGroupType,
-                parent_span_ids=None,
-                cause_span_ids=[],
-                offender_span_ids=[
-                    "96e0ae187b5481a1",
-                    "8d22b49a27b18270",
-                    "b2bc2ebb42248c74",
-                    "9336922774fd35bc",
-                    "a307ceb77c702cea",
-                    "ac1e90ff646617e7",
-                ],
-                evidence_data={
-                    "op": "http",
-                    "parent_span_ids": None,
-                    "cause_span_ids": [],
-                    "offender_span_ids": [
-                        "96e0ae187b5481a1",
-                        "8d22b49a27b18270",
-                        "b2bc2ebb42248c74",
-                        "9336922774fd35bc",
-                        "a307ceb77c702cea",
-                        "ac1e90ff646617e7",
-                    ],
-                },
-                evidence_display=[],
-            )
-        ]
-
     @override_options(BASE_DETECTOR_OPTIONS)
     def test_system_option_used_when_project_option_is_default(self) -> None:
         n_plus_one_event = get_event("n-plus-one-db/n-plus-one-in-django-index-view")
@@ -400,8 +448,8 @@ class PerformanceDetectionTest(TestCase):
 
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
 
-        assert sdk_span_mock.set_tag.call_count == 6
-        sdk_span_mock.set_tag.assert_has_calls(
+        assert sdk_span_mock.set_attribute.call_count == 6
+        sdk_span_mock.set_attribute.assert_has_calls(
             [
                 call(
                     "_pi_all_issue_count",
@@ -474,6 +522,54 @@ class PerformanceDetectionTest(TestCase):
         # Ensure all other detections are set to false in tags
         pre_checked_keys = ["sdk_name", "is_early_adopter", "browser_name", "uncompressed_assets"]
         assert not any([v for k, v in tags.items() if k not in pre_checked_keys])
+
+    def test_other_detectors_run_even_when_one_errors(self) -> None:
+        n_plus_one_event = get_event("n-plus-one-db/n-plus-one-db-mongodb")
+        sdk_span_mock = MagicMock()
+
+        with (
+            # Make the slow DB detector error out, to check if the other detectors run anyway
+            patch(
+                "sentry.issue_detection.performance_detection.SlowDBQueryDetector.visit_span",
+                side_effect=ValueError,
+            ),
+            patch(
+                "sentry.issue_detection.performance_detection.logger.exception"
+            ) as logger_exception_mock,
+            patch(
+                "sentry.issue_detection.performance_detection.run_detector_on_data",
+                wraps=run_detector_on_data,
+            ) as run_detector_spy,
+        ):
+            _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
+
+            logger_exception_mock.assert_called_with(
+                "Error running issue detector `SlowDBQueryDetector`",
+                extra={
+                    "project_id": self.project.id,
+                    "org_id": self.organization.id,
+                    "event_id": n_plus_one_event["event_id"],
+                    "standalone": False,
+                },
+            )
+
+            num_enabled_detectors = len(
+                [
+                    detector_class
+                    for detector_class in DETECTOR_CLASSES
+                    if detector_class.is_detection_allowed_for_system()
+                ]
+            )
+            # All of the detectors ran, even though the slow DB detector errored out
+            assert run_detector_spy.call_count == num_enabled_detectors
+
+    def test_each_detector_has_unique_detector_type(self) -> None:
+        assert all(type(detector_class.type) is DetectorType for detector_class in DETECTOR_CLASSES)
+        # Use a set so if there are any overlaps, we'll dedupe them
+        detector_types_from_classes = {
+            detector_class.type.value for detector_class in DETECTOR_CLASSES
+        }
+        assert len(detector_types_from_classes) == len(DetectorType)
 
 
 @pytest.mark.parametrize(
@@ -709,7 +805,7 @@ class WFEDetectorSyncTest(TestCase):
             "slow_db_query_duration_threshold": 3000,
         }
 
-        updated = sync_project_options_to_wfe_detectors(self.project, settings_data)
+        updated = sync_project_options_to_wfe_detectors(self.project.id, settings_data)
 
         assert DetectorType.SLOW_DB_QUERY not in updated
         assert not Detector.objects.filter(
@@ -730,7 +826,7 @@ class WFEDetectorSyncTest(TestCase):
             "slow_db_query_duration_threshold": 5000,
         }
 
-        updated = sync_project_options_to_wfe_detectors(self.project, settings_data)
+        updated = sync_project_options_to_wfe_detectors(self.project.id, settings_data)
 
         assert DetectorType.SLOW_DB_QUERY in updated
 
@@ -752,7 +848,7 @@ class WFEDetectorSyncTest(TestCase):
             "slow_db_query_duration_threshold": 5000,
         }
 
-        updated = sync_project_options_to_wfe_detectors(self.project, settings_data)
+        updated = sync_project_options_to_wfe_detectors(self.project.id, settings_data)
 
         # Should not be marked as updated since merged config is identical
         assert DetectorType.SLOW_DB_QUERY not in updated
@@ -771,7 +867,7 @@ class WFEDetectorSyncTest(TestCase):
             "slow_db_query_duration_threshold": 2000,
         }
 
-        sync_project_options_to_wfe_detectors(self.project, settings_data)
+        sync_project_options_to_wfe_detectors(self.project.id, settings_data)
 
         detector.refresh_from_db()
         assert "allowed_span_ops" not in detector.config
@@ -793,7 +889,7 @@ class WFEDetectorResetTest(TestCase):
             config={"duration_threshold": 5000},
         )
 
-        reset_wfe_detector_configs(self.project)
+        reset_wfe_detector_configs(self.project.id)
 
         detector.refresh_from_db()
         assert detector.config == {}
@@ -808,14 +904,14 @@ class WFEDetectorResetTest(TestCase):
             config={"duration_threshold": 5000},
         )
 
-        reset_wfe_detector_configs(self.project)
+        reset_wfe_detector_configs(self.project.id)
 
         detector.refresh_from_db()
         assert detector.config["duration_threshold"] == 5000
         assert detector.enabled is False
 
     def test_reset_skips_nonexistent_detectors(self) -> None:
-        updated = reset_wfe_detector_configs(self.project)
+        updated = reset_wfe_detector_configs(self.project.id)
 
         assert len(updated) == 0
         assert (

@@ -66,7 +66,6 @@ export function TimelineGaps({durationMs, startTimestampMs, videoEvents}: Props)
           >
             <Tooltip
               title={t('Video Unavailable')}
-              isHoverable
               containerDisplayMode="block"
               position="top"
             >

@@ -7,6 +7,7 @@ from typing import Any, Literal, NotRequired, TypedDict
 
 import sentry_sdk
 from django.utils import timezone
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -31,6 +32,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     ComparisonFilter,
     TraceItemFilter,
 )
+from sentry_sdk import traces
 from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Function, Op
 from urllib3.exceptions import ReadTimeoutError
 
@@ -39,8 +41,18 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.endpoints.organization_events import EventsMeta
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -57,7 +69,6 @@ from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.numbers import clip
-from sentry.utils.sdk import set_span_attribute
 from sentry.utils.snuba import bulk_snuba_queries_with_referrers
 from sentry.utils.snuba_rpc import get_traces_rpc
 
@@ -67,7 +78,7 @@ CANDIDATE_SPAN_OPS = {"pageload", "navigation"}
 MATCHING_COUNT_ALIAS = "matching_count"
 
 
-def is_trace_name_candidate(span):
+def is_trace_name_candidate(span: Mapping[str, Any]) -> bool:
     return span["span.op"] in CANDIDATE_SPAN_OPS
 
 
@@ -104,6 +115,53 @@ class TraceResult(TypedDict):
     breakdowns: list[TraceInterval]
 
 
+# Only used for api docs — the shape `handle_results_with_meta` emits.
+class TracesApiResponse(TypedDict):
+    data: list[TraceResult]
+    meta: EventsMeta
+
+
+DATASET_QUERY_PARAM = OpenApiParameter(
+    name="dataset",
+    location="query",
+    required=False,
+    type=str,
+    enum=["spans"],
+    description="The dataset to query. Defaults to `spans`.",
+)
+
+TRACES_QUERY_PARAM = OpenApiParameter(
+    name="query",
+    location="query",
+    required=False,
+    type=str,
+    description=(
+        "Sentry [search syntax](https://docs.sentry.io/concepts/search/) matched against spans. "
+        "A trace is returned when any of its spans match. Only one query is supported."
+    ),
+)
+
+SORT_QUERY_PARAM = OpenApiParameter(
+    name="sort",
+    location="query",
+    required=False,
+    type=str,
+    enum=["timestamp", "-timestamp"],
+    description="Sort order for the returned traces.",
+)
+
+BREAKDOWN_SLICES_QUERY_PARAM = OpenApiParameter(
+    name="breakdownSlices",
+    location="query",
+    required=False,
+    type=int,
+    description=(
+        "Number of time slices used to compute each trace's per-project breakdown. "
+        "Defaults to 40; must be between 1 and 100."
+    ),
+)
+
+
 class OrganizationTracesSerializer(serializers.Serializer):
     dataset = serializers.ChoiceField(["spans"], required=False, default="spans")
 
@@ -113,14 +171,22 @@ class OrganizationTracesSerializer(serializers.Serializer):
     )
     sort = serializers.CharField(required=False)
 
-    def validate_dataset(self, value):
+    def validate_query(self, value: list[str]) -> list[str]:
+        # process_rpc_user_queries only supports a single query and raises
+        # ValueError beyond that, which would surface as a 500. Reject it here so
+        # the caller gets a 400 alongside the other validation errors.
+        if len(value) > 1:
+            raise serializers.ValidationError("Only 1 query is supported.")
+        return value
+
+    def validate_dataset(self, value: str) -> Dataset:
         sentry_sdk.set_tag("query.dataset", value)
         sentry_sdk.set_attribute("query.dataset", value)
         if value == "spans":
             return Dataset.EventsAnalyticsPlatform
         raise ParseError(detail=f"Unsupported dataset: {value}")
 
-    def validate(self, data):
+    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         if data["dataset"] == Dataset.EventsAnalyticsPlatform:
             sort = data.get("sort")
             if sort is not None:
@@ -147,9 +213,40 @@ class OrganizationTracesEndpointBase(OrganizationEventsEndpointBase):
     owner = ApiOwner.DATA_BROWSING
 
 
+@extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
-    def get(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="listOrganizationTraces",
+        summary="List an Organization's Traces",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OrganizationParams.PROJECT,
+            GlobalParams.ENVIRONMENT,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            DATASET_QUERY_PARAM,
+            TRACES_QUERY_PARAM,
+            SORT_QUERY_PARAM,
+            BREAKDOWN_SLICES_QUERY_PARAM,
+            VisibilityParams.PER_PAGE,
+        ],
+        responses={
+            200: inline_sentry_response_serializer("ListTracesResponse", TracesApiResponse),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[TracesApiResponse] | Response[ValidationErrorResponse] | Response[None]:
+        """
+        List traces containing at least one span that matches the query, with a
+        per-project timing breakdown for each trace.
+        """
         if not features.has(
             "organizations:visibility-explore-view", organization, actor=request.user
         ):
@@ -167,7 +264,7 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
 
         serializer = OrganizationTracesSerializer(data=request.GET)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
         serialized = serializer.validated_data
 
         with handle_query_errors():
@@ -212,7 +309,7 @@ class TracesExecutor:
         limit: int,
         breakdown_slices: int,
         get_all_projects: Callable[[], list[Project]],
-    ):
+    ) -> None:
         self.dataset = dataset
         self.snuba_params = snuba_params
         self.raw_user_queries = user_queries
@@ -230,7 +327,7 @@ class TracesExecutor:
 
         return all_projects_snuba_params
 
-    def execute(self, offset: int, limit: int):
+    def execute(self, offset: int, limit: int) -> dict[str, list[TraceResult]]:
         # To support pagination on only EAP, we use the offset/limit
         # values from the paginator here.
         self.offset = offset
@@ -238,7 +335,7 @@ class TracesExecutor:
 
         return {"data": self._execute_rpc()}
 
-    def _execute_rpc(self):
+    def _execute_rpc(self) -> list[TraceResult]:
         if self.snuba_params.organization_id is None:
             raise Exception("An organization is required to resolve queries")
 
@@ -300,7 +397,7 @@ class TracesExecutor:
         self,
         traces: list[TraceResult],
         snuba_params: SnubaParams,
-    ):
+    ) -> None:
         trace_ids = [trace["trace"] for trace in traces]
 
         breakdown_raw_results = Spans.run_table_query(
@@ -405,7 +502,7 @@ class TracesExecutor:
         spans: list[dict[str, Any]],
         traces_errors: dict[str, int],
         traces_occurrences: dict[str, int],
-    ):
+    ) -> None:
         traces_range = {
             trace["trace"]: {
                 "start": trace["start"],
@@ -499,7 +596,7 @@ class TracesExecutor:
             trace["numOccurrences"] = traces_occurrences.get(trace["trace"], 0)
             trace["breakdowns"] = traces_breakdowns[trace["trace"]]
 
-    def get_traces_rpc(self, projects: list[Project]):
+    def get_traces_rpc(self, projects: list[Project]) -> GetTracesRequest:
         assert self.snuba_params.organization_id is not None
         meta = RequestMeta(
             organization_id=self.snuba_params.organization_id,
@@ -630,7 +727,9 @@ class TracesExecutor:
         return query, Referrer.API_TRACE_EXPLORER_TRACES_OCCURRENCES
 
 
-def convert_to_slice(timestamp, trace_range, left_bound=None) -> int:
+def convert_to_slice(
+    timestamp: float, trace_range: Mapping[str, int], left_bound: int | None = None
+) -> int:
     slices = trace_range["slices"]
     trace_start = trace_range["start"]
     trace_end = trace_range["end"]
@@ -644,7 +743,9 @@ def convert_to_slice(timestamp, trace_range, left_bound=None) -> int:
     return idx
 
 
-def quantize_range(span_start, span_end, trace_range):
+def quantize_range(
+    span_start: float, span_end: float, trace_range: Mapping[str, int]
+) -> tuple[tuple[int, int], tuple[int, int]]:
     slices = trace_range["slices"]
     trace_start = trace_range["start"]
     trace_end = trace_range["end"]
@@ -696,7 +797,7 @@ def quantize_range(span_start, span_end, trace_range):
     return (int(rounded_start), int(rounded_end)), (start_index, end_index)
 
 
-def new_trace_interval(row) -> TraceInterval:
+def new_trace_interval(row: Mapping[str, Any]) -> TraceInterval:
     parent_span = row.get("parent_span", "")
     return {
         "kind": "project",
@@ -713,11 +814,13 @@ def new_trace_interval(row) -> TraceInterval:
     }
 
 
-def process_breakdowns(data, traces_range):
-    breakdowns: Mapping[str, list[TraceInterval]] = {trace: [] for trace in traces_range}
-    stacks: Mapping[str, list[TraceInterval]] = {trace: [] for trace in traces_range}
+def process_breakdowns(
+    data: list[dict[str, Any]], traces_range: Mapping[str, Mapping[str, int]]
+) -> dict[str, list[TraceInterval]]:
+    breakdowns: dict[str, list[TraceInterval]] = {trace: [] for trace in traces_range}
+    stacks: dict[str, list[TraceInterval]] = {trace: [] for trace in traces_range}
 
-    def should_merge(interval_a, interval_b):
+    def should_merge(interval_a: TraceInterval, interval_b: TraceInterval) -> bool:
         return (
             # only merge intervals that have parent spans, i.e. those that aren't the trace root
             not interval_a["isRoot"]
@@ -729,7 +832,7 @@ def process_breakdowns(data, traces_range):
             and interval_a["sdkName"] == interval_b["sdkName"]
         )
 
-    def breakdown_push(trace, interval):
+    def breakdown_push(trace: str, interval: TraceInterval) -> None:
         breakdown = breakdowns[trace]
 
         """ TODO: Add this back
@@ -762,7 +865,7 @@ def process_breakdowns(data, traces_range):
 
         breakdown.append(interval)
 
-    def stack_push(trace, interval):
+    def stack_push(trace: str, interval: TraceInterval) -> None:
         for last_interval in reversed(stacks[trace]):
             if not should_merge(last_interval, interval):
                 continue
@@ -797,17 +900,20 @@ def process_breakdowns(data, traces_range):
         stack = stacks[trace]
         stack.append(interval)
 
-    def stack_peek(trace):
+    def stack_peek(trace: str) -> TraceInterval | None:
         if not stacks[trace]:
             return None
         return stacks[trace][-1]
 
-    def stack_pop(trace):
+    def stack_pop(trace: str) -> TraceInterval:
         return stacks[trace].pop()
 
-    def stack_clear(trace, until=None):
+    def stack_clear(trace: str, until: int | None = None) -> None:
         while stacks[trace]:
-            if until is not None and stack_peek(trace)["end"] >= until:
+            last_interval = stack_peek(trace)
+            if last_interval is None:
+                break
+            if until is not None and last_interval["end"] >= until:
                 break
             stack_pop(trace)
 
@@ -960,7 +1066,9 @@ def process_rpc_user_queries(
         if where is not None:
             queries[user_query] = where
 
-    set_span_attribute("user_queries_count", len(queries))
+    span = traces.get_current_span()
+    if span:
+        span.set_attribute("user_queries_count", len(queries))
     sentry_sdk.set_context("user_queries", {"raw_queries": user_queries})
     sentry_sdk.set_attribute("user_queries.raw_queries", user_queries)
 
@@ -1112,7 +1220,7 @@ def format_trace_result(
     return result
 
 
-def validate_attribute_type(attribute: TraceAttribute, type: AttributeKey.Type.ValueType):
+def validate_attribute_type(attribute: TraceAttribute, type: AttributeKey.Type.ValueType) -> None:
     if attribute.type != type:
         raise ValueError(f"Expected {attribute.key} to be of type {type} but got {attribute.type}")
 

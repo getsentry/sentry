@@ -1,6 +1,8 @@
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
+import pytest
+from django.test import override_settings
 from django.utils import timezone
 
 from sentry.analytics.events.issue_resolved import IssueResolvedEvent
@@ -10,11 +12,14 @@ from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils.external_issues import GeneratedExternalIssueDetails
+from sentry.integrations.utils.issue_url import get_issue_url_path
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.release import Release
+from sentry.service_accounts.principal import ServiceAccountPrincipal
+from sentry.shared_integrations.exceptions import IntegrationFormError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
@@ -23,6 +28,48 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 from tests.sentry.sentry_apps.tasks.test_sentry_apps import MockResponseInstance
+
+
+@pytest.mark.parametrize(
+    "url",
+    (
+        "ftp://tracker.example.com/tracker/issues/1",
+        "https://user:password@tracker.example.com/tracker/issues/1",
+        "https://tracker.example.com:8443/tracker/issues/1",
+        "http://tracker.example.com/tracker/issues/1",
+        "https://tracker.example.com/tracker-other/issues/1",
+        "https://tracker.example.com/tracker/%2E%2E/issues/1",
+        "https://tracker.example.com/tracker/project%23other/issues/1",
+        "https://tracker.example.com:port/tracker/issues/1",
+    ),
+)
+def test_issue_url_rejects_invalid_installation_urls(url: str) -> None:
+    with pytest.raises(IntegrationFormError):
+        get_issue_url_path(url, "https://tracker.example.com/tracker")
+
+
+@pytest.mark.parametrize(
+    "url,base_url,expected",
+    [
+        (
+            "https://tracker.example.com/issues/1",
+            "https://tracker.example.com",
+            "/issues/1",
+        ),
+        (
+            "https://tracker.example.com/tracker/issues/1",
+            "https://tracker.example.com/tracker",
+            "/issues/1",
+        ),
+        (
+            "https://TRACKER.example.com:443/tracker/issues/1/?view=1#comment",
+            "https://tracker.example.com/tracker",
+            "/issues/1",
+        ),
+    ],
+)
+def test_issue_url_path(url: str, base_url: str, expected: str) -> None:
+    assert get_issue_url_path(url, base_url) == expected
 
 
 class IssueSyncIntegration(TestCase):
@@ -531,8 +578,8 @@ class IssueSyncIntegrationWebhookTest(TestCase):
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     @patch("sentry.analytics.record")
     def test_status_sync_inbound_resolve_webhook_and_sends_to_sentry_app(
-        self, mock_record, mock_safe_urlopen
-    ):
+        self, mock_record: MagicMock, mock_safe_urlopen: MagicMock
+    ) -> None:
         # Run the sync
         with self.feature("organizations:integrations-issue-sync"), self.tasks():
             assert isinstance(self.installation, IssueSyncIntegrationBase)
@@ -590,12 +637,14 @@ class IssueSyncIntegrationWebhookTest(TestCase):
             assert data["installation"]["uuid"] == str(self.sentry_app_installation.uuid)
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class IssueDefaultTest(TestCase):
     def setUp(self) -> None:
         event = self.store_event(
             data={"message": "test error", "level": "error"},
             project_id=self.project.id,
         )
+        assert event.group is not None
         self.group = event.group
 
         self.group.status = GroupStatus.RESOLVED
@@ -683,6 +732,16 @@ class IssueDefaultTest(TestCase):
             "reportedBy": "userB",
         }
 
+    def test_service_account_gets_project_defaults_only(self) -> None:
+        self.installation.store_issue_last_defaults(
+            self.project, self.user, {"project": "xyz", "assignedTo": "userA"}
+        )
+        service_account = ServiceAccountPrincipal(
+            service_account_id=1, organization_id=self.organization.id, name="seer-autofix"
+        )
+
+        assert self.installation.get_defaults(self.project, service_account) == {"project": "xyz"}
+
     def test_store_issue_last_defaults_multiple_projects(self) -> None:
         assert "project" in self.installation.get_persisted_default_config_fields()
         other_project = self.create_project(name="Foo", slug="foo", teams=[self.team])
@@ -726,20 +785,9 @@ class IssueDefaultTest(TestCase):
         }
 
     def test_annotations(self) -> None:
-        label = self.installation.get_issue_display_name(self.external_issue)
-        link = self.installation.get_issue_url(self.external_issue.key)
-
-        assert self.installation.get_annotations_for_group_list([self.group]) == {
-            self.group.id: [{"url": link, "displayName": label}]
-        }
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_provider_integration(provider="example", external_id="4444")
-            integration.add_organization(self.group.organization, self.user)
-        installation = integration.get_installation(self.group.organization.id)
-        assert isinstance(installation, ExampleIntegration)
-
-        assert installation.get_annotations_for_group_list([self.group]) == {self.group.id: []}
+        assert self.installation.map_external_issues_to_annotations([self.external_issue]) == [
+            {"url": "https://example/issues/APP-123", "displayName": "display name: APP-123"}
+        ]
 
     @patch("sentry.integrations.mixins.issues.maybe_generate_external_issue_details")
     def test_ai_text_replaces_defaults(self, mock_generate: MagicMock) -> None:
@@ -754,6 +802,7 @@ class IssueDefaultTest(TestCase):
         desc_field = next(f for f in config if f["name"] == "description")
 
         assert title_field["default"] == "LLM Title"
+        assert isinstance(desc_field["default"], str)
         assert desc_field["default"].startswith("**")
         assert "LLM Description" in desc_field["default"]
 
@@ -764,37 +813,41 @@ class IssueDefaultTest(TestCase):
         config = self.installation.get_create_issue_config(self.group, self.user)
 
         title_field = next(f for f in config if f["name"] == "title")
-        assert title_field["default"] == self.group.get_latest_event().title
+        latest_event = self.group.get_latest_event()
+        assert latest_event is not None
+        assert title_field["default"] == latest_event.title
 
-    @patch("sentry.integrations.utils.external_issues.make_llm_generate_request")
+    @patch("sentry.integrations.utils.external_issues.run_oneshot")
     def test_feature_flag_disabled_skips_ai(self, mock_request: MagicMock) -> None:
         config = self.installation.get_create_issue_config(self.group, self.user)
 
         title_field = next(f for f in config if f["name"] == "title")
-        assert title_field["default"] == self.group.get_latest_event().title
+        latest_event = self.group.get_latest_event()
+        assert latest_event is not None
+        assert title_field["default"] == latest_event.title
         mock_request.assert_not_called()
 
-    @patch("sentry.integrations.utils.external_issues.make_llm_generate_request")
+    @patch("sentry.integrations.utils.external_issues.run_oneshot")
     def test_hide_ai_features_skips_ai(self, mock_request: MagicMock) -> None:
         self.group.organization.update_option("sentry:hide_ai_features", True)
 
-        with self.feature(
-            ["organizations:gen-ai-features", "organizations:external-issues-ai-generate"]
-        ):
+        with self.feature(["organizations:external-issues-ai-generate"]):
             config = self.installation.get_create_issue_config(self.group, self.user)
 
         title_field = next(f for f in config if f["name"] == "title")
-        assert title_field["default"] == self.group.get_latest_event().title
+        latest_event = self.group.get_latest_event()
+        assert latest_event is not None
+        assert title_field["default"] == latest_event.title
         mock_request.assert_not_called()
 
-    @patch("sentry.integrations.utils.external_issues.make_llm_generate_request")
+    @patch("sentry.integrations.utils.external_issues.run_oneshot")
     def test_ai_exception_falls_back(self, mock_request: MagicMock) -> None:
         mock_request.side_effect = Exception("Connection error")
 
-        with self.feature(
-            ["organizations:gen-ai-features", "organizations:external-issues-ai-generate"]
-        ):
+        with self.feature(["organizations:external-issues-ai-generate"]):
             config = self.installation.get_create_issue_config(self.group, self.user)
 
         title_field = next(f for f in config if f["name"] == "title")
-        assert title_field["default"] == self.group.get_latest_event().title
+        latest_event = self.group.get_latest_event()
+        assert latest_event is not None
+        assert title_field["default"] == latest_event.title

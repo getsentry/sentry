@@ -1,11 +1,15 @@
+import {IconPause} from '@sentry/icons/pause';
+import {IconPlay} from '@sentry/icons/play';
+import {IconRefresh} from '@sentry/icons/refresh';
+
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
 
-import {ReplayPlayPauseButton as NewReplayPlayPauseButton} from 'sentry/components/replays/player/replayPlayPauseButton';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {IconPause, IconPlay, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {ReplayPlayPauseButton as NewReplayPlayPauseButton} from './player/replayPlayPauseButton';
+import {useReplayContext} from './replayContext';
 
 export function ReplayPlayPauseButton({
   isLoading,

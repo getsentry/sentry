@@ -4,11 +4,11 @@ import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Stack} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -17,7 +17,6 @@ import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/e
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
@@ -28,6 +27,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useProfileEventsApiOptions} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {formatError, formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -42,13 +42,17 @@ import {
   ExploreBodySearch,
   ExploreContentSection,
 } from 'sentry/views/explore/components/styles';
-import {LandingAggregateFlamegraph} from 'sentry/views/explore/profiling/landingAggregateFlamegraph';
-import {Onboarding} from 'sentry/views/explore/profiling/onboarding';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {
+  toLLMContextProjectFields,
+  useSelectedProjectsForLLMContext,
+} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 import {LandingWidgetSelector} from './landing/landingWidgetSelector';
+import {LandingAggregateFlamegraph} from './landingAggregateFlamegraph';
+import {Onboarding} from './onboarding';
 import type {DataState} from './useLandingAnalytics';
 import {useLandingAnalytics} from './useLandingAnalytics';
 
@@ -112,14 +116,18 @@ function ProfilingContentInner() {
   }, [selection, projects]);
 
   const tab = decodeTab(location.query.tab);
+  const selectedProjects = useSelectedProjectsForLLMContext();
 
   useLLMContext({
     contextHint:
-      'Sentry profiling explorer page. Users browse transaction profiles and aggregate flamegraphs to identify performance bottlenecks and hot code paths. You can search profiling data by transaction name, view aggregate flamegraphs, and analyze individual profile samples.',
+      'Sentry profiling explorer page. Users browse transaction profiles and aggregate flamegraphs to identify performance bottlenecks and hot code paths. You can search profiling data by transaction name, view aggregate flamegraphs, and analyze individual profile samples. ' +
+      'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
+      'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
     currentTab: tab,
     searchQuery: decodeScalar(location.query.query, ''),
     sort: decodeScalar(location.query.sort, ''),
     currentSelectedDateRange: selection.datetime,
+    ...toLLMContextProjectFields(selectedProjects),
   });
 
   const onTabChange = (newTab: 'flamegraph' | 'transactions') => {
@@ -191,7 +199,7 @@ function ProfilingContentInner() {
                   {organization.features.includes(
                     'profiling-global-suspect-functions'
                   ) && (
-                    <WidgetsContainer>
+                    <Grid columns={{zero: '1fr', xl: '1fr 1fr'}} gap="xl">
                       <LandingWidgetSelector
                         cursorName={LEFT_WIDGET_CURSOR}
                         widgetHeight="410px"
@@ -210,7 +218,7 @@ function ProfilingContentInner() {
                         storageKey="profiling-landing-widget-1"
                         onDataState={updateWidget2DataState}
                       />
-                    </WidgetsContainer>
+                    </Grid>
                   )}
                   <Stack gap="lg">
                     <Tabs value={tab} onChange={onTabChange}>
@@ -351,9 +359,9 @@ function TransactionsTab({onDataState, location, selection}: TabbedContentProps)
         sortableColumns={new Set(fields)}
       />
       <StyledPagination
-        pageLinks={
+        {...getPaginationProps(
           transactions.status === 'success' ? transactions.data.headers.Link : null
-        }
+        )}
       />
     </Stack>
   );
@@ -385,30 +393,21 @@ function shouldShowProfilingOnboardingPanel(selection: PageFilters, projects: Pr
 }
 
 function ProfilingContentPageHeader() {
-  const titleTooltip = (
-    <PageHeadingQuestionTooltip
-      docsUrl="https://docs.sentry.io/product/profiling/"
-      title={t(
-        'Profiling collects detailed information in production about the functions executing in your application and how long they take to run, giving you code-level visibility into your hot paths.'
-      )}
-    />
-  );
-
   return (
-    <Fragment>
-      <TopBar.Slot name="title">
-        {t('Profiles')}
-        {titleTooltip}
-      </TopBar.Slot>
-      <TopBar.Slot name="feedback">
-        <FeedbackButton
-          aria-label={t('Give Feedback')}
-          tooltipProps={{title: t('Give Feedback')}}
-        >
-          {null}
-        </FeedbackButton>
-      </TopBar.Slot>
-    </Fragment>
+    <TopBar.Slot
+      name="breadcrumbs"
+      title={{
+        type: 'page-title',
+        label: t('Profiles'),
+        labelTooltip: (
+          <DocumentationHint docsUrl="https://docs.sentry.io/product/profiling/">
+            {t(
+              'Profiling collects detailed information in production about the functions executing in your application and how long they take to run, giving you code-level visibility into your hot paths.'
+            )}
+          </DocumentationHint>
+        ),
+      }}
+    />
   );
 }
 
@@ -436,15 +435,6 @@ const LandingAggregateFlamegraphContainer = styled('div')`
   position: relative;
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-`;
-
-const WidgetsContainer = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${p => p.theme.space.xl};
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 1fr;
-  }
 `;
 
 const StyledPagination = styled(Pagination)`

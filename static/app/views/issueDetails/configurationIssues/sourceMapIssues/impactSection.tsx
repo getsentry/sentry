@@ -44,35 +44,30 @@ function EventsCount({project}: {project: Project}) {
 function AffectedReleases({project}: {project: Project}) {
   const {releases, isLoading, isError} = useAffectedReleases({project});
 
-  function renderContent() {
-    if (isLoading) {
-      return <LoadingIndicator mini />;
-    }
-    if (isError) {
-      return <LoadingError message={t('Unable to load affected releases.')} />;
-    }
-    if (releases.length === 0) {
-      return <Text>{t('No affected releases found in the last 30 days.')}</Text>;
-    }
-    return (
-      <Stack gap="xs">
-        {releases.map(({release, count}) => (
-          <Flex key={release} align="baseline" gap="sm">
-            <Version version={release} />
-            <Text variant="muted">&middot;</Text>
-            <Text variant="muted">{tn('%s event', '%s events', count)}</Text>
-          </Flex>
-        ))}
-      </Stack>
-    );
-  }
+  const content = isLoading ? (
+    <LoadingIndicator mini />
+  ) : isError ? (
+    <LoadingError message={t('Unable to load affected releases.')} />
+  ) : releases.length === 0 ? (
+    <Text>{t('No affected releases found in the last 30 days.')}</Text>
+  ) : (
+    <Stack gap="xs">
+      {releases.map(({release, count}) => (
+        <Flex key={release} align="baseline" gap="sm">
+          <Version version={release} />
+          <Text variant="muted">&middot;</Text>
+          <Text variant="muted">{tn('%s event', '%s events', count)}</Text>
+        </Flex>
+      ))}
+    </Stack>
+  );
 
   return (
     <Fragment>
       <SectionDivider orientation="horizontal" margin="xs 0" />
       <Stack gap="md">
         <Heading as="h4">{t('Affected releases')}</Heading>
-        {renderContent()}
+        {content}
       </Stack>
     </Fragment>
   );
@@ -82,47 +77,42 @@ function SampleEvents({project}: {project: Project}) {
   const organization = useOrganization();
   const {events, isLoading, isError} = useSampleEvents({project});
 
-  function renderContent() {
-    if (isLoading) {
-      return <LoadingIndicator mini />;
-    }
-    if (isError) {
-      return <LoadingError message={t('Unable to load sample events.')} />;
-    }
-    if (events.length === 0) {
-      return <Text>{t('No sample events found in the last 30 days.')}</Text>;
-    }
-    return (
-      <Stack gap="xs">
-        {events.map(({event_id, group_id, title, timestamp}) => (
-          <Flex key={event_id} align="center" gap="sm">
-            {group_id ? (
-              <Link
-                to={normalizeUrl(
-                  `/organizations/${organization.slug}/issues/${group_id}/events/${event_id}/`
-                )}
-              >
-                {title}
-              </Link>
-            ) : (
-              <Text variant="muted">{title}</Text>
-            )}
-            <Text variant="muted">&middot;</Text>
-            <Text variant="muted">
-              <TimeSince date={timestamp} unitStyle="short" />
-            </Text>
-          </Flex>
-        ))}
-      </Stack>
-    );
-  }
+  const content = isLoading ? (
+    <LoadingIndicator mini />
+  ) : isError ? (
+    <LoadingError message={t('Unable to load sample events.')} />
+  ) : events.length === 0 ? (
+    <Text>{t('No sample events found in the last 30 days.')}</Text>
+  ) : (
+    <Stack gap="xs">
+      {events.map(({event_id, group_id, title, timestamp}) => (
+        <Flex key={event_id} align="center" gap="sm">
+          {group_id ? (
+            <Link
+              to={normalizeUrl(
+                `/organizations/${organization.slug}/issues/${group_id}/events/${event_id}/`
+              )}
+            >
+              {title}
+            </Link>
+          ) : (
+            <Text variant="muted">{title}</Text>
+          )}
+          <Text variant="muted">&middot;</Text>
+          <Text variant="muted">
+            <TimeSince date={timestamp} unitStyle="short" />
+          </Text>
+        </Flex>
+      ))}
+    </Stack>
+  );
 
   return (
     <Fragment>
       <SectionDivider orientation="horizontal" margin="xs 0" />
       <Stack gap="md">
         <Heading as="h4">{t('Sample events')}</Heading>
-        {renderContent()}
+        {content}
       </Stack>
     </Fragment>
   );

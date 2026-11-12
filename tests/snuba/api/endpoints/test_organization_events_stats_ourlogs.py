@@ -1,6 +1,8 @@
 from datetime import timedelta
+from typing import Any
 
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
@@ -23,12 +25,14 @@ class OrganizationEventsStatsOurlogsEndpointTest(OrganizationEventsEndpointTestB
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
-    def _do_request(self, data, url=None, features=None):
+    def _do_request(
+        self, data: dict[str, Any], url: str | None = None, features: dict[str, bool] | None = None
+    ) -> Response:
         if features is None:
             features = {"organizations:ourlogs": True}
         features.update(self.features)
         with self.feature(features):
-            return self.client.get(self.url if url is None else url, data=data, format="json")
+            return self.client_get(data=data, url=self.url if url is None else url)
 
     def test_count(self) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]

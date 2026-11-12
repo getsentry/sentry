@@ -4,14 +4,13 @@ import enum
 import re
 import secrets
 from collections.abc import Mapping
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 from urllib.parse import urlparse
 
 import petname
 from django.conf import settings
 from django.db import ProgrammingError, models
 from django.db.models.signals import pre_delete
-from django.forms import model_to_dict
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -27,11 +26,18 @@ from sentry.db.models import (
     cell_silo_model,
     sane_repr,
 )
+from sentry.db.models.fields.bounded import I64_MAX
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.hybridcloud.outbox.base import CellOutboxProducingManager, ReplicatedCellModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.silo.base import SiloMode
 from sentry.tasks.relay import schedule_invalidate_project_config
+
+if TYPE_CHECKING:
+    from rest_framework.request import Request
+
+    from sentry.models.organization import Organization
+    from sentry.models.project import Project
 
 _token_re = re.compile(r"^[a-f0-9]{32}$")
 
@@ -49,12 +55,12 @@ class ProjectKeyManager(CellOutboxProducingManager["ProjectKey"]):
             public_key=instance.public_key, trigger="projectkey.post_save"
         )
 
-    def post_delete(self, instance, **kwargs):
+    def post_delete(self, instance: ProjectKey, **kwargs: object) -> None:
         schedule_invalidate_project_config(
             public_key=instance.public_key, trigger="projectkey.post_delete"
         )
 
-    def for_request(self, request):
+    def for_request(self, request: Request) -> models.QuerySet[ProjectKey]:
         """Return objects that the given request user is allowed to access"""
         from sentry.auth.superuser import is_active_superuser
 
@@ -152,30 +158,30 @@ class ProjectKey(ReplicatedCellModel):
         return str(self.public_key)
 
     @classmethod
-    def generate_api_key(cls):
+    def generate_api_key(cls) -> str:
         return secrets.token_hex(nbytes=16)
 
     @classmethod
-    def looks_like_api_key(cls, key):
+    def looks_like_api_key(cls, key: str) -> bool:
         return bool(_token_re.match(key))
 
     @classmethod
-    def from_dsn(cls, dsn):
+    def from_dsn(cls, dsn: str) -> ProjectKey:
         urlparts = urlparse(dsn)
 
         public_key = urlparts.username
         project_id = urlparts.path.rsplit("/", 1)[-1]
 
-        try:
-            return ProjectKey.objects.get(public_key=public_key, project=project_id)
-        except ValueError:
-            # ValueError would come from a non-integer project_id,
-            # which is obviously a DoesNotExist. We catch and rethrow this
-            # so anything downstream expecting DoesNotExist works fine
+        # A non-integer or out-of-range project_id (e.g. a corrupted DSN with
+        # extra digits) can never match, and would otherwise fail the bounded
+        # field's assertion. Raise DoesNotExist so callers can return a 4xx.
+        if not project_id.isdecimal() or int(project_id) > I64_MAX:
             raise ProjectKey.DoesNotExist("ProjectKey matching query does not exist.")
 
+        return ProjectKey.objects.get(public_key=public_key, project=cast(int, project_id))
+
     @classmethod
-    def get_default(cls, project):
+    def get_default(cls, project: Project | int) -> ProjectKey | None:
         return cls.objects.filter(
             project=project,
             roles=models.F("roles").bitor(cls.roles.store),
@@ -183,11 +189,11 @@ class ProjectKey(ReplicatedCellModel):
         ).first()
 
     @property
-    def is_active(self):
+    def is_active(self) -> bool:
         return self.status == ProjectKeyStatus.ACTIVE
 
     @property
-    def rate_limit(self):
+    def rate_limit(self) -> tuple[int, int]:
         if self.rate_limit_count and self.rate_limit_window:
             return (self.rate_limit_count, self.rate_limit_window)
         return (0, 0)
@@ -220,7 +226,7 @@ class ProjectKey(ReplicatedCellModel):
             ),
         )
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: object, **kwargs: object) -> None:
         if not self.public_key:
             self.public_key = ProjectKey.generate_api_key()
         if not self.secret_key:
@@ -229,7 +235,7 @@ class ProjectKey(ReplicatedCellModel):
             self.label = petname.generate(2, " ", letters=10).title()
         super().save(*args, **kwargs)
 
-    def get_dsn(self, domain=None, secure=True, public=False):
+    def get_dsn(self, domain: str | None = None, secure: bool = True, public: bool = False) -> str:
         urlparts = urlparse(self.get_endpoint())
 
         if not public:
@@ -245,53 +251,53 @@ class ProjectKey(ReplicatedCellModel):
         return f"{urlparts.scheme}://{key}@{urlparts.netloc + urlparts.path}/{self.project_id}"
 
     @property
-    def organization_id(self):
+    def organization_id(self) -> int:
         return self.project.organization_id
 
     @property
-    def organization(self):
+    def organization(self) -> Organization:
         return self.project.organization
 
     @property
-    def dsn_private(self):
+    def dsn_private(self) -> str:
         return self.get_dsn(public=False)
 
     @property
-    def dsn_public(self):
+    def dsn_public(self) -> str:
         return self.get_dsn(public=True)
 
     @property
-    def csp_endpoint(self):
+    def csp_endpoint(self) -> str:
         endpoint = self.get_endpoint()
 
         return f"{endpoint}/api/{self.project_id}/csp-report/?sentry_key={self.public_key}"
 
     @property
-    def security_endpoint(self):
+    def security_endpoint(self) -> str:
         endpoint = self.get_endpoint()
 
         return f"{endpoint}/api/{self.project_id}/security/?sentry_key={self.public_key}"
 
     @property
-    def nel_endpoint(self):
+    def nel_endpoint(self) -> str:
         endpoint = self.get_endpoint()
 
         return f"{endpoint}/api/{self.project_id}/nel/?sentry_key={self.public_key}"
 
     @property
-    def minidump_endpoint(self):
+    def minidump_endpoint(self) -> str:
         endpoint = self.get_endpoint()
 
         return f"{endpoint}/api/{self.project_id}/minidump/?sentry_key={self.public_key}"
 
     @property
-    def playstation_endpoint(self):
+    def playstation_endpoint(self) -> str:
         endpoint = self.get_endpoint()
 
         return f"{endpoint}/api/{self.project_id}/playstation/?sentry_key={self.public_key}"
 
     @property
-    def integration_endpoint(self):
+    def integration_endpoint(self) -> str:
         endpoint = self.get_endpoint()
         return f"{endpoint}/api/{self.project_id}/integration/"
 
@@ -299,11 +305,11 @@ class ProjectKey(ReplicatedCellModel):
         return f"{self.integration_endpoint}{integration_name}/{postfix}"
 
     @property
-    def otlp_traces_endpoint(self):
+    def otlp_traces_endpoint(self) -> str:
         return self.build_integration_endpoint("otlp", "v1/traces")
 
     @property
-    def otlp_logs_endpoint(self):
+    def otlp_logs_endpoint(self) -> str:
         return self.build_integration_endpoint("otlp", "v1/logs")
 
     @property
@@ -368,7 +374,7 @@ class ProjectKey(ReplicatedCellModel):
 
         return get_origins(self.project)
 
-    def get_audit_log_data(self):
+    def get_audit_log_data(self) -> dict[str, object]:
         return {
             "label": self.label,
             "public_key": self.public_key,
@@ -379,7 +385,7 @@ class ProjectKey(ReplicatedCellModel):
             "rate_limit_window": self.rate_limit_window,
         }
 
-    def get_scopes(self):
+    def get_scopes(self) -> tuple[str, ...]:
         return self.scopes
 
     def write_relocation_import(
@@ -393,16 +399,7 @@ class ProjectKey(ReplicatedCellModel):
         if not self.secret_key or matching_secret_key:
             self.secret_key = self.generate_api_key()
 
-        # ProjectKeys for the project are automatically generated at insertion time via a
-        # `post_save()` hook, so the keys for the project should already exist. We simply need to
-        # update them with the correct values here.
-        (key, _) = ProjectKey.objects.get_or_create(
-            project=self.project, defaults=model_to_dict(self)
-        )
-        if key:
-            self.pk = key.pk
-            self.save()
-
+        self.save(force_insert=True)
         return (self.pk, ImportKind.Inserted)
 
 

@@ -9,6 +9,7 @@ class AiAutofixPhaseEvent(analytics.Event):
     referrer: str | None
     run_id: int | None = None
     iteration_index: int | None = None
+    mode: str | None = None
 
 
 @analytics.eventclass("ai.autofix.root_cause.started")
@@ -66,11 +67,31 @@ class AiAutofixAgentHandoffEvent(AiAutofixPhaseEvent):
     coding_agent: str | None
 
 
-@analytics.eventclass("ai.autofix.introspection")
-class AiAutofixIntrospectionEvent(AiAutofixPhaseEvent):
-    step: str
-    action: str
-    reached_stopping_point: bool
+@analytics.eventclass()
+class AiAutofixPrEvent(analytics.Event):
+    organization_id: int
+    project_id: int
+    group_id: int
+    run_id: int
+    integration: str
+    github_app: str
+    sent_at: int
+    referrer: str | None = None
+
+
+@analytics.eventclass("ai.autofix.pr.closed")
+class AiAutofixPrClosedEvent(AiAutofixPrEvent):
+    pass
+
+
+@analytics.eventclass("ai.autofix.pr.merged")
+class AiAutofixPrMergedEvent(AiAutofixPrEvent):
+    pass
+
+
+@analytics.eventclass("ai.autofix.pr.opened")
+class AiAutofixPrOpenedEvent(AiAutofixPrEvent):
+    pass
 
 
 analytics.register(AiAutofixRootCauseStartedEvent)
@@ -84,4 +105,6 @@ analytics.register(AiAutofixIterationCompletedEvent)
 analytics.register(AiAutofixPrCreatedStartedEvent)
 analytics.register(AiAutofixPrCreatedCompletedEvent)
 analytics.register(AiAutofixAgentHandoffEvent)
-analytics.register(AiAutofixIntrospectionEvent)
+analytics.register(AiAutofixPrClosedEvent)
+analytics.register(AiAutofixPrMergedEvent)
+analytics.register(AiAutofixPrOpenedEvent)

@@ -8,6 +8,10 @@ from sentry.shared_integrations.response.base import BaseApiResponse
 API_VERSION = "/api/v4"
 
 
+def build_integration_external_id(hostname: str, group_id: int, organization_id: int) -> str:
+    return f"{hostname}:{group_id}-{organization_id}"
+
+
 class GitLabRateLimitInfo:
     def __init__(self, info: Mapping[str, int]) -> None:
         self.limit = info["limit"]
@@ -82,7 +86,7 @@ class GitLabApiClientPath:
     users = "/users"
 
     @staticmethod
-    def build_api_url(base_url, path) -> str:
+    def build_api_url(base_url: str, path: str) -> str:
         return f"{base_url.rstrip('/')}{API_VERSION}{path}"
 
     @classmethod

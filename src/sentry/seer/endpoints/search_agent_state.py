@@ -8,14 +8,13 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
+from sentry.auth.principal import acting_user_id
 from sentry.models.organization import Organization
-from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
-from sentry.seer.endpoints.utils import resolve_seer_run
+from sentry.seer.endpoints.utils import OrganizationTraceExplorerAIPermission, resolve_seer_run
 from sentry.seer.models import SeerApiError
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import (
@@ -39,7 +38,8 @@ def fetch_search_agent_state(
     response = make_search_agent_state_request(body, timeout=10, viewer_context=viewer_context)
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
-    return response.json()
+    data = response.json()
+    return data
 
 
 @cell_silo_endpoint
@@ -82,16 +82,7 @@ class SearchAgentStateEndpoint(OrganizationEndpoint):
                 }
             }
         """
-        has_feature = features.has(
-            "organizations:gen-ai-search-agent-translate", organization, actor=request.user
-        )
-        if not has_feature:
-            return Response(
-                {"detail": "Feature flag not enabled"},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
-        has_seer_access, detail = has_seer_access_with_detail(organization, actor=request.user)
+        has_seer_access, detail = has_seer_access_with_detail(organization)
         if not has_seer_access:
             return Response(
                 {"detail": detail},
@@ -104,15 +95,19 @@ class SearchAgentStateEndpoint(OrganizationEndpoint):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        resolved = resolve_seer_run(run_id, organization)
+        user_id = acting_user_id(request.user)
+        if user_id is None:
+            return Response(
+                {"detail": "You do not have access to this run."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        resolved = resolve_seer_run(run_id, organization, user_id=user_id)
         if isinstance(resolved, Response):
             return resolved
         seer_run_id = resolved.seer_run_state_id
 
         try:
-            viewer_context = SeerViewerContext(
-                organization_id=organization.id, user_id=request.user.id
-            )
+            viewer_context = SeerViewerContext(organization_id=organization.id, user_id=user_id)
             data = fetch_search_agent_state(
                 seer_run_id, organization.id, viewer_context=viewer_context
             )

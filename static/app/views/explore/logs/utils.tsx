@@ -18,16 +18,21 @@ import {
   fieldAlignment,
   type Sort,
 } from 'sentry/utils/discover/fields';
+import {AggregationKey} from 'sentry/utils/fields';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
+import {getTimeSeriesForQuery} from 'sentry/utils/timeSeries/getTimeSeriesForQuery';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {getBodySearchTerms} from 'sentry/views/explore/bodySearchTerms';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {
   LOGS_AGGREGATE_FN_KEY,
   LOGS_AGGREGATE_PARAM_KEY,
+  LOGS_ANCHOR_TIMESTAMP_KEY,
   LOGS_FIELDS_KEY,
   LOGS_GROUP_BY_KEY,
   LOGS_QUERY_KEY,
+  LOGS_ROW_ID_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -36,15 +41,26 @@ import type {
   TraceItemDetailsResponse,
   TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
+import type {ExploreCaseSensitivity} from 'sentry/views/explore/multiQueryMode/locationUtils';
+import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
+import {
+  type BaseVisualize,
+  type Visualize,
+} from 'sentry/views/explore/queryParams/visualize';
+import {generateTargetQuery} from 'sentry/views/explore/utils/generateTargetQuery';
+import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+
+import {LOGS_PINNED_KEY, logsPinnedParser} from './pinning/useLogsPinning';
 import {
   DeprecatedLogDetailFields,
   LogAttributesHumanLabel,
   LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD,
-} from 'sentry/views/explore/logs/constants';
+} from './constants';
 import {
   getTargetWithReadableQueryParams,
   LOGS_AGGREGATE_FIELD_KEY,
-} from 'sentry/views/explore/logs/logsQueryParams';
+} from './logsQueryParams';
 import {
   OurLogKnownFieldKey,
   type EventsLogsResult,
@@ -52,14 +68,7 @@ import {
   type LogRowItem,
   type OurLogFieldKey,
   type OurLogsResponseItem,
-} from 'sentry/views/explore/logs/types';
-import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
-import {
-  type BaseVisualize,
-  type Visualize,
-} from 'sentry/views/explore/queryParams/visualize';
-import {generateTargetQuery} from 'sentry/views/explore/utils';
-import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+} from './types';
 const {warn, fmt} = Sentry.logger;
 
 export function getLogSeverityLevel(
@@ -151,14 +160,7 @@ export function severityLevelToText(level: SeverityLevel) {
 }
 
 export function getLogBodySearchTerms(search: MutableSearch): string[] {
-  const searchTerms: string[] = search.freeText.map(text => text.replaceAll('*', ''));
-  const bodyFilters = search.getFilterValues('log.body');
-  for (const filter of bodyFilters) {
-    if (!filter.startsWith('!') && !filter.startsWith('[')) {
-      searchTerms.push(filter);
-    }
-  }
-  return searchTerms;
+  return getBodySearchTerms(search, OurLogKnownFieldKey.MESSAGE);
 }
 
 export function logsFieldAlignment(...args: Parameters<typeof fieldAlignment>) {
@@ -264,6 +266,36 @@ export function getLogRowTimestampMillis(row: LogTableRowItem): number {
   return Number(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]) / 1_000_000;
 }
 
+export function mergeRowsByTimestampDescending(
+  sortedRows: readonly LogTableRowItem[],
+  injectedRows: readonly LogTableRowItem[]
+): LogTableRowItem[] {
+  const sortedInjectedRows = injectedRows.toSorted(
+    (a, b) => getLogRowTimestampMillis(b) - getLogRowTimestampMillis(a)
+  );
+
+  const merged: LogTableRowItem[] = [];
+  let rowIndex = 0;
+  let injectedIndex = 0;
+
+  while (rowIndex < sortedRows.length && injectedIndex < sortedInjectedRows.length) {
+    const row = sortedRows[rowIndex]!;
+    const injectedRow = sortedInjectedRows[injectedIndex]!;
+    if (getLogRowTimestampMillis(injectedRow) > getLogRowTimestampMillis(row)) {
+      merged.push(injectedRow);
+      injectedIndex++;
+    } else {
+      merged.push(row);
+      rowIndex++;
+    }
+  }
+
+  return merged.concat(
+    sortedRows.slice(rowIndex),
+    sortedInjectedRows.slice(injectedIndex)
+  );
+}
+
 function getLogRowSortValue(
   row: LogTableRowItem,
   field: OurLogFieldKey
@@ -330,7 +362,10 @@ export function calculateAverageLogsPerSecond(
     return 0;
   }
 
-  const allSeries = Object.values(timeseriesResult.data)[0];
+  const allSeries = getTimeSeriesForQuery(
+    timeseriesResult.data,
+    `${AggregationKey.COUNT}(${OurLogKnownFieldKey.MESSAGE})`
+  );
   if (!Array.isArray(allSeries) || allSeries.length === 0) {
     return 0;
   }
@@ -375,14 +410,17 @@ type BaseGetLogsUrlParams = {
   aggregateFields?: Array<GroupBy | BaseVisualize>;
   aggregateFn?: string;
   aggregateParam?: string;
-  caseInsensitive?: '1' | null;
-  field?: string[];
+  anchorTimestamp?: string;
+  caseInsensitive?: ExploreCaseSensitivity;
+  field?: readonly string[];
   groupBy?: string[];
   id?: number;
   interval?: string;
   mode?: Mode;
+  pinnedRowIds?: string[];
   query?: string;
   referrer?: string;
+  rowId?: string;
   selection?: PageFilters;
   sortBy?: string;
   title?: string;
@@ -407,7 +445,10 @@ export function getLogsUrl({
   aggregateFields,
   aggregateFn,
   aggregateParam,
+  anchorTimestamp,
   caseInsensitive,
+  pinnedRowIds,
+  rowId,
 }: BaseGetLogsUrlParams & {organization: Organization | string}) {
   const {start, end, period: statsPeriod, utc} = selection?.datetime ?? {};
   const {environments, projects} = selection ?? {};
@@ -434,6 +475,11 @@ export function getLogsUrl({
     [LOGS_AGGREGATE_PARAM_KEY]: aggregateParam,
     title,
     caseInsensitive,
+    [LOGS_ROW_ID_KEY]: rowId,
+    [LOGS_ANCHOR_TIMESTAMP_KEY]: anchorTimestamp,
+    [LOGS_PINNED_KEY]: pinnedRowIds?.length
+      ? logsPinnedParser.serialize(pinnedRowIds)
+      : undefined,
   };
 
   const orgSlug = typeof organization === 'string' ? organization : organization.slug;
@@ -481,25 +527,34 @@ export function getLogsUrlFromSavedQueryUrl({
     selection: {
       datetime: {
         end: savedQuery.end ?? null,
-        period: savedQuery.range ?? null,
+        period: savedQuery.statsPeriod ?? null,
         start: savedQuery.start ?? null,
         utc: null,
       },
       environments: savedQuery.environment ? [...savedQuery.environment] : [],
       projects: savedQuery.projects ? [...savedQuery.projects] : [],
     },
-    caseInsensitive: firstQuery.caseInsensitive ? '1' : null,
+    caseInsensitive: firstQuery.caseInsensitive ? '1' : '0',
   });
 }
 
-export function ourlogToJson(ourlog: TraceItemDetailsResponse | undefined): string {
+export function ourlogToJson(
+  ourlog: TraceItemDetailsResponse | undefined,
+  useRawAttributeNames = false
+): string {
   if (!ourlog) {
     warn(fmt`cannot copy undefined ourlog`);
     return '';
   }
 
   const copy: Record<string, string | number | boolean> = {
-    ...ourlog.attributes.reduce((it, {name, value}) => ({...it, [name]: value}), {}),
+    ...ourlog.attributes.reduce(
+      (it, {name, rawName, value}) =>
+        DeprecatedLogDetailFields.includes(name)
+          ? it
+          : {...it, [useRawAttributeNames ? (rawName ?? name) : name]: value},
+      {}
+    ),
     id: ourlog.itemId,
   };
   let warned = false;
@@ -514,8 +569,7 @@ export function ourlogToJson(ourlog: TraceItemDetailsResponse | undefined): stri
 
   // Trimming any sentry. prefixes
   for (const key in copy) {
-    if (DeprecatedLogDetailFields.includes(key)) {
-      delete copy[key];
+    if (useRawAttributeNames) {
       continue;
     }
     if (key.startsWith('sentry.')) {
@@ -612,7 +666,23 @@ interface PseudoLogResponseItem {
   __originalEvent: Event;
 }
 
-export type LogTableRowItem = OurLogsResponseItem | PseudoLogResponseItem;
+export interface ErrorLogRowItem {
+  [OurLogKnownFieldKey.ID]: string;
+  [OurLogKnownFieldKey.MESSAGE]: string;
+  [OurLogKnownFieldKey.SEVERITY]: string;
+  [OurLogKnownFieldKey.SEVERITY_NUMBER]: number;
+  [OurLogKnownFieldKey.TRACE_ID]: string;
+  [OurLogKnownFieldKey.PROJECT_ID]: string;
+  [OurLogKnownFieldKey.TIMESTAMP]: string;
+  [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: number;
+  __error: TraceTree.TraceErrorIssue;
+  __isErrorRow: true;
+}
+
+export type LogTableRowItem =
+  | OurLogsResponseItem
+  | PseudoLogResponseItem
+  | ErrorLogRowItem;
 
 export function isPseudoLogResponseItem(
   item: LogTableRowItem
@@ -620,10 +690,50 @@ export function isPseudoLogResponseItem(
   return '__isPseudoRow' in item && item.__isPseudoRow === true;
 }
 
+export function isErrorLogRow(item: LogTableRowItem): item is ErrorLogRowItem {
+  return '__isErrorRow' in item && item.__isErrorRow === true;
+}
+
 export function isRegularLogResponseItem(
   item: LogTableRowItem
 ): item is OurLogsResponseItem {
-  return !isPseudoLogResponseItem(item);
+  return !isPseudoLogResponseItem(item) && !isErrorLogRow(item);
+}
+
+const ERROR_LEVEL_SEVERITY_NUMBER: Record<string, number> = {
+  fatal: 21,
+  error: 17,
+  warning: 13,
+  info: 9,
+};
+
+export function createErrorLogRow(
+  error: TraceTree.TraceErrorIssue,
+  fallbackTimestampSeconds = 0
+): ErrorLogRowItem {
+  const timestampSeconds =
+    'start_timestamp' in error
+      ? error.start_timestamp
+      : (error.timestamp ?? fallbackTimestampSeconds);
+  const timestampPrecise = timestampSeconds * 1e9;
+  const description =
+    'start_timestamp' in error
+      ? (error.description ?? error.transaction)
+      : error.title || error.message;
+
+  return {
+    [OurLogKnownFieldKey.ID]: `error-${error.event_id}`,
+    [OurLogKnownFieldKey.MESSAGE]: description ?? '',
+    [OurLogKnownFieldKey.SEVERITY]: error.level ?? 'error',
+    [OurLogKnownFieldKey.SEVERITY_NUMBER]:
+      ERROR_LEVEL_SEVERITY_NUMBER[error.level ?? 'error'] ?? 17,
+    [OurLogKnownFieldKey.TRACE_ID]: '',
+    [OurLogKnownFieldKey.PROJECT_ID]: String(error.project_id),
+    [OurLogKnownFieldKey.TIMESTAMP]: new Date(timestampSeconds * 1000).toISOString(),
+    [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: timestampPrecise,
+    __error: error,
+    __isErrorRow: true,
+  };
 }
 
 export function createPseudoLogResponseItem(

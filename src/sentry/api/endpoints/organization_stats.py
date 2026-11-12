@@ -1,3 +1,4 @@
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -9,6 +10,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environment_id
 from sentry.models.environment import Environment
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.tsdb.base import TSDBModel
@@ -22,7 +24,7 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
     }
     owner = ApiOwner.FOUNDATIONS
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Retrieve Event Counts for an Organization
         `````````````````````````````````````````
@@ -61,7 +63,13 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
                 project_list.extend(Project.objects.filter(teams__in=team_list, id__in=project_ids))
             keys = list({p.id for p in project_list})
         else:
-            raise ValueError("Invalid group: %s" % group)
+            raise ParseError(
+                detail=(
+                    f"group={group} is not supported. Use group=organization for "
+                    "organization-wide statistics or group=project for statistics separated "
+                    "by project."
+                )
+            )
 
         if "id" in request.GET:
             id_filter_set = frozenset(map(int, request.GET.getlist("id")))
@@ -72,7 +80,7 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
 
         stat_model = None
         stat = request.GET.get("stat", "received")
-        query_kwargs = {}
+        environment_id: int | None = None
         if stat == "received":
             if group == "project":
                 stat_model = TSDBModel.project_total_received
@@ -92,17 +100,23 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
             if group == "project":
                 stat_model = TSDBModel.project
                 try:
-                    query_kwargs["environment_id"] = get_environment_id(request, organization.id)
+                    environment_id = get_environment_id(request, organization.id)
                 except Environment.DoesNotExist:
                     raise ResourceDoesNotExist
 
         if stat_model is None:
-            raise ValueError(f"Invalid group: {group}, stat: {stat}")
+            raise ParseError(
+                detail=(
+                    f"stat={stat} is not supported with group={group}. Use stat=received, "
+                    "stat=rejected, or stat=blacklisted. stat=generated is only supported "
+                    "with group=project."
+                )
+            )
         data: dict[int, list[tuple[int, int]]] | list[tuple[int, int]]
         data = tsdb.backend.get_range(
             model=stat_model,
             keys=keys,
-            **self._parse_args(request, **query_kwargs),
+            **self._parse_args(request, environment_id=environment_id),
             tenant_ids={"organization_id": organization.id},
         )
 

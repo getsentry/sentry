@@ -2,10 +2,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {
-  generateReleaseMarkLines,
-  releaseMarkLinesLabels,
-} from 'sentry/views/explore/releases/detail/utils';
+import {generateReleaseMarkLines, releaseMarkLinesLabels} from './utils';
 
 const theme = ThemeFixture();
 
@@ -84,6 +81,15 @@ describe('releases/detail/utils', () => {
       });
 
       expect(marklines.map(markline => markline.seriesName)).toEqual([adopted]);
+    });
+
+    it('generates marklines when the stats period is unitless and so measured in seconds', () => {
+      const marklines = generateReleaseMarkLines(release, project, theme, {
+        ...location,
+        query: {statsPeriod: '3600'},
+      });
+
+      expect(marklines.map(markline => markline.seriesName)).toEqual([created]);
     });
 
     it('does not generate out-of-bounds marklines on ancient/clamped releases', () => {

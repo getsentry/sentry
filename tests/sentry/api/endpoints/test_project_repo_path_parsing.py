@@ -1,8 +1,14 @@
+from typing import Any
+
 from django.urls import reverse
 from rest_framework.response import Response
 
 from sentry.api.endpoints.project_repo_path_parsing import PathMappingSerializer
+from sentry.constants import ObjectStatus
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.project import Project
+from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -39,7 +45,7 @@ class BaseStacktraceLinkTest(APITestCase):
             },
         )
 
-        return self.client.post(
+        response: Response[Any] = self.client.post(
             url,
             data={
                 "sourceUrl": source_url,
@@ -49,6 +55,7 @@ class BaseStacktraceLinkTest(APITestCase):
                 "platform": platform,
             },
         )
+        return response
 
 
 class PathMappingSerializerTest(TestCase):
@@ -218,6 +225,13 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
         assert resp.status_code == 400, resp.content
         assert resp.data == {"sourceUrl": ["Could not find repo"]}
 
+    def test_repo_name_is_prefix_of_linked_repo(self) -> None:
+        source_url = "https://github.com/getsentry/sentry-plugins/blob/master/src/sentry/api/endpoints/project_stacktrace_link.py"
+        stack_path = "sentry/api/endpoints/project_stacktrace_link.py"
+        resp = self.make_post(source_url, stack_path)
+        assert resp.status_code == 400, resp.content
+        assert resp.data == {"sourceUrl": ["Could not find repo"]}
+
     def test_single_file_path(self) -> None:
         source_url = (
             "https://github.com/getsentry/sentry/blob/master/src/project_stacktrace_link.py"
@@ -246,6 +260,23 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
             "provider": "github",
             "stackRoot": "sentry/",
             "sourceRoot": "src/sentry/",
+            "defaultBranch": "master",
+        }
+
+    def test_percent_encoded_source_url(self) -> None:
+        # URLs copied from GitHub encode characters that are legal in a filename,
+        # e.g. the leading `+` of a SvelteKit route file
+        source_url = "https://github.com/getsentry/sentry/blob/master/src/routes/%2Bpage.svelte"
+        stack_path = "routes/+page.svelte"
+        resp = self.make_post(source_url, stack_path)
+        assert resp.status_code == 200, resp.content
+
+        assert resp.data == {
+            "integrationId": self.integration.id,
+            "repositoryId": self.repo.id,
+            "provider": "github",
+            "stackRoot": "routes/",
+            "sourceRoot": "src/routes/",
             "defaultBranch": "master",
         }
 
@@ -387,7 +418,10 @@ class ProjectStacktraceLinkGitlabTest(BaseStacktraceLinkTest):
                 provider="gitlab",
                 name="getsentry",
                 external_id="1234",
-                metadata={"domain_name": "gitlab.com/getsentry"},
+                metadata={
+                    "base_url": "https://gitlab.com",
+                    "domain_name": "gitlab.com/getsentry",
+                },
             )
 
             self.oi = self.integration.add_organization(self.org, self.user)
@@ -424,6 +458,60 @@ class ProjectStacktraceLinkGitlabTest(BaseStacktraceLinkTest):
 
         assert resp.data == {"sourceUrl": ["Could not find repo"]}
 
+    subgroup_source_url = (
+        "https://gitlab.com/getsentry/sdks/sentry-python/-/blob/master/sentry_sdk/client.py"
+    )
+
+    def create_subgroup_integration(
+        self,
+    ) -> tuple[Integration, OrganizationIntegration, Repository]:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration, org_integration = self.create_provider_integration_for(
+                self.org,
+                self.user,
+                provider="gitlab",
+                name="getsentry/sdks",
+                external_id="5678",
+                metadata={
+                    "base_url": "https://gitlab.com",
+                    "domain_name": "gitlab.com/getsentry/sdks",
+                },
+            )
+        repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sdks/sentry-python",
+            provider="integrations:gitlab",
+            integration_id=integration.id,
+            url="https://gitlab.com/getsentry/sdks/sentry-python",
+        )
+        return integration, org_integration, repo
+
+    def test_subgroup_integration_after_parent_group_integration(self) -> None:
+        subgroup_integration, _, subgroup_repo = self.create_subgroup_integration()
+        resp = self.make_post(self.subgroup_source_url, "sentry_sdk/client.py")
+        assert resp.status_code == 200, resp.content
+
+        assert resp.data["integrationId"] == subgroup_integration.id
+        assert resp.data["repositoryId"] == subgroup_repo.id
+
+    def test_skips_disabled_integration(self) -> None:
+        subgroup_integration, _, _ = self.create_subgroup_integration()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            subgroup_integration.update(status=ObjectStatus.DISABLED)
+        resp = self.make_post(self.subgroup_source_url, "sentry_sdk/client.py")
+        assert resp.status_code == 400, resp.content
+
+        assert resp.data == {"sourceUrl": ["Could not find repo"]}
+
+    def test_skips_integration_disabled_for_organization(self) -> None:
+        _, subgroup_org_integration, _ = self.create_subgroup_integration()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            subgroup_org_integration.update(status=ObjectStatus.DISABLED)
+        resp = self.make_post(self.subgroup_source_url, "sentry_sdk/client.py")
+        assert resp.status_code == 400, resp.content
+
+        assert resp.data == {"sourceUrl": ["Could not find repo"]}
+
     def test_strips_query_params_from_source_url(self) -> None:
         source_url = "https://gitlab.com/getsentry/sentry/-/blob/master/src/sentry/api/endpoints/project_stacktrace_link.py?ref_type=heads"
         stack_path = "sentry/api/endpoints/project_stacktrace_link.py"
@@ -437,4 +525,74 @@ class ProjectStacktraceLinkGitlabTest(BaseStacktraceLinkTest):
             "stackRoot": "sentry/",
             "sourceRoot": "src/sentry/",
             "defaultBranch": "master",
+        }
+
+
+class ProjectStacktraceLinkBitbucketTest(BaseStacktraceLinkTest):
+    def setUp(self) -> None:
+        super().setUp()
+
+        # Bitbucket Cloud integrations claim every bitbucket.org link, so with two
+        # workspaces connected only the repository can tell them apart.
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.team_integration, _ = self.create_provider_integration_for(
+                self.org,
+                self.user,
+                provider="bitbucket",
+                name="acme",
+                external_id="connect:1234",
+                metadata={"domain_name": "bitbucket.org/acme", "type": "team"},
+            )
+            self.personal_integration, _ = self.create_provider_integration_for(
+                self.org,
+                self.user,
+                provider="bitbucket",
+                name="jdoe",
+                external_id="connect:5678",
+                metadata={"domain_name": "jdoe", "type": "user"},
+            )
+
+        self.team_repo = self.create_repo(
+            project=self.project,
+            name="acme/api",
+            provider="integrations:bitbucket",
+            integration_id=self.team_integration.id,
+            url="https://bitbucket.org/acme/api",
+        )
+        self.personal_repo = self.create_repo(
+            project=self.project,
+            name="jdoe/tools",
+            provider="integrations:bitbucket",
+            integration_id=self.personal_integration.id,
+            url="https://bitbucket.org/jdoe/tools",
+        )
+
+    def test_first_integration(self) -> None:
+        source_url = "https://bitbucket.org/acme/api/src/master/src/app/main.py"
+        stack_path = "app/main.py"
+        resp = self.make_post(source_url, stack_path)
+        assert resp.status_code == 200, resp.content
+
+        assert resp.data == {
+            "integrationId": self.team_integration.id,
+            "repositoryId": self.team_repo.id,
+            "provider": "bitbucket",
+            "stackRoot": "app/",
+            "sourceRoot": "src/app/",
+            "defaultBranch": "master",
+        }
+
+    def test_second_integration(self) -> None:
+        source_url = "https://bitbucket.org/jdoe/tools/src/main/src/app/main.py"
+        stack_path = "app/main.py"
+        resp = self.make_post(source_url, stack_path)
+        assert resp.status_code == 200, resp.content
+
+        assert resp.data == {
+            "integrationId": self.personal_integration.id,
+            "repositoryId": self.personal_repo.id,
+            "provider": "bitbucket",
+            "stackRoot": "app/",
+            "sourceRoot": "src/app/",
+            "defaultBranch": "main",
         }

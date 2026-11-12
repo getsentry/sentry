@@ -1,30 +1,27 @@
 import styled from '@emotion/styled';
+import {IconChat} from '@sentry/icons/chat';
 
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
-import {
-  getAutofixRunExists,
-  isIssueQuickFixable,
-} from 'sentry/components/events/autofix/utils';
-import {ShortId} from 'sentry/components/group/inboxBadges/shortId';
-import {TimesTag} from 'sentry/components/group/inboxBadges/timesTag';
-import {UnhandledTag} from 'sentry/components/group/inboxBadges/unhandledTag';
-import {IssueReplayCount} from 'sentry/components/group/issueReplayCount';
-import {IssueSeerBadge} from 'sentry/components/group/issueSeerBadge';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
-import {Placeholder} from 'sentry/components/placeholder';
-import {IconChat} from 'sentry/icons';
-import {tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {getTitle} from 'sentry/utils/events';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
+import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {getAutofixRunExists, isIssueQuickFixable} from './events/autofix/utils';
+import {ShortId} from './group/inboxBadges/shortId';
+import {TimesTag} from './group/inboxBadges/timesTag';
+import {UnhandledTag} from './group/inboxBadges/unhandledTag';
+import {IssueReplayCount} from './group/issueReplayCount';
+import {IssueSeerBadge} from './group/issueSeerBadge';
+import ProjectBadge from './idBadge/projectBadge';
+import {extractSelectionParameters} from './pageFilters/parse';
+import {Placeholder} from './placeholder';
+
 type Props = {
   data: Group;
-  showAssignee?: boolean;
   showLifetime?: boolean;
 };
 
@@ -49,7 +46,7 @@ function Lifetime({
   );
 }
 
-export function GroupMetaRow({data, showAssignee, showLifetime = true}: Props) {
+export function GroupMetaRow({data, showLifetime = true}: Props) {
   const {
     id,
     lastSeen,
@@ -57,7 +54,6 @@ export function GroupMetaRow({data, showAssignee, showLifetime = true}: Props) {
     subscriptionDetails,
     numComments,
     logger,
-    assignedTo,
     annotations,
     shortId,
     project,
@@ -76,9 +72,7 @@ export function GroupMetaRow({data, showAssignee, showLifetime = true}: Props) {
   const autofixRunExists = getAutofixRunExists(data);
   const seerFixable = isIssueQuickFixable(data);
   const showSeer =
-    organization.features.includes('gen-ai-features') &&
-    !organization.hideAiFeatures &&
-    (autofixRunExists || seerFixable);
+    areAiFeaturesAllowed(organization) && (autofixRunExists || seerFixable);
 
   const {subtitle} = getTitle(data);
 
@@ -135,9 +129,6 @@ export function GroupMetaRow({data, showAssignee, showLifetime = true}: Props) {
           <ExternalLink href={annotation.url}>{annotation.displayName}</ExternalLink>
         </Annotation>
       ))}
-      {showAssignee && assignedTo ? (
-        <div>{tct('Assigned to [name]', {name: assignedTo.name})}</div>
-      ) : null}
     </GroupExtra>
   );
 }
@@ -178,10 +169,6 @@ const GroupExtra = styled('div')`
     background-position: left center;
     background-size: 1px 10px;
     background-repeat: no-repeat;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    line-height: 1;
   }
 `;
 

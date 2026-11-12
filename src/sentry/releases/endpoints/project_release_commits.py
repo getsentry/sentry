@@ -14,6 +14,7 @@ from sentry.apidocs.examples.release_examples import ReleaseExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReleaseParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
+from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
@@ -48,7 +49,7 @@ class ProjectReleaseCommitsEndpoint(ProjectEndpoint):
         examples=ReleaseExamples.LIST_RELEASE_COMMITS,
     )
     def get(
-        self, request: Request, project, version
+        self, request: Request, project: Project, version: str
     ) -> Response[list[CommitSerializerResponseWithReleases]]:
         """
         Retrieve a list of commits for a given release.
@@ -70,30 +71,23 @@ class ProjectReleaseCommitsEndpoint(ProjectEndpoint):
         repo_id = request.query_params.get("repo_id")
         repo_name = request.query_params.get("repo_name")
 
-        # prefer repo external ID to name
-        # NOTE: We filter on Repository here instead of using get b/c sometimes,
-        # we have have multiple repos for the same external_id/name that differ
-        # in other fields that differ such as 'provider' or 'config'.
+        # Neither parameter names a provider, and an external id is only unique per
+        # provider, so resolve against the repositories that actually have commits in
+        # this release. Re-linking leaves duplicates that differ in provider or config;
+        # prefer the newest.
+        release_repos = Repository.objects.filter(
+            organization_id=organization_id,
+            id__in=queryset.values("commit__repository_id"),
+            status=ObjectStatus.ACTIVE,
+        )
         if repo_id:
-            repos = Repository.objects.filter(
-                organization_id=organization_id, external_id=repo_id, status=ObjectStatus.ACTIVE
-            ).order_by("-date_added")
-
-            latest_repo = repos.first()
+            release_repos = release_repos.filter(external_id=repo_id)
+        elif repo_name:
+            release_repos = release_repos.filter(name=repo_name)
+        if repo_id or repo_name:
+            latest_repo = release_repos.order_by("-date_added").first()
             if latest_repo is None:
                 raise ResourceDoesNotExist
-
-            queryset = queryset.filter(commit__repository_id=latest_repo.id)
-
-        if repo_name:
-            repos = Repository.objects.filter(
-                organization_id=organization_id, name=repo_name, status=ObjectStatus.ACTIVE
-            ).order_by("-date_added")
-
-            latest_repo = repos.first()
-            if latest_repo is None:
-                raise ResourceDoesNotExist
-
             queryset = queryset.filter(commit__repository_id=latest_repo.id)
 
         return self.paginate(

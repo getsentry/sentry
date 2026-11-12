@@ -1,10 +1,12 @@
 import logging
+from collections.abc import Mapping, Sequence
 from datetime import timedelta
 from typing import Any
 
-import sentry_sdk
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
+from sentry_sdk import traces
 
+from sentry.api.helpers.timeseries_transformations import Transformation
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import AdditionalQueries, EAPResponse, SearchResolverConfig
 from sentry.search.eap.uptime_results.definitions import UPTIME_RESULT_DEFINITIONS
@@ -19,7 +21,7 @@ class UptimeResults(rpc_dataset_common.RPCBase):
     DEFINITIONS = UPTIME_RESULT_DEFINITIONS
 
     @classmethod
-    @sentry_sdk.trace
+    @traces.trace
     def run_table_query(
         cls,
         *,
@@ -67,13 +69,14 @@ class UptimeResults(rpc_dataset_common.RPCBase):
         sampling_mode: SAMPLING_MODES | None,
         comparison_delta: timedelta | None = None,
         additional_queries: AdditionalQueries | None = None,
+        transformations: Mapping[int, Sequence[Transformation]] | None = None,
     ) -> SnubaTSResult:
         """Wasn't implemented before a refactor to move the timeseries code into RPCBase, but can just delete this
         function entirely if we want timeseries"""
         raise NotImplementedError()
 
     @classmethod
-    @sentry_sdk.trace
+    @traces.trace
     def run_top_events_timeseries_query(
         cls,
         *,
@@ -89,6 +92,7 @@ class UptimeResults(rpc_dataset_common.RPCBase):
         sampling_mode: SAMPLING_MODES | None,
         equations: list[str] | None = None,
         additional_queries: AdditionalQueries | None = None,
+        transformations: Mapping[int, Sequence[Transformation]] | None = None,
     ) -> Any:
         """Since run_timeseries_query isn't implemented, this is also being marked as not implemented, should be able to
         just delete this if top_events are wanted on this dataset"""

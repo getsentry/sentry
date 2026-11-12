@@ -1,7 +1,7 @@
 import type {
   NotificationBodyFormattingBlock,
   NotificationBodyTextBlock,
-} from 'sentry/debug/notifications/components/notificationBodyRenderer';
+} from './components/notificationBodyRenderer';
 
 export enum NotificationProviderKey {
   EMAIL = 'email',
@@ -21,7 +21,7 @@ export interface NotificationTemplateRegistration {
   };
   previews: {
     [NotificationProviderKey.EMAIL]: {
-      html_content: TrustedHTML;
+      html_content: string;
       subject: string;
       text_content: string;
     };

@@ -4,14 +4,12 @@ import {AutomationBuilderNumberInput} from 'sentry/components/workflowEngine/for
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {t, tct} from 'sentry/locale';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
-import type {AgeComparison} from 'sentry/views/automations/components/actionFilters/constants';
-import {
-  AGE_COMPARISON_CHOICES,
-  TimeUnit,
-} from 'sentry/views/automations/components/actionFilters/constants';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
-import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
+import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
+
+import type {AgeComparison} from './constants';
+import {AGE_COMPARISON_CHOICES, TimeUnit} from './constants';
 
 const TIME_CHOICES = [
   {value: TimeUnit.MINUTES, label: 'minute(s)'},

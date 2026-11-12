@@ -1,4 +1,3 @@
-import {ChoiceMapperField} from 'sentry/components/forms/fields/choiceMapperField';
 import {Form} from 'sentry/components/forms/form';
 import * as Storybook from 'sentry/stories';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -6,6 +5,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {BlankField} from './blankField';
 import {BooleanField} from './booleanField';
 import {CheckboxField} from './checkboxField';
+import {ChoiceMapperField} from './choiceMapperField';
 import {DateTimeField} from './dateTimeField';
 import {EmailField} from './emailField';
 import {FileField} from './fileField';
@@ -163,8 +163,6 @@ export default Storybook.story('Form', story => {
       </Form>
     );
 
-    // TODO: Missing SelectAsyncField
     // TODO: Missing TableField
-    // TODO: Missing ProjectMapperField
   });
 });

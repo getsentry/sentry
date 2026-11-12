@@ -2,23 +2,27 @@ from collections.abc import Set
 from datetime import timedelta
 
 from django.utils import timezone
+from sentry_sdk import traces
 
 from sentry.models.files import FileBlob
-from sentry.utils.tracing import set_span_data, set_span_tag, start_span
 
 
 def find_missing_chunks(organization_id: int, chunks: Set[str]) -> list[str]:
     """Returns a list of chunks which are missing for an org."""
-    with start_span(op="find_missing_chunks", name="find_missing_chunks") as span:
-        set_span_tag(span, "organization_id", organization_id)
-        set_span_data(span, "chunks_size", len(chunks))
-
+    with traces.start_span(
+        name="find_missing_chunks",
+        attributes={
+            "sentry.op": "find_missing_chunks",
+            "organization_id": organization_id,
+            "chunks_size": len(chunks),
+        },
+    ):
         if not chunks:
             return []
 
-        with start_span(
-            op="find_missing_chunks.fetch_owned_file_blobs",
+        with traces.start_span(
             name="find_missing_chunks.fetch_owned_file_blobs",
+            attributes={"sentry.op": "find_missing_chunks.fetch_owned_file_blobs"},
         ):
             owned_file_blobs = FileBlob.objects.filter(
                 checksum__in=chunks, fileblobowner__organization_id=organization_id
@@ -33,9 +37,9 @@ def find_missing_chunks(organization_id: int, chunks: Set[str]) -> list[str]:
         owned_file_chunks = {checksum for _, checksum, _ in owned_file_blobs}
         unowned_file_chunks = chunks - owned_file_chunks
 
-        with start_span(
-            op="find_missing_chunks.fetch_unowned_file_blobs",
+        with traces.start_span(
             name="find_missing_chunks.fetch_unowned_file_blobs",
+            attributes={"sentry.op": "find_missing_chunks.fetch_unowned_file_blobs"},
         ):
             unowned_file_blobs = FileBlob.objects.filter(
                 checksum__in=unowned_file_chunks,
@@ -56,9 +60,9 @@ def find_missing_chunks(organization_id: int, chunks: Set[str]) -> list[str]:
                 file_blobs_to_renew.add(id)
 
         if file_blobs_to_renew:
-            with start_span(
-                op="find_missing_chunks_new.update_timestamp",
+            with traces.start_span(
                 name="find_missing_chunks_new.update_timestamp",
+                attributes={"sentry.op": "find_missing_chunks_new.update_timestamp"},
             ):
                 # We update the timestamp of the file blobs that need renewal.
                 FileBlob.objects.filter(id__in=file_blobs_to_renew).update(timestamp=now)

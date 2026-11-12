@@ -1,11 +1,12 @@
 import type {AskSeerSearchQuery} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
-import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+import {VisualizeFunction} from './queryParams/visualize';
 import {
   getSeerExploreQuery,
   getSeerSort,
   getSeerWritableAggregateFields,
-} from 'sentry/views/explore/seerQuery';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
+} from './seerQuery';
 
 const pageDatetime = {
   start: null,
@@ -49,6 +50,29 @@ describe('getSeerExploreQuery', () => {
       mode: 'aggregate',
       datetime: {period: '24h'},
       visualizes: [{chartType: ChartType.BAR, yAxes: ['count()']}],
+    });
+  });
+
+  it('keeps Seer relative datetime mutually exclusive from absolute ranges', () => {
+    const result = getSeerExploreQuery({
+      pageDatetime: {
+        start: '2024-01-01T00:00:00',
+        end: '2024-01-02T00:00:00',
+        period: null,
+        utc: false,
+      },
+      result: seerResult({
+        start: '2024-06-01T00:00:00Z',
+        end: '2024-06-02T00:00:00Z',
+        statsPeriod: '24h',
+      }),
+    });
+
+    expect(result.datetime).toEqual({
+      start: null,
+      end: null,
+      period: '24h',
+      utc: null,
     });
   });
 

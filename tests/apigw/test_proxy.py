@@ -1,4 +1,6 @@
-import httpx
+from typing import Any, Callable, cast
+
+import punkreq
 import pytest
 from emmett55 import current
 from emmett_core.http.response import HTTPResponse
@@ -41,7 +43,7 @@ def test_proxied_url() -> None:
     )
 
     try:
-        current.response = Response(None)
+        current.response = cast("Callable[[Any], Response]", Response)(None)
         with pytest.raises(HTTPResponse):
             build_proxied_url("http://test-host.internal:9000", "//1.2.3.4:1234")
 
@@ -96,7 +98,7 @@ def test_proxied_cell_headers_gateway_marker() -> None:
 
 
 def test_adapt_response_headers_and_cookies() -> None:
-    upstream = httpx.Response(
+    upstream = punkreq.Response(
         301,
         headers=[
             ("set-cookie", "session=abc; Path=/; HttpOnly"),
@@ -112,7 +114,7 @@ def test_adapt_response_headers_and_cookies() -> None:
 
     # bind a real emmett response to the current context, as the app would
     try:
-        current.response = Response(None)
+        current.response = cast("Callable[[Any], Response]", Response)(None)
 
         # the returned coroutine streams the body to the protocol; the
         # response adaptation we validate here already happened

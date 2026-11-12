@@ -3,9 +3,9 @@ from __future__ import annotations
 import ipaddress
 import logging
 import socket
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from hashlib import sha256
-from typing import Any
+from typing import Any, cast
 
 import sentry_sdk
 import urllib3
@@ -99,6 +99,8 @@ def validate_cell_ip_address(ip: str) -> bool:
 class CellSiloClient(BaseApiClient):
     integration_type = "silo_client"
 
+    timeout = (2.0, 30.0)
+
     access_modes = [SiloMode.CONTROL]
 
     metrics_prefix = "silo_client.cell"
@@ -171,6 +173,7 @@ class CellSiloClient(BaseApiClient):
         json: bool = True,
         raw_response: bool = False,
         prefix_hash: str | None = None,
+        timeout: int | tuple[float, float] | None = None,
     ) -> Any:
         """
         Sends a request to the cell silo.
@@ -179,7 +182,8 @@ class CellSiloClient(BaseApiClient):
         if prefix_hash is not None:
             hash = sha256(f"{prefix_hash}{self.cell.name}{method}{path}".encode()).hexdigest()
             self.check_request_attempts(hash=hash, method=method, path=path)
-        return self._request(
+        request = cast("Callable[..., Any]", self._request)
+        return request(
             method=method,
             path=path,
             headers=clean_proxy_headers(headers),
@@ -188,6 +192,7 @@ class CellSiloClient(BaseApiClient):
             json=json,
             allow_text=True,
             raw_response=raw_response,
+            timeout=timeout,
         )
 
     def build_session(self) -> SafeSession:

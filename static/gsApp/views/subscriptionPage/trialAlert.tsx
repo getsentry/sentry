@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -9,7 +9,7 @@ import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import type {Subscription} from 'getsentry/types';
-import {getTrialDaysLeft} from 'getsentry/utils/billing';
+import {getTrialDaysLeft, isTrial} from 'getsentry/utils/billing';
 
 import {TrialBadge} from './trial/badge';
 import {ButtonWrapper, SubscriptionBody} from './styles';
@@ -20,7 +20,7 @@ type Props = {
 };
 
 export function TrialAlert({organization, subscription}: Props) {
-  if (!subscription.isTrial) {
+  if (!isTrial(subscription)) {
     return null;
   }
 
@@ -32,13 +32,9 @@ export function TrialAlert({organization, subscription}: Props) {
 
   const trialName = subscription.isEnterpriseTrial
     ? t('Enterprise Trial')
-    : subscription.isPerformancePlanTrial
-      ? t('Performance Trial')
-      : t('Business Plan Trial');
+    : t('Business Plan Trial');
 
-  const featuresName = subscription.isPerformancePlanTrial
-    ? 'performance'
-    : 'business plan';
+  const featuresName = 'business plan';
 
   return (
     <Container
@@ -47,8 +43,8 @@ export function TrialAlert({organization, subscription}: Props) {
       border="primary"
       radius="md"
     >
-      <SubscriptionBody withPadding>
-        <TrialInfo>
+      <SubscriptionBody>
+        <Grid gap="md" autoRows="auto">
           <Flex align="center" gap="md">
             <StyledHeading>{trialName}</StyledHeading>
             <TrialBadge subscription={subscription} organization={organization} />
@@ -58,7 +54,7 @@ export function TrialAlert({organization, subscription}: Props) {
               featuresName,
             })}
           </StyledSubText>
-        </TrialInfo>
+        </Grid>
 
         {subscription.canSelfServe && (
           <ButtonWrapper gap="0">
@@ -75,12 +71,6 @@ export function TrialAlert({organization, subscription}: Props) {
     </Container>
   );
 }
-
-const TrialInfo = styled('div')`
-  display: grid;
-  grid-auto-rows: auto;
-  gap: ${p => p.theme.space.md};
-`;
 
 const StyledHeading = styled('span')`
   font-weight: 400;

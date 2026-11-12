@@ -1,10 +1,17 @@
 import styled from '@emotion/styled';
 
-import type {ContentBlock} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
-import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+
+import type {ContentBlock} from './contentBlocks/types';
+import {
+  docsFlowProjectIdParams,
+  docsFlowVariantParams,
+  DSN_COPIED_EVENT,
+  resolveDocsFlowEvent,
+} from './docsFlowAnalytics';
+import type {DocsParams} from './types';
 
 function CopyDsnField({params}: {params: DocsParams<any>}) {
   return (
@@ -19,15 +26,12 @@ function CopyDsnField({params}: {params: DocsParams<any>}) {
       </p>
       <TextCopyInput
         onCopy={() =>
-          trackAnalytics(
-            params.hasScmOnboarding
-              ? 'onboarding.scm_dsn_copied'
-              : 'onboarding.dsn-copied',
-            {
-              organization: params.organization,
-              platform: params.platformKey,
-            }
-          )
+          trackAnalytics(resolveDocsFlowEvent(DSN_COPIED_EVENT, params.docsFlow), {
+            organization: params.organization,
+            platform: params.platformKey,
+            ...docsFlowProjectIdParams(params.docsFlow, params.project.id),
+            ...docsFlowVariantParams(params.docsFlow),
+          })
         }
       >
         {params.dsn.public}

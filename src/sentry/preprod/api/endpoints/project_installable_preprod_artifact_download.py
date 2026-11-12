@@ -40,6 +40,7 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
                 "preprod_artifact",
                 "preprod_artifact__project",
                 "preprod_artifact__mobile_app_info",
+                "preprod_artifact__build_configuration",
             ).get(
                 url_path=url_path,
             )
@@ -136,6 +137,8 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
 
             fp = file_obj.getfile()
             filename = preprod_artifact.app_id or "app"
+            if preprod_artifact.build_configuration:
+                filename += f"-{preprod_artifact.build_configuration.name}"
             mobile_app_info = preprod_artifact.get_mobile_app_info()
             build_version = mobile_app_info.build_version if mobile_app_info else None
             if build_version:
@@ -149,6 +152,6 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
                 fp,
                 content_type="application/octet-stream",
             )
-            response["Content-Length"] = file_obj.size
+            response["Content-Length"] = str(file_obj.size)
             response["Content-Disposition"] = f'attachment; filename="{filename}"'
             return response

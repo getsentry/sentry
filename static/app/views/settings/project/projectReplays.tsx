@@ -11,13 +11,13 @@ import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {ReplayBulkDeleteAuditLog} from 'sentry/components/replays/bulkDelete/replayBulkDeleteAuditLog';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {Project} from 'sentry/types/project';
-import {fetchMutation} from 'sentry/utils/queryClient';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
+import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
-import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
+
+import {ProjectPermissionAlert} from './projectPermissionAlert';
+import {useProjectSettingsOutlet} from './projectSettingsLayout';
 
 const replaySchema = z.object({
   'sentry:replay_rage_click_issues': z.boolean(),
@@ -33,21 +33,19 @@ const ReplaySettingsAlert = OverrideOrDefault({
 
 export default function ProjectReplaySettings() {
   const organization = useOrganization();
-  const {project} = useProjectSettingsOutlet();
+  const {project: outletProject} = useProjectSettingsOutlet();
+  const {data: project = outletProject} = useDetailedProject({
+    orgSlug: organization.slug,
+    projectSlug: outletProject.slug,
+  });
+  const updateProject = useUpdateProject(project);
   const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
   const hasAdminAccess = hasEveryAccess(['project:admin'], {organization, project});
   const hasAccess = hasWriteAccess || hasAdminAccess;
 
-  const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
-
   const mutationOptions = {
     mutationFn: (data: Partial<ReplaySchema>) =>
-      fetchMutation<Project>({
-        url: projectEndpoint,
-        method: 'PUT',
-        data: {options: data},
-      }),
-    onSuccess: (response: Project) => ProjectsStore.onUpdateSuccess(response),
+      updateProject.mutateAsync({options: data}),
   };
 
   const [tab, setTab] = useQueryState(
@@ -57,10 +55,70 @@ export default function ProjectReplaySettings() {
     )
   );
 
-  return (
+  const replayIssuesContent = (
     <FormSearch route="/settings/:orgId/projects/:projectId/replays/">
-      <SentryDocumentTitle title={t('Replays')} projectSlug={project.slug}>
-        <SettingsPageHeader title={t('Replays')} />
+      <ProjectPermissionAlert project={project} />
+      <ReplaySettingsAlert />
+
+      <FieldGroup title={t('Replay Issues')}>
+        <AutoSaveForm
+          name="sentry:replay_rage_click_issues"
+          schema={replaySchema}
+          initialValue={!!project.options?.['sentry:replay_rage_click_issues']}
+          mutationOptions={mutationOptions}
+        >
+          {field => (
+            <field.Layout.Row
+              label={t('Create Rage Click Issues')}
+              hintText={t(
+                'Toggles whether or not to create Session Replay Rage Click Issues'
+              )}
+            >
+              <field.Switch
+                checked={field.state.value}
+                onChange={field.handleChange}
+                disabled={!hasAccess}
+              />
+            </field.Layout.Row>
+          )}
+        </AutoSaveForm>
+
+        <AutoSaveForm
+          name="sentry:replay_hydration_error_issues"
+          schema={replaySchema}
+          initialValue={!!project.options?.['sentry:replay_hydration_error_issues']}
+          mutationOptions={mutationOptions}
+        >
+          {field => (
+            <field.Layout.Row
+              label={t('Create Hydration Error Issues')}
+              hintText={tct(
+                'Toggles whether or not to create Session Replay Hydration Error Issues during replay ingest. Using [inboundFilters: inbound filters] to filter out hydration errors does not affect this setting.',
+                {
+                  inboundFilters: (
+                    <Link
+                      to={`/settings/${organization.slug}/projects/${project.slug}/filters/data-filters/#filters-react-hydration-errors_help`}
+                    />
+                  ),
+                }
+              )}
+            >
+              <field.Switch
+                checked={field.state.value}
+                onChange={field.handleChange}
+                disabled={!hasAccess}
+              />
+            </field.Layout.Row>
+          )}
+        </AutoSaveForm>
+      </FieldGroup>
+    </FormSearch>
+  );
+
+  return (
+    <SentryDocumentTitle title={t('Replays')} projectSlug={project.slug}>
+      <SettingsPageHeader title={t('Replays')} />
+      {hasAccess ? (
         <TabsWithGap
           value={tab}
           onChange={value => setTab(value as 'replay-issues' | 'bulk-delete')}
@@ -70,65 +128,7 @@ export default function ProjectReplaySettings() {
             <TabList.Item key="bulk-delete">{t('Bulk Delete')}</TabList.Item>
           </TabList>
           <TabPanels>
-            <TabPanels.Item key="replay-issues">
-              <ProjectPermissionAlert project={project} />
-              <ReplaySettingsAlert />
-
-              <FieldGroup title={t('Replay Issues')}>
-                <AutoSaveForm
-                  name="sentry:replay_rage_click_issues"
-                  schema={replaySchema}
-                  initialValue={!!project.options?.['sentry:replay_rage_click_issues']}
-                  mutationOptions={mutationOptions}
-                >
-                  {field => (
-                    <field.Layout.Row
-                      label={t('Create Rage Click Issues')}
-                      hintText={t(
-                        'Toggles whether or not to create Session Replay Rage Click Issues'
-                      )}
-                    >
-                      <field.Switch
-                        checked={field.state.value}
-                        onChange={field.handleChange}
-                        disabled={!hasAccess}
-                      />
-                    </field.Layout.Row>
-                  )}
-                </AutoSaveForm>
-
-                <AutoSaveForm
-                  name="sentry:replay_hydration_error_issues"
-                  schema={replaySchema}
-                  initialValue={
-                    !!project.options?.['sentry:replay_hydration_error_issues']
-                  }
-                  mutationOptions={mutationOptions}
-                >
-                  {field => (
-                    <field.Layout.Row
-                      label={t('Create Hydration Error Issues')}
-                      hintText={tct(
-                        'Toggles whether or not to create Session Replay Hydration Error Issues during replay ingest. Using [inboundFilters: inbound filters] to filter out hydration errors does not affect this setting.',
-                        {
-                          inboundFilters: (
-                            <Link
-                              to={`/settings/${organization.slug}/projects/${project.slug}/filters/data-filters/#filters-react-hydration-errors_help`}
-                            />
-                          ),
-                        }
-                      )}
-                    >
-                      <field.Switch
-                        checked={field.state.value}
-                        onChange={field.handleChange}
-                        disabled={!hasAccess}
-                      />
-                    </field.Layout.Row>
-                  )}
-                </AutoSaveForm>
-              </FieldGroup>
-            </TabPanels.Item>
+            <TabPanels.Item key="replay-issues">{replayIssuesContent}</TabPanels.Item>
             <TabPanels.Item key="bulk-delete">
               <p>
                 {t(
@@ -139,8 +139,10 @@ export default function ProjectReplaySettings() {
             </TabPanels.Item>
           </TabPanels>
         </TabsWithGap>
-      </SentryDocumentTitle>
-    </FormSearch>
+      ) : (
+        replayIssuesContent
+      )}
+    </SentryDocumentTitle>
   );
 }
 

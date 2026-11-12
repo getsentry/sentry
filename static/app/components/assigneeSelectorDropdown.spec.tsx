@@ -7,10 +7,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
-import {
-  AssigneeSelectorDropdown,
-  type AssignableEntity,
-} from 'sentry/components/assigneeSelectorDropdown';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -19,6 +15,11 @@ import type {Group} from 'sentry/types/group';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
+
+import {
+  AssigneeSelectorDropdown,
+  type AssignableEntity,
+} from './assigneeSelectorDropdown';
 
 jest.mock('sentry/actionCreators/modal', () => ({
   openInviteMembersModal: jest.fn(),
@@ -485,7 +486,7 @@ describe('AssigneeSelectorDropdown', () => {
     await openMenu();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
-    await userEvent.type(screen.getByRole('textbox'), 'Cert');
+    await userEvent.type(screen.getByRole('searchbox'), 'Cert');
 
     // 1 total item
     await waitFor(() => {
@@ -529,7 +530,7 @@ describe('AssigneeSelectorDropdown', () => {
     await openMenu();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
-    await userEvent.type(screen.getByRole('textbox'), 'github@example.com');
+    await userEvent.type(screen.getByRole('searchbox'), 'github@example.com');
 
     // 1 total item
     await waitFor(() => {
@@ -608,7 +609,28 @@ describe('AssigneeSelectorDropdown', () => {
     });
   });
 
-  it('shows the suggested assignee even if they would be cut off by the size limit', async () => {
+  it('labels suggested owner reason on the current assignee as a suggestion', async () => {
+    const assignedGroup: Group = {
+      ...GROUP_2,
+      assignedTo: {id: USER_1.id, name: USER_1.name, type: 'user'},
+    };
+
+    render(
+      <AssigneeSelectorDropdown
+        group={assignedGroup}
+        loading={false}
+        memberList={[USER_1, USER_2, USER_3, USER_4]}
+        onAssign={newAssignee => updateGroup(assignedGroup, newAssignee)}
+      />
+    );
+
+    await userEvent.hover(screen.getByTestId('letter_avatar-avatar'));
+
+    expect(await screen.findByText(`Assigned to ${USER_1.name}`)).toBeInTheDocument();
+    expect(await screen.findByText('Suggested based on')).toBeInTheDocument();
+  });
+
+  it('shows the suggested assignee at the top of the menu', async () => {
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_3);
 
     render(
@@ -617,7 +639,6 @@ describe('AssigneeSelectorDropdown', () => {
         loading={false}
         memberList={[USER_1, USER_2, USER_3, USER_4]}
         onAssign={newAssignee => updateGroup(GROUP_3, newAssignee)}
-        sizeLimit={2}
       />
     );
 
@@ -625,10 +646,7 @@ describe('AssigneeSelectorDropdown', () => {
     expect(await screen.findByText('GH')).toBeInTheDocument();
 
     await openMenu();
-    // User 4, Git Hub, would have normally been cut off by the size limit since it is
-    // alphabetically last, but it should still be shown because it is a suggested assignee
     const options = await screen.findAllByRole('option');
-    expect(options).toHaveLength(2);
     expect(options[0]).toHaveTextContent('GH');
   });
 
@@ -648,6 +666,7 @@ describe('AssigneeSelectorDropdown', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'Invite Member'}));
     expect(openInviteMembersModal).toHaveBeenCalled();
+    expect(screen.queryByRole('button', {name: 'Invite Member'})).not.toBeInTheDocument();
     jest.mocked(ConfigStore.get).mockRestore();
   });
 

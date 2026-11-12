@@ -4,6 +4,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {toast} from '@sentry/scraps/toast';
+
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 import {DisabledAlert} from './disabledAlert';
@@ -71,6 +73,36 @@ describe('DisabledAlert', () => {
           method: 'PUT',
           data: {detectorId: '123', enabled: true},
         })
+      );
+    });
+  });
+
+  it('displays the API error in a toast when enabling fails', async () => {
+    const detector = UptimeDetectorFixture({
+      id: '123',
+      enabled: false,
+      projectId: project.id,
+    });
+    const mockAddErrorMessage = jest.spyOn(toast, 'error');
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/123/',
+      method: 'PUT',
+      statusCode: 400,
+      body: {
+        enabled: ["You don't have enough pay-as-you-go available to create a new seat"],
+      },
+    });
+
+    render(<DisabledAlert detector={detector} message="Test message" />, {
+      organization,
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Enable'}));
+
+    await waitFor(() => {
+      expect(mockAddErrorMessage).toHaveBeenCalledWith(
+        "You don't have enough pay-as-you-go available to create a new seat"
       );
     });
   });

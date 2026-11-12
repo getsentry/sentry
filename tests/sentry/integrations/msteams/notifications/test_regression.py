@@ -50,3 +50,28 @@ class MSTeamsRegressionNotificationTest(MSTeamsActivityNotificationTest):
             f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=regression\\_activity-msteams-user&amp;notification\\_uuid={notification_uuid}&amp;organizationId={self.organization.id})"
             == body[3]["columns"][1]["items"][0]["text"]
         )
+
+    def test_regression_with_event_id(self, mock_send_card: MagicMock) -> None:
+        """
+        Test that the card links to the specific event when event_id is present.
+        """
+        event_id = "a" * 32
+        notification = RegressionActivityNotification(
+            Activity(
+                project=self.project,
+                group=self.group,
+                user_id=self.user.id,
+                type=ActivityType.SET_REGRESSION,
+                data={"event_id": event_id},
+            )
+        )
+        with self.tasks():
+            notification.send()
+
+        mock_send_card.assert_called_once()
+        args, kwargs = mock_send_card.call_args
+        body = args[1]["body"]
+        assert (
+            f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/events/{event_id}/?referrer=regression\\_activity-msteams&amp;notification\\_uuid="
+            in body[1]["text"]
+        )

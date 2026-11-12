@@ -8,11 +8,12 @@ import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {EventView} from 'sentry/utils/discover/eventView';
-import {getFieldRenderer, renderUrlCellValue} from 'sentry/utils/discover/fieldRenderers';
-import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'sentry/utils/discover/fields';
 import {WidgetType, type DashboardFilters} from 'sentry/views/dashboards/types';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {EventView} from './eventView';
+import {getFieldRenderer, renderUrlCellValue} from './fieldRenderers';
+import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from './fields';
 
 jest.mock('sentry/actionCreators/modal', () => ({
   openNavigateToExternalLinkModal: jest.fn(),
@@ -235,6 +236,31 @@ describe('getFieldRenderer', () => {
     );
 
     expect(screen.getByText('true')).toBeInTheDocument();
+  });
+
+  it('renders boolean false without coercing empty values', () => {
+    const renderer = getFieldRenderer('boolValue', {boolValue: 'boolean'});
+    const validate = (value: unknown, expected: string) => {
+      const {unmount} = render(
+        renderer(
+          {...data, boolValue: value},
+          {
+            location,
+            navigate: jest.fn(),
+            organization,
+            theme,
+          }
+        ) as React.ReactElement<any, any>
+      );
+      expect(screen.getByText(expected)).toBeInTheDocument();
+      unmount();
+    };
+
+    validate(true, 'true');
+    validate(false, 'false');
+    validate('', '(no value)');
+    validate(null, '(no value)');
+    validate(undefined, '(no value)');
   });
 
   it('can render integer fields', () => {

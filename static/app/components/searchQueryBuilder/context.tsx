@@ -16,27 +16,28 @@ import type {
   GetTagValues,
   SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
-import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
-import {useFilterKeyRegistry} from 'sentry/components/searchQueryBuilder/hooks/useFilterKeyRegistry';
-import {useHandleSearch} from 'sentry/components/searchQueryBuilder/hooks/useHandleSearch';
-import {
-  useQueryBuilderState,
-  type QueryBuilderActions,
-} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
-import type {
-  FieldDefinitionGetter,
-  FilterKeySection,
-  FocusOverride,
-} from 'sentry/components/searchQueryBuilder/types';
-import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
-import type {ParseResult} from 'sentry/components/searchSyntax/parser';
+import {InvalidReason, type ParseResult} from 'sentry/components/searchSyntax/parser';
 import type {SavedSearchType, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {getFieldDefinition as defaultGetFieldDefinition} from 'sentry/utils/fields';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
+import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
+
+import {useFilterKeyRegistry} from './hooks/useFilterKeyRegistry';
+import {useHandleSearch} from './hooks/useHandleSearch';
+import {
+  useQueryBuilderState,
+  type QueryBuilderActions,
+} from './hooks/useQueryBuilderState';
+import {useRegexPatternValidator} from './hooks/useRegexPatternValidator';
+import type {CaseInsensitive} from './hooks';
+import type {FieldDefinitionGetter, FilterKeySection, FocusOverride} from './types';
+import {parseQueryBuilderValue} from './utils';
+
+export const DEFAULT_FILTER_KEY_MENU_WIDTH = 460;
 
 interface SearchQueryBuilderStateContextData {
   clearSearchQuery: (options?: {reopenDropdown?: boolean}) => void;
@@ -50,10 +51,12 @@ interface SearchQueryBuilderStateContextData {
 }
 
 interface SearchQueryBuilderConfigContextData {
+  allowRegexOperators: boolean;
   caseInsensitive: CaseInsensitive | undefined;
   disabled: boolean;
   disallowFreeText: boolean;
   disallowLogicalOperators: boolean;
+  disallowNegation: boolean;
   disallowWildcard: boolean;
   filterKeyAliases: TagCollection | undefined;
   filterKeyRegistryQueryKey: QueryKey;
@@ -63,11 +66,18 @@ interface SearchQueryBuilderConfigContextData {
   getSuggestedFilterKey: (key: string) => string | null;
   getTagKeys: GetTagKeys | undefined;
   getTagValues: GetTagValues;
+  /**
+   * Optional override for the tooltip shown when a key is in `invalidFilterKeys`.
+   * Falls back to the default "Invalid key..." copy when unset.
+   */
+  invalidFilterKeyMessage: string | undefined;
   invalidFilterKeys: string[];
+  keepOperatorOnValueSelect: boolean;
   matchKeySuggestions: Array<{key: string; valuePattern: RegExp}> | undefined;
   namespace: string | undefined;
   onCaseInsensitiveClick: ((value: CaseInsensitive) => void) | undefined;
   placeholder: string | undefined;
+  prioritizedFilterKeys: string[] | undefined;
   recentSearches: SavedSearchType | undefined;
   replaceRawSearchKeys: string[] | undefined;
   searchSource: string;
@@ -76,23 +86,31 @@ interface SearchQueryBuilderConfigContextData {
 interface SearchQueryBuilderLayoutContextData {
   actionBarRef: React.RefObject<HTMLDivElement | null>;
   currentInputValueRef: React.RefObject<string>;
+  disableFullWidthFilterKeyMenu: boolean;
   filterKeyMenuWidth: number;
+  menuPresentation: 'floating' | 'panel';
+  panelRef: React.RefObject<HTMLDivElement | null>;
   portalTarget: HTMLElement | null | undefined;
+  setMenuContainer: (element: HTMLDivElement | null) => void;
+  showAllFilterValues: boolean;
   size: 'small' | 'normal';
   wrapperRef: React.RefObject<HTMLDivElement | null>;
 }
 
 interface SearchQueryBuilderAIContextData {
-  aiSearchBadgeType: 'alpha' | 'beta';
   askSeerNLQueryRef: React.RefObject<string | null>;
   askSeerSuggestedQueryRef: React.RefObject<string | null>;
+  autoSubmitFromCurrentQuery: boolean;
   autoSubmitSeer: boolean;
+  defaultToAskSeerOnFreeTextSearch: boolean;
   displayAskSeer: boolean;
   displayAskSeerFeedback: boolean;
   enableAISearch: boolean;
+  setAutoSubmitFromCurrentQuery: (enabled: boolean) => void;
   setAutoSubmitSeer: (enabled: boolean) => void;
   setDisplayAskSeer: (enabled: boolean) => void;
   setDisplayAskSeerFeedback: (enabled: boolean) => void;
+  skipNextSearchQueryBuilderAutoFocusRef: React.RefObject<boolean>;
 }
 
 interface SearchQueryBuilderInteractionContextData {
@@ -159,18 +177,21 @@ const SearchQueryBuilderProviderContext = createContext(false);
 
 export function SearchQueryBuilderProvider({
   children,
-  aiSearchBadgeType = 'beta',
+  allowRegexOperators,
   disabled = false,
   disallowLogicalOperators,
   disallowFreeText,
+  disallowNegation,
   disallowUnsupportedFilters,
   disallowWildcard,
+  defaultToAskSeerOnFreeTextSearch: defaultToAskSeerOnFreeTextSearchProp,
   enableAISearch: enableAISearchProp,
   invalidMessages,
   initialQuery,
   fieldDefinitionGetter = defaultFieldDefinitionGetter,
   filterKeys,
-  filterKeyMenuWidth = 460,
+  filterKeyMenuWidth = DEFAULT_FILTER_KEY_MENU_WIDTH,
+  menuPresentation = 'floating',
   filterKeySections,
   getSuggestedFilterKey,
   getTagKeys,
@@ -182,35 +203,44 @@ export function SearchQueryBuilderProvider({
   searchSource,
   getFilterTokenWarning,
   portalTarget,
+  prioritizedFilterKeys,
   replaceRawSearchKeys,
   matchKeySuggestions,
   filterKeyAliases,
   caseInsensitive,
   onCaseInsensitiveClick,
   invalidFilterKeys,
+  keepOperatorOnValueSelect,
+  disableFullWidthFilterKeyMenu = false,
+  showAllFilterValues = false,
   asyncFilterKeyRegistryQueryKey,
 }: SearchQueryBuilderProps & {children: React.ReactNode}) {
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
+  const [menuContainer, setMenuContainer] = useState<HTMLDivElement | null>(null);
 
+  const [autoSubmitFromCurrentQuery, setAutoSubmitFromCurrentQuery] = useState(false);
   const [autoSubmitSeer, setAutoSubmitSeer] = useState(false);
   const [displayAskSeerFeedback, setDisplayAskSeerFeedback] = useState(false);
   const [reopenDropdownOnQueryClear, setReopenDropdownOnQueryClear] = useState(false);
   const currentInputValueRef = useRef('');
   const askSeerNLQueryRef = useRef<string | null>(null);
   const askSeerSuggestedQueryRef = useRef<string | null>(null);
+  const skipNextSearchQueryBuilderAutoFocusRef = useRef(false);
 
   const organization = useOrganization();
   const enableAISearch =
-    Boolean(enableAISearchProp) &&
-    !organization.hideAiFeatures &&
-    organization.features.includes('gen-ai-features');
+    Boolean(enableAISearchProp) && areAiFeaturesAllowed(organization);
+  const defaultToAskSeerOnFreeTextSearch =
+    enableAISearch && Boolean(defaultToAskSeerOnFreeTextSearchProp);
 
   const [displayAskSeerState, setDisplayAskSeerState] = useState(false);
   const displayAskSeer = enableAISearch ? displayAskSeerState : false;
 
   const {filterKeyRegistryQueryOptions, registerFilterKeys} = useFilterKeyRegistry({
     asyncFilterKeyRegistryQueryKey,
+    enabled: Boolean(getTagKeys || asyncFilterKeyRegistryQueryKey),
   });
 
   const {data: asyncFilterKeys = {}} = useQuery(filterKeyRegistryQueryOptions);
@@ -258,12 +288,19 @@ export function SearchQueryBuilderProvider({
     [invalidFilterKeys]
   );
 
+  const invalidFilterKeyMessage = invalidMessages?.[InvalidReason.INVALID_KEY];
+
+  const validateRegexPattern = useRegexPatternValidator(Boolean(allowRegexOperators));
+
   const parseQuery = useCallback(
     (query: string) =>
       parseQueryBuilderValue(query, getFieldDefinitionWithTagMetadata, {
+        allowRegexOperators,
+        validateRegexPattern,
         getFilterTokenWarning,
         disallowFreeText,
         disallowLogicalOperators,
+        disallowNegation,
         disallowUnsupportedFilters,
         disallowWildcard,
         filterKeys: mergedFilterKeys,
@@ -272,8 +309,10 @@ export function SearchQueryBuilderProvider({
         filterKeyAliases,
       }),
     [
+      allowRegexOperators,
       disallowFreeText,
       disallowLogicalOperators,
+      disallowNegation,
       disallowUnsupportedFilters,
       disallowWildcard,
       getFieldDefinitionWithTagMetadata,
@@ -282,6 +321,7 @@ export function SearchQueryBuilderProvider({
       invalidMessages,
       stableInvalidFilterKeys,
       filterKeyAliases,
+      validateRegexPattern,
     ]
   );
 
@@ -343,16 +383,21 @@ export function SearchQueryBuilderProvider({
       setDisplayAskSeerFeedback(false);
       setReopenDropdownOnQueryClear(reopenDropdown);
       dispatch({type: 'CLEAR'});
-      handleSearch('');
+      // A changed committed query already searches via useOnChange
+      if (state.committedQuery === '') {
+        handleSearch('');
+      }
     },
-    [dispatch, handleSearch]
+    [dispatch, handleSearch, state.committedQuery]
   );
 
   const consumeReopenDropdownOnQueryClear = useCallback(() => {
     setReopenDropdownOnQueryClear(false);
   }, []);
 
-  const {width: searchBarWidth} = useDimensions({elementRef: wrapperRef});
+  const {width: searchBarWidth} = useDimensions({
+    elementRef: wrapperRef,
+  });
   const size =
     searchBarWidth && searchBarWidth < 600 ? ('small' as const) : ('normal' as const);
 
@@ -380,10 +425,12 @@ export function SearchQueryBuilderProvider({
 
   const configValue = useMemo((): SearchQueryBuilderConfigContextData => {
     return {
+      allowRegexOperators: Boolean(allowRegexOperators),
       caseInsensitive,
       disabled,
       disallowFreeText: Boolean(disallowFreeText),
       disallowLogicalOperators: Boolean(disallowLogicalOperators),
+      disallowNegation: Boolean(disallowNegation),
       disallowWildcard: Boolean(disallowWildcard),
       filterKeyAliases,
       filterKeyRegistryQueryKey: filterKeyRegistryQueryOptions.queryKey,
@@ -393,20 +440,25 @@ export function SearchQueryBuilderProvider({
       getSuggestedFilterKey: stableGetSuggestedFilterKey,
       getTagKeys: getTagKeys ? registeredGetTagKeys : undefined,
       getTagValues,
+      invalidFilterKeyMessage,
       invalidFilterKeys: stableInvalidFilterKeys,
+      keepOperatorOnValueSelect: Boolean(keepOperatorOnValueSelect),
       matchKeySuggestions,
       namespace,
       onCaseInsensitiveClick,
       placeholder,
+      prioritizedFilterKeys,
       recentSearches,
       replaceRawSearchKeys,
       searchSource,
     };
   }, [
+    allowRegexOperators,
     caseInsensitive,
     disabled,
     disallowFreeText,
     disallowLogicalOperators,
+    disallowNegation,
     disallowWildcard,
     filterKeyAliases,
     filterKeyRegistryQueryOptions.queryKey,
@@ -414,11 +466,14 @@ export function SearchQueryBuilderProvider({
     getTagKeys,
     registeredGetTagKeys,
     getTagValues,
+    invalidFilterKeyMessage,
     stableInvalidFilterKeys,
+    keepOperatorOnValueSelect,
     matchKeySuggestions,
     namespace,
     onCaseInsensitiveClick,
     placeholder,
+    prioritizedFilterKeys,
     recentSearches,
     replaceRawSearchKeys,
     searchSource,
@@ -431,42 +486,58 @@ export function SearchQueryBuilderProvider({
     return {
       actionBarRef,
       currentInputValueRef,
+      disableFullWidthFilterKeyMenu:
+        menuPresentation === 'panel' || disableFullWidthFilterKeyMenu,
       filterKeyMenuWidth,
-      portalTarget,
+      menuPresentation,
+      panelRef,
+      portalTarget: menuPresentation === 'panel' ? menuContainer : portalTarget,
+      setMenuContainer,
+      showAllFilterValues,
       size,
       wrapperRef,
     };
   }, [
     actionBarRef,
     currentInputValueRef,
+    disableFullWidthFilterKeyMenu,
     filterKeyMenuWidth,
+    menuPresentation,
+    menuContainer,
+    panelRef,
     portalTarget,
+    showAllFilterValues,
     size,
     wrapperRef,
   ]);
 
   const aiValue = useMemo((): SearchQueryBuilderAIContextData => {
     return {
-      aiSearchBadgeType,
       askSeerNLQueryRef,
       askSeerSuggestedQueryRef,
+      autoSubmitFromCurrentQuery,
       autoSubmitSeer,
+      defaultToAskSeerOnFreeTextSearch,
       displayAskSeer,
       displayAskSeerFeedback,
       enableAISearch,
+      setAutoSubmitFromCurrentQuery,
       setAutoSubmitSeer,
       setDisplayAskSeer: setDisplayAskSeerState,
       setDisplayAskSeerFeedback,
+      skipNextSearchQueryBuilderAutoFocusRef,
     };
   }, [
-    aiSearchBadgeType,
     askSeerNLQueryRef,
     askSeerSuggestedQueryRef,
+    autoSubmitFromCurrentQuery,
     autoSubmitSeer,
+    defaultToAskSeerOnFreeTextSearch,
     displayAskSeer,
     displayAskSeerFeedback,
     enableAISearch,
     setDisplayAskSeerFeedback,
+    skipNextSearchQueryBuilderAutoFocusRef,
   ]);
 
   const interactionValue = useMemo((): SearchQueryBuilderInteractionContextData => {

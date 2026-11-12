@@ -1,18 +1,111 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {LogFixture} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import type {Sort} from 'sentry/utils/discover/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {LOGS_GROUP_BY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {
-  OurLogKnownFieldKey,
-  type OurLogsResponseItem,
-} from 'sentry/views/explore/logs/types';
+import type {TraceItemDetailsResponse} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
+import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+
+import {OurLogKnownFieldKey, type OurLogsResponseItem} from './types';
 import {
   compareLogRowsBySortBys,
+  createErrorLogRow,
   getLogsUrlFromSavedQueryUrl,
   type LogTableRowItem,
-} from 'sentry/views/explore/logs/utils';
-import {Mode} from 'sentry/views/explore/queryParams/mode';
+  ourlogToJson,
+  viewLogsSamplesTarget,
+} from './utils';
+
+describe('ourlogToJson', () => {
+  const log: TraceItemDetailsResponse = {
+    itemId: '0123456789abcdef',
+    timestamp: '2020-01-01T00:00:00Z',
+    meta: {},
+    attributes: [
+      {name: 'message', rawName: 'sentry.body', type: 'str', value: 'message'},
+      {
+        name: 'tags[sentry.custom,number]',
+        rawName: 'sentry.custom',
+        type: 'int',
+        value: 42,
+      },
+      {
+        name: 'sentry.tags',
+        rawName: 'sentry.tags',
+        type: 'array',
+        value: ['first', 'second'],
+      },
+      {name: 'custom.bool', type: 'bool', value: true},
+      {name: OurLogKnownFieldKey.TIMESTAMP_NANOS, type: 'int', value: 123},
+    ],
+  };
+
+  it('preserves attribute names and values when the flag is enabled', () => {
+    expect(JSON.parse(ourlogToJson(log, true))).toEqual({
+      id: log.itemId,
+      'sentry.body': 'message',
+      'sentry.custom': 42,
+      'sentry.tags': ['first', 'second'],
+      'custom.bool': true,
+    });
+  });
+});
+
+describe('viewLogsSamplesTarget', () => {
+  it('does not add a filter for an empty group by', () => {
+    const location = LocationFixture({
+      query: {
+        [LOGS_GROUP_BY_KEY]: '',
+        aggregateField: JSON.stringify({groupBy: ''}),
+        logsAggregateSortBys: '-count(message)',
+      },
+    });
+    const target = viewLogsSamplesTarget({
+      location,
+      search: new MutableSearch(''),
+      fields: ['message'],
+      groupBys: [''],
+      visualizes: [new VisualizeFunction('count(message)')],
+      sorts: [{field: 'count(message)', kind: 'desc'}],
+      row: {},
+      projects: [ProjectFixture()],
+    });
+
+    expect(target.query[LOGS_GROUP_BY_KEY]).toBe('');
+    expect(target.query.aggregateField).toBe(location.query.aggregateField);
+    expect(target.query.logsAggregateSortBys).toBe('-count(message)');
+    expect(target.query.logsQuery).toBe('');
+  });
+
+  it('adds a boolean group by value to the samples query', () => {
+    const location = LocationFixture({
+      query: {
+        logsQuery: 'message:resolver.deprecated_function_used',
+      },
+    });
+    const target = viewLogsSamplesTarget({
+      location,
+      search: new MutableSearch('message:resolver.deprecated_function_used'),
+      fields: ['trace', 'message', 'timestamp'],
+      groupBys: ['tags[api_token_is_sentry_app,boolean]'],
+      visualizes: [new VisualizeFunction('count(message)')],
+      sorts: [{field: 'timestamp', kind: 'desc'}],
+      row: {'tags[api_token_is_sentry_app,boolean]': true},
+      projects: [ProjectFixture()],
+    });
+
+    expect(target.query.mode).toBe('samples');
+    expect(target.query.logsQuery).toBe(
+      'message:resolver.deprecated_function_used tags[api_token_is_sentry_app,boolean]:true'
+    );
+  });
+});
 
 describe('getLogsUrlFromSavedQueryUrl', () => {
   const organization = OrganizationFixture();
@@ -53,7 +146,7 @@ describe('getLogsUrlFromSavedQueryUrl', () => {
       }),
     });
     expect(target).toBe(
-      '/organizations/org-slug/explore/logs/?aggregateField=%7B%22groupBy%22%3A%22severity%22%7D&aggregateField=%7B%22yAxes%22%3A%5B%22count%28message%29%22%5D%7D&aggregateField=%7B%22yAxes%22%3A%5B%22p75%28foo%29%22%2C%22p90%28foo%29%22%5D%2C%22chartType%22%3A1%7D&id=1&interval=5m&logsFields=timestamp&logsFields=severity&logsFields=message&logsQuery=message%3Afoo&logsSortBys=-timestamp&mode=samples&project=&title=foobar'
+      '/organizations/org-slug/explore/logs/?aggregateField=%7B%22groupBy%22%3A%22severity%22%7D&aggregateField=%7B%22yAxes%22%3A%5B%22count%28message%29%22%5D%7D&aggregateField=%7B%22yAxes%22%3A%5B%22p75%28foo%29%22%2C%22p90%28foo%29%22%5D%2C%22chartType%22%3A1%7D&caseInsensitive=0&id=1&interval=5m&logsFields=timestamp&logsFields=severity&logsFields=message&logsQuery=message%3Afoo&logsSortBys=-timestamp&mode=samples&project=&title=foobar'
     );
   });
 
@@ -93,7 +186,7 @@ describe('getLogsUrlFromSavedQueryUrl', () => {
       }),
     });
     expect(target).toBe(
-      '/organizations/org-slug/explore/logs/?aggregateField=%7B%22groupBy%22%3A%22severity%22%7D&aggregateField=%7B%22yAxes%22%3A%5B%22count%28message%29%22%5D%7D&aggregateField=%7B%22yAxes%22%3A%5B%22p75%28foo%29%22%2C%22p90%28foo%29%22%5D%2C%22chartType%22%3A1%7D&id=1&interval=5m&logsFields=timestamp&logsFields=severity&logsFields=message&logsQuery=message%3Afoo&logsSortBys=-timestamp&mode=samples&project=&title=foobar'
+      '/organizations/org-slug/explore/logs/?aggregateField=%7B%22groupBy%22%3A%22severity%22%7D&aggregateField=%7B%22yAxes%22%3A%5B%22count%28message%29%22%5D%7D&aggregateField=%7B%22yAxes%22%3A%5B%22p75%28foo%29%22%2C%22p90%28foo%29%22%5D%2C%22chartType%22%3A1%7D&caseInsensitive=0&id=1&interval=5m&logsFields=timestamp&logsFields=severity&logsFields=message&logsQuery=message%3Afoo&logsSortBys=-timestamp&mode=samples&project=&title=foobar'
     );
   });
 });
@@ -112,8 +205,8 @@ describe('compareLogRowsBySortBys', () => {
   }
 
   function sortedIds(rows: LogTableRowItem[], sortBys: Sort[]): string[] {
-    return [...rows]
-      .sort((a, b) => compareLogRowsBySortBys(a, b, sortBys))
+    return rows
+      .toSorted((a, b) => compareLogRowsBySortBys(a, b, sortBys))
       .map(row => row[OurLogKnownFieldKey.ID]);
   }
 
@@ -228,5 +321,37 @@ describe('compareLogRowsBySortBys', () => {
     expect(() =>
       sortedIds([invalid, older], [{field: OurLogKnownFieldKey.TIMESTAMP, kind: 'desc'}])
     ).not.toThrow();
+  });
+});
+
+describe('createErrorLogRow', () => {
+  const baseError: TraceTree.TraceError = {
+    event_id: 'abc123',
+    issue: 'JAVASCRIPT-1',
+    issue_id: 42,
+    level: 'error',
+    message: 'Boom happened',
+    project_id: 1,
+    project_slug: 'my-project',
+    span: 'span1',
+    title: 'TypeError: Boom happened',
+  };
+
+  it('uses the error timestamp when present', () => {
+    const row = createErrorLogRow({...baseError, timestamp: 100}, 5);
+
+    expect(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]).toBe(100 * 1e9);
+  });
+
+  it('falls back to the provided timestamp when the error has no timestamp', () => {
+    const row = createErrorLogRow(baseError, 50);
+
+    expect(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]).toBe(50 * 1e9);
+  });
+
+  it('defaults to the epoch when no error or fallback timestamp is available', () => {
+    const row = createErrorLogRow(baseError);
+
+    expect(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]).toBe(0);
   });
 });

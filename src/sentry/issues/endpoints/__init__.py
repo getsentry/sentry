@@ -4,6 +4,7 @@ from .group_details import GroupDetailsEndpoint
 from .group_event_details import GroupEventDetailsEndpoint
 from .group_events import GroupEventsEndpoint
 from .group_hashes import GroupHashesEndpoint
+from .group_impact_assessment import GroupImpactAssessmentEndpoint
 from .group_notes import GroupNotesEndpoint
 from .group_notes_details import GroupNotesDetailsEndpoint
 from .group_pull_requests import GroupPullRequestsEndpoint
@@ -11,10 +12,10 @@ from .group_similar_issues import GroupSimilarIssuesEndpoint
 from .group_similar_issues_embeddings import GroupSimilarIssuesEmbeddingsEndpoint
 from .group_tombstone import GroupTombstoneEndpoint
 from .group_tombstone_details import GroupTombstoneDetailsEndpoint
+from .organization_code_mapping_repo_prefixes import OrganizationCodeMappingRepoPrefixesEndpoint
 from .organization_derive_code_mappings import OrganizationDeriveCodeMappingsEndpoint
 from .organization_eventid import EventIdLookupEndpoint
 from .organization_group_index import OrganizationGroupIndexEndpoint
-from .organization_group_index_progress import OrganizationGroupIndexProgressEndpoint
 from .organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
 from .organization_group_search_view_details import OrganizationGroupSearchViewDetailsEndpoint
 from .organization_group_search_view_details_starred import (
@@ -27,6 +28,7 @@ from .organization_issues_count import OrganizationIssuesCountEndpoint
 from .organization_issues_with_supergroups import OrganizationIssuesWithSupergroupsEndpoint
 from .organization_release_previous_commits import OrganizationReleasePreviousCommitsEndpoint
 from .organization_shortid import ShortIdLookupEndpoint
+from .project_code_mapping_stack_prefixes import ProjectCodeMappingStackPrefixesEndpoint
 from .project_event_details import EventJsonEndpoint, ProjectEventDetailsEndpoint
 from .project_events import ProjectEventsEndpoint
 from .project_group_index import ProjectGroupIndexEndpoint
@@ -46,6 +48,7 @@ __all__ = (
     "GroupEventDetailsEndpoint",
     "GroupEventsEndpoint",
     "GroupHashesEndpoint",
+    "GroupImpactAssessmentEndpoint",
     "GroupNotesDetailsEndpoint",
     "GroupNotesEndpoint",
     "GroupPullRequestsEndpoint",
@@ -53,9 +56,9 @@ __all__ = (
     "GroupSimilarIssuesEndpoint",
     "GroupTombstoneDetailsEndpoint",
     "GroupTombstoneEndpoint",
+    "OrganizationCodeMappingRepoPrefixesEndpoint",
     "OrganizationDeriveCodeMappingsEndpoint",
     "OrganizationGroupIndexEndpoint",
-    "OrganizationGroupIndexProgressEndpoint",
     "OrganizationGroupIndexStatsEndpoint",
     "OrganizationGroupSearchViewsEndpoint",
     "OrganizationGroupSearchViewDetailsEndpoint",
@@ -69,6 +72,7 @@ __all__ = (
     "ProjectEventsEndpoint",
     "ProjectGroupIndexEndpoint",
     "ProjectGroupStatsEndpoint",
+    "ProjectCodeMappingStackPrefixesEndpoint",
     "ProjectStacktraceLinkEndpoint",
     "ProjectStacktraceSourceContextEndpoint",
     "RelatedIssuesEndpoint",

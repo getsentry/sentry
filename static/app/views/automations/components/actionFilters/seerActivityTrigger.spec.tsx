@@ -3,13 +3,14 @@ import {DataConditionFixture} from 'sentry-fixture/automations';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
+import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
+import {DataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
+
 import {
   SeerActivityTriggerDetails,
   SeerActivityTriggerNode,
   validateSeerActivityTriggerCondition,
-} from 'sentry/views/automations/components/actionFilters/seerActivityTrigger';
-import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
-import {DataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
+} from './seerActivityTrigger';
 
 describe('SeerActivityTriggerDetails', () => {
   it('renders single-stage text', () => {
@@ -17,13 +18,13 @@ describe('SeerActivityTriggerDetails', () => {
       <SeerActivityTriggerDetails
         condition={DataConditionFixture({
           type: DataConditionType.SEER_ACTIVITY_TRIGGER,
-          comparison: ['pr_created'],
+          comparison: ['pr_ready_for_review'],
         })}
       />
     );
 
     expect(
-      screen.getByText("Seer reaches the 'Pull request created' stage")
+      screen.getByText("Seer reaches the 'Pull request ready for review' stage")
     ).toBeInTheDocument();
   });
 
@@ -32,14 +33,14 @@ describe('SeerActivityTriggerDetails', () => {
       <SeerActivityTriggerDetails
         condition={DataConditionFixture({
           type: DataConditionType.SEER_ACTIVITY_TRIGGER,
-          comparison: ['rca_started', 'coding_completed'],
+          comparison: ['rca_completed', 'coding_completed'],
         })}
       />
     );
 
     expect(
       screen.getByText(
-        'Seer reaches any of these stages: Root cause analysis started, Coding completed'
+        'Seer reaches any of these stages: Root cause analysis completed, Coding completed'
       )
     ).toBeInTheDocument();
   });
@@ -62,7 +63,7 @@ describe('SeerActivityTriggerNode', () => {
   const dataCondition = DataConditionFixture({
     id: 'seer-1',
     type: DataConditionType.SEER_ACTIVITY_TRIGGER,
-    comparison: ['rca_started', 'coding_completed'],
+    comparison: ['rca_completed', 'coding_completed'],
   });
   const errorContext = {
     errors: {},
@@ -103,11 +104,11 @@ describe('SeerActivityTriggerNode', () => {
     );
     await userEvent.click(screen.getByRole('textbox', {name: 'Seer activity stages'}));
     await userEvent.click(
-      screen.getByRole('menuitemcheckbox', {name: 'Pull request created'})
+      screen.getByRole('menuitemcheckbox', {name: 'Pull request ready for review'})
     );
     await waitFor(() => {
       expect(dataConditionNodeContext.onUpdate).toHaveBeenCalledWith({
-        comparison: dataCondition.comparison.concat('pr_created'),
+        comparison: dataCondition.comparison.concat('pr_ready_for_review'),
       });
     });
     expect(errorContext.removeError).toHaveBeenCalledWith('seer-1');
@@ -122,7 +123,7 @@ describe('SeerActivityTriggerNode', () => {
       </AutomationBuilderErrorContext.Provider>
     );
 
-    expect(screen.getByText('Root cause analysis started')).toBeInTheDocument();
+    expect(screen.getByText('Root cause analysis completed')).toBeInTheDocument();
     expect(screen.getByText('Coding completed')).toBeInTheDocument();
   });
 });
@@ -153,7 +154,7 @@ describe('validateSeerActivityTriggerCondition', () => {
       validateSeerActivityTriggerCondition({
         condition: DataConditionFixture({
           type: DataConditionType.SEER_ACTIVITY_TRIGGER,
-          comparison: ['rca_started'],
+          comparison: ['rca_completed'],
         }),
       })
     ).toBeUndefined();

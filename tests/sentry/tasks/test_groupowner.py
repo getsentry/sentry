@@ -1,3 +1,4 @@
+from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
@@ -8,13 +9,18 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitSt
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
-from sentry.tasks.groupowner import PREFERRED_GROUP_OWNER_AGE, process_suspect_commits
+from sentry.tasks.groupowner import (
+    DEBOUNCE_CACHE_KEY,
+    PREFERRED_GROUP_OWNER_AGE,
+    process_suspect_commits,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import TaskRunner
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
+from sentry.utils.cache import cache
 from sentry.utils.committers import get_frame_paths
 
 pytestmark = [requires_snuba]
@@ -69,7 +75,13 @@ class TestGroupOwners(TestCase):
             group_id=self.event.group.id, project_id=self.project.id, release_id=self.release.id
         )
 
-    def set_release_commits(self, author_email):
+    @property
+    def event_group_id(self) -> int:
+        group_id = self.event.group_id
+        assert group_id is not None
+        return group_id
+
+    def set_release_commits(self, author_email: str) -> None:
         self.commitSha = "a" * 40
         self.release.set_commits(
             [
@@ -92,7 +104,7 @@ class TestGroupOwners(TestCase):
             event_id=self.event.event_id,
             event_platform=self.event.platform,
             event_frames=event_frames,
-            group_id=self.event.group_id,
+            group_id=self.event_group_id,
             project_id=self.event.project_id,
         )
         assert GroupOwner.objects.get(
@@ -139,21 +151,21 @@ class TestGroupOwners(TestCase):
             event_id=self.event.event_id,
             event_platform=self.event.platform,
             event_frames=event_frames,
-            group_id=self.event.group_id,
+            group_id=self.event_group_id,
             project_id=self.event.project_id,
         )
         process_suspect_commits(
             event_id=self.event.event_id,
             event_platform=self.event.platform,
             event_frames=event_frames,
-            group_id=self.event.group_id,
+            group_id=self.event_group_id,
             project_id=self.event.project_id,
         )
         process_suspect_commits(
             event_id=self.event.event_id,
             event_platform=self.event.platform,
             event_frames=event_frames,
-            group_id=self.event.group_id,
+            group_id=self.event_group_id,
             project_id=self.event.project_id,
         )
 
@@ -226,11 +238,13 @@ class TestGroupOwners(TestCase):
 
         self.set_release_commits(self.user_2.email)
         event_2_frames = get_frame_paths(event_2)
+        event_2_group_id = event_2.group_id
+        assert event_2_group_id is not None
         process_suspect_commits(
             event_id=event_2.event_id,
             event_platform=event_2.platform,
             event_frames=event_2_frames,
-            group_id=event_2.group_id,
+            group_id=event_2_group_id,
             project_id=event_2.project_id,
         )
         assert GroupOwner.objects.filter(group=self.event.group).count() == 2
@@ -239,11 +253,13 @@ class TestGroupOwners(TestCase):
 
         self.set_release_commits(self.user_3.email)
         event_3_frames = get_frame_paths(event_3)
+        event_3_group_id = event_3.group_id
+        assert event_3_group_id is not None
         process_suspect_commits(
             event_id=event_3.event_id,
             event_platform=event_3.platform,
             event_frames=event_3_frames,
-            group_id=event_3.group_id,
+            group_id=event_3_group_id,
             project_id=event_3.project_id,
         )
         assert GroupOwner.objects.filter(group=self.event.group).count() == 2
@@ -260,7 +276,7 @@ class TestGroupOwners(TestCase):
             event_id=event_3.event_id,
             event_platform=event_3.platform,
             event_frames=event_3_frames,
-            group_id=event_3.group_id,
+            group_id=event_3_group_id,
             project_id=event_3.project_id,
         )
         # Won't be processed because the cache is present and this group has owners
@@ -278,7 +294,7 @@ class TestGroupOwners(TestCase):
             event_id=self.event.event_id,
             event_platform=self.event.platform,
             event_frames=event_frames,
-            group_id=self.event.group_id,
+            group_id=self.event_group_id,
             project_id=self.event.project_id,
         )
         go = GroupOwner.objects.get(
@@ -297,7 +313,7 @@ class TestGroupOwners(TestCase):
             event_id=self.event.event_id,
             event_platform=self.event.platform,
             event_frames=event_frames,
-            group_id=self.event.group_id,
+            group_id=self.event_group_id,
             project_id=self.event.project_id,
         )
         go.refresh_from_db()
@@ -335,11 +351,13 @@ class TestGroupOwners(TestCase):
             },
             project_id=self.project.id,
         )
+        event_group_id = event_with_no_release.group_id
+        assert event_group_id is not None
         process_suspect_commits(
             event_with_no_release.event_id,
             event_with_no_release.platform,
             get_frame_paths(event_with_no_release),
-            event_with_no_release.group_id,
+            event_group_id,
             event_with_no_release.project_id,
         )
         assert GroupOwner.objects.filter(group=event_with_no_release.group).count() == 0
@@ -432,7 +450,7 @@ class TestGroupOwners(TestCase):
             event_id=self.event.event_id,
             event_platform=self.event.platform,
             event_frames=event_frames,
-            group_id=self.event.group_id,
+            group_id=self.event_group_id,
             project_id=self.event.project_id,
         )
         # Doesn't use self.user2 due to low score.
@@ -442,6 +460,53 @@ class TestGroupOwners(TestCase):
 
         assert user1_owner.context["commitId"] == 1
         assert user3_owner.context["commitId"] == 3
+
+    @patch("sentry.tasks.groupowner.get_event_file_committers")
+    def test_select_preferred_owners_by_score(self, patched_committers: MagicMock) -> None:
+        users = [self.create_user() for _ in range(4)]
+        scores = [2, 8, 9, 10]
+        patched_committers.return_value = [
+            {
+                "commits": [(MagicMock(id=index), score)],
+                "author": {"id": user.id},
+            }
+            for index, (user, score) in enumerate(zip(users, scores, strict=True))
+        ]
+
+        process_suspect_commits(
+            event_id=self.event.event_id,
+            event_platform=self.event.platform,
+            event_frames=get_frame_paths(self.event),
+            group_id=self.event_group_id,
+            project_id=self.event.project_id,
+        )
+
+        owner_ids = set(
+            GroupOwner.objects.filter(group=self.event.group).values_list("user_id", flat=True)
+        )
+        assert owner_ids == {users[2].id, users[3].id}
+
+    def test_no_matching_commits_debounces_for_one_day(self) -> None:
+        self.set_release_commits(self.user.email)
+
+        with freeze_time() as frozen_time:
+            process_suspect_commits(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=[{"filename": "unrelated.py", "in_app": True}],
+                group_id=self.event_group_id,
+                project_id=self.event.project_id,
+            )
+
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            cache_key = DEBOUNCE_CACHE_KEY(self.event_group_id)
+            assert cache.get(cache_key) is True
+
+            frozen_time.shift(timedelta(hours=23))
+            assert cache.get(cache_key) is True
+
+            frozen_time.shift(timedelta(hours=1))
+            assert cache.get(cache_key) is None
 
     @patch("sentry.tasks.groupowner.get_event_file_committers")
     def test_low_suspect_committer_score(self, patched_committers: MagicMock) -> None:
@@ -461,11 +526,12 @@ class TestGroupOwners(TestCase):
             event_id=self.event.event_id,
             event_platform=self.event.platform,
             event_frames=event_frames,
-            group_id=self.event.group_id,
+            group_id=self.event_group_id,
             project_id=self.event.project_id,
         )
 
         assert not GroupOwner.objects.filter(user_id=self.user.id).exists()
+        assert cache.get(DEBOUNCE_CACHE_KEY(self.event_group_id)) is True
 
     def test_owners_count(self) -> None:
         self.set_release_commits(self.user.email)
@@ -476,12 +542,12 @@ class TestGroupOwners(TestCase):
             event_id=self.event.event_id,
             event_platform=self.event.platform,
             event_frames=event_frames,
-            group_id=self.event.group_id,
+            group_id=self.event_group_id,
             project_id=self.event.project_id,
         )
 
         owners = GroupOwner.objects.filter(
-            group_id=self.event.group_id,
+            group_id=self.event_group_id,
             project=self.event.project,
             organization_id=self.event.project.organization_id,
             type=GroupOwnerType.SUSPECT_COMMIT.value,

@@ -4,8 +4,8 @@ from enum import Enum
 TIMEOUT = 30
 
 # hard maximum runtime for a monitor, in minutes
-# current limit is 28 days
-MAX_TIMEOUT = 40_320
+# current limit is 7 days
+MAX_TIMEOUT = 10_080
 
 # hard maximum miss margin for a monitor, in minutes
 # current limit is 28 days

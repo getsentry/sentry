@@ -2,21 +2,21 @@ import {useEffect, useRef, useState, type ComponentProps} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import {LazyRender} from 'sentry/components/lazyRender';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import {isWidgetEditable} from 'sentry/views/dashboards/utils';
-import {useWidgetSlideout} from 'sentry/views/dashboards/utils/useWidgetSlideout';
-import WidgetCard from 'sentry/views/dashboards/widgetCard';
-import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 
+import {
+  useWidgetViewportVisibility,
+  WidgetInViewportProvider,
+} from './contexts/widgetViewportContext';
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
-import {DashboardsMEPProvider} from './widgetCard/dashboardsMEPContext';
+import {useWidgetSlideout} from './utils/useWidgetSlideout';
 import {Toolbar} from './widgetCard/toolbar';
+import type {TabularColumn} from './widgets/common/types';
 import {
   DisplayType,
   WidgetType,
@@ -25,6 +25,8 @@ import {
   type Widget,
   type WidgetQuery,
 } from './types';
+import {isWidgetEditable} from './utils';
+import WidgetCard from './widgetCard';
 import type {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 
 const TABLE_ITEM_LIMIT = 20;
@@ -90,6 +92,10 @@ export function SortableWidget(props: Props) {
     ) && !isPrebuiltDashboard;
 
   const {hasSlideout, onWidgetClick} = useWidgetSlideout(widget, dashboardFilters);
+  const {hasBeenInViewport, isInViewport} = useWidgetViewportVisibility({
+    ref: widgetRef,
+    disabled: props.isGeneratedDashboard,
+  });
 
   const disableTransactionWidget =
     organization.features.includes('discover-saved-queries-deprecation') &&
@@ -130,6 +136,7 @@ export function SortableWidget(props: Props) {
     onEdit,
     onDuplicate,
     showContextMenu: !isEmbedded || isPrebuiltDashboard,
+    isPrebuiltDashboard,
     isPreview,
     index,
     dashboardFilters,
@@ -152,12 +159,8 @@ export function SortableWidget(props: Props) {
       isClickable={hasSlideout}
       data-test-id="sortable-widget"
     >
-      <DashboardsMEPProvider>
-        <LazyRender
-          containerHeight={200}
-          withoutContainer
-          disabled={props.isGeneratedDashboard}
-        >
+      {hasBeenInViewport && (
+        <WidgetInViewportProvider value={isInViewport}>
           <WidgetCard {...widgetProps} />
           {props.isEditingDashboard && (
             <Toolbar
@@ -165,7 +168,7 @@ export function SortableWidget(props: Props) {
               onDelete={props.onDelete}
               onDuplicate={props.onDuplicate}
               isMobile={props.isMobile}
-              disableEdit={disableTransactionWidget || disableEdit}
+              disableEdit={disableEdit}
               disableDuplicate={disableTransactionWidget}
               disabledReason={
                 disableEdit
@@ -176,8 +179,8 @@ export function SortableWidget(props: Props) {
               }
             />
           )}
-        </LazyRender>
-      </DashboardsMEPProvider>
+        </WidgetInViewportProvider>
+      )}
     </GridWidgetWrapper>
   );
 }
