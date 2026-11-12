@@ -11,6 +11,7 @@ from django.contrib.sessions.backends.base import SessionBase
 from django.db.models import F
 from django.http import HttpRequest
 from django.test import RequestFactory, override_settings
+from django.urls import get_resolver
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
@@ -36,6 +37,7 @@ from sentry.api.exceptions import (
     SuperuserRequired,
     TwoFactorRequired,
 )
+from sentry.api.permissions import SentryPermission
 from sentry.api.utils import MAX_STATS_PERIOD
 from sentry.auth.access import NoAccess, ServiceAccountAccess, from_request
 from sentry.auth.authenticators.totp import TotpInterface
@@ -639,6 +641,23 @@ def test_granular_roles_keep_access(permission_cls: type[OrganizationPermission]
         if not set(role["scopes"]) & (set(scopes) - settings.DEPRECATED_SCOPES)
     }
     assert without_access == set()
+
+
+def _permission_classes(cls: type[SentryPermission]) -> list[type[SentryPermission]]:
+    return [cls, *(sub for direct in cls.__subclasses__() for sub in _permission_classes(direct))]
+
+
+def test_membership_read_only_replaces_member_read() -> None:
+    """member:read translates to membership:read, so membership:read must not open anything
+    that member:read doesn't already open."""
+    get_resolver().url_patterns  # Import every endpoint module so its permissions are defined.
+    broadened = {
+        (permission_cls.__qualname__, method)
+        for permission_cls in _permission_classes(SentryPermission)
+        for method, scopes in permission_cls.scope_map.items()
+        if "membership:read" in scopes and "member:read" not in scopes
+    }
+    assert broadened == set()
 
 
 class BaseOrganizationEndpointTest(TestCase):

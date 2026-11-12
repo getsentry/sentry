@@ -2,8 +2,12 @@ from django.urls import reverse
 
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.roles import granular_roles_granting
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class GetOrganizationAccessRequestTest(APITestCase):
@@ -185,3 +189,50 @@ class UpdateOrganizationAccessRequestTest(APITestCase):
         resp = self.client.put(path, data={"isApproved": 1})
 
         assert resp.status_code == 403
+
+
+class OrganizationAccessRequestMembershipScopeTest(APITestCase):
+    endpoint = "sentry-api-0-organization-access-requests"
+
+    def setUp(self) -> None:
+        self.team = self.create_team(organization=self.organization)
+        self.requester = self.create_member(
+            organization=self.organization, user=self.create_user(), role="member"
+        )
+        self.access_request = OrganizationAccessRequest.objects.create(
+            member=self.requester, team=self.team
+        )
+
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("membership:read")
+    def test_membership_read_lists_access_requests_like_member_read(self) -> None:
+        # Listing also needs org:write or team:write on the team, checked in the handler, so
+        # neither read scope sees requests on its own.
+        self._use_token(["member:read"])
+        member_read = self.get_success_response(self.organization.slug)
+        self._use_token(["membership:read"])
+        membership_read = self.get_success_response(self.organization.slug)
+        assert membership_read.data == member_read.data == []
+
+    @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("membership:read")
+    def test_membership_read_cannot_approve_access_request(self) -> None:
+        self._use_token(["membership:read"])
+        response = self.client.put(
+            reverse(
+                "sentry-api-0-organization-access-request-details",
+                args=[self.organization.slug, self.access_request.id],
+            ),
+            {"isApproved": 1},
+        )
+        assert response.status_code == 403, response.content
+        assert OrganizationAccessRequest.objects.filter(id=self.access_request.id).exists()
+        assert not OrganizationMemberTeam.objects.filter(
+            organizationmember=self.requester, team=self.team
+        ).exists()
