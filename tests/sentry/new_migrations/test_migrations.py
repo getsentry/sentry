@@ -1,7 +1,7 @@
 import pytest
 from django.core.exceptions import FieldDoesNotExist
 from django.db import connection, models
-from django.db.migrations import Migration
+from django.db.migrations import CreateModel, Migration
 from django.db.migrations.executor import MigrationExecutor
 from django.db.migrations.operations.base import Operation
 from django.db.migrations.state import ModelState
@@ -255,3 +255,25 @@ def test_pending_m2m_field_whose_through_model_was_deleted_first() -> None:
     through = field.remote_field.through
     assert through is not None
     assert through._meta.db_table == "fakeapp_link"
+
+
+def test_pending_model_wins_over_a_live_model_recreated_with_the_same_name() -> None:
+    state = _state_with_model()
+    _migration(
+        SafeDeleteModel(name="Thing", deletion_action=DeletionAction.MOVE_TO_PENDING),
+        CreateModel(
+            name="Thing",
+            fields=[("id", models.AutoField(primary_key=True))],
+            options={"db_table": "fakeapp_thing_v2"},
+        ),
+    ).mutate_state(state, preserve=False)
+
+    # The DELETE must drop the pending table, never the re-created model's.
+    pending = state.get_pending_deletion_model("fakeapp", "Thing")
+    assert pending._meta.db_table == "fakeapp_thing"
+    assert [f.column for f in pending._meta.fields] == ["id", "flag"]
+    _, [rendered] = state.render_pending_deletions()
+    assert rendered._meta.db_table == "fakeapp_thing"
+
+    # The state itself still has the live model.
+    assert state.apps.get_model("fakeapp", "Thing")._meta.db_table == "fakeapp_thing_v2"

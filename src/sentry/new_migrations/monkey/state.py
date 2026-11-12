@@ -95,6 +95,9 @@ class SentryProjectState(ProjectState):
 
         Pending or deleted models that those deletions point at (a field's model, a relation's
         target or `through`) are added too, so their relations resolve.
+
+        A pending model replaces a live model re-created under the same name, so its DELETE
+        drops the pending model's table and never the live one.
         """
         field_keys = list(field_keys)
         to_add: dict[tuple[str, str], ModelState] = {}
@@ -105,8 +108,8 @@ class SentryProjectState(ProjectState):
                 if (through := getattr(remote_field, "through", None)) is not None:
                     visit(resolve_relation(through, *key))
 
-        def visit(key: tuple[str, str]) -> None:
-            if key in self.models or key in to_add:
+        def visit(key: tuple[str, str], replace_live: bool = False) -> None:
+            if key in to_add or (key in self.models and not replace_live):
                 return
             model_state = self.pending_deletion_models.get(key) or self.deleted_models.get(key)
             if model_state is None:
@@ -116,7 +119,7 @@ class SentryProjectState(ProjectState):
                 visit_relations(field, key)
 
         for model_key in model_keys:
-            visit(model_key)
+            visit(model_key, replace_live=True)
         for field_key in field_keys:
             visit(field_key[:2])
             visit_relations(self.pending_deletion_fields[field_key], field_key[:2])
@@ -125,7 +128,9 @@ class SentryProjectState(ProjectState):
         # models related to what's added back.
         _ = self.apps
         state = self.clone()
-        for model_state in to_add.values():
+        for key, model_state in to_add.items():
+            if key in state.models:
+                state.remove_model(*key)
             state.add_model(model_state.clone())
         for app_label, model_name, name in field_keys:
             field = self.pending_deletion_fields[app_label, model_name, name]
