@@ -435,15 +435,12 @@ export function EventGraph({
   );
 
   if (error) {
+    const detail = error instanceof RequestError ? error.responseJSON?.detail : undefined;
+    const message =
+      (typeof detail === 'string' ? detail : detail?.message) ?? error.message;
     return (
       <Alert variant="danger" {...styleProps}>
-        {tct('Graph Query Error: [message]', {
-          message:
-            error instanceof RequestError &&
-            typeof error.responseJSON?.detail === 'string'
-              ? error.responseJSON.detail
-              : error.message,
-        })}
+        {tct('Graph Query Error: [message]', {message})}
       </Alert>
     );
   }
