@@ -1509,6 +1509,70 @@ class SlackAgentEntrypointTest(TestCase):
         assert mock_send.call_count == 2
         assert isinstance(mock_send.call_args.kwargs["data"], SeerAgentOutOfCredits)
 
+    @patch("sentry.seer.entrypoints.slack.entrypoint.edit_thread_message")
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
+    def test_on_agent_update_pr_out_of_credits_notice_per_push_attempt(
+        self, mock_send: MagicMock, mock_edit: MagicMock
+    ) -> None:
+        cache_payload = self._get_entrypoint().create_agent_cache_payload()
+        state = _agent_state("I tried to open a PR.")
+        state.repo_pr_states["acme/web"] = RepoPRState(
+            repo_name="acme/web",
+            pr_creation_status="error",
+            pr_creation_error_code="out_of_credits",
+            idempotency_key="push-1",
+        )
+        SlackAgentEntrypoint.on_agent_update(cache_payload=cache_payload, run_id=12345, state=state)
+
+        sent = [type(call.kwargs["data"]) for call in mock_send.call_args_list]
+        assert sent == [SeerAgentResponse, SeerAgentOutOfCredits]
+
+        # The next turn doesn't retry the PR, so the failure still in the state isn't new.
+        mock_send.reset_mock()
+        state.blocks += [
+            MemoryBlock(
+                id="b3",
+                message=Message(role="user", content="what changed?"),
+                timestamp="2024-01-01T00:00:02Z",
+            ),
+            MemoryBlock(
+                id="b4",
+                message=Message(role="assistant", content="Here is what changed."),
+                timestamp="2024-01-01T00:00:03Z",
+            ),
+        ]
+        SlackAgentEntrypoint.on_agent_update(cache_payload=cache_payload, run_id=12345, state=state)
+
+        sent = [type(call.kwargs["data"]) for call in mock_send.call_args_list]
+        assert sent == [SeerAgentResponse]
+
+        # The turn after retries the PR and runs out again. The PR never landed, so only the
+        # push's idempotency key tells this failure from the first.
+        mock_send.reset_mock()
+        state.blocks += [
+            MemoryBlock(
+                id="b5",
+                message=Message(role="user", content="try the PR again"),
+                timestamp="2024-01-01T00:00:04Z",
+            ),
+            MemoryBlock(
+                id="b6",
+                message=Message(role="assistant", content="I tried again."),
+                timestamp="2024-01-01T00:00:05Z",
+            ),
+        ]
+        state.repo_pr_states["acme/web"] = RepoPRState(
+            repo_name="acme/web",
+            pr_creation_status="error",
+            pr_creation_error_code="out_of_credits",
+            idempotency_key="push-2",
+        )
+        SlackAgentEntrypoint.on_agent_update(cache_payload=cache_payload, run_id=12345, state=state)
+        SlackAgentEntrypoint.on_agent_update(cache_payload=cache_payload, run_id=12345, state=state)
+
+        sent = [type(call.kwargs["data"]) for call in mock_send.call_args_list]
+        assert sent == [SeerAgentResponse, SeerAgentOutOfCredits]
+
     @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
     def test_on_agent_update_pr_error_without_credits_posts_no_notice(
         self, mock_send: MagicMock

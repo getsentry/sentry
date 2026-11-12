@@ -777,12 +777,13 @@ class SlackAgentEntrypoint(
                 )
 
         replies = SlackSeerAgentReplyCache.get(run_id=run_id)
+        # Keyed by push, not by PR: a failed push leaves the PR's number and commit as they were,
+        # so they can't tell a retry in a later turn from the failure already in the state.
         pr_keys = [
             key
             for pr in _get_repo_pr_states(state)
             if _is_pr_out_of_credits(pr)
-            and (key := f"pr_out_of_credits:{pr.repo_name}:{pr.pr_number}:{pr.commit_sha}")
-            not in replies
+            and (key := f"pr_out_of_credits:{pr.repo_name}:{pr.idempotency_key}") not in replies
         ]
         if pr_keys:
             # The notice is about the org, not a repo, so a turn gets one however many PRs failed,
