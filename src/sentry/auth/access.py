@@ -1567,7 +1567,7 @@ def from_service_account_auth(auth: AuthenticatedToken, organization_id: int) ->
                 service_account_id=auth.entity_id, organization_id=organization_id, is_active=True
             )
             .values_list("all_projects", flat=True)
-            .first()
+            .first()  # noqa: S034
         )
     if all_projects is None:
         return DEFAULT

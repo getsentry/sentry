@@ -457,7 +457,7 @@ E.g. `['release', 'environment']`""",
         other = (
             Project.objects.filter(slug=slug, organization=project.organization)
             .exclude(id=project.id)
-            .first()
+            .first()  # noqa: S034
         )
         if other is not None:
             raise serializers.ValidationError(

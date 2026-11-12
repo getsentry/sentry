@@ -171,7 +171,7 @@ class DatabaseBackedUserService(UserService):
         return list(cell_query)
 
     def flush_nonce(self, *, user_id: int) -> None:
-        user = User.objects.filter(id=user_id).first()
+        user = User.objects.filter(id=user_id).first()  # noqa: S034
         if user is not None:
             user.update(session_nonce="foo")
 
@@ -200,13 +200,13 @@ class DatabaseBackedUserService(UserService):
             social_auth__provider=provider,
             social_auth__uid=uid,
             orgmembermapping_set__organization_id=organization_id,
-        ).first()
+        ).first()  # noqa: S034
         if user is None:
             return None
         return serialize_rpc_user(user)
 
     def get_first_superuser(self) -> RpcUser | None:
-        user = User.objects.filter(is_superuser=True, is_active=True).first()
+        user = User.objects.filter(is_superuser=True, is_active=True).first()  # noqa: S034
         if user is None:
             return None
         return serialize_rpc_user(user)
@@ -304,7 +304,7 @@ class DatabaseBackedUserService(UserService):
         return results
 
     def get_user_avatar(self, *, user_id: int) -> RpcAvatar | None:
-        possible_avatar = UserAvatar.objects.filter(user_id=user_id).first()
+        possible_avatar = UserAvatar.objects.filter(user_id=user_id).first()  # noqa: S034
 
         if not possible_avatar:
             return None

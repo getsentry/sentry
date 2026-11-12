@@ -630,7 +630,7 @@ class User(Model, AbstractBaseUser):
         # server-generated and `username` is unique, so matching on username alone is safe.
         # Reuse the existing account instead of inserting.
         if flags.merge_users:
-            username_match = User.objects.filter(username__iexact=self.username).first()
+            username_match = User.objects.filter(username__iexact=self.username).first()  # noqa: S034
             if username_match:
                 return (username_match.pk, ImportKind.Existing)
 

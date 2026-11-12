@@ -386,7 +386,7 @@ def _import(
                 import_uuid=UUID(flags.import_uuid),
                 model=model_name_str,
                 min_ordinal=result.min_ordinal,
-            ).first()
+            ).first()  # noqa: S034
             if existing_control_import_chunk_replica is not None:
                 logger.info("import_by_model.control_replica_already_exists", extra=extra)
             else:

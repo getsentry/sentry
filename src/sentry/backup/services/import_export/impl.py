@@ -67,7 +67,7 @@ def get_existing_import_chunk(
 ) -> RpcImportOk | None:
     found_chunk = import_chunk_type.objects.filter(
         import_uuid=flags.import_uuid, model=model_name, min_ordinal=min_ordinal
-    ).first()
+    ).first()  # noqa: S034
     if found_chunk is None:
         return None
 

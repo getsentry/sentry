@@ -45,7 +45,7 @@ class GitlabRequestParser(BaseRequestParser):
                 (external_id, _secret) = result
                 return Integration.objects.filter(
                     external_id=external_id, provider=self.provider
-                ).first()
+                ).first()  # noqa: S034
         except Exception as e:
             metrics.incr(
                 self._METRIC_CONTROL_PATH_FAILURE_KEY,

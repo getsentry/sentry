@@ -957,7 +957,7 @@ def _schedule_bulk_delete_chunks(
                     q.model.objects.using(q.using)
                     .filter(pk=chunk[-1])
                     .values_list(q.dtfield, flat=True)
-                    .first()
+                    .first()  # noqa: S034
                 )
             progress_logger.info(
                 "cleanup.scan_progress",

@@ -107,7 +107,7 @@ class OrganizationServiceAccountViewerContextEndpoint(OrganizationEndpoint):
 
         service_account = ServiceAccountReplica.objects.filter(
             service_account_id=service_account_id, organization_id=organization.id, is_active=True
-        ).first()
+        ).first()  # noqa: S034
         if service_account is None:
             raise ResourceDoesNotExist
 

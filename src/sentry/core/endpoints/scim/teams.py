@@ -509,7 +509,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                 organizationmember_id=cast("str | int", member_id),
             )
             .select_related("organizationmember")
-            .first()
+            .first()  # noqa: S034
         )
         if omt is not None:
             self._remove_members_operation(request, [omt], team)

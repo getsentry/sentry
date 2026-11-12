@@ -62,7 +62,7 @@ class AuthMergeUserAccountsEndpoint(AuthV2Endpoint):
         primary_user = User.objects.get(id=user.id)
         verification_code = UserMergeVerificationCode.objects.filter(
             user_id=primary_user.id
-        ).first()
+        ).first()  # noqa: S034
 
         if (
             verification_code is None

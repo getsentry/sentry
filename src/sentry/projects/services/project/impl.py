@@ -32,7 +32,7 @@ class DatabaseBackedProjectService(ProjectService):
                 id=id, organization=organization_id
             )
         except ValueError:
-            project = Project.objects.filter(id=id, organization=organization_id).first()
+            project = Project.objects.filter(id=id, organization=organization_id).first()  # noqa: S034
         except Project.DoesNotExist:
             return None
         if project:
@@ -42,7 +42,7 @@ class DatabaseBackedProjectService(ProjectService):
     def get_by_slug(self, *, organization_id: int, slug: str) -> RpcProject | None:
         project: Project | None = Project.objects.filter(
             slug=slug, organization=organization_id
-        ).first()
+        ).first()  # noqa: S034
         if project:
             return serialize_project(project)
         return None

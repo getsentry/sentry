@@ -109,7 +109,7 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
     ) -> None:
         org_slug_reservation = OrganizationSlugReservation.objects.filter(
             organization_id=organization_id
-        ).first()
+        ).first()  # noqa: S034
         if org_slug_reservation is None:
             OrganizationSlugReservation(
                 cell_name=mapping_update.cell_name,

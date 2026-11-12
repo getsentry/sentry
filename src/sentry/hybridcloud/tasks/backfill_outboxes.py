@@ -74,7 +74,7 @@ def _watermark_model(table_name: str) -> type[BaseOutboxBackfillWatermark]:
 
 
 def read_processing_state(table_name: str) -> tuple[int, int] | None:
-    row = _watermark_model(table_name).objects.filter(table_name=table_name).first()
+    row = _watermark_model(table_name).objects.filter(table_name=table_name).first()  # noqa: S034
     if row is None:
         return None
     return row.low_bound, row.version

@@ -367,9 +367,9 @@ def get_cell_for_organization(organization_id_or_slug: str) -> Cell:
     if organization_id_or_slug.isdecimal():
         mapping = OrganizationMapping.objects.filter(
             organization_id=organization_id_or_slug
-        ).first()
+        ).first()  # noqa: S034
     else:
-        mapping = OrganizationMapping.objects.filter(slug=organization_id_or_slug).first()
+        mapping = OrganizationMapping.objects.filter(slug=organization_id_or_slug).first()  # noqa: S034
 
     if not mapping:
         raise CellResolutionError(

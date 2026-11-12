@@ -158,7 +158,7 @@ def relocate_reclaim(request: HttpRequest, user_id: int) -> HttpResponse:
 
     # Verify that the user is unclaimed. If they are already claimed, tell the requester that this
     # is the case, since of course claiming this account would be impossible.
-    user = User.objects.filter(id=user_id).first()
+    user = User.objects.filter(id=user_id).first()  # noqa: S034
     if user is None:
         logger.warning("reclaim.user_not_found", extra=extra)
         return render_to_response(get_template("relocate", "error"), {}, request)
@@ -239,7 +239,7 @@ def recover_confirm(
                 # Relocation form requires users to accept TOS and privacy policy with an org
                 # associated. We only need the first membership, since all of user's orgs will be in
                 # the same cell.
-                membership = OrganizationMemberMapping.objects.filter(user=user).first()
+                membership = OrganizationMemberMapping.objects.filter(user=user).first()  # noqa: S034
                 assert membership is not None
                 mapping = OrganizationMapping.objects.get(
                     organization_id=membership.organization_id

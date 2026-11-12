@@ -165,7 +165,7 @@ class ServiceAccount(ReplicatedControlModel):
             account = (
                 ServiceAccount.objects.select_for_update()
                 .filter(id=self.id, is_active=True)
-                .first()
+                .first()  # noqa: S034
             )
             if account is None:
                 return False

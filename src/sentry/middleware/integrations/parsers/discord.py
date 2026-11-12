@@ -83,7 +83,7 @@ class DiscordRequestParser(BaseRequestParser):
             return Integration.objects.filter(
                 provider=self.provider,
                 external_id=discord_request.guild_id,
-            ).first()
+            ).first()  # noqa: S034
 
         with sentry_sdk.isolation_scope() as scope:
             scope.set_extra("path", self.request.path)

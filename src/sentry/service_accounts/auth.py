@@ -55,7 +55,7 @@ def authenticate_service_account(
     else:
         service_account = ServiceAccountReplica.objects.filter(
             service_account_id=actor.actor_id, organization_id=vc.organization_id, is_active=True
-        ).first()
+        ).first()  # noqa: S034
         if service_account is None:
             return None
         try:

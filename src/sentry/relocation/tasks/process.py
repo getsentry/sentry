@@ -760,7 +760,7 @@ def preprocessing_transfer(uuid: str) -> None:
             )
             .select_related("file")
             .prefetch_related("file__blobs")
-            .first()
+            .first()  # noqa: S034
         )
         if raw_relocation_file is None:
             raise FileNotFoundError("User-supplied relocation data not found.")

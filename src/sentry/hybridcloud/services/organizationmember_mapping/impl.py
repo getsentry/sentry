@@ -98,7 +98,7 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
     ) -> OrganizationMemberMapping | None:
         return OrganizationMemberMapping.objects.filter(
             organization_id=organization_id, organizationmember_id=organizationmember_id
-        ).first()
+        ).first()  # noqa: S034
 
     def delete(
         self,
