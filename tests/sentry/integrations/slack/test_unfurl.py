@@ -2355,17 +2355,23 @@ class UnfurlTest(TestCase):
         assert len(unfurls) == 1
         assert mock_generate_chart.call_count == 1
 
+    def test_unfurl_dashboards_unsupported_widget_type_is_skipped(self) -> None:
+        self._assert_widget_type_is_skipped(DashboardWidgetTypes.RELEASE_HEALTH)
+
+    def test_unfurl_dashboards_null_widget_type_is_skipped(self) -> None:
+        self._assert_widget_type_is_skipped(None)
+
     @patch("sentry.integrations.slack.unfurl.dashboards.client.get")
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_unfurl_dashboards_unsupported_widget_type_is_skipped(
-        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    def _assert_widget_type_is_skipped(
+        self, widget_type: int | None, mock_generate_chart: MagicMock, mock_client_get: MagicMock
     ) -> None:
         mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
         dashboard = self.create_dashboard(organization=self.organization)
         widget = self.create_dashboard_widget(
             dashboard=dashboard,
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
-            widget_type=DashboardWidgetTypes.RELEASE_HEALTH,
+            widget_type=widget_type,
             order=0,
         )
         self.create_dashboard_widget_query(
