@@ -97,20 +97,29 @@ class OrganizationNotebookActionRequestApplyTest(APITestCase):
         config: dict[str, Any] | None = None,
     ) -> Detector:
         eap = dataset == Dataset.EventsAnalyticsPlatform
+        if eap:
+            query_type = SnubaQuery.Type.PERFORMANCE
+            query = "span.op:http.client"
+            event_type = SnubaQueryEventType.EventType.TRACE_ITEM_SPAN
+        elif dataset == Dataset.Transactions:
+            query_type = SnubaQuery.Type.PERFORMANCE
+            query = ""
+            event_type = SnubaQueryEventType.EventType.TRANSACTION
+        else:
+            query_type = SnubaQuery.Type.ERROR
+            query = "level:error"
+            event_type = SnubaQueryEventType.EventType.ERROR
+
         with self.tasks():
             snuba_query = create_snuba_query(
-                query_type=SnubaQuery.Type.PERFORMANCE if eap else SnubaQuery.Type.ERROR,
+                query_type=query_type,
                 dataset=dataset,
-                query="span.op:http.client" if eap else "level:error",
+                query=query,
                 aggregate="count(span.duration)" if eap else "count()",
                 time_window=timedelta(seconds=time_window),
                 resolution=timedelta(minutes=1),
                 environment=self.environment,
-                event_types=[
-                    SnubaQueryEventType.EventType.TRACE_ITEM_SPAN
-                    if eap
-                    else SnubaQueryEventType.EventType.ERROR
-                ],
+                event_types=[event_type],
                 extrapolation_mode=(ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED if eap else None),
             )
             subscription = create_snuba_subscription(
