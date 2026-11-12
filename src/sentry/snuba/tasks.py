@@ -496,30 +496,54 @@ def recheck_broken_subscription(query_subscription_id: int, **kwargs: Any) -> No
         metrics.incr("snuba.subscriptions.broken.verified")
         return
 
-    # Mark the create as in progress. Writes after it only apply while the status is still
-    # CREATING, so an edit or delete made during the Snuba call isn't overwritten. If this
-    # task dies partway, `subscription_checker` finishes the create.
-    updated = QuerySubscription.objects.filter(
-        id=subscription.id, status=QuerySubscription.Status.BROKEN.value
-    ).update(status=QuerySubscription.Status.CREATING.value, date_updated=timezone.now())
-    if not updated:
+    # Mark the create as in progress, so an edit or delete made during the Snuba call isn't
+    # overwritten. If this task dies partway, `subscription_checker` finishes the create.
+    if not _safe_status_update(
+        subscription,
+        expected=QuerySubscription.Status.BROKEN,
+        new=QuerySubscription.Status.CREATING,
+        date_updated=timezone.now(),
+    ):
         return
 
     try:
         subscription_id = _create_in_snuba(subscription)
     except SubscriptionError:
-        QuerySubscription.objects.filter(
-            id=subscription.id, status=QuerySubscription.Status.CREATING.value
-        ).update(status=QuerySubscription.Status.BROKEN.value)
+        _safe_status_update(
+            subscription,
+            expected=QuerySubscription.Status.CREATING,
+            new=QuerySubscription.Status.BROKEN,
+        )
         metrics.incr("snuba.subscriptions.broken.verified")
         return
 
     # If the subscription changed meanwhile, the Snuba subscription is left unreferenced,
     # and the consumer deletes it when it sees its results.
-    QuerySubscription.objects.filter(
-        id=subscription.id, status=QuerySubscription.Status.CREATING.value
-    ).update(status=QuerySubscription.Status.ACTIVE.value, subscription_id=subscription_id)
+    _safe_status_update(
+        subscription,
+        expected=QuerySubscription.Status.CREATING,
+        new=QuerySubscription.Status.ACTIVE,
+        subscription_id=subscription_id,
+    )
     metrics.incr("snuba.subscriptions.broken.recovered")
+
+
+def _safe_status_update(
+    subscription: QuerySubscription,
+    *,
+    expected: QuerySubscription.Status,
+    new: QuerySubscription.Status,
+    **fields: Any,
+) -> bool:
+    """
+    Sets the subscription's status to `new`, along with any other `fields`, only if its
+    status is still `expected`. Returns whether it was updated.
+    """
+    return bool(
+        QuerySubscription.objects.filter(id=subscription.id, status=expected.value).update(
+            status=new.value, **fields
+        )
+    )
 
 
 # Re-check regularly so that broken subscriptions get re-enabled automatically once
