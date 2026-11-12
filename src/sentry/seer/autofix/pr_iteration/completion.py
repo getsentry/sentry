@@ -372,7 +372,6 @@ def _single_run_iteration_outcome(
     _, is_synced = state.has_code_changes()
     if is_synced:
         return PrIterationOutcome.ALREADY_PUSHED
-    # A running push, ours or the agent's, calls this hook again when it finishes.
     if any(pr.pr_creation_status == "creating" for pr in state.repo_pr_states.values()):
         return None
     if iteration_terminal_errored_repos(state):

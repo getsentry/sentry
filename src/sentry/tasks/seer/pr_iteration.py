@@ -50,7 +50,7 @@ from sentry.scm.factory import new as make_scm
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import fetch_run_status, get_agent_state_from_pr_id
 from sentry.seer.autofix.autofix_agent import trigger_autofix_agent
-from sentry.seer.autofix.commit_author import SeerCommitAuthor, commit_author_for_feedback
+from sentry.seer.autofix.commit_author import commit_author_for_feedback
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
 from sentry.seer.autofix.feature.dispatch import (
@@ -629,32 +629,6 @@ def _hand_off_exhausted_cap(
 
 
 @traces.trace
-def _continue_single_run_with_feedback(
-    *,
-    group: Group,
-    run_id: int,
-    state: SeerRunState,
-    feedback_items: list[Feedback],
-    referrer: AutofixReferrer,
-    commit_author: SeerCommitAuthor | None,
-    iteration_id: int | None,
-) -> None:
-    agent_run = require_autofix_run_for_group(group, run_id, sources=(SINGLE_RUN_FEATURE_ID,))
-    pr_numbers = [pr.pr_number for pr in state.repo_pr_states.values() if pr.pr_number]
-    if not pr_numbers:
-        raise PrIterationNoPullRequestException()
-    continue_single_run_from_pr_feedback(
-        agent_run,
-        group,
-        feedback=feedback_items,
-        iteration_index=get_open_iteration_index(state),
-        iteration_id=iteration_id,
-        commit_author=commit_author,
-        pr_number=pr_numbers[0],
-        referrer=referrer,
-    )
-
-
 def _drain_queued_autofix_feedback(
     *,
     log_ctx: PrIterationLogContext,
@@ -867,14 +841,21 @@ def _drain_queued_autofix_feedback(
         )
         commit_author = commit_author_for_feedback(feedback_items, organization_id)
         if is_single_run(state):
-            _continue_single_run_with_feedback(
-                group=group,
-                run_id=run_id,
-                state=state,
-                feedback_items=feedback_items,
-                referrer=referrer,
-                commit_author=commit_author,
+            agent_run = require_autofix_run_for_group(
+                group, run_id, sources=(SINGLE_RUN_FEATURE_ID,)
+            )
+            pr_numbers = [pr.pr_number for pr in state.repo_pr_states.values() if pr.pr_number]
+            if not pr_numbers:
+                raise PrIterationNoPullRequestException()
+            continue_single_run_from_pr_feedback(
+                agent_run,
+                group,
+                feedback=feedback_items,
+                iteration_index=get_open_iteration_index(state),
                 iteration_id=iteration_id,
+                commit_author=commit_author,
+                pr_number=pr_numbers[0],
+                referrer=referrer,
             )
         else:
             trigger_autofix_agent(
