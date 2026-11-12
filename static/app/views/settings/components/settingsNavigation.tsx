@@ -1,5 +1,6 @@
 import {cloneElement, Fragment} from 'react';
 import {matchPath} from 'react-router';
+import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 import {IconAdd} from '@sentry/icons/add';
 
@@ -106,7 +107,7 @@ function SettingsProjectSelector() {
           trigger={triggerProps => (
             <Container width="100%">
               {buttonProps => (
-                <OverlayTrigger.Button
+                <ProjectSelectorButton
                   {...mergeProps(buttonProps, triggerProps)}
                   variant="transparent"
                   aria-label={t('Select a project')}
@@ -121,7 +122,7 @@ function SettingsProjectSelector() {
                       {projectId}
                     </Text>
                   </Container>
-                </OverlayTrigger.Button>
+                </ProjectSelectorButton>
               )}
             </Container>
           )}
@@ -164,3 +165,9 @@ function SettingsProjectSelector() {
     </Container>
   );
 }
+
+// Transparent buttons size their label to its content, so start-align it in this
+// full-width trigger instead of centering it.
+const ProjectSelectorButton = styled(OverlayTrigger.Button)`
+  justify-content: flex-start;
+`;
