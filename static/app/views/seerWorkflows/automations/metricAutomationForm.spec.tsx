@@ -125,7 +125,7 @@ describe('MetricAutomationForm', () => {
       url: `/organizations/${organization.slug}/detectors/`,
       body: [
         MetricDetectorFixture({id: '1', name: 'Checkout error rate'}),
-        MetricDetectorFixture({id: '2', name: 'Payment failures'}),
+        MetricDetectorFixture({id: '2', name: 'Payment failures', projectId: '2'}),
       ],
     });
   });
@@ -262,7 +262,7 @@ describe('MetricAutomationForm', () => {
     );
   });
 
-  it('saves monitors without changing service account access', async () => {
+  it('drops a project from the service account with its last monitor', async () => {
     const update = MockApiClient.addMockResponse({
       url: `${configsUrl}42/`,
       method: 'PUT',
@@ -295,7 +295,7 @@ describe('MetricAutomationForm', () => {
           data: {
             monitorIds: [2],
             name: 'Checkout errors',
-            serviceAccount,
+            serviceAccount: {...serviceAccount, projectIds: [2]},
           },
         })
       )

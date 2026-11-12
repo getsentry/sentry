@@ -299,7 +299,28 @@ export function MetricAutomationForm(props: Props) {
                         isPending={monitorsQuery.isLoading}
                         isError={hasMonitorsError}
                         disabled={readOnly}
-                        onChange={field.handleChange}
+                        onChange={next => {
+                          const remaining = new Set(
+                            monitors
+                              .filter(monitor => next.includes(monitor.id))
+                              .map(monitor => monitor.projectId)
+                          );
+                          // A project leaves the grant with its last connected monitor
+                          const dropped = new Set(
+                            connectedMonitors
+                              .map(monitor => monitor.projectId)
+                              .filter(projectId => !remaining.has(projectId))
+                          );
+                          if (dropped.size > 0) {
+                            form.setFieldValue('serviceAccountProjects', {
+                              ...serviceAccountProjects,
+                              projectIds: serviceAccountProjects.projectIds.filter(
+                                projectId => !dropped.has(projectId)
+                              ),
+                            });
+                          }
+                          field.handleChange(next);
+                        }}
                       />
                     )}
                   </field.Base>
@@ -354,9 +375,7 @@ export function MetricAutomationForm(props: Props) {
                                 </Text>
                                 <ServiceAccountProjects
                                   value={field.state.value}
-                                  monitors={monitors.filter(monitor =>
-                                    monitorIds.includes(monitor.id)
-                                  )}
+                                  monitors={connectedMonitors}
                                   disabled={readOnly}
                                   onChange={field.handleChange}
                                 />

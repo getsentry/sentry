@@ -185,11 +185,7 @@ export function ServiceAccountProjects({
             onChange={selected =>
               onChange({
                 ...value,
-                projectIds: [
-                  // A project added earlier stays granted after its monitors disconnect
-                  ...value.projectIds.filter(id => monitorCounts.has(id)),
-                  ...selected.map(option => option.value),
-                ],
+                projectIds: selected.map(option => option.value),
               })
             }
             emptyMessage={t('No other projects to add')}
