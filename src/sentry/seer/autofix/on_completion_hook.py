@@ -230,16 +230,17 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         group_id: int | None,
         run_referrer: AutofixReferrer | None,
     ) -> None:
-        if is_pr_feedback_turn(state) and state.status == "error":
+        feedback_turn = is_pr_feedback_turn(state)
+        if feedback_turn and state.status == "error":
             fail_pr_iteration(organization, run_id, state, group_id)
             return
         group = cls._fetch_group(organization, run_id, group_id)
         if group is None:
-            if is_pr_feedback_turn(state) and state.status == "completed":
+            if feedback_turn and state.status == "completed":
                 fail_pr_iteration_missing_group(organization, state, group_id)
             return
         if state.status == "completed":
-            if is_pr_feedback_turn(state):
+            if feedback_turn:
                 _, referrer = get_current_step(state)
                 continue_pr_iteration(
                     organization,
