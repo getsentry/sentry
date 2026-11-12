@@ -35,61 +35,67 @@ from sentry.telemetry_classifiers.types import (
     TelemetryClassifierStatus,
 )
 from sentry.utils import metrics
+from sentry.utils.cursored_scheduler import CursoredScheduler
 from sentry.utils.redis import redis_clusters
 from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
-# How often classifiers select entities. Matches the schedule_classifiers cron.
+# How often each classifier selects entities. Classifiers are spread across it.
 SCAN_INTERVAL = timedelta(minutes=5)
-# Long enough to outlive retries of a scan window's selection.
+# Long enough to outlive retries of a selection.
 _CLAIM_TTL_SECONDS = 60 * 60
+# After a longer gap, selection restarts from one SCAN_INTERVAL ago.
+_SELECTED_UNTIL_TTL_SECONDS = 60 * 60
+_PROCESSING_FEATURE = "organizations:classifiers-ui"
 
 
 @instrumented_task(
     name="sentry.telemetry_classifiers.tasks.schedule_classifiers",
     namespace=telemetry_classifiers_tasks,
-    expires=300,
+    expires=60,
     silo_mode=SiloMode.CELL,
 )
 def schedule_classifiers() -> None:
-    """Start selection for every enabled classifier over the scan window that just ended."""
-    interval = int(SCAN_INTERVAL.total_seconds())
-    end = int(timezone.now().timestamp()) // interval * interval
-    start = end - interval
-
-    classifiers = TelemetryClassifier.objects.filter(
-        status=TelemetryClassifierStatus.ENABLED,
-        project__status=ObjectStatus.ACTIVE,
-        project__organization__status=ObjectStatus.ACTIVE,
-    ).select_related("project__organization")
-    processing_enabled: dict[int, bool] = {}
-    for classifier in classifiers:
-        organization = classifier.project.organization
-        if organization.id not in processing_enabled:
-            processing_enabled[organization.id] = features.has(
-                "organizations:classifiers-processing", organization
-            )
-        if processing_enabled[organization.id]:
-            select_entities.delay(classifier_id=classifier.id, start=start, end=end)
+    """Start selection for each enabled classifier once per SCAN_INTERVAL, spread across it."""
+    CursoredScheduler(
+        name="telemetry_classifiers",
+        schedule_key="telemetry-classifiers-schedule",
+        queryset=TelemetryClassifier.objects.filter(
+            status=TelemetryClassifierStatus.ENABLED,
+            project__status=ObjectStatus.ACTIVE,
+            project__organization__status=ObjectStatus.ACTIVE,
+        ).select_related("project__organization"),
+        task=select_entities,
+        cycle_duration=SCAN_INTERVAL,
+        prevalidate_batch=_with_processing_enabled,
+    ).tick()
 
 
 @instrumented_task(
     name="sentry.telemetry_classifiers.tasks.select_entities",
     namespace=telemetry_classifiers_tasks,
-    expires=300,
+    expires=SCAN_INTERVAL,
     processing_deadline_duration=60,
     retry=Retry(times=3, delay=30, on=(Exception,)),
     silo_mode=SiloMode.CELL,
 )
-def select_entities(classifier_id: int, start: int, end: int) -> None:
-    """Classify the entities whose cooldown ended in ``[start, end)``, as Unix timestamps."""
+def select_entities(classifier_id: int) -> None:
+    """Classify the entities whose cooldown ended since this classifier's last selection."""
     classifier = _get_enabled_classifier(classifier_id)
     if classifier is None:
         return
     dataset = DATASETS.get(classifier.dataset)
     if dataset is None:
         _record_selection("unsupported_dataset", classifier.dataset)
+        return
+
+    client = redis_clusters.get("default")
+    selected_until_key = f"telemetry-classifiers:selected-until:{classifier_id}"
+    end = int(timezone.now().timestamp())
+    selected_until = client.get(selected_until_key)
+    start = int(selected_until) if selected_until else end - int(SCAN_INTERVAL.total_seconds())
+    if start >= end:
         return
 
     limit = options.get("telemetry-classifiers.select-limit")
@@ -106,11 +112,13 @@ def select_entities(classifier_id: int, start: int, end: int) -> None:
             _record_selection("invalid_filter", classifier.dataset)
             return
 
-    # Entities beyond the limit aren't classified in this window.
+    # Entities beyond the limit aren't classified.
     if len(entity_ids) >= limit:
         _record_selection("limit_reached", classifier.dataset)
     for entity_id in _claim(classifier_id, entity_ids, start):
         classify_entity.delay(classifier_id=classifier_id, entity_id=entity_id)
+    # Set last, so a retry selects from the same start and its claims skip entities already sent.
+    client.set(selected_until_key, end, ex=_SELECTED_UNTIL_TTL_SECONDS)
 
 
 @instrumented_task(
@@ -188,6 +196,16 @@ def classify_entity(classifier_id: int, entity_id: str) -> None:
     )
 
 
+def _with_processing_enabled(classifiers: Sequence[TelemetryClassifier]) -> list[int]:
+    organizations = {c.project.organization_id: c.project.organization for c in classifiers}
+    enabled = features.batch_has_for_organizations(
+        _PROCESSING_FEATURE, list(organizations.values())
+    )
+    if enabled is None:
+        return []
+    return [c.id for c in classifiers if enabled.get(f"organization:{c.project.organization_id}")]
+
+
 def _get_enabled_classifier(classifier_id: int) -> TelemetryClassifier | None:
     return (
         TelemetryClassifier.objects.filter(
@@ -199,10 +217,10 @@ def _get_enabled_classifier(classifier_id: int) -> TelemetryClassifier | None:
 
 
 def _claim(classifier_id: int, entity_ids: Sequence[str], start: int) -> list[str]:
-    """Return the entities not yet claimed for this classifier and scan window, and claim them.
+    """Return the entities not yet claimed by this classifier's selection from ``start``.
 
-    Selection can run more than once for a window, such as on retries. Claims make sure each
-    entity is classified once.
+    A retried selection starts from the same ``start``, so claims make sure each entity is
+    classified once.
     """
     if not entity_ids:
         return []

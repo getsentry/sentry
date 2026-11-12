@@ -24,8 +24,9 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import cell_silo_test
 
-START = int(datetime(2020, 1, 1, 12, 0, tzinfo=UTC).timestamp())
-END = int(datetime(2020, 1, 1, 12, 5, tzinfo=UTC).timestamp())
+NOW = datetime(2020, 1, 1, 12, 7, 31, tzinfo=UTC)
+LATER = datetime(2020, 1, 1, 12, 12, 31, tzinfo=UTC)
+FIRST_START = datetime(2020, 1, 1, 12, 2, 31, tzinfo=UTC)
 
 
 class ClassifierTaskTestCase(TestCase):
@@ -52,7 +53,6 @@ class ClassifierTaskTestCase(TestCase):
 
 @cell_silo_test
 class ScheduleClassifiersTest(TestCase):
-    @freeze_time(datetime(2020, 1, 1, 12, 7, 31, tzinfo=UTC))
     @patch("sentry.telemetry_classifiers.tasks.select_entities.delay")
     def test_selects_enabled_classifiers_in_enabled_organizations(
         self, mock_select: MagicMock
@@ -65,10 +65,10 @@ class ScheduleClassifiersTest(TestCase):
             project=self.create_project(organization=self.create_organization())
         )
 
-        with self.feature({"organizations:classifiers-processing": [self.organization.slug]}):
+        with self.feature({"organizations:classifiers-ui": [self.organization.slug]}):
             schedule_classifiers()
 
-        mock_select.assert_called_once_with(classifier_id=enabled.id, start=START, end=END)
+        mock_select.assert_called_once_with(enabled.id)
 
 
 @cell_silo_test
@@ -79,20 +79,36 @@ class SelectEntitiesTest(ClassifierTaskTestCase):
             self.classify_entity = mock
             yield
 
-    def test_classifies_selected_entities_once_per_window(self) -> None:
+    def test_selects_since_the_last_selection(self) -> None:
         classifier = self.create_telemetry_classifier(project=self.project, filter_query="a:b")
+        self.dataset.select.side_effect = [["one"], ["two"]]
+
+        with freeze_time(NOW):
+            select_entities(classifier.id)
+        with freeze_time(LATER):
+            select_entities(classifier.id)
+
+        assert self.dataset.select.call_args_list == [
+            call(self.project, "a:b", FIRST_START, NOW, 100),
+            call(self.project, "a:b", NOW, LATER, 100),
+        ]
+        assert self.classify_entity.call_args_list == [
+            call(classifier_id=classifier.id, entity_id="one"),
+            call(classifier_id=classifier.id, entity_id="two"),
+        ]
+
+    @freeze_time(NOW)
+    def test_retries_skip_entities_already_sent(self) -> None:
+        classifier = self.create_telemetry_classifier(project=self.project)
         self.dataset.select.return_value = ["one", "two"]
+        self.classify_entity.side_effect = [None, ConnectionError("broker unavailable")]
 
-        select_entities(classifier_id=classifier.id, start=START, end=END)
-        select_entities(classifier_id=classifier.id, start=START, end=END)
+        with pytest.raises(ConnectionError):
+            select_entities(classifier.id)
+        self.classify_entity.side_effect = None
+        select_entities(classifier.id)
 
-        self.dataset.select.assert_called_with(
-            self.project,
-            "a:b",
-            datetime.fromtimestamp(START, tz=UTC),
-            datetime.fromtimestamp(END, tz=UTC),
-            100,
-        )
+        assert self.dataset.select.call_args_list[1].args[2:4] == (FIRST_START, NOW)
         assert self.classify_entity.call_args_list == [
             call(classifier_id=classifier.id, entity_id="one"),
             call(classifier_id=classifier.id, entity_id="two"),
@@ -104,7 +120,7 @@ class SelectEntitiesTest(ClassifierTaskTestCase):
         classifier = self.create_telemetry_classifier(project=self.project)
         self.dataset.select.return_value = ["one", "two"]
 
-        select_entities(classifier_id=classifier.id, start=START, end=END)
+        select_entities(classifier.id)
 
         assert self.dataset.select.call_args.args[4] == 2
         mock_incr.assert_any_call(
@@ -118,7 +134,7 @@ class SelectEntitiesTest(ClassifierTaskTestCase):
             project=self.project, status=TelemetryClassifierStatus.DISABLED
         )
 
-        select_entities(classifier_id=classifier.id, start=START, end=END)
+        select_entities(classifier.id)
 
         self.dataset.select.assert_not_called()
 
@@ -126,7 +142,7 @@ class SelectEntitiesTest(ClassifierTaskTestCase):
         classifier = self.create_telemetry_classifier(project=self.project)
         self.dataset.select.side_effect = InvalidSearchQuery("invalid")
 
-        select_entities(classifier_id=classifier.id, start=START, end=END)
+        select_entities(classifier.id)
 
         self.classify_entity.assert_not_called()
 
