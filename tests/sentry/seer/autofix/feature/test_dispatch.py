@@ -604,6 +604,18 @@ class TestSingleRunStart(TestCase):
                 assert start_kwargs["payload"]["pr_internal_settings"] is None
                 assert start_kwargs["extras"][CODING_AGENT_HANDOFF_KEY] is True
 
+    def test_handoff_project_manual_run_does_not_hand_off(self) -> None:
+        # A manual run names no stopping point, so Seer writes the fix as it does without handoff.
+        self._set_handoff()
+        self.organization.update_option("sentry:enable_seer_coding", True)
+
+        mock_client_cls = self._start(single_run=True)
+
+        start_kwargs = mock_client_cls.return_value.start_feature_run.call_args.kwargs
+        assert start_kwargs["agent_run_options"]["enable_coding"] is True
+        assert start_kwargs["extras"]["stopping_point"] == AutofixStoppingPoint.CODE_CHANGES.value
+        assert CODING_AGENT_HANDOFF_KEY not in start_kwargs["extras"]
+
     def test_handoff_project_stopping_at_root_cause_does_not_hand_off(self) -> None:
         self._set_handoff()
 
