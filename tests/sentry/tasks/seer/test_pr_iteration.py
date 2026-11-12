@@ -1855,6 +1855,55 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         assert kwargs["iteration_index"] == 2
         assert kwargs["pr_number"] == 7
 
+    def _unpushed_edits_block(self) -> MemoryBlock:
+        return MemoryBlock(
+            id="edits",
+            message=Message(role="assistant", content="edited"),
+            timestamp="2024-01-01T00:00:00Z",
+            merged_file_patches=[
+                AgentFilePatch(
+                    repo_name="owner/repo",
+                    patch=FilePatch(path="a.py", type="M", added=1, removed=1),
+                )
+            ],
+        )
+
+    @patch(f"{TASK_PATH}.continue_single_run_from_pr_feedback")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_single_run_feedback_is_not_blocked_by_edits_the_agent_left_unpushed(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_continue: MagicMock,
+    ) -> None:
+        self._single_run_record()
+        mock_fetch.return_value = self._single_run_state(blocks=[self._unpushed_edits_block()])
+        mock_pop.return_value = [self._queued(self._review_feedback(777))]
+
+        self._call()
+
+        mock_continue.assert_called_once()
+
+    @patch(f"{TASK_PATH}.continue_single_run_from_pr_feedback")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_single_run_feedback_waits_while_a_push_is_running(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_continue: MagicMock,
+    ) -> None:
+        self._single_run_record()
+        state = self._single_run_state(blocks=[self._unpushed_edits_block()])
+        state.repo_pr_states["owner/repo"].pr_creation_status = "creating"
+        mock_fetch.return_value = state
+        mock_pop.return_value = [self._queued(self._review_feedback(777))]
+
+        self._call()
+
+        mock_continue.assert_not_called()
+
     @patch(f"{TASK_PATH}.continue_single_run_from_pr_feedback")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
     @patch(f"{TASK_PATH}.fetch_run_status")

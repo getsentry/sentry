@@ -666,6 +666,10 @@ def _drain_queued_autofix_feedback(
 
     # Wait for the previous iteration to push. Its completion hook drains the queue.
     _, all_changes_pushed = state.has_code_changes()
+    if is_single_run(state):
+        all_changes_pushed = not any(
+            pr.pr_creation_status == "creating" for pr in state.repo_pr_states.values()
+        )
     if not all_changes_pushed:
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.drain",

@@ -340,10 +340,14 @@ def complete_single_run_pr_iteration(
     state: SeerRunState,
 ) -> None:
     log_ctx = iteration_log_context(organization, group, state)
-    outcome = _single_run_iteration_outcome(log_ctx, group, run_id, state)
+    outcome = _single_run_iteration_outcome(log_ctx, state)
     if outcome is None:
         return
-    if outcome in (PrIterationOutcome.ALREADY_PUSHED, PrIterationOutcome.NO_CODE_CHANGES):
+    if outcome in (
+        PrIterationOutcome.ALREADY_PUSHED,
+        PrIterationOutcome.NO_CODE_CHANGES,
+        PrIterationOutcome.NOT_PUSHED,
+    ):
         consume_queued_feedback(log_ctx, organization, run_id)
     complete_pr_iteration_details(
         log_ctx=log_ctx,
@@ -363,7 +367,7 @@ def drain_single_run_feedback_queue(
 
 
 def _single_run_iteration_outcome(
-    log_ctx: PrIterationLogContext, group: Group, run_id: int, state: SeerRunState
+    log_ctx: PrIterationLogContext, state: SeerRunState
 ) -> PrIterationOutcome | None:
     if not state.repo_pr_states:
         return PrIterationOutcome.NO_PULL_REQUEST
@@ -376,17 +380,15 @@ def _single_run_iteration_outcome(
         return None
     if iteration_terminal_errored_repos(state):
         return PrIterationOutcome.PR_CREATION_ERRORED
-    if iteration_prs_any_closed(group.organization, state):
-        record_pr_closed("push")
-        pause_pr_iteration(
-            run_id=run_id, organization_id=group.organization.id, reason=PauseReason.PR_CLOSED
-        )
-        return PrIterationOutcome.PR_CLOSED
-    if _push_iteration_changes(
-        log_ctx, group, run_id, state, author=_iteration_commit_author(state)
-    ):
-        return None
-    return PrIterationOutcome.PUSH_FAILED
+    metrics.incr(
+        "autofix.pr_iteration.step",
+        tags={
+            "checkpoint": "single_run_unpushed_edits",
+            "feedback_kind": latest_iteration_feedback_kind(state),
+        },
+        sample_rate=1.0,
+    )
+    return PrIterationOutcome.NOT_PUSHED
 
 
 @traces.trace
