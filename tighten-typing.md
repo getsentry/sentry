@@ -3,7 +3,7 @@
 ## Status
 
 - **Goal:** every cast, `Any`, `type: ignore`, and fixed-name `getattr`/`setattr` that [#129614](https://github.com/getsentry/sentry/pull/129614) (merged as `ae29b66fe41a`) added has been replaced by a contract that matches runtime behavior, or is kept under a named exemption from **Decisions → Escape-hatch policy**. Each change ships as a small draft PR.
-- **Integration baseline:** `442b0ecccf8` (`origin/master`, 2026-11-12). The combined draft integrates all 37 related open PRs, including the earlier typing fixes. Every source PR stays draft and is rebased onto this baseline.
+- **Integration baseline:** `f5c759434c9` (`origin/master`, 2026-11-12). The combined draft integrates all 37 related open PRs, including the earlier typing fixes. Every source PR stays draft and is rebased onto this baseline.
 - **Last recorded sweep:** cast 1203, Any 3364, type-ignore 13, fixed-name-reflection 79, measured on `master` at `de37779b53f` on 2026-11-03. These historical counts do not describe the integration branch.
 - **Items:** C1 #129702 is merged. B1 #129704 is included in the integration draft. Other seed items and all 159 sweep packages retain their ledger status; collecting open PRs does not complete the campaign.
 - **Verification:** refreshing the pinned dependencies cleared the eight baseline errors in the Seer credit-check files. Full-tree mypy passes on the baseline. Integration validation is recorded below.
@@ -52,7 +52,7 @@ The response contract changes affect generated OpenAPI schemas: event attachment
 
 Validation on the combined tree:
 
-- Full-tree mypy passes across 8,730 files on the aggregate and all 37 source branches, reusing results for identical source trees. The initial Seer protobuf errors were an environment mismatch and disappeared after refreshing pinned dependencies.
+- Full-tree mypy passes across 8,733 files on the final aggregate. Before the final refresh, all 37 source branches passed across 8,730 files at `442b0ecccf8`, reusing results for identical source trees. The final rebase preserves the campaign's code and test patches exactly. The initial Seer protobuf errors disappeared after refreshing pinned dependencies.
 - The combined regression and API documentation run has 621 passing tests, four skipped tests, five passing subtests, and one sourcemap documentation case returning 404. That case passes in isolation on both the integration branch and `master`; the combined-run failure remains unresolved.
 - Another 83 focused checks pass across sourcemap debugging, monitor filtering, OAuth, onboarding, release serialization, and CSV downloads.
 - API schema generation and example validation pass. Repository hooks pass with formatters skipped; Ruff and whitespace checks pass separately.
