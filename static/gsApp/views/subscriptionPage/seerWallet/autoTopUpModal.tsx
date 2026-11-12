@@ -155,8 +155,6 @@ function AutoTopUpForm({
 
   const topUpCredits = Math.floor(amountCents / creditPriceCents);
   const isAmountTooLow = topUpCredits < autoTopUp.minTopUpCredits;
-  const isDailyLimitTooLow =
-    dailyLimitCents !== null && dailyLimitCents < autoTopUp.minDailySpendCapCents;
 
   const {mutate: save, isPending} = useMutation({
     mutationFn: (data: AutoTopUpSettings) =>
@@ -352,11 +350,9 @@ function AutoTopUpForm({
               placeholder={t('No limit')}
               onChange={setDailyLimitCents}
             />
-            {isDailyLimitTooLow && (
-              <Text size="sm" variant="danger">
-                {tct('The daily usage limit must be at least [price].', {
-                  price: displayPrice({cents: autoTopUp.minDailySpendCapCents}),
-                })}
+            {dailyLimitCents === 0 && (
+              <Text size="sm" variant="warning">
+                {t('A $0 limit turns off all Seer usage.')}
               </Text>
             )}
           </Stack>
@@ -394,7 +390,7 @@ function AutoTopUpForm({
             <Button
               variant="primary"
               busy={isPending}
-              disabled={isAmountTooLow || isDailyLimitTooLow}
+              disabled={isAmountTooLow}
               onClick={() =>
                 save({
                   enabled: true,

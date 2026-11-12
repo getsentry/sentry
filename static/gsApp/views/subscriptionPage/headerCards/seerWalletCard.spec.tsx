@@ -31,7 +31,6 @@ function AutoTopUpFixture(
     topUpCredits: 1500,
     dailySpendCapCents: 7500,
     minTopUpCredits: 1500,
-    minDailySpendCapCents: 100,
     ...params,
   };
 }

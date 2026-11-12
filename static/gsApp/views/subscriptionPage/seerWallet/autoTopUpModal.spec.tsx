@@ -14,14 +14,12 @@ function AutoTopUpFixture(
     topUpCredits: 1000,
     dailySpendCapCents: 7500,
     minTopUpCredits: 1500,
-    minDailySpendCapCents: 100,
     ...params,
   };
 }
 
 function savedSettings({
   minTopUpCredits: _minTopUpCredits,
-  minDailySpendCapCents: _minDailySpendCapCents,
   ...settings
 }: SeerWalletAutoTopUp) {
   return settings;
@@ -278,7 +276,7 @@ describe('openSeerAutoTopUpModal', () => {
     await userEvent.clear(dailyLimit);
     expect(dailyLimit).toHaveValue('');
     expect(
-      screen.queryByText('The daily usage limit must be at least $1.')
+      screen.queryByText('A $0 limit turns off all Seer usage.')
     ).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));
@@ -320,7 +318,12 @@ describe('openSeerAutoTopUpModal', () => {
     expect(saveMock).not.toHaveBeenCalled();
   });
 
-  it('blocks a daily limit of $0', async () => {
+  it('warns about a $0 daily limit and still saves it', async () => {
+    const saveMock = MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      body: AutoTopUpFixture({enabled: true, topUpCredits: 2500, dailySpendCapCents: 0}),
+    });
     openAutoTopUpModal({
       autoTopUp: AutoTopUpFixture({enabled: true, topUpCredits: 2500}),
     });
@@ -329,10 +332,20 @@ describe('openSeerAutoTopUpModal', () => {
     await userEvent.clear(dailyLimit);
     await userEvent.type(dailyLimit, '0');
 
-    expect(
-      screen.getByText('The daily usage limit must be at least $1.')
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
+    expect(screen.getByText('A $0 limit turns off all Seer usage.')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    expect(saveMock).toHaveBeenCalledWith(
+      url,
+      expect.objectContaining({
+        data: {
+          enabled: true,
+          thresholdCredits: 500,
+          topUpCredits: 2500,
+          dailySpendCapCents: 0,
+        },
+      })
+    );
   });
 
   it('confirms before turning off auto-reload', async () => {
