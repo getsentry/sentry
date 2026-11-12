@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
 from django.db import models
@@ -57,3 +58,18 @@ class PreparedInput:
     events: tuple[Event, ...]
     # Older events were left out to fit MAX_INPUT_CHARS.
     truncated: bool
+
+
+@dataclass(frozen=True)
+class TelemetryInput:
+    """One entity's telemetry, loaded for classification."""
+
+    # Oldest first.
+    events: list[Event]
+    # Loading hit its limits, so some telemetry is missing or shortened.
+    truncated: bool
+    # Where the result is written in EAP, taken from the newest span.
+    trace_id: str
+    timestamp: datetime
+    client_sample_rate: float
+    conversation_id: str | None

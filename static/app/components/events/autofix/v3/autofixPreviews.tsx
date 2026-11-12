@@ -21,6 +21,7 @@ import {
 import {
   collectPatches,
   getAutofixArtifactFromSection,
+  getSingleRunStop,
   isCodeChangesArtifact,
   isCodingAgentsArtifact,
   isPullRequestsArtifact,
@@ -42,6 +43,7 @@ export function RootCausePreview({section}: ArtifactPreviewProps) {
     const sectionArtifact = getAutofixArtifactFromSection(section);
     return isRootCauseArtifact(sectionArtifact) ? sectionArtifact : null;
   }, [section]);
+  const stop = getSingleRunStop(section);
 
   return (
     <ArtifactCard icon={<IconBug />} title={t('Root Cause')}>
@@ -52,6 +54,8 @@ export function RootCausePreview({section}: ArtifactPreviewProps) {
         </Flex>
       ) : artifact?.data ? (
         <SeerMarkdown raw={artifact.data.one_line_description} />
+      ) : stop ? (
+        <SeerMarkdown raw={stop.reason} />
       ) : (
         <Text variant="muted">
           {t(

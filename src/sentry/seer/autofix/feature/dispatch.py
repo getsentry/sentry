@@ -14,7 +14,6 @@ from sentry.constants import (
 )
 from sentry.models.group import Group
 from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_utils import (
     AgentRunOptions,
@@ -122,10 +121,6 @@ def should_use_single_run(
     return single_run_requested or features.has(
         "organizations:autofix-single-run", group.organization
     )
-
-
-def project_stopping_point(project: Project) -> AutofixStoppingPoint:
-    return AutofixStoppingPoint(project.get_option("sentry:seer_automated_run_stopping_point"))
 
 
 def _single_run_pr_internal_settings(
@@ -288,7 +283,7 @@ def trigger_autofix_feature(
         single_run_requested=args.single_run,
     )
     stopping_point = (
-        (args.stopping_point or project_stopping_point(group.project))
+        (args.stopping_point or AutofixStoppingPoint.CODE_CHANGES)
         if single_run
         else args.stopping_point
     )

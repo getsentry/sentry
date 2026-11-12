@@ -9,6 +9,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from sentry.issues.formatting.formatter import (
+    Code,
     Consumer,
     Field,
     Format,
@@ -17,25 +18,23 @@ from sentry.issues.formatting.formatter import (
     Text,
     get_formatter,
 )
+from sentry.seer.agent.client_models import AgentFilePatch, SeerRunState
+from sentry.seer.autofix.single_run import SINGLE_RUN_ROOT_CAUSE_KEY
 
-
-def _artifacts(autofix: Mapping[str, Any]) -> dict[str, Any]:
-    """Latest data per artifact key across the run's blocks (later wins), mirroring
-    ``SeerRunState.get_artifacts()``. Keys we render: ``root_cause``, ``solution``.
-    """
-    result: dict[str, Any] = {}
-    for block in autofix.get("blocks") or []:
-        for artifact in block.get("artifacts") or []:
-            result[artifact["key"]] = artifact.get("data")
-    return result
+# p99 of 591 file diffs / 199 runs in Seer Autofix PRs (Nov 2026): 7.9k per file, 20.1k per run.
+_MAX_DIFF_CHARS = 8_000
+_MAX_DIFFS_CHARS = 20_000
 
 
 def _root_cause(data: Any) -> Section | None:
     if not data:
         return None
     groups: list[Group] = []
-    if data.get("one_line_description"):
-        groups.append(Group(items=(Text(data["one_line_description"]),)))
+    summary = tuple(
+        Text(data[key]) for key in ("headline", "one_line_description", "cause") if data.get(key)
+    )
+    if summary:
+        groups.append(Group(items=summary))
     whys = data.get("five_whys") or []
     if whys:
         groups.append(
@@ -62,11 +61,40 @@ def _solution(data: Any) -> Section | None:
     return Section(title="Solution", groups=tuple(groups)) if groups else None
 
 
-def _pull_requests(autofix: Mapping[str, Any]) -> Section | None:
+def _file_change(repo: str, fp: AgentFilePatch, *, show_diff: bool, link: str | None) -> Group:
+    header = Text(f"{repo}: {fp.patch.path} (+{fp.patch.added} -{fp.patch.removed})")
+    if not fp.diff:
+        return Group(items=(header,))
+    if show_diff:
+        return Group(items=(header, Code(fp.diff)))
+    lines = fp.diff.count("\n") + 1
+    note = f"Diff not shown ({lines} lines)."
+    if link:
+        note += f" See the full change: {link}"
+    return Group(items=(header, Text(note)))
+
+
+def _code_changes(state: SeerRunState) -> Section | None:
+    pr_urls = {pr.repo_name: pr.pr_url for pr in state.get_created_pull_request_states()}
+    budget = _MAX_DIFFS_CHARS
+    groups: list[Group] = []
+    for repo, patches in state.get_diffs_by_repo().items():
+        for fp in patches:
+            show_diff = len(fp.diff) <= min(_MAX_DIFF_CHARS, budget)
+            if show_diff:
+                budget -= len(fp.diff)
+            link = pr_urls.get(repo) or fp.code_url
+            groups.append(_file_change(repo, fp, show_diff=show_diff, link=link))
+    if not groups:
+        return None
+    return Section(title="Code Changes", groups=tuple(groups), repeating=True)
+
+
+def _pull_requests(state: SeerRunState) -> Section | None:
     lines = tuple(
-        Text(f"- {repo}: {pr['pr_url']}")
-        for repo, pr in (autofix.get("repo_pr_states") or {}).items()
-        if pr.get("pr_url")
+        Text(f"- {pr.repo_name}: {pr.pr_url}")
+        for pr in state.get_created_pull_request_states()
+        if pr.pr_url
     )
     return Section(title="Pull Requests", groups=(Group(items=lines),)) if lines else None
 
@@ -84,11 +112,13 @@ def format_autofix(
     if not autofix:  # no autofix run on this issue yet
         # empty still has to parse: "" for the text formats, "{}" for json
         return fmt.join([])
-    artifacts = _artifacts(autofix)
+    state = SeerRunState.parse_obj(autofix)
+    artifacts = {key: artifact.data for key, artifact in state.get_artifacts().items()}
     sections = [
-        _root_cause(artifacts.get("root_cause")),
+        _root_cause(artifacts.get("root_cause") or artifacts.get(SINGLE_RUN_ROOT_CAUSE_KEY)),
         _solution(artifacts.get("solution")),
-        _pull_requests(autofix),
+        _code_changes(state),
+        _pull_requests(state),
     ]
-    rendered = [fmt.render_section(s) for s in sections if s is not None]
+    rendered = [fmt.render_section(section) for section in sections if section is not None]
     return fmt.join([part for part in rendered if part])

@@ -334,7 +334,13 @@ class EventLifecycle:
             # The context called record_success or record_failure being closing,
             # so we can just exit quietly.
             return
-        if exc_value is not None:
+        if exc_value is not None and not isinstance(exc_value, Exception):
+            # Non-Exception BaseExceptions (ProcessingDeadlineExceeded, KeyboardInterrupt,
+            # GeneratorExit, etc.) signal interruption rather than a defect in this
+            # operation. They keep propagating, so we leave Sentry reporting to the outer
+            # handler, which can group them appropriately.
+            self.record_halt(exc_value)
+        elif exc_value is not None:
             # We were forced to exit the context by a raised exception.
             # Default to creating a Sentry issue for unhandled exceptions
             self.record_failure(exc_value, create_issue=True)
