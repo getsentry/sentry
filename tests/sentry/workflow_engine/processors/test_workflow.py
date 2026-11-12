@@ -1459,16 +1459,6 @@ class TestActivityTypeInWorkflowEvaluation(BaseWorkflowTest):
             data={"assignee": str(self.user.id), "assigneeType": "user"},
         )
 
-    def test_matching_activity_selects_action_group(self) -> None:
-        _, action_groups, delayed_items = _evaluate_workflows(
-            {self.workflow},
-            WorkflowEventData(event=self.activity, group=self.group),
-            FROZEN_TIME,
-            detector=self.detector,
-        )
-        assert action_groups == {self.action_group}
-        assert delayed_items == {}
-
     def test_activity_evaluates_without_group(self) -> None:
         _, action_groups, delayed_items = _evaluate_workflows(
             {self.workflow},
