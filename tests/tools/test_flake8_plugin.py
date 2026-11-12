@@ -3237,9 +3237,158 @@ class E(Endpoint):
         q = {"a": 1}
         return q.get("a")
 """
-    # only the kept S028 is checked: the S026 this also reports is wrong (q no longer holds the query
-    # string) and belongs to the reassigned-variable follow-up
-    assert ("S028", 5, "E.get", "query:_h") in _summary(_api_violations(src))
+    # q no longer holds the query string after it's reassigned, so q.get("a") isn't an S026
+    assert _summary(_api_violations(src)) == [("S028", 5, "E.get", "query:_h")]
+
+
+def _post_body_summary(body: str) -> list[tuple[ApiRule, int, str, str]]:
+    """The findings for a public POST whose body is `body`"""
+    src = (
+        """\
+class E(Endpoint):
+    publish_status = {"POST": ApiPublishStatus.PUBLIC}
+
+    def post(self, request) -> Response[X]:
+"""
+        + body
+    )
+    return _summary(_api_violations(src))
+
+
+def test_reads_after_a_local_is_reassigned_are_not_s026() -> None:
+    body = """\
+        data = request.data
+        serializer = S(data=data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        return Response(data.get("name"))
+"""
+    assert _post_body_summary(body) == [("S025", 6, "E.post", "body:S")]
+
+
+def test_reads_before_a_reassignment_are_still_s026() -> None:
+    body = """\
+        data = request.data
+        first = data.get("a")
+        data = {}
+        return Response(data.get("b"))
+"""
+    assert _post_body_summary(body) == [("S026", 6, "E.post", "body:a")]
+
+
+def test_a_value_built_from_request_input_stays_request_input() -> None:
+    # data["inner"] and clean(data) may still be client input, as master treats them
+    nested = """\
+        data = request.data
+        data = data["inner"]
+        return Response(data.get("x"))
+"""
+    assert _post_body_summary(nested) == [
+        ("S026", 6, "E.post", "body:inner"),
+        ("S026", 7, "E.post", "body:x"),
+    ]
+    cleaned = """\
+        data = request.data
+        data = clean(data)
+        return Response(data.get("x"))
+"""
+    assert _post_body_summary(cleaned) == [
+        ("S026", 7, "E.post", "body:x"),
+        ("S028", 6, "E.post", "body:clean"),
+    ]
+
+
+def test_reassigned_helper_parameter_alias_and_tuple_are_not_s026() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return self._h(request.GET)
+
+    def _h(self, q):
+        q2 = q
+        q2 = {}
+        first, q = load()
+        return q.get("a"), q2.get("b")
+"""
+    assert _summary(_api_violations(src)) == [("S028", 5, "E.get", "query:_h")]
+
+
+def test_every_way_of_rebinding_a_local_stops_it_being_request_input() -> None:
+    rebinds = [
+        "        x, data = f()\n        return data.get('x')\n",
+        "        for data in items:\n            data.get('x')\n",
+        "        with open(p) as data:\n            data.get('x')\n",
+        "        try:\n            pass\n        except E as data:\n            data.get('x')\n",
+        "        data: dict = {}\n        return data.get('x')\n",
+    ]
+    for rebind in rebinds:
+        assert _post_body_summary("        data = request.data\n" + rebind) == [], rebind
+
+
+def test_rebinding_to_another_source_changes_the_source() -> None:
+    body = """\
+        data = request.GET
+        data = request.data
+        return Response(data.get("x"))
+"""
+    assert _post_body_summary(body) == [("S026", 7, "E.post", "body:x")]
+
+
+def test_reassignment_inside_a_block_only_applies_inside_it() -> None:
+    # in the block, data is the validated data
+    in_block = """\
+        data = request.data
+        if serializer.is_valid():
+            data = serializer.validated_data
+            return Response(data.get("x"))
+"""
+    assert _post_body_summary(in_block) == []
+    # after the block it may still be the raw body (when the branch didn't run)
+    after_block = """\
+        data = request.data
+        if c:
+            data = serializer.validated_data
+        return Response(data.get("x"))
+"""
+    assert _post_body_summary(after_block) == [("S026", 8, "E.post", "body:x")]
+    # the same after a try, and at the top of a loop that reassigns at its end
+    after_try = """\
+        data = request.data
+        try:
+            data = parse()
+        except ValueError:
+            pass
+        return Response(data.get("x"))
+"""
+    assert _post_body_summary(after_try) == [("S026", 10, "E.post", "body:x")]
+    loop_end = """\
+        data = request.data
+        for row in rows:
+            data.get("x")
+            data = row
+"""
+    assert _post_body_summary(loop_end) == [("S026", 7, "E.post", "body:x")]
+    # a nested def's `data = {}` is its own variable
+    nested_def = """\
+        data = request.data
+
+        def build():
+            data = {}
+            return data
+
+        return Response(data.get("x"))
+"""
+    assert _post_body_summary(nested_def) == [("S026", 11, "E.post", "body:x")]
+    # a source set inside a block is still a source after it
+    set_in_block = """\
+        data = {}
+        if c:
+            data = request.data
+        return Response(data.get("x"))
+"""
+    assert _post_body_summary(set_in_block) == [("S026", 8, "E.post", "body:x")]
 
 
 def test_helper_mixing_a_real_source_and_a_parameter_keeps_both_s028s() -> None:

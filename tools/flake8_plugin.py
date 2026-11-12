@@ -1053,6 +1053,9 @@ class _InputCtx:
         self.is_static = False
         # local name -> placeholder, for aliases of a parameter such as `q = params` or `q = req.GET`
         self.param_locals: dict[str, str] = {}
+        # names (parameters included) reassigned to something that isn't request input, so reads
+        # after that point don't count. Reads earlier in the function were already recorded
+        self.rebound_names: set[str] = set()
         # (start_end, serializer, placeholder) for a serializer built from a parameter,
         # sorted into query or body validators once the merge knows what the parameter received
         self.param_validators: list[tuple[_StartEnd, str, str]] = []
@@ -1097,6 +1100,16 @@ class _InputCtx:
             return "request body"
         return self.param_source_of(node)
 
+    def forget_request(self, name: str) -> None:
+        """Stops treating `name` as request input from here on, since it was reassigned.
+        `name` the local or parameter that was reassigned
+        Returns nothing, it only updates what this function tracks
+        """
+        self.query_locals.discard(name)
+        self.body_locals.discard(name)
+        self.param_locals.pop(name, None)
+        self.rebound_names.add(name)
+
     def param_source_of(self, node: ast.expr) -> str | None:
         """A placeholder when `node` is one of this function's parameters, or .GET / .data on one.
 
@@ -1107,6 +1120,8 @@ class _InputCtx:
         if isinstance(node, ast.Name):
             if node.id in self.param_locals:
                 return self.param_locals[node.id]
+            if node.id in self.rebound_names:
+                return None
             if node.id not in ("self", "cls") and self.params.has(node.id):
                 return f"{_PARAM_PREFIX}{node.id}"
             return None
@@ -1357,6 +1372,31 @@ def _binds_name(ctx: _InputCtx, name: str) -> bool:
     return name in ctx.bound_names
 
 
+def _target_names(target: ast.AST) -> list[str]:
+    """The plain names an assignment target binds, so `a, (b, *c) = xyz` gives a, b and c
+    `target` the target being assigned to
+    Returns the names, or an empty list for attribute and subscript targets
+    """
+    names: list[str] = []
+    for node in ast.walk(target):
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
+            names.append(node.id)
+    return names
+
+
+def _touches_source(ctx: _InputCtx, value: ast.expr) -> bool:
+    """Whether any part of `value` is request input, like `data["inner"]` or `clean(q)`, so the name
+    it's assigned to may still hold client input and keeps being tracked.
+    `ctx` the function being visited
+    `value` the assigned value
+    Returns True when some part of it is a query string, body or parameter placeholder
+    """
+    for node in ast.walk(value):
+        if isinstance(node, ast.expr) and ctx.source_of(node) is not None:
+            return True
+    return False
+
+
 def _leaks_a_payload(helper_ctx: _InputCtx, bindings: dict[str, str]) -> bool:
     """Whether a call hands a payload to a helper parameter it can leave through unseen.
     `helper_ctx` the helper being called
@@ -1409,6 +1449,9 @@ class SentryVisitor(ast.NodeVisitor):
         self._module_bindings: dict[str, int] = {}
         # { class name : its body's binding counts} filled when a lookup first needs them
         self._class_bindings: dict[str, dict[str, int]] = {}
+        # one frame per block (if / else / loop / try / except body...) being visited in a function:
+        # name -> what it was tracked as before the block reassigned it, so it can be restored after
+        self._forget_frames: list[dict[str, tuple[bool, bool, str | None, bool]]] = []
         # publish_status of the enclosing module-level class, for S022.
         self._publish_status: dict[str, str] | None = None
         # Input rules: per-method accumulation, innermost last.
@@ -1544,7 +1587,12 @@ class SentryVisitor(ast.NodeVisitor):
     def visit_ExceptHandler(self, node: ast.ExceptHandler) -> None:
         self._except_vars.append(node.name)
         try:
-            self.generic_visit(node)
+            if node.type is not None:
+                self.visit(node.type)
+            forget = None
+            if node.name:
+                forget = [node.name]
+            self._visit_block(node.body, forget)
         finally:
             self._except_vars.pop()
 
@@ -1637,16 +1685,17 @@ class SentryVisitor(ast.NodeVisitor):
             if field_var is not None:
                 curr_method.field_loop_vars[field_var[0]] = field_var[1]
 
-        for statement in node.body:
-            self.visit(statement)
+        loop_forget = None
+        if not _touches_source(curr_method, node.iter):
+            loop_forget = _target_names(node.target)
+        self._visit_block(node.body, forget=loop_forget)
 
         if loop_var is not None:
             curr_method.safe_loop_vars.discard(loop_var)
         if field_var is not None:
             curr_method.field_loop_vars.pop(field_var[0], None)
 
-        for statement in node.orelse:
-            self.visit(statement)
+        self._visit_block(node.orelse)
 
     def visit_comprehension_types(
         self, node: ast.ListComp | ast.DictComp | ast.SetComp | ast.GeneratorExp
@@ -1736,8 +1785,12 @@ class SentryVisitor(ast.NodeVisitor):
             if ctx is not None:
                 self._input_stack.append(ctx)
                 pushed = True
-            for statement in node.body:
-                self.visit(statement)
+            if pushed:
+                for statement in node.body:
+                    self.visit(statement)
+            else:
+                # a nested def shares the outer function's ctx, so its reassignments end with it
+                self._visit_block(node.body)
         finally:
             self._function_stack.pop()
             self._function_depth -= 1
@@ -1759,20 +1812,33 @@ class SentryVisitor(ast.NodeVisitor):
             for target in node.targets:
                 if isinstance(target, ast.Name):
                     self._s029_seer_pool_names.add(target.id)
+        # names reassigned to something that isn't request input. The names are orgotten after the value is
+        # visited, so a read in the value itself (`data = data.get("field")`) still counts
+        to_forget: list[str] = []
         if self._input_stack:
             ctx = self._input_stack[-1]
+            # a value built from request input may still be client input, so nothing is forgotten
+            keeps_input = _touches_source(ctx, node.value)
             for target in node.targets:
                 if not isinstance(target, ast.Name):
+                    if not keeps_input:
+                        to_forget.extend(_target_names(target))
                     continue
                 if ctx.is_query(node.value):
+                    self._forget(ctx, target.id)
                     ctx.query_locals.add(target.id)
                 elif ctx.is_body(node.value):
+                    self._forget(ctx, target.id)
                     ctx.body_locals.add(target.id)
                 else:
-                    # `q = params`, `r = req` or `q = req.GET` alias one of the function's parameters
+                    # `q = params`, `r = req` or `q = req.GET` alias one of the function's params
                     placeholder = ctx.param_source_of(node.value)
                     if placeholder is not None:
+                        self._forget(ctx, target.id)
                         ctx.param_locals[target.id] = placeholder
+                        ctx.rebound_names.discard(target.id)
+                    elif not keeps_input:
+                        to_forget.append(target.id)
         if (
             _is_tests_path(self.filename)
             and self._function_depth == 0
@@ -1786,6 +1852,100 @@ class SentryVisitor(ast.NodeVisitor):
         self._check_S031(node.targets)
         self._check_S033(node.targets)
         self.generic_visit(node)
+        self._forget_names(to_forget)
+
+    def _forget_names(self, names: list[str]) -> None:
+        """Stops treating each of `names` as request input in the current function, if there is one.
+        `names` the names that were just reassigned
+        Returns nothing
+        """
+        if not self._input_stack:
+            return
+        for name in names:
+            self._forget(self._input_stack[-1], name)
+
+    def _forget(self, ctx: _InputCtx, name: str) -> None:
+        """Forget `name` in `ctx`, first noting what it was in the innermost block, so the block can
+        put it back when it ends.
+        `ctx` the function being visited
+        `name` the name being reassigned
+        Returns nothing
+        """
+        if self._forget_frames and name not in self._forget_frames[-1]:
+            self._forget_frames[-1][name] = (
+                name in ctx.query_locals,
+                name in ctx.body_locals,
+                ctx.param_locals.get(name),
+                name in ctx.rebound_names,
+            )
+        ctx.forget_request(name)
+
+    def _visit_block(self, statements: list[ast.stmt], forget: list[str] | None = None) -> None:
+        """Visit one block of statements (an if or else body, a loop body, a try or except body...).
+
+        A reassignment inside the block only applies to the reads after it in the same block. When
+        the block ends, each name it reassigned is put back to what it was before, on top of anything
+        the block added, since code after the block may run without the reassignment having happened.
+        `statements` the block's statements
+        `forget` names bound when the block starts, like an `except ... as e` name
+        Returns nothing
+        """
+        if not self._input_stack:
+            for statement in statements:
+                self.visit(statement)
+            return
+        ctx = self._input_stack[-1]
+        self._forget_frames.append({})
+        try:
+            if forget:
+                self._forget_names(forget)
+            for statement in statements:
+                self.visit(statement)
+        finally:
+            frame = self._forget_frames.pop()
+        for name, (was_query, was_body, placeholder, was_rebound) in frame.items():
+            if was_query:
+                ctx.query_locals.add(name)
+            if was_body:
+                ctx.body_locals.add(name)
+            if placeholder is not None and name not in ctx.param_locals:
+                ctx.param_locals[name] = placeholder
+            if not was_rebound:
+                ctx.rebound_names.discard(name)
+
+    def generic_visit(self, node: ast.AST) -> None:
+        """Same as ast.NodeVisitor's, except that inside a function each list of statements is
+        visited as a block (see _visit_block)."""
+        if not self._input_stack:
+            super().generic_visit(node)
+            return
+        for _field, value in ast.iter_fields(node):
+            if isinstance(value, list):
+                if value and isinstance(value[0], ast.stmt):
+                    self._visit_block(value)
+                    continue
+                for item in value:
+                    if isinstance(item, ast.AST):
+                        self.visit(item)
+            elif isinstance(value, ast.AST):
+                self.visit(value)
+
+    def visit_With(self, node: ast.With) -> None:
+        self._visit_with(node)
+
+    def visit_AsyncWith(self, node: ast.AsyncWith) -> None:
+        self._visit_with(node)
+
+    def _visit_with(self, node: ast.With | ast.AsyncWith) -> None:
+        """`with xyz as data:` rebinds data before the body runs"""
+        for item in node.items:
+            self.visit(item)
+            if item.optional_vars is not None and not (
+                self._input_stack and _touches_source(self._input_stack[-1], item.context_expr)
+            ):
+                self._forget_names(_target_names(item.optional_vars))
+        for statement in node.body:
+            self.visit(statement)
 
     def visit_AugAssign(self, node: ast.AugAssign) -> None:
         self._check_S031([node.target])
@@ -1796,6 +1956,12 @@ class SentryVisitor(ast.NodeVisitor):
         self._check_S031([node.target])
         self._check_S033([node.target])
         self.generic_visit(node)
+        if (
+            node.value is not None
+            and self._input_stack
+            and not _touches_source(self._input_stack[-1], node.value)
+        ):
+            self._forget_names(_target_names(node.target))
 
     def visit_Delete(self, node: ast.Delete) -> None:
         self._check_S031(node.targets)
