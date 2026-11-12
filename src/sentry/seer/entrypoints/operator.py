@@ -788,10 +788,7 @@ def _create_seer_activity(
         if iteration_index is not None:
             activity_data["iteration_index"] = iteration_index
     elif event_type == SentryAppEventType.SEER_STOPPED:
-        stop = event_payload.get("stop") or {}
-        for key in ("reason", "suggestion"):
-            if stop.get(key):
-                activity_data[key] = stop[key]
+        activity_data.update(event_payload.get("stop") or {})
 
     Activity.objects.create_group_activity(
         group,
