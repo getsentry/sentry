@@ -34,6 +34,8 @@ __all__ = (
     "ServiceAccountProject",
     "ServiceAccountReplica",
     "ServiceAccountProjectReplica",
+    "ServiceAccountToken",
+    "ServiceAccountTokenReplica",
 )
 
 # Matches the `name` serializer in the service account API.
@@ -298,3 +300,91 @@ class ServiceAccountProjectReplica(Model):
         ]
 
     __repr__ = sane_repr("service_account_id", "project_id")
+
+
+@control_silo_model
+class ServiceAccountToken(ReplicatedControlModel):
+    """
+    A long-lived credential an org admin creates for a service account. Requests made with
+    it act as the account, never as the admin who created it.
+
+    Revoking keeps the row and sets `date_deactivated`, so its history stays. Accounts are
+    soft-deleted, so the account foreign key only cascades when the org is deleted.
+    """
+
+    # A relocated token would need a new secret, so admins create new tokens instead.
+    __relocation_scope__ = RelocationScope.Excluded
+    category = OutboxCategory.SERVICE_ACCOUNT_TOKEN_UPDATE
+
+    service_account = FlexibleForeignKey(
+        "service_accounts.ServiceAccount", on_delete=models.CASCADE
+    )
+    # Copied from the account so outbox routing and the replica don't need a join.
+    organization_id = HybridCloudForeignKey("sentry.Organization", null=False, on_delete="CASCADE")
+    name = models.CharField(max_length=MAX_NAME_LENGTH)
+    token_hashed = models.TextField(unique=True)
+    token_last_characters = models.CharField(max_length=4)
+    # Fixed at creation. Effective access is this intersected with the account's current
+    # scopes, so narrowing the account narrows the token, but widening it doesn't.
+    scope_list = ArrayField(
+        models.TextField(), validators=[validate_grantable_scopes], default=list
+    )
+    # Always a human user, never another service account.
+    created_by = FlexibleForeignKey("sentry.User", null=True, blank=True, on_delete=models.SET_NULL)
+    date_added = models.DateTimeField(default=timezone.now)
+    date_expires = models.DateTimeField(null=True)
+    date_last_used = models.DateTimeField(null=True)
+    # Null while the token is active. There's no separate flag that could disagree with it.
+    date_deactivated = models.DateTimeField(null=True)
+
+    class Meta:
+        app_label = "service_accounts"
+        db_table = "service_accounts_serviceaccounttoken"
+
+    __repr__ = sane_repr("organization_id", "service_account_id", "name")
+
+    def handle_async_replication(self, cell_name: str, shard_identifier: int) -> None:
+        from sentry.hybridcloud.services.replica import cell_replica_service
+        from sentry.service_accounts.services.service_account.serial import (
+            serialize_service_account_token,
+        )
+
+        cell_replica_service.upsert_replicated_service_account_token(
+            token=serialize_service_account_token(self),
+            cell_name=cell_name,
+        )
+
+
+@cell_silo_model
+class ServiceAccountTokenReplica(Model):
+    """
+    The cell's copy of a `ServiceAccountToken`, written by its outbox. Revoking the token
+    keeps this row with `date_deactivated` set, so callers must check it, `date_expires` and
+    the account's `is_active`.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    service_account = FlexibleForeignKey(
+        "service_accounts.ServiceAccountReplica", on_delete=models.CASCADE
+    )
+    token_id = HybridCloudForeignKey(
+        "service_accounts.ServiceAccountToken", null=False, on_delete="CASCADE", unique=True
+    )
+    organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
+    token_hashed = models.TextField()
+    scope_list = ArrayField(models.TextField(), default=list)
+    date_expires = models.DateTimeField(null=True)
+    date_deactivated = models.DateTimeField(null=True)
+
+    class Meta:
+        app_label = "service_accounts"
+        db_table = "service_accounts_serviceaccounttokenreplica"
+        indexes = [
+            models.Index(
+                fields=["token_hashed"],
+                name="sa_token_replica_hash_idx",
+            ),
+        ]
+
+    __repr__ = sane_repr("organization_id", "token_id")

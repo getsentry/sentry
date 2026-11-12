@@ -15,6 +15,7 @@ import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFi
 import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
 import {useDroppedDataLayer} from 'sentry/components/droppedData/useDroppedDataLayer';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
@@ -34,8 +35,10 @@ import {
   ChartVisualization,
   useChartInfosPlottables,
 } from 'sentry/views/explore/components/chart/chartVisualization';
+import {ExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/extrapolationConfidenceFooter';
 import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
+import {useHasExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/useHasExtrapolationConfidenceFooter';
 import {ChartContextMenu} from 'sentry/views/explore/components/chartContextMenu';
 import {
   AddTransformationButton,
@@ -46,6 +49,7 @@ import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsCon
 import {type SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
+import {useQueryParamsGroupBys} from 'sentry/views/explore/queryParams/context';
 import {
   groupVisualizes,
   serializeVisualizes,
@@ -71,6 +75,13 @@ import {
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 import {ConfidenceFooter} from './confidenceFooter';
+import {
+  canUseSpansHeatMap,
+  getSpansHeatMapDisabledReason,
+  getSpansHeatMapYAxis,
+  isSpansHeatMap,
+  SpansHeatMap,
+} from './spansHeatMap';
 
 interface ExploreChartsProps {
   extrapolate: boolean;
@@ -96,6 +107,13 @@ export const EXPLORE_CHART_TYPE_OPTIONS = [
     label: t('Bar'),
   },
 ];
+
+const CHART_TYPE_TO_ICON: Record<ChartType, 'line' | 'area' | 'bar' | 'heatmap'> = {
+  [ChartType.LINE]: 'line',
+  [ChartType.AREA]: 'area',
+  [ChartType.BAR]: 'bar',
+  [ChartType.HEATMAP]: 'heatmap',
+};
 
 const EXPLORE_CHART_GROUP = 'explore-charts_group';
 
@@ -298,6 +316,8 @@ function Chart({
   const {chartSelection, setChartSelection} = useChartSelection();
   const [tab] = useTab();
   const isAttributeBreakdown = tab === Tab.ATTRIBUTE_BREAKDOWNS;
+  const {selection} = usePageFilters();
+  const groupBys = useQueryParamsGroupBys();
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const dataset = useSpansDataset();
   const droppedData = useDroppedDataLayer({dataset, interval});
@@ -314,10 +334,28 @@ function Chart({
   const chartRef = useRef<ReactEchartsRef>(null);
   const chartWrapperRef = useRef<HTMLDivElement | null>(null);
 
-  const chartType = visualize.chartType;
   const isCombinedChart = visualizes.length > 1;
-  const chartIcon =
-    chartType === ChartType.LINE ? 'line' : chartType === ChartType.AREA ? 'area' : 'bar';
+  const isHeatMapEnabled = canUseSpansHeatMap(organization);
+  const heatMapYAxis = getSpansHeatMapYAxis(visualize);
+  const isHeatMap = !isCombinedChart && isSpansHeatMap(visualize, organization);
+  // Heatmaps with unsupported aggregates fall back to line charts.
+  const chartType = isHeatMap
+    ? ChartType.HEATMAP
+    : visualize.chartType === ChartType.HEATMAP
+      ? ChartType.LINE
+      : visualize.chartType;
+  const chartIcon = CHART_TYPE_TO_ICON[chartType];
+  const chartTypeOptions = isHeatMapEnabled
+    ? [
+        ...EXPLORE_CHART_TYPE_OPTIONS,
+        {
+          value: ChartType.HEATMAP,
+          label: t('Heatmap'),
+          disabled: defined(getSpansHeatMapDisabledReason(visualize)),
+          tooltip: getSpansHeatMapDisabledReason(visualize),
+        },
+      ]
+    : EXPLORE_CHART_TYPE_OPTIONS;
 
   const chartInfos = useMemo(
     () =>
@@ -336,6 +374,7 @@ function Chart({
   );
 
   const plottables = useChartInfosPlottables(chartInfos);
+  const hasExtrapolationConfidenceFooter = useHasExtrapolationConfidenceFooter();
 
   const Title = (
     <Widget.WidgetTitle
@@ -367,7 +406,7 @@ function Chart({
 
   const Actions = visualize.visible ? (
     <Fragment>
-      {droppedData.layerControl ? (
+      {droppedData.layerControl && !isHeatMap ? (
         <DroppedDataLayerControl {...droppedData.layerControl} />
       ) : null}
       <Tooltip
@@ -391,13 +430,14 @@ function Chart({
           )}
           value={chartType}
           menuTitle="Type"
-          options={EXPLORE_CHART_TYPE_OPTIONS}
+          options={chartTypeOptions}
           onChange={option => onChartTypeChange(option.value)}
         />
       </Tooltip>
       <Tooltip title={t('Time interval displayed in this visualization (ex. 5m)')}>
         <CompactSelect
           value={interval}
+          disabled={isHeatMap}
           onChange={option => setInterval(option.value)}
           trigger={triggerProps => (
             <OverlayTrigger.Button
@@ -438,6 +478,11 @@ function Chart({
   const initialChartSelection =
     chartSelection?.chartIndex === index ? chartSelection.selection : undefined;
 
+  // ECharts keeps its toolbox zoom window and brush across option merges, so
+  // the chart needs a fresh instance whenever the queried range or data changes.
+  const {period, start, end} = selection.datetime;
+  const chartRemountKey = `${isAttributeBreakdown ? 'attribute-breakdown' : 'zoom'}|${period}|${start}|${end}|${query}|${chartType}|${interval}|${topEvents}|${groupBys.join(',')}`;
+
   return (
     <ChartWrapper ref={chartWrapperRef} border="primary" radius="md" background="primary">
       <Widget
@@ -445,14 +490,22 @@ function Chart({
         TitleBadges={TitleBadges}
         Actions={Actions}
         Visualization={
-          visualize.visible && (
+          visualize.visible &&
+          (isHeatMap && defined(heatMapYAxis) ? (
+            <SpansHeatMap
+              query={query}
+              yAxis={heatMapYAxis}
+              samplingMode={samplingMode}
+            />
+          ) : (
             <ChartVisualization
-              key={isAttributeBreakdown ? 'attribute-breakdown' : 'zoom'}
+              key={chartRemountKey}
               chartInfo={chartInfo}
               chartRef={chartRef}
               plottables={plottables}
               tooltipLimit={MAX_TOOLTIP_SERIES}
               droppedData={droppedData.band}
+              isDroppedDataLoading={droppedData.isLoading}
               chartXRangeSelection={
                 isAttributeBreakdown
                   ? {
@@ -493,7 +546,7 @@ function Chart({
                   : undefined
               }
             />
-          )
+          ))
         }
         Footer={
           visualize.visible && (
@@ -507,21 +560,27 @@ function Chart({
                   justify="between"
                   gap={{zero: 'xs', xl: 'md'}}
                 >
-                  <ConfidenceFooter
-                    extrapolate={extrapolate}
-                    sampleCount={chartInfo.sampleCount}
-                    isLoading={chartInfo.timeseriesResult?.isPending || false}
-                    isSampled={chartInfo.isSampled}
-                    confidence={chartInfo.confidence}
-                    topEvents={
-                      topEvents
-                        ? Math.min(topEvents, chartInfos[0]!.series.length)
-                        : undefined
-                    }
-                    dataScanned={chartInfo.dataScanned}
-                    rawSpanCounts={rawSpanCounts}
-                    userQuery={query.trim()}
-                  />
+                  {hasExtrapolationConfidenceFooter ? (
+                    !chartInfo.timeseriesResult?.isPending && (
+                      <ExtrapolationConfidenceFooter plottables={plottables} />
+                    )
+                  ) : (
+                    <ConfidenceFooter
+                      extrapolate={extrapolate}
+                      sampleCount={chartInfo.sampleCount}
+                      isLoading={chartInfo.timeseriesResult?.isPending || false}
+                      isSampled={chartInfo.isSampled}
+                      confidence={chartInfo.confidence}
+                      topEvents={
+                        topEvents
+                          ? Math.min(topEvents, chartInfos[0]!.series.length)
+                          : undefined
+                      }
+                      dataScanned={chartInfo.dataScanned}
+                      rawSpanCounts={rawSpanCounts}
+                      userQuery={query.trim()}
+                    />
+                  )}
                   {droppedData.filterNote ? (
                     <DroppedDataFilterNote
                       {...droppedData.filterNote}

@@ -1,9 +1,9 @@
 import {useEffect} from 'react';
+import {useStore} from 'zustand';
 
 import {DEFAULT_APP_ROUTE} from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {getOrganizationHomePath} from 'sentry/utils/organizationHomePath';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -21,8 +21,9 @@ import {useNavigate} from 'sentry/utils/useNavigate';
  * organization to load before redirecting.
  */
 function AppRoot() {
-  const {lastOrganization} = useLegacyStore(ConfigStore);
-  const {organization, error} = useLegacyStore(OrganizationStore);
+  const lastOrganization = useStore(ConfigStore, state => state.lastOrganization);
+  const organization = useStore(OrganizationStore, state => state.organization);
+  const error = useStore(OrganizationStore, state => state.error);
   const navigate = useNavigate();
 
   useEffect(() => {

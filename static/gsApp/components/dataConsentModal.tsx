@@ -18,25 +18,22 @@ import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 export default function DataConsentModal({closeModal}: ModalRenderProps) {
   const organization = useOrganization();
-  const api = useApi();
 
   const {mutate: updateOrganizationOption, isPending} = useMutation<Organization>({
     mutationFn: () =>
-      api.requestPromise(
-        getApiUrl('/organizations/$organizationIdOrSlug/data-consent/', {
+      fetchMutation<Organization>({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/data-consent/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
-        {
-          method: 'PUT',
-          data: {aggregatedDataConsent: true},
-        }
-      ),
+        method: 'PUT',
+        data: {aggregatedDataConsent: true},
+      }),
     onSuccess: () => {
       closeModal();
       toast.success(t('Updated data consent settings.'));

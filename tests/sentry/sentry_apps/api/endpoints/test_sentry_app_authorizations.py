@@ -5,7 +5,9 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework.response import Response
 
+from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.models.apiapplication import ApiApplication
+from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.token_exchange.util import GrantTypes
 from sentry.silo.base import SiloMode
@@ -90,6 +92,86 @@ class TestSentryAppAuthorizations(APITestCase):
         # class's authentication, so expect an unauthorized error.
         response = self.get_error_response(client_id=None)
         assert response.status_code == 401
+
+    def test_rejects_authorization_for_deleting_app(self) -> None:
+        self.sentry_app.update(status=SentryAppStatus.DELETION_IN_PROGRESS)
+        assert self.application.is_active
+
+        response = self.get_error_response(status_code=401)
+
+        assert response.data["detail"] == "Integration is being deleted"
+        assert ApiGrant.objects.filter(id=self.install.api_grant_id).exists()
+        assert not ApiToken.objects.filter(application=self.sentry_app.application).exists()
+
+    def test_rejects_authorization_for_deleting_installation(self) -> None:
+        self.install.update(status=SentryAppInstallationStatus.PENDING_DELETION)
+        assert self.application.is_active
+
+        response = self.get_error_response(status_code=401)
+
+        assert response.data["detail"] == "Installation is being deleted"
+        assert ApiGrant.objects.filter(id=self.install.api_grant_id).exists()
+        assert not ApiToken.objects.filter(application=self.sentry_app.application).exists()
+
+    def test_rejects_refresh_for_deleting_app(self) -> None:
+        initial_response = self.get_success_response()
+        self.sentry_app.update(status=SentryAppStatus.DELETION_IN_PROGRESS)
+
+        response = self.get_error_response(
+            grant_type=GrantTypes.REFRESH,
+            refresh_token=initial_response.data["refreshToken"],
+            status_code=401,
+        )
+
+        assert response.data["detail"] == "Integration is being deleted"
+        self._assert_token_unchanged(initial_response.data["id"])
+
+    def test_rejects_refresh_for_deleting_installation(self) -> None:
+        initial_response = self.get_success_response()
+        self.install.update(status=SentryAppInstallationStatus.PENDING_DELETION)
+
+        response = self.get_error_response(
+            grant_type=GrantTypes.REFRESH,
+            refresh_token=initial_response.data["refreshToken"],
+            status_code=401,
+        )
+
+        assert response.data["detail"] == "Installation is being deleted"
+        self._assert_token_unchanged(initial_response.data["id"])
+
+    def test_rejects_client_secret_jwt_refresh_for_deleting_app(self) -> None:
+        initial_response = self.get_success_response()
+        jwt_token = self._create_jwt(self.application.client_id, self.client_secret)
+        self.sentry_app.update(status=SentryAppStatus.DELETION_IN_PROGRESS)
+
+        response = self.get_error_response(
+            grant_type=GrantTypes.CLIENT_SECRET_JWT,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {jwt_token}"},
+            status_code=401,
+        )
+
+        assert response.data["detail"] == "Integration is being deleted"
+        self._assert_token_unchanged(initial_response.data["id"])
+
+    def test_rejects_client_secret_jwt_refresh_for_deleting_installation(self) -> None:
+        initial_response = self.get_success_response()
+        jwt_token = self._create_jwt(self.application.client_id, self.client_secret)
+        self.install.update(status=SentryAppInstallationStatus.PENDING_DELETION)
+
+        response = self.get_error_response(
+            grant_type=GrantTypes.CLIENT_SECRET_JWT,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {jwt_token}"},
+            status_code=401,
+        )
+
+        assert response.data["detail"] == "Installation is being deleted"
+        self._assert_token_unchanged(initial_response.data["id"])
+
+    def _assert_token_unchanged(self, token_id: str) -> None:
+        token = ApiToken.objects.get(application=self.sentry_app.application)
+        assert str(token.id) == token_id
+        self.install.refresh_from_db()
+        assert self.install.api_token_id == token.id
 
     def test_incorrect_grant_type(self) -> None:
         self.get_error_response(grant_type="notit", status_code=403)

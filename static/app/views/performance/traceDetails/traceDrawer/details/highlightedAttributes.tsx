@@ -7,7 +7,8 @@ import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
 import {InfoText} from '@sentry/scraps/info';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ExternalLink} from 'sentry/components/links/externalLink';
@@ -26,6 +27,7 @@ import {
   type TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {AiSpanDashboardLink} from 'sentry/views/insights/pages/agents/components/aiSpanDashboardLink';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
 import {
@@ -246,11 +248,21 @@ function getAISpanAttributes({
     });
   }
 
-  const model = attributes['gen_ai.response.model'] || attributes['gen_ai.request.model'];
+  const modelField = attributes[SpanFields.GEN_AI_RESPONSE_MODEL]
+    ? SpanFields.GEN_AI_RESPONSE_MODEL
+    : SpanFields.GEN_AI_REQUEST_MODEL;
+  const model = attributes[modelField];
   if (model) {
     highlightedAttributes.push({
       name: t('Model'),
-      value: <ModelName modelId={model.toString()} gap="xs" />,
+      value: (
+        <Flex align="center" gap="sm" width="fit-content" maxWidth="100%">
+          <Container minWidth="0">
+            <ModelName modelId={model.toString()} gap="xs" />
+          </Container>
+          <AiSpanDashboardLink field={modelField} value={model.toString()} />
+        </Flex>
+      ),
     });
   }
 
@@ -322,11 +334,19 @@ function getAISpanAttributes({
     });
   }
 
-  const toolName = attributes['gen_ai.tool.name'];
+  const toolName = attributes[SpanFields.GEN_AI_TOOL_NAME];
   if (toolName) {
     highlightedAttributes.push({
       name: t('Tool Name'),
-      value: toolName,
+      value: (
+        <Flex align="center" gap="sm" width="fit-content" maxWidth="100%">
+          <Text ellipsis>{toolName}</Text>
+          <AiSpanDashboardLink
+            field={SpanFields.GEN_AI_TOOL_NAME}
+            value={toolName.toString()}
+          />
+        </Flex>
+      ),
     });
   }
 

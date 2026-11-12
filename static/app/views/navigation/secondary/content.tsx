@@ -19,7 +19,10 @@ export function SecondaryNavigationContent(): ReactNode {
   const organization = useOrganization({allowNull: true});
 
   switch (activeGroup) {
+    // Groups without a secondary navigation must also set
+    // `secondaryNavigation: false` in `PRIMARY_NAVIGATION_GROUP_CONFIG`.
     case 'inbox':
+    case 'prevent':
       return null;
     case 'issues':
       return <IssuesSecondaryNavigation />;
@@ -38,8 +41,6 @@ export function SecondaryNavigationContent(): ReactNode {
       return <ProjectsSecondaryNavigation />;
     case 'monitors':
       return <MonitorsSecondaryNavigation />;
-    case 'prevent':
-      return null;
     case 'settings':
       return <SettingsSecondaryNavigation />;
     case 'admin':

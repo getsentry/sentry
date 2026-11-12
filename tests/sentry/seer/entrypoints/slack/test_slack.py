@@ -70,6 +70,7 @@ from sentry.seer.entrypoints.slack.investigation_status import (
     MAX_SUMMARY_DESCRIPTION_LENGTH,
 )
 from sentry.seer.entrypoints.slack.messaging import (
+    edit_thread_message,
     process_thread_update,
     schedule_all_thread_updates,
     send_thread_update,
@@ -319,6 +320,33 @@ class SlackAutofixEntrypointTest(TestCase):
         renderable = mock_send_threaded_message.call_args.kwargs["renderable"]
         assert "couldn't finish working on this issue" in str(renderable["blocks"])
         mock_send_threaded_ephemeral_message.assert_not_called()
+
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
+        return_value={"ok": True, "ts": "1234567890.000100"},
+    )
+    def test_stopped_run_posts_the_reason_and_suggestion(
+        self, mock_send_threaded_message: MagicMock, _mock_has_access: MagicMock
+    ) -> None:
+        SeerOperatorAutofixCache.populate_post_autofix_cache(
+            entrypoint_key=SeerEntrypointKey.SLACK,
+            run_id=MOCK_RUN_ID,
+            cache_payload=self._get_entrypoint().create_autofix_cache_payload(),
+        )
+        stop = {"reason": "The API key expired.", "suggestion": "Rotate the key."}
+
+        with self.tasks():
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_STOPPED,
+                event_payload={"run_id": MOCK_RUN_ID, "group_id": self.group.id, "stop": stop},
+                organization_id=self.organization.id,
+            )
+
+        renderable = mock_send_threaded_message.call_args.kwargs["renderable"]
+        assert renderable["text"] == "Seer stopped early"
+        assert "The API key expired." in str(renderable["blocks"])
+        assert "Rotate the key." in str(renderable["blocks"])
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
     @patch(
@@ -940,6 +968,54 @@ class SlackAgentEntrypointTest(TestCase):
         assert payload["thread"]["thread_ts"] == self.thread_ts
         assert payload["thread"]["channel_id"] == self.channel_id
         assert payload["slack_user_id"] == self.slack_user_id
+
+    @override_options({"notifications.tracking.sources": [NotificationSource.SEER_AGENT_RESPONSE]})
+    @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
+    @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
+    def test_edit_thread_message_records_sent(
+        self, mock_update_message: MagicMock, mock_record_sent: MagicMock
+    ) -> None:
+        data = SeerAgentResponse(
+            run_id=MOCK_RUN_ID, organization_id=self.organization.id, summary="Done."
+        )
+
+        edit_thread_message(
+            install=self._get_entrypoint().install,
+            channel_id=self.channel_id,
+            message_ts="1.1",
+            data=data,
+        )
+
+        mock_update_message.assert_called_once()
+        mock_record_sent.assert_called_once_with(
+            NotificationTrackingContext(
+                source=NotificationSource.SEER_AGENT_RESPONSE,
+                provider=NotificationProviderKey.SLACK,
+                category=NotificationCategory.SEER,
+                notification_uuid=data.notification_uuid,
+                organization_id=self.organization.id,
+            ),
+            links=set(),
+        )
+
+    @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.update_message",
+        side_effect=IntegrationResourceNotFoundError,
+    )
+    def test_edit_thread_message_to_deleted_message_does_not_record_sent(
+        self, _mock_update_message: MagicMock, mock_record_sent: MagicMock
+    ) -> None:
+        edit_thread_message(
+            install=self._get_entrypoint().install,
+            channel_id=self.channel_id,
+            message_ts="1.1",
+            data=SeerAgentResponse(
+                run_id=MOCK_RUN_ID, organization_id=self.organization.id, summary="Done."
+            ),
+        )
+
+        mock_record_sent.assert_not_called()
 
     @patch(
         "sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message",

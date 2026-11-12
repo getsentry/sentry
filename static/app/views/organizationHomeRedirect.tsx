@@ -1,8 +1,8 @@
 import {Navigate} from 'react-router';
+import {useStore} from 'zustand';
 
 import {DEPLOY_PREVIEW_CONFIG} from 'sentry/constants';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {getOrganizationHomePath} from 'sentry/utils/organizationHomePath';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useParams} from 'sentry/utils/useParams';
@@ -14,7 +14,8 @@ import {useParams} from 'sentry/utils/useParams';
  */
 export function OrganizationHomeRedirect() {
   const {orgId} = useParams<{orgId: string}>();
-  const {organization, error} = useLegacyStore(OrganizationStore);
+  const organization = useStore(OrganizationStore, state => state.organization);
+  const error = useStore(OrganizationStore, state => state.error);
 
   if (error) {
     return <Navigate to={normalizeUrl(`/organizations/${orgId}/issues/`)} replace />;

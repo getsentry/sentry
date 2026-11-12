@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypedDict, cast
+from typing import Annotated, Any, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
@@ -25,6 +25,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.integration_examples import IntegrationExamples
 from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.apidocs.response_types import DetailResponse, ValidationErrorResponse
@@ -92,16 +93,33 @@ def _get_external_issue_link_lock(
 class IntegrationIssueConfigResponse(IntegrationSerializerResponse, total=False):
     # Exactly one of these is present on a given response, selected by the `action`
     # query param: `linkIssueConfig` for `link`, `createIssueConfig` for `create`.
-    linkIssueConfig: list[IntegrationIssueConfigField]
-    createIssueConfig: list[IntegrationIssueConfigField]
+    linkIssueConfig: Annotated[
+        list[IntegrationIssueConfigField],
+        ApiDescription(
+            "Form fields for linking an existing external issue. Only set when action is link"
+        ),
+    ]
+    createIssueConfig: Annotated[
+        list[IntegrationIssueConfigField],
+        ApiDescription(
+            "Form fields for creating an external issue. Only set when action is create"
+        ),
+    ]
 
 
 class ExternalIssueLinkResponse(TypedDict):
-    id: int
-    key: str
-    url: str
-    integrationId: int
-    displayName: str
+    id: Annotated[int, ApiDescription("ID of the link between the issue and the external issue")]
+    key: Annotated[
+        str, ApiDescription("Key of the external issue in the provider, such as PROJ-123")
+    ]
+    url: Annotated[str, ApiDescription("URL of the external issue")]
+    integrationId: Annotated[int, ApiDescription("ID of the integration")]
+    displayName: Annotated[
+        str,
+        ApiDescription(
+            "Name to show for the external issue, such as owner/repo#1. Empty when the integration doesn't set one"
+        ),
+    ]
 
 
 class IntegrationIssueConfigSerializer(Serializer[IntegrationIssueConfigResponse]):

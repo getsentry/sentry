@@ -117,6 +117,10 @@ class OrganizationUptimeAlertIndexEndpointTest(OrganizationUptimeAlertIndexBaseE
         )
         self.check_valid_response(response, [])
 
+        # Unknown owner
+        response = self.get_error_response(self.organization.slug, owner=["me"], status_code=400)
+        assert response.data["detail"] == "Invalid owner"
+
     def test_only_returns_active_detectors(self) -> None:
         active_detector = self.create_uptime_detector(name="active", status=ObjectStatus.ACTIVE)
         self.create_uptime_detector(name="pending_deletion", status=ObjectStatus.PENDING_DELETION)

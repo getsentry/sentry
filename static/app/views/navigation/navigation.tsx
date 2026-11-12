@@ -43,6 +43,7 @@ import {
 import {useSettingsScope} from 'sentry/views/settings/useSettingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
+import {PrimaryNavigationCommandPalette} from './primary/commandPalette';
 import {PrimaryNavigation} from './primary/components';
 import {PrimaryNavigationHelpMenu} from './primary/helpMenu';
 import {PrimaryNavigationOnboarding} from './primary/onboarding';
@@ -125,6 +126,7 @@ function NavigationImpl() {
               paddingBottom="md"
             >
               <PrimaryNavigation.FooterItems>
+                <PrimaryNavigationCommandPalette />
                 <PrimaryNavigationFooterItems>
                   <ErrorBoundary customComponent={null}>
                     <PrimaryNavigationWhatsNew />
@@ -156,7 +158,8 @@ export function SettingsNavigationBackButton({
 }: {
   organization: Organization;
 }) {
-  const {setActiveGroup} = usePrimaryNavigation();
+  const {setActiveGroup, layout} = usePrimaryNavigation();
+  const {setView} = useSecondaryNavigation();
   return (
     <LinkButton
       size="sm"
@@ -169,7 +172,12 @@ export function SettingsNavigationBackButton({
         getSettingsReturnPathKey(organization.slug),
         getOrganizationHomePath(organization)
       )}
-      onClick={() => setActiveGroup(null)}
+      onClick={() => {
+        setActiveGroup(null);
+        if (layout === 'mobile') {
+          setView('collapsed');
+        }
+      }}
     />
   );
 }

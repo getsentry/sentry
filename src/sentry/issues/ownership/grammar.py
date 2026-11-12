@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections import namedtuple
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from typing import TYPE_CHECKING, Any, NamedTuple, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Annotated, Any, NamedTuple, NotRequired, TypedDict
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
@@ -11,6 +11,7 @@ from parsimonious.nodes import Node
 from parsimonious.nodes import NodeVisitor as BaseNodeVisitor
 from rest_framework.serializers import ValidationError
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
@@ -37,8 +38,10 @@ _CODEOWNERS_SPLIT_RE = re.compile(r"(?<!\\)\s")
 
 
 class OwnershipRuleMatcher(TypedDict):
-    type: str
-    pattern: str
+    type: Annotated[
+        str, ApiDescription("What the rule matches on, path, module, url, codeowners or tags.<key>")
+    ]
+    pattern: Annotated[str, ApiDescription("Pattern the value is matched against")]
 
 
 class OwnershipRuleOwner(TypedDict):
@@ -598,22 +601,18 @@ def get_invalid_owner_details(bad_owners: Sequence[Owner], project_id: int) -> l
 def remove_deleted_owners_from_schema(
     rules: list[OwnershipRule], owners_id: dict[str, int]
 ) -> None:
-    valid_rules = rules
-
+    valid_rules: list[OwnershipRule] = []
     for rule in rules:
+        # an ownerless rule is a CODEOWNERS exclusion, not a rule whose owners were all deleted
         if not rule["owners"]:
+            valid_rules.append(rule)
             continue
-        valid_owners = rule["owners"]
-        for rule_owner in rule["owners"]:
-            if rule_owner["identifier"] not in owners_id.keys():
-                valid_owners.remove(rule_owner)
-                if not valid_owners:
-                    valid_rules.remove(rule)
-                    break
+        rule["owners"] = [o for o in rule["owners"] if o["identifier"] in owners_id]
+        if rule["owners"]:
+            valid_rules.append(rule)
 
-        rule["owners"] = valid_owners
-
-    rules = valid_rules
+    # mutate in place: the caller keeps using schema["rules"] after this returns
+    rules[:] = valid_rules
 
 
 def add_owner_ids_to_schema(rules: list[OwnershipRule], owners_id: dict[str, int]) -> None:

@@ -104,7 +104,10 @@ export function MobileNavigation() {
   const navPanelRef = useRef<HTMLDivElement>(null);
   const toggleButtonRef = useRef<HTMLButtonElement>(null);
   const {view, setView} = useSecondaryNavigation();
-  const scrollLock = useScrollLock(document.getElementById('main') ?? document.body);
+  // Lock the document, not #main. `overflow: hidden` on #main drops its flex
+  // min-height to 0, so inside the Seer Explorer content pane it collapses to
+  // the pane height and squeezes the TopBar.
+  const scrollLock = useScrollLock(document.body);
 
   useEffect(() => {
     const main = document.getElementById('main');

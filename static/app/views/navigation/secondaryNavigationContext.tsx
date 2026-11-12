@@ -3,6 +3,7 @@ import {createContext, useCallback, useContext, useMemo, useState} from 'react';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
 import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from './constants';
+import {useSettingsNavigation} from './useSettingsNavigation';
 
 /**
  * The two possible states of the secondary navigation sidebar, persisted:
@@ -12,6 +13,10 @@ import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from './constants';
 type SecondaryNavState = 'expanded' | 'collapsed';
 
 interface SecondaryNavigationContext {
+  /**
+   * When false, the sidebar stays expanded and `setView` is a no-op.
+   */
+  collapsible: boolean;
   setView: (view: SecondaryNavState) => void;
   view: SecondaryNavState;
 }
@@ -42,21 +47,28 @@ export function SecondaryNavigationContextProvider(
   const [view, setViewState] = useState<SecondaryNavState>(
     isCollapsedPersisted ? 'collapsed' : 'expanded'
   );
+  // Settings has too little in its sidebar to be worth hiding, so it ignores the
+  // collapsed preference without overwriting it for the rest of the app.
+  const collapsible = !useSettingsNavigation();
 
   const setView = useCallback(
     (nextView: SecondaryNavState) => {
+      if (!collapsible) {
+        return;
+      }
       setViewState(nextView);
       setIsCollapsedPersisted(nextView === 'collapsed');
     },
-    [setIsCollapsedPersisted]
+    [collapsible, setIsCollapsedPersisted]
   );
 
   const value = useMemo(() => {
     return {
-      view,
+      collapsible,
+      view: collapsible ? view : 'expanded',
       setView,
     };
-  }, [view, setView]);
+  }, [collapsible, view, setView]);
 
   return (
     <SecondaryNavigationContext.Provider value={value}>
@@ -78,7 +90,7 @@ export function MobileSecondaryNavigationContextProvider(
 ) {
   const [view, setView] = useState<SecondaryNavState>('expanded');
 
-  const value = useMemo(() => ({view, setView}), [view]);
+  const value = useMemo(() => ({collapsible: true, view, setView}), [view]);
 
   return (
     <SecondaryNavigationContext.Provider value={value}>

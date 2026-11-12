@@ -611,7 +611,28 @@ function buildRoutes(): RouteObject[] {
       },
       path: 'attributes/',
       name: t('Attributes'),
-      component: make(() => import('sentry/views/settings/project/projectAttributes')),
+      children: [
+        {
+          index: true,
+          component: make(
+            () => import('sentry/views/settings/project/projectAttributes')
+          ),
+        },
+        {
+          handle: {
+            settingsBreadcrumb: {
+              type: 'link',
+              label: t('Attributes'),
+              to: '/settings/:orgId/projects/:projectId/attributes/',
+            },
+          },
+          path: ':attributeType/:attributeName/',
+          name: t('Attribute Details'),
+          component: make(
+            () => import('sentry/views/settings/project/projectAttributeDetails')
+          ),
+        },
+      ],
     },
     {
       handle: {

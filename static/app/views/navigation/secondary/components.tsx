@@ -156,9 +156,8 @@ function SecondarySidebarPanel({
           width="100%"
           height="100%"
           key={activeGroup}
-          initial={{x: -6, opacity: 0}}
+          initial={false}
           animate={{x: 0, opacity: 1}}
-          exit={{x: 6, opacity: 0}}
           transition={{duration: 0.06}}
         >
           <Grid
@@ -333,7 +332,11 @@ function SecondaryNavigationHeaderTitle({children}: {children: ReactNode}) {
  * Closes the sidebar. Clicking a primary nav item is the only way to reopen it.
  */
 function SecondaryNavigationCloseButton() {
-  const {setView} = useSecondaryNavigation();
+  const {collapsible, setView} = useSecondaryNavigation();
+
+  if (!collapsible) {
+    return null;
+  }
 
   return (
     <Button
@@ -445,7 +448,9 @@ function SectionTitle(props: SectionTitleProps) {
 
   if (props.canCollapse) {
     return (
-      <Grid columns="1fr auto" align="center" width="100%" padding="sm lg">
+      // A Flex, not a Grid: the button label inherits the display but not the
+      // grid columns, so a Grid would stack the title and chevron.
+      <Flex justify="between" align="center" gap="sm" width="100%" padding="sm lg">
         {p => (
           <Button
             {...p}
@@ -465,7 +470,7 @@ function SectionTitle(props: SectionTitleProps) {
             </Flex>
           </Button>
         )}
-      </Grid>
+      </Flex>
     );
   }
 
@@ -879,6 +884,11 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
 
   return (
     <DndContext
+      // dnd-kit renders its position: fixed live region inline by default. While the
+      // panel animates, its transform turns that region into an absolute element
+      // below the scrolled list. If the list overflows, the page grows a scrollbar
+      // and the main content shifts.
+      accessibility={{container: document.body}}
       sensors={sensors}
       collisionDetection={closestCenter}
       modifiers={[restrictToVerticalAxis, restrictToParentElement]}
