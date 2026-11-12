@@ -324,6 +324,50 @@ def continue_pr_iteration(
     return False
 
 
+def is_pr_feedback_turn(state: SeerRunState) -> bool:
+    for block in reversed(state.blocks):
+        step = (block.message.metadata or {}).get("step")
+        if step is not None:
+            return step == AutofixStep.PR_ITERATION.value
+    return False
+
+
+def complete_single_run_pr_iteration(
+    organization: Organization,
+    group: Group,
+    run_id: int,
+    state: SeerRunState,
+) -> None:
+    log_ctx = iteration_log_context(organization, group, state)
+    outcome = _single_run_iteration_outcome(log_ctx, state)
+    if outcome is None:
+        return
+    if outcome in (PrIterationOutcome.ALREADY_PUSHED, PrIterationOutcome.NO_CODE_CHANGES):
+        consume_queued_feedback(log_ctx, organization, run_id)
+    complete_pr_iteration_details(
+        log_ctx=log_ctx,
+        run_state=state,
+        organization_id=organization.id,
+        outcome=outcome.value,
+    )
+
+
+def _single_run_iteration_outcome(
+    log_ctx: PrIterationLogContext, state: SeerRunState
+) -> PrIterationOutcome | None:
+    if not state.repo_pr_states:
+        return PrIterationOutcome.NO_PULL_REQUEST
+    if not _latest_iteration_touched_files(log_ctx, state):
+        return PrIterationOutcome.NO_CODE_CHANGES
+    _, is_synced = state.has_code_changes()
+    if is_synced:
+        return PrIterationOutcome.ALREADY_PUSHED
+    # The agent's own push is still running; its completion calls this hook again.
+    if any(pr.pr_creation_status == "creating" for pr in state.repo_pr_states.values()):
+        return None
+    return PrIterationOutcome.PR_CREATION_ERRORED
+
+
 @traces.trace
 def consume_queued_feedback(
     log_ctx: PrIterationLogContext,

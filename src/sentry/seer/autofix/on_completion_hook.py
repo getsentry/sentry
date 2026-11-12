@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections import Counter
 from typing import TYPE_CHECKING, Any, Literal
 
 import sentry_sdk
@@ -32,9 +33,11 @@ from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
 from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
 from sentry.seer.autofix.feature.models import LEGACY_FEATURE_ID as LEGACY_AUTOFIX_FEATURE_ID
 from sentry.seer.autofix.pr_iteration.completion import (
+    complete_single_run_pr_iteration,
     continue_pr_iteration,
     fail_pr_iteration,
     fail_pr_iteration_missing_group,
+    is_pr_feedback_turn,
     iteration_completed_webhook_fields,
     iteration_terminal_errored_repos,
     log_completion_received,
@@ -227,9 +230,17 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         group_id: int | None,
         run_referrer: AutofixReferrer | None,
     ) -> None:
+        if is_pr_feedback_turn(state) and state.status == "error":
+            fail_pr_iteration(organization, run_id, state, group_id)
+            return
         group = cls._fetch_group(organization, run_id, group_id)
         if group is None:
             return
+        if is_pr_feedback_turn(state) and state.status == "completed":
+            complete_single_run_pr_iteration(organization, group, run_id, state)
+            cls._log_reaction_outcomes(
+                organization, run_id, react_to_completed_iteration(organization, run_id, state)
+            )
         paused = state.status == "awaiting_user_input"
         if not cls._run_completed(organization, run_id, state) and not paused:
             if state.status == "error":
@@ -375,7 +386,14 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
 
         record_failed_tool_calls(organization, group, state)
 
-        reaction_outcomes = react_to_completed_iteration(organization, run_id, state)
+        cls._log_reaction_outcomes(
+            organization, run_id, react_to_completed_iteration(organization, run_id, state)
+        )
+
+    @classmethod
+    def _log_reaction_outcomes(
+        cls, organization: Organization, run_id: int, reaction_outcomes: Counter[str]
+    ) -> None:
         if reaction_outcomes:
             logger.info(
                 "autofix.on_completion_hook.completion_reaction.summary",

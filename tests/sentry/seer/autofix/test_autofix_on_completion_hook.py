@@ -60,6 +60,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
     GithubPullRequestReviewComment,
 )
+from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.seer.autofix.pr_iteration.pause import (
     PauseReason,
     get_pause_reason,
@@ -3026,3 +3027,67 @@ class TestSingleRunCompletion(TestCase):
             if c.args[0] == "autofix.explorer.complete"
         ]
         assert complete_tags and all(tags["mode"] == "single_run" for tags in complete_tags)
+
+    def _pr_feedback_turn(self) -> MemoryBlock:
+        return MemoryBlock(
+            id="pr-feedback",
+            message=Message(
+                role="user",
+                content="rename it",
+                metadata={
+                    "step": "pr_iteration",
+                    "iteration_index": "1",
+                    "feedback": serialize_feedback(
+                        [Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="x"))]
+                    ),
+                },
+            ),
+            timestamp="2026-02-10T00:00:00Z",
+        )
+
+    def _execute_pr_feedback(self, state: SeerRunState) -> dict[str, MagicMock]:
+        state.repo_pr_states = _created_pr()
+        with (
+            patch(f"{COMPLETION_PATH}.consume_queued_feedback") as consume,
+            patch(f"{COMPLETION_PATH}.complete_pr_iteration_details") as complete,
+            patch(f"{HOOK_PATH}.react_to_completed_iteration") as react,
+            patch(f"{HOOK_PATH}.fail_pr_iteration") as fail,
+        ):
+            mocks = self._execute(state)
+        return {**mocks, "consume": consume, "complete": complete, "react": react, "fail": fail}
+
+    def test_pr_feedback_turn_drains_queue_closes_iteration_and_reacts(self) -> None:
+        state = run_state(
+            blocks=[single_run_memory_block(_ROOT_CAUSE), self._pr_feedback_turn()],
+            metadata={"group_id": self.group.id, "feature_id": SINGLE_RUN_FEATURE_ID},
+        )
+
+        mocks = self._execute_pr_feedback(state)
+
+        mocks["consume"].assert_called_once()
+        assert mocks["complete"].call_args.kwargs["outcome"] == "no_code_changes"
+        mocks["react"].assert_called_once()
+        mocks["fail"].assert_not_called()
+        mocks["trigger"].assert_not_called()
+        mocks["push"].assert_not_called()
+
+    def test_pr_feedback_turn_that_errors_fails_the_iteration(self) -> None:
+        state = run_state(
+            blocks=[single_run_memory_block(_ROOT_CAUSE), self._pr_feedback_turn()],
+            metadata={"group_id": self.group.id, "feature_id": SINGLE_RUN_FEATURE_ID},
+            status="error",
+        )
+
+        mocks = self._execute_pr_feedback(state)
+
+        mocks["fail"].assert_called_once()
+        mocks["consume"].assert_not_called()
+        mocks["react"].assert_not_called()
+
+    def test_plain_reply_does_not_touch_pr_iteration(self) -> None:
+        mocks = self._execute_pr_feedback(self._state(single_run_memory_block(_ROOT_CAUSE)))
+
+        mocks["consume"].assert_not_called()
+        mocks["complete"].assert_not_called()
+        mocks["react"].assert_not_called()
+        mocks["fail"].assert_not_called()
