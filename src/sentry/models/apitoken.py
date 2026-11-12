@@ -443,19 +443,35 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
                         grant.delete()
                     raise InvalidGrantError(error_reason)
 
-                # Create token and delete grant atomically
-                with transaction.atomic(router.db_for_write(cls)):
-                    api_token = cls.objects.create(
-                        application=grant.application,
-                        user=grant.user,
-                        scope_list=grant.get_scopes(),
-                        scoping_organization_id=grant.organization_id,
-                    )
+                api_token: ApiToken | None = None
+                try:
+                    # Create token and delete grant atomically
+                    with transaction.atomic(router.db_for_write(cls)):
+                        api_token = cls.objects.create(
+                            application=grant.application,
+                            user=grant.user,
+                            scope_list=grant.get_scopes(),
+                            scoping_organization_id=grant.organization_id,
+                        )
 
-                    # Remove the ApiGrant from the database to prevent reuse of the same
-                    # authorization code (RFC 6749 §10.5: single-use requirement)
-                    with unguarded_write(using=router.db_for_write(ApiGrant)):
-                        grant.delete()
+                        # Remove the ApiGrant from the database to prevent reuse of the same
+                        # authorization code (RFC 6749 §10.5: single-use requirement)
+                        with unguarded_write(using=router.db_for_write(ApiGrant)):
+                            grant.delete()
+                except (OutboxDatabaseError, OutboxFlushError):
+                    # Only swallow failures from the post-commit replication flush. If the
+                    # transaction rolled back, the token doesn't exist and must not be returned.
+                    if api_token is None or not cls.objects.filter(id=api_token.id).exists():
+                        raise
+
+                    # Guard against replication fanout failures. The token has been
+                    # minted, and its outbox has been committed alongside it,
+                    # guaranteeing that it will eventually be valid in all regions.
+                    logger.warning(
+                        "api_token.from_grant.outbox-flush-failure",
+                        extra={"token_id": api_token.id, "application_id": grant.application_id},
+                        exc_info=True,
+                    )
 
                 return api_token
 
