@@ -17,7 +17,6 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
     viewname = "sentry-api-0-organization-trace-item-metrics"
 
     feature_flags = {
-        "organizations:visibility-explore-view": True,
         "organizations:tracemetrics-enabled": True,
         "organizations:data-browsing-attribute-context": True,
     }
@@ -184,7 +183,6 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
         response = self.do_request(
             query={"project": self.project.id, "contextOnly": "1"},
             features={
-                "organizations:visibility-explore-view": True,
                 "organizations:tracemetrics-enabled": True,
             },
         )
@@ -244,7 +242,6 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
         response = self.do_request(
             query={"project": self.project.id, "expand": "context"},
             features={
-                "organizations:visibility-explore-view": True,
                 "organizations:tracemetrics-enabled": True,
             },
         )
@@ -261,10 +258,3 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
 
         assert response.status_code == 400, response.data
         assert "detail" in response.data
-
-    def test_requires_feature_flag(self) -> None:
-        self.store_metric("checkout.requests", "counter")
-
-        response = self.do_request(features={})
-
-        assert response.status_code == 404

@@ -177,9 +177,6 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
         self, request: Request, organization: Organization
     ) -> Response[list[TraceMetricItem]] | Response[ValidationErrorResponse]:
         """List trace metrics (name, type, unit, count, last seen) with optional context."""
-        if not self.has_feature(organization, request):
-            return Response(status=404)
-
         serializer = OrganizationTraceItemMetricsSerializer(data=request.GET)
         if not serializer.is_valid():
             return Response(as_validation_errors(serializer), status=400)

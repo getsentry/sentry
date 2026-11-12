@@ -333,13 +333,12 @@ class SearchAgentTransformationCapabilitiesTest(APITestCase):
         )
 
     def test_capabilities_reach_seer(self) -> None:
-        for interpolation, spans, logs, metrics, expected in [
-            (True, True, True, True, ["spans", "logs", "tracemetrics"]),
-            (False, True, True, True, []),
-            (True, True, False, False, ["spans"]),
-            (True, False, True, False, ["logs"]),
-            (True, False, False, True, ["tracemetrics"]),
-            (True, False, False, False, []),
+        for interpolation, logs, metrics, expected in [
+            (True, True, True, ["spans", "logs", "tracemetrics"]),
+            (False, True, True, []),
+            (True, False, False, ["spans"]),
+            (True, True, False, ["spans", "logs"]),
+            (True, False, True, ["spans", "tracemetrics"]),
         ]:
             with (
                 self.subTest(expected=expected, interpolation=interpolation),
@@ -347,7 +346,6 @@ class SearchAgentTransformationCapabilitiesTest(APITestCase):
                     {
                         "organizations:seer-assisted-query-codemode": True,
                         "organizations:explore-interpolation-and-smoothing": interpolation,
-                        "organizations:visibility-explore-view": spans,
                         "organizations:ourlogs-enabled": logs,
                         "organizations:tracemetrics-enabled": metrics,
                     }

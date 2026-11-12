@@ -227,7 +227,6 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
             self.feature(
                 [
                     "organizations:performance-view",
-                    "organizations:visibility-explore-view",
                 ]
             ),
             self.capture_on_commit_callbacks(execute=True),
@@ -254,7 +253,6 @@ class TestSubscriptionProcessorLastUpdate(ProcessUpdateBaseClass):
             self.feature(
                 [
                     "organizations:performance-view",
-                    "organizations:visibility-explore-view",
                 ]
             ),
             self.capture_on_commit_callbacks(execute=True),
@@ -291,7 +289,6 @@ class TestSubscriptionProcessorLastUpdate(ProcessUpdateBaseClass):
             self.feature(
                 [
                     "organizations:performance-view",
-                    "organizations:visibility-explore-view",
                 ]
             ),
             self.capture_on_commit_callbacks(execute=True),

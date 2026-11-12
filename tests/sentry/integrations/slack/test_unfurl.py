@@ -27,7 +27,6 @@ from sentry.snuba import discover, errors, transactions
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
@@ -212,7 +211,6 @@ def test_match_link(url: str, expected: tuple[LinkType | None, Mapping[str, Any]
     assert match_link(url) == expected
 
 
-@with_feature("organizations:visibility-explore-view")
 class UnfurlTest(TestCase):
     def setUp(self) -> None:
         super().setUp()

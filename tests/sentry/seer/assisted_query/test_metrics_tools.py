@@ -321,7 +321,6 @@ class TestGetMetricMetadataIntegration(APITransactionTestCase, SnubaTestCase, Tr
     """End-to-end test against the real trace-items metrics endpoint."""
 
     feature_flags = {
-        "organizations:visibility-explore-view": True,
         "organizations:tracemetrics-enabled": True,
         "organizations:data-browsing-attribute-context": True,
     }

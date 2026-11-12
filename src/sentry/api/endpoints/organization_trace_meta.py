@@ -301,9 +301,6 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
         errors, performance issues, logs, and metrics, along with per-span-operation
         and per-transaction child-count breakdowns.
         """
-        if not self.has_feature(organization, request):
-            return Response(status=404)
-
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:

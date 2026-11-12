@@ -156,9 +156,6 @@ class OrganizationTraceItemMetricContextEndpoint(OrganizationTraceItemAttributes
         where the metric must have been seen in stored data. Returns `201` when new
         context is created and `200` when existing context is updated.
         """
-        if not self.has_feature(organization, request):
-            return Response(status=404)
-
         # Custom context is gated; sentry conventions context is served separately.
         if not features.has(
             "organizations:data-browsing-attribute-context", organization, actor=request.user

@@ -7,7 +7,6 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -69,11 +68,6 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
         "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
 
-    def has_feature(self, organization: Organization, request: Request) -> bool:
-        return features.has(
-            "organizations:visibility-explore-view", organization, actor=request.user
-        )
-
     @extend_schema(
         operation_id="Retrieve an Organization's Explore Saved Query",
         parameters=[
@@ -94,9 +88,6 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
         """
         Retrieve a saved query.
         """
-        if not self.has_feature(organization, request):
-            return self.respond(status=404)
-
         self.check_object_permissions(request, query)
 
         return Response(
@@ -122,9 +113,6 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
         """
         Modify a saved query.
         """
-        if not self.has_feature(organization, request):
-            return self.respond(status=404)
-
         self.check_object_permissions(request, query)
 
         if query.prebuilt_id is not None:
@@ -173,9 +161,6 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
         """
         Delete a saved query.
         """
-        if not self.has_feature(organization, request):
-            return self.respond(status=404)
-
         self.check_object_permissions(request, query)
 
         if query.prebuilt_id is not None:
@@ -192,11 +177,6 @@ class ExploreSavedQueryVisitEndpoint(ExploreSavedQueryBase):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
-
-    def has_feature(self, organization: Organization, request: Request) -> bool:
-        return features.has(
-            "organizations:visibility-explore-view", organization, actor=request.user
-        )
 
     @extend_schema(
         operation_id="Record a Visit to an Organization's Explore Saved Query",
@@ -215,9 +195,6 @@ class ExploreSavedQueryVisitEndpoint(ExploreSavedQueryBase):
         Record that the requesting user visited a saved query. Increments the query's
         visit count and updates its last visited time.
         """
-        if not self.has_feature(organization, request):
-            return self.respond(status=404)
-
         self.check_object_permissions(request, query)
 
         query.visits = cast(int, F("visits") + 1)

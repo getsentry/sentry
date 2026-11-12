@@ -5,7 +5,6 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -61,11 +60,6 @@ class ExploreSavedQueryStarredEndpoint(OrganizationEndpoint):
     owner = ApiOwner.EXPLORE
     permission_classes = (MemberPermission,)
 
-    def has_feature(self, organization: Organization, request: Request) -> bool:
-        return features.has(
-            "organizations:visibility-explore-view", organization, actor=request.user
-        )
-
     @extend_schema(
         operation_id="Star an Organization's Explore Saved Query",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, ExploreSavedQueryParams.EXPLORE_SAVED_QUERY_ID],
@@ -85,9 +79,6 @@ class ExploreSavedQueryStarredEndpoint(OrganizationEndpoint):
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
-
-        if not self.has_feature(organization, request):
-            return self.respond(status=404)
 
         serializer = StarQuerySerializer(data=request.data)
         if not serializer.is_valid():

@@ -12,10 +12,6 @@ class ExploreSavedQueryAIConversationsTest(APITestCase):
     """Tests that ai_conversations saved queries work through the same
     create / read / update / delete flow as any other dataset."""
 
-    features = {
-        "organizations:visibility-explore-view": True,
-    }
-
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
@@ -32,24 +28,23 @@ class ExploreSavedQueryAIConversationsTest(APITestCase):
     # ── Create ──────────────────────────────────────────────────────────
 
     def test_post_creates_ai_conversations_query(self) -> None:
-        with self.feature(self.features):
-            response = self.client.post(
-                self.list_url,
-                {
-                    "name": "My conversations query",
-                    "projects": [self.project.id],
-                    "dataset": "ai_conversations",
-                    "range": "24h",
-                    "environment": ["production"],
-                    "query": [
-                        {
-                            "fields": [],
-                            "mode": "samples",
-                            "query": "gen_ai.conversation.id:abc123",
-                        }
-                    ],
-                },
-            )
+        response = self.client.post(
+            self.list_url,
+            {
+                "name": "My conversations query",
+                "projects": [self.project.id],
+                "dataset": "ai_conversations",
+                "range": "24h",
+                "environment": ["production"],
+                "query": [
+                    {
+                        "fields": [],
+                        "mode": "samples",
+                        "query": "gen_ai.conversation.id:abc123",
+                    }
+                ],
+            },
+        )
 
         assert response.status_code == 201, response.content
         assert response.data["dataset"] == "ai_conversations"
@@ -70,18 +65,17 @@ class ExploreSavedQueryAIConversationsTest(APITestCase):
         assert model.dataset == ExploreSavedQueryDataset.AI_CONVERSATIONS
 
     def test_post_creates_starred_by_default(self) -> None:
-        with self.feature(self.features):
-            response = self.client.post(
-                self.list_url,
-                {
-                    "name": "Starred conversations",
-                    "projects": [self.project.id],
-                    "dataset": "ai_conversations",
-                    "range": "24h",
-                    "starred": True,
-                    "query": [{"fields": [], "mode": "samples"}],
-                },
-            )
+        response = self.client.post(
+            self.list_url,
+            {
+                "name": "Starred conversations",
+                "projects": [self.project.id],
+                "dataset": "ai_conversations",
+                "range": "24h",
+                "starred": True,
+                "query": [{"fields": [], "mode": "samples"}],
+            },
+        )
 
         assert response.status_code == 201, response.content
         query_id = int(response.data["id"])
@@ -93,64 +87,59 @@ class ExploreSavedQueryAIConversationsTest(APITestCase):
         ).exists()
 
     def test_post_preserves_agent_filter(self) -> None:
-        with self.feature(self.features):
-            response = self.client.post(
-                self.list_url,
-                {
-                    "name": "Agent-filtered query",
-                    "projects": [self.project.id],
-                    "dataset": "ai_conversations",
-                    "range": "24h",
-                    "agent": ["my-agent", "other-agent"],
-                    "query": [{"fields": [], "mode": "samples"}],
-                },
-            )
+        response = self.client.post(
+            self.list_url,
+            {
+                "name": "Agent-filtered query",
+                "projects": [self.project.id],
+                "dataset": "ai_conversations",
+                "range": "24h",
+                "agent": ["my-agent", "other-agent"],
+                "query": [{"fields": [], "mode": "samples"}],
+            },
+        )
 
         assert response.status_code == 201, response.content
         assert response.data["agent"] == ["my-agent", "other-agent"]
 
         # Verify round-trip through detail endpoint
-        with self.feature(self.features):
-            detail = self.client.get(self._detail_url(int(response.data["id"])))
+        detail = self.client.get(self._detail_url(int(response.data["id"])))
         assert detail.status_code == 200
         assert detail.data["agent"] == ["my-agent", "other-agent"]
 
     def test_post_preserves_errors_only_filter(self) -> None:
-        with self.feature(self.features):
-            response = self.client.post(
-                self.list_url,
-                {
-                    "name": "Errors only query",
-                    "projects": [self.project.id],
-                    "dataset": "ai_conversations",
-                    "range": "24h",
-                    "errorsOnly": True,
-                    "query": [{"fields": [], "mode": "samples"}],
-                },
-                format="json",
-            )
+        response = self.client.post(
+            self.list_url,
+            {
+                "name": "Errors only query",
+                "projects": [self.project.id],
+                "dataset": "ai_conversations",
+                "range": "24h",
+                "errorsOnly": True,
+                "query": [{"fields": [], "mode": "samples"}],
+            },
+            format="json",
+        )
 
         assert response.status_code == 201, response.content
         assert response.data["errorsOnly"] is True
 
-        with self.feature(self.features):
-            detail = self.client.get(self._detail_url(int(response.data["id"])))
+        detail = self.client.get(self._detail_url(int(response.data["id"])))
         assert detail.status_code == 200
         assert detail.data["errorsOnly"] is True
 
     def test_post_omits_errors_only_when_not_set(self) -> None:
-        with self.feature(self.features):
-            response = self.client.post(
-                self.list_url,
-                {
-                    "name": "Unfiltered query",
-                    "projects": [self.project.id],
-                    "dataset": "ai_conversations",
-                    "range": "24h",
-                    "query": [{"fields": [], "mode": "samples"}],
-                },
-                format="json",
-            )
+        response = self.client.post(
+            self.list_url,
+            {
+                "name": "Unfiltered query",
+                "projects": [self.project.id],
+                "dataset": "ai_conversations",
+                "range": "24h",
+                "query": [{"fields": [], "mode": "samples"}],
+            },
+            format="json",
+        )
 
         assert response.status_code == 201, response.content
         assert "errorsOnly" not in response.data
@@ -170,8 +159,7 @@ class ExploreSavedQueryAIConversationsTest(APITestCase):
         )
         model.set_projects([self.project.id])
 
-        with self.feature(self.features):
-            response = self.client.get(self._detail_url(model.id))
+        response = self.client.get(self._detail_url(model.id))
 
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(model.id)
@@ -191,10 +179,7 @@ class ExploreSavedQueryAIConversationsTest(APITestCase):
         )
         model.set_projects([self.project.id])
 
-        with self.feature(self.features):
-            response = self.client.get(
-                self.list_url, data={"query": "name:Conversations list test"}
-            )
+        response = self.client.get(self.list_url, data={"query": "name:Conversations list test"})
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
@@ -215,23 +200,22 @@ class ExploreSavedQueryAIConversationsTest(APITestCase):
         )
         model.set_projects([self.project.id])
 
-        with self.feature(self.features):
-            response = self.client.put(
-                self._detail_url(model.id),
-                {
-                    "name": "Updated name",
-                    "projects": [self.project.id],
-                    "dataset": "ai_conversations",
-                    "range": "7d",
-                    "query": [
-                        {
-                            "fields": [],
-                            "mode": "samples",
-                            "query": "gen_ai.conversation.id:new",
-                        }
-                    ],
-                },
-            )
+        response = self.client.put(
+            self._detail_url(model.id),
+            {
+                "name": "Updated name",
+                "projects": [self.project.id],
+                "dataset": "ai_conversations",
+                "range": "7d",
+                "query": [
+                    {
+                        "fields": [],
+                        "mode": "samples",
+                        "query": "gen_ai.conversation.id:new",
+                    }
+                ],
+            },
+        )
 
         assert response.status_code == 200, response.content
         assert response.data["name"] == "Updated name"
@@ -265,8 +249,7 @@ class ExploreSavedQueryAIConversationsTest(APITestCase):
         )
         model.set_projects([self.project.id])
 
-        with self.feature(self.features):
-            response = self.client.delete(self._detail_url(model.id))
+        response = self.client.delete(self._detail_url(model.id))
 
         assert response.status_code == 204
         assert not ExploreSavedQuery.objects.filter(id=model.id).exists()
@@ -291,8 +274,7 @@ class ExploreSavedQueryAIConversationsTest(APITestCase):
             starred=True,
         )
 
-        with self.feature(self.features):
-            response = self.client.delete(self._detail_url(model.id))
+        response = self.client.delete(self._detail_url(model.id))
 
         assert response.status_code == 204
         assert not ExploreSavedQueryStarred.objects.filter(
