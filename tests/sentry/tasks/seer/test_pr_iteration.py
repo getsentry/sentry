@@ -20,6 +20,7 @@ from sentry.seer.agent.client_models import (
     SeerRunState,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.pr_iteration.check_suites import CheckSuiteAutofixRun
 from sentry.seer.autofix.pr_iteration.details_store import open_iterations
 from sentry.seer.autofix.pr_iteration.emit import (
@@ -63,7 +64,7 @@ from sentry.seer.autofix.pr_iteration.queue import (
 )
 from sentry.seer.autofix.pr_iteration.run_markers import record_run_extras
 from sentry.seer.models import SeerApiError, SeerPermissionError
-from sentry.seer.models.run import SeerRun, SeerRunPrIteration
+from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunPrIteration
 from sentry.tasks.seer.pr_iteration import (
     ALREADY_PAUSED_PR_ITERATION_COMMENT,
     STOP_PR_ITERATION_FAILED_COMMENT,
@@ -1811,6 +1812,84 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         self._call()
 
         assert _step_feedback_kinds(mock_metrics) == ["mixed", "mixed"]
+
+    def _single_run_state(self, **kwargs: Any) -> SeerRunState:
+        state = self._state(
+            metadata={"group_id": self.group.id, "feature_id": SINGLE_RUN_FEATURE_ID}, **kwargs
+        )
+        state.repo_pr_states = {
+            "owner/repo": RepoPRState(repo_name="owner/repo", pr_number=7, commit_sha="abc")
+        }
+        return state
+
+    def _single_run_record(self) -> SeerAgentRun:
+        return self.create_seer_agent_run(
+            run=self.create_seer_run(organization=self.organization, seer_run_state_id=67890),
+            source=SINGLE_RUN_FEATURE_ID,
+            group=self.group,
+            project=self.group.project,
+        )
+
+    @patch(f"{TASK_PATH}.continue_single_run_from_pr_feedback")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_single_run_feedback_continues_the_single_run(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+        mock_continue: MagicMock,
+    ) -> None:
+        agent_run = self._single_run_record()
+        mock_fetch.return_value = self._single_run_state(blocks=[self._iteration_block(1)])
+        mock_pop.return_value = [self._queued(self._review_feedback(777))]
+
+        self._call()
+
+        mock_trigger.assert_not_called()
+        (called_run, called_group), kwargs = mock_continue.call_args
+        assert called_run == agent_run
+        assert called_group.id == self.group.id
+        assert [f.feedback_id for f in kwargs["feedback"]] == ["777"]
+        assert kwargs["iteration_index"] == 2
+        assert kwargs["pr_number"] == 7
+
+    @patch(f"{TASK_PATH}.continue_single_run_from_pr_feedback")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_single_run_feedback_without_this_issues_run_is_skipped(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_continue: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._single_run_state()
+        mock_pop.return_value = [self._queued(self._review_feedback(777))]
+
+        self._call()
+
+        mock_continue.assert_not_called()
+
+    @patch(f"{TASK_PATH}.continue_single_run_from_pr_feedback")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_single_run_feedback_counts_toward_the_automated_cap(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_continue: MagicMock,
+    ) -> None:
+        self._single_run_record()
+        mock_fetch.return_value = self._single_run_state(
+            blocks=[self._iteration_block(1), self._iteration_block(2)]
+        )
+        mock_pop.return_value = [self._queued(self._check_suite_feedback())]
+
+        with self.options({"autofix.pr-iteration.max-iterations": 2}):
+            self._call()
+
+        mock_continue.assert_not_called()
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")

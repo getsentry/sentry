@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q, QuerySet
@@ -22,6 +23,7 @@ from sentry.seer.agent.client_utils import (
     get_proxy_headers,
 )
 from sentry.seer.agent.on_completion_hook import extract_hook_definition
+from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
 from sentry.seer.autofix.feature.models import (
@@ -47,7 +49,10 @@ from sentry.seer.models.run import SeerAgentRun, SeerRun
 from sentry.seer.models.seer_api_models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPermissionError
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
-from sentry.utils import metrics
+from sentry.utils import json, metrics
+
+if TYPE_CHECKING:
+    from sentry.seer.autofix.pr_iteration.feedback import Feedback
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +92,9 @@ def autofix_run_targets_other_issue(group: Group, run_id: int) -> bool:
     return not _run_mirrors(group, run_id).filter(_mirror_matches_issue(group)).exists()
 
 
-def require_autofix_run_for_group(group: Group, run_id: int) -> SeerAgentRun:
+def require_autofix_run_for_group(
+    group: Group, run_id: int, sources: tuple[str, ...] = (FEATURE_ID, LEGACY_FEATURE_ID)
+) -> SeerAgentRun:
     """The autofix run mirror for this issue, or a permission error.
 
     ``run_id`` comes from the request body. Org membership is not enough: the
@@ -96,7 +103,7 @@ def require_autofix_run_for_group(group: Group, run_id: int) -> SeerAgentRun:
     """
     agent_run = (
         _run_mirrors(group, run_id)
-        .filter(source__in=(FEATURE_ID, LEGACY_FEATURE_ID))
+        .filter(source__in=sources)
         .select_related("run")
         .filter(_mirror_matches_issue(group))
         .first()
@@ -129,7 +136,7 @@ def project_stopping_point(project: Project) -> AutofixStoppingPoint:
 
 
 def _single_run_pr_internal_settings(
-    group: Group, referrer: AutofixReferrer
+    group: Group, referrer: AutofixReferrer, commit_author: SeerCommitAuthor | None = None
 ) -> AutofixSingleRunPrInternalSettings:
     from sentry.seer.autofix.autofix_agent import (
         build_pr_description_suffix,
@@ -139,6 +146,7 @@ def _single_run_pr_internal_settings(
     return AutofixSingleRunPrInternalSettings(
         description_suffix=build_pr_description_suffix(group, referrer),
         ready_for_review=not should_open_autofix_pr_as_draft(group.organization),
+        commit_author=commit_author,
     )
 
 
@@ -192,16 +200,85 @@ def continue_single_run(
     can_publish: bool,
     referrer: AutofixReferrer,
 ) -> SeerRun:
-    from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
-
     check_autofix_billing(
         group.organization,
         SeerOperation.AUTOFIX_SINGLE_RUN_REPLY,
         is_new_run=False,
     )
-
     enable_coding = _org_allows_coding(group)
     open_pr = enable_coding and can_publish
+    return _continue_single_run(
+        agent_run,
+        group,
+        reply=reply,
+        user=user,
+        enable_coding=enable_coding,
+        pr_internal_settings=(
+            _single_run_pr_internal_settings(group, referrer) if open_pr else None
+        ),
+        enable_pr_context_tools=False,
+        referrer=referrer,
+    )
+
+
+def continue_single_run_from_pr_feedback(
+    agent_run: SeerAgentRun,
+    group: Group,
+    *,
+    feedback: Sequence[Feedback],
+    iteration_index: int,
+    iteration_id: int | None,
+    commit_author: SeerCommitAuthor | None,
+    pr_number: int | None,
+    referrer: AutofixReferrer,
+) -> SeerRun:
+    from sentry.seer.autofix.pr_iteration.display import pr_feedback_display
+    from sentry.seer.autofix.pr_iteration.feedback import serialize_feedback
+
+    check_autofix_billing(
+        group.organization,
+        SeerOperation.AUTOFIX_PR_ITERATION,
+        is_new_run=False,
+    )
+    enable_coding = _org_allows_coding(group)
+    return _continue_single_run(
+        agent_run,
+        group,
+        reply="\n\n".join(item.text for item in feedback),
+        user=None,
+        enable_coding=enable_coding,
+        pr_internal_settings=(
+            _single_run_pr_internal_settings(group, referrer, commit_author)
+            if enable_coding
+            else None
+        ),
+        enable_pr_context_tools=True,
+        referrer=referrer,
+        pr_feedback=PrIterationStepArgs(
+            iteration_index=iteration_index,
+            iteration_id=iteration_id,
+            feedback=serialize_feedback(feedback),
+            commit_author=json.dumps(commit_author) if commit_author is not None else None,
+        ),
+        reply_display=pr_feedback_display(feedback, pr_number),
+    )
+
+
+def _continue_single_run(
+    agent_run: SeerAgentRun,
+    group: Group,
+    *,
+    reply: str,
+    user: User | RpcUser | None,
+    enable_coding: bool,
+    pr_internal_settings: AutofixSingleRunPrInternalSettings | None,
+    enable_pr_context_tools: bool,
+    referrer: AutofixReferrer,
+    pr_feedback: PrIterationStepArgs | None = None,
+    reply_display: str | None = None,
+) -> SeerRun:
+    from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
+
     payload = AutofixSingleRunFeaturePayload(
         group_id=group.id,
         project_id=group.project_id,
@@ -212,16 +289,16 @@ def continue_single_run(
         should_run_repo_checks=True,
         existing_run_id=agent_run.run.seer_run_state_id,
         reply=reply,
-        pr_internal_settings=(
-            _single_run_pr_internal_settings(group, referrer) if open_pr else None
-        ),
+        pr_internal_settings=pr_internal_settings,
+        pr_feedback=pr_feedback,
+        reply_display=reply_display,
     )
     agent_run_options = AgentRunOptions(
         is_context_engine_enabled=False,
         enable_frontend_code_search=False,
         enable_coding=enable_coding,
-        enable_pr_context_tools=False,
-        enable_write_pull_request=open_pr,
+        enable_pr_context_tools=enable_pr_context_tools,
+        enable_write_pull_request=pr_internal_settings is not None,
     )
 
     client = SeerAgentClient(

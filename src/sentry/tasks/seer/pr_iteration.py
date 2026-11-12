@@ -50,9 +50,14 @@ from sentry.scm.factory import new as make_scm
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import fetch_run_status, get_agent_state_from_pr_id
 from sentry.seer.autofix.autofix_agent import trigger_autofix_agent
-from sentry.seer.autofix.commit_author import commit_author_for_feedback
+from sentry.seer.autofix.commit_author import SeerCommitAuthor, commit_author_for_feedback
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
+from sentry.seer.autofix.feature.dispatch import (
+    continue_single_run_from_pr_feedback,
+    require_autofix_run_for_group,
+)
+from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.pr_iteration.bot_identity import bot_logins_for_feedback
 from sentry.seer.autofix.pr_iteration.cap_exhausted import assign_user_for_exhausted_cap
 from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER
@@ -90,7 +95,10 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
     GithubPullRequestReviewComment,
 )
-from sentry.seer.autofix.pr_iteration.iterations import PrIterationNoPullRequestException
+from sentry.seer.autofix.pr_iteration.iterations import (
+    PrIterationNoPullRequestException,
+    get_open_iteration_index,
+)
 from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.missing_permissions import (
     block_iteration_for_missing_permissions,
@@ -117,6 +125,7 @@ from sentry.seer.autofix.pr_iteration.queue import (
 )
 from sentry.seer.autofix.pr_iteration.sweep import sweep_stale_pr_iterations
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
+from sentry.seer.autofix.single_run import is_single_run
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.models import SeerApiError, SeerPermissionError, SeerUnavailableError
 from sentry.tasks.base import instrumented_task
@@ -620,6 +629,32 @@ def _hand_off_exhausted_cap(
 
 
 @traces.trace
+def _continue_single_run_with_feedback(
+    *,
+    group: Group,
+    run_id: int,
+    state: SeerRunState,
+    feedback_items: list[Feedback],
+    referrer: AutofixReferrer,
+    commit_author: SeerCommitAuthor | None,
+    iteration_id: int | None,
+) -> None:
+    agent_run = require_autofix_run_for_group(group, run_id, sources=(SINGLE_RUN_FEATURE_ID,))
+    pr_numbers = [pr.pr_number for pr in state.repo_pr_states.values() if pr.pr_number]
+    if not pr_numbers:
+        raise PrIterationNoPullRequestException()
+    continue_single_run_from_pr_feedback(
+        agent_run,
+        group,
+        feedback=feedback_items,
+        iteration_index=get_open_iteration_index(state),
+        iteration_id=iteration_id,
+        commit_author=commit_author,
+        pr_number=pr_numbers[0],
+        referrer=referrer,
+    )
+
+
 def _drain_queued_autofix_feedback(
     *,
     log_ctx: PrIterationLogContext,
@@ -830,17 +865,29 @@ def _drain_queued_autofix_feedback(
             },
             sample_rate=1.0,
         )
-        trigger_autofix_agent(
-            group=group,
-            step=AutofixStep.PR_ITERATION,
-            referrer=referrer,
-            run_id=run_id,
-            user_context="\n\n".join(item.text for item in feedback_items),
-            feedback=feedback_items,
-            actor_user_id=actor_user_id,
-            commit_author=commit_author_for_feedback(feedback_items, organization_id),
-            iteration_id=iteration_id,
-        )
+        commit_author = commit_author_for_feedback(feedback_items, organization_id)
+        if is_single_run(state):
+            _continue_single_run_with_feedback(
+                group=group,
+                run_id=run_id,
+                state=state,
+                feedback_items=feedback_items,
+                referrer=referrer,
+                commit_author=commit_author,
+                iteration_id=iteration_id,
+            )
+        else:
+            trigger_autofix_agent(
+                group=group,
+                step=AutofixStep.PR_ITERATION,
+                referrer=referrer,
+                run_id=run_id,
+                user_context="\n\n".join(item.text for item in feedback_items),
+                feedback=feedback_items,
+                actor_user_id=actor_user_id,
+                commit_author=commit_author,
+                iteration_id=iteration_id,
+            )
     except (
         PrIterationNoPullRequestException,
         SeerPermissionError,
