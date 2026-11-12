@@ -8,6 +8,7 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
+from sentry.notifications.additional_attachment_manager import msteams_attachment_manager
 from sentry.notifications.platform.msteams.provider import MSTeamsRenderable
 from sentry.notifications.platform.registry import renderer_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
@@ -50,8 +51,6 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
             raise ValueError(f"IssueMSTeamsRenderer does not support {data.__class__.__name__}")
 
         from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
-        from sentry.integrations.services.integration import integration_service
-        from sentry.notifications.additional_attachment_manager import msteams_attachment_manager
 
         # Retrieving Group and Event data is an anti-pattern, do not do this
         # in permanent renderers.
@@ -89,18 +88,11 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
             fields=fields,
         )
 
-        integration = (
-            integration_service.get_integration(integration_id=data.integration_id)
-            if data.integration_id
-            else None
-        )
-        if integration is not None:
-            card["body"].extend(
-                msteams_attachment_manager.get_additional_attachment(
-                    integration, group.organization
-                )
-                or []
+        card["body"].extend(
+            msteams_attachment_manager.get_additional_attachment_for_integration_id(
+                data.integration_id, group.organization
             )
+        )
         return card
 
     @classmethod

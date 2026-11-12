@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
+from sentry.notifications.additional_attachment_manager import discord_attachment_manager
 from sentry.notifications.platform.discord.provider import DiscordRenderable
 from sentry.notifications.platform.registry import renderer_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
@@ -31,8 +32,6 @@ class IssueDiscordRenderer(NotificationRenderer[DiscordRenderable]):
             raise ValueError(f"IssueDiscordRenderer does not support {data.__class__.__name__}")
 
         from sentry.integrations.discord.message_builder.issues import DiscordIssuesMessageBuilder
-        from sentry.integrations.services.integration import integration_service
-        from sentry.notifications.additional_attachment_manager import discord_attachment_manager
 
         # Retrieving Group and Event data is an anti-pattern, do not do this
         # in permanent renderers.
@@ -64,16 +63,9 @@ class IssueDiscordRenderer(NotificationRenderer[DiscordRenderable]):
             link_decorator=link_decorator,
         ).build(notification_uuid=data.notification_uuid)
 
-        integration = (
-            integration_service.get_integration(integration_id=data.integration_id)
-            if data.integration_id
-            else None
-        )
-        if integration is not None:
-            message.setdefault("embeds", []).extend(
-                discord_attachment_manager.get_additional_attachment(
-                    integration, group.organization
-                )
-                or []
+        message.setdefault("embeds", []).extend(
+            discord_attachment_manager.get_additional_attachment_for_integration_id(
+                data.integration_id, group.organization
             )
+        )
         return message

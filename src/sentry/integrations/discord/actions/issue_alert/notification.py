@@ -60,7 +60,6 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
                 discord_attachment_manager.get_additional_attachment(
                     integration, self.project.organization
                 )
-                or []
             )
             record_legacy_render(NotificationProviderKey.DISCORD, message)
 

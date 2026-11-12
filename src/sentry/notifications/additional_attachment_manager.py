@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from sentry.integrations.api.parsers.integrations import validate_provider
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.services.integration import RpcIntegration
+from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.integrations.types import ExternalProviders
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization
@@ -42,12 +42,24 @@ class AdditionalAttachmentManager[T]:
         self,
         integration: Integration | RpcIntegration,
         organization: Organization | RpcOrganization,
-    ) -> list[T] | None:
+    ) -> list[T]:
         provider = validate_provider(integration.provider, self.providers)
         attachment_generator = self.attachment_generators.get(provider)
         if attachment_generator is None:
-            return None
-        return attachment_generator(integration, organization)
+            return []
+        return attachment_generator(integration, organization) or []
+
+    def get_additional_attachment_for_integration_id(
+        self,
+        integration_id: int | None,
+        organization: Organization | RpcOrganization,
+    ) -> list[T]:
+        if integration_id is None:
+            return []
+        integration = integration_service.get_integration(integration_id=integration_id)
+        if integration is None:
+            return []
+        return self.get_additional_attachment(integration, organization)
 
     def register_additional_attachment_generator(
         self,
