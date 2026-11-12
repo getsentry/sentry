@@ -335,15 +335,6 @@ These differences are implemented in [`tasks/workflows.py`](../tasks/workflows.p
 [`get_environment_by_event`](../processors/workflow.py), and
 [`get_preferred_detector`](../processors/detector.py).
 
-### Internal activity matching
-
-[`activity_type_in`](../handlers/condition/activity_type_in_handler.py) is an internal
-Workflow WHEN condition for native `Activity` records. Its comparison is a nonempty
-list of unique values: `issue.assigned` matches user or team assignments;
-`issue.mentioned` matches notes with a nonempty `mentions` list in their Activity data.
-Other event types do not match. Provision it with `condition_result=True` in an
-`any-short` WHEN group.
-
 ## Adding a Condition Type and Handler
 
 This walkthrough is verified against
