@@ -121,7 +121,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:explore-interpolation-and-smoothing", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable plotting multiple aggregates on one chart in Explore
     manager.add("organizations:explore-multi-aggregate-charts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Cache attribute key discovery across pages of the trace item stats endpoint
+    # Cache the attribute keys that the trace item stats endpoint discovers, so later pages skip the discovery queries
     manager.add("organizations:explore-trace-item-stats-key-cache", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable returning the migrated discover queries in explore saved queries
     manager.add("organizations:expose-migrated-discover-queries", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)

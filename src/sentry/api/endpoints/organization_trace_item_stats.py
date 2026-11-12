@@ -62,8 +62,8 @@ logger = logging.getLogger(__name__)
 
 MAX_THREADS = 4
 
-# Paging through attributes re-requests the same key list for every page. A few minutes
-# covers a paging session, and the list is already a sample of the most recent items.
+# Long enough to cover paging through the attribute breakdowns. The key list is already
+# a sample of the most recent items, so a few minutes of staleness doesn't matter.
 ATTRIBUTE_KEYS_CACHE_TTL = int(timedelta(minutes=5).total_seconds())
 
 SupportedItemType = Literal["spans", "occurrences"]
@@ -110,9 +110,9 @@ def get_attribute_keys_cache_key(
     include_internal_convention_attributes: bool,
 ) -> str:
     """
-    Every input that changes which attribute keys are discovered must be part of
-    this key, including the visibility flags, so users with different visibility
-    never share an entry.
+    Every input that changes which attribute keys are discovered must be in this
+    key. The visibility flags are included so users who can see internal
+    attributes never share an entry with users who can't.
     """
     filters_hash = hash_values(
         [
@@ -131,10 +131,10 @@ def get_attribute_keys_cache_key(
             include_internal_convention_attributes,
         ]
     )
-    # Relative ranges move with every request, so key on the duration plus an end
-    # quantized to a 5-minute window, as tagstore does for tag keys. The jitter comes
-    # from the md5 rather than hash(), which is salted per process, so every worker
-    # picks the same window.
+    # A relative range like statsPeriod=24h resolves to a new end on every request.
+    # Rounding the end to a 5-minute window lets later pages reuse the entry. The
+    # rounding is jittered by the md5, not hash(), because hash() is salted per
+    # process and every web worker has to land on the same window.
     duration = (snuba_params.end_date - snuba_params.start_date).total_seconds()
     quantized_end = snuba.quantize_time(snuba_params.end_date, int(filters_hash, 16))
     return f"trace-item-stats:keys:{filters_hash}:{duration}@{quantized_end.isoformat()}"
@@ -347,7 +347,10 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
                 )
 
         def discover_attribute_keys() -> list[list[str]]:
-            """Returns [internal name, public alias] pairs, before substringMatch filtering."""
+            """
+            Returns [internal name, public alias] pairs. substringMatch is applied by
+            the caller, so key searches can reuse the cached list.
+            """
             table_results = get_table_results()
             if not table_results["data"]:
                 return []
