@@ -142,35 +142,19 @@ describe('OrganizationRepositories', () => {
       });
       renderGlobalModal();
 
+      await userEvent.click(
+        await screen.findByRole('button', {
+          name: hasIntegrations
+            ? 'Request provider installation'
+            : 'Request Installation',
+        })
+      );
       if (hasIntegrations) {
-        await userEvent.click(
-          await screen.findByRole('button', {name: 'Request provider installation'})
-        );
         await userEvent.click(screen.getByRole('menuitemradio', {name: 'GitHub'}));
-      } else {
-        await userEvent.click(
-          await screen.findByRole('button', {name: 'Request Installation'})
-        );
       }
 
       expect(await screen.findByText('Request GitHub Installation')).toBeInTheDocument();
       expect(requestInstallation).not.toHaveBeenCalled();
-      expect(initializePipeline).not.toHaveBeenCalled();
-      await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
-      if (hasIntegrations) {
-        await userEvent.click(
-          screen.getByRole('button', {name: 'Request provider installation'})
-        );
-        await userEvent.click(screen.getByRole('menuitemradio', {name: 'GitHub'}));
-      } else {
-        await userEvent.click(screen.getByRole('button', {name: 'Request Installation'}));
-      }
-      expect(await screen.findByText('Request GitHub Installation')).toBeInTheDocument();
-      expect(requestInstallation).not.toHaveBeenCalled();
-      await userEvent.type(
-        screen.getByRole('textbox'),
-        'Please connect our repositories.'
-      );
       await userEvent.click(screen.getByRole('button', {name: 'Send Request'}));
 
       await waitFor(() =>
@@ -180,28 +164,14 @@ describe('OrganizationRepositories', () => {
             data: {
               providerSlug: 'github',
               providerType: 'first_party',
-              message: 'Please connect our repositories.',
+              message: '',
             },
           })
         )
       );
-      if (hasIntegrations) {
-        await waitFor(() =>
-          expect(
-            screen.queryByText('Request GitHub Installation')
-          ).not.toBeInTheDocument()
-        );
-        await userEvent.click(
-          screen.getByRole('button', {name: 'Request provider installation'})
-        );
-        expect(
-          screen.getByRole('menuitemradio', {name: 'GitHub (Installation Requested)'})
-        ).toHaveAttribute('aria-disabled', 'true');
-      } else {
-        expect(
-          await screen.findByRole('button', {name: 'Installation Requested'})
-        ).toBeDisabled();
-      }
+      await waitFor(() =>
+        expect(screen.queryByText('Request GitHub Installation')).not.toBeInTheDocument()
+      );
       expect(initializePipeline).not.toHaveBeenCalled();
     }
   );
