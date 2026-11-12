@@ -22,7 +22,7 @@ from sentry.notifications.platform.inbox import create_inbox_items
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import comment_created, comment_deleted, comment_updated
 from sentry.types.activity import ActivityType
-from sentry.types.actor import Actor, ActorType
+from sentry.types.actor import ActorType
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.safe import safe_execute
@@ -111,22 +111,28 @@ def create_comment(
                 group=group, type=ActivityType.NOTE, user_id=user.id, data=data
             )
             mentions = data.get("mentions", [])
-            for event_type, actor_type, summary in (
-                (ISSUE_USER_MENTIONED, ActorType.USER, "Mentioned you in a comment"),
-                (ISSUE_TEAM_MENTIONED, ActorType.TEAM, "Mentioned your team in a comment"),
-            ):
-                safe_execute(
-                    create_inbox_items,
-                    event_type=event_type,
-                    subject=group,
-                    data=IssueMentionedData(summary=summary, comment_id=note.id),
-                    recipients=[
-                        Actor(id=mention["id"], actor_type=actor_type)
-                        for mention in mentions
-                        if mention["actor_type"] == actor_type
-                    ],
-                    actor=InboxActor.user(user.id),
-                )
+            safe_execute(
+                create_inbox_items,
+                event_type=ISSUE_USER_MENTIONED,
+                subject=group,
+                data=IssueMentionedData(summary="Mentioned you in a comment", comment_id=note.id),
+                user_ids=[
+                    mention["id"] for mention in mentions if mention["actor_type"] == ActorType.USER
+                ],
+                actor=InboxActor.user(user.id),
+            )
+            safe_execute(
+                create_inbox_items,
+                event_type=ISSUE_TEAM_MENTIONED,
+                subject=group,
+                data=IssueMentionedData(
+                    summary="Mentioned your team in a comment", comment_id=note.id
+                ),
+                team_ids=[
+                    mention["id"] for mention in mentions if mention["actor_type"] == ActorType.TEAM
+                ],
+                actor=InboxActor.user(user.id),
+            )
             if not from_email:
                 _after_commit(partial(_sync_comment, note, user.id, created=True))
 

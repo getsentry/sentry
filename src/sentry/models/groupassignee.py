@@ -251,7 +251,8 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
                         summary="Assigned to your team" if is_team else "Assigned to you",
                         assignment_source=inbox_assignment_source,
                     ),
-                    recipients=[Actor.from_object(assigned_to)],
+                    user_ids=[] if is_team else [assigned_to.id],
+                    team_ids=[assigned_to.id] if is_team else [],
                     actor=InboxActor.user(acting_user.id)
                     if acting_user is not None
                     else SYSTEM_ACTOR,

@@ -63,7 +63,6 @@ from sentry.notebooks.services.producer_writes import (
 )
 from sentry.notifications.platform.inbox import create_inbox_items
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
-from sentry.types.actor import Actor, ActorType
 from sentry.utils import json
 
 MAX_ORCHESTRATION_EVENT_BYTES = 1024 * 1024
@@ -317,7 +316,7 @@ def _record_completed_inbox_event(run: InvestigationOrchestrationRun) -> None:
         data=NotebookCompletedData(
             summary="Investigation completed", seer_run_id=seer_run.seer_run_state_id
         ),
-        recipients=[Actor(id=notebook.created_by_id, actor_type=ActorType.USER)],
+        user_ids=[notebook.created_by_id],
         actor=SYSTEM_ACTOR,
     )
 

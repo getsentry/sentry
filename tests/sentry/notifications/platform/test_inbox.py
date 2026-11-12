@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from unittest.mock import patch
 
 from sentry.inbox.issue import ISSUE, ISSUE_USER_MENTIONED, IssueMentionedData
@@ -7,16 +8,22 @@ from sentry.notifications.models.inboxitemevent import InboxItemEvent
 from sentry.notifications.platform.inbox import create_inbox_items
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.types.actor import Actor
 
 
 class CreateInboxItemsTest(TestCase):
-    def _create(self, recipients: list[Actor], actor: InboxActor = SYSTEM_ACTOR) -> None:
+    def _create(
+        self,
+        *,
+        user_ids: Sequence[int] = (),
+        team_ids: Sequence[int] = (),
+        actor: InboxActor = SYSTEM_ACTOR,
+    ) -> None:
         create_inbox_items(
             event_type=ISSUE_USER_MENTIONED,
             subject=self.group,
             data=IssueMentionedData(summary="Mentioned you in a comment", comment_id=123),
-            recipients=recipients,
+            user_ids=user_ids,
+            team_ids=team_ids,
             actor=actor,
         )
 
@@ -24,7 +31,7 @@ class CreateInboxItemsTest(TestCase):
         return sorted(InboxItemEvent.objects.values_list("inbox_item__user_id", flat=True))
 
     def test_records_nothing_when_recording_disabled(self) -> None:
-        self._create([Actor.from_object(self.user)])
+        self._create(user_ids=[self.user.id])
 
         assert not InboxItemEvent.objects.exists()
 
@@ -33,7 +40,7 @@ class CreateInboxItemsTest(TestCase):
         other = self.create_user()
         self.create_member(organization=self.organization, user=other)
 
-        self._create([Actor.from_object(self.user), Actor.from_object(other)])
+        self._create(user_ids=[self.user.id, other.id])
 
         assert self._recorded_user_ids() == sorted([self.user.id, other.id])
 
@@ -48,7 +55,7 @@ class CreateInboxItemsTest(TestCase):
             team=team, organizationmember__user_id=inactive_member.id
         ).update(is_active=False)
 
-        self._create([Actor.from_object(team)])
+        self._create(team_ids=[team.id])
 
         assert self._recorded_user_ids() == [member.id]
 
@@ -56,7 +63,7 @@ class CreateInboxItemsTest(TestCase):
     def test_user_reached_directly_and_through_team_gets_one_event(self) -> None:
         team = self.create_team(organization=self.organization, members=[self.user])
 
-        self._create([Actor.from_object(self.user), Actor.from_object(team)])
+        self._create(user_ids=[self.user.id], team_ids=[team.id])
 
         assert self._recorded_user_ids() == [self.user.id]
 
@@ -67,7 +74,7 @@ class CreateInboxItemsTest(TestCase):
         other_team = self.create_team(organization=other_organization)
         self.create_member(organization=other_organization, user=outsider, teams=[other_team])
 
-        self._create([Actor.from_object(outsider), Actor.from_object(other_team)])
+        self._create(user_ids=[outsider.id], team_ids=[other_team.id])
 
         assert not InboxItemEvent.objects.exists()
 
@@ -79,7 +86,7 @@ class CreateInboxItemsTest(TestCase):
         with patch.object(
             ISSUE, "filter_recipients", return_value=[other.id], autospec=True
         ) as filter_recipients:
-            self._create([Actor.from_object(self.user), Actor.from_object(other)])
+            self._create(user_ids=[self.user.id, other.id])
 
         assert self._recorded_user_ids() == [other.id]
         assert filter_recipients.call_args.kwargs["subject"] == self.group
@@ -89,6 +96,6 @@ class CreateInboxItemsTest(TestCase):
 
     @with_feature("organizations:universal-inbox-recording")
     def test_excludes_actor(self) -> None:
-        self._create([Actor.from_object(self.user)], actor=InboxActor.user(self.user.id))
+        self._create(user_ids=[self.user.id], actor=InboxActor.user(self.user.id))
 
         assert not InboxItemEvent.objects.exists()

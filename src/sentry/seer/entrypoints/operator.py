@@ -58,8 +58,6 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.types.activity import ActivityType
-from sentry.types.actor import Actor
-from sentry.types.actor import ActorType as RecipientType
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils.locking import UnableToAcquireLock
@@ -789,11 +787,9 @@ def _create_seer_activity(
             if (pr_url := get_path(pr, "pull_request", "pr_url"))
         ]
         if pr_urls:
-            user_ids, team_ids = IssueOwnersActivityAlertStrategy(group=group).get_issue_owner_ids()
-            owners = [
-                *(Actor(id=user_id, actor_type=RecipientType.USER) for user_id in user_ids),
-                *(Actor(id=team_id, actor_type=RecipientType.TEAM) for team_id in team_ids),
-            ]
+            owner_user_ids, owner_team_ids = IssueOwnersActivityAlertStrategy(
+                group=group
+            ).get_issue_owner_ids()
             for pr_url in pr_urls:
                 safe_execute(
                     create_inbox_items,
@@ -804,7 +800,8 @@ def _create_seer_activity(
                         pr_url=pr_url,
                         seer_run_id=event_payload["run_id"],
                     ),
-                    recipients=owners,
+                    user_ids=owner_user_ids,
+                    team_ids=owner_team_ids,
                     actor=InboxActor.user(actor_user_id)
                     if actor_user_id is not None
                     else INBOX_SYSTEM_ACTOR,
