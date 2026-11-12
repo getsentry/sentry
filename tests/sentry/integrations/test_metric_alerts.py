@@ -212,22 +212,26 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         assert data["text"] == "count() of errors was 123 in the last 10 minutes"
         assert (
             data["title_link"]
-            == f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer={referrer}&detection_type=static&openPeriod={open_period.id}&notification_uuid={notification_uuid}"
+            == f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer={referrer}&detection_type=static&notification_uuid={notification_uuid}&openPeriod={open_period.id}"
         )
         assert (
             data["logo_url"]
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
         )
 
-    def test_requires_group(self) -> None:
+    def test_links_to_monitor_without_group(self) -> None:
         detector = self.create_detector(project=self.project)
         open_period = GroupOpenPeriod.objects.get(group=self.group)
         metric_issue_context = self._metric_issue_context(open_period)
         metric_issue_context.group = None
 
-        with pytest.raises(ValueError, match="require a group"):
-            incident_attachment_info(
-                organization=self.organization,
-                alert_context=self._alert_context(detector.id),
-                metric_issue_context=metric_issue_context,
-            )
+        data = incident_attachment_info(
+            organization=self.organization,
+            alert_context=self._alert_context(detector.id),
+            metric_issue_context=metric_issue_context,
+        )
+
+        assert (
+            data["title_link"]
+            == f"http://testserver/organizations/{self.organization.slug}/monitors/{detector.id}/?referrer=metric_alert&detection_type=static"
+        )

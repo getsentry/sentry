@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import NotRequired, TypedDict, get_args
+from urllib.parse import urlencode
 
 from django.utils.translation import gettext as _
 
@@ -17,7 +18,7 @@ from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus
 from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
 from sentry.models.organization import Organization
-from sentry.notifications.utils.links import create_link_to_workflow
+from sentry.notifications.utils.links import create_link_to_detector, create_link_to_workflow
 from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
 from sentry.search.eap.trace_metrics.types import TraceMetricType
 from sentry.search.events.fields import is_function, parse_arguments
@@ -213,19 +214,22 @@ def incident_attachment_info(
 
     title = get_title(status, alert_context.name)
 
-    group = metric_issue_context.group
-    if group is None:
-        raise ValueError("Metric alert notifications require a group")
-
     title_link_params = {
         "referrer": referrer,
         "detection_type": alert_context.detection_type.value,
-        "openPeriod": str(metric_issue_context.open_period_identifier),
     }
     if notification_uuid:
         title_link_params["notification_uuid"] = notification_uuid
 
-    title_link = group.get_absolute_url(params=title_link_params)
+    group = metric_issue_context.group
+    if group is not None:
+        title_link_params["openPeriod"] = str(metric_issue_context.open_period_identifier)
+        title_link = group.get_absolute_url(params=title_link_params)
+    else:
+        title_link = organization.absolute_url(
+            create_link_to_detector(organization.slug, str(alert_context.action_identifier_id)),
+            query=urlencode(title_link_params),
+        )
 
     return AttachmentInfo(
         title=title,
