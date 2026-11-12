@@ -80,9 +80,34 @@ class TelemetryFixtures(TestCase):
             oi_params={"config": config},
         )
 
+    def create_grafana(self, **config: Any) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="grafana",
+            external_id="my-stack.grafana.net",
+            name="Grafana (my-stack.grafana.net)",
+            metadata={"token": "glsa_token"},
+            oi_params={"config": {"url": "https://my-stack.grafana.net", **config}},
+        )
+
 
 @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
 class TelemetryAvailableTest(TelemetryFixtures):
+    @with_feature(FEATURE)
+    def test_an_installed_grafana_integration_is_available(self) -> None:
+        assert not telemetry_available(self.organization, "grafana")
+
+        self.create_grafana()
+
+        assert telemetry_available(self.organization, "grafana")
+        assert not telemetry_available(self.organization, "datadog")
+
+    @with_feature(FEATURE)
+    def test_a_grafana_integration_without_a_url_is_not_available(self) -> None:
+        self.create_grafana(url="")
+
+        assert not telemetry_available(self.organization, "grafana")
+
     @with_feature(FEATURE)
     def test_an_installed_datadog_integration_is_available(self) -> None:
         assert not telemetry_available(self.organization, "datadog")
@@ -667,6 +692,26 @@ class MarkInvestigationTelemetryConnectedTaskTest(TelemetryFixtures):
 
         delay.assert_called_once_with(
             organization_id=self.organization.id, provider="datadog", user_id=self.user.id
+        )
+
+    @mock.patch("sentry.receivers.seer.mark_investigation_telemetry_connected.delay")
+    def test_an_installed_grafana_integration_triggers_the_check(
+        self, delay: mock.MagicMock
+    ) -> None:
+        grafana = self.create_integration(
+            organization=self.organization, provider="grafana", external_id="my-stack"
+        )
+        delay.reset_mock()
+
+        integration_added.send_robust(
+            sender=None,
+            integration_id=grafana.id,
+            organization_id=self.organization.id,
+            user_id=self.user.id,
+        )
+
+        delay.assert_called_once_with(
+            organization_id=self.organization.id, provider="grafana", user_id=self.user.id
         )
 
     @mock.patch("sentry.tasks.seer.investigation.mark_investigation_telemetry_connected.delay")

@@ -23,8 +23,8 @@ from sentry.notebooks.services.action_kinds.base import (
 from sentry.seer.agent.monitoring_providers import org_monitoring_provider_registry
 
 CONNECT_TELEMETRY_ACTION = "connect_telemetry"
-TelemetryProvider = Literal["datadog", "gcp"]
-TELEMETRY_PROVIDERS: tuple[TelemetryProvider, ...] = ("datadog", "gcp")
+TelemetryProvider = Literal["datadog", "gcp", "grafana"]
+TELEMETRY_PROVIDERS: tuple[TelemetryProvider, ...] = ("datadog", "gcp", "grafana")
 
 TELEMETRY_FEATURE = "organizations:seer-infra-telemetry"
 # The scope the integration pipeline needs to install a provider.
