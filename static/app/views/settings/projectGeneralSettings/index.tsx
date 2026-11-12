@@ -456,7 +456,7 @@ function SecurityTokenForm({
       <FormSearch route="/settings/:orgId/projects/:projectId/">
         <form.AppField name="securityToken">
           {field => (
-            <field.Layout.Row label={t('Security Token')} hintText={SECURITY_TOKEN_HELP}>
+            <field.Layout.Row label={t('Security token')} hintText={SECURITY_TOKEN_HELP}>
               <field.Input
                 value={field.state.value}
                 onChange={field.handleChange}
@@ -933,7 +933,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
           </AutoSaveForm>
 
           {disabled || project.securityToken === undefined ? (
-            <DisplayField.Row label={t('Security Token')} hintText={SECURITY_TOKEN_HELP}>
+            <DisplayField.Row label={t('Security token')} hintText={SECURITY_TOKEN_HELP}>
               <Text variant="muted">
                 {t('You do not have permission to view this token.')}
               </Text>
