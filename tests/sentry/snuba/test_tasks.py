@@ -1491,14 +1491,14 @@ class RecheckBrokenSubscriptionTest(TestCase):
             yield
 
     def create_subscription(
-        self, status: QuerySubscription.Status, query: str
+        self, status: QuerySubscription.Status, query: str, time_window: int = 60
     ) -> QuerySubscription:
         snuba_query = SnubaQuery.objects.create(
             type=SnubaQuery.Type.ERROR.value,
             dataset=Dataset.Events.value,
             aggregate="count()",
             query=query,
-            time_window=60,
+            time_window=time_window,
             resolution=60,
         )
         return QuerySubscription.objects.create(
@@ -1517,12 +1517,36 @@ class RecheckBrokenSubscriptionTest(TestCase):
 
     def test_recovered(self) -> None:
         sub = self.create_subscription(QuerySubscription.Status.BROKEN, "hello")
-        with self.tasks():
-            recheck_broken_subscription(sub.id)
+        recheck_broken_subscription(sub.id)
         sub.refresh_from_db()
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
         self.metrics.incr.assert_any_call("snuba.subscriptions.broken.recovered")
+
+    def test_still_rejected_by_snuba(self) -> None:
+        sub = self.create_subscription(QuerySubscription.Status.BROKEN, "hello", time_window=0)
+        with patch("sentry.snuba.tasks.sentry_sdk.capture_exception") as capture_exception:
+            recheck_broken_subscription(sub.id)
+        sub.refresh_from_db()
+        assert sub.status == QuerySubscription.Status.BROKEN.value
+        assert sub.subscription_id is None
+        capture_exception.assert_not_called()
+        self.metrics.incr.assert_any_call("snuba.subscriptions.broken.verified")
+
+    def test_concurrent_change_during_create(self) -> None:
+        sub = self.create_subscription(QuerySubscription.Status.BROKEN, "hello")
+
+        def delete_concurrently(subscription: QuerySubscription) -> str:
+            QuerySubscription.objects.filter(id=subscription.id).update(
+                status=QuerySubscription.Status.DELETING.value
+            )
+            return "1/abc"
+
+        with patch("sentry.snuba.tasks._create_in_snuba", side_effect=delete_concurrently):
+            recheck_broken_subscription(sub.id)
+        sub.refresh_from_db()
+        assert sub.status == QuerySubscription.Status.DELETING.value
+        assert sub.subscription_id is None
 
     def test_not_broken(self) -> None:
         sub = self.create_subscription(QuerySubscription.Status.ACTIVE, "issue:INVALID-1")

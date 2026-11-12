@@ -479,8 +479,9 @@ def subscription_checker(**kwargs: Any) -> None:
 )
 def recheck_broken_subscription(query_subscription_id: int, **kwargs: Any) -> None:
     """
-    Checks whether a BROKEN subscription's query can be built now (e.g. a removed
-    environment was restored), and if so, recreates it in Snuba.
+    Checks whether a BROKEN subscription is valid now (e.g. a removed environment was
+    restored) by recreating it in Snuba. If its query still can't be built, or Snuba
+    still rejects it, it stays BROKEN without being reported again.
     """
     try:
         subscription = QuerySubscription.objects.get(id=query_subscription_id)
@@ -495,13 +496,28 @@ def recheck_broken_subscription(query_subscription_id: int, **kwargs: Any) -> No
         metrics.incr("snuba.subscriptions.broken.verified")
         return
 
+    # Claim the subscription so a concurrent edit or delete wins over this recheck.
     updated = QuerySubscription.objects.filter(
         id=subscription.id, status=QuerySubscription.Status.BROKEN.value
     ).update(status=QuerySubscription.Status.CREATING.value, date_updated=timezone.now())
     if not updated:
         return
+
+    try:
+        subscription_id = _create_in_snuba(subscription)
+    except SubscriptionError:
+        QuerySubscription.objects.filter(
+            id=subscription.id, status=QuerySubscription.Status.CREATING.value
+        ).update(status=QuerySubscription.Status.BROKEN.value)
+        metrics.incr("snuba.subscriptions.broken.verified")
+        return
+
+    # If the subscription changed meanwhile, the Snuba subscription is left unreferenced,
+    # and the consumer deletes it when it sees its results.
+    QuerySubscription.objects.filter(
+        id=subscription.id, status=QuerySubscription.Status.CREATING.value
+    ).update(status=QuerySubscription.Status.ACTIVE.value, subscription_id=subscription_id)
     metrics.incr("snuba.subscriptions.broken.recovered")
-    create_subscription_in_snuba.delay(query_subscription_id=subscription.id)
 
 
 # Re-check regularly so that broken subscriptions get re-enabled automatically once
