@@ -1,5 +1,7 @@
 import {useCallback} from 'react';
 
+import {useAutofixCreditsDisabled} from 'sentry/components/events/autofix/autofixCredits';
+import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,
@@ -18,6 +20,24 @@ export function useOpenSingleRunChat() {
     },
     [dispatch, openSeerExplorer]
   );
+}
+
+export function useRerunSingleRun(
+  autofix: ReturnType<typeof useExplorerAutofix>,
+  {enabled}: {enabled: boolean}
+) {
+  const {startStep} = autofix;
+  const openSingleRunChat = useOpenSingleRunChat();
+  const disabled = useAutofixCreditsDisabled('root_cause', {enabled});
+
+  const rerun = useCallback(async () => {
+    const run = await startStep('root_cause');
+    if (run.isSingleRun) {
+      openSingleRunChat(run.runId);
+    }
+  }, [startStep, openSingleRunChat]);
+
+  return {rerun, disabled};
 }
 
 export function useIsSingleRunChatOpen(runId: SeerExplorerRunId | undefined) {

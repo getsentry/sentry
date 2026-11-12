@@ -1,0 +1,116 @@
+from typing import Any
+
+from drf_spectacular.utils import OpenApiResponse, extend_schema
+from rest_framework import serializers
+from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.examples.issue_examples import IssueExamples
+from sentry.apidocs.parameters import GlobalParams, IssueParams
+from sentry.apidocs.response_types import DetailResponse
+from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.issues.endpoints.bases.group import GroupEndpoint
+from sentry.issues.related.combine import combine
+from sentry.issues.related.similar_stacktrace import similar_stacktrace_issues
+from sentry.issues.related.types import (
+    RelatedIssuesContext,
+    RelatedIssuesResponse,
+    RelationType,
+    RelationTypeResult,
+    RelationTypeStatus,
+)
+from sentry.models.group import Group
+from sentry.ratelimits.config import RateLimitConfig
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
+
+ALL_TYPES_UNAVAILABLE_DETAIL = "Related issues are temporarily unavailable. Try again later."
+
+
+class GroupRelatedQuerySerializer(serializers.Serializer[dict[str, Any]]):
+    type = serializers.MultipleChoiceField(
+        choices=[t.value for t in RelationType],
+        required=False,
+        help_text="Which kinds of related issues to return. Repeat to ask for several. Defaults to all.",
+    )
+    limit = serializers.IntegerField(
+        required=False,
+        default=10,
+        min_value=1,
+        max_value=100,
+        help_text="The maximum number of issues to return for each kind.",
+    )
+
+
+@extend_schema(tags=["Events"])
+@cell_silo_endpoint
+class GroupRelatedEndpoint(GroupEndpoint):
+    owner = ApiOwner.ISSUES
+    publish_status = {"GET": ApiPublishStatus.PRIVATE}
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
+    enforce_rate_limit = True
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=15, window=5),
+                RateLimitCategory.USER: RateLimit(limit=15, window=5),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=15, window=1),
+            }
+        }
+    )
+
+    @extend_schema(
+        operation_id="listOrganizationIssueRelatedIssues",
+        summary="Find issues related to an issue",
+        description=(
+            "Returns other issues related to this one, each with the reasons it's related. "
+            "Use it when triaging an issue, before resolving or ignoring it, to check whether it "
+            "duplicates another issue. similar_stacktrace finds issues in the same project whose "
+            "stack traces Seer finds similar to this issue's latest event. meta.types says whether "
+            "each requested type ran, doesn't apply to this issue, or failed. Returns 503 only "
+            "when every requested type failed."
+        ),
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, IssueParams.ISSUE_ID, GroupRelatedQuerySerializer],
+        responses={
+            200: inline_sentry_response_serializer("RelatedIssuesResponse", RelatedIssuesResponse),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+            503: OpenApiResponse(description="Every requested type failed"),
+        },
+        examples=IssueExamples.RELATED_ISSUES,
+    )
+    def get(
+        self, request: Request, group: Group
+    ) -> Response[RelatedIssuesResponse] | Response[DetailResponse]:
+        query = GroupRelatedQuerySerializer(data=request.GET)
+        if not query.is_valid():
+            raise ParseError({"detail": query.errors})
+        params = query.validated_data
+
+        ctx = RelatedIssuesContext(
+            group=group,
+            event=group.get_latest_event(),
+            limit=params["limit"],
+            user=request.user,
+        )
+        requested_types = params.get("type")  # empty means all
+        results: dict[RelationType, RelationTypeResult] = {}
+        if not requested_types or RelationType.SIMILAR_STACKTRACE in requested_types:
+            results[RelationType.SIMILAR_STACKTRACE] = similar_stacktrace_issues(ctx)
+
+        if all(
+            result.meta["status"] == RelationTypeStatus.UNAVAILABLE for result in results.values()
+        ):
+            return Response({"detail": ALL_TYPES_UNAVAILABLE_DETAIL}, status=503)
+        return Response(combine(ctx, results))

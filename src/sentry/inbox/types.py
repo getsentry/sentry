@@ -14,6 +14,7 @@ from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.notifications.models.inboxitem import InboxItem
 from sentry.notifications.models.inboxitemevent import InboxActorType, InboxItemEvent
+from sentry.notifications.types import NotificationSettingEnum
 from sentry.utils import metrics
 
 
@@ -82,6 +83,8 @@ class InboxEventType[SubjectT, DataT: InboxEventData]:
     event_type: str
     item_type: InboxItemType[SubjectT]
     data_class: type[DataT]
+    # Personal notification setting category that controls email and Slack for this event.
+    notification_setting: NotificationSettingEnum
 
     def record(
         self,

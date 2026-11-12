@@ -965,10 +965,11 @@ def project_has_some_artifact_with_a_debug_id(project: Project) -> bool:
     """
     Whether any artifact bundle of the project contains a file with a debug ID.
 
-    Without `sourcemaps.source-map-debug.debug-id-check-max-bundles`, this reads the
-    organization's debug-ID rows until one of them is in a bundle of the project, which for a
-    project without any means all of them. With it, only the project's newest bundles are
-    checked, so a project whose debug IDs are all in older bundles counts as having none.
+    Only the project's newest bundles are checked, up to
+    `sourcemaps.source-map-debug.debug-id-check-max-bundles`, so a project whose debug IDs are all
+    in older bundles counts as having none. With the option at 0, this reads the organization's
+    debug-ID rows until one of them is in a bundle of the project, which for a project without
+    any means all of them.
     """
     max_bundles = min(
         options.get("sourcemaps.source-map-debug.debug-id-check-max-bundles"),

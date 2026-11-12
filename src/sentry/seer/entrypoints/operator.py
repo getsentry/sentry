@@ -58,7 +58,7 @@ from sentry.seer.entrypoints.types import (
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access
-from sentry.sentry_apps.event_types import SentryAppEventType
+from sentry.sentry_apps.event_types import INTERNAL_SEER_EVENT_TYPES, SentryAppEventType
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
@@ -80,6 +80,7 @@ SEER_EVENT_TO_ACTIVITY_TYPE: dict[SentryAppEventType, ActivityType] = {
     SentryAppEventType.SEER_PR_READY_FOR_REVIEW: ActivityType.SEER_PR_READY_FOR_REVIEW,
     SentryAppEventType.SEER_ITERATION_STARTED: ActivityType.SEER_ITERATION_STARTED,
     SentryAppEventType.SEER_ITERATION_COMPLETED: ActivityType.SEER_ITERATION_COMPLETED,
+    SentryAppEventType.SEER_STOPPED: ActivityType.SEER_STOPPED,
 }
 
 
@@ -786,6 +787,8 @@ def _create_seer_activity(
         iteration_index = event_payload.get("iteration_index")
         if iteration_index is not None:
             activity_data["iteration_index"] = iteration_index
+    elif event_type == SentryAppEventType.SEER_STOPPED:
+        activity_data.update(event_payload.get("stop") or {})
 
     Activity.objects.create_group_activity(
         group,
@@ -897,7 +900,7 @@ def process_autofix_updates(
 
         if (
             event_type not in SEER_EVENT_TO_ACTIVITY_TYPE
-            and event_type != SentryAppEventType.SEER_ERRORED
+            and event_type not in INTERNAL_SEER_EVENT_TYPES
         ):
             lifecycle.record_halt(halt_reason="skipped")
             return
