@@ -26,7 +26,7 @@ from sentry.notebooks.models import Notebook, NotebookActionRequestState
 from sentry.notifications.platform.service import serialize_notification_data
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
-    AUTOFIX_OUT_OF_CREDITS_MESSAGE,
+    AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE,
     SeerAgentError,
     SeerAgentResponse,
     SeerAgentWriteApproval,
@@ -380,7 +380,7 @@ class SlackAutofixEntrypointTest(TestCase):
             )
 
         blocks = str(mock_send_threaded_message.call_args.kwargs["renderable"]["blocks"])
-        assert AUTOFIX_OUT_OF_CREDITS_MESSAGE in blocks
+        assert AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE in blocks
         assert "couldn't finish working on this issue" not in blocks
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
