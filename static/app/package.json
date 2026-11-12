@@ -17,6 +17,7 @@
     "@emotion/styled": "^11.14.0",
     "@floating-ui/react-dom": "^2.1.9",
     "@intercom/messenger-js-sdk": "^0.0.18",
+    "@js-temporal/polyfill": "0.5.1",
     "@r4ai/remark-callout": "^0.6.2",
     "@react-aria/combobox": "3.16.1",
     "@react-aria/disclosure": "3.2.1",

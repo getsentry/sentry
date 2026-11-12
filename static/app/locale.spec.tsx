@@ -1,9 +1,12 @@
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {formatTimezone} from '@sentry/scraps/dateTime';
 import {getDuration} from '@sentry/scraps/duration';
 import {getRelativeDate, useRelativeTimeFormatter} from '@sentry/scraps/relativeTime';
 
+import {formatChartDateTime} from './components/charts/formatChartDateTime';
+import {getAbsoluteSummary} from './components/timeRangeSelector/utils';
 import {DEFAULT_LOCALE_DATA, getLocaleSnapshot, setLocale, t, tct, tn} from './locale';
 
 describe('locale.gettextComponentTemplate', () => {
@@ -140,6 +143,30 @@ describe('shared formatter translations', () => {
     }
   });
 
+  it('keeps full-day ranges date-only with localized digits', () => {
+    setLocale({
+      ...DEFAULT_LOCALE_DATA,
+      '': {...DEFAULT_LOCALE_DATA[''], lang: 'fa'},
+    });
+    render(
+      <div>{getAbsoluteSummary('2025-01-01T00:00:00', '2025-01-02T23:59:59', true)}</div>
+    );
+    expect(screen.getByText('۱ ژانویه ۲۰۲۵')).toBeInTheDocument();
+    expect(screen.getByText('۲ ژانویه ۲۰۲۵')).toBeInTheDocument();
+  });
+
+  it('preserves localized numeric timezone labels from the application source', () => {
+    setLocale({
+      ...DEFAULT_LOCALE_DATA,
+      '': {...DEFAULT_LOCALE_DATA[''], lang: 'fa'},
+    });
+    const date = '2025-01-01T00:00:00Z';
+    expect(formatTimezone(Date.parse(date), 'Asia/Kathmandu')).toBe('+۰۵۴۵');
+    expect(formatChartDateTime(date, 'timezone', {timezone: 'Asia/Kathmandu'})).toBe(
+      '+۰۵۴۵'
+    );
+  });
+
   it('keeps plural count formatting and catalog bindings consistent', () => {
     const original = getLocaleSnapshot();
     expect(original.messages.tn('%s item', '%s items', 2)).toBe(
@@ -188,6 +215,9 @@ describe('shared formatter translations', () => {
     });
     expect(screen.getByText('il y a 2 secondes')).toBeInTheDocument();
     expect(getRelativeDate(date, {rounding: 'unit'})).toBe('il y a 2 secondes');
+    expect(
+      formatChartDateTime('2026-01-01T00:00:00Z', 'ordinalDate', {timezone: 'UTC'})
+    ).toBe('1 janv.');
     expect(getRelativeDate('2026-01-01T00:00:04Z', {rounding: 'unit'})).toBe(
       'dans 2 secondes'
     );

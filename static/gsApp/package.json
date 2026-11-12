@@ -9,6 +9,7 @@
     "@amplitude/analytics-browser": "^1.5.3",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
+    "@js-temporal/polyfill": "0.5.1",
     "@react-aria/utils": "3.34.1",
     "@sentry/core": "11.12.0",
     "@sentry/icons": "workspace:*",

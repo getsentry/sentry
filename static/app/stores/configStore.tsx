@@ -51,6 +51,16 @@ export const ConfigStore = {
 };
 
 let formattingSnapshot: FormattingSnapshot | undefined;
+const getTimezoneAbbreviation = (
+  epochMilliseconds: number,
+  timezone: string,
+  locale: string
+) => {
+  const abbreviation = moment.tz.zone(timezone)?.abbr(epochMilliseconds);
+  return abbreviation === undefined
+    ? undefined
+    : moment.localeData(locale).postformat(abbreviation);
+};
 
 configureFormatting({
   getSnapshot: () => {
@@ -66,7 +76,7 @@ configureFormatting({
       formattingSnapshot.locale !== locale ||
       formattingSnapshot.messages !== messages
     ) {
-      formattingSnapshot = {timezone, clock, locale, messages};
+      formattingSnapshot = {timezone, clock, locale, messages, getTimezoneAbbreviation};
     }
     return formattingSnapshot;
   },

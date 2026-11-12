@@ -8,6 +8,7 @@ export {
 } from './config';
 export {
   formatDateTime,
+  formatTimezone,
   type DateTimeInput,
   type DateTimeOptions,
   type TimePrecision,

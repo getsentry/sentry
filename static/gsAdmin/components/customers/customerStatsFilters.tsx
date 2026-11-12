@@ -20,6 +20,8 @@ import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
+import {billingCalendarDateToTimestamp} from 'getsentry/utils/billingCalendarDate';
+
 const ON_DEMAND_PERIOD_KEY = 'onDemand';
 
 type Props = {
@@ -98,13 +100,12 @@ export function CustomerStatsFilters({
   const {start, end, period, utc} = pageDateTime;
 
   // TODO(billing): Should we start calling On-Demand periods "Pay-as-you-go" periods?
-  // Billing periods are calendar days; UTC projection keeps viewer preferences from shifting the day.
   const onDemandLabel = (
     <Fragment>
       On-Demand (
       {onDemandPeriodStart && (
         <DateTime
-          date={moment.utc(onDemandPeriodStart, 'YYYY-MM-DD', true).toDate()}
+          date={billingCalendarDateToTimestamp(onDemandPeriodStart)}
           timezone="UTC"
           showTimezone={false}
         />
@@ -112,7 +113,7 @@ export function CustomerStatsFilters({
       -{' '}
       {onDemandPeriodEnd && (
         <DateTime
-          date={moment.utc(onDemandPeriodEnd, 'YYYY-MM-DD', true).toDate()}
+          date={billingCalendarDateToTimestamp(onDemandPeriodEnd)}
           timezone="UTC"
           showTimezone={false}
         />
@@ -165,7 +166,7 @@ export function CustomerStatsFilters({
         }
         defaultPeriod={onDemand ? ON_DEMAND_PERIOD_KEY : '90d'}
         defaultAbsolute={
-          onDemand
+          onDemandPeriodStart && onDemandPeriodEnd
             ? {
                 start: moment(onDemandPeriodStart).toDate(),
                 end: moment(onDemandPeriodEnd).toDate(),

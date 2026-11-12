@@ -121,6 +121,15 @@ describe('FormattedQuery', () => {
     ).toBeInTheDocument();
   });
 
+  it('interprets offset-free search timestamps as UTC', () => {
+    render(<FormattedQuery {...defaultProps} query="lastSeen:>2024-01-01T12:30:00" />);
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher('lastSeen is after Jan 1, 2024 12:30 PM UTC')
+      )
+    ).toBeInTheDocument();
+  });
+
   it('renders boolean logic correctly', () => {
     render(<FormattedQuery {...defaultProps} query="(a OR b)" />);
 

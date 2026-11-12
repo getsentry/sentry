@@ -1,12 +1,12 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import moment from 'moment-timezone';
 
 import {formatDateTime, type DateTimeOptions} from '@sentry/scraps/dateTime';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
+import {parseChartDateTime} from 'sentry/components/charts/formatChartDateTime';
 import {
   droppedDataLabel,
   formatDroppedShare,
@@ -29,12 +29,16 @@ function formatCountRatio(value: number, total: number): Ratio {
 }
 
 function formatBucketRange(start: number, end: number, timezone: string): string {
-  const startMoment = moment.tz(start, timezone);
-  const endMoment = moment.tz(end, timezone);
-  const showYear = startMoment.year() !== moment().year();
+  const startDate = parseChartDateTime(start, timezone);
+  const endDate = parseChartDateTime(end, timezone);
+  const now = parseChartDateTime(Date.now(), timezone);
+  if (!startDate || !endDate || !now) {
+    return 'Invalid date';
+  }
+  const showYear = startDate.year !== now.year;
 
   const year = showYear ? 'always' : 'never';
-  const endOptions = startMoment.isSame(endMoment, 'day')
+  const endOptions = startDate.toPlainDate().equals(endDate.toPlainDate())
     ? ({mode: 'time', showTimezone: true, timezone} satisfies DateTimeOptions)
     : ({year, showTimezone: true, timezone} satisfies DateTimeOptions);
   return `${formatDateTime(start, {year, showTimezone: false, timezone})} - ${formatDateTime(end, endOptions)}`;
