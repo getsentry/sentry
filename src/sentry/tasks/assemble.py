@@ -621,10 +621,8 @@ class ArtifactBundlePostAssembler:
 
             # From the archive even for an existing bundle, whose upload writes no debug-ID rows, so that linking
             # never reads them.
-            project_link_defaults = {
-                **new_date_added,
-                "has_debug_ids": self.archive.has_debug_ids(),
-            }
+            has_debug_ids = self.archive.has_debug_ids()
+            project_link_defaults = {**new_date_added, "has_debug_ids": has_debug_ids}
             for project_id in self.project_ids:
                 project_link: dict[str, Any] = {
                     "organization_id": self.organization.id,
@@ -632,9 +630,15 @@ class ArtifactBundlePostAssembler:
                     "artifact_bundle": artifact_bundle,
                 }
                 if date_only_on_bundle:
-                    ProjectArtifactBundle.objects.get_or_create(
+                    link, link_created = ProjectArtifactBundle.objects.get_or_create(
                         **project_link, defaults=project_link_defaults
                     )
+                    # The source map debugger reads `has_debug_ids`, so an existing link still takes the archive's
+                    # value. It is written only when it differs, so most re-uploads still skip the write.
+                    if not link_created and link.has_debug_ids != has_debug_ids:
+                        ProjectArtifactBundle.objects.filter(id=link.id).update(
+                            has_debug_ids=has_debug_ids
+                        )
                 else:
                     ProjectArtifactBundle.objects.update_or_create(
                         **project_link, defaults=project_link_defaults

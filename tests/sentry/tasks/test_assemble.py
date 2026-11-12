@@ -375,6 +375,31 @@ class AssembleArtifactsTest(BaseAssembleTest):
             (other_project.id, True),
         }
 
+    @override_options({"sourcemaps.artifact-bundles.date-only-on-bundle": True})
+    def test_reupload_sets_has_debug_ids_on_existing_link(self) -> None:
+        bundle_file = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_debug_ids", project=self.project.id
+        )
+        blob = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
+        checksum = sha1(bundle_file).hexdigest()
+
+        def upload() -> None:
+            assemble_artifacts(
+                org_id=self.organization.id,
+                project_ids=[self.project.id],
+                version="1.0",
+                checksum=checksum,
+                chunks=[blob.checksum],
+            )
+
+        upload()
+        # A link from before `has_debug_ids` existed has the column default.
+        ProjectArtifactBundle.objects.update(has_debug_ids=False)
+
+        upload()
+
+        assert ProjectArtifactBundle.objects.get().has_debug_ids is True
+
     @patch("sentry.tasks.assemble.ArtifactBundlePostAssembler.post_assemble")
     def test_assembled_bundle_is_deleted_if_post_assembler_error_occurs(
         self, post_assemble: MagicMock
