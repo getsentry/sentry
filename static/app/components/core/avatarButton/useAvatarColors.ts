@@ -1,16 +1,17 @@
 import {useTheme} from '@emotion/react';
 import {skipToken, useQuery} from '@tanstack/react-query';
+import color from 'color';
 
 import type {BaseAvatarProps} from '@sentry/scraps/avatar';
 import {useAvatar} from '@sentry/scraps/avatar';
 
 import {resolveImageAvatarColors} from './avatarImageAnalysis';
 
-// `dominant` is the color the avatar shows. `style` says whether an image fills
-// the frame or should be inset.
+// `chonk` is tuned for the avatar button border and can be far from the
+// avatar's own color. `dominant` is the color the avatar actually shows.
 export type AvatarColorsResult =
-  | {dominant: string; style: 'padded' | 'fill'; type: 'image'}
-  | {dominant: string; type: 'letter'}
+  | {chonk: string; dominant: string; style: 'padded' | 'fill'; type: 'image'}
+  | {chonk: string; dominant: string; type: 'letter'}
   | {type: 'none'};
 
 export function useAvatarColors(avatar?: BaseAvatarProps): AvatarColorsResult {
@@ -33,7 +34,7 @@ export function useAvatarColors(avatar?: BaseAvatarProps): AvatarColorsResult {
     queryKey: ['avatar-button-chonk', imageUrl, theme.type],
     queryFn:
       avatar && imageUrl && avatarDefinition.type === 'image'
-        ? () => resolveImageAvatarColors(imageUrl)
+        ? () => resolveImageAvatarColors(imageUrl, theme.type)
         : skipToken,
     staleTime: Infinity,
   });
@@ -43,11 +44,18 @@ export function useAvatarColors(avatar?: BaseAvatarProps): AvatarColorsResult {
   }
 
   if (avatarDefinition.type === 'letter') {
-    return {type: 'letter', dominant: avatarDefinition.configuration.background};
+    const dominant = avatarDefinition.configuration.background;
+    const chonk = color(dominant).darken(0.65).hex();
+    return {type: 'letter', chonk, dominant};
   }
 
-  if (imageResult) {
-    return {type: 'image', dominant: imageResult.dominant, style: imageResult.style};
+  if (imageResult?.chonk) {
+    return {
+      type: 'image',
+      chonk: imageResult.chonk,
+      dominant: imageResult.dominant,
+      style: imageResult.style,
+    };
   }
 
   return {type: 'none'};

@@ -1,4 +1,11 @@
+import type {Theme} from '@emotion/react';
+import color from 'color';
+
 export const SAMPLE_SIZE = 12;
+
+// WCAG 1.4.11 (non-text contrast) recommends a 3:1 minimum for UI components
+// like borders against their adjacent content.
+export const MIN_EDGE_CONTRAST = 3;
 
 // TS can't prove typed-array index access is defined; this centralizes the
 // single suppression so callers stay clean.
@@ -169,7 +176,7 @@ export function dominantColor(data: Uint8ClampedArray): string | null {
 
 function sampleAvatarColor(
   img: HTMLImageElement
-): {dominant: string | null; style: 'fill' | 'padded'} | null {
+): {chonk: string | null; style: 'fill' | 'padded'} | null {
   const data = readPixels(img);
   if (!data) {
     return null;
@@ -177,7 +184,7 @@ function sampleAvatarColor(
 
   return {
     style: shouldPadImage(data),
-    dominant: dominantColor(data),
+    chonk: dominantColor(data),
   };
 }
 
@@ -223,12 +230,47 @@ async function fetchAvatarColor(
   }
 }
 
+// Shifts `hex` away from itself until it clears MIN_EDGE_CONTRAST. Tries
+// darkening first; if the color is too close to black to reach 3:1 that way,
+// falls back to lightening.
+export function darkenUntilContrasts(hex: string, theme: Theme['type']): string {
+  const reference = color(hex);
+  let candidate = color(hex);
+  const step = theme === 'dark' ? 0.2 : 0.12;
+
+  for (let i = 0; i < 12 && candidate.contrast(reference) < MIN_EDGE_CONTRAST; i++) {
+    candidate = candidate.darken(step);
+  }
+
+  if (candidate.contrast(reference) >= MIN_EDGE_CONTRAST) {
+    return candidate.hex();
+  }
+
+  // Near-black: darkening bottoms out, use absolute lightness steps instead.
+  candidate = color(hex);
+  for (let i = 0; i < 12 && candidate.contrast(reference) < MIN_EDGE_CONTRAST; i++) {
+    candidate = candidate.lightness(candidate.lightness() + 5);
+  }
+
+  return candidate.hex();
+}
+
 export async function resolveImageAvatarColors(
-  url: string
-): Promise<{dominant: string; style: 'fill' | 'padded'} | null> {
+  url: string,
+  theme: Theme['type']
+): Promise<{chonk: string; dominant: string; style: 'fill' | 'padded'} | null> {
   const sampled = await fetchAvatarColor(url);
-  if (!sampled?.dominant) {
+  if (!sampled?.chonk) {
     return null;
   }
-  return {dominant: sampled.dominant, style: sampled.style};
+
+  // Padded logos sit on their own background — use the dominant color as-is.
+  // Full-bleed images need the chonk to contrast against the image's own
+  // dominant color so the border reads clearly.
+  const chonk =
+    sampled.style === 'padded'
+      ? sampled.chonk
+      : darkenUntilContrasts(sampled.chonk, theme);
+
+  return {chonk, dominant: sampled.chonk, style: sampled.style};
 }

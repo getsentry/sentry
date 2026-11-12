@@ -1,5 +1,10 @@
+// eslint-disable-next-line no-restricted-imports
+import color from 'color';
+
 import {
+  darkenUntilContrasts,
   dominantColor,
+  MIN_EDGE_CONTRAST,
   resolveImageAvatarColors,
   SAMPLE_SIZE,
   shouldPadImage,
@@ -23,13 +28,14 @@ describe('resolveImageAvatarColors', () => {
     } as ImageData);
     jest.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context);
 
-    const result = resolveImageAvatarColors('https://example.com/avatar/logo/');
+    const result = resolveImageAvatarColors('https://example.com/avatar/logo/', 'light');
 
     expect(image.crossOrigin).toBe('anonymous');
     expect(image.src).toBe('https://example.com/avatar/logo/');
     image.dispatchEvent(new Event('load'));
 
     await expect(result).resolves.toEqual({
+      chonk: '#649632',
       dominant: '#649632',
       style: 'padded',
     });
@@ -40,7 +46,10 @@ describe('resolveImageAvatarColors', () => {
     const image = document.createElement('img');
     jest.spyOn(window, 'Image').mockImplementation(() => image);
 
-    const result = resolveImageAvatarColors('https://example.com/avatar/missing/');
+    const result = resolveImageAvatarColors(
+      'https://example.com/avatar/missing/',
+      'light'
+    );
     image.dispatchEvent(new Event('error'));
 
     await expect(result).resolves.toBeNull();
@@ -125,6 +134,21 @@ describe('dominantColor', () => {
     expect(result).not.toBeNull();
     const b = parseInt(result!.slice(5, 7), 16);
     expect(b).toBeGreaterThan(150);
+  });
+});
+
+describe('darkenUntilContrasts', () => {
+  it('returns a color with sufficient contrast against the original', () => {
+    const result = darkenUntilContrasts('#888888', 'light');
+    const contrast = color(result).contrast(color('#888888'));
+    expect(contrast).toBeGreaterThanOrEqual(MIN_EDGE_CONTRAST);
+  });
+
+  it('lightens near-black colors to reach contrast', () => {
+    const result = darkenUntilContrasts('#0A0A0A', 'light');
+    const contrast = color(result).contrast(color('#0A0A0A'));
+    expect(contrast).toBeGreaterThanOrEqual(MIN_EDGE_CONTRAST);
+    expect(color(result).luminosity()).toBeGreaterThan(color('#0A0A0A').luminosity());
   });
 });
 
