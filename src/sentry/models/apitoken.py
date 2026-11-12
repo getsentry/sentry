@@ -459,8 +459,8 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
                         with unguarded_write(using=router.db_for_write(ApiGrant)):
                             grant.delete()
                 except (OutboxDatabaseError, OutboxFlushError):
-                    # Committed tokens replicate later via their outbox; re-raise if rolled back.
-                    if api_token is None or not cls.objects.filter(id=api_token.id).exists():
+                    # Raised by the post-commit flush; the token's outbox will replicate it later.
+                    if api_token is None:
                         raise
                     logger.warning(
                         "api_token.from_grant.outbox-flush-failure",
