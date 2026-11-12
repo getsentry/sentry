@@ -360,6 +360,9 @@ class SavedQueriesEndpoint(OrganizationEndpoint):
     owner = ApiOwner.DATA_BROWSING
     permission_classes = (ExploreSavedQueryPermission,)
 
+    def has_feature(self, organization: Organization, request: Request) -> bool:
+        return True
+
     @extend_schema(
         operation_id="List an Organization's Explore and Discover Saved Queries",
         parameters=[
@@ -389,6 +392,9 @@ class SavedQueriesEndpoint(OrganizationEndpoint):
         """
         if not request.user.is_authenticated:
             return Response(status=400)
+
+        if not self.has_feature(organization, request):
+            return self.respond(status=404)
 
         # Explore has prebuilt queries that are created and starred lazily on read.
         try:

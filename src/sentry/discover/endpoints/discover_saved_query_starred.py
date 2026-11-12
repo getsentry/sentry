@@ -43,12 +43,18 @@ class DiscoverSavedQueryStarredEndpoint(OrganizationEndpoint):
     owner = ApiOwner.DATA_BROWSING
     permission_classes = (MemberPermission,)
 
+    def has_feature(self, organization: Organization, request: Request) -> bool:
+        return True
+
     def post(self, request: Request, organization: Organization, id: int) -> Response:
         """
         Update the starred status of a saved Discover query for the current organization member.
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        if not self.has_feature(organization, request):
+            return self.respond(status=404)
 
         serializer = StarQuerySerializer(data=request.data)
         if not serializer.is_valid():

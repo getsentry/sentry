@@ -114,6 +114,9 @@ def resolve_axis_column(
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
     owner = ApiOwner.DATA_BROWSING
 
+    def has_feature(self, organization: Organization, request: Request) -> bool:
+        return True
+
     def get_equation_list(
         self, organization: Organization, request: Request, param_name: str = "field"
     ) -> list[str]:

@@ -60,6 +60,9 @@ class ExploreSavedQueryStarredEndpoint(OrganizationEndpoint):
     owner = ApiOwner.EXPLORE
     permission_classes = (MemberPermission,)
 
+    def has_feature(self, organization: Organization, request: Request) -> bool:
+        return True
+
     @extend_schema(
         operation_id="Star an Organization's Explore Saved Query",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, ExploreSavedQueryParams.EXPLORE_SAVED_QUERY_ID],
@@ -79,6 +82,9 @@ class ExploreSavedQueryStarredEndpoint(OrganizationEndpoint):
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        if not self.has_feature(organization, request):
+            return self.respond(status=404)
 
         serializer = StarQuerySerializer(data=request.data)
         if not serializer.is_valid():

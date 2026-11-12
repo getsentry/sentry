@@ -175,6 +175,9 @@ class OrganizationEventsValidateEndpoint(OrganizationEventsEndpointBase):
         separately so an invalid one can be corrected in place; `valid` is false and
         the status is 400 when any part fails.
         """
+        if not self.has_feature(organization, request):
+            return Response(status=400)
+
         response = ValidationResponse(
             valid=True,
             dataset=[],
