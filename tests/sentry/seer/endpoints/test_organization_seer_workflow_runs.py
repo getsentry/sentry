@@ -15,6 +15,7 @@ from sentry.apidocs.spectacular_ports import resolve_type_hint
 from sentry.db.models.fields.bounded import I64_MAX
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.models.group import GroupStatus
 from sentry.notebooks.models import NotebookStatus
 from sentry.seer.endpoints.organization_seer_workflow_runs import (
     SeerWorkflowRunsResponse,
@@ -487,7 +488,8 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
 
     def test_returns_the_triggering_monitor(self) -> None:
         detector = self.create_detector(project=self.project)
-        run = self.create_run(inputs=self.monitor_inputs(detector.id, self.project.id))
+        group = self.create_group(project=self.project)
+        run = self.create_run(inputs=self.monitor_inputs(detector.id, self.project.id, group.id))
 
         response = self.get_success_response(self.organization.slug)
 
@@ -499,7 +501,8 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
             "detectorName": detector.name,
             "environment": "production",
             "eventId": "a" * 32,
-            "groupId": "1",
+            "groupExists": True,
+            "groupId": str(group.id),
             "groupShortId": "BACKEND-1A",
             "observedAt": datetime(2025, 1, 1, 10, tzinfo=UTC),
             "occurrenceId": "abc",
@@ -573,6 +576,31 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         ]
         assert "Hidden monitor" not in response.content.decode()
 
+    def test_group_exists_is_false_for_a_deleted_group(self) -> None:
+        detector = self.create_detector(project=self.project)
+        deleted = self.create_group(project=self.project)
+        deleted_id = deleted.id
+        pending_deletion = self.create_group(
+            project=self.project, status=GroupStatus.PENDING_DELETION
+        )
+        pending_run = self.create_run(
+            inputs=self.monitor_inputs(detector.id, self.project.id, pending_deletion.id)
+        )
+        deleted_run = self.create_run(
+            inputs=self.monitor_inputs(detector.id, self.project.id, deleted_id)
+        )
+        deleted.delete()
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert [
+            (run["id"], run["trigger"]["groupId"], run["trigger"]["groupExists"])
+            for run in response.data["runs"]
+        ] == [
+            (str(deleted_run.id), str(deleted_id), False),
+            (str(pending_run.id), str(pending_deletion.id), False),
+        ]
+
     def test_returns_cron_trigger_for_scheduled_runs(self) -> None:
         self.config.update(strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2)
         self.create_run(trigger_key="2026-11-09T03:00")
@@ -595,7 +623,9 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
 
         assert response.data["runs"][0]["trigger"] is None
 
-    def monitor_inputs(self, detector_id: int, project_id: int) -> dict[str, object]:
+    def monitor_inputs(
+        self, detector_id: int, project_id: int, group_id: int = 1
+    ) -> dict[str, object]:
         return {
             "event_id": "a" * 32,
             "occurrence_id": "abc",
@@ -603,7 +633,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
             "evidence": {},
             "observed_at": "2025-01-01T10:00:00Z",
             "environment": "production",
-            "group_id": 1,
+            "group_id": group_id,
             "group_short_id": "BACKEND-1A",
             "project_id": project_id,
             "binding_id": 1,

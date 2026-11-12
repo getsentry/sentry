@@ -16,6 +16,7 @@ WORKFLOW_RUNS_RESPONSE = [
                         "detectorName": "Checkout p95 latency",
                         "environment": "production",
                         "eventId": "9f2d4c1b8a7e4f6d9c3b2a1e0f9d8c7b",
+                        "groupExists": True,
                         "groupId": "501",
                         "groupShortId": "BACKEND-1A",
                         "observedAt": "2025-01-01T09:59:30Z",

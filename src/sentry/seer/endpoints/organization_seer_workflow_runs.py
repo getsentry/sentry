@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping, Sequence, Set
 from datetime import datetime
 from typing import Literal, NamedTuple, TypedDict
 
@@ -23,6 +23,7 @@ from sentry.apidocs.examples import seer_workflow_examples as SeerWorkflowExampl
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.db.models.fields.bounded import I64_MAX
+from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.notebooks.access import has_notebooks_access
 from sentry.ratelimits.config import RateLimitConfig
@@ -111,9 +112,10 @@ SeerWorkflowExecutionResponse = (
 class MonitorTriggerResponse(TypedDict):
     type: Literal["monitor"]
     detectorId: str
-    detectorName: str | None
+    detectorName: str | None  # queried separately (not in trigger input)
     environment: str | None
     eventId: str
+    groupExists: bool  # queried separately (not in trigger input)
     groupId: str
     groupShortId: str | None
     observedAt: datetime
@@ -228,7 +230,8 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
         user-supplied name, or null when it has none. ``trigger`` describes what started
         the run, discriminated by ``type``: ``monitor`` (detector, event, occurrence, issue,
         and project; ``detectorName`` is the detector's current name, or null when it has
-        since been deleted or the viewer cannot access its project) or ``cron`` (scheduled run). It is
+        since been deleted or the viewer cannot access its project; ``groupExists`` is
+        false once the issue has been deleted) or ``cron`` (scheduled run). It is
         null for other runs. ``seerRunId`` is the linked Seer UUID or null.
         Each execution's ``outputs`` lists linked investigations by type, ID, and title
         when the viewer has investigation access, including archived investigations.
@@ -320,27 +323,45 @@ def serialize_workflow_runs(
         ),
         Prefetch("executions__output_links", queryset=output_links),
     )
+    organization_ids = {run.organization_id for run in runs}
     detector_ids = {
         detector_id
         for run in runs
         if isinstance(detector_id := get_path(run.extras, "snapshot", "inputs", "detector_id"), int)
     }
-    # One query for the whole page; skipped when no run was started by a monitor.
+    group_ids = {
+        group_id
+        for run in runs
+        if isinstance(group_id := get_path(run.extras, "snapshot", "inputs", "group_id"), int)
+    }
+    # One query each for the whole page; skipped when no run was started by a monitor.
     detectors = (
         {
             detector_id: DetectorInfo(project_id, name)
             for detector_id, project_id, name in Detector.objects.filter(
                 id__in=detector_ids,
-                project__organization_id__in={run.organization_id for run in runs},
+                project__organization_id__in=organization_ids,
             ).values_list("id", "project_id", "name")
         }
         if detector_ids
         else {}
     )
+    existing_group_ids = (
+        set(
+            Group.objects.filter(id__in=group_ids, project__organization_id__in=organization_ids)
+            .exclude(status__in=(GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS))
+            .values_list("id", flat=True)
+        )
+        if group_ids
+        else set()
+    )
     return {
         "runs": [
             serialize_workflow_run(
-                run, detectors=detectors, accessible_project_ids=accessible_project_ids
+                run,
+                detectors=detectors,
+                existing_group_ids=existing_group_ids,
+                accessible_project_ids=accessible_project_ids,
             )
             for run in runs
         ]
@@ -351,6 +372,7 @@ def serialize_workflow_run(
     run: SeerWorkflowRun,
     *,
     detectors: Mapping[int, DetectorInfo],
+    existing_group_ids: Set[int],
     accessible_project_ids: set[int] | None,
 ) -> SeerWorkflowRunResponse:
     """Serialize a run loaded with `strategy` and `config_extras` annotations."""
@@ -362,7 +384,10 @@ def serialize_workflow_run(
         "configName": config_name if isinstance(config_name, str) else None,
         "strategy": getattr(run, "strategy"),
         "trigger": serialize_trigger(
-            run, detectors=detectors, accessible_project_ids=accessible_project_ids
+            run,
+            detectors=detectors,
+            existing_group_ids=existing_group_ids,
+            accessible_project_ids=accessible_project_ids,
         ),
         "dateAdded": run.date_added,
         "dateUpdated": run.date_updated,
@@ -387,6 +412,7 @@ def serialize_trigger(
     run: SeerWorkflowRun,
     *,
     detectors: Mapping[int, DetectorInfo],
+    existing_group_ids: Set[int],
     accessible_project_ids: set[int] | None,
 ) -> TriggerResponse | None:
     """Serialize the trigger of a run loaded with a `workflow_config__strategy` annotation.
@@ -394,6 +420,7 @@ def serialize_trigger(
     `detectors` maps each preloaded detector's ID to its current project and name. The
     name is only returned when the detector still belongs to the trigger's project and
     that project is in `accessible_project_ids` (None means all projects).
+    `existing_group_ids` holds the preloaded IDs of trigger groups that have not been deleted.
     """
     strategy = getattr(run, "strategy")
     if strategy in SEER_CRON_WORKFLOW_STRATEGIES:
@@ -419,6 +446,7 @@ def serialize_trigger(
                 "detectorName": detector.name if detector is not None else None,
                 "environment": trigger.environment,
                 "eventId": trigger.event_id,
+                "groupExists": trigger.group_id in existing_group_ids,
                 "groupId": str(trigger.group_id),
                 "groupShortId": trigger.group_short_id,
                 "observedAt": trigger.observed_at,
