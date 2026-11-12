@@ -522,7 +522,7 @@ def resolve_green_check_suite(
 
     seer_run = SeerRun.objects.filter(
         seer_run_state_id=autofix_run.run_state.run_id, organization=organization
-    ).first()
+    ).first()  # noqa: S034
     if seer_run is None:
         _skip("no_seer_run", log_extra)
         return None

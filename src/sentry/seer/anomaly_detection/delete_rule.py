@@ -43,7 +43,7 @@ def delete_data_in_seer_for_detector(detector: Detector) -> None:
     from sentry.incidents.models.alert_rule import AlertRuleDetectionType
     from sentry.workflow_engine.models import DataSourceDetector
 
-    data_source_detector = DataSourceDetector.objects.filter(detector_id=detector.id).first()
+    data_source_detector = DataSourceDetector.objects.filter(detector_id=detector.id).first()  # noqa: S034
     if not data_source_detector:
         logger.error(
             "No data source found for detector",

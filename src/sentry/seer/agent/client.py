@@ -793,7 +793,7 @@ class SeerAgentClient:
         # the remote run (fail closed).
         run = SeerRun.objects.filter(
             organization_id=self.organization.id, seer_run_state_id=run_id
-        ).first()
+        ).first()  # noqa: S034
         if run is None:
             raise SeerPermissionError(UNKNOWN_RUN_ID_FOR_GROUP)
 

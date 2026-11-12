@@ -152,7 +152,7 @@ def _upsert(notebook: Notebook, item: ActionRequestItem) -> tuple[NotebookAction
         "rationale": item["rationale"],
         "impact": item["impact"],
     }
-    row = NotebookActionRequest.objects.filter(notebook=notebook, key=item["key"]).first()
+    row = NotebookActionRequest.objects.filter(notebook=notebook, key=item["key"]).first()  # noqa: S034
     changed = True
     if row is None:
         row = NotebookActionRequest.objects.create(
@@ -378,7 +378,7 @@ def complete_action_requests(
     for notebook_id in notebook_ids:
         with transaction.atomic(using=router.db_for_write(NotebookActionRequest)):
             notebook = (
-                Notebook.objects.select_for_update(of=("self",)).filter(id=notebook_id).first()
+                Notebook.objects.select_for_update(of=("self",)).filter(id=notebook_id).first()  # noqa: S034
             )
             if notebook is None:
                 continue

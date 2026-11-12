@@ -98,7 +98,7 @@ def record_visit(notebook: Notebook, user_id: int, limit: int = DEFAULT_VIEWER_L
         own_last_seen = (
             NotebookSeen.objects.filter(notebook=notebook, user_id=user_id)
             .values_list("last_seen", flat=True)
-            .first()
+            .first()  # noqa: S034
         )
     if not heartbeat.was_present or own_last_seen is None or now - own_last_seen >= SEEN_REFRESH:
         NotebookSeen.objects.update_or_create(

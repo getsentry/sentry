@@ -24,7 +24,7 @@ def claim_handoff(code: str, *, ip_address: str | None) -> str | None:
     if handoff is None:
         return None
 
-    user = User.objects.filter(id=handoff.user_id, is_active=True, is_suspended=False).first()
+    user = User.objects.filter(id=handoff.user_id, is_active=True, is_suspended=False).first()  # noqa: S034
     application = get_handoff_application(handoff.scope_list)
     if user is None or application is None or application.id != handoff.application_id:
         return None

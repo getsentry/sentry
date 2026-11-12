@@ -48,7 +48,7 @@ def _linked_group(
         return (
             Group.objects.filter(id=item["groupId"], project_id__in=project_ids)
             .select_related("project")
-            .first()
+            .first()  # noqa: S034
         )
     try:
         return Group.objects.by_qualified_short_id(
@@ -65,7 +65,7 @@ def link_investigation_issues(
     notebook = (
         Notebook.objects.select_related("organization")
         .filter(id=investigation_id, status=NotebookStatus.ACTIVE)
-        .first()
+        .first()  # noqa: S034
     )
     if notebook is None or not issue_links_enabled(notebook.organization):
         return

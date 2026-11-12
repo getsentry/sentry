@@ -967,7 +967,7 @@ def get_repository_definition(
             external_id=external_id,
             status=ObjectStatus.ACTIVE,
             provider__in=supported_providers,
-        ).first()
+        ).first()  # noqa: S034
 
     if not repo:
         parts = repo_full_name.split("/")
@@ -983,7 +983,7 @@ def get_repository_definition(
             name=repo_full_name,
             status=ObjectStatus.ACTIVE,
             provider__in=supported_providers,
-        ).first()
+        ).first()  # noqa: S034
 
     if not repo:
         logger.info(
@@ -2744,7 +2744,7 @@ def get_dsn(
         organization=organization,
         status=ObjectStatus.ACTIVE,
         slug=project_slug,
-    ).first()
+    ).first()  # noqa: S034
     if project is None or not caller_can_access_project(project):
         return None
 

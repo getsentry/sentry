@@ -41,7 +41,7 @@ def deliver_autofix_feature_result(
                 source__in=(FEATURE_ID, LEGACY_FEATURE_ID, SINGLE_RUN_FEATURE_ID),
             )
             .select_related("run", "run__organization")
-            .first()
+            .first()  # noqa: S034
         )
         if agent_run is None:
             logger.warning(

@@ -243,7 +243,7 @@ def _maybe_reply_to_single_run(
             group__isnull=False,
         )
         .select_related("run", "group__project")
-        .first()
+        .first()  # noqa: S034
     )
     replier = acting_user(request.user)
     if single_run is None or single_run.group is None or replier is None:

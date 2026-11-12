@@ -105,7 +105,7 @@ class SeerSimilarIssueData:
                 project_id=project_id, hash=raw_similar_issue_data["parent_hash"]
             )
             .exclude(state=GroupHash.State.LOCKED_IN_MIGRATION)
-            .first()
+            .first()  # noqa: S034
         )
 
         if not parent_grouphash:

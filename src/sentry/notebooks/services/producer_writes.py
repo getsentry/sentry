@@ -204,7 +204,7 @@ def upsert_block(
         if block.pk:
             block.version += 1
         block.save()
-        execution = NotebookBlockExecution.objects.filter(request_id=request_id).first()
+        execution = NotebookBlockExecution.objects.filter(request_id=request_id).first()  # noqa: S034
         if execution is not None and execution.block_id != block.id:
             raise serializers.ValidationError(
                 {"requestId": "This execution request ID is already in use."}
@@ -444,7 +444,7 @@ def remove_blocks(
 def _live_block(notebook: Notebook, key: str) -> NotebookBlock | None:
     return NotebookBlock.objects.filter(
         notebook=notebook, producer_key=key, deleted_at__isnull=True
-    ).first()
+    ).first()  # noqa: S034
 
 
 def _check_revision(block: NotebookBlock, revision: int) -> None:

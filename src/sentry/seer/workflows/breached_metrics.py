@@ -257,7 +257,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
             if config.backing_workflow_id is not None:
                 workflow = Workflow.objects_for_deletion.filter(
                     id=config.backing_workflow_id, organization_id=self.organization_id
-                ).first()
+                ).first()  # noqa: S034
                 if workflow is not None and workflow.status == ObjectStatus.ACTIVE:
                     CellScheduledDeletion.schedule(workflow, days=0)
                     workflow.update(status=ObjectStatus.PENDING_DELETION)
@@ -326,7 +326,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
                     strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
                     enabled=True,
                 )
-                .first()
+                .first()  # noqa: S034
             )
             if config is None:
                 return IgnoredMetricBreach("configuration_unavailable")

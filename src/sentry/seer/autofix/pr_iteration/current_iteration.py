@@ -32,7 +32,7 @@ def untriggered_iteration_id(*, run_id: int, organization_id: int) -> int | None
     try:
         seer_run = SeerRun.objects.filter(
             seer_run_state_id=run_id, organization_id=organization_id
-        ).first()
+        ).first()  # noqa: S034
         if seer_run is None:
             return None
 

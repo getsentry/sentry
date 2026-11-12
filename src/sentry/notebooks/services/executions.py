@@ -308,7 +308,7 @@ def create_block_execution(
 ) -> tuple[NotebookBlockExecution, bool]:
     """Create a new immutable execution, or return the same explicit request retry."""
     if request_id is not None:
-        requested_execution = NotebookBlockExecution.objects.filter(request_id=request_id).first()
+        requested_execution = NotebookBlockExecution.objects.filter(request_id=request_id).first()  # noqa: S034
         if requested_execution is not None:
             if requested_execution.block_id != block.id:
                 raise NotebookValidationError(

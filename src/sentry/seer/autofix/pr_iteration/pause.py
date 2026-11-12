@@ -32,7 +32,7 @@ class PauseReason(StrEnum):
 
 
 def _get_seer_run(run_id: int, organization_id: int) -> SeerRun | None:
-    return SeerRun.objects.filter(seer_run_state_id=run_id, organization_id=organization_id).first()
+    return SeerRun.objects.filter(seer_run_state_id=run_id, organization_id=organization_id).first()  # noqa: S034
 
 
 def record_pause_blocked(gate: str) -> None:

@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 def _fetch_related_models(detector: Detector, method: str) -> tuple[DataSource, SnubaQuery]:
     # XXX: it is technically possible (though not used today) that a detector could have multiple data sources
-    data_source_detector = DataSourceDetector.objects.filter(detector_id=detector.id).first()
+    data_source_detector = DataSourceDetector.objects.filter(detector_id=detector.id).first()  # noqa: S034
     if not data_source_detector:
         raise DetectorException(f"Could not {method} detector, data source not found.")
     data_source = data_source_detector.data_source

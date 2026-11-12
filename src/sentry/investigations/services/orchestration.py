@@ -415,7 +415,7 @@ def archive_investigation_with_orchestration(
         run = (
             InvestigationOrchestrationRun.objects.select_for_update()
             .filter(investigation=locked_investigation)
-            .first()
+            .first()  # noqa: S034
         )
         if run is not None and actor_id is None:
             raise PermissionDenied
@@ -493,7 +493,7 @@ def update_investigation_with_orchestration(
         run = (
             InvestigationOrchestrationRun.objects.select_for_update()
             .filter(investigation=locked_investigation)
-            .first()
+            .first()  # noqa: S034
         )
         if (
             run is not None
@@ -684,7 +684,7 @@ def create_agentic_breached_metric_investigation(
                     organization=organization,
                     source_key=source_key,
                     status=NotebookStatus.ACTIVE,
-                ).first()
+                ).first()  # noqa: S034
                 if active is not None:
                     return active, False
                 raise
@@ -830,7 +830,7 @@ def accept_orchestration_command(
         internal = command_type in INTERNAL_COMMAND_TYPES
         existing = InvestigationOrchestrationCommand.objects.filter(
             orchestration_run=run, request_id=request_id
-        ).first()
+        ).first()  # noqa: S034
         if existing is not None:
             if (
                 (not internal and existing.expected_workflow_version != expected_workflow_version)

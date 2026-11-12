@@ -44,7 +44,7 @@ def _validate_run(
             run__uuid=run_uuid, run__organization_id=organization_id, source=SEER_FEATURE_ID
         )
         .select_related("run")
-        .first()
+        .first()  # noqa: S034
     )
     if agent_run is None:
         _incr("missing_run")
@@ -89,7 +89,7 @@ def _validate_group(organization_id: int, run_uuid: UUID) -> Group:
         seeragentrun__run__uuid=run_uuid,
         seeragentrun__source=SEER_FEATURE_ID,
         project__organization_id=organization_id,
-    ).first()
+    ).first()  # noqa: S034
     if group is None:
         _incr("missing_group")
         logger.warning(

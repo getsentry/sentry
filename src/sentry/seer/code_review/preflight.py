@@ -55,7 +55,7 @@ class CodeReviewPreflightService:
         self.integration = integration
         self.pr_author_external_id = pr_author_external_id
 
-        repo_settings = RepositorySettings.objects.filter(repository=repo).first()
+        repo_settings = RepositorySettings.objects.filter(repository=repo).first()  # noqa: S034
         self._repo_settings = repo_settings.get_code_review_settings() if repo_settings else None
 
     def check(self) -> CodeReviewPreflightResult:

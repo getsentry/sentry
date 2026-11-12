@@ -324,7 +324,7 @@ def _queue_missing_permissions_comments(
 ) -> None:
     from sentry.tasks.seer.pr_iteration import comment_on_missing_permissions
 
-    seer_run = SeerRun.objects.filter(seer_run_state_id=run_id, organization=organization).first()
+    seer_run = SeerRun.objects.filter(seer_run_state_id=run_id, organization=organization).first()  # noqa: S034
     if seer_run is None:
         # Legacy runs predating SeerRun mirroring have no row to dedupe
         # against; staying silent beats commenting on every failing suite.
@@ -384,7 +384,7 @@ def post_missing_permissions_comment(
         "scm_repo_full_name": repo_name,
         "pr_id": pr_id,
     }
-    seer_run = SeerRun.objects.filter(seer_run_state_id=run_id, organization=organization).first()
+    seer_run = SeerRun.objects.filter(seer_run_state_id=run_id, organization=organization).first()  # noqa: S034
     if seer_run is None:
         _skip(log_ctx, "no_seer_run", **log_fields)
         return

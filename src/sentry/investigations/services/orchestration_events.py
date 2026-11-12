@@ -1091,7 +1091,7 @@ def _apply_available_events(
                 next_event = InvestigationOrchestrationEvent.objects.filter(
                     orchestration_run=run,
                     sequence=run.last_event_sequence + 1,
-                ).first()
+                ).first()  # noqa: S034
                 if next_event is None:
                     break
                 if next_event.application_status != InvestigationOrchestrationEventStatus.PENDING:
@@ -1230,7 +1230,7 @@ def deliver_orchestration_event(
 
         existing = InvestigationOrchestrationEvent.objects.filter(
             orchestration_run=run, event_id=event["event_id"]
-        ).first()
+        ).first()  # noqa: S034
         if existing is not None:
             if (
                 existing.sequence != event["sequence"]

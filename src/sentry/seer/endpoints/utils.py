@@ -50,7 +50,7 @@ def get_seer_run(seer_run_state_id: int, organization: Organization) -> SeerRun 
     or None when no row exists (legacy runs predating SeerRun mirroring)."""
     return SeerRun.objects.filter(
         seer_run_state_id=seer_run_state_id, organization=organization
-    ).first()
+    ).first()  # noqa: S034
 
 
 _NO_ACCESS_DETAIL = "You do not have access to this run."
@@ -96,7 +96,7 @@ def resolve_seer_run(
     except (TypeError, ValueError):
         return Response({"detail": "Invalid run_id"}, status=status.HTTP_400_BAD_REQUEST)
 
-    run = SeerRun.objects.filter(uuid=run_uuid, organization=organization).first()
+    run = SeerRun.objects.filter(uuid=run_uuid, organization=organization).first()  # noqa: S034
     if run is None:
         return Response({"session": None}, status=status.HTTP_404_NOT_FOUND)
     if user_id is not None and run.user_id != user_id:
