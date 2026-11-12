@@ -28,11 +28,12 @@ compare_and_delete = redis.load_redis_script("utils/compare_and_delete.lua")
 
 
 class HandoffFlow(StrEnum):
+    CREATE_PROJECT = "create_project"
     GUIDED_NEXT_STEPS = "guided_next_steps"
     ONBOARDING = "onboarding"
 
 
-class OnboardingHandoffContext(BaseModel):
+class ProjectSetupContext(BaseModel):
     run_id: StrictStr = Field(regex=r"^[a-f0-9]{32}$")
 
     class Config:
@@ -40,7 +41,7 @@ class OnboardingHandoffContext(BaseModel):
         extra = Extra.forbid
 
 
-HandoffContext = OnboardingHandoffContext | None
+HandoffContext = ProjectSetupContext | None
 
 
 class _AgentHandoff(BaseModel):
@@ -65,10 +66,15 @@ class GuidedNextStepsHandoff(_AgentHandoff):
 
 class OnboardingHandoff(_AgentHandoff):
     flow: Literal[HandoffFlow.ONBOARDING]
-    context: OnboardingHandoffContext
+    context: ProjectSetupContext
 
 
-AgentHandoff = GuidedNextStepsHandoff | OnboardingHandoff
+class CreateProjectHandoff(_AgentHandoff):
+    flow: Literal[HandoffFlow.CREATE_PROJECT]
+    context: ProjectSetupContext
+
+
+AgentHandoff = CreateProjectHandoff | GuidedNextStepsHandoff | OnboardingHandoff
 
 
 class _StoredAgentHandoff(BaseModel):

@@ -60,9 +60,9 @@ describe('SeerOutOfCreditsCta', () => {
     ).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Turn on auto-reload'}));
     expect(
-      await screen.findByRole('heading', {name: 'Seer auto-reload'})
+      await screen.findByRole('heading', {name: 'Auto-load credits'})
     ).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Reload amount'})).toBeInTheDocument();
+    expect(screen.getByRole('radiogroup', {name: 'Credit amount'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Contact Admin'})).not.toBeInTheDocument();
   });
 

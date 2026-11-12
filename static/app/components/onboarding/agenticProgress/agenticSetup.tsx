@@ -8,6 +8,7 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {ToggleCard} from '@sentry/scraps/toggleCard';
 
+import {AgentHandoffFlow} from 'sentry/components/agentHandoff/useAgentHandoff';
 import {
   SETUP_CARD_ICON_SIZE,
   SETUP_CARD_MARKER_PX,
@@ -35,6 +36,7 @@ interface AgenticSetupProps {
   /** The host supplies the action for continuing with browser setup. */
   onSetupInBrowser: () => void;
   run: AgenticProgressRun | undefined;
+  handoffFlow?: AgentHandoffFlow;
   onboardingCode?: string;
 }
 
@@ -51,6 +53,7 @@ export function AgenticSetup({
   hasProgressFailed,
   onRefresh,
   run,
+  handoffFlow = AgentHandoffFlow.ONBOARDING,
 }: AgenticSetupProps) {
   const hasRunFailed = run?.runStatus === 'failed' || run?.runStatus === 'cancelled';
   const showsProgress =
@@ -123,6 +126,7 @@ export function AgenticSetup({
             >
               <AgentSetupCard
                 feedbackSource={feedbackSource}
+                flow={handoffFlow}
                 onCopyCommand={onCopyCommand}
                 onSelectSnippet={onSelectSnippet}
                 run={run}
