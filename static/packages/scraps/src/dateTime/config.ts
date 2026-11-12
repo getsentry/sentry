@@ -34,6 +34,12 @@ const defaults: FormattingSnapshot = {
 
 const store = createStore<Readonly<FormattingSnapshot>>(() => defaults);
 
+export const formattingStore = {
+  getState: store.getState,
+  getInitialState: store.getState,
+  subscribe: store.subscribe,
+};
+
 /** Connect application preferences and locale to the reactive formatting store. */
 export function configureFormatting(source: FormattingSource): () => void {
   const previous = store.getState();
@@ -47,4 +53,3 @@ export function configureFormatting(source: FormattingSource): () => void {
 }
 
 export const getSnapshot = store.getState;
-export const subscribe = store.subscribe;

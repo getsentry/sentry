@@ -9,6 +9,7 @@ export type TimePrecision = 'minute' | 'second' | 'millisecond';
 export type YearDisplay = 'auto' | 'always' | 'never';
 
 export type DateTimeOptions = Partial<DateTimePreferences> & {
+  /** Defaults to true only when the caller explicitly selects timezone "UTC". */
   showTimezone?: boolean;
 } & (
     | {mode?: 'dateTime'; precision?: TimePrecision; year?: YearDisplay}
@@ -50,8 +51,6 @@ export function formatDateTimeWithSnapshot(
     precision = 'minute',
   } = options;
   const timezone = options.timezone ?? snapshot.timezone;
-  // The suffix follows the caller pinning the render to UTC, not the viewer's own
-  // timezone preference happening to be UTC.
   const showTimezone = options.showTimezone ?? options.timezone === 'UTC';
 
   const value = parseDate(date, timezone);

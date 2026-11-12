@@ -293,7 +293,6 @@ function InvoiceDetailsContents({billingDetails, invoice}: ContentsProps) {
         <tbody>
           {invoice.items.map((item, i) => {
             if (item.type === 'subscription') {
-              // Billing periods are calendar days; UTC projection keeps viewer preferences from shifting the day.
               return (
                 <tr key={i}>
                   <td>
