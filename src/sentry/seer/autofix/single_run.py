@@ -18,6 +18,12 @@ def hands_off_to_coding_agent(agent_run: SeerAgentRun) -> bool:
     return bool((agent_run.extras or {}).get(CODING_AGENT_HANDOFF_KEY))
 
 
+def single_run_relevant_repos(state: SeerRunState) -> list[str]:
+    """The repos the fix belongs in, as "owner/name", most relevant first."""
+    artifact = state.get_artifacts().get(SINGLE_RUN_ROOT_CAUSE_KEY)
+    return list((artifact.data or {}).get("relevant_repos") or []) if artifact else []
+
+
 def is_single_run(state: SeerRunState) -> bool:
     return (state.metadata or {}).get("feature_id") == SINGLE_RUN_FEATURE_ID
 
