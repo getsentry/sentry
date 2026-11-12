@@ -400,10 +400,8 @@ def _create_snql_in_snuba(
     return subscription_id
 
 
-def _response_text(data: bytes | str) -> str:
-    if isinstance(data, bytes):
-        data = data.decode("utf-8", errors="replace")
-    return data[:500]
+def _response_text(data: bytes) -> str:
+    return data[:500].decode("utf-8", errors="replace")
 
 
 def _create_rpc_in_snuba(
@@ -420,11 +418,10 @@ def _create_rpc_in_snuba(
 
     try:
         response = snuba_rpc.create_subscription(subscription_request)
-    except snuba_rpc.SnubaRPCBadRequest as e:
+    except snuba_rpc.SnubaRPCError as e:
         metrics.incr("snuba.snql.subscription.http.error", tags={"dataset": snuba_query.dataset})
-        raise SubscriptionError(e) from e
-    except snuba_rpc.SnubaRPCError:
-        metrics.incr("snuba.snql.subscription.http.error", tags={"dataset": snuba_query.dataset})
+        if isinstance(e, snuba_rpc.SnubaRPCBadRequest):
+            raise SubscriptionError(e) from e
         raise
 
     return response.subscription_id
