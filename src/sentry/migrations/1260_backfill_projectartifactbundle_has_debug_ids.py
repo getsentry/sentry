@@ -2,39 +2,47 @@ import click
 from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, Max, OuterRef
 
 from sentry.new_migrations.migrations import CheckedMigration
-from sentry.utils.iterators import chunked
-from sentry.utils.query import RangeQuerySetWrapper
 
-BATCH_SIZE = 1000
+BATCH_SIZE = 10_000
 # GoCD kills a job after 12h without console output.
-BATCHES_PER_PROGRESS_LINE = 100
+BATCHES_PER_PROGRESS_LINE = 10
 
 
 def backfill_has_debug_ids(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     ProjectArtifactBundle = apps.get_model("sentry", "ProjectArtifactBundle")
     DebugIdArtifactBundle = apps.get_model("sentry", "DebugIdArtifactBundle")
 
-    # No `has_debug_ids` filter here, so the scan reads only the primary key index.
-    link_ids = RangeQuerySetWrapper(
-        ProjectArtifactBundle.objects.values_list("id", flat=True),
-        step=BATCH_SIZE,
-        result_value_getter=lambda link_id: link_id,
-    )
-    for batch_number, batch in enumerate(chunked(link_ids, BATCH_SIZE), start=1):
-        # One probe per link in the debug-ID rows' `artifact_bundle_id` index, which stops at the first row.
-        ProjectArtifactBundle.objects.filter(id__in=batch, has_debug_ids=False).filter(
-            Exists(
-                DebugIdArtifactBundle.objects.filter(
-                    artifact_bundle_id=OuterRef("artifact_bundle_id")
-                )
-            )
-        ).update(has_debug_ids=True)
+    def batch_end(start: int) -> int | None:
+        # The id BATCH_SIZE links ahead, so batches stay full where ids are sparse.
+        ids = list(
+            ProjectArtifactBundle.objects.filter(id__gte=start)
+            .order_by("id")
+            .values_list("id", flat=True)[BATCH_SIZE - 1 : BATCH_SIZE]
+        )
+        if ids:
+            return ids[0]
+        # Fewer than BATCH_SIZE links are left.
+        return ProjectArtifactBundle.objects.filter(id__gte=start).aggregate(end=Max("id"))["end"]
 
+    bundle_has_debug_ids = Exists(
+        DebugIdArtifactBundle.objects.filter(artifact_bundle_id=OuterRef("artifact_bundle_id"))
+    )
+    start = 0
+    batch_number = 0
+    while (end := batch_end(start)) is not None:
+        # The bounds are literals, so the planner estimates about BATCH_SIZE rows and probes the
+        # debug-ID rows' `artifact_bundle_id` index once per link, which stops at the first row.
+        ProjectArtifactBundle.objects.filter(
+            id__gte=start, id__lte=end, has_debug_ids=False
+        ).filter(bundle_has_debug_ids).update(has_debug_ids=True)
+
+        batch_number += 1
         if batch_number % BATCHES_PER_PROGRESS_LINE == 0:
-            click.echo(f"Backfilled through id {batch[-1]}")
+            click.echo(f"Backfilled through id {end}")
+        start = end + 1
 
 
 class Migration(CheckedMigration):
