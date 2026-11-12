@@ -30,7 +30,7 @@ import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import {getModuleView} from 'sentry/views/insights/pages/utils';
 import {INSIGHTS_BASE_URL} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
-import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
+import {isIssueDetailsPageTab} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {OverviewWrapper} from 'sentry/views/issueList/overviewWrapper';
 import {IssueTaxonomy} from 'sentry/views/issueList/taxonomies';
@@ -2938,82 +2938,27 @@ function buildRoutes(): RouteObject[] {
     children: feedbackV2Children,
   };
 
-  const issueTabs: SentryRouteObject[] = [
-    {
-      index: true,
-      component: make(
-        () => import('sentry/views/issueDetails/groupEventDetails/groupEventDetails'),
-        <GroupEventDetailsLoading />
-      ),
-    },
-    {
-      path: TabPaths[Tab.REPLAYS],
-      component: make(() => import('sentry/views/issueDetails/groupReplays')),
-    },
-    {
-      path: TabPaths[Tab.ACTIVITY],
-      component: make(
-        () => import('sentry/views/issueDetails/groupEventDetails/groupEventDetails'),
-        <GroupEventDetailsLoading />
-      ),
-    },
-    {
-      path: TabPaths[Tab.EVENTS],
-      component: make(() => import('sentry/views/issueDetails/groupEvents')),
-    },
-    {
-      path: TabPaths[Tab.OPEN_PERIODS],
-      component: make(() => import('sentry/views/issueDetails/groupOpenPeriods')),
-    },
-    {
-      path: TabPaths[Tab.UPTIME_CHECKS],
-      component: make(() => import('sentry/views/issueDetails/groupUptimeChecks')),
-    },
-    {
-      path: TabPaths[Tab.CHECK_INS],
-      component: make(() => import('sentry/views/issueDetails/groupCheckIns')),
-    },
-    {
-      path: TabPaths[Tab.DISTRIBUTIONS],
-      component: make(
-        () => import('sentry/views/issueDetails/groupEventDetails/groupEventDetails'),
-        <GroupEventDetailsLoading />
-      ),
-    },
-    {
-      path: `${TabPaths[Tab.DISTRIBUTIONS]}:tagKey/`,
-      component: make(
-        () => import('sentry/views/issueDetails/groupEventDetails/groupEventDetails'),
-        <GroupEventDetailsLoading />
-      ),
-    },
-    {
-      path: TabPaths[Tab.AUTOFIX],
-      component: make(() => import('sentry/views/issueDetails/autofix')),
-    },
-    {
-      path: TabPaths[Tab.USER_FEEDBACK],
-      component: make(() => import('sentry/views/issueDetails/groupUserFeedback')),
-    },
-    {
-      path: TabPaths[Tab.ATTACHMENTS],
-      component: make(() => import('sentry/views/issueDetails/groupEventAttachments')),
-    },
-    {
-      path: TabPaths[Tab.SIMILAR_ISSUES],
-      component: make(
-        () => import('sentry/views/issueDetails/groupEventDetails/groupEventDetails'),
-        <GroupEventDetailsLoading />
-      ),
-    },
-    {
-      path: TabPaths[Tab.MERGED],
-      component: make(
-        () => import('sentry/views/issueDetails/groupEventDetails/groupEventDetails'),
-        <GroupEventDetailsLoading />
-      ),
-    },
-  ];
+  const legacyIssueDetailsRedirect = make(
+    () => import('sentry/views/issueDetails/legacyIssueDetailsRedirect')
+  );
+  const legacyIssueDetailsRoute = (path: string, tab: Tab): SentryRouteObject => ({
+    path,
+    component: legacyIssueDetailsRedirect,
+    handle: {legacyIssueDetailsTab: tab},
+  });
+  /**
+   * Issue details keeps its tab and event in query params. These redirect the
+   * path-based page tab URLs, e.g. `:groupId/events/:eventId/replays/`, that
+   * notifications, integrations and bookmarks still link to. Path-based drawer
+   * URLs, e.g. `:groupId/activity/`, are not redirected.
+   */
+  const legacyIssueDetailsRoutes = (groupPath: string): SentryRouteObject[] =>
+    [groupPath, `${groupPath}${TabPaths[Tab.EVENTS]}:eventId/`].flatMap(prefix => [
+      ...(prefix === groupPath ? [] : [legacyIssueDetailsRoute(prefix, Tab.DETAILS)]),
+      ...Object.values(Tab)
+        .filter(tab => tab !== Tab.DETAILS && isIssueDetailsPageTab(tab))
+        .map(tab => legacyIssueDetailsRoute(`${prefix}${TabPaths[tab]}`, tab)),
+    ]);
 
   const issueChildren: SentryRouteObject[] = [
     {
@@ -3074,37 +3019,10 @@ function buildRoutes(): RouteObject[] {
       path: 'searches/:searchId/',
       component: errorHandler(OverviewWrapper),
     },
-    // Redirects for legacy tags route.
-    {
-      path: ':groupId/tags/',
-      redirectTo: `/issues/:groupId/${TabPaths[Tab.DISTRIBUTIONS]}`,
-    },
-    {
-      path: ':groupId/tags/:tagKey/',
-      redirectTo: `/issues/:groupId/${TabPaths[Tab.DISTRIBUTIONS]}:tagKey/`,
-    },
-    {
-      path: `:groupId/${TabPaths[Tab.EVENTS]}:eventId/tags/`,
-      redirectTo: `/issues/:groupId/${TabPaths[Tab.EVENTS]}:eventId/${
-        TabPaths[Tab.DISTRIBUTIONS]
-      }`,
-    },
-    {
-      path: `:groupId/${TabPaths[Tab.EVENTS]}:eventId/tags/:tagKey/`,
-      redirectTo: `/issues/:groupId/${TabPaths[Tab.EVENTS]}:eventId/${
-        TabPaths[Tab.DISTRIBUTIONS]
-      }:tagKey/`,
-    },
+    ...legacyIssueDetailsRoutes(':groupId/'),
     {
       path: ':groupId/',
       component: make(() => import('sentry/views/issueDetails/groupDetails')),
-      children: [
-        ...issueTabs,
-        {
-          path: `${TabPaths[Tab.EVENTS]}:eventId/`,
-          children: issueTabs,
-        },
-      ],
     },
     {
       path: 'feedback/',
@@ -3473,34 +3391,7 @@ function buildRoutes(): RouteObject[] {
         path: ':projectId/issues/:groupId/',
         redirectTo: '/organizations/:orgId/issues/:groupId/',
       },
-      {
-        path: ':projectId/issues/:groupId/events/',
-        redirectTo: '/organizations/:orgId/issues/:groupId/events/',
-      },
-      {
-        path: ':projectId/issues/:groupId/events/:eventId/',
-        redirectTo: '/organizations/:orgId/issues/:groupId/events/:eventId/',
-      },
-      {
-        path: ':projectId/issues/:groupId/tags/',
-        redirectTo: '/organizations/:orgId/issues/:groupId/tags/',
-      },
-      {
-        path: ':projectId/issues/:groupId/tags/:tagKey/',
-        redirectTo: '/organizations/:orgId/issues/:groupId/tags/:tagKey/',
-      },
-      {
-        path: ':projectId/issues/:groupId/feedback/',
-        redirectTo: '/organizations/:orgId/issues/:groupId/feedback/',
-      },
-      {
-        path: ':projectId/issues/:groupId/similar/',
-        redirectTo: '/organizations/:orgId/issues/:groupId/similar/',
-      },
-      {
-        path: ':projectId/issues/:groupId/merged/',
-        redirectTo: '/organizations/:orgId/issues/:groupId/merged/',
-      },
+      ...legacyIssueDetailsRoutes(':projectId/issues/:groupId/'),
     ],
   };
 

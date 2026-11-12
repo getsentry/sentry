@@ -26,7 +26,7 @@ import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
 import {IssueDetailsContextProvider} from 'sentry/views/issueDetails/context';
 import {EventDetailsHeader} from 'sentry/views/issueDetails/eventDetailsHeader';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
-import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
+import {GroupEventDetails} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assigneeSelector';
 import {EventUserCounts} from 'sentry/views/issueDetails/header/eventUserCounts';

@@ -311,6 +311,58 @@ describe('buildRoutes()', () => {
     expect(components).not.toContain(AuthenticatedApiErrorHandler);
   });
 
+  describe('legacy issue details paths', () => {
+    function getLegacyIssueMatch(url: string) {
+      const match = matchRoutes(buildRoutes(), url)?.at(-1);
+      return {
+        tab: (match?.route.handle as {legacyIssueDetailsTab?: string} | undefined)
+          ?.legacyIssueDetailsTab,
+        params: match?.params,
+      };
+    }
+
+    it.each([
+      ['/organizations/test-org/issues/1/events/', 'events', {}],
+      ['/organizations/test-org/issues/1/replays/', 'Replays', {}],
+      ['/organizations/test-org/issues/1/events/abc/', 'details', {eventId: 'abc'}],
+      [
+        '/organizations/test-org/issues/1/events/abc/feedback/',
+        'user-feedback',
+        {eventId: 'abc'},
+      ],
+      ['/test-org/test-project/issues/1/events/abc/', 'details', {eventId: 'abc'}],
+    ])('redirects %s', (url, tab, params) => {
+      const match = getLegacyIssueMatch(url);
+      expect(match.tab).toBe(tab);
+      expect(match.params).toEqual(expect.objectContaining({groupId: '1', ...params}));
+    });
+
+    it.each([
+      '/organizations/test-org/issues/1/activity/',
+      '/organizations/test-org/issues/1/distributions/browser/',
+      '/organizations/test-org/issues/1/events/abc/similar/',
+      '/organizations/test-org/issues/1/tags/',
+    ])('does not redirect the drawer path %s', url => {
+      expect(getLegacyIssueMatch(url).tab).toBeUndefined();
+    });
+
+    it('serves issue details at the group path', () => {
+      expect(
+        getMatchedPaths(buildRoutes(), '/organizations/test-org/issues/1/')
+      ).toContain(':groupId/');
+    });
+
+    it.each([
+      ['/organizations/test-org/issues/feedback/', 'feedback/'],
+      ['/organizations/test-org/issues/views/1/', 'views/:viewId/'],
+      ['/organizations/test-org/issues/autofix/recent/', 'autofix/recent/'],
+    ])('leaves %s on its own route', (url, routePath) => {
+      const matchedPaths = getMatchedPaths(buildRoutes(), url);
+      expect(matchedPaths).toContain(routePath);
+      expect(getLegacyIssueMatch(url).tab).toBeUndefined();
+    });
+  });
+
   it('redirects legacy project group urls to the organization issue details', () => {
     expect(getRedirectTarget(buildRoutes(), '/test-org/test-project/group/123/')).toBe(
       '/organizations/test-org/issues/123/'

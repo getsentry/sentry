@@ -1,6 +1,6 @@
 import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
 
-import GroupEventDetails from './groupEventDetails/groupEventDetails';
+import {GroupEventDetails} from './groupEventDetails/groupEventDetails';
 import type {IssueDetailsPageTab} from './issueDetailsQueryParams';
 import {Tab} from './types';
 

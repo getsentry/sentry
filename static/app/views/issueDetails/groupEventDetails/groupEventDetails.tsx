@@ -35,7 +35,7 @@ import {
 
 import {GroupEventDetailsLoading} from './groupEventDetailsLoading';
 
-function GroupEventDetails() {
+export function GroupEventDetails() {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
@@ -185,5 +185,3 @@ function GroupEventDetails() {
     </AnalyticsArea>
   );
 }
-
-export default GroupEventDetails;

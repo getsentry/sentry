@@ -40,7 +40,7 @@ import {
   makeEAPSpan,
 } from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
 
-import GroupEventDetails from './groupEventDetails';
+import {GroupEventDetails} from './groupEventDetails';
 
 const TRACE_ID = '797cda4e24844bdc90e0efe741616047';
 
