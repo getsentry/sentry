@@ -8,7 +8,7 @@ from unittest.mock import ANY, MagicMock, patch
 from django.test import override_settings
 
 from sentry.integrations.messaging.metrics import SeerSlackHaltReason
-from sentry.notifications.platform.templates.seer import AGENT_OUT_OF_CREDITS_MESSAGE
+from sentry.notifications.platform.templates.seer import AGENT_OUT_OF_CREDITS_MEMBER_MESSAGE
 from sentry.seer.credits import SeerFeature, SeerOperation
 from sentry.seer.entrypoints.slack.analytics import (
     SlackSeerAgentConversation,
@@ -452,7 +452,7 @@ class ProcessMentionSeerCreditsTest(TestCase):
         mock_operator_cls.assert_not_called()
         self.mock_entrypoint.install.get_thread_history.assert_not_called()
 
-        assert self._sent_text() == AGENT_OUT_OF_CREDITS_MESSAGE
+        assert self._sent_text() == AGENT_OUT_OF_CREDITS_MEMBER_MESSAGE
 
         self.mock_entrypoint.install.set_thread_status.assert_called_once_with(
             channel_id="C1234567890",
@@ -540,7 +540,7 @@ class ProcessMentionSeerCreditsTest(TestCase):
             )
 
         mock_operator_cls.assert_not_called()
-        assert self._sent_text() == AGENT_OUT_OF_CREDITS_MESSAGE
+        assert self._sent_text() == AGENT_OUT_OF_CREDITS_MEMBER_MESSAGE
 
 
 class LinkedMessagesContextTest(TestCase):
