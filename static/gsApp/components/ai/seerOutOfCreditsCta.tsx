@@ -56,7 +56,7 @@ export function SeerOutOfCreditsCta({reason, size, variant}: SeerOutOfCreditsCta
   });
 
   // The copy changes when auto-reload is already on: the org has used up the
-  // top-ups it allows. Only billing members see that copy, and only they can
+  // auto-reloads it allows. Only billing members see that copy, and only they can
   // read the setting.
   const {data: autoTopUp, isPending: isAutoTopUpPending} = useQuery({
     ...seerWalletAutoTopUpOptions(organization),

@@ -23,30 +23,30 @@ import {t} from 'sentry/locale';
 export type SeerOutOfCreditsEscalation = 'configure' | 'request' | 'contact';
 
 // Billing members, from the Billing Gates designs. Auto-reload already on means
-// the org ran through the top-ups it allows, so the copy says so.
+// the org ran through the auto-reloads it allows, so the copy says so.
 const BILLING_MESSAGE: Record<SeerOutOfCreditsReason, Record<'off' | 'on', string>> = {
   'agent-chat': {
     off: t(
       'Your organization does not have enough credits left for you to message Seer. Adjust your spend and turn on auto-reload.'
     ),
     on: t(
-      'Your organization does not have enough credits left for you to message Seer, and you have no auto top-ups remaining. Adjust your spend and turn on auto top-up.'
+      'Your organization does not have enough credits left for you to message Seer, and you have no auto-reloads remaining. Adjust your spend and turn on auto-reload.'
     ),
   },
   'autofix-start': {
     off: t(
-      'You do not have enough credits to start an Autofix run. Set up auto top up to keep your flow uninterrupted.'
+      'You do not have enough credits to start an Autofix run. Set up auto-reload to keep your flow uninterrupted.'
     ),
     on: t(
-      'You do not have enough credits to start an Autofix run, and you have no auto top-ups remaining. Adjust your spend and turn on auto top-up.'
+      'You do not have enough credits to start an Autofix run, and you have no auto-reloads remaining. Adjust your spend and turn on auto-reload.'
     ),
   },
   'autofix-continue': {
     off: t(
-      'Your org does not have enough credits to continue your Autofix run. Set up auto top up to keep your flow uninterrupted.'
+      'Your organization does not have enough credits to continue your Autofix run. Set up auto-reload to keep your flow uninterrupted.'
     ),
     on: t(
-      'Your org does not have enough credits to continue your Autofix run, and you have no auto top-ups remaining. Adjust your spend and turn on auto top-up.'
+      'Your organization does not have enough credits to continue your Autofix run, and you have no auto-reloads remaining. Adjust your spend and turn on auto-reload.'
     ),
   },
 };
@@ -58,10 +58,10 @@ const MEMBER_MESSAGE: Record<SeerOutOfCreditsReason, string> = {
     'Your organization does not have enough credits left for you to message Seer.'
   ),
   'autofix-start': t(
-    'Your organization does not have enough credits to start an Autofix run. Ask your admin to increase your daily token limit or set up auto top-up.'
+    'Your organization does not have enough credits to start an Autofix run. Ask your admin to increase your daily usage limit or set up auto-reload.'
   ),
   'autofix-continue': t(
-    'Your organization does not have enough credits to continue your Autofix run. Ask your admin to increase your daily token limit or set up auto top-up.'
+    'Your organization does not have enough credits to continue your Autofix run. Ask your admin to increase your daily usage limit or set up auto-reload.'
   ),
 };
 
@@ -92,7 +92,7 @@ function getSeerOutOfCreditsMessage({
 export interface SeerOutOfCreditsNoticeProps extends SeerOutOfCreditsCtaProps {
   escalation: SeerOutOfCreditsEscalation;
   /**
-   * Auto-reload is on, so the org has used up the top-ups it allows.
+   * Auto-reload is on, so the org has used up the auto-reloads it allows.
    */
   autoReloadEnabled?: boolean;
   /**

@@ -78,7 +78,7 @@ describe('SeerCreditUsageMeter', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('counts the month’s credits when auto reload is off', async () => {
+  it('counts the month’s credits when auto-reload is off', async () => {
     mockWallet(billingOrganization);
 
     render(<SeerCreditUsageMeter hasEnoughCredits />, {
@@ -93,11 +93,11 @@ describe('SeerCreditUsageMeter', () => {
       )
     ).toBeInTheDocument();
     expect(screen.getByText('250/1,000 credits remaining.')).toBeInTheDocument();
-    // The out-of-credits alert, not the meter, is where auto reload gets turned on.
+    // The out-of-credits alert, not the meter, is where auto-reload gets turned on.
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 
-  it('says credits reload automatically when auto reload is on', async () => {
+  it('says credits reload automatically when auto-reload is on', async () => {
     mockWallet(billingOrganization, {autoReload: true});
 
     render(<SeerCreditUsageMeter hasEnoughCredits />, {
@@ -113,7 +113,7 @@ describe('SeerCreditUsageMeter', () => {
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 
-  it('links to auto reload when it has no top-ups left', async () => {
+  it('links to auto-reload when it has no auto-reloads left', async () => {
     mockWallet(billingOrganization, {autoReload: true, balance: 50, percentUsed: 0.95});
 
     render(<SeerCreditUsageMeter hasEnoughCredits={false} />, {
@@ -123,7 +123,7 @@ describe('SeerCreditUsageMeter', () => {
     await userEvent.hover(await screen.findByText('95%'));
 
     expect(
-      await screen.findByText(/You do not have any more reloads available\./)
+      await screen.findByText(/You do not have any more auto-reloads available\./)
     ).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Configure auto-reload.'})).toHaveAttribute(
       'href',
@@ -145,7 +145,7 @@ describe('SeerCreditUsageMeter', () => {
     expect(wallet).toHaveBeenCalledTimes(1);
     expect(autoTopUp).toHaveBeenCalledTimes(1);
 
-    // A top-up in another tab.
+    // An auto-reload in another tab.
     mockWallet(billingOrganization, {balance: 500, percentUsed: 0.5});
     act(() => {
       window.dispatchEvent(new Event('visibilitychange'));
@@ -191,7 +191,7 @@ describe('SeerCreditUsageMeter', () => {
     );
   });
 
-  it('shows usage without auto reload to members without billing access', async () => {
+  it('shows usage without auto-reload to members without billing access', async () => {
     const organization = OrganizationFixture({
       access: ['org:read'],
       features: ['seer-credit-checks', 'token-billed-seer-enabled'],
@@ -210,7 +210,7 @@ describe('SeerCreditUsageMeter', () => {
       screen.queryByText('Credits will reload automatically.')
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByText(/You do not have any more reloads available\./)
+      screen.queryByText(/You do not have any more auto-reloads available\./)
     ).not.toBeInTheDocument();
     expect(wallet).toHaveBeenCalledTimes(1);
     expect(autoTopUp).not.toHaveBeenCalled();
