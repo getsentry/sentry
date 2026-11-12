@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest import mock
 
 from arroyo.backends.kafka import KafkaPayload
@@ -479,3 +479,76 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
         # Second call does NOT trigger a mark_failed
         mark_checkin_timeout(checkin.id, ts + timedelta(minutes=31))
         assert mock_mark_failed.call_count == 1
+
+    def create_checkin_past_timeout(self, ts: datetime, status: int) -> MonitorCheckIn:
+        monitor = self.create_monitor()
+        monitor_environment = self.create_monitor_environment(
+            monitor=monitor,
+            environment_id=self.environment.id,
+            last_checkin=ts,
+            next_checkin=ts + timedelta(minutes=1),
+            next_checkin_latest=ts + timedelta(minutes=2),
+            status=MonitorStatus.OK,
+        )
+        return self.create_monitor_checkin(
+            monitor_environment=monitor_environment,
+            status=status,
+            date_added=ts - timedelta(minutes=30),
+            date_updated=ts - timedelta(minutes=30),
+            timeout_at=ts,
+        )
+
+    @mock.patch("sentry.monitors.clock_tasks.check_timeout.mark_failed")
+    def test_timeout_skips_checkin_completed_after_dispatch(
+        self, mock_mark_failed: mock.MagicMock
+    ) -> None:
+        """
+        A check-in that is closed after the timeout task was dispatched must
+        not be marked as timed out.
+        """
+        ts = timezone.now().replace(second=0, microsecond=0)
+        checkin = self.create_checkin_past_timeout(ts, CheckInStatus.IN_PROGRESS)
+
+        checkin.update(status=CheckInStatus.OK, timeout_at=None)
+
+        mark_checkin_timeout(checkin.id, ts)
+
+        assert MonitorCheckIn.objects.filter(id=checkin.id, status=CheckInStatus.OK).exists()
+        assert mock_mark_failed.call_count == 0
+        assert MonitorEnvironment.objects.filter(
+            id=checkin.monitor_environment_id, status=MonitorStatus.OK
+        ).exists()
+
+    @mock.patch("sentry.monitors.clock_tasks.check_timeout.mark_failed")
+    def test_timeout_skips_checkin_extended_after_dispatch(
+        self, mock_mark_failed: mock.MagicMock
+    ) -> None:
+        """
+        An in-progress heartbeat moves timeout_at forward. A timeout task that
+        was dispatched before the heartbeat must not time the check-in out.
+        """
+        ts = timezone.now().replace(second=0, microsecond=0)
+        checkin = self.create_checkin_past_timeout(ts, CheckInStatus.IN_PROGRESS)
+
+        checkin.update(timeout_at=ts + timedelta(minutes=30))
+
+        mark_checkin_timeout(checkin.id, ts)
+
+        assert MonitorCheckIn.objects.filter(
+            id=checkin.id, status=CheckInStatus.IN_PROGRESS
+        ).exists()
+        assert mock_mark_failed.call_count == 0
+
+    @mock.patch("sentry.monitors.clock_tasks.check_timeout.mark_failed")
+    def test_timeout_skips_unknown_checkin(self, mock_mark_failed: mock.MagicMock) -> None:
+        """
+        A check-in that was marked unknown after the timeout task was
+        dispatched must not be marked as timed out.
+        """
+        ts = timezone.now().replace(second=0, microsecond=0)
+        checkin = self.create_checkin_past_timeout(ts, CheckInStatus.UNKNOWN)
+
+        mark_checkin_timeout(checkin.id, ts)
+
+        assert MonitorCheckIn.objects.filter(id=checkin.id, status=CheckInStatus.UNKNOWN).exists()
+        assert mock_mark_failed.call_count == 0
