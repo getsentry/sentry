@@ -418,19 +418,16 @@ class OrganizationServiceAccountTokenDetailsTest(ServiceAccountTokenTestCase):
         self.token = self.create_token()
 
     def test_revoke(self) -> None:
-        with (
-            self.feature(FEATURE_FLAG),
-            outbox_runner(),
-            mock.patch.object(ServiceAccountToken, "handle_async_replication") as replicate,
-        ):
+        with self.feature(FEATURE_FLAG), outbox_runner():
             self.get_success_response(
                 self.organization.slug, self.service_account.id, self.token.id, status_code=204
             )
 
         self.token.refresh_from_db()
         assert self.token.date_deactivated is not None
-        # Revoking keeps the row, and its outbox carries the revocation to the cell.
-        replicate.assert_called_once()
+        with assume_test_silo_mode(SiloMode.CELL):
+            replica = ServiceAccountTokenReplica.objects.get(token_id=self.token.id)
+        assert replica.date_deactivated == self.token.date_deactivated
 
         entry = AuditLogEntry.objects.get(
             event=audit_log.get_event_id("SERVICE_ACCOUNT_TOKEN_REMOVE")
