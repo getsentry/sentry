@@ -308,7 +308,11 @@ class OrganizationTraceItemStatsEndpointTest(
     def test_aggregate_filter_returns_400(self) -> None:
         self._store_span()
 
-        for query in ["count(span.duration):466", "browser:chrome count():>1"]:
+        for query in [
+            "count(span.duration):466",
+            "browser:chrome count():>1",
+            "browser:chrome OR (device:desktop count():>1)",
+        ]:
             response = self.do_request(
                 query={
                     "query": query,

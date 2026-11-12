@@ -17,7 +17,12 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_trace_item_stats_types import TraceItemStatsResponse
-from sentry.api.event_search import translate_escape_sequences
+from sentry.api.event_search import (
+    AggregateFilter,
+    ParenExpression,
+    QueryToken,
+    translate_escape_sequences,
+)
 from sentry.api.serializers.base import serialize
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
@@ -91,6 +96,14 @@ def get_trace_item_stats_config(item_type: SupportedItemType) -> TraceItemStatsC
         referrer=Referrer.API_SPANS_FREQUENCY_STATS_RPC,
         id_column="span_id",
         visibility_item_type=SupportedTraceItemType.SPANS,
+    )
+
+
+def _has_aggregate_filter(terms: Sequence[QueryToken]) -> bool:
+    return any(
+        isinstance(term, AggregateFilter)
+        or (isinstance(term, ParenExpression) and _has_aggregate_filter(term.children))
+        for term in terms
     )
 
 
@@ -220,10 +233,10 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
         )
 
         # Stats are computed over individual trace items, so an aggregate filter has no
-        # group to apply to and Snuba rejects the query.
+        # group to apply to and Snuba rejects the query. Only parse here: a full resolve
+        # is expensive and the RPCs below resolve the query again.
         with handle_query_errors():
-            _, having, _ = resolver.resolve_query(serialized.get("query", ""))
-            if having is not None:
+            if _has_aggregate_filter(resolver.parse_search_query(serialized.get("query", ""))):
                 raise InvalidSearchQuery(
                     "Aggregate filters are not supported for trace item stats."
                 )
