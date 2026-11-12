@@ -1,3 +1,4 @@
+import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 import {IconSliders} from '@sentry/icons/sliders';
 import {AnimatePresence, motion} from 'framer-motion';
@@ -13,7 +14,7 @@ import {
   SETUP_CARD_MARKER_PX,
 } from 'sentry/components/onboarding/consts';
 import {ScmCollapsibleReveal} from 'sentry/components/onboarding/scm/scmCollapsibleReveal';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 
 import {AgenticProgress} from './agenticProgressList';
 import {AgentSetupCard, type AgentSetupCopySource} from './agentSetupCard';
@@ -163,63 +164,77 @@ export function AgenticSetup({
       </ScmCollapsibleReveal>
 
       <ScmCollapsibleReveal open={!showsProgress || hasRunFailed}>
-        <Stack gap="2xl" align="center" width="100%">
-          <Text
-            variant={isLayeredLanding ? 'secondary' : 'muted'}
-            size={isLayeredLanding ? 'lg' : 'md'}
-            bold
-          >
-            {t('or')}
-          </Text>
+        {isLayeredLanding ? (
+          <Container width="100%">
+            {buttonProps => (
+              <Button
+                {...buttonProps}
+                variant="transparent"
+                onClick={onSetupInBrowser}
+                data-test-id="onboarding-setup-in-browser"
+              >
+                <Flex as="span" align="center" gap="sm">
+                  <Text variant="secondary" bold={false}>
+                    {tct('Prefer to do it yourself? [manual:Set up manually]', {
+                      manual: <AccentText />,
+                    })}
+                  </Text>
+                  <IconChevron direction="right" size="sm" variant="accent" />
+                </Flex>
+              </Button>
+            )}
+          </Container>
+        ) : (
+          <Stack gap="2xl" align="center" width="100%">
+            <Text variant="muted" size="md" bold>
+              {t('or')}
+            </Text>
 
-          <ToggleCard
-            style={{
-              transform: isLayeredLanding ? 'rotate(0.5deg)' : undefined,
-            }}
-            variant="button"
-            onClick={onSetupInBrowser}
-            data-test-id="onboarding-setup-in-browser"
-          >
-            <Grid
-              columns={`${SETUP_CARD_MARKER_PX} 1fr max-content`}
-              gap="0 md"
-              width="100%"
-              areas={`
+            <ToggleCard
+              variant="button"
+              onClick={onSetupInBrowser}
+              data-test-id="onboarding-setup-in-browser"
+            >
+              <Grid
+                columns={`${SETUP_CARD_MARKER_PX} 1fr max-content`}
+                gap="0 md"
+                width="100%"
+                areas={`
           "icon title chevron"
           ".    body  body"
         `}
-            >
-              <Flex area="icon" align="center" justify="center">
-                <IconSliders size={SETUP_CARD_ICON_SIZE} variant="secondary" />
-              </Flex>
-              <Flex area="title" align="center">
-                <Text bold size="lg">
-                  {t('Set up manually')}
-                </Text>
-              </Flex>
-              <Flex area="chevron" align="center">
-                <IconChevron
-                  direction="right"
-                  size={SETUP_CARD_ICON_SIZE}
-                  variant="secondary"
-                />
-              </Flex>
-              <Container area="body" paddingTop="xs">
-                <Text
-                  variant={isLayeredLanding ? 'secondary' : 'muted'}
-                  size="md"
-                  density="comfortable"
-                  textWrap="pretty"
-                >
-                  {t(
-                    'Connect a repo, choose what to instrument and where alerts land, then follow the instructions for your project'
-                  )}
-                </Text>
-              </Container>
-            </Grid>
-          </ToggleCard>
-        </Stack>
+              >
+                <Flex area="icon" align="center" justify="center">
+                  <IconSliders size={SETUP_CARD_ICON_SIZE} variant="secondary" />
+                </Flex>
+                <Flex area="title" align="center">
+                  <Text bold size="lg">
+                    {t('Set up manually')}
+                  </Text>
+                </Flex>
+                <Flex area="chevron" align="center">
+                  <IconChevron
+                    direction="right"
+                    size={SETUP_CARD_ICON_SIZE}
+                    variant="secondary"
+                  />
+                </Flex>
+                <Container area="body" paddingTop="xs">
+                  <Text variant="muted" size="md" density="comfortable" textWrap="pretty">
+                    {t(
+                      'Connect a repo, choose what to instrument and where alerts land, then follow the instructions for your project'
+                    )}
+                  </Text>
+                </Container>
+              </Grid>
+            </ToggleCard>
+          </Stack>
+        )}
       </ScmCollapsibleReveal>
     </Stack>
   );
 }
+
+const AccentText = styled('span')`
+  color: ${p => p.theme.tokens.content.accent};
+`;

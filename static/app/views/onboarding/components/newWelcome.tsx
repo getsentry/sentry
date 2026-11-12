@@ -145,12 +145,15 @@ export function NewWelcomeUI(props: StepProps) {
   const showAgentLanding = showAgentSetup && !showAgentHeading;
   const scmHeading = showAgentHeading
     ? getAgentHeading({hasRunFailed, isSetupComplete})
-    : {
-        title: showAgentSetup
-          ? t('Ship happens.')
-          : t("Code breaks.\nWe'll help you fix it faster"),
-        description: t('Monitor, debug, and fix your code, all in one place.'),
-      };
+    : showAgentSetup
+      ? {
+          title: t('Code breaks. Fix it faster'),
+          description: t('Detect, diagnose, and debug, all in one place'),
+        }
+      : {
+          title: t("Code breaks.\nWe'll help you fix it faster"),
+          description: t('Monitor, debug, and fix your code, all in one place.'),
+        };
 
   useWelcomeAnalyticsEffect({showAgentSetup});
 
@@ -179,7 +182,7 @@ export function NewWelcomeUI(props: StepProps) {
     <MotionContainer
       width="100%"
       margin="0 auto"
-      maxWidth={showAgentLanding ? '600px' : SCM_STEP_CONTENT_WIDTH}
+      maxWidth={SCM_STEP_CONTENT_WIDTH}
       position="relative"
     >
       <MotionFlex direction="column" align="center" {...ONBOARDING_STAGGER}>
@@ -190,12 +193,7 @@ export function NewWelcomeUI(props: StepProps) {
               paddingBottom={showAgentLanding ? '2xl' : 'xl'}
             >
               <MotionContainer {...ONBOARDING_ENTER}>
-                <Heading
-                  as="h2"
-                  size={showAgentLanding ? '4xl' : '3xl'}
-                  align="center"
-                  wrap="pre-line"
-                >
+                <Heading as="h2" size="3xl" align="center" wrap="pre-line">
                   {scmHeading.title}
                 </Heading>
               </MotionContainer>

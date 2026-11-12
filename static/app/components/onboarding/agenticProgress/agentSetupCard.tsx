@@ -28,6 +28,8 @@ export function AgentSetupCard({
   run,
   unframed = false,
 }: AgentSetupCardProps) {
+  const emphasis = unframed ? <span /> : <strong />;
+
   return (
     <Stack
       gap="0"
@@ -36,30 +38,35 @@ export function AgentSetupCard({
       radius={unframed ? undefined : 'xl'}
       padding={unframed ? undefined : 'xl'}
     >
-      <Stack gap="xs">
-        <Flex align="center" gap="sm" wrap="wrap">
-          <Heading as="h3" size={unframed ? 'xl' : 'lg'}>
+      <Stack gap={unframed ? '2xs' : 'xs'}>
+        <Flex
+          align="center"
+          justify={unframed ? 'between' : undefined}
+          gap={unframed ? 'md' : 'sm'}
+          wrap="wrap"
+        >
+          <Heading as="h3" size="lg">
             {t('Let your agent set up Sentry')}
           </Heading>
           <Tag variant="info">{t('Recommended')}</Tag>
         </Flex>
         <Text as="p" size={unframed ? 'lg' : 'md'} variant="secondary">
-          {t('Paste one prompt and your agent does the rest.')}
+          {t('Paste one prompt and your agent does the rest')}
         </Text>
       </Stack>
 
-      <Stack as="ul" role="list" gap="md" padding="xl 0">
-        <Benefit large={unframed}>
-          {tct('[emphasis:Detects your stack]', {emphasis: <strong />})}
+      <Stack as="ul" role="list" gap={unframed ? 'sm' : 'md'} padding="xl 0" margin="0">
+        <Benefit>
+          {tct('[emphasis:Detects your stack] and installs the Sentry CLI', {emphasis})}
         </Benefit>
-        <Benefit large={unframed}>
-          {tct('[emphasis:Installs and configures the SDKs] in your code', {
-            emphasis: <strong />,
+        <Benefit>
+          {tct('[emphasis:Installs and configures] the right SDKs', {
+            emphasis,
           })}
         </Benefit>
-        <Benefit large={unframed}>
-          {tct('[emphasis:Sends a test error] and confirms it, so you know it works', {
-            emphasis: <strong />,
+        <Benefit>
+          {tct('[emphasis:Sends a test error] to confirm it works', {
+            emphasis,
           })}
         </Benefit>
       </Stack>
@@ -77,11 +84,11 @@ export function AgentSetupCard({
   );
 }
 
-function Benefit({children, large}: {children: ReactNode; large: boolean}) {
+function Benefit({children}: {children: ReactNode}) {
   return (
     <Flex as="li" align="center" gap="sm">
       <IconCheckmark size="sm" variant="success" />
-      <Text size={large ? 'lg' : 'md'}>{children}</Text>
+      <Text size="md">{children}</Text>
     </Flex>
   );
 }

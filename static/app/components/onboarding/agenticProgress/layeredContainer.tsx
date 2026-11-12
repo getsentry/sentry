@@ -1,56 +1,52 @@
 import type {ReactNode} from 'react';
+import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout';
+// eslint-disable-next-line @sentry/scraps/no-token-import -- the brand stack uses named categorical colors the theme does not expose
+import {color} from '@sentry/scraps/tokens';
 
 export function LayeredContainer({children}: {children: ReactNode}) {
+  const theme = useTheme();
+
   return (
-    <Container width="100%" position="relative" radius="xl">
-      {frameProps => (
-        <LayeredFrame {...frameProps}>
-          <Container
-            background="primary"
-            border="accent"
-            radius="xl"
-            position="relative"
-            width="100%"
-            overflow="hidden"
-          >
-            {surfaceProps => (
-              <LayeredSurface {...surfaceProps}>{children}</LayeredSurface>
-            )}
-          </Container>
-        </LayeredFrame>
-      )}
+    <Container
+      background={theme.type === 'dark' ? 'secondary' : 'primary'}
+      radius="xl"
+      position="relative"
+      width="100%"
+      overflow="hidden"
+    >
+      {surfaceProps => <LayeredSurface {...surfaceProps}>{children}</LayeredSurface>}
     </Container>
   );
 }
 
-const LayeredFrame = styled('div')`
-  isolation: isolate;
-
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
+function getLayerColors(theme: Theme) {
+  if (theme.type === 'dark') {
+    return {
+      accent: color.categorical.dark.blurple,
+      middle: color.categorical.dark.magenta,
+      bottom: color.categorical.dark.salmon,
+    };
   }
 
-  &::before {
-    z-index: 0;
-    transform: translateY(18px);
-    background: ${p => p.theme.colors.red400};
-  }
-
-  &::after {
-    z-index: 1;
-    transform: translateY(12px);
-    background: ${p => p.theme.colors.pink600};
-  }
-`;
+  return {
+    accent: color.blue.light.opaque1100,
+    middle: color.categorical.light.magenta,
+    bottom: color.categorical.light.salmon,
+  };
+}
 
 const LayeredSurface = styled('div')`
-  z-index: 2;
-  box-shadow: 0 6px 0 ${p => p.theme.colors.blue600};
+  ${p => {
+    const layers = getLayerColors(p.theme);
+    return css`
+      border: 1px solid ${layers.accent};
+      box-shadow:
+        0 2px 0 ${layers.accent},
+        0 6px 0 ${layers.middle},
+        0 10px 0 ${layers.bottom};
+    `;
+  }}
 `;
