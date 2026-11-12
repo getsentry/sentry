@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from sentry.seer.models.workflow import SeerWorkflowStrategy
-from sentry.seer.workflows.base import WorkflowDefinition
+from sentry.seer.workflows.base import AutomationDefinition
 from sentry.seer.workflows.breached_metrics import (
     InvestigateBreachedMetricAction,
     MetricAlertTrigger,
@@ -16,21 +16,21 @@ from sentry.seer.workflows.schedule import (
     ScheduleTrigger,
 )
 
-DEFINITIONS: Mapping[SeerWorkflowStrategy, WorkflowDefinition[Any]] = {
-    SeerWorkflowStrategy.AGENTIC_TRIAGE_V2: WorkflowDefinition[ScheduledRunInputs](
+DEFINITIONS: Mapping[SeerWorkflowStrategy, AutomationDefinition[Any]] = {
+    SeerWorkflowStrategy.AGENTIC_TRIAGE_V2: AutomationDefinition[ScheduledRunInputs](
         trigger=ScheduleTrigger(), action=PromptedInvestigationAction()
     ),
-    SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION: WorkflowDefinition[MetricBreachInputs](
+    SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION: AutomationDefinition[MetricBreachInputs](
         trigger=MetricAlertTrigger(), action=InvestigateBreachedMetricAction()
     ),
 }
 
 
-def find_definition(strategy: str) -> WorkflowDefinition[Any] | None:
+def find_definition(strategy: str) -> AutomationDefinition[Any] | None:
     return DEFINITIONS.get(SeerWorkflowStrategy(strategy))
 
 
-def get_definition(strategy: str) -> WorkflowDefinition[Any]:
+def get_definition(strategy: str) -> AutomationDefinition[Any]:
     definition = find_definition(strategy)
     if definition is None:
         raise ValueError(f"{strategy} automations have no trigger or action")
