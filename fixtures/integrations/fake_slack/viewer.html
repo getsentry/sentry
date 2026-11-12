@@ -261,7 +261,7 @@ function renderMessage(m, {inThread}) {
   const blocks = (m.blocks ?? []).map(block).join('');
   const body = blocks || (m.text ? `<div class="mrkdwn">${mrkdwn(m.text)}</div>` : '');
   const isNew = initialized && !seen.has(m.ts);
-  return `<div class="msg${isNew || m.ts === focusTs ? ' flash' : ''}" id="m-${esc(m.ts).replace('.', '-')}">
+  return `<div class="msg${isNew || m.ts === focusTs ? ' flash' : ''}" id="${inThread ? 't' : 'm'}-${esc(m.ts).replace('.', '-')}">
     <div class="avatar">S</div>
     <div class="body">
       <div class="meta"><span class="name">Sentry</span><span class="app-tag">APP</span><span class="time">${fmtTime(m.ts)}</span>${m.edited ? '<span class="edited">(edited)</span>' : ''}</div>
@@ -338,8 +338,11 @@ function render() {
   } else threadPane.hidden = true;
   state.messages.forEach(m => seen.add(m.ts));
   initialized = true;
-  if (focusTs) document.getElementById(`m-${focusTs.replace('.', '-')}`)?.scrollIntoView({block: 'center'});
-  else feed.scrollTop = feed.scrollHeight;
+  if (focusTs) {
+    const focusId = focusTs.replace('.', '-');
+    const focused = (openThread && document.getElementById(`t-${focusId}`)) || document.getElementById(`m-${focusId}`);
+    focused?.scrollIntoView({block: 'center'});
+  } else feed.scrollTop = feed.scrollHeight;
 }
 
 async function poll() {
