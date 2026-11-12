@@ -871,6 +871,25 @@ class SearchResolverQueryTest(TestCase):
             )
         )
 
+        where, _, _ = resolver.resolve_query("issue.id:[0,123]")
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=group_id_key,
+                op=ComparisonFilter.OP_IN,
+                value=AttributeValue(val_int_array=IntArray(values=[0, 123])),
+            )
+        )
+
+    def test_collect_terms_resolves_issue_short_ids_without_priming(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(organization=self.organization, projects=[self.project]),
+            config=SearchResolverConfig(),
+            definitions=OCCURRENCE_DEFINITIONS,
+        )
+        group = self.create_group(project=self.project)
+        parsed_terms = resolver.parse_search_query(f"issue.id:{group.qualified_short_id}")
+        assert resolver.collect_terms(parsed_terms) == ["group_id"]
+
     def test_has_trace(self) -> None:
         where, having, _ = self.resolver.resolve_query("has:trace")
         trace_key = AttributeKey(name="sentry.trace_id", type=AttributeKey.Type.TYPE_STRING)
