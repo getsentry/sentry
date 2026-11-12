@@ -27,15 +27,19 @@ export function UserBlock({block}: UserBlockProps) {
 
 function PrFeedbackNotice({text}: {text: string}) {
   return (
-    <Flex gap="sm" align="start" padding="sm 0" data-test-id="pr-feedback-notice">
-      <IconPullRequest size="xs" variant="muted" />
-      <Stack gap="xs">
-        {text.split('\n').map((line, index) => (
-          <Text key={index} size="sm" variant="muted">
-            {line}
-          </Text>
-        ))}
-      </Stack>
-    </Flex>
+    <MessageRow from="assistant" density="compact" data-test-id="pr-feedback-notice">
+      <Flex gap="sm" align="start" minWidth="0">
+        <Flex flexShrink={0} paddingTop="2xs">
+          <IconPullRequest size="xs" variant="muted" />
+        </Flex>
+        <Stack gap="xs" minWidth="0">
+          {text.split('\n').map((line, index) => (
+            <Text key={index} size="sm" variant="muted">
+              {line}
+            </Text>
+          ))}
+        </Stack>
+      </Flex>
+    </MessageRow>
   );
 }
