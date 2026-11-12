@@ -61,6 +61,89 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
             {"name": "Some Tag", "key": "some_tag", "totalValues": 1},
         ]
 
+    def test_environment_filter(self) -> None:
+        user = self.create_user()
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        self.create_member(organization=org, user=user, teams=[team])
+
+        self.login_as(user=user)
+
+        project = self.create_project(organization=org, teams=[team])
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "tags": {"fruit": "apple"},
+                "environment": "Production",
+                "timestamp": self.min_ago,
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "tags": {"some_tag": "some_value"},
+                "environment": "staging",
+                "timestamp": self.min_ago,
+            },
+            project_id=project.id,
+        )
+
+        url = reverse(
+            "sentry-api-0-organization-tags", kwargs={"organization_id_or_slug": org.slug}
+        )
+
+        response = self.client.get(
+            url, {"statsPeriod": "14d", "environment": "Production"}, format="json"
+        )
+        assert response.status_code == 200, response.content
+        keys = {tag["key"] for tag in response.data}
+        assert "fruit" in keys
+        assert "some_tag" not in keys
+
+    def test_environment_filter_flags(self) -> None:
+        user = self.create_user()
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        self.create_member(organization=org, user=user, teams=[team])
+
+        self.login_as(user=user)
+
+        project = self.create_project(organization=org, teams=[team])
+        self.store_event(
+            data={
+                "contexts": {"flags": {"values": [{"flag": "abc", "result": True}]}},
+                "environment": "Production",
+                "timestamp": self.min_ago,
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                "contexts": {"flags": {"values": [{"flag": "def", "result": True}]}},
+                "environment": "staging",
+                "timestamp": self.min_ago,
+            },
+            project_id=project.id,
+        )
+
+        url = reverse(
+            "sentry-api-0-organization-tags", kwargs={"organization_id_or_slug": org.slug}
+        )
+
+        response = self.client.get(
+            url,
+            {
+                "statsPeriod": "14d",
+                "useFlagsBackend": "1",
+                "dataset": "events",
+                "environment": "Production",
+            },
+            format="json",
+        )
+        assert response.status_code == 200, response.content
+        assert [tag["key"] for tag in response.data] == ["abc"]
+
     def test_simple_flags(self) -> None:
         user = self.create_user()
         org = self.create_organization()

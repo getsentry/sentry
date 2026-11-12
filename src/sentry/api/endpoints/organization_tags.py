@@ -127,9 +127,15 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
                 else:
                     backend = tagstore.backend
 
+                # The tagstore expects environment IDs, while filter_params["environment"]
+                # holds environment names, so derive the IDs from the resolved objects.
+                environment_ids = [
+                    env.id for env in filter_params.get("environment_objects", [])
+                ] or None
+
                 results = backend.get_tag_keys_for_projects(
                     filter_params["project_id"],
-                    filter_params.get("environment"),
+                    environment_ids,
                     start,
                     end,
                     use_cache=request.GET.get("use_cache", "0") == "1",
