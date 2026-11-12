@@ -11,11 +11,12 @@ from sentry.notifications.platform.tracking import (
     NotificationLinkDecorator,
 )
 from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_event_equal, get_all_analytics_events
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.notifications.platform import MockNotification
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 ENABLED_OPTIONS = {
     "notifications.tracking.sources": ["activity-seer-pr-ready-for-review"],
@@ -44,7 +45,7 @@ class NotificationLinkRedirectTest(TestCase):
         self.enterContext(override_options(ENABLED_OPTIONS))
         self.notification_uuid = str(uuid4())
 
-    def path(self, url: str = PULL_REQUEST_URL) -> str:
+    def link(self, url: str = PULL_REQUEST_URL) -> str:
         data = MockNotification(
             message="test",
             source=NotificationSource.ACTIVITY_SEER_PR_READY_FOR_REVIEW,
@@ -52,7 +53,12 @@ class NotificationLinkRedirectTest(TestCase):
             notification_uuid=self.notification_uuid,
         )
         decorator = NotificationLinkDecorator(data=data, provider=NotificationProviderKey.EMAIL)
-        return urlsplit(decorator.decorate_url(url)).path
+        # Notifications are sent from cells, and the redirect runs in control.
+        with assume_test_silo_mode(SiloMode.CELL):
+            return decorator.decorate_url(url)
+
+    def path(self, url: str = PULL_REQUEST_URL) -> str:
+        return urlsplit(self.link(url)).path
 
     def get(self, path: str, user_agent: str = BROWSER_USER_AGENT) -> HttpResponseBase:
         return self.client.get(path, HTTP_USER_AGENT=user_agent)
@@ -138,11 +144,61 @@ class NotificationLinkRedirectTest(TestCase):
                 "unknown",
             ],
             [PULL_REQUEST_URL, self.organization.id],
+            {"url": PULL_REQUEST_URL},
+            "a-str",
+            None,
+            12,
         ):
             path = f"/tr/{signing.dumps(payload, salt=_PULL_REQUEST_REDIRECT_SALT, compress=True)}/"
             assert self.get(path).status_code == 404, payload
 
         assert _engagements(mock_record) == []
+
+    def test_redirect_is_not_cached(self, mock_record: mock.MagicMock) -> None:
+        response = self.get(self.path())
+
+        assert response.status_code == 302
+        assert "no-store" in response["Cache-Control"]
+
+    def test_link_fits_in_a_slack_button(self, mock_record: mock.MagicMock) -> None:
+        # GitHub allows owners of up to 39 characters and repositories of up to 100.
+        url = f"https://github.com/{'o' * 39}/{'r' * 100}/pull/9999999"
+
+        link = self.link(url)
+
+        assert self.get(urlsplit(link).path)["Location"] == url
+        # Slack rejects buttons whose URL is longer than 3,000 characters.
+        assert len(link) < 3000
+
+    @mock.patch("sentry.web.frontend.notification_link_redirect.metrics.incr")
+    def test_records_outcome_metric(
+        self, mock_incr: mock.MagicMock, mock_record: mock.MagicMock
+    ) -> None:
+        path = self.path()
+        self.get(path)
+        self.get(path)
+        self.get(path, user_agent="Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)")
+        self.get("/tr/not-a-token/")
+        with override_options({"notifications.tracking.sources": []}):
+            self.get(path)
+        with mock.patch(
+            "sentry.web.frontend.notification_link_redirect.record_engagement",
+            side_effect=Exception,
+        ):
+            self.get(self.path("https://github.com/acme/backend/pull/13"))
+
+        assert [
+            call.kwargs["tags"]["outcome"]
+            for call in mock_incr.call_args_list
+            if call.args == ("notifications.tracking.redirect",)
+        ] == [
+            "recorded",
+            "duplicate",
+            "automated",
+            "invalid_token",
+            "untracked",
+            "failed",
+        ]
 
     def test_automated_clients_are_not_recorded(self, mock_record: mock.MagicMock) -> None:
         for user_agent in (
