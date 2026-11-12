@@ -108,7 +108,6 @@ function SettingsProjectSelector() {
               {buttonProps => (
                 <OverlayTrigger.Button
                   {...mergeProps(buttonProps, triggerProps)}
-                  variant="transparent"
                   aria-label={t('Select a project')}
                   icon={
                     selectedProject ? (
