@@ -39,8 +39,9 @@ SEER_OPERATION_ESTIMATES: dict[SeerOperation, Callable[[], int]] = {
     SeerOperation.AUTOFIX_CODE_CHANGES: lambda: 75,
     SeerOperation.AUTOFIX_OPEN_PR: lambda: 15,
     SeerOperation.AUTOFIX_PR_ITERATION: lambda: 90,
-    # There's no cost data for single runs yet. A reply can change code, so it uses that estimate.
-    SeerOperation.AUTOFIX_SINGLE_RUN_REPLY: lambda: 75,
+    # No cost data for single runs yet. A reply is one more turn on a run that already has
+    # code, like a PR iteration, so it uses the same estimate.
+    SeerOperation.AUTOFIX_SINGLE_RUN_REPLY: lambda: 90,
 }
 
 
