@@ -9,7 +9,7 @@ from sentry.spans.consumers.process_segments.tasks import (
     _check_span_duplicates,
     process_segment_task,
 )
-from sentry.spans.consumers.process_segments.types import CompatibleSpan
+from sentry.spans.consumers.process_segments.types import CompatibleSpan, attribute_value
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 from tests.sentry.spans.consumers.process import build_mock_span
@@ -94,6 +94,48 @@ def test_process_segment_task_honors_skip_enrichment(mock_process_segment: mock.
         process_segment_task(segment_bytes)
 
     assert mock_process_segment.call_args.kwargs["skip_enrichment"] is True
+
+
+@override_options({"spans.process-segments.dedupe-ttl": 0})
+@mock.patch(
+    "sentry.spans.consumers.process_segments.tasks.process_segment",
+    side_effect=lambda x, **kwargs: x,
+)
+def test_process_segment_task_attaches_deferred_segment_metadata(
+    mock_process_segment: mock.MagicMock,
+) -> None:
+    """
+    Messages with `segment_span_id` carry the stored span payloads; the task
+    attaches the segment metadata the flusher would have attached.
+    """
+    segment_span = build_mock_span(project_id=1, span_id="a" * 16)
+    child_span = build_mock_span(project_id=1, span_id="b" * 16, is_segment=True)
+    other_segment_span = build_mock_span(project_id=1, span_id="c" * 16)
+    for span in (segment_span, child_span):
+        del span["is_segment"]
+        attributes = span["attributes"]
+        assert attributes is not None
+        del attributes["sentry.segment.id"]
+    segment_bytes = json.dumps(
+        {
+            "flush_id": "f" * 32,
+            "segment_span_id": "a" * 16,
+            "spans": [segment_span, child_span, other_segment_span],
+        }
+    ).encode("utf-8")
+
+    with mock.patch("sentry.spans.consumers.process_segments.tasks._snuba_items_producer"):
+        process_segment_task(segment_bytes)
+
+    spans = mock_process_segment.call_args.args[0]
+    assert [span["is_segment"] for span in spans] == [True, False, False]
+    assert [attribute_value(span, "sentry.segment.id") for span in spans] == [
+        "a" * 16,
+        "a" * 16,
+        # An existing segment ID is kept, like the flusher does.
+        "a49b42af9fb69da0",
+    ]
+    assert mock_process_segment.call_args.kwargs["skip_enrichment"] is False
 
 
 class TestCheckSpanDuplicates:

@@ -8,6 +8,7 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
 
 from sentry.spans.consumers.process.factory import ProcessSpansStrategyFactory
+from sentry.spans.consumers.process_segments.tasks import _decode_segment
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from tests.sentry.spans.test_buffer import DEFAULT_OPTIONS
@@ -17,9 +18,18 @@ from tests.sentry.spans.test_buffer import DEFAULT_OPTIONS
     {**DEFAULT_OPTIONS, "spans.drop-in-buffer": [], "spans.process-segments.schema-validation": 0.0}
 )
 @pytest.mark.parametrize("kafka_slice_id", [None, 2])
-def test_basic(kafka_slice_id: int | None) -> None:
+@pytest.mark.parametrize(
+    ("defer_rate", "segment_span_id_field"),
+    [pytest.param(0.0, None, id="attached"), pytest.param(1.0, "a" * 16, id="deferred")],
+)
+def test_basic(
+    kafka_slice_id: int | None, defer_rate: float, segment_span_id_field: str | None
+) -> None:
     # Flush very aggressively to make test pass instantly
-    with mock.patch("time.sleep"):
+    with (
+        mock.patch("time.sleep"),
+        override_options({"spans.buffer.flusher.defer-segment-metadata": defer_rate}),
+    ):
         topic = Topic("test")
         messages: list[tuple[int, KafkaPayload, int]] = []
 
@@ -86,10 +96,11 @@ def test_basic(kafka_slice_id: int | None) -> None:
 
             result = orjson.loads(msg.value)
             assert result.pop("flush_id")
-            # The buffered payload is the original raw bytes, enriched by the
-            # buffer with the segment id.
-            assert result == {
-                "spans": [
+            assert result.pop("segment_span_id", None) == segment_span_id_field
+            # The buffered payload is the original raw bytes, enriched with the
+            # segment id by the buffer or, when deferred, by the task.
+            assert _decode_segment(msg.value) == (
+                [
                     {
                         "attributes": {
                             "sentry.segment.id": {"type": "string", "value": "aaaaaaaaaaaaaaaa"},
@@ -107,7 +118,8 @@ def test_basic(kafka_slice_id: int | None) -> None:
                         "status": "ok",
                     },
                 ],
-            }
+                False,
+            )
         finally:
             fac._flusher.join()
 

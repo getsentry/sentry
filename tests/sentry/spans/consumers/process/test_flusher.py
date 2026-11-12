@@ -15,6 +15,7 @@ from arroyo.processing.strategies.noop import Noop
 from sentry.spans.buffer import SpansBuffer
 from sentry.spans.buffer_types import Span
 from sentry.spans.consumers.process.flusher import ProduceToPipe, SpanFlusher
+from sentry.spans.consumers.process_segments.tasks import _decode_segment
 from sentry.testutils.helpers.options import override_options
 from tests.sentry.spans.test_buffer import DEFAULT_OPTIONS
 
@@ -115,7 +116,13 @@ def test_flusher_logs_flushed_segments() -> None:
 
 
 @override_options(DEFAULT_OPTIONS)
-def test_flusher_produces_flushed_segments_to_process_segment_task() -> None:
+@pytest.mark.parametrize(
+    ("defer_rate", "segment_span_id_field"),
+    [pytest.param(0.0, None, id="attached"), pytest.param(1.0, "c" * 16, id="deferred")],
+)
+def test_flusher_produces_flushed_segments_to_process_segment_task(
+    defer_rate: float, segment_span_id_field: str | None
+) -> None:
     project_id = 999_002
     trace_id = "9" * 32
     span_id = "c" * 16
@@ -140,10 +147,13 @@ def test_flusher_produces_flushed_segments_to_process_segment_task() -> None:
         stopped.value = 1
         return task_future
 
-    with mock.patch(
-        "sentry.spans.consumers.process.flusher.process_segment_task.apply_async_with_future",
-        side_effect=apply_async_with_future,
-    ) as mock_apply_async_with_future:
+    with (
+        override_options({"spans.buffer.flusher.defer-segment-metadata": defer_rate}),
+        mock.patch(
+            "sentry.spans.consumers.process.flusher.process_segment_task.apply_async_with_future",
+            side_effect=apply_async_with_future,
+        ) as mock_apply_async_with_future,
+    ):
         SpanFlusher.main(
             buffer,
             shards=[0],
@@ -158,7 +168,17 @@ def test_flusher_produces_flushed_segments_to_process_segment_task() -> None:
     task_args = mock_apply_async_with_future.call_args.kwargs["args"]
     task_headers = mock_apply_async_with_future.call_args.kwargs["headers"]
     assert len(task_args) == 1
-    assert orjson.loads(task_args[0])["spans"][0]["span_id"] == span_id
+    assert orjson.loads(task_args[0]).get("segment_span_id") == segment_span_id_field
+    assert _decode_segment(task_args[0]) == (
+        [
+            {
+                "span_id": span_id,
+                "attributes": {"sentry.segment.id": {"type": "string", "value": span_id}},
+                "is_segment": True,
+            }
+        ],
+        False,
+    )
     assert task_headers == {"sentry-propagate-traces": False}
     task_future.result.assert_called_once_with()
     assert buffer.client.zscore(queue_key, segment_key) is None
