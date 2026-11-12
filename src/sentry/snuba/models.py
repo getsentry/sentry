@@ -139,8 +139,10 @@ class QuerySubscription(Model):
         UPDATING = 2
         DELETING = 3
         DISABLED = 4
-        # The query can't be built, so there is no Snuba subscription. Unlike DISABLED,
-        # this wasn't requested; editing or re-enabling the alert retries creation.
+        # Creating the Snuba subscription failed because the query can't be built or Snuba
+        # rejected it, so there is no Snuba subscription and subscription_id is None. Unlike
+        # DISABLED, this wasn't requested. Editing or re-enabling the alert retries
+        # creation, as does a daily recheck, which moves it to CREATING.
         BROKEN = 5
 
     # NOTE: project fk SHOULD match AlertRule's fk
