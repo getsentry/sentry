@@ -61,6 +61,7 @@
     "./gitlabIntegration": "./fixtures/gitlabIntegration.ts",
     "./gitlabIntegrationProvider": "./fixtures/gitlabIntegrationProvider.ts",
     "./globalSelection": "./fixtures/globalSelection.ts",
+    "./gpuCrashEvent": "./fixtures/gpuCrashEvent.ts",
     "./group": "./fixtures/group.ts",
     "./groupOpenPeriod": "./fixtures/groupOpenPeriod.ts",
     "./groups": "./fixtures/groups.ts",

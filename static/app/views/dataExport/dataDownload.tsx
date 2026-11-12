@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {IconDownload} from '@sentry/icons/download';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 
@@ -9,9 +10,9 @@ import {ExportQueryType} from 'sentry/components/exports/useDataExport';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {isAggregateField} from 'sentry/utils/discover/fields';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
@@ -209,27 +210,26 @@ export default function DataDownload() {
     isPending,
     isError,
     error,
-  } = useApiQuery<Download>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/data-export/$dataExportId/', {
-        path: {organizationIdOrSlug: orgSlug, dataExportId},
-      }),
-    ],
-    {
-      staleTime: 0,
-    }
-  );
+  } = useQuery({
+    ...apiOptions.as<Download>()(
+      '/organizations/$organizationIdOrSlug/data-export/$dataExportId/',
+      {path: {organizationIdOrSlug: orgSlug, dataExportId}, staleTime: 0}
+    ),
+  });
 
   const navigate = useNavigate();
 
   if (isError) {
-    const errDetail = error?.responseJSON?.detail;
+    const errDetail =
+      error instanceof RequestError ? error.responseJSON?.detail : undefined;
     return (
       <Layout>
         <main>
           <Header>
             <h3>
-              {error.status} - {error.statusText}
+              {error instanceof RequestError
+                ? `${error.status} - ${error.statusText ?? ''}`
+                : error.message}
             </h3>
           </Header>
           {errDetail && (

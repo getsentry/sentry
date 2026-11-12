@@ -7,6 +7,8 @@ import {DetailedProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DiffFileType} from 'sentry/components/events/autofix/types';
+import type {SeerOutOfCreditsCtaProps} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
+import {registerOverride} from 'sentry/overrideRegistry';
 import {IssueCategory, IssueType, type Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
@@ -19,9 +21,19 @@ import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmCon
 import {AutofixSection} from './autofixSection';
 
 const mockOpenSeerExplorer = jest.fn();
+let mockIsExplorerOpen = false;
 jest.mock('sentry/views/seerExplorer/useSeerExplorerContext', () => ({
   ...jest.requireActual('sentry/views/seerExplorer/useSeerExplorerContext'),
-  useSeerExplorerContext: () => ({openSeerExplorer: mockOpenSeerExplorer}),
+  useSeerExplorerContext: () => ({
+    openSeerExplorer: mockOpenSeerExplorer,
+    isOpen: mockIsExplorerOpen,
+  }),
+}));
+
+let mockOpenRunId: number | null = null;
+jest.mock('sentry/views/seerExplorer/seerExplorerChatStateContext', () => ({
+  ...jest.requireActual('sentry/views/seerExplorer/seerExplorerChatStateContext'),
+  useSeerExplorerChatState: () => ({runId: mockOpenRunId}),
 }));
 
 jest.mock('sentry/utils/cells');
@@ -207,6 +219,10 @@ describe('AutofixSection', () => {
   it('starts collapsed on the autofix tab even when saved as open', async () => {
     mockUseMatches.mockImplementation(() => matchesForTab(Tab.AUTOFIX));
     localStorage.setItem('issue-details-fold-section-collapse:seer', 'false');
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: null},
+    });
 
     render(<AutofixSection group={mockGroup} project={mockProject} />, {
       organization,
@@ -296,6 +312,68 @@ describe('AutofixSection', () => {
 
     beforeEach(() => {
       mockOpenSeerExplorer.mockClear();
+      mockIsExplorerOpen = false;
+      mockOpenRunId = null;
+    });
+
+    it('collapses the section while the run is open in the Explorer panel', async () => {
+      mockIsExplorerOpen = true;
+      mockOpenRunId = 776;
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        body: singleRunBody,
+      });
+
+      render(<AutofixSection group={mockGroup} project={mockProject} />, {organization});
+
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'View Section'})).toHaveAttribute(
+          'aria-expanded',
+          'false'
+        )
+      );
+      expect(screen.getByText('Seer Autofix')).toBeInTheDocument();
+    });
+
+    it('collapses an expanded autofix-tab section when the run opens in the panel', async () => {
+      mockUseMatches.mockImplementation(() => matchesForTab(Tab.AUTOFIX));
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        body: singleRunBody,
+      });
+
+      const {rerender} = render(
+        <AutofixSection group={mockGroup} project={mockProject} />,
+        {organization}
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'View Section'}));
+      expect(screen.getByRole('button', {name: 'Collapse Section'})).toBeInTheDocument();
+
+      mockIsExplorerOpen = true;
+      mockOpenRunId = 776;
+      rerender(<AutofixSection group={mockGroup} project={mockProject} />);
+
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'View Section'})).toHaveAttribute(
+          'aria-expanded',
+          'false'
+        )
+      );
+    });
+
+    it('keeps the section while the Explorer panel shows another chat', async () => {
+      mockIsExplorerOpen = true;
+      mockOpenRunId = 123;
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        body: singleRunBody,
+      });
+
+      render(<AutofixSection group={mockGroup} project={mockProject} />, {organization});
+
+      expect(await screen.findByText('Divides by zero')).toBeInTheDocument();
+      expect(screen.getByText('Seer Autofix')).toBeInTheDocument();
     });
 
     it('opens the Explorer panel on Open Autofix', async () => {
@@ -870,5 +948,137 @@ describe('AutofixSection', () => {
       .data as Record<string, string>;
     expect(data.rootCause).toContain('Null pointer in user handler');
     expect(data.codeChanges).toBe('org/repo: src/handler.py');
+  });
+
+  describe('out of Seer credits', () => {
+    const creditCheckOrganization = OrganizationFixture({
+      hideAiFeatures: false,
+      features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+    });
+    const creditCheckUrl = `/organizations/${organization.slug}/seer/credit-check/`;
+
+    // getsentry fills in the CTA; this stand-in shows what it was asked for.
+    function StubOutOfCreditsCta({
+      reason,
+      variant = 'warning',
+    }: SeerOutOfCreditsCtaProps) {
+      return <div data-test-id="seer-out-of-credits-cta">{`${variant} ${reason}`}</div>;
+    }
+
+    beforeEach(() => {
+      registerOverride('component:seer-out-of-credits-cta', () => StubOutOfCreditsCta);
+    });
+
+    it('swaps the explainer for the muted notice above a disabled Start Analysis', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        body: {autofix: null},
+      });
+      const creditCheck = MockApiClient.addMockResponse({
+        url: creditCheckUrl,
+        match: [MockApiClient.matchQuery({operation: 'autofix_root_cause'})],
+        body: {hasEnoughCredits: false},
+      });
+
+      render(<AutofixSection group={mockGroup} project={mockProject} />, {
+        organization: creditCheckOrganization,
+      });
+
+      const cta = await screen.findByTestId('seer-out-of-credits-cta');
+      expect(cta).toHaveTextContent('muted autofix-start');
+      const startButton = screen.getByRole('button', {name: 'Start Analysis'});
+      expect(startButton).toBeDisabled();
+      expect(
+        cta.compareDocumentPosition(startButton) & Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+      expect(screen.queryByText('Have Seer...')).not.toBeInTheDocument();
+      expect(creditCheck).toHaveBeenCalledTimes(1);
+    });
+
+    it('holds Start Analysis disabled while the check is in flight', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        body: {autofix: null},
+      });
+      MockApiClient.addMockResponse({
+        url: creditCheckUrl,
+        body: {hasEnoughCredits: true},
+        asyncDelay: new Promise(() => {}),
+      });
+
+      render(<AutofixSection group={mockGroup} project={mockProject} />, {
+        organization: creditCheckOrganization,
+      });
+
+      expect(await screen.findByRole('button', {name: 'Start Analysis'})).toBeDisabled();
+      expect(screen.getByText('Have Seer...')).toBeInTheDocument();
+      expect(screen.queryByTestId('seer-out-of-credits-cta')).not.toBeInTheDocument();
+    });
+
+    it('enables Start Analysis when the org can afford a run', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        body: {autofix: null},
+      });
+      MockApiClient.addMockResponse({
+        url: creditCheckUrl,
+        body: {hasEnoughCredits: true},
+      });
+
+      render(<AutofixSection group={mockGroup} project={mockProject} />, {
+        organization: creditCheckOrganization,
+      });
+
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'Start Analysis'})).toBeEnabled()
+      );
+      expect(screen.queryByTestId('seer-out-of-credits-cta')).not.toBeInTheDocument();
+    });
+
+    it('does not check credits once a run exists', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        body: {
+          autofix: {
+            run_id: 1,
+            status: 'completed',
+            updated_at: new Date().toISOString(),
+            blocks: [
+              {
+                id: 'block-1',
+                message: {
+                  content: 'Found root cause',
+                  role: 'assistant',
+                  metadata: {step: 'root_cause'},
+                },
+                timestamp: new Date().toISOString(),
+                artifacts: [
+                  {
+                    key: 'root_cause',
+                    reason: 'Identified the issue',
+                    data: {
+                      one_line_description: 'Null pointer in user handler',
+                      five_whys: ['why1'],
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      });
+      const creditCheck = MockApiClient.addMockResponse({
+        url: creditCheckUrl,
+        body: {hasEnoughCredits: false},
+      });
+
+      render(<AutofixSection group={mockGroup} project={mockProject} />, {
+        organization: creditCheckOrganization,
+      });
+
+      expect(await screen.findByRole('button', {name: 'Open Autofix'})).toBeEnabled();
+      expect(screen.queryByTestId('seer-out-of-credits-cta')).not.toBeInTheDocument();
+      expect(creditCheck).not.toHaveBeenCalled();
+    });
   });
 });

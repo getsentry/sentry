@@ -34,7 +34,6 @@ interface AgenticSetupProps {
   onSelectSnippet: (source: AgentSetupCopySource) => void;
   /** The host supplies the action for continuing with browser setup. */
   onSetupInBrowser: () => void;
-  prompt: string;
   run: AgenticProgressRun | undefined;
   onboardingCode?: string;
 }
@@ -47,7 +46,6 @@ export function AgenticSetup({
   onRetry,
   onSelectSnippet,
   onSetupInBrowser,
-  prompt,
   feedbackSource,
   issueLinkReferrer,
   hasProgressFailed,
@@ -70,7 +68,7 @@ export function AgenticSetup({
             </Button>
           }
         >
-          {t('Could not start setup, so the prompt below will not report progress.')}
+          {t('Could not prepare agent setup. Try again or set up manually.')}
         </Alert>
       </ScmCollapsibleReveal>
 
@@ -125,11 +123,9 @@ export function AgenticSetup({
             >
               <AgentSetupCard
                 feedbackSource={feedbackSource}
-                hasSetupFailed={hasInitFailed}
-                onboardingCode={onboardingCode}
                 onCopyCommand={onCopyCommand}
                 onSelectSnippet={onSelectSnippet}
-                prompt={prompt}
+                run={run}
               />
             </MotionContainer>
           )}

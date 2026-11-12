@@ -177,6 +177,26 @@ class UserNotificationSettingsOptionsPutTest(UserNotificationSettingsOptionsBase
         )
         assert response.data["scopeType"] == ["Invalid scope type"]
 
+    def test_string_scope_identifier(self) -> None:
+        # The settings UI sends scope identifiers as strings
+        response = self.get_success_response(
+            "me",
+            user_id=self.user.id,
+            scope_type="organization",
+            scope_identifier=str(self.organization.id),
+            type="alerts",
+            status_code=status.HTTP_201_CREATED,
+            value="always",
+        )
+        row = NotificationSettingOption.objects.get(
+            user_id=self.user.id,
+            scope_type=NotificationScopeEnum.ORGANIZATION.value,
+            scope_identifier=self.organization.id,
+            type=NotificationSettingEnum.ISSUE_ALERTS.value,
+        )
+        assert response.data["id"] == str(row.id)
+        assert response.data["scopeIdentifier"] == str(self.organization.id)
+
     def test_invalid_value(self) -> None:
         response = self.get_error_response(
             "me",

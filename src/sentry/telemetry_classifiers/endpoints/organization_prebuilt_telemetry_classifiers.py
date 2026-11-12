@@ -21,12 +21,12 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
-from sentry.telemetry_classifiers.models import TelemetryClassifierDataset
 from sentry.telemetry_classifiers.prebuilt import PREBUILT_CLASSIFIERS
 from sentry.telemetry_classifiers.serializers import (
     PrebuiltClassifierResponse,
     PrebuiltClassifierSerializer,
 )
+from sentry.telemetry_classifiers.types import Dataset
 
 
 @cell_silo_endpoint
@@ -46,7 +46,7 @@ class OrganizationPrebuiltTelemetryClassifiersEndpoint(OrganizationEndpoint):
                 location="query",
                 required=False,
                 type=str,
-                enum=TelemetryClassifierDataset.values,
+                enum=Dataset.values,
                 description="Only return prebuilt classifiers for this dataset.",
             ),
             CursorQueryParam,
@@ -71,7 +71,7 @@ class OrganizationPrebuiltTelemetryClassifiersEndpoint(OrganizationEndpoint):
             return self.respond(status=404)
 
         dataset = request.GET.get("dataset")
-        if dataset is not None and dataset not in TelemetryClassifierDataset.values:
+        if dataset is not None and dataset not in Dataset.values:
             raise ValidationError({"dataset": f'"{dataset}" is not a valid dataset.'})
 
         classifiers = [

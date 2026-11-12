@@ -1695,6 +1695,15 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# When True, firings whose targets their trigger type reports missing are dropped and their
+# triggers deleted. When False, every firing is dispatched.
+register(
+    "cadence.missing_target_check.enabled",
+    type=Bool,
+    default=True,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "seer.night_shift.enable",
     type=Bool,
@@ -1787,6 +1796,13 @@ register(
 # Stops logging FIRST_SEEN when ingest creates a group.
 register(
     "issues.action_log.first_seen_on_create.killswitch",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Stops rate-limiting VIEW actions from group details; every view is published.
+register(
+    "issues.action_log.view_rate_limit.killswitch",
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
@@ -4864,6 +4880,13 @@ register(
 
 register(
     "integrations.client.disable_retries",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "buffer.split-pending-set",
     default=False,
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

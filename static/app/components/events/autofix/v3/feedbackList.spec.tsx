@@ -20,8 +20,7 @@ function IterationFeedback({state}: {state: ExplorerAutofixState}) {
   )!;
   const {feedback} = usePrIterationFeedback(
     section,
-    explorerAutofixFixture({runState: state}),
-    true
+    explorerAutofixFixture({runState: state})
   );
   return <FeedbackList items={feedback} />;
 }

@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
-import {useFetchOrganizationTags} from 'sentry/actionCreators/tags';
+import {organizationTagsApiOptions} from 'sentry/actionCreators/tags';
 import {makeFeatureFlagSearchKey} from 'sentry/components/events/featureFlags/utils';
 import {ItemType, type SearchGroup} from 'sentry/components/searchBar/types';
 import {
@@ -31,14 +32,12 @@ import {useMemberUsernames} from 'sentry/utils/membersAndTeams/useMemberUsername
 import {escapeIssueTagKey} from 'sentry/utils/queryString';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
-import {useFetchOrganizationFeatureFlags} from './useFetchOrganizationFeatureFlags';
+import {organizationFeatureFlagsApiOptions} from './organizationFeatureFlagsApiOptions';
 
 type UseFetchIssueTagsParams = {
   org: Organization;
   projectIds: string[];
   end?: string;
-  includeFeatureFlags?: boolean;
-  keepPreviousData?: boolean;
   start?: string;
   statsPeriod?: string | null;
 };
@@ -101,45 +100,39 @@ const renameConflictingTags = (tags: Map<string, Tag>): TagCollection =>
 export const useFetchIssueTags = ({
   org,
   projectIds,
-  keepPreviousData = false,
-  includeFeatureFlags = false,
   ...statsPeriodParams
 }: UseFetchIssueTagsParams) => {
-  const eventsTagsQuery = useFetchOrganizationTags(
-    {
+  const eventsTagsQuery = useQuery({
+    ...organizationTagsApiOptions({
       orgSlug: org.slug,
       projectIds,
       dataset: Dataset.ERRORS,
-      keepPreviousData,
       ...statsPeriodParams,
-    },
-    {}
-  );
+    }),
+    placeholderData: keepPreviousData,
+  });
 
-  const issuePlatformTagsQuery = useFetchOrganizationTags(
-    {
+  const issuePlatformTagsQuery = useQuery({
+    ...organizationTagsApiOptions({
       orgSlug: org.slug,
       projectIds,
       dataset: Dataset.ISSUE_PLATFORM,
-      keepPreviousData,
       ...statsPeriodParams,
-    },
-    {}
-  );
+    }),
+    placeholderData: keepPreviousData,
+  });
 
   // For now, feature flag keys (see `flags` column of the ERRORS dataset) are exposed from the tags endpoint,
   // with query param useFlagsBackend=1. This is used for issue stream search suggestions.
-  const featureFlagTagsQuery = useFetchOrganizationFeatureFlags(
-    {
+  const featureFlagTagsQuery = useQuery({
+    ...organizationFeatureFlagsApiOptions({
       orgSlug: org.slug,
       projectIds,
       useCache: true,
-      enabled: includeFeatureFlags, // Only make this query if includeFeatureFlags is true.
-      keepPreviousData,
       ...statsPeriodParams,
-    },
-    {}
-  );
+    }),
+    placeholderData: keepPreviousData,
+  });
 
   const assignedValues = useAssignedSearchValues();
   const usernames = useMemberUsernames();

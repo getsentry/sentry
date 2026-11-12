@@ -13,7 +13,6 @@ import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {DateTime} from 'sentry/components/dateTime';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t, tct, tn} from 'sentry/locale';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
@@ -382,76 +381,58 @@ export function InvestigationPageContent({
               </Flex>
             ) : null}
           </Grid>
-          <Flex align="center" justify="between" gap="md">
-            <Flex flex="1" minWidth={0} align="center" gap="sm" wrap="wrap">
-              {source.groupId ? (
-                <Link
-                  to={normalizeUrl(
-                    `/organizations/${organization.slug}/issues/${source.groupId}/`
-                  )}
-                >
-                  <Flex as="span" align="center" gap="xs">
-                    <IconIssues size="xs" />
-                    {source.monitorName ?? t('View issue')}
-                  </Flex>
-                </Link>
-              ) : (
-                <Text variant="muted">{formatSourceType(investigation.sourceType)}</Text>
-              )}
-              <MetaDivider />
-              <Text variant="muted">
-                {tct('Last update: [date]', {
-                  date: <DateTime date={investigation.dateUpdated} year />,
-                })}
-              </Text>
-              {!showActivity ||
-              (investigation.status === 'archived' && commentCount === 0) ? null : (
-                <Fragment>
-                  <MetaDivider />
-                  <Button
-                    size="sm"
-                    variant="link"
-                    icon={<IconChat size="xs" />}
-                    aria-label={commentsLabel}
-                    onClick={() => {
-                      if (investigation.status === 'archived') {
-                        activityRef.current?.scrollIntoView?.({behavior: 'smooth'});
-                        return;
-                      }
-                      composerRef.current?.scrollIntoView?.({
-                        block: 'center',
-                        behavior: 'smooth',
-                      });
-                      composerRef.current?.focus({preventScroll: true});
-                    }}
-                  >
-                    <CommentCount>
-                      {hasMoreComments ? `${commentCount}+` : commentCount}
-                    </CommentCount>
-                  </Button>
-                </Fragment>
-              )}
-              <InvestigationViewers
-                investigationId={investigation.id}
-                separator={<MetaDivider />}
-              />
-            </Flex>
-            <Container flexShrink={0}>
-              <FeedbackButton
-                feedbackOptions={{
-                  formTitle: t('Give feedback on this investigation'),
-                  messagePlaceholder: t('What was useful, incorrect, or missing?'),
-                  tags: {
-                    'feedback.source': 'investigation',
-                    'feedback.owner': 'ml-ai',
-                    'investigation.id': investigation.id,
-                    'investigation.source_type': investigation.sourceType,
-                  },
-                }}
+          <Flex minWidth={0} align="center" gap="sm" wrap="wrap">
+            {source.groupId ? (
+              <Link
+                to={normalizeUrl(
+                  `/organizations/${organization.slug}/issues/${source.groupId}/`
+                )}
               >
-                {t('Give feedback')}
-              </FeedbackButton>
-            </Container>
+                <Flex as="span" align="center" gap="xs">
+                  <IconIssues size="xs" />
+                  {source.monitorName ?? t('View issue')}
+                </Flex>
+              </Link>
+            ) : (
+              <Text variant="muted">{formatSourceType(investigation.sourceType)}</Text>
+            )}
+            <MetaDivider />
+            <Text variant="muted">
+              {tct('Last update: [date]', {
+                date: <DateTime date={investigation.dateUpdated} year />,
+              })}
+            </Text>
+            {!showActivity ||
+            (investigation.status === 'archived' && commentCount === 0) ? null : (
+              <Fragment>
+                <MetaDivider />
+                <Button
+                  size="sm"
+                  variant="link"
+                  icon={<IconChat size="xs" />}
+                  aria-label={commentsLabel}
+                  onClick={() => {
+                    if (investigation.status === 'archived') {
+                      activityRef.current?.scrollIntoView?.({behavior: 'smooth'});
+                      return;
+                    }
+                    composerRef.current?.scrollIntoView?.({
+                      block: 'center',
+                      behavior: 'smooth',
+                    });
+                    composerRef.current?.focus({preventScroll: true});
+                  }}
+                >
+                  <CommentCount>
+                    {hasMoreComments ? `${commentCount}+` : commentCount}
+                  </CommentCount>
+                </Button>
+              </Fragment>
+            )}
+            <InvestigationViewers
+              investigationId={investigation.id}
+              separator={<MetaDivider />}
+            />
           </Flex>
         </Stack>
       </Container>
