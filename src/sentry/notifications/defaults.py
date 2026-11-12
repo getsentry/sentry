@@ -33,6 +33,13 @@ NOTIFICATION_SETTINGS_TYPE_DEFAULTS = {
     NotificationSettingEnum.SPIKE_PROTECTION: NotificationSettingsOptionEnum.ALWAYS,
     NotificationSettingEnum.REPORTS: NotificationSettingsOptionEnum.ALWAYS,
     NotificationSettingEnum.BROKEN_MONITORS: NotificationSettingsOptionEnum.ALWAYS,
+    # INBOX needs a default too: without one, get_default_for_provider turns off
+    # email and Slack for every Inbox category.
+    NotificationSettingEnum.INBOX: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.INBOX_ASSIGNMENTS: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.INBOX_MENTIONS: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.INBOX_PR_READY_FOR_REVIEW: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.INBOX_COMPLETION_STATUS: NotificationSettingsOptionEnum.ALWAYS,
 }
 
 

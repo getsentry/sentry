@@ -37,5 +37,10 @@ class NotificationDefaultTest(APITestCase):
                 "brokenMonitors": "always",
                 "quotaSeerUsers": "always",
                 "quotaSizeAnalyses": "always",
+                "inbox": "always",
+                "inboxAssignments": "always",
+                "inboxMentions": "always",
+                "inboxPrReadyForReview": "always",
+                "inboxCompletionStatus": "always",
             },
         }
