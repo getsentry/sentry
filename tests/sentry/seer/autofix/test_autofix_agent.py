@@ -38,6 +38,7 @@ from sentry.seer.autofix.pr_iteration.iterations import PrIterationNoPullRequest
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun, SeerRun
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -1822,7 +1823,7 @@ class TestSingleRunStartedEvents(TestCase):
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.process_autofix_updates.apply_async")
     @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
-    def test_single_run_skips_started_events(
+    def test_single_run_sends_root_cause_started(
         self,
         mock_feature: MagicMock,
         mock_process_autofix_updates: MagicMock,
@@ -1844,8 +1845,11 @@ class TestSingleRunStartedEvents(TestCase):
         )
 
         assert mock_feature.call_args.args[1].single_run is True
-        mock_broadcast.assert_not_called()
-        mock_process_autofix_updates.assert_not_called()
-        assert not Activity.objects.filter(
+        assert mock_broadcast.call_args.kwargs["event_name"] == "root_cause_started"
+        assert (
+            mock_process_autofix_updates.call_args.kwargs["kwargs"]["event_type"]
+            == SentryAppEventType.SEER_ROOT_CAUSE_STARTED
+        )
+        assert Activity.objects.filter(
             group=group, type=ActivityType.SEER_RCA_STARTED.value
         ).exists()

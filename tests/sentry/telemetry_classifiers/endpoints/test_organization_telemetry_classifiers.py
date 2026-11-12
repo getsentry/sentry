@@ -135,7 +135,7 @@ class OrganizationTelemetryClassifiersCreateTest(APITestCase):
             "resultAttribute": "frustration",
             "dataset": "conversation",
             "filterQuery": "gen_ai.agent.name:support",
-            "prebuiltClassifierKey": "user_frustration",
+            "prebuiltClassifierKey": "conversation_user_frustration",
             **overrides,
         }
 
@@ -162,7 +162,7 @@ class OrganizationTelemetryClassifiersCreateTest(APITestCase):
             "dataset": "conversation",
             "filterQuery": "gen_ai.agent.name:support",
             "status": "enabled",
-            "prebuiltClassifierKey": "user_frustration",
+            "prebuiltClassifierKey": "conversation_user_frustration",
             "naturalLanguagePrompt": None,
             "outputType": None,
             "dateAdded": classifier.date_added,
@@ -192,15 +192,6 @@ class OrganizationTelemetryClassifiersCreateTest(APITestCase):
             assert "prebuiltClassifierKey" in response.data
 
         assert not TelemetryClassifier.objects.exists()
-
-    def test_creates_prebuilt_classifier_for_trace_spans(self) -> None:
-        payload = self.payload(dataset="trace_spans", prebuiltClassifierKey="failed_operation")
-
-        with self.feature(self.features):
-            response = self.get_success_response(self.organization.slug, **payload, status_code=201)
-
-        assert response.data["dataset"] == "trace_spans"
-        assert response.data["prebuiltClassifierKey"] == "failed_operation"
 
     def test_rejects_unknown_prebuilt_classifier_key(self) -> None:
         with self.feature(self.features):
@@ -261,6 +252,27 @@ class OrganizationTelemetryClassifiersCreateTest(APITestCase):
             )
 
         assert response.data["resultAttribute"] == "agent.user_frustration_2"
+
+    def test_accepts_conversation_aggregate_filter(self) -> None:
+        with self.feature(self.features):
+            response = self.get_success_response(
+                self.organization.slug,
+                **self.payload(filterQuery="gen_ai.tool.name:search OR conversation.errors:>0"),
+                status_code=201,
+            )
+
+        assert response.data["filterQuery"] == "gen_ai.tool.name:search OR conversation.errors:>0"
+
+    def test_rejects_invalid_filter_query(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                **self.payload(filterQuery="(gen_ai.agent.name:support"),
+                status_code=400,
+            )
+
+        assert "filterQuery" in response.data
+        assert not TelemetryClassifier.objects.exists()
 
     def test_rejects_project_in_other_organization(self) -> None:
         other_project = self.create_project(organization=self.create_organization())

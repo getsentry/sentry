@@ -151,7 +151,7 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
     event_metadata["initial_priority"] = occurrence.priority
 
     if occurrence.type == FeedbackGroup:
-        # TODO: Should feedbacks be their own event type, so above call to event.get_event_medata
+        # TODO: Should feedbacks be their own event type, so above call to event.get_event_metadata
         # could populate this instead?
         # Or potentially, could add a method to GroupType called get_metadata
         event_metadata["contact_email"] = occurrence.evidence_data.get("contact_email")

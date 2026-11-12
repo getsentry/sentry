@@ -486,7 +486,7 @@ describe('AssigneeSelectorDropdown', () => {
     await openMenu();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
-    await userEvent.type(screen.getByRole('textbox'), 'Cert');
+    await userEvent.type(screen.getByRole('searchbox'), 'Cert');
 
     // 1 total item
     await waitFor(() => {
@@ -530,7 +530,7 @@ describe('AssigneeSelectorDropdown', () => {
     await openMenu();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
-    await userEvent.type(screen.getByRole('textbox'), 'github@example.com');
+    await userEvent.type(screen.getByRole('searchbox'), 'github@example.com');
 
     // 1 total item
     await waitFor(() => {

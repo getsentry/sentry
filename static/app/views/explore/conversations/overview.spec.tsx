@@ -423,6 +423,10 @@ describe('ConversationsOverviewPage', () => {
       'conversations.onboarding.page-view',
       expect.anything()
     );
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.table.page-view',
+      expect.objectContaining({tab: 'traces'})
+    );
 
     await userEvent.click(screen.getByRole('tab', {name: 'Conversations'}));
 
@@ -438,6 +442,47 @@ describe('ConversationsOverviewPage', () => {
     ).not.toBeInTheDocument();
     expect(screen.getByText('Agent Runs')).toBeInTheDocument();
     expect(await screen.findByRole('button', {name: 'Copy prompt'})).toBeInTheDocument();
+  });
+
+  it('tracks a table page view for each tab', async () => {
+    render(<ConversationsOverviewPage />, {organization});
+
+    await waitFor(() =>
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'conversations.table.page-view',
+        expect.objectContaining({tab: 'conversations'})
+      )
+    );
+
+    await userEvent.click(await screen.findByRole('tab', {name: 'Traces'}));
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.table.page-view',
+      expect.objectContaining({tab: 'traces'})
+    );
+
+    await userEvent.click(screen.getByRole('tab', {name: 'LLM Calls'}));
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.table.page-view',
+      expect.objectContaining({tab: 'spans'})
+    );
+  });
+
+  it('tracks adding an agent chart to a dashboard', async () => {
+    render(<ConversationsOverviewPage />, {organization});
+
+    const [widgetActions] = await screen.findAllByRole('button', {
+      name: 'Widget actions',
+    });
+    await userEvent.click(widgetActions!);
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to Dashboard'}));
+
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.save_as',
+      expect.objectContaining({
+        chart: 'explore-agents-estimated-cost',
+        save_type: 'dashboard',
+      })
+    );
   });
 
   it('does not open a pasted conversation ID on the Traces tab', async () => {

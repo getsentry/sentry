@@ -50,6 +50,7 @@ import {
 import {useSettingsScope} from 'sentry/views/settings/useSettingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
+import {PrimaryNavigationCommandPalette} from './primary/commandPalette';
 import {PrimaryNavigation} from './primary/components';
 import {PrimaryNavigationHelpMenu} from './primary/helpMenu';
 import {PrimaryNavigationOnboarding} from './primary/onboarding';
@@ -153,6 +154,7 @@ function NavigationImpl() {
               paddingBottom="md"
             >
               <PrimaryNavigation.FooterItems>
+                <PrimaryNavigationCommandPalette />
                 <PrimaryNavigationFooterItems>
                   <ErrorBoundary customComponent={null}>
                     <PrimaryNavigationWhatsNew />
