@@ -12,6 +12,10 @@ import {
   collapseSeerActivityPairs,
   type ActivityFeedItem,
 } from './activityLineItem/activityFeedItem';
+import {
+  ActivityLineInvestigationLinked,
+  isInvestigationLinkedActivity,
+} from './activityLineItem/investigationLinked';
 import {ActivityLineNote, isActivityNote} from './activityLineItem/note';
 import {ActivityLine} from './activityLineItem';
 import {Timeline} from './timeline';
@@ -394,6 +398,42 @@ const collapsedSeerActivities = collapseSeerActivityPairs([
   }),
 ]);
 
+const investigation = {id: '42', title: 'Checkout p95 latency spike', status: 'active'};
+
+const investigationLinkActivities = [
+  {
+    ...seerActivity(GroupActivityType.INVESTIGATION_LINKED, {
+      investigation,
+      hypothesisId: 'h-1',
+      hypothesisStatement: 'Payment client retries exhaust the connection pool',
+      reason:
+        'TimeoutError QueuePool limit 10+10 reached, 4,734 events during the spike; culprit process_payment_authorization_and_retry_connection_pool in payments/client.py.',
+    }),
+    id: 'investigation-linked',
+  },
+  {
+    ...seerActivity(GroupActivityType.INVESTIGATION_LINKED, {
+      investigation: {
+        ...investigation,
+        title: 'Checkout p95 latency spike after the payments deploy on the EU cluster',
+      },
+      hypothesisId: 'h-2',
+      hypothesisStatement: 'The 14:02 payments deploy added a slow fraud check',
+      reason: null,
+    }),
+    id: 'investigation-linked-long-title',
+  },
+  {
+    ...seerActivity(GroupActivityType.INVESTIGATION_LINKED, {
+      investigation: null,
+      hypothesisId: 'h-1',
+      hypothesisStatement: 'Payment client retries exhaust the connection pool',
+      reason: null,
+    }),
+    id: 'investigation-linked-deleted',
+  },
+];
+
 export default Storybook.story('Issue Activity', story => {
   story('Resolution', () => <ResolutionExamples />);
   story('Archived', () => <ActivityExamples items={archivedActivities} />);
@@ -405,6 +445,9 @@ export default Storybook.story('Issue Activity', story => {
   story('Sources', () => <ActivityExamples items={sourceActivities} />);
   story('Seer', () => <ActivityExamples items={seerActivities} />);
   story('Collapsed Seer', () => <ActivityFeedExamples items={collapsedSeerActivities} />);
+  story('Investigation links', () => (
+    <ActivityExamples items={investigationLinkActivities} />
+  ));
 });
 
 function ResolutionExamples() {
@@ -471,24 +514,33 @@ function ActivityExamples({items}: {items: GroupActivity[]}) {
 function ActivityFeedExamples({items}: {items: ActivityFeedItem[]}) {
   return (
     <Timeline.Container>
-      {items.map((item, index) =>
-        item.type === 'activity' && isActivityNote(item.activity) ? (
-          <ActivityLineNote
-            key={`${item.activity.id}-${index}`}
-            activity={item.activity}
-            inputVariant="compact"
-            onDelete={async () => {}}
-            onUpdate={async () => {}}
-          />
-        ) : (
-          <ActivityLine
-            key={`${item.activity.id}-${index}`}
-            group={group}
-            item={item}
-            timestampUnitStyle="short"
-          />
-        )
-      )}
+      {items.map((item, index) => {
+        const key = `${item.activity.id}-${index}`;
+        if (item.type === 'activity' && isActivityNote(item.activity)) {
+          return (
+            <ActivityLineNote
+              key={key}
+              activity={item.activity}
+              inputVariant="compact"
+              onDelete={async () => {}}
+              onUpdate={async () => {}}
+            />
+          );
+        }
+        if (item.type === 'activity' && isInvestigationLinkedActivity(item.activity)) {
+          return (
+            <ActivityLineInvestigationLinked
+              key={key}
+              activity={item.activity}
+              variant="full"
+              timestampUnitStyle="short"
+            />
+          );
+        }
+        return (
+          <ActivityLine key={key} group={group} item={item} timestampUnitStyle="short" />
+        );
+      })}
     </Timeline.Container>
   );
 }

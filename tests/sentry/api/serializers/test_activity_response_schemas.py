@@ -145,6 +145,9 @@ class GroupActivitySchemaTest(TestCase):
             ActivityType.SEER_PR_READY_FOR_REVIEW: [
                 {"run_id": 1, "pull_requests": SEER_PULL_REQUESTS}
             ],
+            ActivityType.SEER_STOPPED: [
+                {"run_id": 1, "reason": "The API key expired.", "suggestion": "Rotate the key."}
+            ],
             ActivityType.SEER_ITERATION_STARTED: [{"run_id": 1, "referrer": "slack"}],
             ActivityType.SEER_ITERATION_COMPLETED: [
                 {"run_id": 1, "iteration_index": 2, "pull_requests": SEER_PULL_REQUESTS}

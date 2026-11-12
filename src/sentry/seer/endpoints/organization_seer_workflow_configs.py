@@ -739,7 +739,12 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         account: RpcServiceAccount | None = None
         if grant is not None:
             account = workflow.get_service_account()
-            if applied_grant is not None and account is not None:
+            if applied_grant is not None and account is None:
+                logger.warning(
+                    "seer.workflow_config.service_account_missing_after_update",
+                    extra={"organization_id": organization.id, "config_id": workflow.config_id},
+                )
+            elif applied_grant is not None and account is not None:
                 # The saved grant, since control may not have applied it yet.
                 account = account.copy(
                     update={

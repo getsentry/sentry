@@ -103,6 +103,7 @@ def single_run_memory_block(
     root_cause: dict[str, Any] | None = None,
     block_id: str = "single-run",
     with_code: bool = False,
+    stop: dict[str, Any] | None = None,
 ) -> MemoryBlock:
     return MemoryBlock(
         id=block_id,
@@ -116,7 +117,8 @@ def single_run_memory_block(
             [Artifact(key="single_run_root_cause", data=root_cause, reason="explorer")]
             if root_cause is not None
             else []
-        ),
+        )
+        + ([Artifact(key="stop", data=stop, reason="explorer")] if stop else []),
         merged_file_patches=(
             [
                 AgentFilePatch(
@@ -3009,6 +3011,28 @@ class TestSingleRunCompletion(TestCase):
 
         assert self._events(mocks) == []
         mocks["updates"].assert_not_called()
+
+    def test_stop_is_sent_to_entrypoints_once_without_a_webhook(self) -> None:
+        stop = {"reason": "The API key expired.", "suggestion": "Rotate the key."}
+        state = self._state(single_run_memory_block(stop=stop))
+
+        mocks = self._execute(state)
+        again = self._execute(state)
+
+        assert self._events(mocks) == []
+        (call,) = mocks["updates"].call_args_list
+        assert call.kwargs["kwargs"]["event_type"] == SentryAppEventType.SEER_STOPPED
+        assert call.kwargs["kwargs"]["event_payload"]["stop"] == stop
+        again["updates"].assert_not_called()
+
+    def test_stop_is_not_sent_once_the_run_has_code_changes(self) -> None:
+        stop = {"reason": "R", "suggestion": "N"}
+        state = self._state(single_run_memory_block(_ROOT_CAUSE, with_code=True, stop=stop))
+
+        mocks = self._execute(state)
+
+        sent = [c.kwargs["kwargs"]["event_type"] for c in mocks["updates"].call_args_list]
+        assert SentryAppEventType.SEER_STOPPED not in sent
 
     def test_errored_run_announces_nothing_but_the_failure(self) -> None:
         mocks = self._execute(self._state(single_run_memory_block(_ROOT_CAUSE), status="error"))

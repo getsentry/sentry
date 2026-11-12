@@ -220,7 +220,7 @@ describe('FiltersBar', () => {
     renderFilterBar();
     await userEvent.click(screen.getByRole('button', {name: 'Add Global Filter'}));
     await userEvent.click(screen.getByRole('option', {name: dataset}));
-    await userEvent.type(screen.getByRole('textbox'), 'searched');
+    await userEvent.type(screen.getByRole('searchbox'), 'searched');
 
     await waitFor(() =>
       expect(searchRequest).toHaveBeenCalledWith(

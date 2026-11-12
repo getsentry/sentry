@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import Any
 from unittest import mock
 
@@ -5,6 +6,7 @@ from django.urls import reverse
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
+from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.cases import (
     APITransactionTestCase,
     OccurrenceTestCase,
@@ -459,3 +461,41 @@ class OrganizationTraceItemStatsEndpointTest(
 
         assert "user.geo.subregion" not in attribute_distribution
         assert "user.geo.city" not in attribute_distribution
+
+    def test_preflight_narrows_time_range_to_sampled_items(self) -> None:
+        oldest = before_now(hours=3).replace(microsecond=750_000)
+        newest = before_now(minutes=10).replace(microsecond=750_000)
+        for start_ts, tag in [(oldest, "edge_oldest"), (newest, "edge_newest")]:
+            self.store_span(
+                self.create_span({"tags": {tag: "value"}}, start_ts=start_ts, duration=100)
+            )
+
+        with mock.patch.object(
+            Spans, "run_stats_query", wraps=Spans.run_stats_query
+        ) as run_stats_query:
+            response = self.do_request(
+                query={
+                    "statsType": ["attributeDistributions"],
+                    "substringMatch": "edge_",
+                    "statsPeriod": "1d",
+                }
+            )
+
+        assert response.status_code == 200, response.data
+        attribute_distribution = response.data["data"][0]["attributeDistributions"]["data"]
+        assert set(attribute_distribution) == {"edge_oldest", "edge_newest"}
+
+        (preflight_call,) = [
+            call for call in run_stats_query.call_args_list if call.kwargs.get("max_buckets") == 1
+        ]
+        preflight_params = preflight_call.kwargs["params"]
+        assert preflight_params.start == oldest.replace(microsecond=0)
+        assert preflight_params.end == newest.replace(microsecond=0) + timedelta(seconds=1)
+
+        stats_calls = [
+            call for call in run_stats_query.call_args_list if call.kwargs.get("max_buckets") != 1
+        ]
+        assert stats_calls
+        for call in stats_calls:
+            assert call.kwargs["params"].start < oldest - timedelta(hours=1)
+            assert call.kwargs["params"].end > newest

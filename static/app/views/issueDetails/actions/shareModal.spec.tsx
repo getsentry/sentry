@@ -25,7 +25,6 @@ describe('ShareIssueModal', () => {
     });
   });
   afterEach(() => {
-    GroupStore.reset();
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
   });

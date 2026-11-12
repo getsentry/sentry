@@ -577,7 +577,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
             status_code=400,
         )
         assert response.data["config"][0] == ErrorDetail(
-            string="Invalid config: 0 is not one of [300, 900, 3600, 86400, 604800, 2592000, None]",
+            string="Invalid config: 0 is not one of [300, 900, 3600, 86400, 604800, 2592000]",
             code="invalid",
         )
 
@@ -590,7 +590,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
             status_code=400,
         )
         assert response.data["config"][0] == ErrorDetail(
-            string="Invalid config: 2592001 is not one of [300, 900, 3600, 86400, 604800, 2592000, None]",
+            string="Invalid config: 2592001 is not one of [300, 900, 3600, 86400, 604800, 2592000]",
             code="invalid",
         )
 
