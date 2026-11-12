@@ -20,6 +20,7 @@ describe('UserBlock', () => {
   it('renders content', () => {
     render(<BlockComponent block={createBlock()} blockIndex={0} />);
     expect(screen.getByText('What is this error about?')).toBeInTheDocument();
+    expect(screen.queryByTestId('pr-feedback-notice')).not.toBeInTheDocument();
   });
 
   it('calls onClick when clicked', async () => {
@@ -43,5 +44,26 @@ describe('UserBlock', () => {
     expect(
       screen.queryByRole('button', {name: 'Copy to clipboard'})
     ).not.toBeInTheDocument();
+  });
+
+  it('renders PR feedback as a notice, not a user message', () => {
+    render(
+      <BlockComponent
+        block={createBlock({
+          message: {
+            role: 'user',
+            content: '@octo on #12: rename it\nGitHub Actions failed on #12',
+            metadata: {step: 'pr_iteration', iteration_index: '1'},
+          },
+        })}
+        blockIndex={0}
+      />
+    );
+
+    expect(screen.getByTestId('pr-feedback-notice')).toHaveTextContent(
+      '@octo on #12: rename it'
+    );
+    expect(screen.getByText('GitHub Actions failed on #12')).toBeInTheDocument();
+    expect(screen.getAllByText(/@octo on #12: rename it/)).toHaveLength(1);
   });
 });
