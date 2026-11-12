@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import multiprocessing
 import os
 import shlex
 import signal
@@ -67,41 +68,52 @@ def _get_taskworker_daemon(reload: bool) -> tuple[str, list[str]]:
     return name, command
 
 
-def _create_kafka_topics(topics_ready: Path) -> None:
+_KAFKA_TIMEOUT_SECONDS = 60
+
+
+def _wait_for_kafka(cluster: str, output: IO[str]) -> None:
+    conf = get_kafka_admin_cluster_options(cluster)
+    servers = conf["bootstrap.servers"]
+    deadline = time.monotonic() + _KAFKA_TIMEOUT_SECONDS
+    waiting = False
+    # A client that can't reach Kafka backs off for up to 10s, so probe with a
+    # fresh client until Kafka answers. log_level 0 replaces the connect error
+    # that librdkafka logs on every attempt with one waiting line.
+    while True:
+        try:
+            AdminClient({**conf, "log_level": 0}).list_topics(timeout=1)
+            return
+        except KafkaException as e:
+            if not waiting:
+                click.echo(f"waiting for kafka at {servers}", file=output)
+                waiting = True
+            if time.monotonic() >= deadline:
+                raise RuntimeError(
+                    f"Kafka at {servers} didn't answer within {_KAFKA_TIMEOUT_SECONDS}s"
+                ) from e
+            time.sleep(0.5)
+
+
+def _create_kafka_topics_or_stop(topics_ready: Path, output: IO[str], devserver_pid: int) -> None:
     """
     Wait for Kafka, create every topic, then create `topics_ready`, which the
-    consumers wait for before they subscribe.
-    """
-    topics_by_cluster: defaultdict[str, list[str]] = defaultdict(list)
-    for topic in list_topics():
-        topic_defn = get_topic_definition(topic)
-        topics_by_cluster[topic_defn["cluster"]].append(topic_defn["real_topic_name"])
-
-    for cluster, topic_names in topics_by_cluster.items():
-        # A client that can't reach Kafka backs off for up to 10s, so probe
-        # with a fresh client until Kafka answers.
-        conf = get_kafka_admin_cluster_options(cluster)
-        while True:
-            try:
-                AdminClient(conf).list_topics(timeout=1)
-                break
-            except KafkaException:
-                time.sleep(0.5)
-        create_topics(cluster, topic_names)
-
-    topics_ready.touch()
-
-
-def _create_kafka_topics_or_stop(topics_ready: Path, output: IO[str]) -> None:
-    """
-    Runs `_create_kafka_topics` in the background so the web doesn't wait for
-    Kafka. A failure stops honcho, and with it every process.
+    consumers wait for before they subscribe. Runs in the background so the web
+    doesn't wait for Kafka. A failure stops the devserver.
     """
     try:
-        _create_kafka_topics(topics_ready)
+        topics_by_cluster: defaultdict[str, list[str]] = defaultdict(list)
+        for topic in list_topics():
+            topic_defn = get_topic_definition(topic)
+            topics_by_cluster[topic_defn["cluster"]].append(topic_defn["real_topic_name"])
+
+        for cluster, topic_names in topics_by_cluster.items():
+            _wait_for_kafka(cluster, output)
+            create_topics(cluster, topic_names)
+
+        topics_ready.touch()
     except Exception:
         traceback.print_exc(file=output)
-        os.kill(os.getpid(), signal.SIGTERM)
+        os.kill(devserver_pid, signal.SIGTERM)
 
 
 def _after_kafka_topics(topics_ready: Path, command: str) -> str:
@@ -490,6 +502,15 @@ def devserver(
         topics_ready.unlink(missing_ok=True)
 
         serve_in_process = not daemons and not consumer_daemons and not silo
+        if serve_in_process and kafka_is_running:
+            # A process, not a thread: Granian forks its workers, and a fork
+            # must not copy live Kafka client threads.
+            multiprocessing.get_context("fork").Process(
+                target=_create_kafka_topics_or_stop,
+                args=(topics_ready, sys.stderr, os.getpid()),
+                daemon=True,
+            ).start()
+
         if debug_server or serve_in_process:
             from sentry.runner import configure
 
@@ -506,10 +527,6 @@ def devserver(
         # If we don't need any other daemons, just launch a normal webserver
         # and avoid dealing with subprocesses
         if serve_in_process:
-            # Not in the background: Granian forks its workers, and a fork must
-            # not copy live Kafka client threads.
-            if kafka_is_running:
-                _create_kafka_topics(topics_ready)
             server.run()
             sys.exit()
 
@@ -597,7 +614,9 @@ def devserver(
 
         if kafka_is_running:
             threading.Thread(
-                target=_create_kafka_topics_or_stop, args=(topics_ready, output), daemon=True
+                target=_create_kafka_topics_or_stop,
+                args=(topics_ready, output, os.getpid()),
+                daemon=True,
             ).start()
         manager.loop()
         sys.exit(manager.returncode)
