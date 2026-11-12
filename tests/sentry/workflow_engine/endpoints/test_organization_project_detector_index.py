@@ -324,32 +324,19 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
         assert response.data == {"type": ["Detector type not compatible with detectors"]}
 
     def test_create_blocked_when_dataset_not_allowed(self) -> None:
-        """
-        Creating a metric detector should be blocked when the org lacks
-        access to the dataset's required feature. Uses the Transactions dataset
-        with performance-view disabled to trigger the validator
-        check (not the endpoint-level incidents gate).
-        """
-        data = {
-            **self.valid_data,
-            "dataSources": [
-                {
-                    **self.valid_data["dataSources"][0],
-                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
-                    "dataset": Dataset.Transactions.value,
-                    "aggregate": "count()",
-                    "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
-                }
-            ],
-        }
-        with self.feature({"organizations:performance-view": False}):
+        """Creating a detector is blocked when its dataset is disallowed."""
+        with mock.patch(
+            "sentry.incidents.metric_issue_detector.is_metric_subscription_allowed",
+            return_value=False,
+        ) as is_allowed:
             response = self.get_error_response(
                 self.organization.slug,
                 self.project.slug,
-                **data,
+                **self.valid_data,
                 status_code=400,
             )
         assert "does not have access" in str(response.data)
+        is_allowed.assert_called_once_with(Dataset.Events.value, self.organization)
 
     def test_project_not_found(self) -> None:
         self.get_error_response(
