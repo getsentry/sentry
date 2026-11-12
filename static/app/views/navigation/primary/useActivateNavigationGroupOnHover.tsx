@@ -5,7 +5,10 @@ import type {LinkProps} from '@sentry/scraps/link';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/navigation/constants';
-import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+import {
+  useNavigationGroupHoverEnabled,
+  usePrimaryNavigation,
+} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 
 import {isPrimaryNavigationLinkActive} from './components';
@@ -24,6 +27,8 @@ import {useMouseMovement} from './useMouseMovement';
  *    an extra delay is added to prevent other nav groups from being activated.
  * 2. If it looks like the user is skimming the side of the nav (e.g. they are browsing the secondary
  *    nav), an extra delay is added to prevent accidental activation.
+ *
+ * Hover activation is skipped when `useNavigationGroupHoverEnabled` is false.
  */
 
 interface UseActivateNavigationGroupOnHoverProps {
@@ -35,10 +40,11 @@ export function useActivateNavigationGroupOnHover({
   const {layout, features, setActiveGroup, activeGroup} = usePrimaryNavigation();
   const {view} = useSecondaryNavigation();
   const location = useLocation();
+  const hoverEnabled = useNavigationGroupHoverEnabled();
 
   const mouseAccelerationRef = useMouseMovement({
     ref,
-    disabled: layout !== 'sidebar',
+    disabled: layout !== 'sidebar' || !hoverEnabled,
   });
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const windowHeight = useWindowHeight();
@@ -129,8 +135,8 @@ export function useActivateNavigationGroupOnHover({
     return {
       'aria-current': isActive ? ('location' as const) : undefined,
       'data-active-group': activeGroup === group ? 'true' : undefined,
-      onMouseEnter,
-      onMouseLeave,
+      onMouseEnter: hoverEnabled ? onMouseEnter : undefined,
+      onMouseLeave: hoverEnabled ? onMouseLeave : undefined,
       onClick,
     };
   };

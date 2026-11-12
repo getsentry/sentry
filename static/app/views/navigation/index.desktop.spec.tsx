@@ -6,6 +6,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -1662,6 +1663,51 @@ describe('desktop navigation', () => {
             await within(secondaryNav).findByRole('link', {name: 'Traces'})
           ).toBeInTheDocument();
         });
+      });
+    });
+  });
+
+  describe('universal inbox', () => {
+    const universalInbox = {features: [...ALL_AVAILABLE_FEATURES, 'universal-inbox']};
+
+    describe('hover', () => {
+      beforeEach(() => {
+        jest.useFakeTimers();
+      });
+
+      afterEach(() => {
+        try {
+          act(() => jest.runOnlyPendingTimers());
+        } finally {
+          jest.useRealTimers();
+        }
+      });
+
+      it('does not preview groups on hover', async () => {
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({organization: universalInbox})
+        );
+
+        const secondaryNav = screen.getByRole('navigation', {
+          name: 'Secondary Navigation',
+        });
+        expect(
+          within(secondaryNav).getByRole('link', {name: 'Feed'})
+        ).toBeInTheDocument();
+
+        await userEvent.hover(screen.getByRole('link', {name: 'Explore'}), {
+          delay: null,
+        });
+        // Advance past the longest hover activation delay.
+        act(() => jest.advanceTimersByTime(250));
+
+        expect(
+          within(secondaryNav).getByRole('link', {name: 'Feed'})
+        ).toBeInTheDocument();
+        expect(screen.queryByRole('link', {name: 'Traces'})).not.toBeInTheDocument();
       });
     });
   });

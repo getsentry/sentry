@@ -26,6 +26,16 @@ const PRIMARY_NAVIGATION_GROUP_CONFIG = {
 
 type NavigationGroup = keyof typeof PRIMARY_NAVIGATION_GROUP_CONFIG;
 
+/**
+ * Whether hovering a primary navigation item previews its group in the
+ * secondary navigation. When disabled, the secondary navigation only follows
+ * the current route (and clicks on primary items).
+ */
+export function useNavigationGroupHoverEnabled(): boolean {
+  const organization = useOrganization({allowNull: true});
+  return !organization?.features.includes('universal-inbox');
+}
+
 const PRIMARY_NAVIGATION_ROUTE_OVERRIDES: Array<{
   group: NavigationGroup;
   pattern: RegExp;
