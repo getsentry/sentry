@@ -29,7 +29,7 @@ class GroupSearchViewStarredManager(BaseManager["GroupSearchViewStarred"]):
         """
         return self.filter(
             organization=organization, user_id=user_id, group_search_view=view
-        ).first()
+        ).first()  # noqa: S034
 
     def reorder_starred_views(
         self, organization: Organization, user_id: int, new_view_positions: list[int]

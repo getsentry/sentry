@@ -538,7 +538,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         query = models.Q(token=self.token) | models.Q(
             refresh_token__isnull=False, refresh_token=self.refresh_token
         )
-        existing = self.__class__.objects.filter(query).first()
+        existing = self.__class__.objects.filter(query).first()  # noqa: S034
         if existing:
             self.token = generate_token(token_type=self.token_type)
             if self.refresh_token is not None:

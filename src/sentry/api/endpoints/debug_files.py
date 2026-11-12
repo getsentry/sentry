@@ -333,7 +333,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
         debug_file = ProjectDebugFile.objects.filter(
             id=debug_file_id, project_id=project.id
-        ).first()
+        ).first()  # noqa: S034
 
         if debug_file is None:
             raise Http404
@@ -520,7 +520,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
                 debug_file = (
                     ProjectDebugFile.objects.filter(id=validated_id, project_id=project.id)
                     .select_related("file")
-                    .first()
+                    .first()  # noqa: S034
                 )
                 if debug_file is not None:
                     debug_file.delete()

@@ -192,7 +192,7 @@ def get_current_release_version_of_group(group: Group, follows_semver: bool = Fa
         current_release_version = (
             Release.objects.filter(id__in=latest_observation)
             .values_list("version", flat=True)
-            .first()
+            .first()  # noqa: S034
         )
     return current_release_version
 

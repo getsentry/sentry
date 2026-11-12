@@ -134,7 +134,7 @@ class AuthRecoveryConfirmEndpoint(Endpoint):
                 user_id=serializer.validated_data["user_id"],
                 hash=serializer.validated_data["token"],
             )
-            .first()
+            .first()  # noqa: S034
         )
         valid = bool(
             password_hash is not None
@@ -164,7 +164,7 @@ class AuthRecoveryConfirmEndpoint(Endpoint):
         password_hash = (
             LostPasswordHash.objects.select_related("user")
             .filter(user_id=user_id, hash=token)
-            .first()
+            .first()  # noqa: S034
         )
         if password_hash is None:
             return Response({"detail": "Invalid or expired recovery token"}, status=400)
@@ -188,7 +188,7 @@ class AuthRecoveryConfirmEndpoint(Endpoint):
                 LostPasswordHash.objects.select_for_update()
                 .select_related("user")
                 .filter(user_id=user_id, hash=token)
-                .first()
+                .first()  # noqa: S034
             )
             if password_hash is None:
                 return Response({"detail": "Invalid or expired recovery token"}, status=400)

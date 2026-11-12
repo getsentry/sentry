@@ -594,7 +594,7 @@ class Release(Model):
                 release = cls.objects.filter(
                     organization_id=project.organization_id,
                     version__in=[version, project_version],
-                ).first()
+                ).first()  # noqa: S034
                 if release is None:
                     metric_tags["cache_hit"] = "false"
                     metric_tags[DATA_ACCESS_TAG] = DataAccessTagValues.DB_READ.value

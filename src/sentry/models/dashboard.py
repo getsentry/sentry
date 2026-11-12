@@ -73,7 +73,7 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
         """
         return self.filter(
             organization=organization, user_id=user_id, dashboard=dashboard, favorited=True
-        ).first()
+        ).first()  # noqa: S034
 
     def reorder_favorite_dashboards(
         self, organization: Organization, user_id: int, new_dashboard_positions: list[int]
@@ -175,7 +175,7 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
                     dashboard=dashboard,
                 )
                 .select_for_update()
-                .first()
+                .first()  # noqa: S034
             )
 
             if existing and existing.favorited:
@@ -221,7 +221,7 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
                     dashboard=dashboard,
                 )
                 .select_for_update()
-                .first()
+                .first()  # noqa: S034
             )
 
             if existing and existing.favorited:
@@ -471,7 +471,7 @@ class Dashboard(Model):
             users_to_refavorite = new_user_ids & existing_user_ids
 
             for user_id in users_to_refavorite:
-                fav = existing_favorites.filter(user_id=user_id, favorited=False).first()
+                fav = existing_favorites.filter(user_id=user_id, favorited=False).first()  # noqa: S034
                 if fav:
                     last_position = DashboardFavoriteUser.objects.get_last_position(
                         self.organization, user_id

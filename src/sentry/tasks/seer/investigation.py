@@ -88,14 +88,14 @@ def _lock_orchestration_run(run_id: int) -> InvestigationOrchestrationRun | None
     investigation = (
         Notebook.objects.select_for_update(of=("self",))
         .filter(orchestration_run__id=run_id)
-        .first()
+        .first()  # noqa: S034
     )
     if investigation is None:
         return None
     return (
         InvestigationOrchestrationRun.objects.select_for_update(of=("self",))
         .filter(id=run_id)
-        .first()
+        .first()  # noqa: S034
     )
 
 
@@ -161,7 +161,7 @@ def _mark_command_dispatch_failed(
 ) -> None:
     database = router.db_for_write(InvestigationOrchestrationCommand)
     with transaction.atomic(using=database):
-        command_snapshot = InvestigationOrchestrationCommand.objects.filter(id=command_id).first()
+        command_snapshot = InvestigationOrchestrationCommand.objects.filter(id=command_id).first()  # noqa: S034
         if command_snapshot is None:
             return
         run = _lock_orchestration_run(command_snapshot.orchestration_run_id)
@@ -172,7 +172,7 @@ def _mark_command_dispatch_failed(
         command = (
             InvestigationOrchestrationCommand.objects.select_for_update()
             .filter(id=command_id)
-            .first()
+            .first()  # noqa: S034
         )
         # A rerun_updated event means Seer has it, whatever happened to the response.
         if (
@@ -221,7 +221,7 @@ def _mark_command_dispatch_failed(
 def _mark_command_version_conflicted(command_id: int, reason: CommandRejectionCode) -> None:
     database = router.db_for_write(InvestigationOrchestrationCommand)
     with transaction.atomic(using=database):
-        command_snapshot = InvestigationOrchestrationCommand.objects.filter(id=command_id).first()
+        command_snapshot = InvestigationOrchestrationCommand.objects.filter(id=command_id).first()  # noqa: S034
         if command_snapshot is None:
             return
         run = _lock_orchestration_run(command_snapshot.orchestration_run_id)
@@ -232,7 +232,7 @@ def _mark_command_version_conflicted(command_id: int, reason: CommandRejectionCo
         command = (
             InvestigationOrchestrationCommand.objects.select_for_update()
             .filter(id=command_id)
-            .first()
+            .first()  # noqa: S034
         )
         if (
             command is None
@@ -277,7 +277,7 @@ def _mark_internal_command_rejected(command_id: int, code: CommandRejectionCode 
 
     database = router.db_for_write(InvestigationOrchestrationCommand)
     with transaction.atomic(using=database):
-        command_snapshot = InvestigationOrchestrationCommand.objects.filter(id=command_id).first()
+        command_snapshot = InvestigationOrchestrationCommand.objects.filter(id=command_id).first()  # noqa: S034
         if command_snapshot is None:
             return
         run = _lock_orchestration_run(command_snapshot.orchestration_run_id)
@@ -288,7 +288,7 @@ def _mark_internal_command_rejected(command_id: int, code: CommandRejectionCode 
         command = (
             InvestigationOrchestrationCommand.objects.select_for_update()
             .filter(id=command_id)
-            .first()
+            .first()  # noqa: S034
         )
         if (
             command is None
@@ -407,7 +407,7 @@ def dispatch_investigation_orchestration_create(orchestration_run_id: int) -> No
     run = (
         InvestigationOrchestrationRun.objects.select_related("investigation__organization")
         .filter(id=orchestration_run_id)
-        .first()
+        .first()  # noqa: S034
     )
     if run is None:
         return
@@ -456,7 +456,7 @@ def dispatch_investigation_orchestration_commands(orchestration_run_id: int) -> 
     run = (
         InvestigationOrchestrationRun.objects.select_related("investigation__organization")
         .filter(id=orchestration_run_id)
-        .first()
+        .first()  # noqa: S034
     )
     if run is None:
         return
@@ -618,7 +618,7 @@ def mark_investigation_telemetry_connected(
     )
     if not connect_requests.exists():
         return
-    organization = Organization.objects.filter(id=organization_id).first()
+    organization = Organization.objects.filter(id=organization_id).first()  # noqa: S034
     if organization is None or not features.has(TELEMETRY_FEATURE, organization):
         return
     if not telemetry_available(organization, provider):

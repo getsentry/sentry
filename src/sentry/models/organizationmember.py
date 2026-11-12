@@ -275,7 +275,7 @@ class OrganizationMember(ReplicatedCellModel):
         update_fields: Iterable[str] | None = None,
     ) -> None:
         if self.id is not None:
-            invite = OrganizationMemberInvite.objects.filter(organization_member_id=self.id).first()
+            invite = OrganizationMemberInvite.objects.filter(organization_member_id=self.id).first()  # noqa: S034
             assert invite is None, "Cannot save placeholder organization member for an invited user"
 
         with outbox_context(transaction.atomic(using=router.db_for_write(OrganizationMember))):
@@ -753,7 +753,7 @@ class OrganizationMember(ReplicatedCellModel):
             self.inviter_id = None
 
         # If there is a token collision, just wipe the token. The user can always make a new one.
-        matching_token = self.__class__.objects.filter(token=self.token).first()
+        matching_token = self.__class__.objects.filter(token=self.token).first()  # noqa: S034
         if matching_token is not None:
             self.token = None
             self.token_expires_at = None
