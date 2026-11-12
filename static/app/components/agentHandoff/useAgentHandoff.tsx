@@ -7,6 +7,7 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export enum AgentHandoffFlow {
+  CREATE_PROJECT = 'create_project',
   ONBOARDING = 'onboarding',
 }
 
@@ -15,12 +16,13 @@ interface HandoffPrompt {
   prompt: string;
 }
 
-interface OnboardingHandoffContext {
+interface ProjectSetupContext {
   runId: string;
 }
 
 interface HandoffContexts {
-  [AgentHandoffFlow.ONBOARDING]: OnboardingHandoffContext;
+  [AgentHandoffFlow.CREATE_PROJECT]: ProjectSetupContext;
+  [AgentHandoffFlow.ONBOARDING]: ProjectSetupContext;
 }
 
 export type AgentHandoffContext<Flow extends AgentHandoffFlow = AgentHandoffFlow> =
