@@ -1,6 +1,9 @@
+import {useStore} from 'zustand';
+
 import {NotFound} from 'sentry/components/errors/notFound';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -23,6 +26,7 @@ const accountNotifications = [
 
 export default function AccountNotificationFineTuningController() {
   const {loaded} = useLegacyStore(OrganizationsStore);
+  const organizationLoading = useStore(OrganizationStore, state => state.loading);
   const organization = useOrganization({allowNull: true});
   const {fineTuneType: pathnameType} = useParams<{fineTuneType: string}>();
   const fineTuneType = getNotificationTypeFromPathname(pathnameType);
@@ -31,8 +35,15 @@ export default function AccountNotificationFineTuningController() {
     return <LoadingIndicator />;
   }
 
-  if (fineTuneType === 'inbox' && !organization?.features.includes('universal-inbox')) {
-    return <NotFound />;
+  if (fineTuneType === 'inbox') {
+    // Account settings aren't wrapped in OrganizationContainer, so the org in
+    // context can still be bootstrapping after OrganizationsStore has loaded.
+    if (organizationLoading) {
+      return <LoadingIndicator />;
+    }
+    if (!organization?.features.includes('universal-inbox')) {
+      return <NotFound />;
+    }
   }
 
   if (accountNotifications.includes(fineTuneType)) {
