@@ -11,7 +11,6 @@ from sentry.api.serializers import serialize
 from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.endpoints.group_related import ALL_TYPES_UNAVAILABLE_DETAIL
 from sentry.issues.related.contributing import (
-    ISSUE_SEARCH_UNAVAILABLE_DETAIL,
     NOT_A_METRIC_ISSUE_DETAIL,
     UNSUPPORTED_DATASET_DETAIL,
     UNSUPPORTED_QUERY_DETAIL,
@@ -608,41 +607,17 @@ class GroupRelatedEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin)
 
     @mock.patch(ISSUE_SEARCH_SNUBA_QUERY, side_effect=QueryExecutionError("timeout"))
     def test_issue_search_error(self, mock_snuba_query: mock.MagicMock) -> None:
-        metric_event, metric_issue = self.store_metric_issue(detector_query())
-        open_period = get_latest_open_period(metric_issue)
-        assert open_period is not None
+        _, metric_issue = self.store_metric_issue(detector_query())
 
         # setUp's error issue is a candidate for the search, so it reaches Snuba
         response = self.client.get(
-            f"/api/0/organizations/{self.organization.slug}/issues/{metric_issue.id}/related/"
+            f"/api/0/organizations/{self.organization.slug}/issues/{metric_issue.id}/related/",
+            {"type": "contributing"},
         )
 
-        # same_trace still answered, so it's not a 503
-        assert response.status_code == 200
-        assert response.data["meta"] == {
-            "types": [
-                {
-                    "type": "similar_stacktrace",
-                    "status": "not_applicable",
-                    "detail": NOT_AN_ERROR_DETAIL,
-                },
-                {
-                    "type": "same_trace",
-                    "status": "ok",
-                    "eventId": metric_event.event_id,
-                    "traceId": metric_event.trace_id,
-                },
-                {
-                    "type": "contributing",
-                    "status": "unavailable",
-                    "detail": ISSUE_SEARCH_UNAVAILABLE_DETAIL,
-                    "eventId": metric_event.event_id,
-                    "start": (open_period.date_started - timedelta(minutes=2))
-                    .replace(second=0, microsecond=0)
-                    .isoformat(),
-                },
-            ]
-        }
+        # The only requested type failed
+        assert response.status_code == 503
+        assert response.data == {"detail": ALL_TYPES_UNAVAILABLE_DETAIL}
         mock_snuba_query.assert_called()
 
     @override_options({"seer.similarity-killswitch.enabled": True})
