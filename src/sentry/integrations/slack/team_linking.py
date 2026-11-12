@@ -87,17 +87,22 @@ def link_team_to_channel(
     integration = channel.integration
     _require_slack_identity(integration, slack_user_id)
 
-    _, created = ExternalActor.objects.get_or_create(
-        team_id=team.id,
-        organization=team.organization,
-        integration_id=integration.id,
-        provider=ExternalProviders.SLACK.value,
-        defaults=dict(
-            external_name=channel.channel_name,
-            external_id=channel.channel_id,
-            source=ExternalActorSource.MANUAL.value,
-        ),
-    )
+    try:
+        _, created = ExternalActor.objects.get_or_create(
+            team_id=team.id,
+            organization=team.organization,
+            integration_id=integration.id,
+            provider=ExternalProviders.SLACK.value,
+            defaults=dict(
+                external_name=channel.channel_name,
+                external_id=channel.channel_id,
+                source=ExternalActorSource.MANUAL.value,
+            ),
+        )
+    # The external team API can link one team to several Slack channels, and
+    # those rows all match this lookup.
+    except ExternalActor.MultipleObjectsReturned:
+        created = False
 
     try:
         analytics.record(
