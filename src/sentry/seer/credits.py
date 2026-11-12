@@ -29,20 +29,18 @@ class SeerFeature(StrEnum):
     EXPLORER = "explorer"
 
 
-# TODO(CW-2314): Fake value until we have real estimates.
-PLACEHOLDER_CREDIT_ESTIMATE = 100
-
-
+# Credits an operation is expected to use, about the p90 of what one costs. A credit is one cent.
 # The operation sets the estimate. Callers pass the feature, since an operation can run under
 # more than one feature.
 SEER_OPERATION_ESTIMATES: dict[SeerOperation, Callable[[], int]] = {
-    SeerOperation.AGENT_CHAT_MESSAGE: lambda: PLACEHOLDER_CREDIT_ESTIMATE,
-    SeerOperation.AUTOFIX_ROOT_CAUSE: lambda: PLACEHOLDER_CREDIT_ESTIMATE,
-    SeerOperation.AUTOFIX_SOLUTION: lambda: PLACEHOLDER_CREDIT_ESTIMATE,
-    SeerOperation.AUTOFIX_CODE_CHANGES: lambda: PLACEHOLDER_CREDIT_ESTIMATE,
-    SeerOperation.AUTOFIX_OPEN_PR: lambda: PLACEHOLDER_CREDIT_ESTIMATE,
-    SeerOperation.AUTOFIX_PR_ITERATION: lambda: PLACEHOLDER_CREDIT_ESTIMATE,
-    SeerOperation.AUTOFIX_SINGLE_RUN_REPLY: lambda: PLACEHOLDER_CREDIT_ESTIMATE,
+    SeerOperation.AGENT_CHAT_MESSAGE: lambda: 40,
+    SeerOperation.AUTOFIX_ROOT_CAUSE: lambda: 75,
+    SeerOperation.AUTOFIX_SOLUTION: lambda: 45,
+    SeerOperation.AUTOFIX_CODE_CHANGES: lambda: 75,
+    SeerOperation.AUTOFIX_OPEN_PR: lambda: 15,
+    SeerOperation.AUTOFIX_PR_ITERATION: lambda: 90,
+    # There's no cost data for single runs yet. A reply can change code, so it uses that estimate.
+    SeerOperation.AUTOFIX_SINGLE_RUN_REPLY: lambda: 75,
 }
 
 
