@@ -1,18 +1,20 @@
 import {Fragment} from 'react';
-import {IconPullRequest} from '@sentry/icons/pullRequest';
 
 import {MessageRow, UserMessage} from '@sentry/scraps/chat';
-import {Flex, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
 
+import {isPrIterationBlock} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {
+  FeedbackList,
+  parseFeedback,
+} from 'sentry/components/events/autofix/v3/feedbackList';
 import {getBlockChatPrompt} from 'sentry/views/seerExplorer/chatPrompt';
 
 import {ChatPromptMessage} from './chatPrompt';
 import type {UserBlockProps} from './shared';
 
 export function UserBlock({block}: UserBlockProps) {
-  if (block.message.metadata?.step === 'pr_iteration') {
-    return <PrFeedbackNotice text={block.message.content ?? ''} />;
+  if (isPrIterationBlock(block)) {
+    return <PrFeedbackNotice block={block} />;
   }
   const chatPrompt = getBlockChatPrompt(block);
   return (
@@ -25,21 +27,18 @@ export function UserBlock({block}: UserBlockProps) {
   );
 }
 
-function PrFeedbackNotice({text}: {text: string}) {
+function PrFeedbackNotice({block}: UserBlockProps) {
+  const metadata = block.message.metadata;
+  const iterationIndex = Number(metadata?.iteration_index ?? 0);
+  const items = metadata?.feedback
+    ? parseFeedback(metadata.feedback).map(item => ({
+        ...item,
+        iterationIndex,
+      }))
+    : [];
   return (
     <MessageRow from="assistant" density="compact" data-test-id="pr-feedback-notice">
-      <Flex gap="sm" align="start" minWidth="0">
-        <Flex flexShrink={0} paddingTop="2xs">
-          <IconPullRequest size="xs" variant="muted" />
-        </Flex>
-        <Stack gap="xs" minWidth="0">
-          {text.split('\n').map((line, index) => (
-            <Text key={index} size="sm" variant="muted">
-              {line}
-            </Text>
-          ))}
-        </Stack>
-      </Flex>
+      <FeedbackList items={items} />
     </MessageRow>
   );
 }

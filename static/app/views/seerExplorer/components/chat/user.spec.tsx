@@ -46,24 +46,39 @@ describe('UserBlock', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders PR feedback as a notice, not a user message', () => {
+  it('renders PR feedback as a feedback list, not a user message', () => {
     render(
       <BlockComponent
         block={createBlock({
           message: {
             role: 'user',
-            content: '@octo on #12: rename it\nGitHub Actions failed on #12',
-            metadata: {step: 'pr_iteration', iteration_index: '1'},
+            content: 'rename it',
+            metadata: {
+              step: 'pr_iteration',
+              iteration_index: '1',
+              feedback: JSON.stringify([
+                {
+                  text: 'rename it',
+                  source: {
+                    type: 'github-pr-comment',
+                    comment: {
+                      id: 1,
+                      body: 'rename it',
+                      html_url: 'https://github.com/org/repo/pull/12#issuecomment-1',
+                      user: {login: 'octo'},
+                    },
+                  },
+                },
+              ]),
+            },
           },
         })}
         blockIndex={0}
       />
     );
 
-    expect(screen.getByTestId('pr-feedback-notice')).toHaveTextContent(
-      '@octo on #12: rename it'
-    );
-    expect(screen.getByText('GitHub Actions failed on #12')).toBeInTheDocument();
-    expect(screen.getAllByText(/@octo on #12: rename it/)).toHaveLength(1);
+    expect(screen.getByTestId('pr-feedback-notice')).toHaveTextContent('rename it');
+    expect(screen.getAllByText('rename it')).toHaveLength(1);
+    expect(screen.queryByTestId('feedback-processed')).not.toBeInTheDocument();
   });
 });

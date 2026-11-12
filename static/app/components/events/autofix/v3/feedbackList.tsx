@@ -103,8 +103,8 @@ type ParsedFeedback =
 // A parsed feedback enriched with the iteration context the caller supplies.
 type IterationFeedback = ParsedFeedback & {
   iterationIndex: number;
-  status: FeedbackStatus;
   errorCode?: string | null;
+  status?: FeedbackStatus;
 };
 
 // Bot comments arrive as HTML-flavored markdown; keep only the visible prose.
@@ -166,7 +166,7 @@ function parseFeedbackItem(parsed: RawFeedback): ParsedFeedback | null {
   }
 }
 
-function parseFeedback(raw: string): ParsedFeedback[] {
+export function parseFeedback(raw: string): ParsedFeedback[] {
   const parsed: RawFeedback | RawFeedback[] = JSON.parse(raw);
   const items = Array.isArray(parsed) ? parsed : [parsed];
   return items.map(parseFeedbackItem).filter(defined);
@@ -806,8 +806,8 @@ function FeedbackStatusIcon({
   status,
   errorCode,
 }: {
-  status: FeedbackStatus;
   errorCode?: string | null;
+  status?: FeedbackStatus;
 }) {
   switch (status) {
     case 'error':

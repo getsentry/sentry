@@ -104,7 +104,7 @@ describe('FeedbackList', () => {
           artifacts: [],
           message: {
             role: 'user',
-            content: '@octo on #12: rename it',
+            content: 'rename it',
             metadata: {
               step: 'pr_iteration',
               iteration_index: '1',
