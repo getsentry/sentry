@@ -158,3 +158,8 @@ class OrganizationGroupSearchViewVisitTest(GroupSearchViewAPITestCase):
     def test_user_preference_read_cannot_record_visit(self) -> None:
         self._use_token(["user_preference:read"])
         assert self.client.post(self.url).status_code == 403
+
+    def test_org_read_can_record_visit(self) -> None:
+        self._use_token(["org:read"])
+        response = self.client.post(self.url)
+        assert response.status_code == 204, response.content

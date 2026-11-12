@@ -207,6 +207,14 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
         )
         assert response.status_code == 403
 
+    def test_org_read_can_reorder(self) -> None:
+        self.star_views([self.views[0].id, self.views[1].id])
+        self._use_token(["org:read"])
+        response = self.client.put(
+            self.url, data={"view_ids": [self.views[1].id, self.views[0].id]}, format="json"
+        )
+        assert response.status_code == 204, response.content
+
 
 class OrganizationGroupSearchViewStarredOrderTransactionTest(TestCase):
     endpoint = "sentry-api-0-organization-group-search-view-starred-order"

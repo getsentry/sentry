@@ -39,8 +39,8 @@ from sentry.models.project import Project
 
 class MemberPermission(OrganizationPermission):
     scope_map = {
-        "GET": ["member:read", "member:write", "saved_query:read"],
-        "POST": ["member:read", "member:write", "saved_query:write"],
+        "GET": ["org:read", "member:read", "member:write", "saved_query:read"],
+        "POST": ["org:read", "member:read", "member:write", "saved_query:write"],
     }
 
     def has_object_permission(self, request: Request, view: APIView, obj: Any) -> bool:

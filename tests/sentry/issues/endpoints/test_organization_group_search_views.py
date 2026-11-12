@@ -1056,3 +1056,9 @@ class OrganizationGroupSearchViewsScopeTest(APITestCase):
         # Write does not imply read.
         self._use_token(["saved_query:write"])
         assert self.client.get(self.url).status_code == 403
+
+    def test_org_read_can_list_and_create(self) -> None:
+        self._use_token(["org:read"])
+        assert self.client.get(self.url).status_code == 200
+        response = self.client.post(self.url, self.view_data, format="json")
+        assert response.status_code == 201, response.content

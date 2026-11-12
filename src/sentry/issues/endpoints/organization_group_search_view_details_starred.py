@@ -25,10 +25,10 @@ class StarViewSerializer(serializers.Serializer):
 
 class MemberPermission(OrganizationPermission):
     scope_map = {
-        "POST": ["member:read", "member:write", "user_preference:write"],
+        "POST": ["org:read", "member:read", "member:write", "user_preference:write"],
     }
 
-    # user_preference:write replaces member:read in orgs with granular scopes.
+    # user_preference:write replaces member:read and org:read in orgs with granular scopes.
     rejects_deprecated_scopes = True
 
 
