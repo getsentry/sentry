@@ -236,6 +236,8 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             return
         group = cls._fetch_group(organization, run_id, group_id)
         if group is None:
+            if is_pr_feedback_turn(state) and state.status == "completed":
+                fail_pr_iteration_missing_group(organization, state, group_id)
             return
         if state.status == "completed":
             if is_pr_feedback_turn(state):

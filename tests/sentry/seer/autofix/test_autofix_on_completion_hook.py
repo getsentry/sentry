@@ -3084,6 +3084,18 @@ class TestSingleRunCompletion(TestCase):
         mocks["consume"].assert_not_called()
         mocks["react"].assert_not_called()
 
+    def test_pr_feedback_turn_without_a_group_finalizes_the_iteration(self) -> None:
+        state = run_state(
+            blocks=[single_run_memory_block(_ROOT_CAUSE), self._pr_feedback_turn()],
+            metadata={"group_id": 999999999, "feature_id": SINGLE_RUN_FEATURE_ID},
+        )
+
+        mocks = self._execute_pr_feedback(state)
+
+        complete_mock = mocks["complete"]
+        assert complete_mock.call_args.kwargs["outcome"] == "missing_group_id"
+        mocks["consume"].assert_not_called()
+
     def _unpushed_edits_state(self) -> SeerRunState:
         edits = MemoryBlock(
             id="edits",
