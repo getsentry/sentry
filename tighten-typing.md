@@ -11,6 +11,21 @@
 
 The executor rewrites this block in place after every accepted slice. The **Ledger** is the single tracker for all work: every item, every audit finding (through its item), and every sweep package has a row there.
 
+## Consolidation of open PRs (2026-11-12)
+
+The 38 related open drafts were consolidated into six thematic review units plus seven singles. The combined draft #130956 retains all the code either way; no behavior changed in the moves. Every branch in the bundles was verified byte-identical to the individually validated member branches on the paths they touch.
+
+| Bundle | Combines | Result |
+| --- | --- | --- |
+| [#130964](https://github.com/getsentry/sentry/pull/130964) | #127793, #127813 | Monitor status filtering; monitor deletion audit GUID. |
+| [#130965](https://github.com/getsentry/sentry/pull/130965) | #127798, #127848, #129618, #129620 | Release owner, first/last seen merge, health-stats and group-count defaults, artifact manifest validation. |
+| [#130966](https://github.com/getsentry/sentry/pull/130966) | #129622, #129623 | Non-string sourcemap headers and artifact-bundle debug ids are treated as absent. |
+| [#130967](https://github.com/getsentry/sentry/pull/130967) | #127797, #127812 | Social auth extra-argument copies; form-encoded OAuth2 token responses. |
+| [#130968](https://github.com/getsentry/sentry/pull/130968) | #129616, #129619, #129704 | Teams conversation id, jira search query requirement, slack unfurl null widget type. |
+| [#130963](https://github.com/getsentry/sentry/pull/130963) | #129617, #129624, #129621 | Blank origin and blank allowed-domains preservation, dashboard threshold validation. |
+
+The nine original drafts (#129427 through #129438) were closed as superseded by their restacked twins, which in turn were closed into the bundles. The five already-covered PRs (#127788, #127796, #127847, #129433, #129615) were closed with no code change. The remaining seven singles are #127794, #127795, #127800, #127844, #127886, #127906, #127922. Vacuous tests were removed from the affected drafts and the integration before this consolidation; the kept tests are the ones that fail before each PR's change.
+
 ## Integration of open PRs (2026-11-12)
 
 The owner requested one combined draft, rebasing every related open PR onto the latest `master`, retaining draft status, and updating this document. This request includes the 16 earlier typing fixes. The integration preserves original and restacked source histories. For overlapping fixes, the corrected restacked behavior wins. Dashboard thresholds accept decimal maximums, and nonempty scalar strings remain invalid list-field inputs. The manifest, list-field, and debug-ID originals also use corrections from their restacked versions when resolving rebase or typing failures.
