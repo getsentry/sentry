@@ -166,8 +166,10 @@ function SettingsProjectSelector() {
   );
 }
 
-// Transparent buttons size their label to its content, so start-align it in this
-// full-width trigger instead of centering it.
+// Transparent buttons size their label to its content. A one-column grid
+// stretches the label across this full-width trigger, so the slug starts at the
+// leading edge and the chevron sits at the trailing edge.
 const ProjectSelectorButton = styled(OverlayTrigger.Button)`
-  justify-content: flex-start;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
 `;
