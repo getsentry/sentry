@@ -44,6 +44,7 @@ from sentry.seer.entrypoints.operator import (
     SeerAutofixOperator,
     SeerInvestigationOperator,
     SeerOperatorCompletionHook,
+    _create_seer_activity,
     get_autofix_explorer_status,
     process_autofix_updates,
     process_investigation_updates,
@@ -804,6 +805,20 @@ class SeerOperatorTest(TestCase):
             type=ActivityType.SEER_ITERATION_STARTED.value,
             user_id=self.user.id,
         ).exists()
+
+    def test_create_seer_activity_seer_stopped(self) -> None:
+        _create_seer_activity(
+            self.group,
+            SentryAppEventType.SEER_STOPPED,
+            {
+                "run_id": 1,
+                "group_id": self.group.id,
+                "stop": {"reason": "R", "suggestion": "S"},
+            },
+        )
+
+        activity = Activity.objects.get(group=self.group, type=ActivityType.SEER_STOPPED.value)
+        assert activity.data == {"run_id": 1, "reason": "R", "suggestion": "S"}
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     def test_create_seer_activity_skips_non_seer_events(self, _mock_has_access: MagicMock) -> None:

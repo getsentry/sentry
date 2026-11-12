@@ -80,6 +80,7 @@ SEER_EVENT_TO_ACTIVITY_TYPE: dict[SentryAppEventType, ActivityType] = {
     SentryAppEventType.SEER_PR_READY_FOR_REVIEW: ActivityType.SEER_PR_READY_FOR_REVIEW,
     SentryAppEventType.SEER_ITERATION_STARTED: ActivityType.SEER_ITERATION_STARTED,
     SentryAppEventType.SEER_ITERATION_COMPLETED: ActivityType.SEER_ITERATION_COMPLETED,
+    SentryAppEventType.SEER_STOPPED: ActivityType.SEER_STOPPED,
 }
 
 
@@ -786,6 +787,11 @@ def _create_seer_activity(
         iteration_index = event_payload.get("iteration_index")
         if iteration_index is not None:
             activity_data["iteration_index"] = iteration_index
+    elif event_type == SentryAppEventType.SEER_STOPPED:
+        stop = event_payload.get("stop") or {}
+        for key in ("reason", "suggestion"):
+            if stop.get(key):
+                activity_data[key] = stop[key]
 
     Activity.objects.create_group_activity(
         group,
