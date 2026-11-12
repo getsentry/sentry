@@ -19,8 +19,23 @@ type BaseCheckoutData = {
   onDemandMaxSpend?: number;
 };
 
+/**
+ * Seer auto-load settings picked in checkout. They aren't part of the
+ * subscription, so checkout saves them to the Seer wallet once the plan change
+ * goes through.
+ */
+export type SeerAutoLoad = {
+  dailyLimitCents: number;
+  enabled: boolean;
+  loadAmountCents: number;
+};
+
 export type CheckoutFormData = BaseCheckoutData & {
   reserved: Partial<Record<DataCategory, number>>;
+  /**
+   * Only set for organizations billed for Seer on credits.
+   */
+  seerAutoLoad?: SeerAutoLoad;
 };
 
 export type CheckoutAPIData = Omit<BaseCheckoutData, 'addOns'> & {

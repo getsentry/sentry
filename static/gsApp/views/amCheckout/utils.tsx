@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 import type {PaymentIntentResult, Stripe} from '@stripe/stripe-js';
-import {useMutation} from '@tanstack/react-query';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 import camelCase from 'lodash/camelCase';
 import moment from 'moment-timezone';
 
@@ -43,10 +43,12 @@ import {isCheckoutCategory} from 'getsentry/utils/dataCategory';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {trackMarketingEvent} from 'getsentry/utils/trackMarketingEvent';
 import type {State as CheckoutState} from 'getsentry/views/amCheckout/';
+import {saveSeerAutoLoad} from 'getsentry/views/amCheckout/seerCredits';
 import type {
   CheckoutAPIData,
   CheckoutFormData,
   PlanContent,
+  SeerAutoLoad,
 } from 'getsentry/views/amCheckout/types';
 import {
   normalizeOnDemandBudget,
@@ -478,13 +480,22 @@ export function useSubmitCheckout({
   referrer?: string;
 }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   // this is necessary for recording partner billing migration-specific analytics after
   // the migration is successful (during which the flag is flipped off)
   const isMigratingPartnerAccount = hasPartnerMigrationFeature(organization);
 
   return useMutation({
-    mutationFn: ({data}: {data: CheckoutAPIData}) => {
+    mutationFn: ({
+      data,
+    }: {
+      data: CheckoutAPIData;
+      /**
+       * Seer auto-load settings to save once the plan change goes through.
+       */
+      seerAutoLoad?: SeerAutoLoad;
+    }) => {
       return fetchMutation<{
         invoice?: Invoice;
         invoiceGuid?: string;
@@ -516,6 +527,17 @@ export function useSubmitCheckout({
       // refresh org and subscription state
       fetchOrganizationDetails(new Client(), organization.slug);
       SubscriptionStore.loadData(organization.slug);
+
+      // Auto-load lives on the Seer wallet rather than the subscription. Save it
+      // even when the payment still needs authenticating, since the plan
+      // change has gone through.
+      if (_variables.seerAutoLoad) {
+        saveSeerAutoLoad({
+          organization,
+          queryClient,
+          seerAutoLoad: _variables.seerAutoLoad,
+        });
+      }
 
       const {invoice} = response;
 

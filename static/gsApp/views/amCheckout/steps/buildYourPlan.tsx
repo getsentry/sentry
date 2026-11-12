@@ -25,7 +25,9 @@ import {
   isTrial,
 } from 'getsentry/utils/billing';
 import {PlanFeatures} from 'getsentry/views/amCheckout/components/planFeatures';
+import {SeerCreditsCard} from 'getsentry/views/amCheckout/components/seerCreditsCard';
 import {StepHeader} from 'getsentry/views/amCheckout/components/stepHeader';
+import {hasTokenBilledSeer} from 'getsentry/views/amCheckout/seerCredits';
 import {ProductSelect} from 'getsentry/views/amCheckout/steps/productSelect';
 import type {CheckoutFormData, StepProps} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
@@ -43,6 +45,7 @@ interface PlanSubstepProps extends BaseSubstepProps {
 }
 
 interface AdditionalProductsSubstepProps extends BaseSubstepProps {
+  organization: Organization;
   subscription: Subscription;
 }
 
@@ -173,17 +176,27 @@ function AdditionalProductsSubstep({
   activePlan,
   formData,
   onUpdate,
+  organization,
   subscription,
 }: AdditionalProductsSubstepProps) {
   return (
     <Stack gap="xl" paddingTop="3xl">
       <Stack gap="xl">
-        <ProductSelect
-          activePlan={activePlan}
-          formData={formData}
-          onUpdate={onUpdate}
-          subscription={subscription}
-        />
+        {/* Plans billed on credits include Seer, so there's no Seer add-on to pick. */}
+        {hasTokenBilledSeer(organization) ? (
+          <SeerCreditsCard
+            formData={formData}
+            onUpdate={onUpdate}
+            organization={organization}
+          />
+        ) : (
+          <ProductSelect
+            activePlan={activePlan}
+            formData={formData}
+            onUpdate={onUpdate}
+            subscription={subscription}
+          />
+        )}
       </Stack>
     </Stack>
   );
@@ -213,6 +226,7 @@ export function BuildYourPlan({
         activePlan={activePlan}
         formData={formData}
         onUpdate={onUpdate}
+        organization={organization}
         subscription={subscription}
       />
     </Stack>

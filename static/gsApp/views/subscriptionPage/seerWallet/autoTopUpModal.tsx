@@ -6,7 +6,6 @@ import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {openModal, type ModalRenderProps} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -23,6 +22,7 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {seerCreditChecksQueryKey} from 'sentry/utils/seer/useSeerCreditCheck';
 
 import {displayPrice, displayPriceWithCents} from 'getsentry/utils/billing';
+import {DollarInput} from 'getsentry/views/subscriptionPage/seerWallet/dollarInput';
 import {
   seerWalletAutoTopUpOptions,
   seerWalletBalanceOptions,
@@ -45,10 +45,6 @@ type AutoTopUpFormProps = AutoTopUpModalProps & {
   creditPriceCents: number;
   purchased: SeerWalletBalance['purchased'];
 };
-
-function parseWholeNumber(value: string) {
-  return Math.max(0, parseInt(value.replace(/\D/g, ''), 10) || 0);
-}
 
 function toWholeDollarCents(cents: number) {
   return Math.floor(cents / 100) * 100;
@@ -422,40 +418,6 @@ function AmountCard({
         {children}
       </Stack>
     </ToggleCard>
-  );
-}
-
-function DollarInput({
-  cents,
-  creditPriceCents,
-  onChange,
-  ...inputProps
-}: {
-  cents: number;
-  creditPriceCents: number;
-  onChange: (cents: number) => void;
-  'aria-label'?: string;
-  id?: string;
-}) {
-  return (
-    <InputGroup>
-      <InputGroup.LeadingItems disablePointerEvents>
-        <Text variant="muted">$</Text>
-      </InputGroup.LeadingItems>
-      <InputGroup.Input
-        {...inputProps}
-        inputMode="numeric"
-        value={(cents / 100).toLocaleString()}
-        onChange={e => onChange(parseWholeNumber(e.target.value) * 100)}
-      />
-      <InputGroup.TrailingItems disablePointerEvents>
-        <Text variant="muted">
-          {tct('[credits] credits', {
-            credits: Math.floor(cents / creditPriceCents).toLocaleString(),
-          })}
-        </Text>
-      </InputGroup.TrailingItems>
-    </InputGroup>
   );
 }
 
