@@ -101,7 +101,7 @@ describe('projectGeneralSettings', () => {
       'example.com\nhttps://example.com'
     );
     expect(getField('checkbox', 'Enable JavaScript source fetching')).toBeChecked();
-    expect(getField('textbox', 'Security token')).toHaveValue('security-token');
+    expect(getField('textbox', 'Security Token')).toHaveValue('security-token');
     expect(getField('textbox', 'Security Token Header')).toHaveValue('x-security-header');
     expect(getField('checkbox', 'Verify TLS/SSL')).toBeChecked();
   });
@@ -327,7 +327,7 @@ describe('projectGeneralSettings', () => {
       screen.getByText('You do not have permission to view this token.')
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('textbox', {name: 'Security token'})
+      screen.queryByRole('textbox', {name: 'Security Token'})
     ).not.toBeInTheDocument();
   });
 
@@ -344,7 +344,7 @@ describe('projectGeneralSettings', () => {
       await screen.findByText('You do not have permission to view this token.')
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('textbox', {name: 'Security token'})
+      screen.queryByRole('textbox', {name: 'Security Token'})
     ).not.toBeInTheDocument();
   });
 
@@ -357,7 +357,7 @@ describe('projectGeneralSettings', () => {
       {organization, initialRouterConfig}
     );
 
-    const input = await screen.findByRole('textbox', {name: 'Security token'});
+    const input = await screen.findByRole('textbox', {name: 'Security Token'});
     expect(input).toBeEnabled();
     expect(input).toHaveValue('');
   });

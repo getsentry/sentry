@@ -176,7 +176,7 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     name: 'securityToken',
     formId: 'project-general-settings',
     route: '/settings/:orgId/projects/:projectId/',
-    label: t('Security token'),
+    label: t('Security Token'),
     hintText: '',
   },
   'project-general-settings.securityTokenHeader': {
