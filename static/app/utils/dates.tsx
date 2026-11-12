@@ -5,7 +5,6 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {TableDataRow} from './discover/discoverQuery';
 
 export const DEFAULT_DAY_START_TIME = '00:00:00';
-export const DEFAULT_DAY_END_TIME = '23:59:59';
 const DATE_FORMAT_NO_TIMEZONE = 'YYYY/MM/DD HH:mm:ss';
 const MILLISECOND_TIMESTAMP = 100_000_000_000;
 const MICROSECOND_TIMESTAMP = 100_000_000_000_000;
