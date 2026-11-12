@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -35,71 +36,73 @@ export function EmptyState({
 }: EmptyStateProps) {
   const runIdDisplay = runId?.toString() ?? 'null';
   return (
-    <Flex
-      flex={1}
-      direction="column"
-      align="center"
-      justify="center"
-      gap="xl"
-      padding={{'2xs': 'xl', xs: '3xl'}}
-    >
-      {isLoading ? (
-        <Fragment>
-          <LoadingIndicator size={32} />
-          <Container maxWidth={300}>
-            <Text as="div" variant="muted" size="md" align="center">
-              {t('Ask Seer anything about your application.')}
-            </Text>
-          </Container>
-        </Fragment>
-      ) : isError ? (
-        <Fragment>
-          <IconSeer size="xl" />
-          <Container maxWidth={300}>
-            <Text as="div" variant="muted" size="md" align="center">
-              {errorStatusCode === 404
-                ? tct('Session not found (run_id=[runIdDisplay]).', {
-                    runIdDisplay,
-                  })
-                : tct(`Error loading this session (run_id=[runIdDisplay]).`, {
-                    runIdDisplay,
-                  })}
-            </Text>
-          </Container>
-        </Fragment>
-      ) : (
-        <Fragment>
-          <IconSeer size="xl" animation="waiting" />
-          <Container maxWidth={300}>
-            <Text as="div" variant="muted" size="md" align="center">
-              {t('Ask Seer anything about your application.')}
-            </Text>
-          </Container>
-          {onSuggestionClick && (
-            <Flex direction="column" align="center" gap="md">
-              {SUGGESTED_QUESTIONS.map(question => (
-                <SuggestionButton
-                  key={question}
-                  size="sm"
-                  onClick={() => onSuggestionClick(question)}
-                >
-                  {question}
-                </SuggestionButton>
-              ))}
-            </Flex>
-          )}
-          {displaySlackAgentReminder && (
+    <Fragment>
+      <Flex
+        flex={1}
+        direction="column"
+        align="center"
+        justify="center"
+        gap="xl"
+        padding={{'2xs': 'xl', xs: '3xl'}}
+      >
+        {isLoading ? (
+          <Fragment>
+            <LoadingIndicator size={32} />
             <Container maxWidth={300}>
               <Text as="div" variant="muted" size="md" align="center">
-                {t(
-                  'Want to chat in Slack? Just @ Sentry to debug and investigate issues.'
-                )}
+                {t('Ask Seer anything about your application.')}
               </Text>
             </Container>
-          )}
-        </Fragment>
+          </Fragment>
+        ) : isError ? (
+          <Fragment>
+            <IconSeer size="xl" />
+            <Container maxWidth={300}>
+              <Text as="div" variant="muted" size="md" align="center">
+                {errorStatusCode === 404
+                  ? tct('Session not found (run_id=[runIdDisplay]).', {
+                      runIdDisplay,
+                    })
+                  : tct(`Error loading this session (run_id=[runIdDisplay]).`, {
+                      runIdDisplay,
+                    })}
+              </Text>
+            </Container>
+          </Fragment>
+        ) : (
+          <Fragment>
+            <IconSeer size="xl" animation="waiting" />
+            <Container maxWidth={300}>
+              <Text as="div" variant="muted" size="md" align="center">
+                {t('Ask Seer anything about your application.')}
+              </Text>
+            </Container>
+            {onSuggestionClick && (
+              <Flex direction="column" align="center" gap="md">
+                {SUGGESTED_QUESTIONS.map(question => (
+                  <SuggestionButton
+                    key={question}
+                    size="sm"
+                    onClick={() => onSuggestionClick(question)}
+                  >
+                    {question}
+                  </SuggestionButton>
+                ))}
+              </Flex>
+            )}
+          </Fragment>
+        )}
+      </Flex>
+      {!isLoading && !isError && displaySlackAgentReminder && (
+        <Container padding="0 xl">
+          <Alert variant="muted">
+            {tct('Want to chat in Slack? Just ask [mention:@sentry] to debug issues.', {
+              mention: <Text monospace variant="promotion" />,
+            })}
+          </Alert>
+        </Container>
       )}
-    </Flex>
+    </Fragment>
   );
 }
 
