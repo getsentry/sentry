@@ -7,7 +7,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {AgentHandoffPrompt} from 'sentry/components/agentHandoff/agentHandoffPrompt';
 import {AgentHandoffFlow} from 'sentry/components/agentHandoff/useAgentHandoff';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 
 import type {AgenticProgressRun} from './types';
 
@@ -18,7 +18,6 @@ interface AgentSetupCardProps {
   onSelectSnippet: (source: AgentSetupCopySource) => void;
   run: AgenticProgressRun | undefined;
   feedbackSource?: string;
-  unframed?: boolean;
 }
 
 export function AgentSetupCard({
@@ -26,49 +25,25 @@ export function AgentSetupCard({
   onCopyCommand,
   onSelectSnippet,
   run,
-  unframed = false,
 }: AgentSetupCardProps) {
-  const emphasis = unframed ? <span /> : <strong />;
-
   return (
-    <Stack
-      gap="0"
-      background={unframed ? undefined : 'primary'}
-      border={unframed ? undefined : 'primary'}
-      radius={unframed ? undefined : 'xl'}
-      padding={unframed ? undefined : 'xl'}
-    >
-      <Stack gap={unframed ? '2xs' : 'xs'}>
-        <Flex
-          align="center"
-          justify={unframed ? 'between' : undefined}
-          gap={unframed ? 'md' : 'sm'}
-          wrap="wrap"
-        >
+    <Stack gap="0">
+      <Stack gap="2xs">
+        <Flex align="center" justify="between" gap="md" wrap="wrap">
           <Heading as="h3" size="lg">
             {t('Let your agent set up Sentry')}
           </Heading>
           <Tag variant="info">{t('Recommended')}</Tag>
         </Flex>
-        <Text as="p" size={unframed ? 'lg' : 'md'} variant="secondary">
+        <Text as="p" size="lg" variant="secondary">
           {t('Paste one prompt and your agent does the rest')}
         </Text>
       </Stack>
 
-      <Stack as="ul" role="list" gap={unframed ? 'sm' : 'md'} padding="xl 0" margin="0">
-        <Benefit>
-          {tct('[emphasis:Detects your stack] and installs the Sentry CLI', {emphasis})}
-        </Benefit>
-        <Benefit>
-          {tct('[emphasis:Installs and configures] the right SDKs', {
-            emphasis,
-          })}
-        </Benefit>
-        <Benefit>
-          {tct('[emphasis:Sends a test error] to confirm it works', {
-            emphasis,
-          })}
-        </Benefit>
+      <Stack as="ul" role="list" gap="sm" padding="xl 0" margin="0">
+        <Benefit>{t('Detects your stack and installs the Sentry CLI')}</Benefit>
+        <Benefit>{t('Installs and configures the right SDKs')}</Benefit>
+        <Benefit>{t('Sends a test error to confirm it works')}</Benefit>
       </Stack>
 
       <Stack>

@@ -1,24 +1,18 @@
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
-import {IconSliders} from '@sentry/icons/sliders';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {ToggleCard} from '@sentry/scraps/toggleCard';
 
-import {
-  SETUP_CARD_ICON_SIZE,
-  SETUP_CARD_MARKER_PX,
-} from 'sentry/components/onboarding/consts';
 import {ScmCollapsibleReveal} from 'sentry/components/onboarding/scm/scmCollapsibleReveal';
 import {t, tct} from 'sentry/locale';
 
 import {AgenticProgress} from './agenticProgressList';
 import {AgentSetupCard, type AgentSetupCopySource} from './agentSetupCard';
-import {LayeredContainer} from './layeredContainer';
+import {SetupCardFrame} from './setupCardFrame';
 import type {AgenticProgressRun} from './types';
 
 const MotionContainer = motion.create(Container);
@@ -59,27 +53,9 @@ export function AgenticSetup({
   const hasRunFailed = run?.runStatus === 'failed' || run?.runStatus === 'cancelled';
   const showsProgress =
     Boolean(run) && (isAgentConnected || run?.runStatus === 'completed' || hasRunFailed);
-  const isLayered = appearance === 'layered';
-  // Progress and failure views stay identical to the default appearance.
-  const isLayeredLanding = isLayered && !showsProgress;
-
-  const setupCard = (
-    <AgentSetupCard
-      feedbackSource={feedbackSource}
-      onCopyCommand={onCopyCommand}
-      onSelectSnippet={onSelectSnippet}
-      run={run}
-      unframed={isLayered}
-    />
-  );
 
   return (
-    <Stack
-      gap={isLayeredLanding ? '3xl' : '2xl'}
-      width="100%"
-      position="relative"
-      align="center"
-    >
+    <Stack gap="2xl" width="100%" position="relative" align="center">
       <ScmCollapsibleReveal open={hasInitFailed}>
         <Alert
           variant="danger"
@@ -143,15 +119,14 @@ export function AgenticSetup({
               exit={{opacity: 0}}
               transition={CARD_MORPH_TRANSITION}
             >
-              {isLayered ? (
-                <Container width="100%" style={{transform: 'rotate(-1deg)'}}>
-                  <LayeredContainer>
-                    <Container padding="2xl">{setupCard}</Container>
-                  </LayeredContainer>
-                </Container>
-              ) : (
-                setupCard
-              )}
+              <SetupCardFrame layered={appearance === 'layered'}>
+                <AgentSetupCard
+                  feedbackSource={feedbackSource}
+                  onCopyCommand={onCopyCommand}
+                  onSelectSnippet={onSelectSnippet}
+                  run={run}
+                />
+              </SetupCardFrame>
             </MotionContainer>
           )}
         </AnimatePresence>
@@ -164,72 +139,25 @@ export function AgenticSetup({
       </ScmCollapsibleReveal>
 
       <ScmCollapsibleReveal open={!showsProgress || hasRunFailed}>
-        {isLayeredLanding ? (
-          <Container width="100%">
-            {buttonProps => (
-              <Button
-                {...buttonProps}
-                variant="transparent"
-                onClick={onSetupInBrowser}
-                data-test-id="onboarding-setup-in-browser"
-              >
-                <Flex as="span" align="center" gap="sm">
-                  <Text variant="secondary" bold={false}>
-                    {tct('Prefer to do it yourself? [manual:Set up manually]', {
-                      manual: <AccentText />,
-                    })}
-                  </Text>
-                  <IconChevron direction="right" size="sm" variant="accent" />
-                </Flex>
-              </Button>
-            )}
-          </Container>
-        ) : (
-          <Stack gap="2xl" align="center" width="100%">
-            <Text variant="muted" size="md" bold>
-              {t('or')}
-            </Text>
-
-            <ToggleCard
-              variant="button"
+        <Container width="100%">
+          {buttonProps => (
+            <Button
+              {...buttonProps}
+              variant="transparent"
               onClick={onSetupInBrowser}
               data-test-id="onboarding-setup-in-browser"
             >
-              <Grid
-                columns={`${SETUP_CARD_MARKER_PX} 1fr max-content`}
-                gap="0 md"
-                width="100%"
-                areas={`
-          "icon title chevron"
-          ".    body  body"
-        `}
-              >
-                <Flex area="icon" align="center" justify="center">
-                  <IconSliders size={SETUP_CARD_ICON_SIZE} variant="secondary" />
-                </Flex>
-                <Flex area="title" align="center">
-                  <Text bold size="lg">
-                    {t('Set up manually')}
-                  </Text>
-                </Flex>
-                <Flex area="chevron" align="center">
-                  <IconChevron
-                    direction="right"
-                    size={SETUP_CARD_ICON_SIZE}
-                    variant="secondary"
-                  />
-                </Flex>
-                <Container area="body" paddingTop="xs">
-                  <Text variant="muted" size="md" density="comfortable" textWrap="pretty">
-                    {t(
-                      'Connect a repo, choose what to instrument and where alerts land, then follow the instructions for your project'
-                    )}
-                  </Text>
-                </Container>
-              </Grid>
-            </ToggleCard>
-          </Stack>
-        )}
+              <Flex as="span" align="center" gap="sm">
+                <Text variant="secondary" bold={false}>
+                  {tct('Prefer to do it yourself? [manual:Set up manually]', {
+                    manual: <AccentText />,
+                  })}
+                </Text>
+                <IconChevron direction="right" size="sm" variant="accent" />
+              </Flex>
+            </Button>
+          )}
+        </Container>
       </ScmCollapsibleReveal>
     </Stack>
   );

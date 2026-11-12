@@ -6,18 +6,34 @@ import {Container} from '@sentry/scraps/layout';
 // eslint-disable-next-line @sentry/scraps/no-token-import -- the brand stack uses named categorical colors the theme does not expose
 import {color} from '@sentry/scraps/tokens';
 
-export function LayeredContainer({children}: {children: ReactNode}) {
+interface SetupCardFrameProps {
+  children: ReactNode;
+  /** Tilts the card and adds the stacked brand drop shadow. */
+  layered: boolean;
+}
+
+export function SetupCardFrame({children, layered}: SetupCardFrameProps) {
   const theme = useTheme();
 
   return (
-    <Container
-      background={theme.type === 'dark' ? 'secondary' : 'primary'}
-      radius="xl"
-      position="relative"
-      width="100%"
-      overflow="hidden"
-    >
-      {surfaceProps => <LayeredSurface {...surfaceProps}>{children}</LayeredSurface>}
+    <Container width="100%" style={layered ? {transform: 'rotate(-1deg)'} : undefined}>
+      <Container
+        background={theme.type === 'dark' ? 'secondary' : 'primary'}
+        border={layered ? undefined : 'primary'}
+        radius="xl"
+        padding="2xl"
+        position="relative"
+        width="100%"
+        overflow="hidden"
+      >
+        {surfaceProps =>
+          layered ? (
+            <LayeredSurface {...surfaceProps}>{children}</LayeredSurface>
+          ) : (
+            <div {...surfaceProps}>{children}</div>
+          )
+        }
+      </Container>
     </Container>
   );
 }

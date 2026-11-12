@@ -547,7 +547,9 @@ describe('Onboarding', () => {
       expect(
         screen.getByRole('heading', {name: 'Let your agent set up Sentry'})
       ).toBeInTheDocument();
-      expect(screen.getByText('Detects your stack')).toBeInTheDocument();
+      expect(
+        screen.getByText('Detects your stack and installs the Sentry CLI')
+      ).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Advanced options'})).toBeInTheDocument();
       expect(
         screen.getByRole('link', {name: 'See the full instructions'})
