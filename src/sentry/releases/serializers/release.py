@@ -2,14 +2,23 @@
 Release Serializer.
 """
 
+from __future__ import annotations
+
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
 from sentry.api.serializers.models.release import expose_version_info
 from sentry.api.serializers.release_details_types import Author, LastDeploy, Project
-from sentry.api.serializers.types import ReleaseSerializerResponse
+from sentry.api.serializers.types import (
+    ReleaseCurrentProjectMetaResponse,
+    ReleaseSerializerResponse,
+)
 from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releaseprojectenvironment import AdoptionStage
+
+if TYPE_CHECKING:
+    from sentry.api.serializers.models.commit import CommitSerializerResponse
+    from sentry.users.api.serializers.user import UserSerializerResponse
 
 
 def serialize_many(
@@ -71,18 +80,18 @@ def serialize(
     return {
         "authors": authors,
         "commitCount": release.commit_count,
-        "currentProjectMeta": current_project_meta,
+        "currentProjectMeta": cast(ReleaseCurrentProjectMetaResponse, current_project_meta),
         "data": release.data,
         "dateCreated": release.date_added,
         "dateReleased": release.date_released,
         "deployCount": release.total_deploys,
         "firstEvent": first_event,
         "id": release.id,
-        "lastCommit": last_commit,
+        "lastCommit": cast("CommitSerializerResponse | None", last_commit),
         "lastDeploy": last_deploy,
         "lastEvent": last_event,
         "newGroups": new_groups,
-        "owner": owner,
+        "owner": cast("UserSerializerResponse | None", owner),
         "projects": projects,
         "ref": release.ref,
         "shortVersion": release.version,

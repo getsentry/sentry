@@ -184,10 +184,7 @@ def ensure_default_anomaly_detector(
                     description="Automatically monitors for anomalous spikes in error count",
                     workflow_condition_group=condition_group,
                     type=DetectorType.METRIC_ISSUE,
-                    config={
-                        "detection_type": AlertRuleDetectionType.DYNAMIC.value,
-                        "comparison_delta": None,
-                    },
+                    config={"detection_type": AlertRuleDetectionType.DYNAMIC.value},
                     owner_team_id=owner_team_id,
                     enabled=enabled,
                 )

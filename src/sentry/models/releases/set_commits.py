@@ -12,7 +12,6 @@ from django.db import IntegrityError, router
 
 from sentry import options
 from sentry.constants import ObjectStatus
-from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
@@ -92,13 +91,12 @@ def set_commits(release: Release, commit_list: list[_CommitData]) -> None:
     with TimedRetryPolicy(10)(lock.acquire):
         create_repositories(commit_list, release)
         create_commit_authors(commit_list, release)
+        # upserts stay outside the swap transaction: inside it, each one would open savepoints
+        commits = [upsert_commit(data, release) for data in commit_list]
 
-        with (
-            atomic_transaction(using=router.db_for_write(type(release))),
-            in_test_hide_transaction_boundary(),
-        ):
+        with atomic_transaction(using=router.db_for_write(type(release))):
             head_commit_by_repo, commit_author_by_commit = set_commits_on_release(
-                release, commit_list
+                release, commit_list, commits
             )
 
     fill_in_missing_release_head_commits(release, head_commit_by_repo)
@@ -132,7 +130,7 @@ def _keep_newest_commits(release: Release, commit_list: list[_CommitData]) -> li
 
 @metrics.wraps("set_commits_on_release")
 def set_commits_on_release(
-    release: Release, commit_list: list[_CommitData]
+    release: Release, commit_list: list[_CommitData], commits: list[Commit]
 ) -> tuple[dict[int, int], dict[int, CommitAuthor | None]]:
     # TODO(dcramer): would be good to optimize the logic to avoid these
     # deletes but not overly important
@@ -140,15 +138,30 @@ def set_commits_on_release(
 
     commit_author_by_commit = {}
     head_commit_by_repo: dict[int, int] = {}
+    release_commits = []
 
     latest_commit = None
-    for idx, data in enumerate(commit_list):
-        commit = set_commit(idx, data, release)
+    for idx, (data, commit) in enumerate(zip(commit_list, commits, strict=True)):
         if idx == 0:
             latest_commit = commit
 
         commit_author_by_commit[commit.id] = commit.author
         head_commit_by_repo.setdefault(data["repo_model"].id, commit.id)
+        release_commits.append(
+            ReleaseCommit(
+                organization_id=release.organization_id,
+                release=release,
+                commit=commit,
+                order=idx,
+            )
+        )
+
+    ReleaseCommit.objects.bulk_create(release_commits, ignore_conflicts=True, batch_size=100)
+
+    if latest_commit is None:
+        last_commit_id = None
+    else:
+        last_commit_id = latest_commit.id
 
     release.update(
         commit_count=len(commit_list),
@@ -160,12 +173,12 @@ def set_commits_on_release(
             .values_list("commit__author_id", flat=True)
             .distinct()
         ],
-        last_commit_id=latest_commit.id if latest_commit else None,
+        last_commit_id=last_commit_id,
     )
     return head_commit_by_repo, commit_author_by_commit
 
 
-def set_commit(idx: int, data: _CommitData, release: Release) -> Commit:
+def upsert_commit(data: _CommitData, release: Release) -> Commit:
     repo = data["repo_model"]
     author = data["author_model"]
 
@@ -179,20 +192,20 @@ def set_commit(idx: int, data: _CommitData, release: Release) -> Commit:
     if "timestamp" in data:
         commit_data["date_added"] = data["timestamp"]
 
-    commit, created = Commit.objects.get_or_create(
-        organization_id=release.organization_id,
-        repository_id=repo.id,
-        key=data["id"],
-        defaults=commit_data,
-    )
-    if not created and any(getattr(commit, key) != value for key, value in commit_data.items()):
-        commit.update(**commit_data)
+    # the commit and the receiver's issue links commit together; a retry skips an unchanged message
+    with atomic_transaction(using=router.db_for_write(Commit)):
+        commit, created = Commit.objects.get_or_create(
+            organization_id=release.organization_id,
+            repository_id=repo.id,
+            key=data["id"],
+            defaults=commit_data,
+        )
+        if not created and any(getattr(commit, key) != value for key, value in commit_data.items()):
+            commit.update(**commit_data)
 
-    if author is None:
-        author = commit.author
-
-    # Guard against patch_set being None
-    patch_set = data.get("patch_set") or []
+    patch_set = data.get("patch_set")
+    if patch_set is None:
+        patch_set = []
     if patch_set:
         CommitFileChange.objects.bulk_create(
             [
@@ -207,16 +220,6 @@ def set_commit(idx: int, data: _CommitData, release: Release) -> Commit:
             ignore_conflicts=True,
             batch_size=100,
         )
-    try:
-        with atomic_transaction(using=router.db_for_write(ReleaseCommit)):
-            ReleaseCommit.objects.create(
-                organization_id=release.organization_id,
-                release=release,
-                commit=commit,
-                order=idx,
-            )
-    except IntegrityError:
-        pass
 
     return commit
 

@@ -13,12 +13,11 @@ import type {DataCategory} from 'sentry/types/core';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getLocalities} from 'sentry/utils/cells';
 import {defined} from 'sentry/utils/defined';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
-import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -55,13 +54,14 @@ import type {ActionItem, BadgeItem} from 'admin/components/detailsPage';
 import {DetailsPage} from 'admin/components/detailsPage';
 import {ForkCustomerAction} from 'admin/components/forkCustomer';
 import {triggerGrantLedgerCreditModal} from 'admin/components/grantLedgerCreditAction';
-import MigrateLegacySeerAction from 'admin/components/migrateLegacySeerAction';
+import {MigrateLegacySeerAction} from 'admin/components/migrateLegacySeerAction';
 import {triggerEndPeriodEarlyModal} from 'admin/components/nextBillingPeriodAction';
 import {triggerProvisionSubscription} from 'admin/components/provisionSubscriptionAction';
 import {refundVercelRequest} from 'admin/components/refundVercelRequestModal';
 import {SelectableContainer} from 'admin/components/selectableContainer';
-import SendWeeklyEmailAction from 'admin/components/sendWeeklyEmailAction';
+import {SendWeeklyEmailAction} from 'admin/components/sendWeeklyEmailAction';
 import {SetContractPackageAction} from 'admin/components/setContractPackageAction';
+import {triggerSimulateLlmUsageModal} from 'admin/components/simulateLlmUsageAction';
 import {SponsorshipAction} from 'admin/components/sponsorshipAction';
 import {SuspendAccountAction} from 'admin/components/suspendAccountAction';
 import {openToggleConsolePlatformsModal} from 'admin/components/toggleConsolePlatformsModal';
@@ -83,29 +83,12 @@ import {
 
 const DEFAULT_ERROR_MESSAGE = 'Unable to update the customer account';
 
-function makeSubscriptionQueryKey(orgId: string): ApiQueryKey {
-  return [
-    getApiUrl('/customers/$organizationIdOrSlug/', {
-      path: {organizationIdOrSlug: orgId},
-    }),
-  ];
-}
-
 function organizationApiOptions(orgId: string) {
   return apiOptions.as<Organization>()('/organizations/$organizationIdOrSlug/', {
     path: {organizationIdOrSlug: orgId},
     query: {detailed: 0, include_feature_flags: 1},
     staleTime: Infinity,
   });
-}
-
-function makeBillingConfigQueryKey(orgId: string): ApiQueryKey {
-  return [
-    getApiUrl('/customers/$organizationIdOrSlug/billing-config/', {
-      path: {organizationIdOrSlug: orgId},
-    }),
-    {query: {tier: 'all'}},
-  ];
 }
 
 export function CustomerDetails() {
@@ -115,26 +98,34 @@ export function CustomerDetails() {
 
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
-  const SUBSCRIPTION_QUERY_KEY = makeSubscriptionQueryKey(orgId);
-  const BILLING_CONFIG_QUERY_KEY = makeBillingConfigQueryKey(orgId);
+  const subscriptionQueryOptions = apiOptions.as<Subscription>()(
+    '/customers/$organizationIdOrSlug/',
+    {path: {organizationIdOrSlug: orgId}, staleTime: Infinity}
+  );
+
   const {
     data: subscription,
     refetch: refetchSubscription,
     isError: isErrorSubscription,
     isPending: isPendingSubscription,
-  } = useApiQuery<Subscription>(SUBSCRIPTION_QUERY_KEY, {staleTime: Infinity});
+  } = useQuery(subscriptionQueryOptions);
   const {
     data: organization,
     refetch: refetchOrganization,
     isError: isErrorOrganization,
     isPending: isPendingOrganization,
   } = useQuery(organizationApiOptions(orgId));
+  const billingConfigQueryOptions = apiOptions.as<BillingConfig>()(
+    '/customers/$organizationIdOrSlug/billing-config/',
+    {path: {organizationIdOrSlug: orgId}, query: {tier: 'all'}, staleTime: Infinity}
+  );
+
   const {
     data: billingConfig,
     refetch: refetchBillingConfig,
     isError: isErrorBillingConfig,
     isPending: isPendingBillingConfig,
-  } = useApiQuery<BillingConfig>(BILLING_CONFIG_QUERY_KEY, {staleTime: Infinity});
+  } = useQuery(billingConfigQueryOptions);
 
   const onUpdateMutation = useMutation({
     mutationFn: (params: Record<string, any>) =>
@@ -148,7 +139,15 @@ export function CustomerDetails() {
         data.message ??
           `Customer account has been updated with ${JSON.stringify(variables)}.`
       );
-      setApiQueryData(queryClient, SUBSCRIPTION_QUERY_KEY, data);
+      queryClient.setQueryData(subscriptionQueryOptions.queryKey, previous =>
+        data === undefined
+          ? previous
+          : {
+              ...previous,
+              headers: previous?.headers ?? {},
+              json: data,
+            }
+      );
     },
     onError: (error: RequestError) => {
       if (error.status === 400 || error.status === 402) {
@@ -380,7 +379,11 @@ export function CustomerDetails() {
       const clone = cloneDeep(subscription);
       if (clone) {
         clone.spendAllocationEnabled = spendAllocationEnabled;
-        setApiQueryData(queryClient, SUBSCRIPTION_QUERY_KEY, clone);
+        queryClient.setQueryData(subscriptionQueryOptions.queryKey, previous => ({
+          ...previous,
+          headers: previous?.headers ?? {},
+          json: clone,
+        }));
       }
       toast.success(
         `Spend Allocations has been ${spendAllocationEnabled ? 'enabled' : 'disabled'} for organization.`
@@ -493,8 +496,12 @@ export function CustomerDetails() {
           },
           {
             key: 'convertToSponsored',
-            name: 'Convert to Sponsored',
-            help: 'Convert this account to a sponsored plan (e.g. education, open source).',
+            name: subscription.isSponsored
+              ? 'Change Sponsorship'
+              : 'Convert to Sponsored',
+            help: subscription.isSponsored
+              ? "Change or remove this account's sponsorship."
+              : 'Convert this account to a sponsored plan (e.g. education, open source).',
             disabled: subscription.isPartner,
             disabledReason: 'Partner accounts cannot be put on sponsored plans',
             confirmModalOpts: {
@@ -909,6 +916,18 @@ export function CustomerDetails() {
                 subscription,
               });
             },
+          },
+          {
+            key: 'simulateLlmUsage',
+            name: 'Simulate LLM usage',
+            help: 'Record LLM usage without calling an LLM. test_paid usage is billed, so refund it afterwards.',
+            skipConfirmModal: true,
+            onAction: () =>
+              triggerSimulateLlmUsageModal({
+                orgId,
+                onSuccess: reloadData,
+              }),
+            ...actionRequiresBillingAdmin,
           },
           {
             key: 'deleteBillingMetricHistory',

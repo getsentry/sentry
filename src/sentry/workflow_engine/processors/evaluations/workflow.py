@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import TYPE_CHECKING, Protocol, TypedDict
 
-from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.types import (
     ActionId,
     DataConditionGroupId,
@@ -142,11 +141,7 @@ class WorkflowEvaluation(
             deferred = None
 
         event_data = self.data["event"]
-        event_id = (
-            event_data.event.event_id
-            if isinstance(event_data.event, GroupEvent)
-            else event_data.event.id
-        )
+        event_id = event_data.event_id
         return WorkflowEvaluationArtifact(
             triggered=triggered,
             error=error,
@@ -159,9 +154,9 @@ class WorkflowEvaluation(
             filter_evaluations=[
                 evaluation.to_artifact() for evaluation in self.data.get("filter_group_evals")
             ],
-            group_id=event_data.group.id,
+            group_id=event_data.group_id,
             outcome=self.outcome,
-            project_id=event_data.event.project_id,
+            project_id=event_data.project_id,
             trigger_evaluation=self.data.get("trigger_group_eval").to_artifact(),
             triggered_action_ids=triggered_action_ids,
             workflow_id=self.workflow_id,

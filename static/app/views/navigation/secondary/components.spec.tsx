@@ -87,6 +87,25 @@ describe('SecondarySidebar', () => {
     }
   );
 
+  it('keeps the reorderable list live region outside the secondary navigation', async () => {
+    render(
+      <SecondaryNavigationContextProvider>
+        <Navigation />
+      </SecondaryNavigationContextProvider>,
+      {
+        organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
+        initialRouterConfig: {location: {pathname: '/organizations/org-slug/issues/'}},
+      }
+    );
+
+    const secondaryNav = screen.getByRole('navigation', {name: 'Secondary Navigation'});
+    await within(secondaryNav).findByRole('link', {name: 'Starred View 1'});
+
+    const liveRegion = screen.getByRole('status');
+    expect(liveRegion).toHaveAttribute('id', expect.stringMatching(/^DndLiveRegion/));
+    expect(secondaryNav).not.toContainElement(liveRegion);
+  });
+
   it('uses the default width when no persisted value is in localStorage', () => {
     render(
       <SecondaryNavigationContextProvider>

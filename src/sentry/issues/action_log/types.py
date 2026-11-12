@@ -11,10 +11,13 @@ from enum import IntEnum, StrEnum
 from typing import Any, ClassVar, Literal, NotRequired, Optional, TypeAlias, TypedDict
 
 import orjson
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+from sentry.issues.impact.types import ImpactCitation
 
 # NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
-SeerPullRequestItem: TypeAlias = dict[str, str | dict[str, str | int]]
+# `int` comes first so pydantic keeps pr_number an int; with `str` first it coerced it to one.
+SeerPullRequestItem: TypeAlias = dict[str, str | dict[str, int | str]]
 
 
 class GroupActorType(IntEnum):
@@ -87,6 +90,8 @@ class GroupActionType(IntEnum):
     PULL_REQUEST_MERGED = 32
     PULL_REQUEST_UNLINKED = 33
     FIRST_SEEN = 34
+    IMPACT_ASSESSMENT = 35
+    INVESTIGATION_LINKED = 36
 
     # Certain GroupActions are mirrors of Activity records.
     # (See ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE for the mapping.)
@@ -139,6 +144,7 @@ class ActionSource(StrEnum):
     SYSTEM = "system"
     MCP = "mcp"
     SEER_EXPLORER = "seer:explorer"
+    SEER_INVESTIGATION = "seer:investigation"
     SEER_SLACK = "seer:slack"
     SLACK = "slack"
     SLACK_STAGING = "slack_staging"
@@ -639,6 +645,43 @@ class PullRequestUnlinkedAction(GroupAction):
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.PULL_REQUEST_UNLINKED
+
+
+class ImpactAssessmentAction(GroupAction):
+    user_visible = True
+
+    score: float | None = Field(default=None, ge=0, le=100)
+    description: str
+    citations: list[ImpactCitation]
+    source_event_id: str
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.IMPACT_ASSESSMENT
+
+
+class InvestigationLinkedAction(GroupAction):
+    """A completed Seer investigation found this group relevant to what it investigated.
+
+    Published at most once per investigation and group. Links are never withdrawn, so a
+    later run that no longer links the group leaves this entry in place.
+    """
+
+    user_visible = True
+
+    notebook_id: int  # notebooks.Notebook ID; the notebook may since have been deleted
+    # Seer's ID for the hypothesis whose evidence named the group. Only meaningful within
+    # that investigation's projection.
+    hypothesis_id: str = Field(max_length=128)
+    # That hypothesis's statement. Seer derives hypothesis IDs from the statement, so it
+    # can't change for this ID.
+    hypothesis_statement: str = Field(max_length=2_000)
+    # Seer's one-sentence explanation of why the group is relevant, or None if it gave none.
+    reason: Optional[str] = Field(default=None, max_length=1_000)
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.INVESTIGATION_LINKED
 
 
 class GroupActionLogPayload(TypedDict):

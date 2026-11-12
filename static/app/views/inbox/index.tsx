@@ -1,7 +1,12 @@
-import {useRef} from 'react';
+import {Fragment, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
-import {useInfiniteQuery} from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+  type UseInfiniteQueryResult,
+} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {EmptyState} from '@sentry/scraps/emptyState';
@@ -21,12 +26,12 @@ import {useResizable} from 'sentry/utils/useResizable';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
-import {inboxItemsApiOptions} from './inboxApiOptions';
-import {InboxFilterMenu, InboxFilterPills} from './inboxFilters';
+import {inboxItemsApiOptions, updateInboxItemsMutationOptions} from './inboxApiOptions';
 import {InboxItemList} from './inboxItemList';
 import {InboxItemPreview} from './inboxItemPreview';
-import type {InboxFilters, InboxSubject} from './types';
-import {useInboxFilters} from './useInboxFilters';
+import {InboxListHeader} from './inboxListHeader';
+import type {InboxFilters, InboxItem, InboxSubject} from './types';
+import {useInboxFilters, type SetInboxFilters} from './useInboxFilters';
 import {getInboxSubjectFromPath, hasInboxFilters} from './utils';
 
 const INBOX_LIST_SIZE_STORAGE_KEY = 'universal-inbox-list-size';
@@ -34,25 +39,116 @@ const INBOX_LIST_DEFAULT_SIZE = 480;
 const INBOX_LIST_MIN_SIZE = 320;
 const INBOX_LIST_MAX_SIZE = 640;
 
-interface InboxListBodyProps {
-  filters: InboxFilters;
-  onClearFilters: () => void;
-  selectedSubject: InboxSubject | null;
+interface UseMarkInboxItemReadOnViewOptions {
+  isPending: boolean;
+  item: InboxItem | undefined;
+  subject: InboxSubject | null;
 }
 
-function InboxListBody({filters, onClearFilters, selectedSubject}: InboxListBodyProps) {
+function useMarkInboxItemReadOnView({
+  subject,
+  item,
+  isPending,
+}: UseMarkInboxItemReadOnViewOptions) {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+  const {mutate: updateInboxItems} = useMutation(
+    updateInboxItemsMutationOptions({organization, queryClient})
+  );
+  // Last activity seen during the current visit, so a failed request is not retried
+  // in a loop. Undefined means it was marked before its item was loaded.
+  const attemptedRef = useRef<{
+    lastActivityAt: string | undefined;
+    subjectKey: string;
+  } | null>(null);
+
+  const isUnread = item?.isUnread;
+  const lastActivityAt = item?.lastActivityAt;
+
+  useEffect(() => {
+    const subjectKey = subject ? `${subject.subjectType}:${subject.subjectId}` : null;
+    if (attemptedRef.current?.subjectKey !== subjectKey) {
+      attemptedRef.current = null;
+    }
+    if (!subject || !subjectKey || isPending) {
+      return;
+    }
+    const attemptedActivity = attemptedRef.current?.lastActivityAt;
+    const alreadyAttempted =
+      attemptedRef.current !== null &&
+      (attemptedActivity === undefined || attemptedActivity === lastActivityAt);
+
+    attemptedRef.current = {subjectKey, lastActivityAt};
+    // Remember already-read items too, so explicitly marking the open item unread
+    // does not immediately mark it read again without new activity.
+    if (!alreadyAttempted && isUnread !== false) {
+      updateInboxItems({subject, update: {isRead: true}});
+    }
+  }, [subject, isPending, isUnread, lastActivityAt, updateInboxItems]);
+}
+
+interface InboxListProps {
+  filters: InboxFilters;
+  selectedSubject: InboxSubject | null;
+  setFilters: SetInboxFilters;
+}
+
+function InboxList({filters, setFilters, selectedSubject}: InboxListProps) {
   const organization = useOrganization();
   const queryOptions = inboxItemsApiOptions(organization, filters);
-  const {
-    data,
-    isPending,
-    isError,
-    refetch,
-    hasNextPage,
-    fetchNextPage,
-    isFetchingNextPage,
-  } = useInfiniteQuery(queryOptions);
-  const items = data?.pages.flatMap(page => page.json) ?? [];
+  const query = useInfiniteQuery(queryOptions);
+  const items = query.data?.pages.flatMap(page => page.json) ?? [];
+
+  const selectedItem = selectedSubject
+    ? items.find(
+        item =>
+          item.subjectType === selectedSubject.subjectType &&
+          item.subjectId === selectedSubject.subjectId
+      )
+    : undefined;
+  useMarkInboxItemReadOnView({
+    subject: selectedSubject,
+    item: selectedItem,
+    isPending: query.isPending,
+  });
+
+  return (
+    <ListItemCheckboxProvider
+      hits={items.length}
+      knownIds={items.map(item => item.id)}
+      endpointOptions={safeParseQueryKey(queryOptions.queryKey)?.options}
+    >
+      <InboxListHeader filters={filters} setFilters={setFilters} />
+      <Container flex={1} overflowY="auto" minHeight={0}>
+        <InboxListBody
+          query={query}
+          items={items}
+          filters={filters}
+          onClearFilters={() => void setFilters({subjectType: null, eventType: null})}
+          selectedItemId={selectedItem?.id ?? null}
+        />
+      </Container>
+    </ListItemCheckboxProvider>
+  );
+}
+
+interface InboxListBodyProps {
+  filters: InboxFilters;
+  items: InboxItem[];
+  onClearFilters: () => void;
+  query: UseInfiniteQueryResult;
+  selectedItemId: string | null;
+}
+
+function InboxListBody({
+  query,
+  items,
+  filters,
+  onClearFilters,
+  selectedItemId,
+}: InboxListBodyProps) {
+  const {isPending, isError, refetch, hasNextPage, fetchNextPage, isFetchingNextPage} =
+    query;
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -62,7 +158,8 @@ function InboxListBody({filters, onClearFilters, selectedSubject}: InboxListBody
     return <LoadingError onRetry={refetch} />;
   }
 
-  if (items.length === 0) {
+  // Loaded pages can be emptied by removals while later pages still have items
+  if (items.length === 0 && !hasNextPage) {
     return hasInboxFilters(filters) ? (
       <EmptyState
         padding="2xl"
@@ -82,25 +179,9 @@ function InboxListBody({filters, onClearFilters, selectedSubject}: InboxListBody
     );
   }
 
-  const selectedItem = selectedSubject
-    ? items.find(
-        item =>
-          item.subjectType === selectedSubject.subjectType &&
-          item.subjectId === selectedSubject.subjectId
-      )
-    : undefined;
-
   return (
-    <ListItemCheckboxProvider
-      hits={items.length}
-      knownIds={items.map(item => item.id)}
-      endpointOptions={safeParseQueryKey(queryOptions.queryKey)?.options}
-    >
-      <InboxItemList
-        items={items}
-        selectedItemId={selectedItem?.id ?? null}
-        filters={filters}
-      />
+    <Fragment>
+      <InboxItemList items={items} selectedItemId={selectedItemId} filters={filters} />
       {hasNextPage && (
         <Flex justify="center" padding="md xl">
           <Button
@@ -113,7 +194,7 @@ function InboxListBody({filters, onClearFilters, selectedSubject}: InboxListBody
           </Button>
         </Flex>
       )}
-    </ListItemCheckboxProvider>
+    </Fragment>
   );
 }
 
@@ -147,19 +228,11 @@ function InboxContent() {
         minHeight={0}
         borderRight="primary"
       >
-        <Stack gap="md" padding="md xl" borderBottom="primary">
-          <Flex justify="end">
-            <InboxFilterMenu filters={filters} setFilters={setFilters} />
-          </Flex>
-          <InboxFilterPills filters={filters} setFilters={setFilters} />
-        </Stack>
-        <Container flex={1} overflowY="auto" minHeight={0}>
-          <InboxListBody
-            filters={filters}
-            onClearFilters={() => void setFilters({subjectType: null, eventType: null})}
-            selectedSubject={selectedSubject}
-          />
-        </Container>
+        <InboxList
+          filters={filters}
+          setFilters={setFilters}
+          selectedSubject={selectedSubject}
+        />
         <Container top="0" right="0" bottom="0" width="8px" position="absolute">
           {props => (
             <ResizeHandle

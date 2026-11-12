@@ -55,7 +55,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     after detectors have been processed.
 
     Not every workflow is user-facing. The `type` field says what the workflow is for, and the public
-    API only exposes workflows with a type in `VisibleWorkflowTypes`
+    API only exposes workflows with a type in `VISIBLE_WORKFLOW_TYPES`
     """
 
     __relocation_scope__ = RelocationScope.Organization
@@ -123,6 +123,9 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
                 fields=["when_condition_group_id"],
                 name="workflow_engine_workflow_when_condition_group_id_11d9ba05_uniq",
             ),
+        ]
+        indexes = [
+            models.Index(fields=["type", "organization"], name="workflow_type_org_idx"),
         ]
 
     def get_audit_log_data(self) -> dict[str, Any]:

@@ -6,7 +6,6 @@ import {toast} from '@sentry/scraps/toast';
 
 import {useServiceWorker} from 'sentry/serviceWorker/client/serviceWorkerContext';
 import type {Group} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {isArrayOf, isString} from 'sentry/types/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -59,6 +58,7 @@ export type AutofixExplorerStep =
 export interface RootCauseArtifact {
   five_whys: string[];
   one_line_description: string;
+  cause?: string;
   reproduction_steps?: string[];
 }
 
@@ -198,6 +198,7 @@ export interface ExplorerAutofixState {
   status: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
   updated_at: string;
   coding_agents?: Record<string, ExplorerCodingAgentState>;
+  feature_id?: string | null;
   pending_user_input?: {
     data: Record<string, unknown>;
     id: string;
@@ -471,12 +472,77 @@ function buildSection(
  * attaching the relevant artifacts (file patches, PR states). At most one
  * section exists per step.
  */
-export function getOrderedAutofixSections(runState: ExplorerAutofixState | null) {
-  const blocks = runState?.blocks ?? [];
-  if (!blocks.length) {
-    return [];
-  }
+export const SINGLE_RUN_FEATURE_ID = 'autofix_single_run';
+const SINGLE_RUN_ROOT_CAUSE_KEY = 'single_run_root_cause';
 
+export function isSingleRunAutofix(runState: ExplorerAutofixState | null): boolean {
+  return runState?.feature_id === SINGLE_RUN_FEATURE_ID;
+}
+
+function getSingleRunSections(
+  blocks: Block[],
+  runState: ExplorerAutofixState
+): AutofixSection[] {
+  const rootCauses: Array<Artifact<RootCauseArtifact>> = collectArtifacts(blocks).flatMap(
+    artifact => {
+      if (artifact.key !== 'root_cause' && artifact.key !== SINGLE_RUN_ROOT_CAUSE_KEY) {
+        return [];
+      }
+      const headline = artifact.data?.headline;
+      const cause = artifact.data?.cause;
+      if (!isString(headline) || !isString(cause)) {
+        return [];
+      }
+      return [
+        {
+          ...artifact,
+          key: 'root_cause',
+          data: {one_line_description: headline, cause, five_whys: []},
+        },
+      ];
+    }
+  );
+
+  const sections: AutofixSection[] = [
+    {
+      index: 0,
+      step: 'root_cause',
+      blocks,
+      artifacts: rootCauses,
+      status: rootCauses.length
+        ? 'completed'
+        : runState.status === 'error'
+          ? 'error'
+          : runState.status === 'processing' || runState.status === 'awaiting_user_input'
+            ? 'processing'
+            : 'completed',
+    },
+  ];
+
+  const patches = mergeFilePatches(blocks);
+  if (patches.length) {
+    sections.push({
+      index: 0,
+      step: 'code_changes',
+      blocks,
+      artifacts: [patches],
+      status:
+        runState.status === 'processing' &&
+        !Object.keys(runState.repo_pr_states ?? {}).length
+          ? 'processing'
+          : 'completed',
+    });
+  }
+  if (runState.status === 'error') {
+    sections[sections.length - 1]!.status = 'error';
+  }
+  return sections;
+}
+
+function getStepSections(
+  blocks: Block[],
+  runState: ExplorerAutofixState | null
+): AutofixSection[] {
   // Bucket blocks by section step, preserving first-seen order. Each bucket
   // also records the index of its first block, used as the reset/restart point.
   const buckets = new Map<string, {blocks: Block[]; index: number}>();
@@ -502,10 +568,21 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
     }
   }
 
-  const sections: AutofixSection[] = Array.from(buckets.entries()).map(
-    ([step, {blocks: sectionBlocks, index}]) =>
-      buildSection(step, index === lastStepIndex, index, sectionBlocks, runState)
+  return Array.from(buckets.entries()).map(([step, {blocks: sectionBlocks, index}]) =>
+    buildSection(step, index === lastStepIndex, index, sectionBlocks, runState)
   );
+}
+
+export function getOrderedAutofixSections(runState: ExplorerAutofixState | null) {
+  const blocks = runState?.blocks ?? [];
+  if (!blocks.length) {
+    return [];
+  }
+
+  const sections =
+    runState && isSingleRunAutofix(runState)
+      ? getSingleRunSections(blocks, runState)
+      : getStepSections(blocks, runState);
 
   // If there are any PR states, append a synthetic "pull_request" section.
   const pullRequests = Object.values(runState?.repo_pr_states ?? {});
@@ -563,10 +640,6 @@ export function isPullRequestsSection(section: AutofixSection): boolean {
 
 export function isCodingAgentsSection(section: AutofixSection): boolean {
   return section.step === 'coding_agents';
-}
-
-export function isRunValidForPrIteration(organization: Organization): boolean {
-  return organization.features.includes('autofix-pr-iteration-manual');
 }
 
 export function isPrIterationPaused(runState: ExplorerAutofixState | null): boolean {
@@ -874,7 +947,10 @@ export function useExplorerAutofix(
             });
         }
 
-        return getAutofixRunId(response)!;
+        return {
+          runId: getAutofixRunId(response)!,
+          isSingleRun: response?.feature_id === SINGLE_RUN_FEATURE_ID,
+        };
       } catch (e: any) {
         setWaitingForResponse(false);
         const queryKey = explorerAutofixApiOptions(orgSlug, groupId).queryKey;
@@ -889,7 +965,7 @@ export function useExplorerAutofix(
           queryClient.invalidateQueries({
             queryKey: groupQueryKey({organizationSlug: orgSlug, groupId}),
           });
-          return getAutofixRunId(e.responseJSON)!;
+          return {runId: getAutofixRunId(e.responseJSON)!, isSingleRun: false};
         }
 
         // The kickoff was refused because Seer setup is incomplete. There is no

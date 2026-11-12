@@ -31,6 +31,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {getReturnPath} from 'sentry/utils/useReturnPath';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import {getClassifiersPath, useClassifiersEnabled} from 'sentry/views/classifiers/utils';
+import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {
   getInvestigationsPath,
   useInvestigationsEnabled,
@@ -48,6 +50,7 @@ import {
 import {useSettingsScope} from 'sentry/views/settings/useSettingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
+import {PrimaryNavigationCommandPalette} from './primary/commandPalette';
 import {PrimaryNavigation} from './primary/components';
 import {PrimaryNavigationHelpMenu} from './primary/helpMenu';
 import {PrimaryNavigationOnboarding} from './primary/onboarding';
@@ -151,6 +154,7 @@ function NavigationImpl() {
               paddingBottom="md"
             >
               <PrimaryNavigation.FooterItems>
+                <PrimaryNavigationCommandPalette />
                 <PrimaryNavigationFooterItems>
                   <ErrorBoundary customComponent={null}>
                     <PrimaryNavigationWhatsNew />
@@ -203,6 +207,8 @@ export function SettingsNavigationBackButton({
       size="sm"
       icon={<IconArrow direction="left" />}
       aria-label={t('Back to app')}
+      analyticsEventKey="settings.back_to_app_clicked"
+      analyticsEventName="Settings: Back to App Clicked"
       tooltipProps={{title: t('Back to app')}}
       to={getReturnPath(
         getSettingsReturnPathKey(organizationSlug),
@@ -269,6 +275,7 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
   const organization = useOrganization({allowNull: true});
   const investigationsEnabled = useInvestigationsEnabled();
   const automationsEnabled = useAutomationsEnabled();
+  const classifiersEnabled = useClassifiersEnabled();
   const settingsV3 = useSettingsV3();
 
   const fallbackRef = useRef<HTMLUListElement>(null);
@@ -306,7 +313,9 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
 
   const seerPath = automationsEnabled
     ? getAutomationsPath(organization.slug)
-    : getInvestigationsPath(organization.slug);
+    : investigationsEnabled
+      ? getInvestigationsPath(organization.slug)
+      : getClassifiersPath(organization.slug);
 
   const prefix = `organizations/${organization.slug}`;
 
@@ -343,7 +352,7 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
       </NavigationTourElement>
 
       {organization.features.includes('seer-primary-nav') &&
-        (investigationsEnabled || automationsEnabled) && (
+        (investigationsEnabled || automationsEnabled || classifiersEnabled) && (
           <PrimaryNavigation.ListItem>
             <PrimaryNavigation.Link
               to={seerPath}

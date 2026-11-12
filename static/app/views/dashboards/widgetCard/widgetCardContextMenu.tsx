@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import qs from 'query-string';
 
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -11,7 +12,6 @@ import {
   openAddToDashboardModal,
   openDashboardWidgetQuerySelectorModal,
 } from 'sentry/actionCreators/modal';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {t, tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -168,6 +168,20 @@ export const useDroppedColumnsWarning = (widget: Widget): React.JSX.Element | nu
 const StyledText = styled(Text)`
   padding-bottom: ${p => p.theme.space.xs};
 `;
+
+export function withMenuActionCallback(
+  options: MenuItemProps[],
+  callback: (key: string) => void
+): MenuItemProps[] {
+  return options.map(option => ({
+    ...option,
+    children: option.children && withMenuActionCallback(option.children, callback),
+    onAction: () => {
+      callback(option.key);
+      option.onAction?.();
+    },
+  }));
+}
 
 export function getMenuOptions(
   dashboardFilters: DashboardFilters | undefined,

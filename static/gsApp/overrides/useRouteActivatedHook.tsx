@@ -50,7 +50,7 @@ export function useRouteActivatedHook({location, matches}: Props) {
     (route: string, localOrganization: Organization) => {
       const reloadPath = convertToReloadPath(route);
 
-      SubscriptionStore.get(localOrganization.slug, (subscription: any) => {
+      SubscriptionStore.get(localOrganization.slug, subscription => {
         // optional way to override the event name for Reload and Amplitude
         // note null means something different than undefined for eventName so
         // checking for that explicitly

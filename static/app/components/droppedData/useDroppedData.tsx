@@ -73,7 +73,7 @@ export function useDroppedData(
     staleTime = intervalInMilliseconds;
   }
 
-  const {data, isPending, isError, refetch} = useQuery({
+  const {data, isPending, isLoading, isError, refetch} = useQuery({
     ...apiOptions.as<DroppedEventsResponse>()(
       '/organizations/$organizationIdOrSlug/events-dropped/',
       {
@@ -99,6 +99,7 @@ export function useDroppedData(
     droppedEvents: data?.droppedEvents,
     acceptedEvents: data?.acceptedEvents,
     isPending,
+    isLoading,
     isError,
     refetch,
   };

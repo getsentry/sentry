@@ -258,6 +258,11 @@ export type IssueEventParameters = {
     action_status_details?: string;
     action_substatus?: string | null;
   };
+  'issues_stream.copied': {
+    area: string;
+    copy_type: 'short_ids' | 'links';
+    count: number;
+  };
   'issues_stream.issue_assigned': IssueStream & {
     area: string;
     assigned_type: string;
@@ -376,6 +381,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_inbox.item_clicked': 'Issue Inbox: Item Clicked',
   'issue_inbox.open_in_desktop_app_clicked': 'Issue Inbox: Open in Desktop App Clicked',
   'issues_stream.archived': 'Issues Stream: Archived',
+  'issues_stream.copied': 'Issues Stream: Copied',
   'issues_stream.updated_priority': 'Issues Stream: Updated Priority',
   'issues_stream.realtime_clicked': 'Issues Stream: Realtime Clicked',
   'issues_stream.issue_assigned': 'Assigned Issue from Issues Stream',

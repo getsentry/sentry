@@ -9,7 +9,10 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
 from sentry.preprod.vcs.status_checks.skip import CONFIGURATION_ERROR_DETAIL
-from sentry.preprod.vcs.status_checks.utils import get_status_check_client_for_repo
+from sentry.preprod.vcs.status_checks.utils import (
+    get_status_check_client,
+    get_status_check_client_for_repo,
+)
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, IntegrationError
 from sentry.testutils.cases import APITestCase, TestCase
 
@@ -322,6 +325,29 @@ class StatusCheckClientForRepoTest(TestCase):
 
         assert resolved_client == client
         assert repository == self.repository
+
+    def test_commit_comparison_skips_older_stale_repository(self) -> None:
+        self.repository.update(integration_id=None, status=ObjectStatus.DISABLED)
+        current = self.create_repo(
+            project=self.project,
+            name="owner/repo",
+            provider="integrations:github",
+            integration_id=456,
+            external_id="current",
+        )
+        commit_comparison = self.create_commit_comparison(
+            organization=self.organization, head_repo_name="owner/repo", provider="github"
+        )
+        client = Mock()
+
+        with patch(
+            "sentry.preprod.vcs.status_checks.utils._status_check_client_from_repository",
+            return_value=client,
+        ):
+            resolved_client, repository = get_status_check_client(self.project, commit_comparison)
+
+        assert resolved_client == client
+        assert repository == current
 
     def test_inactive_repository_is_not_resolved(self) -> None:
         self.repository.update(status=ObjectStatus.PENDING_DELETION)

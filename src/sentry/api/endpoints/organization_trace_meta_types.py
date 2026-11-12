@@ -1,7 +1,18 @@
 from typing import Annotated, TypedDict
 
 from sentry.apidocs.descriptions import ApiDescription
-from sentry.search.events.types import SnubaData
+
+# The keys are the selected columns of the transaction_children query.
+TransactionChildCount = TypedDict(
+    "TransactionChildCount",
+    {
+        "transaction.event_id": Annotated[
+            str | None,
+            ApiDescription("ID of the transaction. Null for spans that belong to no transaction"),
+        ],
+        "count()": Annotated[float, ApiDescription("Number of child spans of the transaction")],
+    },
+)
 
 
 class OrganizationTraceMetaResponseOptional(TypedDict, total=False):
@@ -27,10 +38,7 @@ class OrganizationTraceMetaResponse(OrganizationTraceMetaResponseOptional):
     ]
     spansCount: Annotated[float, ApiDescription("Number of spans in the trace")]
     transactionChildCountMap: Annotated[
-        SnubaData,
-        ApiDescription(
-            "Child span counts per transaction. Each row holds a `transaction.event_id` and the `count()` of its child spans"
-        ),
+        list[TransactionChildCount], ApiDescription("Number of child spans of each transaction")
     ]
     spansCountMap: Annotated[
         dict[str, float],

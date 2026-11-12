@@ -619,7 +619,7 @@ Sentry's SettingsSearch allows users to search for individual settings fields. W
 `FormSearch` is a **build-time marker component** — it has zero runtime behavior and simply renders its children unchanged. Its `route` prop is read by a static extraction script to associate form fields with their navigation route, enabling them to appear in SettingsSearch results.
 
 ```tsx
-import {FormSearch} from 'sentry/components/core/form';
+import {FormSearch} from '@sentry/scraps/form';
 
 <FormSearch route="/settings/account/details/">
   <FieldGroup title={t('Account Details')}>

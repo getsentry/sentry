@@ -74,7 +74,7 @@ describe('WidgetBuilderXAxisSelector', () => {
       screen.queryByRole('option', {name: /gen_ai\.tool\.name/})
     ).not.toBeInTheDocument();
 
-    await userEvent.type(screen.getByRole('textbox'), 'gen_ai');
+    await userEvent.type(screen.getByRole('searchbox'), 'gen_ai');
 
     await waitFor(() =>
       expect(searchAttributesMock).toHaveBeenCalledWith(

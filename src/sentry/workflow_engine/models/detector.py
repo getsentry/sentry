@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import builtins
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, Any, ClassVar, Self, TypedDict
 
 from django.conf import settings
@@ -52,6 +52,125 @@ class DetectorSnapshot(TypedDict):
 
 
 class DetectorQuerySet(BaseQuerySet["Detector"]):
+    # For write methods which skip signals, enforce detector config validation. (In addition to the
+    # methods overridden here, this also covers `instance.update()`, since that calls
+    # `QuerySet.update()`. And `save()` triggers the `enforce_config_schema_signal` pre-save signal,
+    # so it does validation on its own.)
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        # Set by our overridden `bulk_update()` and then checked by the overridden `update`, to
+        # prevent running validation twice
+        self._config_validated = False
+
+    def _clone(self) -> Self:
+        # Ensure that our validation flag doesn't get lost in the process of cloning the queryset
+        cloned_queryset = super()._clone()
+        cloned_queryset._config_validated = self._config_validated
+        return cloned_queryset
+
+    def update(self, **kwargs: Any) -> int:
+        # With the post-update signal enabled, `super().update()` goes through
+        # `update_with_returning()`, which does the validation itself
+        if not self._with_post_update_signal and not self._config_validated:
+            self._validate_config(kwargs)
+        return super().update(**kwargs)
+
+    def update_with_returning(
+        self, returned_fields: list[str], **kwargs: Any
+    ) -> list[tuple[Any, ...]]:
+        self._validate_config(kwargs)
+        return super().update_with_returning(returned_fields, **kwargs)
+
+    def bulk_create(self, objs: Iterable[Detector], *args: Any, **kwargs: Any) -> list[Detector]:
+        # Force `objs` to be a list so it can be iterated multiple times (here in this method and in
+        # `super`'s `bulk_create`).
+        objs = list(objs)
+
+        for detector in objs:
+            detector.enforce_config_schema()
+
+        return super().bulk_create(objs, *args, **kwargs)
+
+    def bulk_update(
+        self, objs: Iterable[Detector], fields: Iterable[str], *args: Any, **kwargs: Any
+    ) -> int:
+        # Force `objs` and `fields` to be lists so they can iterated them multiple times (here in
+        # this method and in `super`'s `bulk_update`).
+        objs = list(objs)
+        fields = list(fields)
+
+        # Django's `bulk_update()` writes the objects by passing `Case` objects to `update()`, which
+        # our overridden `update()` won't be able to validate, so do the validation here and then
+        # mark the queryset as already validated. (We clone first so that the flag doesn't persist
+        # past this `bulk_update` call.)
+        if "config" in fields or "type" in fields:
+            for detector in objs:
+                detector.enforce_config_schema()
+        cloned_queryset = self._clone()
+        cloned_queryset._config_validated = True
+
+        return super(DetectorQuerySet, cloned_queryset).bulk_update(objs, fields, *args, **kwargs)
+
+    def _validate_config(self, updated_values: dict[str, Any]) -> None:
+        """
+        Ensure that if the given updates are applied, every row in the queryset will end up with a
+        valid config for its type.
+        """
+        if self._config_validated:
+            return
+
+        for field_name in ("config", "type"):
+            if field_name in updated_values and hasattr(
+                updated_values[field_name], "resolve_expression"
+            ):
+                raise ValueError(
+                    f"Detector `{field_name}` can't be set to a database expression, since then it"
+                    + " can't be validated against the detector type's config schema"
+                )
+
+        new_detector_type = updated_values.get("type")
+        new_config = updated_values.get("config")
+
+        # Neither updated
+        if new_config is None and new_detector_type is None:
+            return
+        # Both updated
+        elif new_config is not None and new_detector_type is not None:
+            self.model(type=new_detector_type, config=new_config).enforce_config_schema()
+        # Only config updated
+        elif new_config is not None and new_detector_type is None:
+            # We need a blank `order_by` here in order to clear any existing ordering on the
+            # queryset, because Django includes columns used for ordering in the `distinct`
+            # expression in the underlying SQL
+            existing_types_in_queryset = (
+                self._without_select_for_update_lock()
+                .order_by()
+                .values_list("type", flat=True)
+                .distinct()
+            )
+            for existing_detector_type in existing_types_in_queryset:
+                self.model(type=existing_detector_type, config=new_config).enforce_config_schema()
+        # Only type updated
+        elif new_config is None and new_detector_type is not None:
+            existing_configs_in_queryset = self._without_select_for_update_lock().values_list(
+                "config", flat=True
+            )
+            for existing_config in existing_configs_in_queryset:
+                self.model(config=existing_config, type=new_detector_type).enforce_config_schema()
+
+    def _without_select_for_update_lock(self) -> Self:
+        """
+        Return a copy of the queryset with `select_for_update()` disabled. Used for the reads done
+        during `config` validation, since they would crash were the validation ever done as part of
+        a `select_for_update().update(...)` call outside of a transaction. (One branch of the
+        validation also uses a `distinct()` call, which is incompatible with the row lock even if a
+        transaction is used.)
+        """
+        queryset = self._clone()
+        queryset.query.select_for_update = False
+        return queryset
+
     def with_type_filters(self) -> Self:
         """
         Returns a queryset with detector type-specific filters applied. This

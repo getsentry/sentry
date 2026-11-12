@@ -58,11 +58,15 @@ class ServiceAccountService(RpcService):
         project_ids: list[int],
         all_projects: bool,
         created_by_id: int | None,
+        idempotency_key: str | None = None,
     ) -> RpcServiceAccount:
         """
         `scope_list` must not be empty, `name` must be at most `MAX_NAME_LENGTH` characters,
         and `project_ids` must be projects in `organization_id`. None of these are checked
         here. Callers must authorize the grant and write the audit log.
+
+        When `idempotency_key` matches an account in `organization_id`, that account is
+        returned unchanged instead of creating another.
         """
 
     @rpc_method

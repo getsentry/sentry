@@ -1,4 +1,4 @@
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQueryClient, useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {DescriptionList} from '@sentry/scraps/descriptionList';
@@ -7,8 +7,8 @@ import {toast} from '@sentry/scraps/toast';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -28,14 +28,12 @@ export function PromoCodeDetails() {
   const queryClient = useQueryClient();
   const ENDPOINT = getApiUrl('/promocodes/$code/', {path: {code: codeId}});
 
-  const {
-    data: promoCode,
-    isPending,
-    isError,
-    refetch,
-  } = useApiQuery<PromoCode>([ENDPOINT], {
+  const queryOptions = apiOptions.as<PromoCode>()('/promocodes/$code/', {
+    path: {code: codeId},
     staleTime: 0,
   });
+
+  const {data: promoCode, isPending, isError, refetch} = useQuery(queryOptions);
 
   const onUpdateMutation = useMutation({
     mutationFn: (updatedData: Record<string, any>) => {
@@ -49,8 +47,8 @@ export function PromoCodeDetails() {
     },
     onSuccess: data => {
       toast.success(`Promo code has been updated with ${JSON.stringify(data)}.`);
-      setApiQueryData<PromoCode>(queryClient, [ENDPOINT], oldData => {
-        return oldData ? {...oldData, data} : undefined;
+      queryClient.setQueryData(queryOptions.queryKey, previous => {
+        return previous ? {...previous, json: {...previous.json, data}} : previous;
       });
     },
     onError: () => {
@@ -131,7 +129,11 @@ export function PromoCodeDetails() {
                 {...deps}
                 promoCode={promoCode}
                 onSubmit={(newCode: PromoCode) => {
-                  setApiQueryData<PromoCode>(queryClient, [ENDPOINT], newCode);
+                  queryClient.setQueryData(queryOptions.queryKey, previous => ({
+                    ...previous,
+                    headers: previous?.headers ?? {},
+                    json: newCode,
+                  }));
                 }}
               />
             ));

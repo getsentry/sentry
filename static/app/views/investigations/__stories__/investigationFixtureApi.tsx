@@ -31,6 +31,7 @@ import type {
   InvestigationExecutionDetail,
   InvestigationListItem,
   InvestigationOrchestration,
+  InvestigationOrchestrationCommand,
   InvestigationTitleGeneration,
 } from 'sentry/views/investigations/types';
 
@@ -431,6 +432,36 @@ function handleFixtureRequest(
 
   if (parts[1] === 'orchestration' && parts.length === 2 && method === 'GET') {
     return {body: cloneFixture(getFixtureOrchestration(state, investigationId))};
+  }
+
+  if (
+    parts[1] === 'orchestration' &&
+    parts[2] === 'commands' &&
+    parts.length === 3 &&
+    method === 'POST'
+  ) {
+    const run = getFixtureOrchestration(state, investigationId);
+    const command = data.command as InvestigationOrchestrationCommand;
+    // Seer would take the question and push a new projection; the fixture
+    // starts the run inline so a story stays interactive.
+    const updated: InvestigationOrchestration = {
+      ...run,
+      ...(command.type === 'provide_input'
+        ? {phase: 'broad_scan', status: 'processing', pendingInput: null}
+        : {}),
+      workflowVersion: run.workflowVersion + 1,
+    };
+    state.orchestration.set(investigationId, updated);
+    return {
+      body: {
+        accepted: true,
+        duplicate: false,
+        requestId: getDataString(data, 'requestId') ?? 'fixture-request',
+        runId: run.runId,
+        workflowVersion: updated.workflowVersion,
+        projection: cloneFixture(updated),
+      },
+    };
   }
 
   if (

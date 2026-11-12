@@ -93,4 +93,29 @@ describe('AcceptProjectTransfer', () => {
       })
     );
   });
+
+  it.each([
+    ['a single data param', 'signed-data', 'signed-data'],
+    ['a repeated data param', ['signed-data', 'other-data'], undefined],
+  ])(
+    'submits the transfer data from the URL when given %s',
+    async (_, data, expected) => {
+      render(<AcceptProjectTransfer />, {
+        initialRouterConfig: {
+          location: {pathname: '/accept-transfer/', query: {data}},
+        },
+      });
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Transfer Project'})
+      );
+
+      expect(postMock).toHaveBeenCalledWith(
+        endpoint,
+        expect.objectContaining({
+          data: {data: expected, organization: OrganizationFixture().slug},
+        })
+      );
+    }
+  );
 });

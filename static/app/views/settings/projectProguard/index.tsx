@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -14,9 +15,8 @@ import {t, tct} from 'sentry/locale';
 import type {DebugFile} from 'sentry/types/debugFiles';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useApi} from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
@@ -33,8 +33,12 @@ export default function ProjectProguard() {
   const api = useApi();
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [queryParams, setQueryParams] = useQueryStates({
+    query: parseAsString,
+    cursor: parseAsString,
+  });
+  const query = queryParams.query ?? undefined;
+  const cursor = queryParams.cursor ?? undefined;
   const [loading, setLoading] = useState(false);
 
   const {
@@ -47,9 +51,9 @@ export default function ProjectProguard() {
       {
         path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
         query: {
-          query: location.query.query,
+          query,
           file_formats: 'proguard',
-          cursor: location.query.cursor,
+          cursor,
         },
         staleTime: 0,
       }
@@ -61,13 +65,10 @@ export default function ProjectProguard() {
   const mappingsPageLinks = mappingsResp?.headers.Link;
 
   const handleSearch = useCallback(
-    (query: string) => {
-      navigate({
-        ...location,
-        query: {...location.query, cursor: undefined, query: query || undefined},
-      });
+    (newQuery: string) => {
+      setQueryParams({cursor: null, query: newQuery || null}, {history: 'push'});
     },
-    [location, navigate]
+    [setQueryParams]
   );
 
   const handleDelete = useCallback(
@@ -95,9 +96,6 @@ export default function ProjectProguard() {
     },
     [api, fetchData, organization.slug, project.slug]
   );
-
-  const query =
-    typeof location.query.query === 'string' ? location.query.query : undefined;
 
   const isLoading = loading || dataLoading;
 
@@ -159,7 +157,7 @@ export default function ProjectProguard() {
               })
             : null}
         </SimpleTable>
-        <Pagination pageLinks={mappingsPageLinks} />
+        <Pagination {...getPaginationProps(mappingsPageLinks)} />
       </Stack>
     </Fragment>
   );
