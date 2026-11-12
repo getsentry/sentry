@@ -547,6 +547,23 @@ class OrganizationTraceItemStatsEndpointTest(
         assert table_query.call_count == 2
         assert self._preflight_calls(stats_query) == 2
 
+    def test_attribute_key_cache_not_shared_across_case_sensitivity(self) -> None:
+        self._store_span(sentry_tags={"browser": "Chrome"})
+        table_query, _ = self._count_key_discovery_queries()
+
+        for case_insensitive, expected_data in (("0", False), ("1", True)):
+            response = self.do_request(
+                query={
+                    "query": "browser:chrome",
+                    "statsType": ["attributeDistributions"],
+                    "caseInsensitive": case_insensitive,
+                }
+            )
+            assert response.status_code == 200, response.data
+            assert bool(response.data["data"]) is expected_data
+
+        assert table_query.call_count == 2
+
     def test_attribute_key_cache_not_shared_across_visibility(self) -> None:
         self._store_span(sentry_tags={"dsc.environment": "production"})
         query = {"statsType": ["attributeDistributions"], "itemType": "spans"}

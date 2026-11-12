@@ -133,6 +133,9 @@ def get_attribute_keys_cache_key(
             sorted(snuba_params.environment_names),
             [request.GET.get(param) for param in DATE_RANGE_PARAMS],
             snuba_params.sampling_mode,
+            snuba_params.case_insensitive,
+            # Queries can resolve per-user values, such as is_starred_transaction.
+            snuba_params.user.id if snuba_params.user else None,
             serialized.get("itemType", "spans"),
             serialized.get("query", ""),
             sorted(serialized.get("statsType", [])),
