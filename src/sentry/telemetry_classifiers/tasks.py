@@ -41,7 +41,7 @@ from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_contex
 
 logger = logging.getLogger(__name__)
 
-# How often each classifier selects entities. Classifiers are spread across it.
+# How often each classifier selects entities.
 SCAN_INTERVAL = timedelta(minutes=5)
 # Long enough to outlive retries of a selection.
 _CLAIM_TTL_SECONDS = 60 * 60
@@ -53,11 +53,15 @@ _PROCESSING_FEATURE = "organizations:classifiers-ui"
 @instrumented_task(
     name="sentry.telemetry_classifiers.tasks.schedule_classifiers",
     namespace=telemetry_classifiers_tasks,
-    expires=60,
+    expires=SCAN_INTERVAL,
     silo_mode=SiloMode.CELL,
 )
 def schedule_classifiers() -> None:
-    """Start selection for each enabled classifier once per SCAN_INTERVAL, spread across it."""
+    """Start selection for each enabled classifier once per SCAN_INTERVAL.
+
+    While the schedule ticks once per SCAN_INTERVAL, every classifier starts on each tick. Ticking
+    more often spreads them across the interval.
+    """
     CursoredScheduler(
         name="telemetry_classifiers",
         schedule_key="telemetry-classifiers-schedule",

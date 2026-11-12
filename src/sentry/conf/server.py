@@ -1202,7 +1202,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "telemetry-classifiers-schedule": {
         "task": "telemetry.classifiers:sentry.telemetry_classifiers.tasks.schedule_classifiers",
-        "schedule": timedelta(minutes=1),
+        "schedule": timedelta(minutes=5),
     },
     "weekly-escalating-forecast": {
         "task": "issues:sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
