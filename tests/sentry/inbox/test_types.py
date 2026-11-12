@@ -33,6 +33,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.notifications.models.inboxitem import InboxItem
 from sentry.notifications.models.inboxitemevent import InboxActorType, InboxItemEvent
+from sentry.notifications.types import NotificationSettingEnum
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
@@ -95,11 +96,13 @@ def test_register_types() -> None:
         event_type="test.issue.user_mentioned",
         item_type=issue_type,
         data_class=MentionedData,
+        notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
     )
     reference_event = InboxEventType(
         event_type="test.reference.mentioned",
         item_type=reference_type,
         data_class=MentionedData,
+        notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
     )
     assert_type(issue_event, InboxEventType[Group, MentionedData])
     assert_type(reference_event, InboxEventType[SubjectReference, MentionedData])
@@ -115,6 +118,23 @@ def test_register_types() -> None:
     assert inbox_item_type_registry.get(reference_type.subject_type) is reference_type
     assert inbox_item_event_type_registry.get(issue_event.event_type) is issue_event
     assert inbox_item_event_type_registry.get(reference_event.event_type) is reference_event
+
+
+def test_registered_event_notification_settings() -> None:
+    assert {
+        event_type: registered.notification_setting
+        for event_type, registered in inbox_item_event_type_registry.registrations.items()
+    } == {
+        "issue.user_assigned": NotificationSettingEnum.INBOX_ASSIGNMENTS,
+        "issue.team_assigned": NotificationSettingEnum.INBOX_ASSIGNMENTS,
+        "issue.user_mentioned": NotificationSettingEnum.INBOX_MENTIONS,
+        "issue.team_mentioned": NotificationSettingEnum.INBOX_MENTIONS,
+        "issue.pr_ready_for_review": NotificationSettingEnum.INBOX_PULL_REQUESTS_READY,
+        "notebook.completed": NotificationSettingEnum.INBOX_COMPLETION_STATUS,
+        "notebook.user_mentioned": NotificationSettingEnum.INBOX_MENTIONS,
+        "notebook.team_mentioned": NotificationSettingEnum.INBOX_MENTIONS,
+        "notebook.participant_added": NotificationSettingEnum.INBOX_ASSIGNMENTS,
+    }
 
 
 def test_actor() -> None:
@@ -436,7 +456,10 @@ class RecordTest(TestCase):
     def test_value_object_subject(self) -> None:
         item_type = ReferenceItemType("test.reference")
         event_type = InboxEventType(
-            event_type="test.reference.updated", item_type=item_type, data_class=InboxEventData
+            event_type="test.reference.updated",
+            item_type=item_type,
+            data_class=InboxEventData,
+            notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
         )
 
         event_type.record(

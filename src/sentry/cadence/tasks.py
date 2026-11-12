@@ -9,14 +9,14 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import reduce
 
-from django.db import router, transaction
+from django.db import connections, router, transaction
 from django.db.models import Q, QuerySet
 from django.utils import timezone
 
 from sentry import options
 from sentry.cadence.models import ScheduledTrigger, ScheduledTriggerType
 from sentry.cadence.registry import TriggerFiring, TriggerTarget, trigger_type_registry
-from sentry.cadence.schedule import advance
+from sentry.cadence.schedule import MAX_MISSED_CRON_FIRINGS, advance, missed_between
 from sentry.cadence.spread import offset_of
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -42,6 +42,8 @@ class _ClaimedFiring:
     fire_at: datetime
     # When the trigger's schedule was last changed. The tick's own updates don't change it.
     date_updated: datetime
+    missed: int
+    missed_count_capped: bool
 
 
 @dataclass(frozen=True)
@@ -108,7 +110,8 @@ def _claim_batch(
     it locked) is left for a later tick.
     """
     claimed: dict[ScheduledTriggerType, list[_ClaimedFiring]] = defaultdict(list)
-    with transaction.atomic(using=router.db_for_write(ScheduledTrigger)):
+    using = router.db_for_write(ScheduledTrigger)
+    with transaction.atomic(using=using):
         query: QuerySet[ScheduledTrigger] = ScheduledTrigger.objects.select_for_update(
             skip_locked=True
         ).filter(next_fire_at__lte=now)
@@ -141,6 +144,9 @@ def _claim_batch(
                 # A scheduled time that has passed is still next if its offset firing hasn't.
                 trigger.next_scheduled_for = advance(trigger, scheduled_for, now - offset)
                 trigger.next_fire_at = trigger.next_scheduled_for + offset
+                missed, missed_count_capped = missed_between(
+                    trigger, scheduled_for, trigger.next_scheduled_for
+                )
             except Exception:
                 logger.exception(
                     "cadence.trigger.unschedulable",
@@ -156,13 +162,39 @@ def _claim_batch(
                         trigger_type=trigger_type,
                         target_id=trigger.target_id,
                         scheduled_for=scheduled_for,
+                        next_scheduled_for=trigger.next_scheduled_for,
                     ),
                     fire_at=fire_at,
                     date_updated=trigger.date_updated,
+                    missed=missed,
+                    missed_count_capped=missed_count_capped,
                 )
             )
-        ScheduledTrigger.objects.bulk_update(due, ["next_scheduled_for", "next_fire_at"])
+        _save_next_fire(using, due)
     return claimed, len(due), cursor
+
+
+def _save_next_fire(using: str, triggers: Sequence[ScheduledTrigger]) -> None:
+    """
+    Save the triggers' next_scheduled_for and next_fire_at in one query. This is what
+    bulk_update does, but about 3x faster: building bulk_update's CASE expressions took
+    longer than running the query.
+    """
+    with connections[using].cursor() as cursor:
+        cursor.execute(
+            """
+            UPDATE cadence_scheduledtrigger AS t
+            SET next_scheduled_for = v.next_scheduled_for, next_fire_at = v.next_fire_at
+            FROM unnest(%s::bigint[], %s::timestamptz[], %s::timestamptz[])
+                AS v(id, next_scheduled_for, next_fire_at)
+            WHERE t.id = v.id
+            """,
+            [
+                [t.id for t in triggers],
+                [t.next_scheduled_for for t in triggers],
+                [t.next_fire_at for t in triggers],
+            ],
+        )
 
 
 def _dispatch(claimed: dict[ScheduledTriggerType, list[_ClaimedFiring]]) -> None:
@@ -176,6 +208,19 @@ def _dispatch(claimed: dict[ScheduledTriggerType, list[_ClaimedFiring]]) -> None
         claimed_firings = _drop_missing_targets(trigger_type, claimed_firings, dispatched_at, tags)
         if not claimed_firings:
             continue
+        missed = sum(c.missed for c in claimed_firings)
+        if missed:
+            metrics.incr("cadence.trigger.missed", amount=missed, tags=tags, sample_rate=1.0)
+        capped = sum(int(c.missed_count_capped) for c in claimed_firings)
+        if capped:
+            logger.warning(
+                "cadence.trigger.missed_count_capped",
+                extra={
+                    "trigger_type": trigger_type.value,
+                    "capped_firings": capped,
+                    "limit_per_firing": MAX_MISSED_CRON_FIRINGS,
+                },
+            )
         for claimed_firing in claimed_firings:
             # Measured from when the firing was due, so a trigger's offset isn't counted as lag.
             metrics.distribution(

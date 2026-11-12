@@ -1,23 +1,18 @@
 import {IconChevron} from '@sentry/icons/chevron';
-import {IconSliders} from '@sentry/icons/sliders';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {ToggleCard} from '@sentry/scraps/toggleCard';
 
 import {AgentHandoffFlow} from 'sentry/components/agentHandoff/useAgentHandoff';
-import {
-  SETUP_CARD_ICON_SIZE,
-  SETUP_CARD_MARKER_PX,
-} from 'sentry/components/onboarding/consts';
 import {ScmCollapsibleReveal} from 'sentry/components/onboarding/scm/scmCollapsibleReveal';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 
 import {AgenticProgress} from './agenticProgressList';
 import {AgentSetupCard, type AgentSetupCopySource} from './agentSetupCard';
+import {SetupCardFrame} from './setupCardFrame';
 import type {AgenticProgressRun} from './types';
 
 const MotionContainer = motion.create(Container);
@@ -37,6 +32,8 @@ interface AgenticSetupProps {
   onSetupInBrowser: () => void;
   run: AgenticProgressRun | undefined;
   handoffFlow?: AgentHandoffFlow;
+  /** Tilts the setup card and adds the stacked brand border and shadows. */
+  layered?: boolean;
   onboardingCode?: string;
 }
 
@@ -54,6 +51,7 @@ export function AgenticSetup({
   onRefresh,
   run,
   handoffFlow = AgentHandoffFlow.ONBOARDING,
+  layered = false,
 }: AgenticSetupProps) {
   const hasRunFailed = run?.runStatus === 'failed' || run?.runStatus === 'cancelled';
   const showsProgress =
@@ -124,13 +122,15 @@ export function AgenticSetup({
               exit={{opacity: 0}}
               transition={CARD_MORPH_TRANSITION}
             >
-              <AgentSetupCard
-                feedbackSource={feedbackSource}
-                flow={handoffFlow}
-                onCopyCommand={onCopyCommand}
-                onSelectSnippet={onSelectSnippet}
-                run={run}
-              />
+              <SetupCardFrame layered={layered}>
+                <AgentSetupCard
+                  feedbackSource={feedbackSource}
+                  flow={handoffFlow}
+                  onCopyCommand={onCopyCommand}
+                  onSelectSnippet={onSelectSnippet}
+                  run={run}
+                />
+              </SetupCardFrame>
             </MotionContainer>
           )}
         </AnimatePresence>
@@ -143,50 +143,25 @@ export function AgenticSetup({
       </ScmCollapsibleReveal>
 
       <ScmCollapsibleReveal open={!showsProgress || hasRunFailed}>
-        <Stack gap="2xl" align="center" width="100%">
-          <Text variant="muted" size="md" bold>
-            {t('or')}
-          </Text>
-
-          <ToggleCard
-            variant="button"
-            onClick={onSetupInBrowser}
-            data-test-id="onboarding-setup-in-browser"
-          >
-            <Grid
-              columns={`${SETUP_CARD_MARKER_PX} 1fr max-content`}
-              gap="0 md"
-              width="100%"
-              areas={`
-          "icon title chevron"
-          ".    body  body"
-        `}
+        <Container width="100%">
+          {buttonProps => (
+            <Button
+              {...buttonProps}
+              variant="transparent"
+              onClick={onSetupInBrowser}
+              data-test-id="onboarding-setup-in-browser"
             >
-              <Flex area="icon" align="center" justify="center">
-                <IconSliders size={SETUP_CARD_ICON_SIZE} variant="secondary" />
-              </Flex>
-              <Flex area="title" align="center">
-                <Text bold size="lg">
-                  {t('Set up manually')}
+              <Flex as="span" align="center" gap="sm">
+                <Text variant="secondary">
+                  {tct('Prefer to do it yourself? [manual]', {
+                    manual: <Text variant="accent">{t('Set up manually')}</Text>,
+                  })}
                 </Text>
+                <IconChevron direction="right" size="sm" variant="accent" />
               </Flex>
-              <Flex area="chevron" align="center">
-                <IconChevron
-                  direction="right"
-                  size={SETUP_CARD_ICON_SIZE}
-                  variant="secondary"
-                />
-              </Flex>
-              <Container area="body" paddingTop="xs">
-                <Text variant="muted" size="md" density="comfortable" textWrap="pretty">
-                  {t(
-                    'Connect a repo, choose what to instrument and where alerts land, then follow the instructions for your project'
-                  )}
-                </Text>
-              </Container>
-            </Grid>
-          </ToggleCard>
-        </Stack>
+            </Button>
+          )}
+        </Container>
       </ScmCollapsibleReveal>
     </Stack>
   );

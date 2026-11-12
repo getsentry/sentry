@@ -376,7 +376,7 @@
     "@react-stately/tree": "3.10.1",
     "@react-types/shared": "3.36.0",
     "@sentry/icons": "workspace:*",
-    "@sentry/react": "11.7.0",
+    "@sentry/react": "11.12.0",
     "@tanstack/react-hotkeys": "0.18.0",
     "@tanstack/react-pacer": "^0.22.1",
     "@tanstack/react-virtual": "3.14.6",

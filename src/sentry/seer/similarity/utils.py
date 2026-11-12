@@ -26,7 +26,7 @@ from sentry.seer.autofix.utils import (
     AutomationCodingAgent,
     SeerProjectSettingsUpdate,
     get_org_default_seer_automation_handoff,
-    is_seer_seat_based_tier_enabled,
+    is_seer_seat_or_token_billed_enabled,
     update_seer_project_settings,
 )
 from sentry.seer.similarity.types import GroupingVersion
@@ -544,14 +544,14 @@ def set_default_project_autofix_automation_tuning(
         project.update_option(
             "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.OFF
         )
-    elif is_seer_seat_based_tier_enabled(organization):
-        # Feature flag ON overrides everything except explicit "off"
+    elif is_seer_seat_or_token_billed_enabled(organization):
+        # Seat-based and token-billed orgs override everything except explicit "off"
         project.update_option(
             "sentry:autofix_automation_tuning",
             AutofixAutomationTuningSettings.MEDIUM,
         )
     elif org_default:
-        # Feature flag OFF, use org's explicit value
+        # Legacy orgs use org's explicit value
         project.update_option("sentry:autofix_automation_tuning", org_default)
 
 
@@ -559,11 +559,11 @@ def set_default_project_seer_scanner_automation(
     organization: Organization, project: Project
 ) -> None:
     """Called once at project creation time to set the initial seer scanner automation."""
-    if is_seer_seat_based_tier_enabled(organization):
-        # Feature flag ON always sets scanner to True
+    if is_seer_seat_or_token_billed_enabled(organization):
+        # Seat-based and token-billed orgs always set scanner to True
         project.update_option("sentry:seer_scanner_automation", True)
     else:
-        # Feature flag OFF, use org's explicit value if set
+        # Legacy orgs use org's explicit value if set
         org_default = organization.get_option("sentry:default_seer_scanner_automation")
         if org_default is not None:
             project.update_option("sentry:seer_scanner_automation", org_default)
@@ -573,7 +573,7 @@ def set_default_project_seer_preferences(organization: Organization, project: Pr
     """Called once at project creation time to set the initial automated run stopping
     point and automation handoff.
     """
-    if not is_seer_seat_based_tier_enabled(organization):
+    if not is_seer_seat_or_token_billed_enabled(organization):
         return
 
     stopping_point, automation_handoff = get_org_default_seer_automation_handoff(organization)

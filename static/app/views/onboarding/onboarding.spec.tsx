@@ -547,7 +547,9 @@ describe('Onboarding', () => {
       expect(
         screen.getByRole('heading', {name: 'Let your agent set up Sentry'})
       ).toBeInTheDocument();
-      expect(screen.getByText('Detects your stack')).toBeInTheDocument();
+      expect(
+        screen.getByText('Detects your stack and installs the Sentry CLI')
+      ).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Advanced options'})).toBeInTheDocument();
       expect(
         screen.getByRole('link', {name: 'See the full instructions'})
@@ -636,13 +638,15 @@ describe('Onboarding', () => {
         });
 
         renderOnboarding('welcome');
-        expect(screen.getByRole('heading', {name: /Code breaks/})).toBeInTheDocument();
+        expect(
+          screen.getByRole('heading', {name: 'Code breaks. Fix it faster'})
+        ).toBeInTheDocument();
 
         act(resolveAgenticRunRequest);
 
         expect(await screen.findByRole('heading', {name: heading})).toBeInTheDocument();
         expect(
-          screen.queryByRole('heading', {name: /Code breaks/})
+          screen.queryByRole('heading', {name: 'Code breaks. Fix it faster'})
         ).not.toBeInTheDocument();
         expect(screen.queryByText('sntryh_****')).not.toBeInTheDocument();
       }

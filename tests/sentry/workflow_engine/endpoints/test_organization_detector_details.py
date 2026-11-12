@@ -20,6 +20,7 @@ from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.subscription_limits import METRIC_SUBSCRIPTION_FEATURE_FLAGS
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.monitors.grouptype import MonitorIncidentType
+from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.seer import agent_token
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -1366,6 +1367,51 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
             name="Updated Name",
             status_code=403,
         )
+
+    def test_update_rejects_type_change(self) -> None:
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        other_subscription = create_snuba_subscription(
+            project=other_project,
+            subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            snuba_query=self.snuba_query,
+        )
+        original_status = other_subscription.status
+
+        cron_detector = self.create_detector(
+            project=self.project, type=MonitorIncidentType.slug, enabled=True
+        )
+        cron_data_source = self.create_data_source(
+            organization=self.organization,
+            source_id=str(other_subscription.id),
+            type=DATA_SOURCE_CRON_MONITOR,
+        )
+        self.create_data_source_detector(data_source=cron_data_source, detector=cron_detector)
+
+        response = self.get_error_response(
+            self.organization.slug,
+            cron_detector.id,
+            type=MetricIssue.slug,
+            enabled=False,
+            status_code=400,
+        )
+        assert response.data == {"type": ["The type of a monitor cannot be changed."]}
+
+        cron_detector.refresh_from_db()
+        assert cron_detector.type == MonitorIncidentType.slug
+        assert cron_detector.enabled is True
+        other_subscription.refresh_from_db()
+        assert other_subscription.status == original_status
+
+    def test_update_with_matching_type_succeeds(self) -> None:
+        self.get_success_response(
+            self.organization.slug,
+            self.detector.id,
+            type=MetricIssue.slug,
+            name="Renamed",
+        )
+        self.detector.refresh_from_db()
+        assert self.detector.name == "Renamed"
 
 
 @cell_silo_test

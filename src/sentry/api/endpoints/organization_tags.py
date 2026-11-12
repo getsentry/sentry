@@ -129,7 +129,7 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
 
                 results = backend.get_tag_keys_for_projects(
                     filter_params["project_id"],
-                    filter_params.get("environment"),
+                    [env.id for env in filter_params.get("environment_objects", [])],
                     start,
                     end,
                     use_cache=request.GET.get("use_cache", "0") == "1",
