@@ -5,10 +5,6 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 import type {PageFilters} from 'sentry/types/core';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {
-  PERFORMANCE_SCORE_FIELD,
-  SCORE_FORMULA_METRIC,
-} from 'sentry/views/explore/metrics/scoreFormulas';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 import {getWidgetMetricsUrl} from './getWidgetMetricsUrl';
@@ -133,40 +129,6 @@ describe('getWidgetMetricsUrl', () => {
         {chartType: ChartType.LINE, yAxes: ['avg(value,duration,d,none)']},
         {groupBy: 'transaction'},
         {groupBy: 'http.status_code'},
-      ]);
-    });
-
-    it('puts a score formula on the web vital scores metric', () => {
-      const widget = WidgetFixture({
-        title: 'Pages',
-        displayType: DisplayType.TABLE,
-        widgetType: WidgetType.TRACEMETRICS,
-        queries: [
-          {
-            name: '',
-            fields: ['transaction', PERFORMANCE_SCORE_FIELD],
-            aggregates: [PERFORMANCE_SCORE_FIELD],
-            columns: ['transaction'],
-            conditions: '',
-            orderby: `-${PERFORMANCE_SCORE_FIELD}`,
-          },
-        ],
-      });
-
-      const url = getWidgetMetricsUrl(widget, undefined, selection, organization);
-      const {params} = parseMetricsUrl(url);
-
-      const metrics = Array.isArray(params.metric) ? params.metric : [params.metric];
-      expect(metrics).toHaveLength(1);
-      const metricQuery = JSON.parse(metrics[0]!);
-      expect(metricQuery.metric).toEqual(SCORE_FORMULA_METRIC);
-      expect(metricQuery.mode).toBe('aggregate');
-      expect(metricQuery.aggregateFields).toEqual([
-        {chartType: ChartType.LINE, yAxes: [PERFORMANCE_SCORE_FIELD]},
-        {groupBy: 'transaction'},
-      ]);
-      expect(metricQuery.aggregateSortBys).toEqual([
-        {field: PERFORMANCE_SCORE_FIELD, kind: 'desc'},
       ]);
     });
 

@@ -2,7 +2,6 @@ import isEqual from 'lodash/isEqual';
 
 import {DurationUnit, FractionUnit, type DataUnit} from 'sentry/utils/discover/fields';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
-import {isScoreFormulaYAxis} from 'sentry/views/explore/metrics/scoreFormulas';
 import {
   ORDER,
   type ProjectScore,
@@ -64,13 +63,11 @@ export function webVitalCountField(vital: WebVitals): string {
 export const WEB_VITAL_SCORE_FIELDS = ORDER.map(webVitalScoreField);
 export const WEB_VITAL_SCORE_COUNT_FIELDS = ORDER.map(webVitalScoreCountField);
 
-export {
-  OPPORTUNITY_SCORE_FIELD,
-  PERFORMANCE_SCORE_FIELD,
-} from 'sentry/views/explore/metrics/scoreFormulas';
+export const PERFORMANCE_SCORE_FIELD = 'performance_score(measurements.score.total)';
+export const OPPORTUNITY_SCORE_FIELD = 'opportunity_score(measurements.score.total)';
 
 export function isWebVitalScoreFormula(field: string): boolean {
-  return isScoreFormulaYAxis(field);
+  return field === PERFORMANCE_SCORE_FIELD || field === OPPORTUNITY_SCORE_FIELD;
 }
 
 export function isWebVitalScoreBreakdownChart(widgetQuery: WidgetQuery): boolean {
