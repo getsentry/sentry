@@ -2952,6 +2952,97 @@ class E(Endpoint):
     ]
 
 
+def _helper_body_summary(body: str) -> list[tuple[ApiRule, int, str, str]]:
+    """The findings for a GET that passes the query string to `self._h(q)`, with `body` as _h's body"""
+    src = (
+        """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return self._h(request.GET)
+
+    def _h(self, q):
+"""
+        + body
+    )
+    return _summary(_api_violations(src))
+
+
+def test_helper_that_lets_the_payload_leave_keeps_the_s028() -> None:
+    leaking_bodies = [
+        "        return q\n",
+        "        return q.copy()\n",
+        "        return q or {}\n",
+        "        return x if c else q\n",
+        "        yield q\n",
+        "        self.q = q\n",
+        '        d = {}\n        d["k"] = q\n        return d\n',
+        '        return {"k": q}\n',
+        "        return [q]\n",
+        "        lst = []\n        lst.append(q)\n        return lst\n",
+        "        return list(q)\n",
+        "        for k in q:\n            print(k)\n",
+        "        q2 = q\n        return q2\n",
+        '        return options.get("k", q)\n',
+    ]
+    for body in leaking_bodies:
+        assert _helper_body_summary(body) == [("S028", 5, "E.get", "query:_h")], body
+
+
+def test_helper_that_only_reads_or_checks_the_payload_is_followed() -> None:
+    assert _helper_body_summary('        return q.get("x")\n') == [("S026", 8, "E._h", "query:x")]
+    # isinstance, `in`, `is None`, truthiness and len only look at it
+    checks = (
+        "        if not isinstance(q, dict) or q is None or not q or len(q) > 3:\n"
+        "            return None\n"
+        '        if "x" in q and q:\n'
+        '            return q["x"]\n'
+    )
+    assert _helper_body_summary(checks) == [("S026", 11, "E._h", "query:x")]
+    # an alias is checked the same way
+    assert _helper_body_summary('        q2 = q.copy()\n        return q2.get("x")\n') == [
+        ("S026", 9, "E._h", "query:x")
+    ]
+
+
+def test_helper_that_passes_the_payload_to_a_leaking_helper_keeps_that_s028() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return self._outer(request.GET)
+
+    def _outer(self, q):
+        return self._inner(q)
+
+    def _inner(self, q):
+        return q
+"""
+    # _outer only forwards q, so the GET's call is followed; _inner lets it leave, so _outer's call keeps it
+    assert _summary(_api_violations(src)) == [("S028", 8, "E._outer", "query:_inner")]
+
+
+def test_helpers_passing_the_payload_back_and_forth_are_followed() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return self._a(request.GET)
+
+    def _a(self, q):
+        if q.get("again"):
+            return self._b(q)
+        return None
+
+    def _b(self, q):
+        return self._a(q)
+"""
+    assert _summary(_api_violations(src)) == [("S026", 8, "E._a", "query:again")]
+
+
 def test_helper_mixing_a_real_source_and_a_parameter_keeps_both_s028s() -> None:
     src = """\
 class E(Endpoint):

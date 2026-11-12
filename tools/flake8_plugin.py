@@ -1060,6 +1060,13 @@ class _InputCtx:
         self.calls: list[_HelperCall] = []
         # for a merged ctx: the position of each read or hand-off -> the scope of the function it's in
         self.found_in: dict[_StartEnd, str] = {}
+        # this function's def, kept so leaking_params can be worked out only for helpers that need it
+        self.node: ast.FunctionDef | ast.AsyncFunctionDef | None = None
+        # parameters whose value can leave this function in a way that isn't recorded as a read or
+        # hand-off. A call that passes a payload into one of them keeps its S028, since followin
+        # the helper would not show where the payload goes. None until the first call that
+        # passes a payload into this function asks for it
+        self.leaking_params: set[str] | None = None
 
     def _is(self, node: ast.expr, attrs: frozenset[str], locals_: set[str]) -> bool:
         node = _unwrap_copy(node)
@@ -1121,6 +1128,164 @@ class _InputCtx:
             )
         else:
             self.computed_reads.append((_start_and_end(node), ast.unparse(key), source))
+
+
+# Calls that only look at a payload, so passing one doesn't leak it
+_PAYLOAD_CHECK_CALLS = frozenset(("isinstance", "len", "bool"))
+
+
+def _parent_map(node: ast.FunctionDef | ast.AsyncFunctionDef) -> dict[ast.AST, ast.AST]:
+    """Each node in a function's body mapped to the node that contains it.
+    `node` the function's def
+    Returns a {child: parent} dict for every node under the body (not the decorators or arguments)
+    """
+    parents: dict[ast.AST, ast.AST] = {}
+    for statement in node.body:
+        for parent in ast.walk(statement):
+            for child in ast.iter_child_nodes(parent):
+                parents[child] = parent
+    return parents
+
+
+def _is_test_position(node: ast.AST, parents: dict[ast.AST, ast.AST]) -> bool:
+    """Whether a value is only checked for truthiness, like `if q:`, `not q` or `if q and xyz`.
+    `node` the value being checked
+    `parents` the function's {child: parent} map
+    Returns True when the value itself can't escape through that expression
+    """
+    parent = parents.get(node)
+    if isinstance(parent, ast.UnaryOp) and isinstance(parent.op, ast.Not):
+        return True
+    while isinstance(parent, ast.BoolOp):
+        node = parent
+        parent = parents.get(node)
+        if isinstance(parent, ast.UnaryOp) and isinstance(parent.op, ast.Not):
+            return True
+    if isinstance(parent, (ast.If, ast.While, ast.IfExp, ast.Assert)):
+        return parent.test is node
+    return False
+
+
+def _payload_use_is_recorded(
+    name: ast.Name, parents: dict[ast.AST, ast.AST], aliases: dict[str, str]
+) -> bool:
+    """Whether one use of a parameter (or an alias of it) is a read, hand-off or check the plugin
+    records or deliberately ignores, so the value can't leave the function unseen.
+    `name` the use of the parameter
+    `parents` the function's {child: parent} map
+    `aliases` local name -> parameter name, the parameters themselves included
+    Returns False for anything else (returned, yielded, stored, iterated, put in a container, etc
+    """
+    node: ast.AST = name
+    parent = parents.get(node)
+    # since `q.copy()` / `q.dict()` is still q
+    while isinstance(parent, ast.Attribute) and parent.attr in _COPY_METHODS:
+        copy_call = parents.get(parent)
+        if not (isinstance(copy_call, ast.Call) and copy_call.func is parent):
+            break
+        node = copy_call
+        parent = parents.get(node)
+
+    # q.get("k") / q.getlist("k") / q.pop("k") read a key
+    if isinstance(parent, ast.Attribute):
+        call = parents.get(parent)
+        return parent.attr in _READ_METHODS and isinstance(call, ast.Call) and call.func is parent
+    # q["k"]
+    if isinstance(parent, ast.Subscript):
+        return parent.value is node
+    # "k" in q, q is None
+    if isinstance(parent, ast.Compare) and len(parent.ops) == 1:
+        op = parent.ops[0]
+        if isinstance(op, (ast.In, ast.NotIn)):
+            return parent.comparators[0] is node
+        if isinstance(op, (ast.Is, ast.IsNot)):
+            other = parent.comparators[0] if parent.left is node else parent.left
+            return isinstance(other, ast.Constant) and other.value is None
+        return False
+    if _is_test_position(node, parents):
+        return True
+    # q2 = q, whose own uses are checked too
+    if isinstance(parent, ast.Assign) and parent.value is node:
+        for target in parent.targets:
+            if not (isinstance(target, ast.Name) and target.id in aliases):
+                return False
+        return True
+
+    # an argument to a call
+    keyword = None
+    if isinstance(parent, ast.keyword):
+        keyword = parent
+        parent = parents.get(parent)
+    if not isinstance(parent, ast.Call) or parent.func is node:
+        return False
+    func = parent.func
+    # options.get("k", q) passes a default which isn't recorded
+    if isinstance(func, ast.Attribute) and func.attr in _READ_METHODS:
+        return False
+    # a serializer's `data =` (the whole call is skipped, so only the data= value counts)
+    if (_looks_like_a_class(func) or _looks_like_a_class_variable(func)) and any(
+        kw.arg == "data" for kw in parent.keywords
+    ):
+        return keyword is not None and keyword.arg == "data"
+    callee = _name_of(func).rsplit(".", 1)[-1]
+    if callee in _PAYLOAD_CHECK_CALLS:
+        return True
+    # list(q), sorted(q), lst.append(q), etc copy the payload without recording it
+    if callee in _CONTAINER_OPS:
+        return False
+    # recorded as a hand-off
+    return True
+
+
+def _payload_leaking_params(
+    node: ast.FunctionDef | ast.AsyncFunctionDef, ctx: _InputCtx
+) -> set[str]:
+    """The parameters of a function whose value can leave it without being recorded.
+    `node` the function's def
+    `ctx` the function's facts, already gathered (its parameters and their aliases)
+    Returns the names of the leaking parameters
+    """
+    # local name -> the parameter it stands for, the parameters themselves included
+    aliases: dict[str, str] = {}
+    for param in ctx.params.positional + ctx.params.keyword:
+        if param not in ("self", "cls"):
+            aliases[param] = param
+    for local, placeholder in ctx.param_locals.items():
+        rest = placeholder[len(_PARAM_PREFIX) :]
+        # only aliases of the whole parameter, not of `req.GET` on a request parameter
+        if "." not in rest:
+            aliases[local] = rest
+
+    parents = _parent_map(node)
+    leaking: set[str] = set()
+    for statement in node.body:
+        for child in ast.walk(statement):
+            if not (
+                isinstance(child, ast.Name)
+                and isinstance(child.ctx, ast.Load)
+                and child.id in aliases
+            ):
+                continue
+            if not _payload_use_is_recorded(child, parents, aliases):
+                leaking.add(aliases[child.id])
+    return leaking
+
+
+def _leaks_a_payload(helper_ctx: _InputCtx, bindings: dict[str, str]) -> bool:
+    """Whether a call hands a payload to a helper parameter it can leave through unseen.
+    `helper_ctx` the helper being called
+    `bindings` what each of its parameters received from the call
+    Returns True when a query string or body lands in one of the helper's leaking parameters
+    """
+    for param, bound in bindings.items():
+        if bound not in _SOURCE_PREFIX:
+            continue
+        if helper_ctx.leaking_params is None:
+            assert helper_ctx.node is not None  # every stored ctx has its def
+            helper_ctx.leaking_params = _payload_leaking_params(helper_ctx.node, helper_ctx)
+        if param in helper_ctx.leaking_params:
+            return True
+    return False
 
 
 class SentryVisitor(ast.NodeVisitor):
@@ -1487,6 +1652,7 @@ class SentryVisitor(ast.NodeVisitor):
             self._function_depth -= 1
             if pushed and ctx is not None:
                 self._input_stack.pop()
+                ctx.node = node
                 self._functions[ctx.scope] = ctx
                 self._function_ctxs.append(ctx)
 
@@ -2152,8 +2318,9 @@ class SentryVisitor(ast.NodeVisitor):
                 continue
 
             helper_bindings, all_bound = self._bind_call(call, helper_ctx, bindings)
-            # a payload that couldn't be tied to a parameter keeps its S028
-            if all_bound:
+            # a payload that couldn't be tied to a parameter, or that can leave the helper unseen
+            # (i.e `return params`), keeps its S028
+            if all_bound and not _leaks_a_payload(helper_ctx, helper_bindings):
                 followed.add(call.at)
 
             to_visit.append((helper_ctx, helper_bindings))
