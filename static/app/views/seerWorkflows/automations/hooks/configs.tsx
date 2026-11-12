@@ -18,8 +18,8 @@ import type {
   SeerWorkflowConfigUpdateRequest,
 } from 'sentry/views/seerWorkflows/types';
 import {
-  AUTO_REFRESH_INTERVAL,
   useAutomationsEnabled,
+  type AutomationQueryOptions,
 } from 'sentry/views/seerWorkflows/utils';
 
 function useConfigUrls(configId = '') {
@@ -41,12 +41,12 @@ function useConfigUrls(configId = '') {
 /**
  * Fetches the organization's automation configs. Pass `ids` to only fetch those configs;
  * an empty list fetches nothing. Pass `keepPrevious` to keep returning the last configs
- * while a different set of `ids` loads.
+ * while a different set of `ids` loads. `options` override the query's options.
  */
-export function useFetchConfigs({
-  ids,
-  keepPrevious,
-}: {ids?: string[]; keepPrevious?: boolean} = {}) {
+export function useFetchConfigs(
+  {ids, keepPrevious}: {ids?: string[]; keepPrevious?: boolean} = {},
+  options: AutomationQueryOptions = {}
+) {
   const organization = useOrganization();
   const automationsEnabled = useAutomationsEnabled();
 
@@ -64,7 +64,7 @@ export function useFetchConfigs({
     ),
     select: data => selectJson(data).configs,
     placeholderData: keepPrevious ? keepPreviousData : undefined,
-    refetchInterval: AUTO_REFRESH_INTERVAL,
+    ...options,
   });
 }
 

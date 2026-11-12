@@ -40,7 +40,10 @@ import type {
   SeerWorkflowConfigResponse,
   WorkflowDisplayStatus,
 } from 'sentry/views/seerWorkflows/types';
-import {getAutomationDetailPath} from 'sentry/views/seerWorkflows/utils';
+import {
+  AUTO_REFRESH_INTERVAL,
+  getAutomationDetailPath,
+} from 'sentry/views/seerWorkflows/utils';
 
 import {getRunDisplayStatus, getStatusLabel, StatusIcon} from './statusIcon';
 
@@ -77,10 +80,10 @@ export function RunsTable({
 }) {
   const organization = useOrganization();
   const [cursor] = useQueryState('cursor');
-  const {runs, pageLinks, isPending, isLoadingError, refetch} = useAutomationRuns({
-    configId,
-    cursor: cursor || undefined,
-  });
+  const {runs, pageLinks, isPending, isLoadingError, refetch} = useAutomationRuns(
+    {configId, cursor: cursor || undefined},
+    {refetchInterval: AUTO_REFRESH_INTERVAL}
+  );
 
   const configIds = [...new Set(runs.map(run => run.configId))].sort();
   const configs = useFetchConfigs({

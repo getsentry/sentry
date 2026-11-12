@@ -7,19 +7,24 @@ import type {
   SeerAutomationRunsResponse,
 } from 'sentry/views/seerWorkflows/types';
 import {
-  AUTO_REFRESH_INTERVAL,
   useAutomationsEnabled,
+  type AutomationQueryOptions,
 } from 'sentry/views/seerWorkflows/utils';
 
 /**
- * Fetches a page of the organization's automation runs, newest first, polling quickly
- * while any run is in progress and slowly otherwise. Pass `configId` to only fetch one automation's runs.
+ * Fetches a page of the organization's automation runs, newest first. Pass `configId` to only
+ * fetch one automation's runs. `options` override the query's options, except that
+ * `refetchInterval` only applies while no run is in progress; in-progress runs always
+ * poll every 5 seconds.
  */
-export function useAutomationRuns({
-  configId,
-  cursor,
-  perPage = 20,
-}: {configId?: string; cursor?: string; perPage?: number} = {}) {
+export function useAutomationRuns(
+  {
+    configId,
+    cursor,
+    perPage = 20,
+  }: {configId?: string; cursor?: string; perPage?: number} = {},
+  {refetchInterval = false, ...options}: AutomationQueryOptions = {}
+) {
   const organization = useOrganization();
   const automationsEnabled = useAutomationsEnabled();
 
@@ -33,10 +38,11 @@ export function useAutomationRuns({
       }
     ),
     select: selectJsonWithHeaders,
+    ...options,
     refetchInterval: query =>
       query.state.data?.json.runs.some(run => isRunInProgress(run.status))
         ? 5000
-        : AUTO_REFRESH_INTERVAL,
+        : refetchInterval,
   });
 
   return {

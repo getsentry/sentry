@@ -6,6 +6,16 @@ import {useOrganization} from 'sentry/utils/useOrganization';
  */
 export const AUTO_REFRESH_INTERVAL = 30_000;
 
+/**
+ * Query options a caller can override on the shared automation data hooks
+ */
+export type AutomationQueryOptions = {
+  refetchInterval?: number | false;
+  refetchOnWindowFocus?: boolean;
+  retry?: boolean | number;
+  staleTime?: number;
+};
+
 export function getAutomationsPath(organizationSlug: string) {
   return normalizeUrl(`/organizations/${organizationSlug}/seer/automations/`);
 }

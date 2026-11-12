@@ -34,6 +34,7 @@ import type {
   WorkflowStrategy,
 } from 'sentry/views/seerWorkflows/types';
 import {
+  AUTO_REFRESH_INTERVAL,
   getAutomationDetailPath,
   useAutomationsEnabled,
 } from 'sentry/views/seerWorkflows/utils';
@@ -77,11 +78,15 @@ export type AutomationConfig = SeerWorkflowConfigResponse & AdditionalConfig;
 export default function AutomationsList() {
   const automationsEnabled = useAutomationsEnabled();
 
-  const {data, isPending, isLoadingError, refetch} = useFetchConfigs();
+  const {data, isPending, isLoadingError, refetch} = useFetchConfigs(
+    {},
+    {refetchInterval: AUTO_REFRESH_INTERVAL}
+  );
 
   const configs = data ?? [];
   const {data: monitorsById} = useMonitorsById(
-    configs.flatMap(config => config.monitorIds)
+    configs.flatMap(config => config.monitorIds),
+    {refetchInterval: AUTO_REFRESH_INTERVAL}
   );
 
   if (!automationsEnabled) {
