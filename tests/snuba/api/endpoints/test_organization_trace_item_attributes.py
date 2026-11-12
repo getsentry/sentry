@@ -3197,7 +3197,6 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
     APITestCase, BaseSpansTestCase, SpanTestCase
 ):
     viewname = "sentry-api-0-organization-trace-item-attributes-validate"
-    feature_flags = {}
 
     def setUp(self) -> None:
         super().setUp()
@@ -3211,7 +3210,7 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
         query_params: dict[str, str] | None = None,
     ) -> Response:
         if features is None:
-            features = self.feature_flags
+            features = {}
 
         with self.feature(features):
             url = reverse(
