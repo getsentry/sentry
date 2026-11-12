@@ -20,13 +20,6 @@ import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 import {useEventQuery} from './useEventQuery';
 
-/**
- * Search filter that scopes an events query to this issue.
- */
-export function getIssueFilter(group: Group) {
-  return `issue.id:${group.id}`;
-}
-
 export function useIssueDetailsEventView({
   group,
   pageFilters,
@@ -68,7 +61,7 @@ export function useIssueDetailsEventView({
 
   // Group each filter so OR branches cannot escape the issue or other filters.
   const query = [
-    getIssueFilter(group),
+    `issue.id:${group.id}`,
     ...[searchQuery, queryProps?.query].filter(s => s && s.length > 0).map(s => `(${s})`),
   ].join(' ');
 

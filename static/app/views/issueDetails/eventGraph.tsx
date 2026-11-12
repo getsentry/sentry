@@ -41,7 +41,6 @@ import {
 import {makeReleaseDrawerPathname} from 'sentry/views/explore/releases/utils/pathnames';
 
 import {
-  getIssueFilter,
   issueDetailsEventsApiOptions,
   issueDetailsEventsStatsApiOptions,
   useIssueDetailsEventView,
@@ -145,7 +144,7 @@ export function EventGraph({
   const shouldShowBubbles = showReleasesAs !== 'line';
 
   const noQueryEventView = eventView.clone();
-  noQueryEventView.query = getIssueFilter(group);
+  noQueryEventView.query = `issue.id:${group.id}`;
   noQueryEventView.environment = [];
 
   const isUnfilteredStatsEnabled =
