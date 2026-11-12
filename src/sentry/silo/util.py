@@ -151,7 +151,7 @@ def verify_subnet_signature(
 def encode_webhook_delivery_signature(
     path: str, authorization: str, request_body: bytes
 ) -> str | None:
-    """Signs a webhook that control replays to a cell after verifying it on arrival.
+    """Signs a webhook that control verified on arrival, for the cell it is queued for.
 
     Covers the path, Authorization header and body, so the cell can trust all three came
     from the original request.

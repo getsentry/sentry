@@ -36,7 +36,6 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.silo.base import SiloMode
 from sentry.silo.client import CellSiloClient, SiloClientError
-from sentry.silo.util import WEBHOOK_DELIVERY_SIGNATURE_HEADER, encode_webhook_delivery_signature
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import hybridcloud_control_tasks
 from sentry.types.cell import Cell, get_cell_by_name
@@ -1353,10 +1352,6 @@ def perform_request(payload: WebhookPayload) -> None:
             perform_cell_request(cell, payload)
 
 
-# Webhooks that control verifies on arrival and signs when it replays them to a cell.
-SIGNED_DELIVERY_PATHS = frozenset({"/extensions/jira/forge/issue-updated/"})
-
-
 def perform_cell_request(cell: Cell, payload: WebhookPayload) -> None:
     try:
         client = CellSiloClient(cell=cell)
@@ -1365,25 +1360,12 @@ def perform_cell_request(cell: Cell, payload: WebhookPayload) -> None:
             tags={"destination_region": cell.name},
         ):
             headers = orjson.loads(payload.request_headers)
-            # We need to send the body as raw bytes to avoid interfering with webhook signatures
-            body = payload.request_body.encode("utf-8")
-            if payload.request_path.partition("?")[0] in SIGNED_DELIVERY_PATHS:
-                # The cell trusts this signature instead of re-verifying a token that may
-                # have expired while the payload waited. Drop any copy sent with the request.
-                headers.pop(WEBHOOK_DELIVERY_SIGNATURE_HEADER, None)
-                signature = encode_webhook_delivery_signature(
-                    payload.request_path, headers.get("Authorization", ""), body
-                )
-                if signature is None:
-                    # The cell would reject it and the 401 would drop it, so keep it queued.
-                    logger.error("deliver_webhooks.unsigned_delivery", extra=payload.as_dict())
-                    raise DeliveryFailed()
-                headers[WEBHOOK_DELIVERY_SIGNATURE_HEADER] = signature
             response = client.request(
                 method=payload.request_method,
                 path=payload.request_path,
                 headers=headers,
-                data=body,
+                # We need to send the body as raw bytes to avoid interfering with webhook signatures
+                data=payload.request_body.encode("utf-8"),
                 json=False,
                 timeout=CELL_REQUEST_TIMEOUT,
             )

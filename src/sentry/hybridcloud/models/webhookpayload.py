@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import datetime
-from collections.abc import Collection
+from collections.abc import Mapping
 from typing import Any, Self
 
 from django.db import models
@@ -95,15 +95,18 @@ class WebhookPayload(Model):
     def get_attributes_from_request(
         cls,
         request: HttpRequest,
-        exclude_headers: Collection[str] = (),
+        header_overrides: Mapping[str, str | None] | None = None,
     ) -> dict[str, Any]:
-        excluded = {header.lower() for header in exclude_headers}
+        """`header_overrides` replaces the named headers (matched case-insensitively) in
+        what's stored and replayed. A None value drops that header."""
+        overrides = header_overrides or {}
+        replaced = {name.lower() for name in overrides}
+        headers = {k: v for k, v in request.headers.items() if k.lower() not in replaced}
+        headers.update({k: v for k, v in overrides.items() if v is not None})
         return dict(
             request_method=request.method,
             request_path=request.get_full_path(),
-            request_headers=json.dumps(
-                {k: v for k, v in request.headers.items() if k.lower() not in excluded}
-            ),
+            request_headers=json.dumps(headers),
             request_body=request.body.decode(encoding="utf-8"),
         )
 
@@ -115,7 +118,7 @@ class WebhookPayload(Model):
         mailbox: MailboxName,
         request: HttpRequest,
         integration_id: int | None = None,
-        exclude_headers: Collection[str] = (),
+        header_overrides: Mapping[str, str | None] | None = None,
     ) -> Self:
         metrics.incr("hybridcloud.deliver_webhooks.saved", tags={"provider": mailbox.provider})
         return cls.objects.create(
@@ -124,7 +127,7 @@ class WebhookPayload(Model):
             destination_type=destination_type,
             cell_name=mailbox.cell,
             integration_id=integration_id,
-            **cls.get_attributes_from_request(request, exclude_headers),
+            **cls.get_attributes_from_request(request, header_overrides),
         )
 
     def as_dict(self) -> dict[str, Any]:

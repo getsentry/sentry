@@ -68,9 +68,9 @@ class JiraForgeIssueUpdatedWebhook(JiraWebhookBase):
     )
     """
     Applies Forge `avi:jira:updated:issue` events. Control verifies each event's Forge
-    invocation token on arrival and replays it here through WebhookPayload, signing the
-    delivery. The token may expire while the payload waits, so this trusts the signature
-    instead of checking the token again.
+    invocation token on arrival, signs the event and queues it in WebhookPayload. The
+    token expires long before a retry, so this trusts control's signature instead of
+    checking the token again.
     """
 
     def post(self, request: Request, *args: object, **kwargs: object) -> Response:
@@ -128,8 +128,9 @@ class JiraForgeIssueUpdatedWebhook(JiraWebhookBase):
                 use_email_scope=settings.JIRA_USE_EMAIL_SCOPE,
             )
         except _TemporaryFailure:
-            # WebhookPayload retries a 5xx, in order with this issue's later events. The
-            # handlers are idempotent, so the whole event is safe to apply again.
+            # WebhookPayload retries a 5xx, possibly after this issue's later events. That's
+            # safe: rekeys are idempotent, and status and assignee changes older than the
+            # issue's last sync are dropped.
             return self.respond(status=503)
         return self.respond(status=202)
 

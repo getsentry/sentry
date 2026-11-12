@@ -39,6 +39,7 @@ from sentry.integrations.utils.atlassian_connect import (
     parse_integration_from_request,
 )
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.silo.util import WEBHOOK_DELIVERY_SIGNATURE_HEADER, encode_webhook_delivery_signature
 
 logger = logging.getLogger(__name__)
 
@@ -104,9 +105,9 @@ class JiraRequestParser(BaseRequestParser):
         return self.get_response_from_control_silo()
 
     def get_forge_issue_updated_response(self) -> HttpResponseBase:
-        """The Forge invocation token can expire before the cell gets the event, so it's
-        verified here and deliveries to the cell are signed instead. The Forge OAuth
-        tokens are dropped so they aren't stored with the payload.
+        """The Forge invocation token lives for under a minute, less than a queued event
+        can wait, so it's verified here and the queued event is signed for the cell
+        instead. The Forge OAuth tokens are dropped so they aren't stored with it.
         """
         # Checked first, since verifying the token is the expensive part.
         if shed_response := self.get_shed_response():
@@ -140,11 +141,28 @@ class JiraRequestParser(BaseRequestParser):
         if not organizations:
             return HttpResponse(status=202)
 
+        signature = encode_webhook_delivery_signature(
+            self.request.get_full_path(),
+            self.request.headers.get("Authorization", ""),
+            self.request.body,
+        )
+        if signature is None:
+            # The cell would reject it unsigned, so have Forge retry instead.
+            logger.error(
+                "jira.forge.issue_updated.unsigned", extra={"integration_id": integration.id}
+            )
+            return HttpResponse(status=503)
+
         return self.get_response_from_webhookpayload(
             cells=self.get_cells_from_organizations(organizations),
             mailbox=self.get_mailbox(integration, self.get_request_body()),
             integration_id=integration.id,
-            exclude_headers=("X-Forge-OAuth-System", "X-Forge-OAuth-User"),
+            header_overrides={
+                "X-Forge-OAuth-System": None,
+                "X-Forge-OAuth-User": None,
+                # Replaces any copy the caller sent.
+                WEBHOOK_DELIVERY_SIGNATURE_HEADER: signature,
+            },
         )
 
     def mailbox_bucket_id(self, data: Mapping[str, Any]) -> int | None:

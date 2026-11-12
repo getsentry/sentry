@@ -9,6 +9,7 @@ from django.test import RequestFactory, override_settings
 from rest_framework import status
 
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
+from sentry.hybridcloud.tasks.deliver_webhooks import perform_cell_request
 from sentry.integrations.jira.forge.invocation_token import (
     ForgeInvocation,
     ForgeInvocationTokenError,
@@ -17,6 +18,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.middleware.integrations.classifications import IntegrationClassification
 from sentry.middleware.integrations.parsers.jira import JiraRequestParser
 from sentry.silo.base import SiloMode
+from sentry.silo.util import WEBHOOK_DELIVERY_SIGNATURE_HEADER, verify_webhook_delivery_signature
 from sentry.testutils.cases import TestCase
 from sentry.testutils.cell import override_cells
 from sentry.testutils.outbox import (
@@ -26,7 +28,6 @@ from sentry.testutils.outbox import (
 )
 from sentry.testutils.silo import control_silo_test
 from sentry.types.cell import Cell, Locality
-from sentry.utils import json
 
 cell = Cell("us", 1, "http://us.testserver")
 eu_cell = Cell("eu", 2, "http://eu.testserver")
@@ -261,6 +262,7 @@ INSTALLATION_ID = "ari:cloud:ecosystem::installation/test"
 
 
 @control_silo_test
+@override_settings(SENTRY_SUBNET_SECRET="secret")
 @patch("sentry.integrations.jira.forge.invocation_token.verify_forge_invocation_token")
 class JiraForgeIssueUpdatedParserTest(TestCase):
     factory = RequestFactory()
@@ -296,20 +298,36 @@ class JiraForgeIssueUpdatedParserTest(TestCase):
                 "Authorization": "Bearer fit",
                 "X-Forge-OAuth-System": "system-token",
                 "X-Forge-OAuth-User": "user-token",
+                WEBHOOK_DELIVERY_SIGNATURE_HEADER: "v0=forged",
             },
         )
         return JiraRequestParser(request, lambda _: HttpResponse(status=200)).get_response()
 
-    def test_queues_event_without_forge_tokens(self, mock_verify: MagicMock) -> None:
+    @responses.activate
+    def test_delivers_signed_event_without_forge_tokens(self, mock_verify: MagicMock) -> None:
         assert self.post(mock_verify).status_code == 202
 
         payload = WebhookPayload.objects.get()
         # 10425 % 64
         assert payload.mailbox_name == f"jira:us:{self.integration.id}:57"
-        headers = json.loads(payload.request_headers)
-        assert headers["Authorization"] == "Bearer fit"
-        assert "X-Forge-Oauth-System" not in headers
-        assert "X-Forge-Oauth-User" not in headers
+
+        responses.add(responses.POST, f"http://us.testserver{self.path}", status=202)
+        perform_cell_request(cell, payload)
+
+        headers = responses.calls[0].request.headers
+        assert verify_webhook_delivery_signature(
+            self.path,
+            headers["Authorization"],
+            b'{"issue": {"id": "10425"}}',
+            headers[WEBHOOK_DELIVERY_SIGNATURE_HEADER],
+        )
+        assert "X-Forge-OAuth-System" not in headers
+        assert "X-Forge-OAuth-User" not in headers
+
+    @override_settings(SENTRY_SUBNET_SECRET="")
+    def test_asks_forge_to_retry_when_it_cannot_sign(self, mock_verify: MagicMock) -> None:
+        assert self.post(mock_verify).status_code == 503
+        assert_no_webhook_payloads()
 
     def test_drops_unverified_or_unowned_events(self, mock_verify: MagicMock) -> None:
         mock_verify.side_effect = ForgeInvocationTokenError("bad")
