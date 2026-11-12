@@ -871,9 +871,9 @@ def get_cron_monitor(detector: Detector) -> Monitor:
     """
     Given a detector get the matching cron monitor.
     """
-    data_source = detector.data_sources.first()
+    data_source = detector.data_sources.filter(type=DATA_SOURCE_CRON_MONITOR).first()
     assert data_source
-    return Monitor.objects.get(id=int(data_source.source_id))
+    return Monitor.objects.get(id=int(data_source.source_id), project_id=detector.linked_project.id)
 
 
 def get_detector_for_monitor(monitor: Monitor) -> Detector | None:
