@@ -300,7 +300,7 @@ export function InputSection({
           <Flex
             justify="end"
             align="center"
-            gap="md"
+            gap="xs"
             padding="xs"
             borderTop="primary"
             background="primary"

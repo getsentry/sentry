@@ -103,7 +103,7 @@ export function SeerExplorerDebugMenu({
           tooltipProps={{title: t('Seer settings')}}
           icon={<IconSliders />}
           variant="transparent"
-          size="sm"
+          size="zero"
         />
       )}
     />

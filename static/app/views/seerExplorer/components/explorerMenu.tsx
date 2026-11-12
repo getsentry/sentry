@@ -258,6 +258,7 @@ export function useExplorerMenu({
             aria-label={t('Add to conversation')}
             tooltipProps={{title: t('Add to conversation')}}
             variant="transparent"
+            size="zero"
           />
         )}
       />
