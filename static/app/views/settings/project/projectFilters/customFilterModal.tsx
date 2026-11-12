@@ -291,6 +291,28 @@ function getFilterKeys(dataType: FilterDataType): TagCollection {
   return keys;
 }
 
+// The environment condition rolls out behind its own flag, so the key menu leaves
+// it out until the organization has it. Parsing still reads it, so a filter that
+// already holds one stays editable.
+const FILTER_KEYS_WITHOUT_ENVIRONMENT = new Map<FilterDataType, TagCollection>();
+
+function getOfferedFilterKeys(
+  dataType: FilterDataType,
+  hasEnvironmentCondition: boolean
+): TagCollection {
+  const keys = getFilterKeys(dataType);
+  if (hasEnvironmentCondition) {
+    return keys;
+  }
+  let offered = FILTER_KEYS_WITHOUT_ENVIRONMENT.get(dataType);
+  if (!offered) {
+    const {environment: _environment, ...rest} = keys;
+    offered = rest;
+    FILTER_KEYS_WITHOUT_ENVIRONMENT.set(dataType, offered);
+  }
+  return offered;
+}
+
 const FIELD_DEFINITION_GETTERS = new Map<FilterDataType, FieldDefinitionGetter>();
 
 // An address field matches a value or does not; "is" would read as text equality.
@@ -829,6 +851,9 @@ function CustomFilterModal({
 }) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
+  const hasEnvironmentCondition = organization.features.includes(
+    'inbound-filters-environment-condition'
+  );
 
   // A row that holds a legacy list keeps its one condition and its data type: the
   // modal edits the lines of the condition.
@@ -1046,7 +1071,10 @@ function CustomFilterModal({
                               key={dataType}
                               label={t('Conditions')}
                               initialQuery={queryField.state.value}
-                              filterKeys={getFilterKeys(dataType)}
+                              filterKeys={getOfferedFilterKeys(
+                                dataType,
+                                hasEnvironmentCondition
+                              )}
                               fieldDefinitionGetter={getFieldDefinitionGetter(dataType)}
                               getTagValues={getNoTagValues}
                               onChange={value => queryField.handleChange(value)}

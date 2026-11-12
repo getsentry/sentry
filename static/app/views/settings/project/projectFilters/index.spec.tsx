@@ -61,6 +61,11 @@ describe('ProjectFilters', () => {
     features: ['inbound-filters-v2', 'inbound-filters-v2-ui'],
   });
 
+  const environmentConditionOrg = OrganizationFixture({
+    ...inboundFiltersV2Org,
+    features: [...inboundFiltersV2Org.features, 'inbound-filters-environment-condition'],
+  });
+
   const nameSuggestionOrg = OrganizationFixture({
     ...inboundFiltersV2Org,
     features: [...inboundFiltersV2Org.features, 'inbound-filters-name-suggestion'],
@@ -1350,6 +1355,7 @@ describe('ProjectFilters', () => {
         features: [
           'inbound-filters-v2',
           'inbound-filters-v2-ui',
+          'inbound-filters-environment-condition',
           'ourlogs-ingestion',
           'tracemetrics-ingestion',
         ],
@@ -1511,8 +1517,20 @@ describe('ProjectFilters', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('creates a catch-all filter that applies to every data type', async () => {
+  it('hides the environment condition without its feature', async () => {
     renderInboundFilters([]);
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Add Filter'}));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(
+      within(dialog).getAllByRole('combobox', {name: 'Add a search term'}).at(-1)!
+    );
+    expect(await screen.findByRole('option', {name: 'release'})).toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'environment'})).not.toBeInTheDocument();
+  });
+
+  it('creates a catch-all filter that applies to every data type', async () => {
+    renderInboundFilters([], businessProject, environmentConditionOrg);
     expect(await screen.findByText('No custom inbound filters yet')).toBeInTheDocument();
 
     const createMock = MockApiClient.addMockResponse({
