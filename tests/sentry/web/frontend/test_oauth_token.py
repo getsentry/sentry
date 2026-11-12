@@ -148,7 +148,7 @@ class OAuthTokenCodeTest(TestCase):
             category=OutboxCategory.API_TOKEN_UPDATE, object_identifier=token.id
         ).exists()
 
-        # The token is committed but its outbox hasn't been processed, so there's no replica yet.
+        # Committed but not yet replicated.
         with assume_test_silo_mode(SiloMode.CELL):
             assert not ApiTokenReplica.objects.filter(apitoken_id=token.id).exists()
 
