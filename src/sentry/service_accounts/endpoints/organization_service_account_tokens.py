@@ -315,18 +315,19 @@ class OrganizationServiceAccountTokenDetailsEndpoint(ServiceAccountTokenEndpoint
         token_id: str,
     ) -> Response:
         """Revoke a token. It stops working once the revocation reaches the org's cell."""
-        with outbox_context(transaction.atomic(using=router.db_for_write(ServiceAccountToken))):
-            token = (
-                ServiceAccountToken.objects.select_for_update()
-                .filter(
+        # The revocation commits before replication, so a failed flush shouldn't fail the
+        # request; the outbox is drained later.
+        with outbox_context(
+            transaction.atomic(using=router.db_for_write(ServiceAccountToken)), flush=False
+        ):
+            try:
+                token = ServiceAccountToken.objects.select_for_update().get(
                     id=to_valid_int_id("token_id", token_id, raise_404=True),
                     service_account=service_account,
                     organization_id=organization.id,
                     date_deactivated__isnull=True,
                 )
-                .first()
-            )
-            if token is None:
+            except ServiceAccountToken.DoesNotExist:
                 raise ResourceDoesNotExist
             token.date_deactivated = timezone.now()
             token.save()
