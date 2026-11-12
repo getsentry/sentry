@@ -1,24 +1,17 @@
 import {useCallback} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Grid, Stack} from '@sentry/scraps/layout';
+import {Container} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {t, tn} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AiSpanTimeline} from 'sentry/views/insights/pages/agents/components/aiSpanTimeline';
-import {
-  getIsAiGenerationNode,
-  getStringAttr,
-  resolveAgentName,
-} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
-import {SpanFields} from 'sentry/views/insights/types';
 import {getTraceLinkForIssue} from 'sentry/views/performance/traceDetails/issuesTraceWaterfallOverlay';
 import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {getTraceTargetFromEvent} from 'sentry/views/performance/traceDetails/traceTarget';
@@ -56,19 +49,6 @@ function useAgentActivityLink(event: Event) {
   );
 }
 
-function getModel(nodes: AITraceSpanNode[], failingNode: AITraceSpanNode) {
-  const generationNode = getIsAiGenerationNode(failingNode)
-    ? failingNode
-    : nodes.find(getIsAiGenerationNode);
-  if (!generationNode) {
-    return null;
-  }
-  return (
-    getStringAttr(generationNode, SpanFields.GEN_AI_RESPONSE_MODEL) ??
-    getStringAttr(generationNode, SpanFields.GEN_AI_REQUEST_MODEL)
-  );
-}
-
 const SURROUNDING_STEPS = 3;
 
 /**
@@ -92,14 +72,28 @@ function getVisibleSteps(nodes: AITraceSpanNode[], failingNode: AITraceSpanNode)
   };
 }
 
-function HiddenStepsLink({count, to}: {count: number; to: LinkProps['to']}) {
+function HiddenStepsRow({
+  count,
+  to,
+  position,
+}: {
+  count: number;
+  position: 'top' | 'bottom';
+  to: LinkProps['to'];
+}) {
   if (count === 0) {
     return null;
   }
   return (
-    <Text size="sm" variant="muted">
-      <Link to={to}>{tn('%s more step', '%s more steps', count)}</Link>
-    </Text>
+    <Container
+      padding="sm md"
+      borderBottom={position === 'top' ? 'muted' : undefined}
+      borderTop={position === 'bottom' ? 'muted' : undefined}
+    >
+      <Text size="sm" variant="muted">
+        <Link to={to}>{tn('%s more step', '%s more steps', count)}</Link>
+      </Text>
+    </Container>
   );
 }
 
@@ -108,114 +102,52 @@ interface AgentRunProps {
   event: Event;
 }
 
-function getFocusNode(agentRun: InsideOrElsewhere) {
-  return agentRun.type === 'inside' ? agentRun.failingNode : agentRun.focusNode;
-}
-
-type InsideOrElsewhere = Extract<EventAgentRun, {type: 'inside' | 'elsewhere'}>;
-
 /**
- * Where the error was raised relative to an agent run it was not part of.
+ * Opens the trace's Agent Activity tab with the failing step selected.
  */
-function getErrorPosition(runNode: AITraceSpanNode, errorTimestamp: number) {
-  const [start, duration] = runNode.space;
-  const end = start + duration;
-  if (errorTimestamp < start) {
-    return t('%s before this run', getDuration((start - errorTimestamp) / 1000, 2, true));
-  }
-  if (errorTimestamp > end) {
-    return t('%s after this run', getDuration((errorTimestamp - end) / 1000, 2, true));
-  }
-  return t('During this run, outside its spans');
-}
-
-/**
- * Opens the trace's Agent Activity tab, with the step closest to the error selected.
- */
-export function OpenAgentActivityButton({agentRun, event}: AgentRunProps) {
+export function AgentActivityFullTraceButton({agentRun, event}: AgentRunProps) {
   const getAgentActivityLink = useAgentActivityLink(event);
 
   return (
     <LinkButton
       size="xs"
       to={getAgentActivityLink(
-        agentRun.type === 'inside' || agentRun.type === 'elsewhere'
-          ? getFocusNode(agentRun).id
-          : undefined
+        agentRun.type === 'inside' ? agentRun.failingNode.id : undefined
       )}
-      analyticsEventName="Issue Details: Open Agent Activity Clicked"
-      analyticsEventKey="issue_details.agent_run.open_agent_activity_clicked"
+      analyticsEventName="Issue Details: View Full Trace Agent Activity Clicked"
+      analyticsEventKey="issue_details.agent_run.view_full_trace_clicked"
     >
-      {t('Open Agent Activity')}
+      {t('View Full Trace')}
     </LinkButton>
   );
 }
 
 /**
- * The Agent Activity view of the trace preview.
+ * The Agent Activity view of the trace preview: the steps around the failing one.
  */
 export function EventAgentActivity({agentRun, event}: AgentRunProps) {
   const navigate = useNavigate();
   const getAgentActivityLink = useAgentActivityLink(event);
 
-  if (agentRun.type === 'none' || agentRun.type === 'loading') {
+  if (agentRun.type !== 'inside') {
     return null;
   }
 
-  const {runNode, nodes} = agentRun;
-  const focusNode = getFocusNode(agentRun);
-  const isInside = agentRun.type === 'inside';
-  const summary = [
-    {
-      label: t('Agent'),
-      value: resolveAgentName(runNode.attributes ?? {}) ?? runNode.description,
-    },
-    {label: t('Model'), value: getModel(nodes, focusNode)},
-    isInside
-      ? {label: t('Error raised in'), value: focusNode.description ?? focusNode.op}
-      : {
-          label: t('Error raised'),
-          value: getErrorPosition(runNode, agentRun.errorTimestamp),
-        },
-    {label: t('Duration'), value: getDuration(runNode.space[1] / 1000, 2, true)},
-  ].filter(item => item.value);
-  const {steps, hiddenBefore, hiddenAfter} = getVisibleSteps(nodes, focusNode);
-  const fullActivityLink = getAgentActivityLink(focusNode.id);
+  const {failingNode, nodes} = agentRun;
+  const {steps, hiddenBefore, hiddenAfter} = getVisibleSteps(nodes, failingNode);
+  const fullActivityLink = getAgentActivityLink(failingNode.id);
 
   return (
-    <Stack gap="lg">
-      {agentRun.type === 'elsewhere' && (
-        <Text as="p" variant="muted">
-          {agentRun.agentRunCount > 1
-            ? t(
-                'This error was raised outside the %s agent runs in this trace. This is the run closest to it.',
-                agentRun.agentRunCount
-              )
-            : t('This error was raised outside the agent activity in this trace.')}
-        </Text>
-      )}
-      <Grid columns={`repeat(${summary.length}, max-content)`} gap="2xs xl">
-        {summary.map(({label}) => (
-          <Text key={`label-${label}`} size="xs" variant="muted" uppercase>
-            {label}
-          </Text>
-        ))}
-        {summary.map(({label, value}) => (
-          <Text key={`value-${label}`} size="sm" bold ellipsis>
-            {value}
-          </Text>
-        ))}
-      </Grid>
-      <Stack gap="xs">
-        <HiddenStepsLink count={hiddenBefore} to={fullActivityLink} />
+    <Container border="primary" radius="md" overflow="hidden">
+      <HiddenStepsRow count={hiddenBefore} position="top" to={fullActivityLink} />
+      <Container padding="xs">
         <AiSpanTimeline
           nodes={steps}
-          // Only highlight a step when the error was raised inside it.
-          selectedNodeKey={isInside ? focusNode.id : null}
+          selectedNodeKey={failingNode.id}
           onSelectNode={node => navigate(getAgentActivityLink(node.id))}
         />
-        <HiddenStepsLink count={hiddenAfter} to={fullActivityLink} />
-      </Stack>
-    </Stack>
+      </Container>
+      <HiddenStepsRow count={hiddenAfter} position="bottom" to={fullActivityLink} />
+    </Container>
   );
 }

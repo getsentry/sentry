@@ -27,26 +27,13 @@ export type EventAgentRun =
   | {type: 'loading'}
   /**
    * The error was raised inside an AI span. `failingNode` is the closest AI span
-   * above the error, and `runNode` is the agent span that contains it, if any.
+   * above the error, and `nodes` are the AI spans of the agent run that contains it,
+   * starting with the agent span.
    */
   | {
       failingNode: AITraceSpanNode;
       nodes: AITraceSpanNode[];
-      runNode: AITraceSpanNode;
       type: 'inside';
-    }
-  /**
-   * The trace has AI spans, but the error was raised outside all of them.
-   * `runNode` is the agent run closest in time to the error, and `focusNode` is
-   * its last step that started before the error.
-   */
-  | {
-      agentRunCount: number;
-      errorTimestamp: number;
-      focusNode: AITraceSpanNode;
-      nodes: AITraceSpanNode[];
-      runNode: AITraceSpanNode;
-      type: 'elsewhere';
     };
 
 const NO_AGENT_RUN: EventAgentRun = {type: 'none'};
@@ -57,31 +44,6 @@ function isAiSpanNode(node: BaseNode): node is AITraceSpanNode {
 
 function isAiAgentSpanNode(node: BaseNode): node is AITraceSpanNode {
   return isEAPSpanNode(node) && getIsAiAgentNode(node);
-}
-
-function getRunNodes(runNode: AITraceSpanNode) {
-  return [runNode, ...runNode.findAllChildren(isAiSpanNode)].toSorted(
-    (a, b) => a.space[0] - b.space[0]
-  );
-}
-
-/**
- * The error's own timestamp in ms. The node that matches an error can be the span it
- * was raised in, which starts earlier.
- */
-function getErrorTimestamp(eventNode: BaseNode, eventId: string) {
-  const error = [...eventNode.errors].find(item => item.event_id === eventId);
-  return error && 'start_timestamp' in error
-    ? error.start_timestamp * 1e3
-    : eventNode.space[0];
-}
-
-/**
- * How far `timestamp` is from the node's time range, in ms. 0 when it falls inside.
- */
-function getDistance(node: AITraceSpanNode, timestamp: number) {
-  const [start, duration] = node.space;
-  return Math.max(0, start - timestamp, timestamp - (start + duration));
 }
 
 export function getEventAgentRun(
@@ -106,48 +68,21 @@ export function getEventAgentRun(
       : eventNode.findParent(isAiSpanNode)
     : null;
 
-  if (failingNode) {
-    // An LLM call made outside an agent framework has no agent span to anchor on.
-    const runNode = getIsAiAgentSpan(getGenAiOpType(failingNode))
-      ? failingNode
-      : (failingNode.findParent(isAiAgentSpanNode) ?? failingNode);
-
-    return {
-      type: 'inside',
-      failingNode,
-      runNode,
-      nodes: getRunNodes(runNode),
-    };
-  }
-
-  const aiNodes = tree.root.findAllChildren(isAiSpanNode);
-  if (aiNodes.length === 0) {
+  if (!failingNode) {
     return NO_AGENT_RUN;
   }
 
-  // Top-level agent runs, or the AI spans themselves when no agent framework is used.
-  const agentNodes = aiNodes.filter(isAiAgentSpanNode);
-  const runs = agentNodes.length
-    ? agentNodes.filter(node => !node.findParent(isAiAgentSpanNode))
-    : aiNodes.filter(node => !node.findParent(isAiSpanNode));
-  const errorTimestamp = eventNode ? getErrorTimestamp(eventNode, eventId) : 0;
-  const runNode = runs.toSorted(
-    (a, b) => getDistance(a, errorTimestamp) - getDistance(b, errorTimestamp)
-  )[0];
-  if (!runNode) {
-    return NO_AGENT_RUN;
-  }
-  const nodes = agentNodes.length
-    ? getRunNodes(runNode)
-    : aiNodes.toSorted((a, b) => a.space[0] - b.space[0]);
+  // An LLM call made outside an agent framework has no agent span to anchor on.
+  const runNode = getIsAiAgentSpan(getGenAiOpType(failingNode))
+    ? failingNode
+    : (failingNode.findParent(isAiAgentSpanNode) ?? failingNode);
 
   return {
-    type: 'elsewhere',
-    agentRunCount: agentNodes.length ? runs.length : 0,
-    errorTimestamp,
-    runNode,
-    nodes,
-    focusNode: nodes.findLast(node => node.space[0] <= errorTimestamp) ?? runNode,
+    type: 'inside',
+    failingNode,
+    nodes: [runNode, ...runNode.findAllChildren(isAiSpanNode)].toSorted(
+      (x, y) => x.space[0] - y.space[0]
+    ),
   };
 }
 

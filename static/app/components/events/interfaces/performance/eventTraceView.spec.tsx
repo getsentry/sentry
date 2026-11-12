@@ -197,7 +197,10 @@ describe('EventTraceView', () => {
               op: 'gen_ai.execute_tool',
               name: 'gen_ai.execute_tool',
               description: 'execute_tool search_docs',
-              additional_attributes: {'gen_ai.operation.type': 'tool'},
+              additional_attributes: {
+                'gen_ai.operation.type': 'tool',
+                'gen_ai.tool.name': 'search_docs',
+              },
               errors: [makeEAPError({event_id: 'issue-5'})],
             }),
           ],
@@ -210,14 +213,18 @@ describe('EventTraceView', () => {
       {organization: agentOrganization}
     );
 
-    expect(
-      await screen.findByRole('button', {name: 'Open Agent Activity'})
-    ).toBeInTheDocument();
+    expect(await screen.findByText('search_docs')).toBeInTheDocument();
     expect(screen.getByRole('radio', {name: 'Agent Activity'})).toBeChecked();
-    expect(screen.getByText('execute_tool search_docs')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('tab=ai-spans')
+    );
 
     await userEvent.click(screen.getByRole('radio', {name: 'Waterfall'}));
-    expect(screen.getByRole('button', {name: 'View Full Trace'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'View Full Trace'})).not.toHaveAttribute(
+      'href',
+      expect.stringContaining('tab=ai-spans')
+    );
   });
 
   it('does not render the trace section when the trace_id is synthetic', () => {

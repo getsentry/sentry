@@ -1,6 +1,6 @@
 import {useState} from 'react';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import {Placeholder} from 'sentry/components/placeholder';
@@ -12,9 +12,8 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
-import {EventAgentActivity, OpenAgentActivityButton} from './agentRun/eventAgentRun';
+import {AgentActivityFullTraceButton, EventAgentActivity} from './agentRun/eventAgentRun';
 import {useEventAgentRun} from './agentRun/useEventAgentRun';
-import {TraceLinkedIssues} from './traceLinkedIssues';
 import {TracePreview, TracePreviewFullTraceButton} from './tracePreview';
 import {eventHasSyntheticTrace} from './utils';
 
@@ -42,9 +41,9 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
     return null;
   }
 
-  const hasAgentActivity = agentRun.type === 'inside' || agentRun.type === 'elsewhere';
+  const hasAgentActivity = agentRun.type === 'inside';
   const view: TraceView = hasAgentActivity
-    ? (selectedView ?? (agentRun.type === 'inside' ? 'agent-activity' : 'waterfall'))
+    ? (selectedView ?? 'agent-activity')
     : 'waterfall';
 
   let content: React.ReactNode;
@@ -52,12 +51,7 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
     // Wait for the agent run so the preview does not open on one view and then switch.
     content = <Placeholder height="200px" />;
   } else if (view === 'agent-activity') {
-    content = (
-      <Stack gap="md">
-        <TraceLinkedIssues event={event} />
-        <EventAgentActivity agentRun={agentRun} event={event} />
-      </Stack>
-    );
+    content = <EventAgentActivity agentRun={agentRun} event={event} />;
   } else {
     content = <TracePreview event={event} organization={organization} source="issues" />;
   }
@@ -68,6 +62,16 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
       title={t('Trace Preview')}
       actions={
         <Flex align="center" gap="md">
+          {view === 'agent-activity' ? (
+            <AgentActivityFullTraceButton agentRun={agentRun} event={event} />
+          ) : (
+            <TracePreviewFullTraceButton
+              event={event}
+              organization={organization}
+              source="issues"
+            />
+          )}
+          {/* Last, so the toggle stays under the cursor when the button changes. */}
           {hasAgentActivity && (
             <SegmentedControl<TraceView>
               aria-label={t('Trace view')}
@@ -82,15 +86,6 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
                 {t('Waterfall')}
               </SegmentedControl.Item>
             </SegmentedControl>
-          )}
-          {view === 'agent-activity' ? (
-            <OpenAgentActivityButton agentRun={agentRun} event={event} />
-          ) : (
-            <TracePreviewFullTraceButton
-              event={event}
-              organization={organization}
-              source="issues"
-            />
           )}
         </Flex>
       }
