@@ -1,6 +1,6 @@
 import time
 from collections.abc import Iterator
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from inspect import unwrap
 from typing import Any
 from unittest.mock import Mock, patch
@@ -27,11 +27,14 @@ from sentry.seer.models.agentic_triage import (
 )
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.models.workflow import (
+    SeerWorkflowConfig,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
     SeerWorkflowStrategy,
 )
 from sentry.tasks.seer.agentic_triage.cron import (
+    TOKEN_BILLING_CUTOFF,
+    TOKEN_BILLING_PRIOR_RUN_WINDOW,
     AgenticTriageShardPlan,
     ShardDispatchStatus,
     _agentic_triage_cron_expr,
@@ -1007,6 +1010,86 @@ class TestRunAgenticTriageForOrg(AgenticTriageFixtures, TestCase, SnubaTestCase)
 
         assert run_id is not None
         mock_quota.assert_not_called()
+
+    def _create_prior_run(
+        self, org: Organization, *, date_added: datetime, trigger_key: str | None
+    ) -> None:
+        run = SeerWorkflowRun.objects.create(
+            organization=org,
+            workflow_config=SeerWorkflowConfig.get_or_create_for_strategy(
+                organization_id=org.id, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE
+            ),
+            trigger_key=trigger_key,
+        )
+        SeerWorkflowRun.objects.filter(id=run.id).update(date_added=date_added)
+
+    def test_token_billed_org_without_prior_runs_is_not_scheduled(self) -> None:
+        org = self.create_organization()
+        window_start = TOKEN_BILLING_CUTOFF - TOKEN_BILLING_PRIOR_RUN_WINDOW
+        self._create_prior_run(
+            org, date_added=window_start - timedelta(days=1), trigger_key="old-schedule"
+        )
+        self._create_prior_run(org, date_added=window_start + timedelta(days=1), trigger_key=None)
+        self._create_prior_run(
+            org, date_added=TOKEN_BILLING_CUTOFF + timedelta(days=1), trigger_key="after-cutoff"
+        )
+
+        with (
+            self.feature("organizations:token-billed-seer-enabled"),
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.quotas.backend.check_seer_quota",
+                return_value=True,
+            ),
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_execution"
+            ) as mock_execution,
+        ):
+            run_id = run_agentic_triage_for_org(org.id, schedule_id="2024-07-22T22:00")
+
+        assert run_id is None
+        assert not SeerWorkflowRun.objects.filter(trigger_key="2024-07-22T22:00").exists()
+        mock_execution.assert_not_called()
+
+    def test_token_billed_org_with_prior_scheduled_run_keeps_running(self) -> None:
+        org = self.create_organization()
+        self._create_prior_run(
+            org,
+            date_added=TOKEN_BILLING_CUTOFF - timedelta(days=1),
+            trigger_key="2024-07-21T22:00",
+        )
+
+        with (
+            self.feature("organizations:token-billed-seer-enabled"),
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.quotas.backend.check_seer_quota",
+                return_value=True,
+            ),
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_execution"
+            ) as mock_execution,
+        ):
+            run_id = run_agentic_triage_for_org(org.id, schedule_id="2024-07-22T22:00")
+
+        assert run_id is not None
+        mock_execution.assert_called_once()
+
+    def test_token_billed_manual_run_skips_prior_run_check(self) -> None:
+        org = self.create_organization()
+
+        with (
+            self.feature("organizations:token-billed-seer-enabled"),
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.quotas.backend.check_seer_quota",
+                return_value=True,
+            ),
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_execution"
+            ) as mock_execution,
+        ):
+            run_id = run_agentic_triage_for_org(org.id, options={"source": "manual"})
+
+        assert run_id is not None
+        mock_execution.assert_called_once()
 
     def test_max_candidates_defaults_to_global_option(self) -> None:
         org = self.create_organization()
