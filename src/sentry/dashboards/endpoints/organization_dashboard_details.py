@@ -6,7 +6,8 @@ from typing import Any, cast
 from django.db import IntegrityError, router, transaction
 from django.db.models import F
 from django.utils import timezone
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -27,6 +28,7 @@ from sentry.apidocs.constants import (
     RESPONSE_FORBIDDEN,
     RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.dashboard_examples import DashboardExamples
 from sentry.apidocs.parameters import DashboardParams, GlobalParams
@@ -252,15 +254,30 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         return self.respond(body, status=200)
 
 
+@extend_schema(tags=["Dashboards"])
 @cell_silo_endpoint
 class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
 
-    def post(self, request: Request, organization: Organization, dashboard: Dashboard) -> Response:
+    @extend_schema(
+        operation_id="visitOrganizationDashboard",
+        summary="Record a Visit to an Organization's Custom Dashboard",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, DashboardParams.DASHBOARD_ID],
+        request=None,
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def post(
+        self, request: Request, organization: Organization, dashboard: Dashboard
+    ) -> Response[None]:
         """
-        Update last_visited and increment visits counter
+        Record that the requesting user visited a custom dashboard. Increments the dashboard's
+        visit count and updates its last visited time.
         """
         dashboard.visits = cast(int, F("visits") + 1)
         dashboard.last_visited = timezone.now()
@@ -291,6 +308,7 @@ class OrganizationDashboardFavoritePermission(OrganizationDashboardsPermission):
     }
 
 
+@extend_schema(tags=["Dashboards"])
 @cell_silo_endpoint
 class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
     """
@@ -302,10 +320,32 @@ class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
     }
     permission_classes = (OrganizationDashboardFavoritePermission,)
 
-    def put(self, request: Request, organization: Organization, dashboard: Dashboard) -> Response:
+    @extend_schema(
+        operation_id="favoriteOrganizationDashboard",
+        summary="Star or Unstar an Organization's Custom Dashboard",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, DashboardParams.DASHBOARD_ID],
+        request=inline_serializer(
+            name="DashboardFavoriteRequest",
+            fields={
+                "shouldFavorite": serializers.BooleanField(
+                    help_text="`true` to star the dashboard for the requesting user, `false` to unstar it.",
+                ),
+            },
+        ),
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def put(
+        self, request: Request, organization: Organization, dashboard: Dashboard
+    ) -> Response[None]:
         """
-        Toggle favorite status for current user by adding or removing
-        current user from dashboard favorites
+        Star or unstar a custom dashboard for the requesting user. Starred dashboards are
+        added to the end of the user's starred list. Returns 401 if the request is not made
+        on behalf of a user.
         """
         if not request.user.is_authenticated:
             return Response(status=401)

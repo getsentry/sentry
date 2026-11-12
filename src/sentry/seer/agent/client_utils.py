@@ -433,7 +433,7 @@ def collect_user_org_context(
     ).values("id", "slug")
 
     prefs_by_pid = bulk_read_preferences_from_sentry_db(
-        organization.id, [p["id"] for p in all_projects]
+        organization.id, [p["id"] for p in all_projects], limit_repos=True
     )
     repos_by_pid = {
         str(pid): [repo.dict() for repo in pref.repositories] for pid, pref in prefs_by_pid.items()

@@ -87,6 +87,7 @@ class AgentHandoffRequestSerializer(CamelSnakeSerializer[AgentHandoffRequest]):
 
 
 class AgentHandoffResponse(TypedDict):
+    code: str
     prompt: str
     guideUrl: str
     expiresAt: str
@@ -161,6 +162,7 @@ class OrganizationAgentHandoffEndpoint(ControlSiloOrganizationEndpoint):
         )
         guide_url = absolute_uri(reverse("sentry-agent-handoff"))
         data: AgentHandoffResponse = {
+            "code": issued.code,
             "prompt": (
                 f"Follow the instructions verbatim at {guide_url}. "
                 f"Your handoff code is `{issued.code}`."

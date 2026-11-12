@@ -132,6 +132,33 @@ describe('mobile navigation', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('closes the menu when returning from settings to the inbox', async () => {
+      const {router} = render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({
+          organization: {features: [...settingsV3.features, 'universal-inbox']},
+          initialRouterConfig: {
+            location: {pathname: '/organizations/org-slug/inbox/'},
+          },
+        })
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Open main menu'}));
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Toggle organization menu'})
+      );
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Settings'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Back to app'}));
+
+      expect(router.location.pathname).toBe('/organizations/org-slug/inbox/');
+      expect(
+        screen.queryByRole('navigation', {name: 'Primary Navigation'})
+      ).not.toBeInTheDocument();
+      expect(document.getElementById('main')).not.toHaveAttribute('inert');
+    });
+
     it('returns to the page settings was entered from through the menu', async () => {
       const {router} = render(
         <PrimaryNavigationContextProvider>
@@ -153,6 +180,25 @@ describe('mobile navigation', () => {
       expect(router.location.pathname).toMatch(/^\/organizations\/org-slug\/explore\//);
       expect(screen.queryByText('Organization Settings')).not.toBeInTheDocument();
     });
+  });
+
+  it('navigates to the inbox and closes the menu, since it has no secondary navigation', async () => {
+    const {router} = render(
+      <PrimaryNavigationContextProvider>
+        <Navigation />
+      </PrimaryNavigationContextProvider>,
+      navigationContext({
+        organization: {features: [...ALL_AVAILABLE_FEATURES, 'universal-inbox']},
+      })
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open main menu'}));
+    await userEvent.click(screen.getByRole('link', {name: 'Inbox'}));
+
+    expect(router.location.pathname).toBe('/organizations/org-slug/inbox/');
+    expect(
+      screen.queryByRole('navigation', {name: 'Primary Navigation'})
+    ).not.toBeInTheDocument();
   });
 
   it('navigates account settings without an organization', async () => {
