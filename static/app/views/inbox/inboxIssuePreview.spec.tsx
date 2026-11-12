@@ -87,7 +87,7 @@ describe('InboxIssuePreview', () => {
     expect(within(sidebar).getByText('First seen')).toBeInTheDocument();
     expect(within(sidebar).getByText('Last seen')).toBeInTheDocument();
     expect(
-      await within(sidebar).findByRole('heading', {name: 'External Links', level: 3})
+      await within(sidebar).findByRole('heading', {name: 'External links', level: 3})
     ).toBeInTheDocument();
     expect(
       within(sidebar).queryByRole('button', {name: 'Collapse Section'})

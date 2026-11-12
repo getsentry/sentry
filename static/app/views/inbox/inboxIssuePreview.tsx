@@ -228,7 +228,7 @@ function InboxIssueExternalLinks({
 
   return (
     <SidebarField
-      label={t('External Links')}
+      label={t('External links')}
       actions={<ExternalIssueListLinkButton {...externalIssues} />}
     >
       <ExternalIssueListContent {...externalIssues} />
