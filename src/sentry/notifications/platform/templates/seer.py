@@ -82,9 +82,7 @@ class SeerAutofixStoppedTemplate(NotificationTemplate[SeerAutofixStopped]):
         )
 
 
-# Out-of-credits copy depends on what the reader can do about it. Members can only ask an
-# admin. Billing members can configure auto-reload, and if it is already on, the organization
-# has used up the reloads it allows.
+# NO_RELOADS is for billing members whose auto-reload is already on.
 AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE = "Your organization does not have enough credits to continue your Autofix run. Ask your admin to increase your daily token limit or set up auto-reload."
 AUTOFIX_OUT_OF_CREDITS_BILLING_MESSAGE = "Your organization does not have enough credits to continue your Autofix run. Set up auto-reload to keep your flow uninterrupted."
 AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE = "Your organization does not have enough credits to continue your Autofix run, and you have no auto-reloads remaining. Adjust your spend and turn on auto-reload."
@@ -93,7 +91,6 @@ AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE = "Your organization does not have eno
 class SeerAutofixOutOfCredits(NotificationData):
     source: NotificationSource = NotificationSource.SEER_AUTOFIX_OUT_OF_CREDITS
     has_billing_access: bool = False
-    """The reader can configure auto-reload. Leave False when the reader is unknown."""
     auto_reload_enabled: bool = False
 
     @property
@@ -263,7 +260,6 @@ AGENT_OUT_OF_CREDITS_NO_RELOADS_MESSAGE = "Your organization does not have enoug
 class SeerAgentOutOfCredits(NotificationData):
     source: NotificationSource = NotificationSource.SEER_AGENT_OUT_OF_CREDITS
     has_billing_access: bool = False
-    """The reader can configure auto-reload. Leave False when the reader is unknown."""
     auto_reload_enabled: bool = False
 
     @property

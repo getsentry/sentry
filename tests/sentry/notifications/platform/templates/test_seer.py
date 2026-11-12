@@ -156,7 +156,6 @@ class SeerAgentErrorTemplateTest(TestCase):
     ("has_billing_access", "auto_reload_enabled", "message"),
     [
         (False, False, AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE),
-        # Members can't change auto-reload, so its state doesn't change their copy.
         (False, True, AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE),
         (True, False, AUTOFIX_OUT_OF_CREDITS_BILLING_MESSAGE),
         (True, True, AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE),
