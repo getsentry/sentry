@@ -49,10 +49,13 @@ export function AvatarButton({
           : undefined,
   });
 
-  // Only used to inset logos that don't fill the frame. The frame itself keeps
-  // the default button colors, whatever the avatar's color.
+  // Only used to inset logos that don't fill the frame.
   const colors = useAvatarColors(isSuggested ? undefined : avatar);
-  const borderColor = isSuggested ? theme.tokens.border.neutral.vibrant : 'transparent';
+  // The frame (border and raised edge) is the same neutral for every avatar,
+  // whatever its color. Suggested avatars only get a dashed border in it, and
+  // keep the default button edge.
+  const borderColor = theme.tokens.border.neutral.vibrant;
+  const frameColor = isSuggested ? undefined : borderColor;
 
   const contextSize = useSizeContext();
   const size = explicitSize ?? contextSize ?? 'md';
@@ -75,7 +78,7 @@ export function AvatarButton({
 
   if (avatarDefinition.type === 'letter') {
     return (
-      <StyledAvatarButton {...props} size={size} round={round}>
+      <StyledAvatarButton {...props} size={size} round={round} frameColor={frameColor}>
         <AvatarContainer
           size={size}
           round={round}
@@ -93,7 +96,7 @@ export function AvatarButton({
   }
 
   return (
-    <StyledAvatarButton {...props} size={size} round={round}>
+    <StyledAvatarButton {...props} size={size} round={round} frameColor={frameColor}>
       <AvatarContainer
         size={size}
         round={round}
@@ -160,12 +163,24 @@ const StyledLetterAvatar = styled(LetterAvatar)`
   position: relative;
 `;
 
+// Elevation per size, matching the base button's chonk depth.
+const AVATAR_BUTTON_ELEVATION: Record<AvatarButtonSize, string> = {
+  md: '2px',
+  sm: '2px',
+  xs: '1px',
+};
+
 type ResolvedAvatarButtonProps = DistributedOmit<AvatarTriggerProps, 'size'> & {
   round: boolean;
   size: AvatarButtonSize;
+  frameColor?: string;
 };
 
-function AvatarButtonBase({round: _round, ...props}: ResolvedAvatarButtonProps) {
+function AvatarButtonBase({
+  frameColor: _frameColor,
+  round: _round,
+  ...props
+}: ResolvedAvatarButtonProps) {
   return <OverlayTrigger.Button {...props} showChevron={false} />;
 }
 
@@ -181,6 +196,18 @@ const StyledAvatarButton = styled(AvatarButtonBase)`
       &&::before,
       &&::after {
         border-radius: ${p.theme.radius.full};
+      }
+    `}
+
+  ${p =>
+    p.frameColor &&
+    css`
+      &&::before {
+        background: ${p.frameColor};
+        box-shadow: 0 ${AVATAR_BUTTON_ELEVATION[p.size]} 0 0px ${p.frameColor};
+      }
+      &&::after {
+        border-color: ${p.frameColor};
       }
     `}
 `;
