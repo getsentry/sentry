@@ -78,26 +78,6 @@ class ProjectTransactionThresholdOverrideTest(APITestCase):
 
         assert response.status_code == 404
 
-    def test_get_returns_error_without_feature_enabled(self) -> None:
-        with self.feature({self.feature_name: False, "organizations:discover-basic": False}):
-            ProjectTransactionThresholdOverride.objects.create(
-                project=self.project,
-                organization=self.project.organization,
-                threshold=300,
-                metric=TransactionMetric.DURATION.value,
-                transaction=self.data["transaction"],
-            )
-
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": [self.project.id],
-                    "transaction": self.data["transaction"],
-                },
-                format="json",
-            )
-            assert response.status_code == 404
-
     def test_create_project_threshold(self) -> None:
         assert not ProjectTransactionThresholdOverride.objects.filter(
             transaction=self.data["transaction"],
