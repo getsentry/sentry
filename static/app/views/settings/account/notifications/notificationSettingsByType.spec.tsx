@@ -291,8 +291,50 @@ describe('NotificationSettingsByType', () => {
     expect(screen.getByRole('checkbox', {name: 'Mentions'})).not.toBeChecked();
     expect(screen.getByRole('checkbox', {name: 'Pull Requests Ready'})).toBeChecked();
     expect(screen.getByRole('checkbox', {name: 'Completion Status'})).toBeChecked();
-    expect(screen.getByRole('textbox', {name: 'Delivery Method'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Send notifications to'})).toHaveTextContent(
+      'Email'
+    );
     expect(screen.queryByText('Value\u2026')).not.toBeInTheDocument();
+  });
+
+  it('saves the inbox delivery method from the dropdown', async () => {
+    renderComponent({
+      notificationType: 'inbox',
+      notificationProviders: [
+        {
+          id: '1',
+          type: 'inbox',
+          scopeType: 'user',
+          scopeIdentifier: '1',
+          provider: 'email',
+          value: 'never',
+        },
+      ],
+    });
+    const changeProvidersMock = MockApiClient.addMockResponse({
+      url: '/users/me/notification-providers/',
+      method: 'PUT',
+      body: [],
+    });
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Send notifications to'})
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'Email'}));
+    await userEvent.keyboard('{Escape}');
+
+    await waitFor(() =>
+      expect(changeProvidersMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            type: 'inbox',
+            scopeType: 'user',
+            providers: ['email'],
+          }),
+        })
+      )
+    );
   });
 
   it('saves an inbox category toggle as a user setting', async () => {

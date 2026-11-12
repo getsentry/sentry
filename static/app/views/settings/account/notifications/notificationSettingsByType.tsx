@@ -9,6 +9,9 @@ import {
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -413,13 +416,20 @@ export function NotificationSettingsByType({notificationType}: Props) {
     },
   });
 
-  return (
-    <Fragment>
-      <SentryDocumentTitle title={title} />
-      <SettingsPageHeader title={title} />
-      {description && <TextBlock>{description}</TextBlock>}
-      {notificationType === 'inbox' && (
-        <FieldGroup title={t('Personal Notifications')}>
+  if (notificationType === 'inbox') {
+    // Inbox settings only allow user scope, so unlike the other types there are no
+    // org or project overrides.
+    return (
+      <Fragment>
+        <SentryDocumentTitle title={t('Inbox Notifications')} />
+        <SettingsPageHeader title={title} />
+        <Stack gap="xs" marginBottom="xl">
+          <Heading as="h2" size="xl">
+            {t('Personal notifications')}
+          </Heading>
+          <Text variant="muted">{description}</Text>
+        </Stack>
+        <FieldGroup>
           {INBOX_FIELDS.map(field => {
             // Toggles save the same always/never values as the other settings.
             const schema = z.object({
@@ -434,19 +444,73 @@ export function NotificationSettingsByType({notificationType}: Props) {
                 mutationOptions={optionMutationOptions(field.name)}
               >
                 {fieldApi => (
-                  <fieldApi.Layout.Row label={field.label} hintText={field.help}>
-                    <fieldApi.Switch
-                      checked={fieldApi.state.value}
-                      onChange={fieldApi.handleChange}
-                    />
+                  <fieldApi.Layout.Row
+                    label={<Text bold>{field.label}</Text>}
+                    hintText={field.help}
+                  >
+                    <Flex justify="end">
+                      <fieldApi.Switch
+                        checked={fieldApi.state.value}
+                        onChange={fieldApi.handleChange}
+                      />
+                    </Flex>
                   </fieldApi.Layout.Row>
                 )}
               </AutoSaveForm>
             );
           })}
         </FieldGroup>
-      )}
-      {notificationType !== 'reports' && notificationType !== 'inbox' && (
+        <FieldGroup>
+          <AutoSaveForm
+            name="provider"
+            schema={providerSchema}
+            initialValue={initialProviders}
+            mutationOptions={providerMutationOptions}
+          >
+            {field => (
+              <Fragment>
+                {field.state.value.includes('slack') && unlinkedSlackOrgs.length > 0 ? (
+                  <UnlinkedAlert organizations={unlinkedSlackOrgs} />
+                ) : null}
+                {field.state.value.includes('slack_staging') &&
+                unlinkedSlackStagingOrgs.length > 0 ? (
+                  <UnlinkedAlert organizations={unlinkedSlackStagingOrgs} />
+                ) : null}
+                <field.Layout.Row
+                  label={<Text bold>{t('Send notifications to')}</Text>}
+                  hintText={t('Where notifications are delivered')}
+                >
+                  <Flex justify="end">
+                    <field.CompactSelect
+                      multiple
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      options={providerChoices}
+                      trigger={triggerProps => (
+                        <OverlayTrigger.Button {...triggerProps} style={{width: 'auto'}}>
+                          {providerChoices
+                            .filter(choice => field.state.value.includes(choice.value))
+                            .map(choice => choice.label)
+                            .join(' & ')}
+                        </OverlayTrigger.Button>
+                      )}
+                    />
+                  </Flex>
+                </field.Layout.Row>
+              </Fragment>
+            )}
+          </AutoSaveForm>
+        </FieldGroup>
+      </Fragment>
+    );
+  }
+
+  return (
+    <Fragment>
+      <SentryDocumentTitle title={title} />
+      <SettingsPageHeader title={title} />
+      {description && <TextBlock>{description}</TextBlock>}
+      {notificationType !== 'reports' && (
         <FieldGroup
           title={
             isGroupedByProject(notificationType)
@@ -530,8 +594,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
             deleteNotificationMutation.mutate(option)
           }
         />
-      ) : notificationType === 'inbox' ? null : (
-        // Inbox settings only allow user scope, so there are no org or project overrides.
+      ) : (
         <NotificationSettingsByEntity
           notificationType={notificationType}
           notificationOptions={notificationOptionData}
