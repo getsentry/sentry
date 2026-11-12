@@ -14,6 +14,7 @@ import type {AgenticProgressRun} from './types';
 export type AgentSetupCopySource = 'prompt';
 
 interface AgentSetupCardProps {
+  flow: AgentHandoffFlow;
   onCopyCommand: (source: AgentSetupCopySource) => void;
   onSelectSnippet: (source: AgentSetupCopySource) => void;
   run: AgenticProgressRun | undefined;
@@ -22,6 +23,7 @@ interface AgentSetupCardProps {
 
 export function AgentSetupCard({
   feedbackSource = 'onboarding-agent-setup',
+  flow,
   onCopyCommand,
   onSelectSnippet,
   run,
@@ -58,7 +60,7 @@ export function AgentSetupCard({
         <AgentHandoffPrompt
           context={run ? {runId: run.runId} : null}
           feedbackSource={feedbackSource}
-          flow={AgentHandoffFlow.ONBOARDING}
+          flow={flow}
           onCopySuccess={() => onCopyCommand('prompt')}
           onSelect={() => onSelectSnippet('prompt')}
         />

@@ -7,6 +7,7 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export enum AgentHandoffFlow {
+  CREATE_PROJECT = 'create_project',
   ONBOARDING = 'onboarding',
 }
 
@@ -15,12 +16,13 @@ interface HandoffPrompt {
   prompt: string;
 }
 
-interface OnboardingHandoffContext {
+interface ProjectSetupContext {
   runId: string;
 }
 
 interface HandoffContexts {
-  [AgentHandoffFlow.ONBOARDING]: OnboardingHandoffContext;
+  [AgentHandoffFlow.CREATE_PROJECT]: ProjectSetupContext;
+  [AgentHandoffFlow.ONBOARDING]: ProjectSetupContext;
 }
 
 export type AgentHandoffContext<Flow extends AgentHandoffFlow = AgentHandoffFlow> =
@@ -67,7 +69,7 @@ function clipboardError() {
 }
 
 /**
- * Mints short-lived handoff prompts and copies them without exposing their secret token
+ * Mints short-lived handoff prompts and copies them without exposing their handoff code
  * in the UI. Valid prompts are cached until their context changes or they approach
  * expiration, and concurrent copy requests share the same operation. Call copyPrompt
  * directly from the user gesture that authorizes clipboard access.
@@ -113,7 +115,7 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
 
       return minted.prompt;
     } catch {
-      throw new Error(t('Unable to create your agent prompt. Please try again.'));
+      throw new Error(t('Unable to create your agent prompt. Try again.'));
     }
   }
 
