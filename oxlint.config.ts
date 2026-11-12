@@ -862,7 +862,6 @@ const config = defineConfig({
       },
     },
     {
-      // Core component tests may use `color` like the components they test.
       files: ['static/app/components/core/**/*.spec.{ts,js,tsx,jsx}'],
       rules: {
         'no-restricted-imports': [
