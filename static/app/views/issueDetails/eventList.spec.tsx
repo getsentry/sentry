@@ -24,7 +24,7 @@ describe('EventList', () => {
     environments: ['production', 'staging', 'development'],
   });
   const group = GroupFixture();
-  const persistantQuery = `issue:${group.shortId}`;
+  const persistantQuery = `issue.id:${group.id}`;
   const totalCount = 100;
 
   const initialRouterConfig = {

@@ -330,6 +330,7 @@ from sentry.issues.endpoints import (
     GroupNotesDetailsEndpoint,
     GroupNotesEndpoint,
     GroupPullRequestsEndpoint,
+    GroupRelatedEndpoint,
     GroupSimilarIssuesEmbeddingsEndpoint,
     GroupSimilarIssuesEndpoint,
     GroupTombstoneDetailsEndpoint,
@@ -1103,6 +1104,11 @@ def create_group_urls(
             r"^(?P<issue_id>[^/]+)/summarize/$",
             GroupAiSummaryEndpoint.as_view(),
             name=f"{name_prefix}-group-ai-summary",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^/]+)/related/$",
+            GroupRelatedEndpoint.as_view(),
+            name=f"{name_prefix}-related",
         ),
     ]
 
