@@ -1,6 +1,5 @@
 import {useCallback} from 'react';
 
-import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid, Stack} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
@@ -20,8 +19,6 @@ import {
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
-import {SectionKey} from 'sentry/views/issueDetails/context';
-import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {getTraceLinkForIssue} from 'sentry/views/performance/traceDetails/issuesTraceWaterfallOverlay';
 import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {getTraceTargetFromEvent} from 'sentry/views/performance/traceDetails/traceTarget';
@@ -111,12 +108,51 @@ interface AgentRunProps {
   event: Event;
 }
 
-export function EventAgentRunSection({agentRun, event}: AgentRunProps) {
+/**
+ * Opens the trace's Agent Activity tab, with the failing step selected when there is one.
+ */
+export function OpenAgentActivityButton({agentRun, event}: AgentRunProps) {
+  const getAgentActivityLink = useAgentActivityLink(event);
+
+  return (
+    <LinkButton
+      size="xs"
+      to={getAgentActivityLink(
+        agentRun.type === 'inside' ? agentRun.failingNode.id : undefined
+      )}
+      analyticsEventName="Issue Details: Open Agent Activity Clicked"
+      analyticsEventKey="issue_details.agent_run.open_agent_activity_clicked"
+    >
+      {t('Open Agent Activity')}
+    </LinkButton>
+  );
+}
+
+/**
+ * The Agent Activity view of the trace preview.
+ */
+export function EventAgentActivity({agentRun, event}: AgentRunProps) {
   const navigate = useNavigate();
   const getAgentActivityLink = useAgentActivityLink(event);
 
-  if (agentRun.type !== 'inside') {
+  if (agentRun.type === 'none') {
     return null;
+  }
+
+  if (agentRun.type === 'elsewhere') {
+    return (
+      <Text as="p" variant="muted">
+        {agentRun.agentRunCount > 0
+          ? tn(
+              'This error was raised outside the agent run in this trace, which may give context for it.',
+              'This error was raised outside the %s agent runs in this trace, which may give context for it.',
+              agentRun.agentRunCount
+            )
+          : t(
+              'This error was raised outside the AI spans in this trace, which may give context for it.'
+            )}
+      </Text>
+    );
   }
 
   const {runNode, failingNode, nodes} = agentRun;
@@ -136,79 +172,28 @@ export function EventAgentRunSection({agentRun, event}: AgentRunProps) {
   const fullActivityLink = getAgentActivityLink(failingNode.id);
 
   return (
-    <FoldSection
-      sectionKey={SectionKey.AGENT_RUN}
-      title={t('Agent Run')}
-      actions={
-        <LinkButton
-          size="xs"
-          variant="primary"
-          to={fullActivityLink}
-          analyticsEventName="Issue Details: Open Agent Activity Clicked"
-          analyticsEventKey="issue_details.agent_run.open_agent_activity_clicked"
-        >
-          {t('Open Agent Activity')}
-        </LinkButton>
-      }
-    >
-      <Stack gap="lg">
-        <Grid columns={`repeat(${summary.length}, max-content)`} gap="2xs xl">
-          {summary.map(({label}) => (
-            <Text key={`label-${label}`} size="xs" variant="muted" uppercase>
-              {label}
-            </Text>
-          ))}
-          {summary.map(({label, value}) => (
-            <Text key={`value-${label}`} size="sm" bold ellipsis>
-              {value}
-            </Text>
-          ))}
-        </Grid>
-        <Stack gap="xs">
-          <HiddenStepsLink count={hiddenBefore} to={fullActivityLink} />
-          <AiSpanTimeline
-            nodes={steps}
-            selectedNodeKey={failingNode.id}
-            onSelectNode={node => navigate(getAgentActivityLink(node.id))}
-          />
-          <HiddenStepsLink count={hiddenAfter} to={fullActivityLink} />
-        </Stack>
+    <Stack gap="lg">
+      <Grid columns={`repeat(${summary.length}, max-content)`} gap="2xs xl">
+        {summary.map(({label}) => (
+          <Text key={`label-${label}`} size="xs" variant="muted" uppercase>
+            {label}
+          </Text>
+        ))}
+        {summary.map(({label, value}) => (
+          <Text key={`value-${label}`} size="sm" bold ellipsis>
+            {value}
+          </Text>
+        ))}
+      </Grid>
+      <Stack gap="xs">
+        <HiddenStepsLink count={hiddenBefore} to={fullActivityLink} />
+        <AiSpanTimeline
+          nodes={steps}
+          selectedNodeKey={failingNode.id}
+          onSelectNode={node => navigate(getAgentActivityLink(node.id))}
+        />
+        <HiddenStepsLink count={hiddenAfter} to={fullActivityLink} />
       </Stack>
-    </FoldSection>
-  );
-}
-
-/**
- * Points to the trace's agent activity when the error was raised outside of it.
- */
-export function TraceAgentActivityHint({agentRun, event}: AgentRunProps) {
-  const getAgentActivityLink = useAgentActivityLink(event);
-
-  if (agentRun.type !== 'elsewhere') {
-    return null;
-  }
-
-  return (
-    <Alert
-      variant="info"
-      trailingItems={
-        <LinkButton
-          size="xs"
-          to={getAgentActivityLink()}
-          analyticsEventName="Issue Details: Trace Agent Activity Hint Clicked"
-          analyticsEventKey="issue_details.agent_run.trace_hint_clicked"
-        >
-          {t('Open Agent Activity')}
-        </LinkButton>
-      }
-    >
-      {agentRun.agentRunCount > 0
-        ? tn(
-            'This trace also has %s agent run, which may give context for this error.',
-            'This trace also has %s agent runs, which may give context for this error.',
-            agentRun.agentRunCount
-          )
-        : t('This trace also has AI spans, which may give context for this error.')}
-    </Alert>
+    </Stack>
   );
 }

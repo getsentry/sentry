@@ -8,7 +8,7 @@ import {
   makeEAPSpan,
 } from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
 
-import {EventAgentRunSection, TraceAgentActivityHint} from './eventAgentRun';
+import {EventAgentActivity, OpenAgentActivityButton} from './eventAgentRun';
 import {getEventAgentRun, useEventAgentRun} from './useEventAgentRun';
 
 const organization = OrganizationFixture({features: ['performance-view']});
@@ -141,25 +141,19 @@ describe('useEventAgentRun', () => {
   });
 });
 
-describe('EventAgentRunSection', () => {
-  it('links the failing step to the Agent Activity tab', () => {
+describe('EventAgentActivity', () => {
+  it('summarizes the agent run and the failing step', () => {
     const agentRun = getEventAgentRun(
       makeTrace({errorInsideTool: true}),
       errorEventId,
       organization
     );
 
-    render(<EventAgentRunSection agentRun={agentRun} event={event} />, {organization});
+    render(<EventAgentActivity agentRun={agentRun} event={event} />, {organization});
 
-    expect(screen.getByText('Agent Run')).toBeInTheDocument();
     expect(screen.getAllByText('support-agent').length).toBeGreaterThan(0);
     expect(screen.getAllByText('claude-sonnet-4').length).toBeGreaterThan(0);
     expect(screen.getByText('execute_tool search_docs')).toBeInTheDocument();
-
-    const link = screen.getByRole('button', {name: 'Open Agent Activity'});
-    expect(link).toHaveAttribute('href', expect.stringContaining(`/trace/${traceId}/`));
-    expect(link).toHaveAttribute('href', expect.stringContaining('tab=ai-spans'));
-    expect(link).toHaveAttribute('href', expect.stringContaining('node=span-tool-span'));
   });
 
   it('only shows the steps around the failing step in a long run', () => {
@@ -193,7 +187,7 @@ describe('EventAgentRunSection', () => {
     ];
 
     render(
-      <EventAgentRunSection
+      <EventAgentActivity
         agentRun={getEventAgentRun(trace, errorEventId, organization)}
         event={event}
       />,
@@ -215,23 +209,9 @@ describe('EventAgentRunSection', () => {
     expect(screen.getByRole('link', {name: '2 more steps'})).toBeInTheDocument();
   });
 
-  it('renders nothing when the error was raised outside an agent run', () => {
-    const {container} = render(
-      <EventAgentRunSection
-        agentRun={{type: 'elsewhere', agentRunCount: 1}}
-        event={event}
-      />,
-      {organization}
-    );
-
-    expect(container).toBeEmptyDOMElement();
-  });
-});
-
-describe('TraceAgentActivityHint', () => {
-  it('points to the trace agent activity', () => {
+  it('says when the error was raised outside the agent runs', () => {
     render(
-      <TraceAgentActivityHint
+      <EventAgentActivity
         agentRun={{type: 'elsewhere', agentRunCount: 2}}
         event={event}
       />,
@@ -240,12 +220,27 @@ describe('TraceAgentActivityHint', () => {
 
     expect(
       screen.getByText(
-        'This trace also has 2 agent runs, which may give context for this error.'
+        'This error was raised outside the 2 agent runs in this trace, which may give context for it.'
       )
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Open Agent Activity'})).toHaveAttribute(
-      'href',
-      expect.stringContaining('tab=ai-spans')
+  });
+});
+
+describe('OpenAgentActivityButton', () => {
+  it('links to the failing step in the Agent Activity tab', () => {
+    const agentRun = getEventAgentRun(
+      makeTrace({errorInsideTool: true}),
+      errorEventId,
+      organization
     );
+
+    render(<OpenAgentActivityButton agentRun={agentRun} event={event} />, {
+      organization,
+    });
+
+    const link = screen.getByRole('button', {name: 'Open Agent Activity'});
+    expect(link).toHaveAttribute('href', expect.stringContaining(`/trace/${traceId}/`));
+    expect(link).toHaveAttribute('href', expect.stringContaining('tab=ai-spans'));
+    expect(link).toHaveAttribute('href', expect.stringContaining('node=span-tool-span'));
   });
 });
