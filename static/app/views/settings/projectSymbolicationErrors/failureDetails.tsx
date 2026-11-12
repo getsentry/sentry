@@ -114,7 +114,7 @@ function getAgentPrompt({
     '',
     '- Make the upload a part of the build or the CI configuration of this repository, so that each new release uploads its files. A manual upload alone is not a fix.',
     '- Read the auth token from the `SENTRY_AUTH_TOKEN` environment variable or CI secret. Do not write a token into a file of the repository.',
-    '- If the secret does not exist, stop and ask me to create an organization auth token in Sentry under Settings > Auth Tokens.',
+    '- If the secret does not exist, use the Sentry CLI or the Sentry MCP server to create an organization auth token.',
     '- When you finish, list the files you changed and tell me how to verify the next release.',
     '',
     `Docs: ${info.docsUrl}`,
