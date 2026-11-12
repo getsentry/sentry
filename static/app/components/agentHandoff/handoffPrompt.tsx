@@ -1,63 +1,33 @@
-import {Fragment} from 'react';
-import {css, type Theme} from '@emotion/react';
-import styled from '@emotion/styled';
+import {Fragment, type ReactNode} from 'react';
 
-import {InfoText} from '@sentry/scraps/info';
-
-import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 
-function promptParts<Code>(code: Code): [string, Code, string] {
-  const guideUrl = `${ConfigStore.get('urlPrefix').replace(/\/$/, '')}/agent-handoff/`;
-  return [
-    `Follow the instructions verbatim at ${guideUrl}. Your handoff code is `,
-    code,
-    '.',
-  ];
-}
+type WrapCode<T> = (code: string) => T;
 
 /**
- * The agent handoff prompt as the plaintext copied for the agent and as the styled
- * preview with its handoff code masked. Both come from one template so their wording
- * can't drift apart. The prompt is read by the agent, so it is intentionally not
- * translated.
- *
- * The plaintext takes the code because the code is only minted when the user copies.
+ * Builds the agent handoff prompt around its handoff code. `wrapCode` decides how the
+ * code appears, such as in backticks for the copied text or masked for the preview, so
+ * both share one template and their wording can't drift apart. A wrapper that returns a
+ * string produces a plain string prompt. The prompt is read by the agent, so it is
+ * intentionally not translated.
  */
-export function getHandoffPrompt() {
-  const [start, maskedCode, end] = promptParts(
-    <MaskedCode
-      monospace
-      variant="warning"
-      title={t('The secret code authorizes your agent on your behalf')}
-    >
-      sntryh_****
-    </MaskedCode>
-  );
+export function getHandoffPrompt(code: string, wrapCode: WrapCode<string>): string;
+export function getHandoffPrompt(code: string, wrapCode: WrapCode<ReactNode>): ReactNode;
+export function getHandoffPrompt(code: string, wrapCode: WrapCode<ReactNode>): ReactNode {
+  const guideUrl = `${ConfigStore.get('urlPrefix').replace(/\/$/, '')}/agent-handoff/`;
+  const start = `Follow the instructions verbatim at ${guideUrl}. Your handoff code is `;
+  const end = '.';
+  const wrappedCode = wrapCode(code);
 
-  return {
-    plaintext: (code: string) => promptParts(`\`${code}\``).join(''),
-    styledPrompt: (
-      <Fragment>
-        {start}
-        {maskedCode}
-        {end}
-      </Fragment>
-    ),
-  };
-}
-
-export const accentSelection = (p: {theme: Theme}) => css`
-  &::selection {
-    background: ${p.theme.tokens.background.accent.vibrant};
-    color: ${p.theme.tokens.content.onVibrant.light};
+  if (typeof wrappedCode === 'string') {
+    return `${start}${wrappedCode}${end}`;
   }
-`;
 
-const MaskedCode = styled(InfoText)`
-  background: ${p => p.theme.tokens.background.transparent.warning.muted};
-  border-radius: ${p => p.theme.radius.sm};
-  padding: 0 ${p => p.theme.space['2xs']};
-  text-decoration: none;
-  ${accentSelection}
-`;
+  return (
+    <Fragment>
+      {start}
+      {wrappedCode}
+      {end}
+    </Fragment>
+  );
+}
