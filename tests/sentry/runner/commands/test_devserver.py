@@ -43,7 +43,7 @@ def test_create_kafka_topics_waits_for_kafka(
     unreachable = KafkaException(KafkaError(KafkaError._TRANSPORT))
     admin_client.return_value.list_topics.side_effect = [unreachable, unreachable, None]
 
-    devserver._create_kafka_topics(topics_ready, io.StringIO())
+    devserver._create_kafka_topics(topics_ready)
 
     assert admin_client.call_count == 3
     create_topics.assert_called_once_with("default", ["events", "ingest-occurrences"])
@@ -64,7 +64,7 @@ def test_create_kafka_topics_failure_stops_devserver(
     topics_ready = tmp_path / "ready"
     output = io.StringIO()
 
-    devserver._create_kafka_topics(topics_ready, output)
+    devserver._create_kafka_topics_or_stop(topics_ready, output)
 
     assert "RuntimeError: no topics for you" in output.getvalue()
     kill.assert_called_once_with(os.getpid(), signal.SIGTERM)
