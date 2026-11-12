@@ -169,16 +169,18 @@ export function dominantColor(data: Uint8ClampedArray): string | null {
 
 function sampleAvatarColor(
   img: HTMLImageElement
-): {dominant: string | null; style: 'fill' | 'padded'} | null {
+): {dominant: string; style: 'fill' | 'padded'} | null {
   const data = readPixels(img);
   if (!data) {
     return null;
   }
 
-  return {
-    style: shouldPadImage(data),
-    dominant: dominantColor(data),
-  };
+  const dominant = dominantColor(data);
+  if (!dominant) {
+    return null;
+  }
+
+  return {dominant, style: shouldPadImage(data)};
 }
 
 function loadImageElement(src: string): Promise<HTMLImageElement | null> {
@@ -212,23 +214,13 @@ export function toPageOriginIfSameHost(url: string): string {
   }
 }
 
-async function fetchAvatarColor(
+export async function resolveImageAvatarColors(
   url: string
-): Promise<ReturnType<typeof sampleAvatarColor> | null> {
+): Promise<ReturnType<typeof sampleAvatarColor>> {
   try {
     const img = await loadImageElement(toPageOriginIfSameHost(url));
     return img ? sampleAvatarColor(img) : null;
   } catch {
     return null;
   }
-}
-
-export async function resolveImageAvatarColors(
-  url: string
-): Promise<{dominant: string; style: 'fill' | 'padded'} | null> {
-  const sampled = await fetchAvatarColor(url);
-  if (!sampled?.dominant) {
-    return null;
-  }
-  return {dominant: sampled.dominant, style: sampled.style};
 }
