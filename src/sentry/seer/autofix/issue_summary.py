@@ -34,13 +34,14 @@ from sentry.seer.autofix.exceptions import (
     IssueSummaryHidden,
     IssueSummarySelfHosted,
     NoSeerQuotaException,
+    SeerOutOfCreditsException,
 )
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     is_seer_autotriggered_autofix_rate_limited,
     is_seer_autotriggered_autofix_rate_limited_and_increment,
-    is_seer_seat_based_tier_enabled,
+    is_seer_seat_or_token_billed_enabled,
 )
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.operator import SeerAutofixOperator
@@ -204,7 +205,7 @@ def _trigger_autofix_task(
                     data={"referrer": referrer.value},
                     send_notification=False,
                 )
-        except NoSeerQuotaException:
+        except (NoSeerQuotaException, SeerOutOfCreditsException):
             pass
 
         if run and SeerAutofixOperator.has_access(organization=group.project.organization):
@@ -480,7 +481,7 @@ def get_automation_stopping_point(group: Group) -> AutofixStoppingPoint | None:
     """
     user_preference = group.project.get_option("sentry:seer_automated_run_stopping_point")
 
-    if is_seer_seat_based_tier_enabled(group.organization):
+    if is_seer_seat_or_token_billed_enabled(group.organization):
         fixability_score = get_and_update_group_fixability_score(group)
         fixability_stopping_point = _get_stopping_point_from_fixability(fixability_score)
 

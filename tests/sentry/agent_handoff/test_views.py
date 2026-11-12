@@ -6,7 +6,7 @@ from django.http import HttpResponse
 
 from sentry.agent_handoff.codes import (
     HandoffFlow,
-    OnboardingHandoffContext,
+    ProjectSetupContext,
     _get_redis_client,
     _handoff_key,
     consume_handoff,
@@ -31,7 +31,7 @@ class AgentHandoffViewTest(TestCase):
         run, _ = get_onboarding_progress_service().create_or_resume(
             user_id=self.user.id, organization_id=self.organization.id, client_run_id="browser"
         )
-        self.onboarding_context = OnboardingHandoffContext(run_id=run.run_id)
+        self.onboarding_context = ProjectSetupContext(run_id=run.run_id)
         self.enterContext(
             self.options(
                 {
@@ -43,7 +43,7 @@ class AgentHandoffViewTest(TestCase):
 
     def issue(
         self,
-        context: OnboardingHandoffContext | None = None,
+        context: ProjectSetupContext | None = None,
         *,
         ip_address: str = "127.0.0.1",
         disable_ip_pinning: bool = False,
@@ -69,7 +69,12 @@ class AgentHandoffViewTest(TestCase):
 
     def test_claim_mints_once_and_returns_the_private_guide(self) -> None:
         code = self.issue()
-        response = self.claim(code)
+        response = self.client.post(
+            "/agent-handoff/",
+            urlencode({"handoff_code": code}),
+            content_type="application/x-www-form-urlencoded",
+            HTTP_ACCEPT="text/markdown",
+        )
         assert response.status_code == 200
         assert "SENTRY_SETUP_CODE=sntryc_" in response.content.decode()
         assert "agent-setup/get-started.md" in response.content.decode()
@@ -94,7 +99,7 @@ class AgentHandoffViewTest(TestCase):
         run, _ = progress.create_or_resume(
             user_id=self.user.id, organization_id=self.organization.id, client_run_id="browser"
         )
-        context = OnboardingHandoffContext(run_id=run.run_id)
+        context = ProjectSetupContext(run_id=run.run_id)
         response = self.claim(self.issue(context))
         assert response.status_code == 200
         match = re.search(r"onboarding run code is `([A-Za-z0-9]{10})`", response.content.decode())
@@ -118,7 +123,7 @@ class AgentHandoffViewTest(TestCase):
             organization_id=self.organization.id,
             client_run_id="browser",
         )
-        response = self.claim(self.issue(OnboardingHandoffContext(run_id=run.run_id)))
+        response = self.claim(self.issue(ProjectSetupContext(run_id=run.run_id)))
         assert response.status_code == 410
         assert not ApiSetupCode.objects.exists()
         assert not ApiAuthorization.objects.exists()
@@ -216,9 +221,10 @@ class AgentHandoffViewTest(TestCase):
 
     def test_preview_is_public_and_preserves_the_code(self) -> None:
         code = self.issue()
-        response = self.client.get("/agent-handoff/")
+        response = self.client.get("/agent-handoff/", HTTP_ACCEPT="text/markdown")
         assert response.status_code == 200
-        assert "secret token supplied alongside the instructions URL" in response.content.decode()
+        assert "The user initiated this agent handoff in Sentry" in response.content.decode()
+        assert "It does not run those instructions" in response.content.decode()
         assert consume_handoff(code, ip_address="127.0.0.1") is not None
 
     def test_missing_code_is_rejected(self) -> None:
@@ -236,6 +242,7 @@ class AgentHandoffViewTest(TestCase):
             response = self.claim(code)
         assert response.status_code == 429
         assert response["Retry-After"] == "60"
+        assert "retry the same handoff code" in response.content.decode()
         assert consume_handoff(code, ip_address="127.0.0.1") is not None
 
     def test_ip_mismatch_explains_recovery_and_preserves_handoff(self) -> None:
@@ -248,10 +255,10 @@ class AgentHandoffViewTest(TestCase):
         assert response["Content-Type"] == "text/markdown; charset=utf-8"
         assert "no-store" in response["Cache-Control"]
         body = response.content.decode()
-        assert "different IP address" in body
-        assert "advanced options" in body
-        assert '"Disable IP pinning"' in body
-        assert "copy a new handoff prompt" in body
+        assert "different network" in body
+        assert "Advanced options" in body
+        assert '"Use IP pinning"' in body
+        assert "copy a new prompt" in body
         assert "192.0.2.1" not in body
         assert code not in body
         assert not ApiSetupCode.objects.filter(user_id=self.user.id).exists()
@@ -261,3 +268,47 @@ class AgentHandoffViewTest(TestCase):
     def test_unpinned_handoff_accepts_remote_agent(self) -> None:
         code = self.issue(disable_ip_pinning=True)
         assert self.claim(code, ip_address="192.0.2.2").status_code == 200
+
+
+@control_silo_test
+class AgentHandoffPreviewTest(TestCase):
+    def test_public_preview_uses_placeholders(self) -> None:
+        response = self.client.get("/agent-handoff/", {"preview": "1"})
+
+        assert response.status_code == 200
+        body = response.content.decode()
+        assert body.startswith("# Set Up Sentry")
+        assert "<setup-code>" in body
+        assert "Example Organization" in body
+        assert r"user@example\.com" in body
+        assert body.rstrip().endswith("Now ask the user what they would like to do next.")
+        assert response["Content-Type"] == "text/plain; charset=utf-8"
+        assert "no-store" in response["Cache-Control"]
+        assert not ApiSetupCode.objects.exists()
+        assert not ApiAuthorization.objects.exists()
+
+    def test_onboarding_preview_does_not_issue_reporting_code(self) -> None:
+        with patch(
+            "sentry.agent_handoff.flows.onboarding.organization_service.issue_onboarding_reporting_code"
+        ) as issue:
+            response = self.client.get("/agent-handoff/", {"preview": "1", "flow": "onboarding"})
+
+        assert response.status_code == 200
+        body = response.content.decode()
+        assert "<onboarding-run-code>" in body
+        assert "agent-setup/get-started.md" in body
+        issue.assert_not_called()
+
+    def test_preview_is_independent_of_the_session(self) -> None:
+        anonymous = self.client.get("/agent-handoff/", {"preview": "1"})
+        self.login_as(self.user)
+        authenticated = self.client.get("/agent-handoff/", {"preview": "1"})
+
+        assert anonymous.status_code == authenticated.status_code == 200
+        assert anonymous.content == authenticated.content
+
+    def test_unknown_preview_flow(self) -> None:
+        response = self.client.get("/agent-handoff/", {"preview": "1", "flow": "unknown"})
+
+        assert response.status_code == 400
+        assert "Unknown Handoff Flow" in response.content.decode()

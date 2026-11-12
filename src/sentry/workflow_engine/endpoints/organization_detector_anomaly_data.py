@@ -15,6 +15,7 @@ from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import DetectorParams, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.models.organization import Organization
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_threshold_data_from_seer
 from sentry.seer.anomaly_detection.types import AnomalyThresholdDataPoint
@@ -48,19 +49,23 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
         """Look up QuerySubscription from a detector ID."""
         validated_detector_id = to_valid_int_id("detector_id", detector_id, raise_404=True)
         try:
-            detector = Detector.objects.with_type_filters().get(
-                id=validated_detector_id, project__organization=organization
+            detector = (
+                Detector.objects.with_type_filters()
+                .select_related("project")
+                .get(id=validated_detector_id, project__organization=organization)
             )
         except Detector.DoesNotExist:
             raise ResourceDoesNotExist
 
-        data_source = detector.data_sources.first()
+        data_source = detector.data_sources.filter(
+            type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+        ).first()
         if not data_source:
             raise SubscriptionNotFound
 
         try:
             return QuerySubscription.objects.select_related("project").get(
-                id=int(data_source.source_id)
+                id=int(data_source.source_id), project_id=detector.linked_project.id
             )
         except ValueError:
             raise SubscriptionNotFound

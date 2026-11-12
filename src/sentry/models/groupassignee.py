@@ -13,7 +13,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
-from sentry.inbox.types import SYSTEM_ACTOR, InboxActor
+from sentry.inbox.types import SYSTEM_ACTOR, InboxActor, InboxEventSummary
 from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.issues.derived.features import FIRST_ASSIGNMENT_ACTION_ID
 from sentry.issues.derived.framework import DerivedDataError
@@ -248,7 +248,9 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
                     event_type=ISSUE_TEAM_ASSIGNED if is_team else ISSUE_USER_ASSIGNED,
                     subject=group,
                     data=IssueAssignedData(
-                        summary="Assigned to your team" if is_team else "Assigned to you",
+                        summary=InboxEventSummary.ISSUE_TEAM_ASSIGNED
+                        if is_team
+                        else InboxEventSummary.ISSUE_USER_ASSIGNED,
                         assignment_source=inbox_assignment_source,
                     ),
                     user_ids=[] if is_team else [assigned_to.id],

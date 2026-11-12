@@ -66,18 +66,13 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
     ) -> Detector:
         validated_detector_id = to_valid_int_id("detectorId", detector_id)
         try:
-            detector = (
+            return (
                 Detector.objects.with_type_filters()
                 .select_related("project")
-                .get(id=validated_detector_id)
+                .get(id=validated_detector_id, project__organization_id=organization.id)
             )
         except Detector.DoesNotExist:
             raise ValidationError({"detectorId": "Detector not found"})
-
-        if detector.linked_project.organization_id != organization.id:
-            raise ValidationError({"detectorId": "Detector not found"})
-
-        return detector
 
     def get_group_from_detector(self, detector: Detector) -> Group | None:
         detector_group = (

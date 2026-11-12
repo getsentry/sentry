@@ -166,6 +166,25 @@ describe('useVirtualCollection', () => {
     expect(sum(spacerHeights())).toBe((ROW_COUNT - keys.length) * estimate);
   });
 
+  it('keeps measured row heights when the collection and estimateSize are rebuilt', () => {
+    // Like a menu whose items are rebuilt when one of them changes, such as a
+    // project being bookmarked: the rows keep their keys and heights.
+    const estimate = 50;
+    const {rerender} = render(<TestList estimateSize={() => estimate} />, {
+      wrapper: ThemeWrapper,
+    });
+
+    // Rows measured at the top keep their height once scrolled out of view.
+    const list = screen.getByRole('list', {name: 'Rows'});
+    list.scrollTop = 150 * estimate;
+    fireEvent.scroll(list);
+    const spaceBefore = spacerHeights();
+
+    rerender(<TestList collection={[...nodes]} estimateSize={() => estimate} />);
+
+    expect(spacerHeights()).toEqual(spaceBefore);
+  });
+
   it('windows the children of a section as rows of their own', () => {
     const children = nodes.map(node => ({...node, parentKey: 'section'}));
     const section = {

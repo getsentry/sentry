@@ -14,6 +14,7 @@ import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -145,7 +146,8 @@ export function SavedQueriesTable({
     } as CombinedSavedQuery);
   };
 
-  const handleCursor: CursorHandler = (_cursor, pathname, query) => {
+  const handleCursor: CursorHandler = _cursor => {
+    const {pathname, query} = location;
     navigate({
       pathname,
       query: {...query, [cursorKey]: _cursor},
@@ -355,7 +357,7 @@ export function SavedQueriesTable({
           );
         })}
       </SavedEntityTable>
-      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+      <Pagination {...getPaginationProps(pageLinks)} onCursor={handleCursor} />
     </Container>
   );
 }

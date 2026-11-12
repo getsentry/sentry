@@ -37,6 +37,7 @@ class MetricAlertNotificationData(NotificationData):
     chart_url: str | None = None
 
     show_investigation_button: bool = False
+    investigation_url: str | None = None
 
 
 _EXAMPLE_OPEN_PERIOD_CONTEXT = OpenPeriodContext(

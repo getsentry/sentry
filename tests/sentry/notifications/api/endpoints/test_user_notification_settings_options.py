@@ -107,6 +107,11 @@ class UserNotificationSettingsOptionsPutTest(UserNotificationSettingsOptionsBase
             NotificationSettingEnum.QUOTA_TRACE_METRIC_BYTES,
             NotificationSettingEnum.QUOTA_SEER_USERS,
             NotificationSettingEnum.QUOTA_SIZE_ANALYSIS,
+            NotificationSettingEnum.INBOX,
+            NotificationSettingEnum.INBOX_ASSIGNMENTS,
+            NotificationSettingEnum.INBOX_MENTIONS,
+            NotificationSettingEnum.INBOX_PULL_REQUESTS_READY,
+            NotificationSettingEnum.INBOX_COMPLETION_STATUS,
         ]
 
         # turn on notification settings
@@ -177,6 +182,26 @@ class UserNotificationSettingsOptionsPutTest(UserNotificationSettingsOptionsBase
         )
         assert response.data["scopeType"] == ["Invalid scope type"]
 
+    def test_string_scope_identifier(self) -> None:
+        # The settings UI sends scope identifiers as strings
+        response = self.get_success_response(
+            "me",
+            user_id=self.user.id,
+            scope_type="organization",
+            scope_identifier=str(self.organization.id),
+            type="alerts",
+            status_code=status.HTTP_201_CREATED,
+            value="always",
+        )
+        row = NotificationSettingOption.objects.get(
+            user_id=self.user.id,
+            scope_type=NotificationScopeEnum.ORGANIZATION.value,
+            scope_identifier=self.organization.id,
+            type=NotificationSettingEnum.ISSUE_ALERTS.value,
+        )
+        assert response.data["id"] == str(row.id)
+        assert response.data["scopeIdentifier"] == str(self.organization.id)
+
     def test_invalid_value(self) -> None:
         response = self.get_error_response(
             "me",
@@ -196,6 +221,31 @@ class UserNotificationSettingsOptionsPutTest(UserNotificationSettingsOptionsBase
             scope_type="organization",
             scope_identifier=self.organization.id,
             type="alerts",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            value=NotificationSettingsOptionEnum.SUBSCRIBE_ONLY.value,
+        )
+        assert response.data["nonFieldErrors"] == ["Invalid type for value"]
+
+    def test_inbox_rejects_non_user_scope(self) -> None:
+        response = self.get_error_response(
+            "me",
+            user_id=self.user.id,
+            scope_type="organization",
+            scope_identifier=self.organization.id,
+            type=NotificationSettingEnum.INBOX_MENTIONS.value,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            value="never",
+        )
+        assert response.data["nonFieldErrors"] == ["Inbox settings only allow user scope"]
+        assert not NotificationSettingOption.objects.filter(user_id=self.user.id).exists()
+
+    def test_inbox_invalid_value(self) -> None:
+        response = self.get_error_response(
+            "me",
+            user_id=self.user.id,
+            scope_type="user",
+            scope_identifier=self.user.id,
+            type=NotificationSettingEnum.INBOX_ASSIGNMENTS.value,
             status_code=status.HTTP_400_BAD_REQUEST,
             value=NotificationSettingsOptionEnum.SUBSCRIBE_ONLY.value,
         )

@@ -492,6 +492,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
                 "observed_at": "2025-01-01T10:00:00Z",
                 "environment": "production",
                 "group_id": 1,
+                "group_short_id": "BACKEND-1A",
                 "project_id": self.project.id,
                 "binding_id": 1,
                 "workflow_id": 1,
@@ -504,23 +505,24 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         (serialized_run,) = response.data["runs"]
         assert serialized_run["id"] == str(run.id)
         assert serialized_run["trigger"] == {
-            "type": "breached_metric",
+            "type": "monitor",
             "detectorId": str(detector.id),
             "environment": "production",
             "eventId": "a" * 32,
             "groupId": "1",
+            "groupShortId": "BACKEND-1A",
             "observedAt": datetime(2025, 1, 1, 10, tzinfo=UTC),
             "occurrenceId": "abc",
             "projectId": str(self.project.id),
         }
 
-    def test_trigger_is_null_for_other_strategies(self) -> None:
+    def test_returns_cron_trigger_for_scheduled_runs(self) -> None:
         self.config.update(strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2)
-        self.create_run(inputs={"foo": "bar"})
+        self.create_run(trigger_key="2026-11-09T03:00")
 
         response = self.get_success_response(self.organization.slug)
 
-        assert response.data["runs"][0]["trigger"] is None
+        assert response.data["runs"][0]["trigger"] == {"type": "cron"}
 
     def test_trigger_is_null_without_a_snapshot(self) -> None:
         self.create_run(extras={})

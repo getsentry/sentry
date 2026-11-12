@@ -1,27 +1,31 @@
 from datetime import datetime
 from typing import Any, TypedDict
 
+from sentry.notebooks.endpoints.serializers.action_request import (
+    NotebookActionRequestSerializerResponse,
+)
 
-class InvestigationViewerResponse(TypedDict):
+
+class NotebookViewerResponse(TypedDict):
     userId: str
     lastSeen: datetime
     active: bool
 
 
-class InvestigationPresenceResponse(TypedDict):
-    viewers: list[InvestigationViewerResponse]
+class NotebookPresenceResponse(TypedDict):
+    viewers: list[NotebookViewerResponse]
     total: int
     heartbeatIntervalMs: int
 
 
-class InvestigationExecutionResponse(TypedDict):
+class NotebookExecutionResponse(TypedDict):
     """Execution accepted for asynchronous processing; poll its detail endpoint."""
 
     id: str
     status: str
 
 
-class InvestigationExecutionDetailsResponse(InvestigationExecutionResponse):
+class NotebookExecutionDetailsResponse(NotebookExecutionResponse):
     """Agent transcript and pending input are Seer-owned JSON payloads. Partial Markdown is available for text blocks while they run."""
 
     blocks: list[dict[str, Any]]
@@ -31,6 +35,18 @@ class InvestigationExecutionDetailsResponse(InvestigationExecutionResponse):
     error: Any
 
 
-class InvestigationTitlePreviewResponse(TypedDict):
+class NotebookTitlePreviewResponse(TypedDict):
     status: str | None
     preview: str | None
+
+
+class NotebookActionRequestApplyResponse(TypedDict):
+    actionRequest: NotebookActionRequestSerializerResponse
+
+
+class NotebookActionRequestRecheckResponse(TypedDict):
+    actionRequest: NotebookActionRequestSerializerResponse
+
+
+class NotebookActionRequestRetryFollowUpResponse(TypedDict):
+    actionRequest: NotebookActionRequestSerializerResponse

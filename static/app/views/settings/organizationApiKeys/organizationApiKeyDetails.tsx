@@ -132,25 +132,27 @@ function OrganizationApiKeyForm({
         </form.AppField>
         <form.AppField name="scope_list">
           {field => (
-            <field.Checkbox.Group value={field.state.value} onChange={field.handleChange}>
-              <field.Layout.Stack label={t('Scopes')} required>
-                <Grid
-                  columns={{
-                    zero: '1fr',
-                    xl: 'repeat(2, 1fr)',
-                    '3xl': 'repeat(3, 1fr)',
-                    '4xl': 'repeat(4, 1fr)',
-                  }}
-                  gap="md"
-                >
-                  {API_ACCESS_SCOPES.map(scope => (
-                    <field.Checkbox.Item value={scope} key={scope}>
-                      {scope}
-                    </field.Checkbox.Item>
-                  ))}
-                </Grid>
-              </field.Layout.Stack>
-            </field.Checkbox.Group>
+            <field.CheckboxGroup value={field.state.value} onChange={field.handleChange}>
+              {({Item}) => (
+                <field.Layout.Stack label={t('Scopes')} required>
+                  <Grid
+                    columns={{
+                      zero: '1fr',
+                      xl: 'repeat(2, 1fr)',
+                      '3xl': 'repeat(3, 1fr)',
+                      '4xl': 'repeat(4, 1fr)',
+                    }}
+                    gap="md"
+                  >
+                    {API_ACCESS_SCOPES.map(scope => (
+                      <Item value={scope} key={scope}>
+                        {scope}
+                      </Item>
+                    ))}
+                  </Grid>
+                </field.Layout.Stack>
+              )}
+            </field.CheckboxGroup>
           )}
         </form.AppField>
         <form.AppField name="allowed_origins">

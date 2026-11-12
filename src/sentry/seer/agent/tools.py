@@ -8,6 +8,7 @@ from typing import Any, Literal, TypedDict, cast
 
 from django.core.exceptions import BadRequest
 from django.db import models
+from django.db.models import Q
 from rest_framework.exceptions import ParseError
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
@@ -929,6 +930,25 @@ def rpc_get_profile_flamegraph(
     )
 
 
+def _find_repository(
+    organization_id: int, repo_full_name: str, providers: list[str]
+) -> Repository | None:
+    """Find a repository by its name or its URL path. They're the same except on GitLab, where the
+    name is a display name ("My Group / App") and the path is "my-group/app"."""
+    candidates = Repository.objects.filter(
+        Q(name=repo_full_name) | Q(url__iendswith=f"/{repo_full_name}"),
+        organization_id=organization_id,
+        status=ObjectStatus.ACTIVE,
+        provider__in=providers,
+    ).order_by("id")
+    # A URL can also end this way for a repository further down: ".../parent/my-group/app".
+    requested = repo_full_name.casefold()
+    for repo in candidates:
+        if requested in (repo.name.casefold(), get_repo_url_path(repo).casefold()):
+            return repo
+    return None
+
+
 def get_repository_definition(
     *,
     organization_id: int,
@@ -941,7 +961,7 @@ def get_repository_definition(
 
     Lookup priority:
     1. external_id (GitHub's repo ID - stable across renames)
-    2. Current name (exact match)
+    2. Current name or URL path
 
     Args:
         organization_id: The ID of the organization
@@ -978,12 +998,7 @@ def get_repository_definition(
             )
             return None
 
-        repo = Repository.objects.filter(
-            organization_id=organization_id,
-            name=repo_full_name,
-            status=ObjectStatus.ACTIVE,
-            provider__in=supported_providers,
-        ).first()
+        repo = _find_repository(organization_id, repo_full_name, supported_providers)
 
     if not repo:
         logger.info(

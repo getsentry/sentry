@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from unittest.mock import patch
 
 from sentry.inbox.issue import ISSUE, ISSUE_USER_MENTIONED, IssueMentionedData
-from sentry.inbox.types import SYSTEM_ACTOR, InboxActor
+from sentry.inbox.types import SYSTEM_ACTOR, InboxActor, InboxEventSummary
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.notifications.models.inboxitemevent import InboxItemEvent
 from sentry.notifications.platform.inbox import create_inbox_items
@@ -21,7 +21,7 @@ class CreateInboxItemsTest(TestCase):
         create_inbox_items(
             event_type=ISSUE_USER_MENTIONED,
             subject=self.group,
-            data=IssueMentionedData(summary="Mentioned you in a comment", comment_id=123),
+            data=IssueMentionedData(summary=InboxEventSummary.ISSUE_USER_MENTIONED, comment_id=123),
             user_ids=user_ids,
             team_ids=team_ids,
             actor=actor,
