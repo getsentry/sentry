@@ -15,7 +15,7 @@ export function getHandoffPrompt(code: string, wrapCode: WrapCode<string>): stri
 export function getHandoffPrompt(code: string, wrapCode: WrapCode<ReactNode>): ReactNode;
 export function getHandoffPrompt(code: string, wrapCode: WrapCode<ReactNode>): ReactNode {
   const guideUrl = `${ConfigStore.get('urlPrefix').replace(/\/$/, '')}/agent-handoff/`;
-  const start = `Follow the instructions verbatim at ${guideUrl}. Your handoff code is `;
+  const start = `Read the markdown at ${guideUrl} verbatim and follow its instructions. Your handoff code is `;
   const end = '.';
   const wrappedCode = wrapCode(code);
 
