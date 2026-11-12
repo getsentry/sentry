@@ -25,10 +25,6 @@ from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer
 
 
 class SavedQueriesTest(APITestCase):
-    features = {
-        "organizations:visibility-explore-view": True,
-    }
-
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
@@ -86,8 +82,7 @@ class SavedQueriesTest(APITestCase):
         self.url = reverse("sentry-api-0-explore-all-queries", args=[self.org.slug])
 
     def test_get(self) -> None:
-        with self.feature(self.features):
-            response = self.client.get(self.url)
+        response = self.client.get(self.url)
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 7
@@ -182,12 +177,9 @@ class SavedQueriesTest(APITestCase):
             key="service-account-secret",
         )
 
-        with (
-            self.feature(self.features),
-            patch(
-                "sentry.explore.endpoints.saved_queries.sentry_sdk.capture_exception"
-            ) as capture_exception,
-        ):
+        with patch(
+            "sentry.explore.endpoints.saved_queries.sentry_sdk.capture_exception"
+        ) as capture_exception:
             mine = self.client.get(
                 self.url, {"exclude": "shared"}, HTTP_X_VIEWER_CONTEXT=viewer_context
             )
@@ -211,30 +203,26 @@ class SavedQueriesTest(APITestCase):
         capture_exception.assert_not_called()
 
     def test_get_name_filter(self) -> None:
-        with self.feature(self.features):
-            response = self.client.get(self.url, format="json", data={"query": "Test"})
+        response = self.client.get(self.url, format="json", data={"query": "Test"})
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["name"] == "Test query"
 
-        with self.feature(self.features):
-            # Also available as the name: filter.
-            response = self.client.get(self.url, format="json", data={"query": "name:Test"})
+        # Also available as the name: filter.
+        response = self.client.get(self.url, format="json", data={"query": "name:Test"})
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["name"] == "Test query"
 
-        with self.feature(self.features):
-            response = self.client.get(self.url, format="json", data={"query": "name:Nope"})
+        response = self.client.get(self.url, format="json", data={"query": "name:Nope"})
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
-        with self.feature(self.features):
-            # A term both sources match filters each side of the union.
-            response = self.client.get(self.url, format="json", data={"query": "query"})
+        # A term both sources match filters each side of the union.
+        response = self.client.get(self.url, format="json", data={"query": "query"})
 
         assert response.status_code == 200, response.content
         assert [row["name"] for row in response.data] == ["Discover query", "Test query"]
@@ -254,8 +242,7 @@ class SavedQueriesTest(APITestCase):
             )
             model.set_projects(self.project_ids)
 
-        with self.feature(self.features):
-            response = self.client.get(self.url, data={"per_page": 1})
+        response = self.client.get(self.url, data={"per_page": 1})
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
 
@@ -326,8 +313,7 @@ class SavedQueriesTest(APITestCase):
         assert starred[middle_index].explore_saved_query.name == middle_name
 
     def test_get_my_queries(self) -> None:
-        with self.feature(self.features):
-            response = self.client.get(self.url, data={"exclude": "shared"})
+        response = self.client.get(self.url, data={"exclude": "shared"})
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
         assert [row["name"] for row in response.data] == ["Discover query", "Test query"]
@@ -352,8 +338,7 @@ class SavedQueriesTest(APITestCase):
         )
         model.set_projects(self.project_ids)
 
-        with self.feature(self.features):
-            response = self.client.get(self.url, data={"exclude": "owned"})
+        response = self.client.get(self.url, data={"exclude": "owned"})
         assert response.status_code == 200, response.content
 
         # Both shared queries, plus the prebuilts, which have no creator.
@@ -385,8 +370,7 @@ class SavedQueriesTest(APITestCase):
             position=1,
         )
 
-        with self.feature(self.features):
-            response = self.client.get(self.url, data={"starred": "1"})
+        response = self.client.get(self.url, data={"starred": "1"})
         assert response.status_code == 200, response.content
         # Five auto-starred prebuilts plus the starred Discover query.
         assert len(response.data) == 6
@@ -398,8 +382,7 @@ class SavedQueriesTest(APITestCase):
             starred=True,
         ).update(starred=False)
 
-        with self.feature(self.features):
-            response = self.client.get(self.url, data={"starred": "1"})
+        response = self.client.get(self.url, data={"starred": "1"})
         assert response.status_code == 200, response.content
         # Unstarring the Explore side leaves the Discover star untouched.
         assert len(response.data) == 1
@@ -410,8 +393,7 @@ class SavedQueriesTest(APITestCase):
             organization=self.org, user_id=self.user.id
         ).update(starred=False)
 
-        with self.feature(self.features):
-            response = self.client.get(self.url, data={"starred": "1"})
+        response = self.client.get(self.url, data={"starred": "1"})
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
@@ -466,8 +448,7 @@ class SavedQueriesTest(APITestCase):
             position=6,
         )
 
-        with self.feature(self.features):
-            response = self.client.get(self.url, data={"starred": "1"})
+        response = self.client.get(self.url, data={"starred": "1"})
         assert response.status_code == 200, response.content
         # Five prebuilts, Starred query A and the Discover query. Starred query B
         # is starred by a different user, so it is not in the caller's list.
@@ -498,12 +479,11 @@ class SavedQueriesTest(APITestCase):
         )
         malformed.set_projects(self.project_ids)
 
-        with self.feature(self.features):
-            url = reverse(
-                "sentry-api-0-explore-saved-query-detail",
-                args=[self.org.slug, malformed.id],
-            )
-            response = self.client.get(url)
+        url = reverse(
+            "sentry-api-0-explore-saved-query-detail",
+            args=[self.org.slug, malformed.id],
+        )
+        response = self.client.get(url)
 
         assert response.status_code == 200
         # The response is missing the 'query' key entirely — this is what
@@ -545,8 +525,7 @@ class SavedQueriesTest(APITestCase):
             "-name": False,
         }
         for sorting, forward_sort in sort_options.items():
-            with self.feature(self.features):
-                response = self.client.get(self.url, data={"sortBy": sorting})
+            response = self.client.get(self.url, data={"sortBy": sorting})
             assert response.status_code == 200
 
             key = sorting.strip("-")
@@ -591,8 +570,7 @@ class SavedQueriesTest(APITestCase):
 
         for forward_sort in [True, False]:
             sorting = "mostPopular" if forward_sort else "-mostPopular"
-            with self.feature(self.features):
-                response = self.client.get(self.url, data={"sortBy": sorting})
+            response = self.client.get(self.url, data={"sortBy": sorting})
 
             assert response.status_code == 200
             values = [row["name"] for row in response.data]
@@ -625,8 +603,7 @@ class SavedQueriesTest(APITestCase):
         model.set_projects(self.project_ids)
         for forward_sort in [True, False]:
             sorting = "recentlyViewed" if forward_sort else "-recentlyViewed"
-            with self.feature(self.features):
-                response = self.client.get(self.url, data={"sortBy": sorting})
+            response = self.client.get(self.url, data={"sortBy": sorting})
 
             assert response.status_code == 200
             values = [row["name"] for row in response.data]
@@ -656,8 +633,7 @@ class SavedQueriesTest(APITestCase):
             for i in range(3)
         ]
 
-        with self.feature(self.features):
-            response = self.client.get(self.url, data={"sortBy": "recentlyViewed"})
+        response = self.client.get(self.url, data={"sortBy": "recentlyViewed"})
 
         assert response.status_code == 200, response.content
         expected = [q.name for q in sorted(created, key=lambda q: q.id, reverse=True)]
@@ -692,8 +668,7 @@ class SavedQueriesTest(APITestCase):
         visited = {"Test query", "Discover query", "Visited explore query"}
 
         for sorting in ["recentlyViewed", "-recentlyViewed"]:
-            with self.feature(self.features):
-                response = self.client.get(self.url, data={"sortBy": sorting})
+            response = self.client.get(self.url, data={"sortBy": sorting})
 
             assert response.status_code == 200, response.content
             names = [row["name"] for row in response.data]
@@ -707,10 +682,8 @@ class SavedQueriesTest(APITestCase):
 
     def test_get_sortby_recently_viewed_orders_visited_rows_across_sources(self) -> None:
         """Ascending and descending are exact mirrors of each other."""
-        with self.feature(self.features):
-            forward = self.client.get(self.url, data={"sortBy": "recentlyViewed"})
-        with self.feature(self.features):
-            backward = self.client.get(self.url, data={"sortBy": "-recentlyViewed"})
+        forward = self.client.get(self.url, data={"sortBy": "recentlyViewed"})
+        backward = self.client.get(self.url, data={"sortBy": "-recentlyViewed"})
 
         assert forward.status_code == 200, forward.content
         assert backward.status_code == 200, backward.content
@@ -750,8 +723,7 @@ class SavedQueriesTest(APITestCase):
         )
         model.set_projects(self.project_ids)
 
-        with self.feature(self.features):
-            response = self.client.get(self.url, data={"sortBy": "myqueries"})
+        response = self.client.get(self.url, data={"sortBy": "myqueries"})
         assert response.status_code == 200, response.content
         # The caller's own queries come first, from both sources.
         assert response.data[0]["createdBy"]["id"] == str(self.user.id)
@@ -827,8 +799,7 @@ class SavedQueriesTest(APITestCase):
                 position=position,
             )
 
-        with self.feature(self.features):
-            response = self.client.get(self.url, data={"sortBy": "mostStarred"})
+        response = self.client.get(self.url, data={"sortBy": "mostStarred"})
         assert response.status_code == 200, response.content
         assert len(response.data) == 10
         assert response.data[0]["name"] == "Most starred discover query"
@@ -847,8 +818,7 @@ class SavedQueriesTest(APITestCase):
 
     def test_get_sortby_multiple(self) -> None:
         # Trigger prebuilt queries creation and unstar prebuilt queries to simplify test
-        with self.feature(self.features):
-            response = self.client.get(self.url)
+        response = self.client.get(self.url)
         ExploreSavedQueryStarred.objects.filter(
             organization=self.org,
             user_id=self.user.id,
@@ -941,8 +911,7 @@ class SavedQueriesTest(APITestCase):
             position=1,
         )
 
-        with self.feature(self.features):
-            response = self.client.get(self.url, data={"sortBy": ["starred", "recentlyViewed"]})
+        response = self.client.get(self.url, data={"sortBy": ["starred", "recentlyViewed"]})
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 11

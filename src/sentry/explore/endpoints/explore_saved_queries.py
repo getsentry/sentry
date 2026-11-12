@@ -330,11 +330,6 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
     owner = ApiOwner.EXPLORE
     permission_classes = (ExploreSavedQueryPermission,)
 
-    def has_feature(self, organization: Organization, request: Request) -> bool:
-        return features.has(
-            "organizations:visibility-explore-view", organization, actor=request.user
-        )
-
     @extend_schema(
         operation_id="List an Organization's Explore Saved Queries",
         parameters=[
@@ -364,9 +359,6 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
 
         if not request.user.is_authenticated:
             return Response(status=400)
-
-        if not self.has_feature(organization, request):
-            return self.respond(status=404)
 
         try:
             lock = locks.get(
@@ -563,9 +555,6 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         """
         if not request.user.is_authenticated:
             return Response(status=400)
-
-        if not self.has_feature(organization, request):
-            return self.respond(status=404)
 
         try:
             params = self.get_filter_params(

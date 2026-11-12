@@ -298,13 +298,13 @@ class OrganizationNotebookActionRequestApplyTest(APITestCase):
         assert (serialized["canApply"], serialized["cannotApplyReason"]) == (True, None)
 
     def test_a_dataset_the_plan_no_longer_allows_cannot_apply(self) -> None:
-        self.detector = self.create_metric_detector(dataset=Dataset.EventsAnalyticsPlatform)
+        self.detector = self.create_metric_detector(dataset=Dataset.Transactions)
         self.orchestration_run.update(
             source={"type": "breached_metric", "detectorId": str(self.detector.id)}
         )
         self.suggest()
 
-        with self.feature({"organizations:visibility-explore-view": False}):
+        with self.feature({"organizations:performance-view": False}):
             serialized = self.details_request()
 
         assert (serialized["canApply"], serialized["cannotApplyReason"]) == (
@@ -744,10 +744,10 @@ class OrganizationNotebookActionRequestApplyTest(APITestCase):
         assert self.snuba_query().time_window == 300
 
     def test_a_dataset_the_plan_no_longer_allows_is_not_found(self) -> None:
-        self.set_detector(dataset=Dataset.EventsAnalyticsPlatform)
+        self.set_detector(dataset=Dataset.Transactions)
         action_request = self.suggest()
 
-        with self.feature({"organizations:visibility-explore-view": False}):
+        with self.feature({"organizations:performance-view": False}):
             response = self.apply(action_request)
 
         assert response.status_code == 409

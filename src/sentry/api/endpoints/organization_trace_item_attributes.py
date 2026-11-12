@@ -65,7 +65,6 @@ from sentry.apidocs.response_types import (
     as_validation_errors,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.auth.principal import acting_user
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.exceptions import InvalidSearchQuery
@@ -250,24 +249,6 @@ class OrganizationTraceItemAttributesEndpointBase(OrganizationEventsEndpointBase
         "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.DATA_BROWSING
-    feature_flags = [
-        "organizations:ourlogs-enabled",
-        "organizations:visibility-explore-view",
-        "organizations:tracemetrics-enabled",
-    ]
-
-    def has_feature(self, organization: Organization, request: Request) -> bool:
-        batch_features = features.batch_has(
-            self.feature_flags, organization=organization, actor=acting_user(request.user)
-        )
-
-        if batch_features is None:
-            return False
-
-        key = f"organization:{organization.id}"
-        org_features = batch_features.get(key, {})
-
-        return any(org_features.get(feature) for feature in self.feature_flags)
 
 
 class OrganizationTraceItemAttributesEndpointSerializer(serializers.Serializer):
@@ -785,9 +766,6 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         Pass `expand=context` (experimental) to include each attribute's metadata:
         a brief description, examples, and deprecation details.
         """
-        if not self.has_feature(organization, request):
-            return Response(status=404)
-
         serializer = OrganizationTraceItemAttributesEndpointSerializer(data=request.GET)
         if not serializer.is_valid():
             return Response(as_validation_errors(serializer), status=400)
@@ -1173,9 +1151,6 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
         List the values seen for a given attribute key on a trace item dataset (spans,
         logs, trace metrics, etc.), most frequent first.
         """
-        if not self.has_feature(organization, request):
-            return Response(status=404)
-
         serializer = OrganizationTraceItemAttributesEndpointSerializer(data=request.GET)
         if not serializer.is_valid():
             return Response(as_validation_errors(serializer), status=400)
@@ -1703,9 +1678,6 @@ class OrganizationTraceItemAttributeValidateEndpoint(OrganizationTraceItemAttrib
         they have been seen in stored data for the requested projects and time range.
         Valid attributes include their resolved type, and invalid ones include an error.
         """
-        if not self.has_feature(organization, request):
-            return Response(status=404)
-
         query_serializer = OrganizationTraceItemAttributeValidateQuerySerializer(data=request.GET)
         if not query_serializer.is_valid():
             return Response(as_validation_errors(query_serializer), status=400)

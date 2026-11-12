@@ -163,9 +163,6 @@ class OrganizationEventDetailsEndpoint(ConditionalGetResponseMixin, Organization
         event is returned even if it falls outside of the requested time range.
         """
         # event_id is validated by a regex in the URL
-        if not self.has_feature(organization, request):
-            return Response(status=404)
-
         # Check access to the project as this endpoint doesn't use membership checks done
         # get_filter_params().
         if not request.access.has_project_access(project):

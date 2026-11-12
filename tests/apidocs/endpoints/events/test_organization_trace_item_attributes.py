@@ -7,7 +7,6 @@ from fixtures.apidocs_test_case import APIDocsTestCase
 class OrganizationTraceItemAttributesDocs(APIDocsTestCase):
     feature_flags = {
         "organizations:ourlogs-enabled": True,
-        "organizations:visibility-explore-view": True,
         "organizations:tracemetrics-enabled": True,
     }
 

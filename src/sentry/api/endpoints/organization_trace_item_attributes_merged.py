@@ -249,9 +249,7 @@ class OrganizationTraceItemAttributesMergedEndpoint(OrganizationTraceItemAttribu
     }
 
     def get(self, request: Request, organization: Organization) -> Response:
-        if not features.has(
-            "organizations:attribute-management", organization, actor=request.user
-        ) or not self.has_feature(organization, request):
+        if not features.has("organizations:attribute-management", organization, actor=request.user):
             return Response(status=404)
 
         serializer = OrganizationTraceItemAttributesMergedEndpointSerializer(data=request.GET)

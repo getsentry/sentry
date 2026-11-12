@@ -1043,132 +1043,127 @@ class TestTraceTableQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         self.organization = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.organization)
         self.login_as(user=self.user)
-        self.features = {
-            "organizations:visibility-explore-view": True,
-        }
 
     @patch("sentry.seer.agent.tools.client")
     def test_trace_table_basic(self, mock_client: Mock) -> None:
         """Basic integration test for execute_trace_table_query RPC. This is a passthrough to the OrganizationTracesEndpoint, which is tested more extensively."""
         mock_client.get.side_effect = client.get
 
-        with self.feature(self.features):
-            trace_id1 = uuid.uuid4().hex
-            trace_id2 = uuid.uuid4().hex
-            trace_id3 = uuid.uuid4().hex
+        trace_id1 = uuid.uuid4().hex
+        trace_id2 = uuid.uuid4().hex
+        trace_id3 = uuid.uuid4().hex
 
-            other_project = self.create_project(organization=self.organization)
+        other_project = self.create_project(organization=self.organization)
 
-            spans = [
-                self.create_span(
-                    {
-                        "description": "root span",
-                        "sentry_tags": {"transaction": "api/users", "op": "pageload"},
-                        "trace_id": trace_id1,
-                        "is_segment": True,
-                    },
-                    start_ts=before_now(minutes=5),
-                    duration=120,
-                ),
-                self.create_span(
-                    {
-                        "description": "db call",
-                        "sentry_tags": {"transaction": "api/users", "op": "db"},
-                        "trace_id": trace_id1,
-                        "parent_span_id": None,
-                    },
-                    start_ts=before_now(minutes=4),
-                    duration=80,
-                ),
-                self.create_span(
-                    {
-                        "description": "unrelated trace",
-                        "sentry_tags": {"transaction": "api/other", "op": "pageload"},
-                        "trace_id": trace_id2,
-                        "is_segment": True,
-                    },
-                    project=other_project,
-                    start_ts=before_now(minutes=3),
-                    duration=50,
-                ),
-                self.create_span(
-                    {
-                        "description": "db-only trace",
-                        "sentry_tags": {"transaction": "api/db", "op": "db"},
-                        "trace_id": trace_id3,
-                        "is_segment": True,
-                    },
-                    start_ts=before_now(minutes=2),
-                    duration=40,
-                ),
-            ]
+        spans = [
+            self.create_span(
+                {
+                    "description": "root span",
+                    "sentry_tags": {"transaction": "api/users", "op": "pageload"},
+                    "trace_id": trace_id1,
+                    "is_segment": True,
+                },
+                start_ts=before_now(minutes=5),
+                duration=120,
+            ),
+            self.create_span(
+                {
+                    "description": "db call",
+                    "sentry_tags": {"transaction": "api/users", "op": "db"},
+                    "trace_id": trace_id1,
+                    "parent_span_id": None,
+                },
+                start_ts=before_now(minutes=4),
+                duration=80,
+            ),
+            self.create_span(
+                {
+                    "description": "unrelated trace",
+                    "sentry_tags": {"transaction": "api/other", "op": "pageload"},
+                    "trace_id": trace_id2,
+                    "is_segment": True,
+                },
+                project=other_project,
+                start_ts=before_now(minutes=3),
+                duration=50,
+            ),
+            self.create_span(
+                {
+                    "description": "db-only trace",
+                    "sentry_tags": {"transaction": "api/db", "op": "db"},
+                    "trace_id": trace_id3,
+                    "is_segment": True,
+                },
+                start_ts=before_now(minutes=2),
+                duration=40,
+            ),
+        ]
 
-            self.store_spans(spans)
+        self.store_spans(spans)
 
-            # Cross-project query should return both traces with pageload spans.
-            result = execute_trace_table_query(
-                organization_id=self.organization.id,
-                per_page=5,
-                query="span.op:pageload",
-            )
+        # Cross-project query should return both traces with pageload spans.
+        result = execute_trace_table_query(
+            organization_id=self.organization.id,
+            per_page=5,
+            query="span.op:pageload",
+        )
 
-            assert result is not None
-            assert "data" in result
-            returned_ids = {row["trace"] for row in result["data"]}
-            assert returned_ids == {trace_id1, trace_id2}
+        assert result is not None
+        assert "data" in result
+        returned_ids = {row["trace"] for row in result["data"]}
+        assert returned_ids == {trace_id1, trace_id2}
 
-            assert (
-                mock_client.get.call_args.kwargs["path"]
-                == f"/organizations/{self.organization.slug}/traces/"
-            )
+        assert (
+            mock_client.get.call_args.kwargs["path"]
+            == f"/organizations/{self.organization.slug}/traces/"
+        )
 
     @patch("sentry.seer.agent.tools.client.get")
     def test_trace_table_query_error_handling(self, mock_client_get: Mock) -> None:
-        with self.feature(self.features):
-            # Test 400 error with dict body containing detail
-            error_detail_msg = "Invalid query: field 'invalid_field' does not exist"
-            mock_client_get.side_effect = client.ApiError(400, {"detail": error_detail_msg})
+        # Test 400 error with dict body containing detail
+        error_detail_msg = "Invalid query: field 'invalid_field' does not exist"
+        mock_client_get.side_effect = client.ApiError(400, {"detail": error_detail_msg})
 
-            result = execute_trace_table_query(
+        result = execute_trace_table_query(
+            organization_id=self.organization.id,
+            per_page=5,
+            query="invalid_field:value",
+            project_ids=[self.project.id],
+        )
+
+        assert result is not None
+        assert "error" in result
+        assert result["error"] == error_detail_msg
+        assert "data" not in result
+
+        # Test 400 error with string body
+        error_body = "Bad request: malformed query syntax"
+        mock_client_get.side_effect = client.ApiError(400, error_body)
+
+        result = execute_trace_table_query(
+            organization_id=self.organization.id,
+            per_page=5,
+            query="malformed query",
+            project_ids=[self.project.id],
+        )
+
+        assert result is not None
+        assert "error" in result
+        assert result["error"] == error_body
+        assert "data" not in result
+
+        # Test non-400 errors are re-raised
+        mock_client_get.side_effect = client.ApiError(500, {"detail": "Internal server error"})
+
+        with pytest.raises(client.ApiError) as exc_info:
+            execute_trace_table_query(
                 organization_id=self.organization.id,
                 per_page=5,
-                query="invalid_field:value",
+                query="op:db",
                 project_ids=[self.project.id],
             )
 
-            assert result is not None
-            assert "error" in result
-            assert result["error"] == error_detail_msg
-            assert "data" not in result
-
-            # Test 400 error with string body
-            error_body = "Bad request: malformed query syntax"
-            mock_client_get.side_effect = client.ApiError(400, error_body)
-
-            result = execute_trace_table_query(
-                organization_id=self.organization.id,
-                per_page=5,
-                query="malformed query",
-                project_ids=[self.project.id],
-            )
-
-            assert result is not None
-            assert "error" in result
-            assert result["error"] == error_body
-            assert "data" not in result
-
-            # Test non-400 errors are re-raised
-            mock_client_get.side_effect = client.ApiError(500, {"detail": "Internal server error"})
-
-            with pytest.raises(client.ApiError) as exc_info:
-                execute_trace_table_query(
-                    organization_id=self.organization.id,
-                    per_page=5,
-                    query="op:db",
-                    project_ids=[self.project.id],
-                )
-
-            assert exc_info.value.status_code == 500
+        assert exc_info.value.status_code == 500
 
 
 class _Project(BaseModel):

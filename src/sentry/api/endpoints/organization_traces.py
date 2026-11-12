@@ -36,7 +36,7 @@ from sentry_sdk import traces
 from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Function, Op
 from urllib3.exceptions import ReadTimeoutError
 
-from sentry import features, options
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -247,11 +247,6 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
         List traces containing at least one span that matches the query, with a
         per-project timing breakdown for each trace.
         """
-        if not features.has(
-            "organizations:visibility-explore-view", organization, actor=request.user
-        ):
-            return Response(status=404)
-
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:

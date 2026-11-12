@@ -42,9 +42,6 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
         },
     )
     def get(self, request: Request, organization: Organization) -> Response:
-        if not self.has_feature(organization, request):
-            return Response(status=404)
-
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:

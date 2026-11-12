@@ -13,8 +13,7 @@ def get_transformation_capabilities(
 ) -> TransformationCapabilities:
     datasets: list[TransformationDataset] = []
     if features.has("organizations:explore-interpolation-and-smoothing", organization, actor=actor):
-        if features.has("organizations:visibility-explore-view", organization, actor=actor):
-            datasets.append("spans")
+        datasets.append("spans")
         if features.has("organizations:ourlogs-enabled", organization, actor=actor):
             datasets.append("logs")
         if features.has("organizations:tracemetrics-enabled", organization, actor=actor):

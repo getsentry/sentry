@@ -7,7 +7,6 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -74,11 +73,6 @@ class SavedQueryStarredOrderEndpoint(OrganizationEndpoint):
     owner = ApiOwner.DATA_BROWSING
     permission_classes = (MemberPermission,)
 
-    def has_feature(self, organization: Organization, request: Request) -> bool:
-        return features.has(
-            "organizations:visibility-explore-view", organization, actor=request.user
-        )
-
     @extend_schema(
         operation_id="Reorder an Organization's Starred Saved Queries",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
@@ -98,9 +92,6 @@ class SavedQueryStarredOrderEndpoint(OrganizationEndpoint):
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
-
-        if not self.has_feature(organization, request):
-            return self.respond(status=404)
 
         serializer = SavedQueryStarredOrderSerializer(data=request.data)
         if not serializer.is_valid():

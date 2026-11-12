@@ -35,11 +35,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             exclusive_time=100,
         )
 
-        with self.feature(
-            [
-                "organizations:visibility-explore-view",
-            ]
-        ):
+        with self.feature([]):
             result = get_attribute_names(
                 org_id=self.organization.id,
                 project_ids=[self.project.id],
@@ -94,7 +90,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
 
         with self.feature(
             [
-                "organizations:visibility-explore-view",
                 "organizations:data-browsing-attribute-context",
             ]
         ):
@@ -169,7 +164,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
 
         with self.feature(
             [
-                "organizations:visibility-explore-view",
                 "organizations:data-browsing-attribute-context",
             ]
         ):
@@ -223,13 +217,12 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         )
 
         # Custom context is gated, so without the flag there's nothing to surface.
-        with self.feature(["organizations:visibility-explore-view"]):
-            result = get_attribute_names(
-                org_id=self.organization.id,
-                project_ids=[self.project.id],
-                stats_period="7d",
-                include_context=True,
-            )
+        result = get_attribute_names(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            stats_period="7d",
+            include_context=True,
+        )
 
         assert result.custom_fields == []
         assert "my_custom_attr" in result.fields["string"]
@@ -249,11 +242,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 exclusive_time=100,
             )
 
-        with self.feature(
-            [
-                "organizations:visibility-explore-view",
-            ]
-        ):
+        with self.feature([]):
             result = get_attribute_values_with_substring(
                 org_id=self.organization.id,
                 project_ids=[self.project.id],

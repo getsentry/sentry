@@ -6,10 +6,6 @@ from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase, SpanTestCa
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
 
-FEATURE_FLAGS = [
-    "organizations:visibility-explore-view",
-]
-
 
 @no_silo_test
 class ExploreSpansTest(AcceptanceTestCase, SpanTestCase, SnubaTestCase):
@@ -44,29 +40,28 @@ class ExploreSpansTest(AcceptanceTestCase, SpanTestCase, SnubaTestCase):
             self.browser.driver.get_window_size().get("width") == 1680
         )  # This test makes assertions based on the current default window size.
 
-        with self.feature(FEATURE_FLAGS):
-            spans = [
-                self.create_span(
-                    {"description": "foo", "sentry_tags": {"status": "success"}},
-                    start_ts=self.start_minus_one_minute,
-                ),
-                self.create_span(
-                    {
-                        "description": "bar",
-                        "sentry_tags": {"status": "invalid_argument"},
-                    },
-                    start_ts=self.start_minus_two_minutes,
-                ),
-            ]
-            self.store_spans(
-                spans,
-            )
+        spans = [
+            self.create_span(
+                {"description": "foo", "sentry_tags": {"status": "success"}},
+                start_ts=self.start_minus_one_minute,
+            ),
+            self.create_span(
+                {
+                    "description": "bar",
+                    "sentry_tags": {"status": "invalid_argument"},
+                },
+                start_ts=self.start_minus_two_minutes,
+            ),
+        ]
+        self.store_spans(
+            spans,
+        )
 
-            self.page.visit_explore_spans(self.organization.slug)
-            for span in spans:
-                span_row = self.page.get_spans_row_with_id(span["span_id"][:8])
-                column_objects = self.page.get_spans_row_columns(span_row)
-                row_text = [element.text for element in column_objects]
-                # Just checking that the attrs of the span are here so test isn't dependent on the order of columns
-                assert span["span_id"][:8] in row_text
-                assert span["description"] in row_text
+        self.page.visit_explore_spans(self.organization.slug)
+        for span in spans:
+            span_row = self.page.get_spans_row_with_id(span["span_id"][:8])
+            column_objects = self.page.get_spans_row_columns(span_row)
+            row_text = [element.text for element in column_objects]
+            # Just checking that the attrs of the span are here so test isn't dependent on the order of columns
+            assert span["span_id"][:8] in row_text
+            assert span["description"] in row_text

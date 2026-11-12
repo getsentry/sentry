@@ -326,8 +326,8 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
     def test_create_blocked_when_dataset_not_allowed(self) -> None:
         """
         Creating a metric detector should be blocked when the org lacks
-        access to the dataset's required feature. Uses the EAP dataset
-        with visibility-explore-view disabled to trigger the validator
+        access to the dataset's required feature. Uses the Transactions dataset
+        with performance-view disabled to trigger the validator
         check (not the endpoint-level incidents gate).
         """
         data = {
@@ -336,13 +336,13 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
                 {
                     **self.valid_data["dataSources"][0],
                     "queryType": SnubaQuery.Type.PERFORMANCE.value,
-                    "dataset": Dataset.EventsAnalyticsPlatform.value,
+                    "dataset": Dataset.Transactions.value,
                     "aggregate": "count()",
-                    "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+                    "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
                 }
             ],
         }
-        with self.feature({"organizations:visibility-explore-view": False}):
+        with self.feature({"organizations:performance-view": False}):
             response = self.get_error_response(
                 self.organization.slug,
                 self.project.slug,
