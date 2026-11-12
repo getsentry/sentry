@@ -4,6 +4,7 @@ from unittest import mock
 
 import orjson
 from django.test import override_settings
+from urllib3.exceptions import TimeoutError
 from urllib3.response import HTTPResponse
 
 from sentry import options
@@ -11,16 +12,17 @@ from sentry.api.analytics import GroupSimilarIssuesEmbeddingsCountEvent
 from sentry.api.serializers.base import serialize
 from sentry.conf.server import SEER_SIMILAR_ISSUES_URL
 from sentry.issues.endpoints.group_similar_issues_embeddings import (
+    SIMILARITY_UNAVAILABLE_DETAIL,
     GroupSimilarIssuesEmbeddingsEndpoint,
 )
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsResponse
-from sentry.seer.similarity.utils import MAX_FRAME_COUNT
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.eventprocessing import save_new_event
+from sentry.testutils.helpers.options import override_options
 from sentry.viewer_context import (
     ActorType,
     ViewerContext,
@@ -96,7 +98,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         self,
         group_ids: Sequence[int],
         exception_distances: Sequence[float],
-        should_be_grouped: Sequence[str],
+        would_auto_group: Sequence[bool],
     ) -> Sequence[tuple[Any, Mapping[str, Any]]]:
         serialized_groups = serialize(
             list(Group.objects.get_many_from_cache(group_ids)), user=self.user
@@ -108,7 +110,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     group,
                     {
                         "exception": exception_distances[i],
-                        "shouldBeGrouped": should_be_grouped[i],
+                        "wouldAutoGroup": would_auto_group[i],
                     },
                 )
             )
@@ -149,7 +151,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 event_from_second_similar_group.group_id,
             ],
             [1.0000, 0.7700],
-            ["Yes", "No"],
+            [True, False],
         )
 
     def test_get_formatted_results_deduplicates_groups(self) -> None:
@@ -199,7 +201,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 event_from_second_similar_group.group_id,
             ],
             [0.99, 0.95],
-            ["Yes", "No"],
+            [True, False],
         )
 
     @mock.patch("sentry.seer.similarity.similar_issues.metrics.incr")
@@ -239,11 +241,10 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         assert self.similar_event.group_id is not None
         assert response.data == self.get_expected_response(
-            [self.similar_event.group_id], [0.99], ["Yes"]
+            [self.similar_event.group_id], [0.99], [True]
         )
 
         expected_seer_request_params = {
-            "threshold": 0.01,
             "event_id": self.get_latest_event_id(),
             "hash": self.event.get_primary_hash(),
             "project_id": self.project.id,
@@ -262,7 +263,10 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         assert request.args == ("POST", SEER_SIMILAR_ISSUES_URL)
         assert request.kwargs["retries"] == options.get("seer.similarity.grouping-ingest-retries")
         assert request.kwargs["timeout"] == options.get("seer.similarity.grouping-ingest-timeout")
-        assert request.kwargs["body"] == orjson.dumps(expected_seer_request_params)
+        # The query's threshold isn't forwarded; `get_similarity_data_from_seer` adds its own
+        assert request.kwargs["body"] == orjson.dumps(
+            {"threshold": 0.01, **expected_seer_request_params}
+        )
         assert request.kwargs["headers"]["content-type"] == "application/json;charset=utf-8"
 
         mock_logger.info.assert_called_with(
@@ -296,7 +300,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         assert self.similar_event.group_id is not None
         assert response.data == self.get_expected_response(
-            [self.similar_event.group_id], [0.99], ["Yes"]
+            [self.similar_event.group_id], [0.99], [True]
         )
 
     @mock.patch("sentry.analytics.record")
@@ -341,7 +345,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 under_threshold_group_event.group_id,
             ],
             [0.998, 0.998, 0.95],
-            ["Yes", "Yes", "No"],
+            [True, True, False],
         )
 
         assert_last_analytics_event(
@@ -381,7 +385,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         assert self.similar_event.group_id is not None
         assert response.data == self.get_expected_response(
-            [self.similar_event.group_id], [0.99], ["Yes"]
+            [self.similar_event.group_id], [0.99], [True]
         )
 
     @mock.patch("sentry.seer.similarity.similar_issues.metrics.incr")
@@ -427,6 +431,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "training_mode": False,
                     "platform": "python",
                     "skip_fallback": True,
+                    "k": 10,
                 },
                 "raw_similar_issue_data": {
                     "should_group": True,
@@ -447,7 +452,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         assert self.similar_event.group_id is not None
         assert response.data == self.get_expected_response(
-            [self.similar_event.group_id], [0.99], ["Yes"]
+            [self.similar_event.group_id], [0.99], [True]
         )
 
     @mock.patch("sentry.seer.similarity.similar_issues.delete_seer_grouping_records_by_hash")
@@ -509,7 +514,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
         assert self.similar_event.group_id
         assert response.data == self.get_expected_response(
-            [self.similar_event.group_id], [0.99], ["Yes"]
+            [self.similar_event.group_id], [0.99], [True]
         )
         mock_logger.warning.assert_called_with(
             "get_similarity_data_from_seer.parent_hash_not_found",
@@ -588,8 +593,9 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
     def test_empty_seer_return(
         self, mock_seer_request: mock.MagicMock, mock_record: mock.MagicMock
     ) -> None:
-        mock_seer_request.return_value = HTTPResponse([], status=200)
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps({"responses": []}), status=200)
         response = self.client.get(self.path)
+        assert response.status_code == 200
         assert response.data == []
 
         assert_last_analytics_event(
@@ -603,6 +609,49 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 user_id=self.user.id,
             ),
         )
+
+    @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
+    def test_seer_error_status(self, mock_seer_request: mock.MagicMock) -> None:
+        mock_seer_request.return_value = HTTPResponse(b"", status=500)
+        response = self.client.get(self.path)
+        assert response.status_code == 503
+        assert response.data == {"detail": SIMILARITY_UNAVAILABLE_DETAIL}
+
+    @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
+    def test_seer_timeout(self, mock_seer_request: mock.MagicMock) -> None:
+        mock_seer_request.side_effect = TimeoutError
+        response = self.client.get(self.path)
+        assert response.status_code == 503
+        assert response.data == {"detail": SIMILARITY_UNAVAILABLE_DETAIL}
+
+    @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
+    def test_seer_empty_body(self, mock_seer_request: mock.MagicMock) -> None:
+        mock_seer_request.return_value = HTTPResponse([], status=200)
+        response = self.client.get(self.path)
+        assert response.status_code == 503
+        assert response.data == {"detail": SIMILARITY_UNAVAILABLE_DETAIL}
+
+    @override_options({"seer.similarity-killswitch.enabled": True})
+    @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
+    def test_killswitch(self, mock_seer_request: mock.MagicMock) -> None:
+        response = self.client.get(self.path)
+        assert response.status_code == 503
+        assert response.data == {"detail": SIMILARITY_UNAVAILABLE_DETAIL}
+        mock_seer_request.assert_not_called()
+
+    @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
+    def test_invalid_k(self, mock_seer_request: mock.MagicMock) -> None:
+        response = self.client.get(self.path, data={"k": "abc"})
+        assert response.status_code == 400
+        assert "k" in response.data["detail"]
+
+        response = self.client.get(self.path, data={"k": "0"})
+        assert response.status_code == 400
+
+        response = self.client.get(self.path, data={"k": "101"})
+        assert response.status_code == 400
+
+        mock_seer_request.assert_not_called()
 
     def test_no_contributing_exception(self) -> None:
         data_no_contributing_exception = {
@@ -680,7 +729,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
     def test_no_optional_params(self, mock_seer_request: mock.MagicMock) -> None:
         """
-        Test that optional parameters, k, threshold, and read_only can not be included.
+        Test that k defaults to 10 and that the threshold param isn't sent to Seer.
         """
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
@@ -701,7 +750,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
         assert self.similar_event.group_id is not None
         assert response.data == self.get_expected_response(
-            [self.similar_event.group_id], [0.99], ["Yes"]
+            [self.similar_event.group_id], [0.99], [True]
         )
 
         mock_seer_request.assert_called_with(
@@ -723,6 +772,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "training_mode": False,
                     "platform": "python",
                     "skip_fallback": True,
+                    "k": 10,
                 },
             ),
             headers={
@@ -736,7 +786,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         response = self.client.get(self.path, data={"k": 1})
         assert self.similar_event.group_id is not None
         assert response.data == self.get_expected_response(
-            [self.similar_event.group_id], [0.99], ["Yes"]
+            [self.similar_event.group_id], [0.99], [True]
         )
 
         mock_seer_request.assert_called_with(
@@ -768,13 +818,13 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             },
         )
 
-        # Include threshold
+        # Include threshold, which is ignored
         response = self.client.get(
             self.path,
-            data={"threshold": "0.01"},
+            data={"threshold": "0.5"},
         )
         assert response.data == self.get_expected_response(
-            [self.similar_event.group_id], [0.99], ["Yes"]
+            [self.similar_event.group_id], [0.99], [True]
         )
 
         mock_seer_request.assert_called_with(
@@ -796,6 +846,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "training_mode": False,
                     "platform": "python",
                     "skip_fallback": True,
+                    "k": 10,
                 },
             ),
             headers={
@@ -805,67 +856,11 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             },
         )
 
-    def test_too_many_frames(self) -> None:
-        error_type = "FailedToFetchError"
-        error_value = "Charlie didn't bring the ball back"
-        context_line = f"raise {error_type}('{error_value}')"
-        error_data = {
-            "exception": {
-                "values": [
-                    {
-                        "type": error_type,
-                        "value": error_value,
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "function": f"play_fetch_{i}",
-                                    "filename": f"dogpark{i}.py",
-                                    "context_line": context_line,
-                                }
-                                for i in range(MAX_FRAME_COUNT + 1)
-                            ]
-                        },
-                    }
-                ]
-            },
-            "platform": "java",
-        }
-        new_event = self.store_event(data=error_data, project_id=self.project)
-        assert new_event.group
-        response = self.client.get(
-            path=f"/api/0/organizations/{self.org.slug}/issues/{new_event.group.id}/similar-issues-embeddings/",
-            data={"k": "1", "threshold": "0.01"},
-        )
-        assert response.data == []
+    @override_options({"seer.similarity.max_token_count": 10})
+    @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
+    def test_stacktrace_over_token_limit(self, mock_seer_request: mock.MagicMock) -> None:
+        response = self.client.get(self.path)
 
-    def test_no_filename_or_module(self) -> None:
-        error_type = "FailedToFetchError"
-        error_value = "Charlie didn't bring the ball back"
-        context_line = f"raise {error_type}('{error_value}')"
-        error_data = {
-            "exception": {
-                "values": [
-                    {
-                        "type": error_type,
-                        "value": error_value,
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "function": f"play_fetch_{i}",
-                                    "context_line": context_line,
-                                }
-                                for i in range(MAX_FRAME_COUNT + 1)
-                            ]
-                        },
-                    }
-                ]
-            },
-            "platform": "python",
-        }
-        new_event = self.store_event(data=error_data, project_id=self.project)
-        assert new_event.group
-        response = self.client.get(
-            path=f"/api/0/organizations/{self.org.slug}/issues/{new_event.group.id}/similar-issues-embeddings/",
-            data={"k": "1", "threshold": "0.01"},
-        )
+        assert response.status_code == 200
         assert response.data == []
+        mock_seer_request.assert_not_called()

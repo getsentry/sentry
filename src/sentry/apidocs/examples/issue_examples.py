@@ -4,6 +4,7 @@ from drf_spectacular.utils import OpenApiExample
 
 from sentry.api.helpers.group_index.types import MutateIssueResponse
 from sentry.api.serializers.models.group import (
+    BaseGroupSerializerResponse,
     GroupDetailsResponse,
     SharedGroupSerializerResponse,
 )
@@ -278,6 +279,56 @@ SHARED_ISSUE: SharedGroupSerializerResponse = {
     },
 }
 
+SIMILAR_ISSUE: BaseGroupSerializerResponse = {
+    "annotations": [],
+    "assignedTo": None,
+    "count": "42",
+    "culprit": "orders.views in parse_quantity",
+    "firstSeen": datetime.fromisoformat("2018-11-06T21:19:55Z"),
+    "hasSeen": False,
+    "id": numeric_id("2"),
+    "isBookmarked": False,
+    "isPublic": False,
+    "isSubscribed": False,
+    "isUnhandled": True,
+    "issueCategory": "error",
+    "issueType": "error",
+    "lastSeen": datetime.fromisoformat("2018-12-06T21:19:55Z"),
+    "level": "error",
+    "logger": None,
+    "metadata": {
+        "type": "ValueError",
+        "value": "invalid literal for int() with base 10: 'abc'",
+        "filename": "orders/views.py",
+        "function": "parse_quantity",
+    },
+    "numComments": 0,
+    "permalink": absolute_url(
+        "https://sentry.io/organizations/the-interstellar-jurisdiction/issues/2/"
+    ),
+    "platform": "python",
+    "priority": "high",
+    "priorityLockedAt": None,
+    "project": {
+        "id": numeric_id("2"),
+        "name": "Pump Station",
+        "slug": slug("pump-station"),
+        "platform": "python",
+    },
+    "seerAutofixLastTriggered": None,
+    "seerExplorerAutofixLastTriggered": None,
+    "seerFixabilityScore": None,
+    "shareId": None,
+    "shortId": "PUMP-STATION-2",
+    "status": "unresolved",
+    "statusDetails": {},
+    "subscriptionDetails": None,
+    "substatus": "ongoing",
+    "title": "ValueError: invalid literal for int() with base 10: 'abc'",
+    "type": "error",
+    "userCount": 7,
+}
+
 
 class IssueExamples:
     ORGANIZATION_GROUP_INDEX_GET = [
@@ -308,6 +359,14 @@ class IssueExamples:
         OpenApiExample(
             "Return a shared issue",
             value=SHARED_ISSUE,
+            response_only=True,
+            status_codes=["200"],
+        )
+    ]
+    SIMILAR_ISSUES = [
+        OpenApiExample(
+            "Return issues with similar stack traces",
+            value=[[SIMILAR_ISSUE, {"exception": 0.9787, "wouldAutoGroup": True}]],
             response_only=True,
             status_codes=["200"],
         )
