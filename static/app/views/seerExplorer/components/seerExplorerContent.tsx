@@ -621,7 +621,7 @@ export function SeerExplorerContent({
   );
 
   // Menu component
-  const {menu, closeMenu} = useExplorerMenu({
+  const {menu, toolbarMenu, closeMenu} = useExplorerMenu({
     clearInput,
     completeInput,
     inputValue: inputValue.text,
@@ -972,6 +972,7 @@ export function SeerExplorerContent({
             ) : undefined
           }
           toolbarItems={<SeerCreditUsageMeter hasEnoughCredits={hasEnoughCredits} />}
+          slashCommandMenu={toolbarMenu}
           interruptState={interruptState}
           onInputChange={handleInputChange}
           onInputClick={handleInputClick}

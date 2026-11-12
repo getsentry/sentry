@@ -53,6 +53,7 @@ interface InputSectionProps {
   notice?: React.ReactNode;
   questionActions?: QuestionActions;
   runId?: SeerExplorerRunId | null;
+  slashCommandMenu?: React.ReactNode;
   /**
    * Shown in the toolbar under the editor, before the send or interrupt button.
    * The chat puts the organization's credit usage here.
@@ -79,6 +80,7 @@ export function InputSection({
   runId,
   isSingleRun,
   toolbarItems,
+  slashCommandMenu,
 }: InputSectionProps) {
   const organization = useOrganization({allowNull: true});
   // Autofix single runs and ask-seer-create-pr runs open PRs, so show links to them.
@@ -303,7 +305,15 @@ export function InputSection({
             borderTop="primary"
             background="primary"
             radius="0 0 lg lg"
+            data-test-id="seer-composer-toolbar"
+            onClick={event => {
+              if (event.target === event.currentTarget) {
+                onInputClick();
+              }
+            }}
           >
+            {slashCommandMenu}
+            <Container flex="1" pointerEvents="none" />
             {toolbarItems}
             {interruptState === 'can-interrupt' || interruptState === 'requested' ? (
               <Button
