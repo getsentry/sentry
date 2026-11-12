@@ -142,7 +142,7 @@ class QuerySubscription(Model):
         # Creating the Snuba subscription failed because the query can't be built or Snuba
         # rejected it, so there is no Snuba subscription and subscription_id is None. Unlike
         # DISABLED, this wasn't requested. Editing or re-enabling the alert retries
-        # creation, as does a daily recheck, which moves it to CREATING.
+        # creation, and a daily recheck makes it ACTIVE if creating it succeeds.
         BROKEN = 5
 
     # NOTE: project fk SHOULD match AlertRule's fk

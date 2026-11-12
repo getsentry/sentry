@@ -480,8 +480,8 @@ def subscription_checker(**kwargs: Any) -> None:
 def recheck_broken_subscription(query_subscription_id: int, **kwargs: Any) -> None:
     """
     Checks whether a BROKEN subscription is valid now (e.g. a removed environment was
-    restored) by recreating it in Snuba. If its query still can't be built, or Snuba
-    still rejects it, it stays BROKEN without being reported again.
+    restored) by creating it in Snuba. If its query still can't be built, or Snuba still
+    rejects it, it stays BROKEN without being reported again.
     """
     try:
         subscription = QuerySubscription.objects.get(id=query_subscription_id)
@@ -491,63 +491,29 @@ def recheck_broken_subscription(query_subscription_id: int, **kwargs: Any) -> No
         return
 
     try:
-        _build_snuba_request(subscription)
-    except SubscriptionError:
-        metrics.incr("snuba.subscriptions.broken.verified")
-        return
-
-    # Mark the create as in progress, so an edit or delete made during the Snuba call isn't
-    # overwritten. If this task dies partway, `subscription_checker` finishes the create.
-    if not _transition_status(
-        subscription,
-        from_=QuerySubscription.Status.BROKEN,
-        to=QuerySubscription.Status.CREATING,
-        date_updated=timezone.now(),
-    ):
-        return
-
-    try:
         subscription_id = _create_in_snuba(subscription)
     except SubscriptionError:
-        _transition_status(
-            subscription,
-            from_=QuerySubscription.Status.CREATING,
-            to=QuerySubscription.Status.BROKEN,
-        )
         metrics.incr("snuba.subscriptions.broken.verified")
         return
 
-    # If the subscription changed meanwhile, the Snuba subscription is left unreferenced,
-    # and the consumer deletes it when it sees its results.
-    _transition_status(
-        subscription,
-        from_=QuerySubscription.Status.CREATING,
-        to=QuerySubscription.Status.ACTIVE,
-        subscription_id=subscription_id,
-    )
-    metrics.incr("snuba.subscriptions.broken.recovered")
-
-
-def _transition_status(
-    subscription: QuerySubscription,
-    *,
-    from_: QuerySubscription.Status,
-    to: QuerySubscription.Status,
-    **fields: Any,
-) -> bool:
-    """
-    Sets the subscription's status to `to`, along with any other `fields`, only if its
-    status is still `from_`. Returns whether it was updated.
-    """
     with transaction.atomic(router.db_for_write(QuerySubscription)):
+        # Edits and deletes change the status and date_updated, so this only matches if
+        # the subscription wasn't modified during the Snuba call.
         current = QuerySubscription.objects.select_for_update().get_or_none(
-            id=subscription.id, status=from_.value
+            id=subscription.id,
+            status=QuerySubscription.Status.BROKEN.value,
+            date_updated=subscription.date_updated,
         )
         if current is None:
-            return False
-        # Model.update (rather than QuerySet.update) keeps the cached lookups current.
-        current.update(status=to.value, **fields)
-    return True
+            # The new Snuba subscription is unreferenced, so the consumer deletes it when
+            # it sees its results.
+            return
+        current.update(
+            status=QuerySubscription.Status.ACTIVE.value,
+            subscription_id=subscription_id,
+            date_updated=timezone.now(),
+        )
+    metrics.incr("snuba.subscriptions.broken.recovered")
 
 
 # Re-check regularly so that broken subscriptions get re-enabled automatically once

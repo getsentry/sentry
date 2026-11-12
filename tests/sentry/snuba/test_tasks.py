@@ -1534,19 +1534,20 @@ class RecheckBrokenSubscriptionTest(TestCase):
         self.metrics.incr.assert_any_call("snuba.subscriptions.broken.verified")
 
     def test_concurrent_change_during_create(self) -> None:
-        sub = self.create_subscription(QuerySubscription.Status.BROKEN, "hello")
+        for status in (QuerySubscription.Status.DELETING, QuerySubscription.Status.BROKEN):
+            sub = self.create_subscription(QuerySubscription.Status.BROKEN, "hello")
 
-        def delete_concurrently(subscription: QuerySubscription) -> str:
-            QuerySubscription.objects.filter(id=subscription.id).update(
-                status=QuerySubscription.Status.DELETING.value
-            )
-            return "1/abc"
+            def change_concurrently(subscription: QuerySubscription) -> str:
+                QuerySubscription.objects.filter(id=subscription.id).update(
+                    status=status.value, date_updated=timezone.now() + timedelta(seconds=1)
+                )
+                return f"1/{uuid4().hex}"
 
-        with patch("sentry.snuba.tasks._create_in_snuba", side_effect=delete_concurrently):
-            recheck_broken_subscription(sub.id)
-        sub.refresh_from_db()
-        assert sub.status == QuerySubscription.Status.DELETING.value
-        assert sub.subscription_id is None
+            with patch("sentry.snuba.tasks._create_in_snuba", side_effect=change_concurrently):
+                recheck_broken_subscription(sub.id)
+            sub.refresh_from_db()
+            assert sub.status == status.value
+            assert sub.subscription_id is None
 
     def test_not_broken(self) -> None:
         sub = self.create_subscription(QuerySubscription.Status.ACTIVE, "issue:INVALID-1")
