@@ -5,6 +5,7 @@ from typing import Annotated, Any, Literal, TypedDict, cast
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiResponse, extend_schema
+from rest_framework import status
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -256,6 +257,14 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
           `routing_hint` when fetching item details for a row in this response. It identifies how
           the table query was routed and is omitted when no hint is available.
         """
+        if not self.has_feature(organization, request):
+            return Response(
+                {
+                    "detail": "Discover, Performance, or Explore is required to access this endpoint."
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         referrer = request.GET.get("referrer")
         sentry_sdk.set_attribute("query.raw_referrer", referrer or "")
 

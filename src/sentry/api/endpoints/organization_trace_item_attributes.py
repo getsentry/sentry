@@ -250,6 +250,9 @@ class OrganizationTraceItemAttributesEndpointBase(OrganizationEventsEndpointBase
     }
     owner = ApiOwner.DATA_BROWSING
 
+    def has_feature(self, organization: Organization, request: Request) -> bool:
+        return True
+
 
 class OrganizationTraceItemAttributesEndpointSerializer(serializers.Serializer):
     itemType = serializers.ChoiceField(SUPPORTED_DATASETS, required=False, source="item_type")
@@ -766,6 +769,9 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         Pass `expand=context` (experimental) to include each attribute's metadata:
         a brief description, examples, and deprecation details.
         """
+        if not self.has_feature(organization, request):
+            return Response(status=404)
+
         serializer = OrganizationTraceItemAttributesEndpointSerializer(data=request.GET)
         if not serializer.is_valid():
             return Response(as_validation_errors(serializer), status=400)
@@ -1151,6 +1157,9 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
         List the values seen for a given attribute key on a trace item dataset (spans,
         logs, trace metrics, etc.), most frequent first.
         """
+        if not self.has_feature(organization, request):
+            return Response(status=404)
+
         serializer = OrganizationTraceItemAttributesEndpointSerializer(data=request.GET)
         if not serializer.is_valid():
             return Response(as_validation_errors(serializer), status=400)
@@ -1678,6 +1687,9 @@ class OrganizationTraceItemAttributeValidateEndpoint(OrganizationTraceItemAttrib
         they have been seen in stored data for the requested projects and time range.
         Valid attributes include their resolved type, and invalid ones include an error.
         """
+        if not self.has_feature(organization, request):
+            return Response(status=404)
+
         query_serializer = OrganizationTraceItemAttributeValidateQuerySerializer(data=request.GET)
         if not query_serializer.is_valid():
             return Response(as_validation_errors(query_serializer), status=400)

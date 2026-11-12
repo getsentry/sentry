@@ -68,6 +68,9 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
         "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
 
+    def has_feature(self, organization: Organization, request: Request) -> bool:
+        return True
+
     @extend_schema(
         operation_id="Retrieve an Organization's Explore Saved Query",
         parameters=[
@@ -88,6 +91,9 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
         """
         Retrieve a saved query.
         """
+        if not self.has_feature(organization, request):
+            return self.respond(status=404)
+
         self.check_object_permissions(request, query)
 
         return Response(
@@ -113,6 +119,9 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
         """
         Modify a saved query.
         """
+        if not self.has_feature(organization, request):
+            return self.respond(status=404)
+
         self.check_object_permissions(request, query)
 
         if query.prebuilt_id is not None:
@@ -161,6 +170,9 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
         """
         Delete a saved query.
         """
+        if not self.has_feature(organization, request):
+            return self.respond(status=404)
+
         self.check_object_permissions(request, query)
 
         if query.prebuilt_id is not None:
@@ -177,6 +189,9 @@ class ExploreSavedQueryVisitEndpoint(ExploreSavedQueryBase):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
+
+    def has_feature(self, organization: Organization, request: Request) -> bool:
+        return True
 
     @extend_schema(
         operation_id="Record a Visit to an Organization's Explore Saved Query",
@@ -195,6 +210,9 @@ class ExploreSavedQueryVisitEndpoint(ExploreSavedQueryBase):
         Record that the requesting user visited a saved query. Increments the query's
         visit count and updates its last visited time.
         """
+        if not self.has_feature(organization, request):
+            return self.respond(status=404)
+
         self.check_object_permissions(request, query)
 
         query.visits = cast(int, F("visits") + 1)

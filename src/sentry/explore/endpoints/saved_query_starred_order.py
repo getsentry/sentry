@@ -73,6 +73,9 @@ class SavedQueryStarredOrderEndpoint(OrganizationEndpoint):
     owner = ApiOwner.DATA_BROWSING
     permission_classes = (MemberPermission,)
 
+    def has_feature(self, organization: Organization, request: Request) -> bool:
+        return True
+
     @extend_schema(
         operation_id="Reorder an Organization's Starred Saved Queries",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
@@ -92,6 +95,9 @@ class SavedQueryStarredOrderEndpoint(OrganizationEndpoint):
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        if not self.has_feature(organization, request):
+            return self.respond(status=404)
 
         serializer = SavedQueryStarredOrderSerializer(data=request.data)
         if not serializer.is_valid():
