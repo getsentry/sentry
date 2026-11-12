@@ -125,9 +125,8 @@ You can use normal button props like `size`, `priority`, `disabled`, and `busy`.
 
 ## Image Avatars
 
-Colorful logos pick up their brand color; neutral logos (white, black, grayscale)
-fall back to default button styling. Logos that don't fill the button frame are
-automatically inset with padding.
+The button keeps its default styling whatever the avatar's color. Logos that don't
+fill the button frame are automatically inset with padding.
 
 <Storybook.Demo>
   {[
@@ -239,8 +238,7 @@ to override it.
 ## Suggested Assignee
 
 Set `suggested` on the `avatar` descriptor for a tentative/suggested assignee. The
-button renders a dashed neutral border and a grayscale avatar instead of sampling a
-color from the avatar itself.
+button renders a dashed neutral border and a grayscale avatar.
 
 <Storybook.Demo>
   <AvatarButton
