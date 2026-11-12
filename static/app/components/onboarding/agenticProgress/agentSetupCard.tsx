@@ -1,188 +1,79 @@
-import {useRef} from 'react';
-import {IconBot} from '@sentry/icons/bot';
+import type {ReactNode} from 'react';
+import {IconCheckmark} from '@sentry/icons/checkmark';
 
 import {Tag} from '@sentry/scraps/badge';
-import {CodeBlock} from '@sentry/scraps/codeBlock';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Separator} from '@sentry/scraps/separator';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import {List} from 'sentry/components/list';
-import {ListItem} from 'sentry/components/list/listItem';
-import {
-  SETUP_CARD_ICON_SIZE,
-  SETUP_CARD_MARKER_PX,
-} from 'sentry/components/onboarding/consts';
-import {t} from 'sentry/locale';
-import {selectText} from 'sentry/utils/selectText';
-import {useOrganization} from 'sentry/utils/useOrganization';
+import {AgentHandoffPrompt} from 'sentry/components/agentHandoff/agentHandoffPrompt';
+import {AgentHandoffFlow} from 'sentry/components/agentHandoff/useAgentHandoff';
+import {t, tct} from 'sentry/locale';
 
-import {AgentInfo} from './agentInfo';
+import type {AgenticProgressRun} from './types';
 
-export type AgentSetupCopySource = 'install_command' | 'prompt';
-
-const INSTALL_PLUGIN_COMMAND = 'npx @sentry/agent-plugin install';
-
-const SUPPORTED_AGENTS = ['Claude Code', 'Codex', 'Cursor', 'Grok'];
-const SUPPORTED_AGENTS_LABEL = new Intl.ListFormat(undefined, {
-  style: 'short',
-  type: 'conjunction',
-}).format(SUPPORTED_AGENTS);
+export type AgentSetupCopySource = 'prompt';
 
 interface AgentSetupCardProps {
+  flow: AgentHandoffFlow;
   onCopyCommand: (source: AgentSetupCopySource) => void;
   onSelectSnippet: (source: AgentSetupCopySource) => void;
-  prompt: string;
+  run: AgenticProgressRun | undefined;
   feedbackSource?: string;
-  hasSetupFailed?: boolean;
-  onboardingCode?: string;
 }
 
 export function AgentSetupCard({
   feedbackSource = 'onboarding-agent-setup',
-  hasSetupFailed,
-  onboardingCode,
+  flow,
   onCopyCommand,
   onSelectSnippet,
-  prompt,
+  run,
 }: AgentSetupCardProps) {
-  const organization = useOrganization();
-  const installCommand = onboardingCode
-    ? `${INSTALL_PLUGIN_COMMAND} ${organization.slug}#${onboardingCode}`
-    : INSTALL_PLUGIN_COMMAND;
-  const installCommandRef = useRef<HTMLDivElement>(null);
-  const promptRef = useRef<HTMLDivElement>(null);
-
-  const handleSelectSnippet = (
-    event: React.MouseEvent<HTMLElement>,
-    snippet: HTMLDivElement | null,
-    source: AgentSetupCopySource
-  ) => {
-    if (
-      !snippet ||
-      !(event.target instanceof Element) ||
-      !snippet.contains(event.target) ||
-      event.target.closest('button')
-    ) {
-      return;
-    }
-
-    const code = snippet.querySelector('code');
-    if (!code) {
-      return;
-    }
-
-    selectText(code);
-    onSelectSnippet(source);
-  };
-
   return (
-    <Grid
-      columns={`${SETUP_CARD_MARKER_PX} 1fr`}
-      gap="0 md"
-      background="primary"
-      border="primary"
-      radius="xl"
-      padding="xl"
-      areas={`
-        "icon  title"
-        ".     meta"
-        "steps steps"
-        "feedback feedback"
-      `}
-    >
-      <Flex area="icon" align="center" justify="center">
-        <IconBot size={SETUP_CARD_ICON_SIZE} variant="secondary" />
-      </Flex>
-      <Flex area="title" align="center" gap="md" wrap="wrap">
-        <Heading as="h3" size="lg">
-          {t('Set up with your coding agent')}
-        </Heading>
-        <Tag variant="info">{t('Recommended')}</Tag>
-      </Flex>
-
-      <Stack area="meta" gap="xs" paddingTop="md" paddingBottom="2xl">
-        <Flex align="center" gap="xs" wrap="wrap">
-          <Text variant="muted" size="md">
-            {t('Works with')}
-          </Text>
-          <Text size="md">{SUPPORTED_AGENTS_LABEL}</Text>
+    <Stack gap="0" background="primary" border="primary" radius="xl" padding="xl">
+      <Stack gap="xs">
+        <Flex align="center" gap="sm" wrap="wrap">
+          <Heading as="h3" size="lg">
+            {t('Let your agent set up Sentry')}
+          </Heading>
+          <Tag variant="info">{t('Recommended')}</Tag>
         </Flex>
-        <Flex>
-          <AgentInfo onboardingCode={onboardingCode} />
-        </Flex>
+        <Text as="p" size="md" variant="secondary">
+          {t('Paste one prompt and your agent does the rest.')}
+        </Text>
       </Stack>
 
-      <Container area="steps">
-        <List symbol="colored-numeric">
-          <ListItem>
-            <Stack
-              gap="lg"
-              paddingTop="xs"
-              paddingBottom="2xl"
-              onClick={event =>
-                handleSelectSnippet(event, installCommandRef.current, 'install_command')
-              }
-            >
-              <Text size="md">{t('Install the Sentry plugin for your agent')}</Text>
-              <CodeBlock
-                ref={installCommandRef}
-                dark
-                alwaysShowCopyButton
-                onCopy={() => onCopyCommand('install_command')}
-                wrapMode="wrap"
-              >
-                {installCommand}
-              </CodeBlock>
-            </Stack>
-            <Flex
-              position="absolute"
-              top={SETUP_CARD_MARKER_PX}
-              bottom="0"
-              left="0"
-              width={SETUP_CARD_MARKER_PX}
-              paddingTop="xs"
-              justify="center"
-            >
-              <Separator orientation="vertical" border="muted" />
-            </Flex>
-          </ListItem>
-          <ListItem>
-            <Stack
-              gap="lg"
-              paddingTop="xs"
-              onClick={event => handleSelectSnippet(event, promptRef.current, 'prompt')}
-            >
-              <Stack gap="xs">
-                <Text size="md">{t('Ask your agent to set up Sentry')}</Text>
-                <Text variant="muted" size="md">
-                  {t('Point it to your project folder and paste this.')}
-                </Text>
-              </Stack>
-              <CodeBlock
-                ref={promptRef}
-                dark
-                alwaysShowCopyButton={!hasSetupFailed}
-                hideCopyButton={hasSetupFailed}
-                onCopy={() => onCopyCommand('prompt')}
-                wrapMode="wrap"
-              >
-                {prompt}
-              </CodeBlock>
-            </Stack>
-          </ListItem>
-        </List>
-      </Container>
+      <Stack as="ul" role="list" gap="md" padding="xl 0">
+        <Benefit>{tct('[emphasis:Detects your stack]', {emphasis: <strong />})}</Benefit>
+        <Benefit>
+          {tct('[emphasis:Installs and configures the SDKs] in your code', {
+            emphasis: <strong />,
+          })}
+        </Benefit>
+        <Benefit>
+          {tct('[emphasis:Sends a test error] and confirms it, so you know it works', {
+            emphasis: <strong />,
+          })}
+        </Benefit>
+      </Stack>
 
-      <Flex area="feedback" justify="end" paddingTop="lg">
-        <FeedbackButton
-          size="xs"
-          feedbackOptions={{
-            tags: {'feedback.source': feedbackSource},
-          }}
+      <Stack>
+        <AgentHandoffPrompt
+          context={run ? {runId: run.runId} : null}
+          feedbackSource={feedbackSource}
+          flow={flow}
+          onCopySuccess={() => onCopyCommand('prompt')}
+          onSelect={() => onSelectSnippet('prompt')}
         />
-      </Flex>
-    </Grid>
+      </Stack>
+    </Stack>
+  );
+}
+
+function Benefit({children}: {children: ReactNode}) {
+  return (
+    <Flex as="li" align="center" gap="sm">
+      <IconCheckmark size="sm" variant="success" />
+      <Text size="md">{children}</Text>
+    </Flex>
   );
 }

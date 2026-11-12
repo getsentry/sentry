@@ -4,6 +4,7 @@ from rest_framework import serializers
 
 from sentry.api.exceptions import ParameterValidationError
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
+from sentry.db.models.fields.bounded import I64_MAX
 from sentry.integrations.types import PERSONAL_NOTIFICATION_PROVIDERS
 from sentry.notifications.api.parsers.notifications import (
     validate_scope_type,
@@ -16,7 +17,7 @@ from sentry.notifications.types import NOTIFICATION_SETTING_CHOICES, Notificatio
 class UserNotificationSettingData(TypedDict, total=False):
     type: str
     scope_type: str
-    scope_identifier: str
+    scope_identifier: int
     value: str
     providers: list[str]
 
@@ -25,7 +26,7 @@ class UserNotificationSettingsOptionsDetailsSerializer(
     CamelSnakeSerializer[UserNotificationSettingData]
 ):
     type = serializers.CharField()
-    scope_identifier = serializers.CharField()
+    scope_identifier = serializers.IntegerField(min_value=0, max_value=I64_MAX)
     scope_type = serializers.CharField()
 
     def validate_type(self, value: str) -> str:

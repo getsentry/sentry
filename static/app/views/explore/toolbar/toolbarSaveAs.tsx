@@ -21,6 +21,7 @@ import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {useAlwaysMatchesCaseDetails} from 'sentry/views/explore/caseInsensitivityDefault';
 import {ToolbarSection} from 'sentry/views/explore/components/toolbar/styles';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
@@ -77,6 +78,9 @@ export function ToolbarSaveAs() {
     () => dedupeArray(visualizeFunctions.map(v => v.yAxis)),
     [visualizeFunctions]
   );
+  const yAxes = visualizes.map(visualize => visualize.yAxis);
+  const {alert: alertCaseDetails, dashboard: dashboardCaseDetails} =
+    useAlwaysMatchesCaseDetails({query, yAxes, groupBys, mode});
 
   const sortBys = mode === Mode.SAMPLES ? sampleSortBys : aggregateSortBys;
 
@@ -163,9 +167,14 @@ export function ToolbarSaveAs() {
     },
   });
 
-  items.push(
-    getSaveAsAlertMenuItem({alertsUrls, submenu: true, disabled: hasTransformations})
-  );
+  items.push({
+    ...getSaveAsAlertMenuItem({
+      alertsUrls,
+      submenu: true,
+      disabled: hasTransformations,
+    }),
+    details: alertCaseDetails,
+  });
 
   const chartOptions = useMemo(() => {
     return visualizes.map((visualize, index) => {
@@ -189,6 +198,7 @@ export function ToolbarSaveAs() {
   items.push({
     key: 'add-to-dashboard',
     textValue: t('Dashboard widget'),
+    details: dashboardCaseDetails,
     submenu: chartOptions.length > 1 ? true : false,
     label: t('Dashboard widget'),
     children: chartOptions.length > 1 ? chartOptions : undefined,
@@ -207,7 +217,7 @@ export function ToolbarSaveAs() {
   });
 
   const shouldHighlightSaveButton = useMemo(() => {
-    if (isLoadingSavedQuery || savedQuery === undefined || savedQuery?.isPrebuilt) {
+    if (isLoadingSavedQuery || !savedQuery || savedQuery.isPrebuilt) {
       return false;
     }
     // The non comparison trace explorer view only supports a single query

@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
 # Markdown labels and shell blocks are escaped for their respective contexts below.
-_ENVIRONMENT = Environment(
+MARKDOWN_JINJA_ENV = Environment(
     loader=PackageLoader("sentry", "templates"),
     autoescape=False,
     undefined=StrictUndefined,
@@ -34,6 +34,9 @@ def _quote_powershell(value: str) -> str:
 
 
 def _powershell_command(command: str, environment: Mapping[str, str]) -> str:
+    if not environment:
+        return _code_block(command, "powershell")
+
     lines = [
         "& {",
         "    $previousEnvironment = @{",
@@ -70,20 +73,28 @@ def render_agent_runbook(
     flow_instructions: str,
 ) -> str:
     """Render a private guide from already-authorized context and minted credentials."""
-    instance_variables = {"SENTRY_HOST": sentry_url, "SENTRY_URL": sentry_url}
+    instance_variables = (
+        {}
+        if sentry_url.rstrip("/") in ("sentry.io", "https://sentry.io")
+        else {
+            "SENTRY_HOST": sentry_url,
+            "SENTRY_URL": sentry_url,
+            "SENTRY_CLIENT_ID": client_id,
+        }
+    )
     setup_variables = {
         **instance_variables,
-        "SENTRY_CLIENT_ID": client_id,
         "SENTRY_SETUP_CODE": setup_code,
     }
     instance_environment = " ".join(
         f"{name}={shlex.quote(value)}" for name, value in instance_variables.items()
     )
-    setup_environment = (
-        f"{instance_environment} SENTRY_CLIENT_ID={shlex.quote(client_id)} "
-        f"SENTRY_SETUP_CODE={shlex.quote(setup_code)}"
+    setup_environment = " ".join(
+        f"{name}={shlex.quote(value)}" for name, value in setup_variables.items()
     )
-    unix_auth_status = _code_block(f"{instance_environment} sentry auth status --fresh --json")
+    unix_auth_status = _code_block(
+        " ".join(filter(None, (instance_environment, "sentry auth status --fresh --json")))
+    )
     unix_installer = _code_block(
         "curl -fsSL https://cli.sentry.dev/install | " + setup_environment + " bash"
     )
@@ -91,7 +102,7 @@ def render_agent_runbook(
         f"{setup_environment} sentry auth bootstrap --url {shlex.quote(sentry_url)}"
     )
 
-    return _ENVIRONMENT.get_template("sentry/agent_handoff/runbook.md").render(
+    return MARKDOWN_JINJA_ENV.get_template("sentry/agent_handoff/runbook.md").render(
         {
             "sentry_url": _escape_label(sentry_url),
             "user_email": _escape_label(user_email),
@@ -139,7 +150,11 @@ def render_claim_runbook(*, claim_url: str) -> str:
             "}",
         ]
     )
-    return _ENVIRONMENT.get_template("sentry/agent_handoff/claim.md").render(
+    return MARKDOWN_JINJA_ENV.get_template("sentry/agent_handoff/claim.md").render(
         unix_claim_command=_code_block(unix_claim_command),
         windows_claim_command=_code_block(windows_claim_command, "powershell"),
     )
+
+
+def render_ip_mismatch_runbook() -> str:
+    return MARKDOWN_JINJA_ENV.get_template("sentry/agent_handoff/ip_mismatch.md").render()

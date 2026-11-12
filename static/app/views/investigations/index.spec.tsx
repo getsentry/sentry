@@ -1,5 +1,6 @@
 import {QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
@@ -108,6 +109,117 @@ describe('Explore Investigations', () => {
     expect(
       await screen.findByRole('link', {name: 'Database latency investigation'})
     ).toHaveAttribute('href', '/seer/investigations/1/');
+  });
+
+  it('shows who or which automation triggered each investigation', async () => {
+    MockApiClient.addMockResponse({
+      url: listUrl,
+      body: [
+        InvestigationFixture({
+          id: '1',
+          trigger: {
+            type: 'user',
+            user: UserFixture({name: 'Ivy Sanders Schneider'}),
+          },
+        }),
+        InvestigationFixture({
+          id: '2',
+          trigger: {
+            type: 'automation',
+            automation: {id: '7', name: null, strategy: 'breached_metric_investigation'},
+            runId: '42',
+          },
+        }),
+        InvestigationFixture({
+          id: '3',
+          trigger: {
+            type: 'automation',
+            automation: {id: '8', name: 'Telemetry audit', strategy: 'agentic_triage_v2'},
+            runId: '43',
+          },
+        }),
+      ],
+    });
+
+    renderView({
+      renderOrganization: OrganizationFixture({
+        features: ['investigations', 'seer-automations'],
+        openMembership: true,
+      }),
+    });
+
+    expect(await screen.findByText('Ivy Sanders Schneider')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Breached metrics · Run 42'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/seer/automations/7/runs/'
+    );
+    expect(screen.getByRole('link', {name: 'Telemetry audit · Run 43'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/seer/automations/8/runs/'
+    );
+  });
+
+  it('does not link automations the organization cannot open', async () => {
+    MockApiClient.addMockResponse({
+      url: listUrl,
+      body: [
+        InvestigationFixture({
+          trigger: {
+            type: 'automation',
+            automation: {id: '7', name: null, strategy: 'breached_metric_investigation'},
+            runId: '42',
+          },
+        }),
+      ],
+    });
+
+    renderView();
+
+    expect(await screen.findByText('Breached metrics · Run 42')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', {name: 'Breached metrics · Run 42'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows the state of each investigation run', async () => {
+    const statuses: Array<[string, string]> = [
+      ['pending', 'Queued'],
+      ['processing', 'Running'],
+      ['awaiting_input', 'Needs input'],
+      ['completed', 'Completed'],
+      ['failed', 'Failed'],
+      ['cancelled', 'Cancelled'],
+    ];
+    MockApiClient.addMockResponse({
+      url: listUrl,
+      body: [
+        InvestigationFixture({id: 'manual', title: 'manual'}),
+        ...statuses.map(([status]) =>
+          InvestigationFixture({
+            id: status,
+            title: status,
+            orchestration: {
+              heartbeatAt: null,
+              notebookRevision: 1,
+              phase: 'investigating',
+              status,
+            },
+          })
+        ),
+      ],
+    });
+
+    renderView();
+
+    await screen.findByRole('link', {name: 'manual'});
+    const rows = screen.getAllByRole('row').map(row => row.textContent);
+    expect(rows).toEqual(
+      expect.arrayContaining(
+        [['manual', 'Active'], ...statuses].map(([title, label]) =>
+          expect.stringMatching(new RegExp(`${title}.*${label}`))
+        )
+      )
+    );
   });
 
   it('renders the dashboard-style empty state', async () => {

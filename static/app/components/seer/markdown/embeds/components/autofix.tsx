@@ -12,6 +12,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
+import {useAutofixCreditCheck} from 'sentry/components/events/autofix/autofixCredits';
 import {
   getRepoPullRequestLink,
   hasCreatedPullRequests,
@@ -26,6 +27,7 @@ import {
   isPullRequestsSection,
   isCodeChangesSection,
   isRootCauseArtifact,
+  isSingleRunAutofix,
   isSolutionArtifact,
   useExplorerAutofix,
   type AutofixExplorerStep,
@@ -35,8 +37,12 @@ import {
 import {useRefreshAutofixProgressQueries} from 'sentry/components/events/autofix/useRefreshAutofixProgressQueries';
 import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {useAutofixChat} from 'sentry/components/seer/autofixChatContext';
+import {
+  useAutofixChat,
+  useReportAutofixOutOfCredits,
+} from 'sentry/components/seer/autofixChatContext';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
+import {SeerOutOfCreditsCta} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -282,12 +288,21 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
    * own section, is what keeps those copies agreeing — and stops a step being
    * offered again once it has run.
    */
-  const nextStep = NEXT_STEP[step];
+  // A single run goes from root cause to code changes on its own, so it never
+  // offers a next step.
+  const nextStep = isSingleRunAutofix(runState ?? null) ? undefined : NEXT_STEP[step];
   const pendingNextStep =
     nextStep && !findStepSection(sections, nextStep) ? nextStep : undefined;
   // A failed create also lands in `repo_pr_states`; that one should stay retryable.
   const canCreatePR =
     step === 'code_changes' && !hasCreatedPullRequests(runState?.repo_pr_states);
+
+  const showsNextAction =
+    section?.status === 'completed' && (canCreatePR || !!pendingNextStep);
+  const creditCheck = useAutofixCreditCheck(canCreatePR ? 'create_pr' : pendingNextStep, {
+    // A read-only conversation offers nothing to pay for.
+    enabled: showsNextAction && !!sendMessage,
+  });
 
   /**
    * The run state lags the agent, so it cannot gate these alone. `isBusy`
@@ -296,6 +311,16 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
    * state still offers the step it just started.
    */
   const canAct = !!sendMessage && !isPolling && !isBusy && !isRefetching;
+  // Held disabled until this mount's check answers, so a button is never
+  // clickable before the answer arrives, even with an earlier one cached, and
+  // while the org can't afford the step.
+  const canContinue =
+    canAct && creditCheck.hasCheckedSinceMount && creditCheck.hasEnoughCredits;
+  // In the Explorer chat the notice sits above the composer, where it stays in
+  // view as the chat scrolls. Anywhere else the card shows its own.
+  const showsOutOfCreditsNotice = useReportAutofixOutOfCredits(
+    showsNextAction && !creditCheck.hasEnoughCredits
+  );
 
   return (
     <AutofixBlock id={id} shortId={shortId} step={step}>
@@ -308,14 +333,18 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
             </Button>
           </Flex>
         )}
-        {section?.status === 'completed' && (canCreatePR || pendingNextStep) && (
+        {/* Muted: the buttons it explains stay right below it. */}
+        {showsOutOfCreditsNotice && (
+          <SeerOutOfCreditsCta reason="autofix-continue" variant="muted" />
+        )}
+        {showsNextAction && (
           <Flex gap="sm">
             {canCreatePR && (
               <Button
                 size="sm"
                 variant="primary"
                 onClick={handleCreatePR}
-                disabled={!canAct}
+                disabled={!canContinue}
               >
                 {t('Draft a pull request')}
               </Button>
@@ -325,7 +354,7 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
                 size="sm"
                 variant="primary"
                 onClick={() => handleContinue(pendingNextStep)}
-                disabled={!canAct}
+                disabled={!canContinue}
               >
                 {t('Continue: %s', STEP_LABELS[pendingNextStep])}
               </Button>

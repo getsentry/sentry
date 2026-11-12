@@ -1,6 +1,5 @@
 import {Stack} from '@sentry/scraps/layout';
 
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -19,14 +18,6 @@ export default function SavedQueriesView() {
           name="breadcrumbs"
           title={{type: 'page-title', label: t('Saved Queries')}}
         />
-        <TopBar.Slot name="feedback">
-          <FeedbackButton
-            aria-label={t('Give Feedback')}
-            tooltipProps={{title: t('Give Feedback')}}
-          >
-            {null}
-          </FeedbackButton>
-        </TopBar.Slot>
 
         <Layout.Body>
           <Layout.Main width="full">

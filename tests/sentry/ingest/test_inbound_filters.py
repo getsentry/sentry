@@ -1,3 +1,5 @@
+from collections.abc import Mapping
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -603,21 +605,39 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
             "log",
             [{"type": "log_message", "operator": "does_not_contain", "value": ["ok", "[2*"]}],
             {
-                "op": "not",
-                "inner": {"op": "glob", "name": "log.body", "value": ["*ok*", r"*\[2\**"]},
+                "op": "and",
+                "inner": [
+                    {"op": "glob", "name": "log.body", "value": ["*"]},
+                    {
+                        "op": "not",
+                        "inner": {"op": "glob", "name": "log.body", "value": ["*ok*", r"*\[2\**"]},
+                    },
+                ],
             },
             id="does_not_contain",
         ),
         pytest.param(
             "error",
             [{"type": "error_type", "operator": "does_not_start_with", "value": ["Http"]}],
-            {"op": "not", "inner": error_type_rule_condition(["Http*"])},
+            {
+                "op": "and",
+                "inner": [
+                    error_type_rule_condition(["*"]),
+                    {"op": "not", "inner": error_type_rule_condition(["Http*"])},
+                ],
+            },
             id="does_not_start_with_on_error_type",
         ),
         pytest.param(
             "all",
             [{"type": "release", "operator": "does_not_end_with", "value": ["-rc"]}],
-            {"op": "not", "inner": release_rule_condition(["*-rc"])},
+            {
+                "op": "and",
+                "inner": [
+                    release_rule_condition(["*"]),
+                    {"op": "not", "inner": release_rule_condition(["*-rc"])},
+                ],
+            },
             id="catch_all_does_not_end_with",
         ),
         pytest.param(
@@ -738,6 +758,58 @@ def test_custom_inbound_filter_condition_translation(
         "condition": expected_condition,
     }
     assert_relay_accepts_condition(generic_filter["condition"])
+
+
+def relay_matches(condition: Mapping[str, Any], item: Mapping[str, str]) -> bool:
+    """
+    How Relay evaluates a condition against an item. ``item`` maps each field path the
+    item carries to its value. A field the item does not carry matches no glob.
+    """
+    op = condition["op"]
+    if op == "and":
+        return all(relay_matches(inner, item) for inner in condition["inner"])
+    if op == "or":
+        return any(relay_matches(inner, item) for inner in condition["inner"])
+    if op == "not":
+        return not relay_matches(condition["inner"], item)
+    assert op == "glob"
+    value = item.get(condition["name"])
+    return value is not None and any(
+        is_glob_match(value, pattern, case_insensitive=True) for pattern in condition["value"]
+    )
+
+
+RELEASE_FIELD_BY_DATA_TYPE = dict(zip(["error", "log", "metric", "span"], RELEASE_FIELDS))
+
+
+@django_db_all
+@pytest.mark.parametrize("data_type", ["error", "log", "metric", "span"])
+@pytest.mark.parametrize(
+    "operator", ["does_not_start_with", "does_not_contain", "does_not_end_with"]
+)
+def test_negated_condition_drops_only_items_of_its_data_type(
+    default_project: Project, factories: Factories, data_type: str, operator: str
+) -> None:
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        data_type=data_type,
+        conditions=[{"type": "release", "operator": operator, "value": ["1.0.0"]}],
+    )
+    [generic_filter] = get_custom_inbound_filter_generic_filters(default_project)
+    condition = generic_filter["condition"]
+    assert condition is not None
+
+    dropped = {
+        item_type
+        for item_type, release_field in RELEASE_FIELD_BY_DATA_TYPE.items()
+        if relay_matches(condition, {release_field: "2.3.4"})
+    }
+    assert dropped == {data_type}
+
+    kept_release = {RELEASE_FIELD_BY_DATA_TYPE[data_type]: "1.0.0"}
+    assert not relay_matches(condition, kept_release)
+    # An item without a release, of any type.
+    assert not relay_matches(condition, {})
 
 
 @django_db_all
