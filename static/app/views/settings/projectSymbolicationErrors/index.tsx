@@ -16,6 +16,7 @@ import {Text} from '@sentry/scraps/text';
 import {Feature} from 'sentry/components/acl/feature';
 import {markLine as createMarkLine} from 'sentry/components/charts/components/markLine';
 import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -457,11 +458,14 @@ function FailuresTable({
                 onClick={() =>
                   openDrawer(
                     () => (
-                      <FailureDetails
-                        organization={organization}
-                        project={project}
-                        row={row}
-                      />
+                      // The drawer renders outside the error boundary of the route.
+                      <ErrorBoundary mini>
+                        <FailureDetails
+                          organization={organization}
+                          project={project}
+                          row={row}
+                        />
+                      </ErrorBoundary>
                     ),
                     {
                       ariaLabel: t('Symbolication failure details'),
