@@ -3,10 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconSeer} from '@sentry/icons/seer';
 
-import seerBeam from 'sentry-images/spot/seer-beam.svg';
-
 import {Button} from '@sentry/scraps/button';
-import {Image} from '@sentry/scraps/image';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -82,54 +79,55 @@ export function EmptyState({
           </Container>
         </Fragment>
       ) : (
-        <Container position="relative" width="100%" maxWidth="360px">
-          <Image src={seerBeam} alt="" loading="eager" aspectRatio="170.58 / 237.4" />
-          <Stack position="absolute" top="43%" left="0" right="0" align="center">
-            <Container width="100%">
+        <Fragment>
+          <IconSeer size="xl" animation="idle" />
+          <Container marginTop="xl" maxWidth="300px">
+            <Text as="div" align="center" variant="secondary" density="comfortable">
+              {t('Ask Seer anything about your application.')}
+            </Text>
+          </Container>
+          {onSuggestionClick && suggestions && (
+            <Stack
+              align="center"
+              gap="md"
+              paddingTop="2xl"
+              aria-hidden={suggestions.isLoading || undefined}
+            >
+              {suggestions.isLoading
+                ? Array.from({length: SUGGESTION_PLACEHOLDER_COUNT}, (_, index) => (
+                    <Placeholder
+                      key={index}
+                      width="240px"
+                      height={theme.form.sm.height}
+                      testId="suggestion-placeholder"
+                    />
+                  ))
+                : suggestions.suggestions.map((suggestion, index) => (
+                    <Container
+                      key={index}
+                      flexGrow={{zero: 1, sm: 0}}
+                      width={{zero: '100%', sm: 'auto'}}
+                    >
+                      <SuggestionButton
+                        size="sm"
+                        onClick={() => onSuggestionClick(suggestion, index)}
+                      >
+                        {suggestion.text}
+                      </SuggestionButton>
+                    </Container>
+                  ))}
+            </Stack>
+          )}
+          {displaySlackAgentReminder && (
+            <Container marginTop="xl" maxWidth="300px">
               <Text as="div" align="center" variant="secondary" density="comfortable">
-                {t('Ask Seer anything about your application.')}
+                {t(
+                  'Want to chat in Slack? Just @ Sentry to debug and investigate issues.'
+                )}
               </Text>
             </Container>
-            {onSuggestionClick && suggestions && (
-              <Stack
-                align="center"
-                maxWidth="100%"
-                gap="md"
-                paddingTop="2xl"
-                aria-hidden={suggestions.isLoading || undefined}
-              >
-                {suggestions.isLoading
-                  ? Array.from({length: SUGGESTION_PLACEHOLDER_COUNT}, (_, index) => (
-                      <Placeholder
-                        key={index}
-                        width="240px"
-                        height={theme.form.sm.height}
-                        testId="suggestion-placeholder"
-                      />
-                    ))
-                  : suggestions.suggestions.map((suggestion, index) => (
-                      <Container key={index} maxWidth="100%">
-                        <SuggestionButton
-                          size="sm"
-                          onClick={() => onSuggestionClick(suggestion, index)}
-                        >
-                          {suggestion.text}
-                        </SuggestionButton>
-                      </Container>
-                    ))}
-              </Stack>
-            )}
-            {displaySlackAgentReminder && (
-              <Container marginTop="xl" maxWidth="300px">
-                <Text as="div" align="center" variant="secondary" density="comfortable">
-                  {t(
-                    'Want to chat in Slack? Just @ Sentry to debug and investigate issues.'
-                  )}
-                </Text>
-              </Container>
-            )}
-          </Stack>
-        </Container>
+          )}
+        </Fragment>
       )}
     </Stack>
   );
