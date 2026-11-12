@@ -94,7 +94,9 @@ class AutofixSingleRunPrInternalSettings(BaseModel):
     description_suffix: str | None
     # False opens the PR as a draft.
     ready_for_review: bool
+    # Credits pushed commits to this person instead of the Seer bot.
     commit_author: SeerCommitAuthor | None = None
+    # False refuses to overwrite commits on the branch that Seer didn't push.
     allow_force_push: bool = True
 
 
@@ -116,5 +118,7 @@ class AutofixSingleRunFeaturePayload(BaseModel):
     pr_internal_settings: AutofixSingleRunPrInternalSettings | None = None
     existing_run_id: int | None = None
     reply: str | None = None
+    # Marks the reply as a PR feedback turn, so Sentry can close out the iteration when it ends.
     pr_feedback: PrIterationStepArgs | None = None
+    # Shown in the chat in place of the full reply prompt.
     reply_display: str | None = None
