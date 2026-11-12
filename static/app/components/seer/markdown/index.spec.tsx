@@ -159,6 +159,8 @@ describe('SeerMarkdown', () => {
         '/settings/acme/projects/my-proj/keys/',
         '/settings/account/api/auth-tokens/',
         '/organizations/acme/dashboards/new/?project=42',
+        '/organizations/acme/issues/123/',
+        '/organizations/acme/projects/my-proj/',
       ])('links %s in the current tab', path => {
         renderWithRoutes(`[Open](${path})`);
 
@@ -172,6 +174,7 @@ describe('SeerMarkdown', () => {
         '/organizations/acme/not-a-real-page/',
         '/not-a-real-page/foo/',
         '/not-a-real-page/',
+        '/settings/acme/auth-token/',
       ])('renders %s as plain text', path => {
         renderWithRoutes(`See [the page](${path}) here`);
 
@@ -226,6 +229,8 @@ describe('SeerMarkdown', () => {
         ['/settings/acme/projects/my-proj/keys/', '/settings/projects/my-proj/keys/'],
         ['/settings/account/api/auth-tokens/', '/settings/account/api/auth-tokens/'],
         ['/organizations/acme/dashboards/new/?project=42', '/dashboards/new/?project=42'],
+        ['/organizations/acme/issues/123/', '/issues/123/'],
+        ['/organizations/acme/projects/my-proj/', '/projects/my-proj/'],
       ])('links %s as %s', (path, expected) => {
         renderWithRoutes(`[Open](${path})`);
 
@@ -237,6 +242,7 @@ describe('SeerMarkdown', () => {
       it.each([
         '/organizations/acme/not-a-real-page/foo/',
         '/organizations/acme/not-a-real-page/',
+        '/settings/acme/auth-token/',
       ])('renders %s as plain text', path => {
         renderWithRoutes(`See [the page](${path}) here`);
 
