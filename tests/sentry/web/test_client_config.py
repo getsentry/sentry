@@ -3,12 +3,15 @@ from __future__ import annotations
 import urllib.parse
 from collections.abc import Collection
 from typing import Any
+from unittest import mock
 
 import pytest
 from django.conf import settings
 from django.core.cache import cache
+from django.db import connections, router
 from django.http import HttpRequest
 from django.test import override_settings
+from django.test.utils import CaptureQueriesContext
 from django.urls import get_resolver
 
 from sentry import options
@@ -459,3 +462,60 @@ def test_client_config_no_preload_data_on_login_views(path: str) -> None:
     client_config = get_client_config(request)
 
     assert client_config["shouldPreloadData"] is False
+
+
+# Option lookups are excluded from query counts as they are generally cached in production
+# but might not be in tests.
+_OPTION_TABLES = ('"sentry_option"', '"sentry_controloption"')
+
+
+def count_non_option_queries(queries: CaptureQueriesContext) -> int:
+    return sum(
+        not any(f"FROM {table}" in query["sql"] for table in _OPTION_TABLES)
+        for query in queries.captured_queries
+    )
+
+
+def get_client_config_query_counts() -> tuple[int, int]:
+    """
+    Render the client config for a superuser with an active organization, and return
+    the number of (control, cell) queries made.
+    """
+    request, user = make_user_request_from_org()
+    user.update(is_superuser=True)
+    request.user = user
+
+    # Give the superuser org resources so that loading them shows up in the query count.
+    superuser_org = Factories.create_organization()
+    superuser_team = Factories.create_team(superuser_org)
+    Factories.create_project(superuser_org, teams=[superuser_team])
+    cache.clear()
+
+    with (
+        mock.patch("sentry.auth.superuser.SUPERUSER_ORG_ID", superuser_org.id),
+        CaptureQueriesContext(connections[router.db_for_read(User)]) as control_queries,
+        CaptureQueriesContext(connections[router.db_for_read(Organization)]) as cell_queries,
+    ):
+        result = get_client_config(request)
+
+    # Ensure the code paths that issue queries were exercised.
+    assert result["lastOrganization"] == request.session["activeorg"]
+    assert result["links"]["superuserUrl"] == f"http://{superuser_org.slug}.testserver"
+    assert result["user"] is not None
+
+    return count_non_option_queries(control_queries), count_non_option_queries(cell_queries)
+
+
+@no_silo_test
+@django_db_all
+def test_client_config_query_count_monolith() -> None:
+    # Adding queries to client_config adds them to every HTML page that is rendered.
+    # Be careful adding more queries here.
+    assert get_client_config_query_counts() == (10, 6)
+
+
+@control_silo_test(cells=create_test_cells("us", "eu"))
+@django_db_all
+def test_client_config_query_count_control() -> None:
+    # Control mode additionally reads OrganizationMapping to route RPC calls to the cell.
+    assert get_client_config_query_counts() == (12, 6)
