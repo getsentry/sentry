@@ -125,8 +125,10 @@ You can use normal button props like `size`, `priority`, `disabled`, and `busy`.
 
 ## Image Avatars
 
-The button keeps its default styling whatever the avatar's color. Logos that don't
-fill the button frame are automatically inset with padding.
+The button keeps its default styling whatever the avatar's color. When an image has
+transparent edges or corners, as many logos do, the button adds a little space around
+it on a solid background, so the logo doesn't touch the button's border. Images that
+reach every edge, like photos, fill the button.
 
 <Storybook.Demo>
   {[
@@ -197,6 +199,18 @@ fill the button frame are automatically inset with padding.
     />
   ))}
 </Storybook.Demo>
+```jsx
+<AvatarButton
+  aria-label="Firefox"
+  avatar={{
+    type: 'upload',
+    identifier: 'firefox',
+    name: 'Firefox',
+    uploadUrl:
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Mozilla_Firefox_0.8_logo.svg/250px-Mozilla_Firefox_0.8_logo.svg.png',
+  }}
+/>
+```
 
 ## Shape
 
