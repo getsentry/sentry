@@ -44,7 +44,7 @@ from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
-from sentry.utils.snuba import _snuba_pool
+from sentry.utils.snuba import SnubaError, _snuba_pool
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
@@ -299,6 +299,20 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
             create_subscription_in_snuba(sub.id)
             request_body = json.loads(pool.urlopen.call_args[1]["body"])
             assert "type = 'error'" in request_body["query"]
+
+    def test_snuba_error_includes_response_body(self) -> None:
+        sub = self.create_subscription(QuerySubscription.Status.CREATING)
+        with patch("sentry.snuba.tasks._snuba_pool") as pool:
+            resp = Mock()
+            resp.status = 400
+            resp.data = (
+                b'{"error": {"type": "subscription", '
+                b'"message": "Time window must be less than or equal to 24 hours"}}'
+            )
+            pool.urlopen.return_value = resp
+
+            with pytest.raises(SnubaError, match="Time window must be less than or equal"):
+                create_subscription_in_snuba(sub.id)
 
     @responses.activate
     def test_granularity_on_metrics_crash_rate_alerts(self) -> None:
