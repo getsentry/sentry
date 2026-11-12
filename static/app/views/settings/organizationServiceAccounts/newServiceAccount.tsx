@@ -160,36 +160,33 @@ export default function OrganizationServiceAccountsNew() {
         <form.FieldGroup title={t('Project Access')}>
           <form.AppField name="projectAccess">
             {field => (
-              <field.Radio.Group
-                value={field.state.value}
-                onChange={value =>
-                  field.handleChange(value === 'all' ? 'all' : 'specific')
-                }
-              >
-                <field.Layout.Row
-                  label={t('Access')}
-                  hintText={t(
-                    'Service accounts ignore open membership. They reach every project, or only the ones you pick.'
-                  )}
-                >
-                  <Stack gap="md">
-                    <field.Radio.Item
-                      value="specific"
-                      description={t('Only the projects you choose below.')}
-                    >
-                      {t('Specific projects')}
-                    </field.Radio.Item>
-                    <field.Radio.Item
-                      value="all"
-                      description={t(
-                        'Every active project, including ones created later. Needs the Manager or Owner role.'
-                      )}
-                    >
-                      {t('All projects')}
-                    </field.Radio.Item>
-                  </Stack>
-                </field.Layout.Row>
-              </field.Radio.Group>
+              <field.RadioGroup value={field.state.value} onChange={field.handleChange}>
+                {({Item}) => (
+                  <field.Layout.Row
+                    label={t('Access')}
+                    hintText={t(
+                      'Service accounts ignore open membership. They reach every project, or only the ones you pick.'
+                    )}
+                  >
+                    <Stack gap="md">
+                      <Item
+                        value="specific"
+                        description={t('Only the projects you choose below.')}
+                      >
+                        {t('Specific projects')}
+                      </Item>
+                      <Item
+                        value="all"
+                        description={t(
+                          'Every active project, including ones created later. Needs the Manager or Owner role.'
+                        )}
+                      >
+                        {t('All projects')}
+                      </Item>
+                    </Stack>
+                  </field.Layout.Row>
+                )}
+              </field.RadioGroup>
             )}
           </form.AppField>
           <form.Subscribe selector={state => state.values.projectAccess === 'specific'}>
