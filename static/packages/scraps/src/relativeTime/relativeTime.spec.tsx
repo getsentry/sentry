@@ -1,6 +1,7 @@
 import type * as React from 'react';
 import {ThemeProvider} from '@emotion/react';
-import {render, screen} from '@testing-library/react';
+import {act, render, screen} from '@testing-library/react';
+import moment from 'moment-timezone';
 
 import {
   configureFormatting,
@@ -37,9 +38,21 @@ function renderInTimezone(
 }
 
 describe('RelativeTime', () => {
+  let restore: () => void;
   beforeEach(() => {
     jest.useFakeTimers().setSystemTime(new Date('2026-09-01T00:00:00Z'));
+    const snapshot = {
+      ...getSnapshot(),
+      getTimezoneAbbreviation: (epochMilliseconds: number, timezone: string) =>
+        moment.tz.zone(timezone)?.abbr(epochMilliseconds),
+    };
+    restore = configureFormatting({
+      getSnapshot: () => snapshot,
+      subscribe: () => () => {},
+    });
   });
+
+  afterEach(() => act(() => restore()));
 
   it('renders the label and relative time in the header', () => {
     renderInTimezone(

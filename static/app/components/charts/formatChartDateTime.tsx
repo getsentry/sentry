@@ -1,7 +1,10 @@
 import {Temporal} from '@js-temporal/polyfill';
-import moment from 'moment-timezone';
 
-import type {DateTimeInput, DateTimePreferences} from '@sentry/scraps/dateTime';
+import {
+  formatTimezone,
+  type DateTimeInput,
+  type DateTimePreferences,
+} from '@sentry/scraps/dateTime';
 
 import {getLocaleSnapshot} from 'sentry/locale';
 import {getUserTimezone, shouldUse24Hours} from 'sentry/utils/dates';
@@ -59,13 +62,7 @@ export function formatChartDateTime(
       return formatYear();
     }
     if (style === 'timezone') {
-      return (
-        moment.tz.zone(timezone)?.abbr(value.epochMilliseconds) ??
-        new Intl.DateTimeFormat(locale, {...base, timeZoneName: 'short'})
-          .formatToParts(value.epochMilliseconds)
-          .find(part => part.type === 'timeZoneName')?.value ??
-        ''
-      );
+      return formatTimezone(value.epochMilliseconds, timezone);
     }
     if (style === 'replayTime') {
       const parts = new Intl.DateTimeFormat(locale, {

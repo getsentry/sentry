@@ -5,6 +5,7 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {DateTime, formatDateTime, useClock, useTimezone} from '@sentry/scraps/dateTime';
 
+import {formatChartDateTime} from 'sentry/components/charts/formatChartDateTime';
 import {ConfigStore} from 'sentry/stores/configStore';
 
 describe('shared date configuration', () => {
@@ -70,6 +71,17 @@ describe('shared date configuration', () => {
     render(<ShowClockDisplay />);
 
     expect(screen.getByText('12 hour clock')).toBeInTheDocument();
+  });
+
+  it('shares existing timezone abbreviations across dates and charts as preferences change', () => {
+    const date = '2026-01-01T00:00:00Z';
+    setConfigStoreUser({timezone: 'Australia/Sydney'});
+    render(<DateTime date={date} mode="time" showTimezone />);
+    expect(screen.getByText('11:00 AM AEDT')).toBeInTheDocument();
+    expect(formatChartDateTime(date, 'timezone')).toBe('AEDT');
+    setConfigStoreUser({timezone: 'Europe/London'});
+    expect(screen.getByText('12:00 AM GMT')).toBeInTheDocument();
+    expect(formatChartDateTime(date, 'timezone')).toBe('GMT');
   });
 });
 

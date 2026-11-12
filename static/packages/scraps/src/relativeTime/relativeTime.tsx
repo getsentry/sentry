@@ -89,7 +89,7 @@ export function RelativeTime({
   const snapshot = useFormattingSnapshot();
   const value = parseDate(date, snapshot.timezone);
   const abbreviation = value
-    ? formatTimezone(value.epochMilliseconds, snapshot.timezone, snapshot.locale)
+    ? formatTimezone(value.epochMilliseconds, snapshot.timezone, snapshot)
     : 'Invalid date';
   // Zones that resolve to UTC itself would render the second row identically to
   // the first. Zones that merely share its offset right now (GMT, and BST's

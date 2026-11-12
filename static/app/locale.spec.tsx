@@ -1,6 +1,7 @@
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {formatTimezone} from '@sentry/scraps/dateTime';
 import {getDuration} from '@sentry/scraps/duration';
 import {getRelativeDate, useRelativeTimeFormatter} from '@sentry/scraps/relativeTime';
 
@@ -152,6 +153,18 @@ describe('shared formatter translations', () => {
     );
     expect(screen.getByText('۱ ژانویه ۲۰۲۵')).toBeInTheDocument();
     expect(screen.getByText('۲ ژانویه ۲۰۲۵')).toBeInTheDocument();
+  });
+
+  it('preserves localized numeric timezone labels from the application source', () => {
+    setLocale({
+      ...DEFAULT_LOCALE_DATA,
+      '': {...DEFAULT_LOCALE_DATA[''], lang: 'fa'},
+    });
+    const date = '2025-01-01T00:00:00Z';
+    expect(formatTimezone(Date.parse(date), 'Asia/Kathmandu')).toBe('+۰۵۴۵');
+    expect(formatChartDateTime(date, 'timezone', {timezone: 'Asia/Kathmandu'})).toBe(
+      '+۰۵۴۵'
+    );
   });
 
   it('keeps plural count formatting and catalog bindings consistent', () => {
