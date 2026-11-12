@@ -95,6 +95,7 @@ class AutofixSingleRunPrInternalSettings(BaseModel):
     # False opens the PR as a draft.
     ready_for_review: bool
     commit_author: SeerCommitAuthor | None = None
+    allow_force_push: bool = True
 
 
 class AutofixSingleRunFeaturePayload(BaseModel):

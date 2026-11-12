@@ -248,7 +248,9 @@ def continue_single_run_from_pr_feedback(
         user=None,
         enable_coding=enable_coding,
         pr_internal_settings=(
-            _single_run_pr_internal_settings(group, referrer, commit_author)
+            _single_run_pr_internal_settings(group, referrer, commit_author).copy(
+                update={"allow_force_push": False}
+            )
             if enable_coding
             else None
         ),

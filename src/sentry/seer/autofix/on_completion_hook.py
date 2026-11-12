@@ -35,6 +35,7 @@ from sentry.seer.autofix.feature.models import LEGACY_FEATURE_ID as LEGACY_AUTOF
 from sentry.seer.autofix.pr_iteration.completion import (
     complete_single_run_pr_iteration,
     continue_pr_iteration,
+    drain_single_run_feedback_queue,
     fail_pr_iteration,
     fail_pr_iteration_missing_group,
     is_pr_feedback_turn,
@@ -236,11 +237,14 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         group = cls._fetch_group(organization, run_id, group_id)
         if group is None:
             return
-        if is_pr_feedback_turn(state) and state.status == "completed":
-            complete_single_run_pr_iteration(organization, group, run_id, state)
-            cls._log_reaction_outcomes(
-                organization, run_id, react_to_completed_iteration(organization, run_id, state)
-            )
+        if state.status == "completed":
+            if is_pr_feedback_turn(state):
+                complete_single_run_pr_iteration(organization, group, run_id, state)
+                cls._log_reaction_outcomes(
+                    organization, run_id, react_to_completed_iteration(organization, run_id, state)
+                )
+            else:
+                drain_single_run_feedback_queue(organization, group, run_id, state)
         paused = state.status == "awaiting_user_input"
         if not cls._run_completed(organization, run_id, state) and not paused:
             if state.status == "error":

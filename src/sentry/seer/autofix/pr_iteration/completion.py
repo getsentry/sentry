@@ -38,6 +38,7 @@ from sentry.seer.autofix.pr_iteration.pr_state import (
     iteration_prs_any_closed,
     record_pr_closed,
 )
+from sentry.seer.autofix.pr_iteration.queue import count_queued_autofix_feedback
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.autofix.pr_ready_for_review import format_pull_requests_payload
 from sentry.seer.autofix.steps import AutofixStep
@@ -339,7 +340,7 @@ def complete_single_run_pr_iteration(
     state: SeerRunState,
 ) -> None:
     log_ctx = iteration_log_context(organization, group, state)
-    outcome = _single_run_iteration_outcome(log_ctx, state)
+    outcome = _single_run_iteration_outcome(log_ctx, group, run_id, state)
     if outcome is None:
         return
     if outcome in (PrIterationOutcome.ALREADY_PUSHED, PrIterationOutcome.NO_CODE_CHANGES):
@@ -352,8 +353,17 @@ def complete_single_run_pr_iteration(
     )
 
 
+def drain_single_run_feedback_queue(
+    organization: Organization, group: Group, run_id: int, state: SeerRunState
+) -> None:
+    if count_queued_autofix_feedback(run_id):
+        consume_queued_feedback(
+            iteration_log_context(organization, group, state), organization, run_id
+        )
+
+
 def _single_run_iteration_outcome(
-    log_ctx: PrIterationLogContext, state: SeerRunState
+    log_ctx: PrIterationLogContext, group: Group, run_id: int, state: SeerRunState
 ) -> PrIterationOutcome | None:
     if not state.repo_pr_states:
         return PrIterationOutcome.NO_PULL_REQUEST
@@ -362,10 +372,16 @@ def _single_run_iteration_outcome(
     _, is_synced = state.has_code_changes()
     if is_synced:
         return PrIterationOutcome.ALREADY_PUSHED
-    # The agent's own push is still running; its completion calls this hook again.
+    # A running push, ours or the agent's, calls this hook again when it finishes.
     if any(pr.pr_creation_status == "creating" for pr in state.repo_pr_states.values()):
         return None
-    return PrIterationOutcome.PR_CREATION_ERRORED
+    if iteration_terminal_errored_repos(state):
+        return PrIterationOutcome.PR_CREATION_ERRORED
+    if _push_iteration_changes(
+        log_ctx, group, run_id, state, author=_iteration_commit_author(state)
+    ):
+        return None
+    return PrIterationOutcome.PUSH_FAILED
 
 
 @traces.trace
