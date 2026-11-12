@@ -226,14 +226,13 @@ def test_powershell_claim_url_is_a_literal_string() -> None:
 def test_onboarding_preview_uses_live_documentation() -> None:
     guide = render(flow_instructions=get_flow(HandoffFlow.ONBOARDING).preview())
     assert "You're onboarding a new user to Sentry" in guide
-    assert "https://docs.sentry.io/index.md" in guide
+    assert "Fetch https://docs.sentry.io/ai/agent-setup/get-started.md with `curl -sS`" in guide
 
 
 def test_create_project_preview_uses_project_wording() -> None:
     guide = render(flow_instructions=get_flow(HandoffFlow.CREATE_PROJECT).preview())
     assert "helping an existing Sentry user set up a new project" in guide
-    assert "https://docs.sentry.io/index.md" in guide
-    assert "(https://docs.sentry.io/ai/agent-setup/get-started.md)" in guide
+    assert "Fetch https://docs.sentry.io/ai/agent-setup/get-started.md with `curl -sS`" in guide
 
 
 @pytest.mark.parametrize("sentry_url", ["sentry.io", "https://sentry.io", "https://sentry.io/"])
@@ -267,8 +266,7 @@ def test_onboarding_claim_issues_reporting_code() -> None:
     assert "Your onboarding run code is `a1B2c3D4e5`" in guide
     assert "using the organization slug above" in guide
     assert "guide's Onboarding Progress section" in guide
-    assert "https://docs.sentry.io/index.md" in guide
-    assert "(https://docs.sentry.io/ai/agent-setup/get-started.md)" in guide
+    assert "Fetch https://docs.sentry.io/ai/agent-setup/get-started.md with `curl -sS`" in guide
 
 
 def test_create_project_claim_issues_reporting_code() -> None:
@@ -286,7 +284,7 @@ def test_create_project_claim_issues_reporting_code() -> None:
     issue.assert_called_once_with(organization_id=2, user_id=1, run_id=context.run_id)
     assert "helping an existing Sentry user set up a new project" in guide
     assert "Your onboarding run code is `a1B2c3D4e5`" in guide
-    assert "(https://docs.sentry.io/ai/agent-setup/get-started.md)" in guide
+    assert "Fetch https://docs.sentry.io/ai/agent-setup/get-started.md with `curl -sS`" in guide
 
 
 def test_create_project_claim_rejects_unavailable_run() -> None:
