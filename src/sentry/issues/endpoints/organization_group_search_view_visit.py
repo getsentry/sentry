@@ -14,7 +14,7 @@ from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.organization import Organization
 
 
-class MemberPermission(OrganizationPermission):
+class GroupSearchViewVisitPermission(OrganizationPermission):
     scope_map = {
         "POST": ["org:read", "member:read", "user_preference:write"],
     }
@@ -30,7 +30,7 @@ class OrganizationGroupSearchViewVisitEndpoint(OrganizationEndpoint):
     }
     owner = ApiOwner.ISSUES
     max_acceptable_duration = DEFAULT_DURATION_BUDGET
-    permission_classes = (MemberPermission,)
+    permission_classes = (GroupSearchViewVisitPermission,)
 
     def post(self, request: Request, organization: Organization, view_id: str) -> Response:
         """

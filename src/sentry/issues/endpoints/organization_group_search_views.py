@@ -37,7 +37,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 
 
-class MemberPermission(OrganizationPermission):
+class GroupSearchViewsPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read", "member:read", "member:write", "saved_query:read"],
         "POST": ["org:read", "member:read", "member:write", "saved_query:write"],
@@ -101,7 +101,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
     idempotent_methods = frozenset()
     owner = ApiOwner.ISSUES
     max_acceptable_duration = DEFAULT_DURATION_BUDGET
-    permission_classes = (MemberPermission,)
+    permission_classes = (GroupSearchViewsPermission,)
 
     @extend_schema(
         operation_id="listOrganizationIssueViews",
