@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q, QuerySet
@@ -38,6 +38,12 @@ from sentry.seer.autofix.feature.models import (
     RCAStepArgs,
     SolutionStepArgs,
 )
+from sentry.seer.autofix.pr_iteration.display import pr_feedback_display
+from sentry.seer.autofix.pr_iteration.feedback import (
+    Feedback,
+    feedback_text,
+    serialize_feedback,
+)
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
@@ -50,9 +56,6 @@ from sentry.seer.models.seer_api_models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPer
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
-
-if TYPE_CHECKING:
-    from sentry.seer.autofix.pr_iteration.feedback import Feedback
 
 logger = logging.getLogger(__name__)
 
@@ -236,9 +239,6 @@ def continue_single_run_from_pr_feedback(
     pr_number: int | None,
     referrer: AutofixReferrer,
 ) -> SeerRun:
-    from sentry.seer.autofix.pr_iteration.display import pr_feedback_display
-    from sentry.seer.autofix.pr_iteration.feedback import feedback_text, serialize_feedback
-
     check_autofix_billing(
         group.organization,
         SeerOperation.AUTOFIX_PR_ITERATION,
