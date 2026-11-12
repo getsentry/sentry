@@ -238,3 +238,20 @@ class ExecutorStateTest(TestCase):
         assert (self.upstream, "upstreamlater") in executor_state.models
         assert (self.upstream, "upstreamlater") not in graph_state.models
         assert executor_state.apps.get_model(self.upstream, "UpstreamLater")
+
+
+def test_pending_m2m_field_whose_through_model_was_deleted_first() -> None:
+    state = _state_with_m2m_through()
+    _migration(
+        SafeRemoveField(
+            model_name="parent", name="children", deletion_action=DeletionAction.MOVE_TO_PENDING
+        ),
+        SafeDeleteModel(name="Link", deletion_action=DeletionAction.MOVE_TO_PENDING),
+        SafeDeleteModel(name="Link", deletion_action=DeletionAction.DELETE),
+    ).mutate_state(state, preserve=False)
+
+    field = state.get_pending_deletion_field("fakeapp", "parent", "children")
+    assert isinstance(field, models.ManyToManyField)
+    through = field.remote_field.through
+    assert through is not None
+    assert through._meta.db_table == "fakeapp_link"

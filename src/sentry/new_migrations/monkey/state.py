@@ -99,6 +99,12 @@ class SentryProjectState(ProjectState):
         field_keys = list(field_keys)
         to_add: dict[tuple[str, str], ModelState] = {}
 
+        def visit_relations(field: Field[object, object], key: tuple[str, str]) -> None:
+            if (remote_field := field.remote_field) is not None:
+                visit(resolve_relation(remote_field.model, *key))
+                if (through := getattr(remote_field, "through", None)) is not None:
+                    visit(resolve_relation(through, *key))
+
         def visit(key: tuple[str, str]) -> None:
             if key in self.models or key in to_add:
                 return
@@ -107,13 +113,13 @@ class SentryProjectState(ProjectState):
                 return
             to_add[key] = model_state
             for field in model_state.fields.values():
-                if (remote_field := field.remote_field) is not None:
-                    visit(resolve_relation(remote_field.model, *key))
-                    if (through := getattr(remote_field, "through", None)) is not None:
-                        visit(resolve_relation(through, *key))
+                visit_relations(field, key)
 
-        for model_key in [*model_keys, *(key[:2] for key in field_keys)]:
+        for model_key in model_keys:
             visit(model_key)
+        for field_key in field_keys:
+            visit(field_key[:2])
+            visit_relations(self.pending_deletion_fields[field_key], field_key[:2])
 
         # Render this state once so the copy clones its registry and only re-renders the
         # models related to what's added back.
