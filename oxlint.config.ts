@@ -862,6 +862,31 @@ const config = defineConfig({
       },
     },
     {
+      // Core component tests may use `color` like the components they test.
+      files: ['static/app/components/core/**/*.spec.{ts,js,tsx,jsx}'],
+      rules: {
+        'no-restricted-imports': [
+          'error',
+          {
+            patterns: [
+              ...restrictedImportPatterns,
+              {
+                group: ['csstype', 'csstype/*'],
+                message: CSS_TYPES_MESSAGE,
+              },
+            ],
+            paths: [
+              ...restrictedImportPaths.filter(({name}) => name !== 'color'),
+              {
+                name: 'sentry/locale',
+                message: 'Translations are not needed in tests.',
+              },
+            ],
+          },
+        ],
+      },
+    },
+    {
       files: [
         'static/packages/scraps/src/**/*.spec.tsx',
         'static/packages/scraps/test/**/*.{ts,tsx,mjs}',
