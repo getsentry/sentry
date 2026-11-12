@@ -4,6 +4,7 @@ const valid = {
   datetime: {period: '7d', start: null, end: null, utc: null},
   groupBys: [''],
   projects: [1],
+  transformations: [],
   yAxisCount: 1,
 };
 
@@ -45,5 +46,17 @@ describe('getAnomalyDetectionDisabledReason', () => {
         datetime: {period: '3m', start: null, end: null, utc: null},
       })
     ).toBe('Select a time range of at least 5 minutes');
+  });
+
+  it('disables with smoothing but allows a fill', () => {
+    expect(
+      getAnomalyDetectionDisabledReason({
+        ...valid,
+        transformations: ['fill(linear)', 'smooth(sma,3)'],
+      })
+    ).toBe('Remove smoothing to detect anomalies');
+    expect(
+      getAnomalyDetectionDisabledReason({...valid, transformations: ['fill(locf)']})
+    ).toBeNull();
   });
 });

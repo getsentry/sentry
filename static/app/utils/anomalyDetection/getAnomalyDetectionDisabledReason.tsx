@@ -3,6 +3,8 @@ import {getDiffInMinutes} from 'sentry/components/charts/utils';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {t} from 'sentry/locale';
 
+import {hasSmoothing} from './anomalyTransformations';
+
 /**
  * Seer's smallest interval. A shorter range wouldn't have a single bucket.
  */
@@ -12,6 +14,10 @@ interface AnomalyDetectionChartState {
   datetime: DateTimeObject;
   groupBys: readonly string[];
   projects: readonly number[];
+  /**
+   * The chart's fill and smooth transformations
+   */
+  transformations: readonly string[];
   /**
    * Number of aggregate functions plotted on the chart
    */
@@ -27,6 +33,7 @@ export function getAnomalyDetectionDisabledReason({
   datetime,
   groupBys,
   projects,
+  transformations,
   yAxisCount,
 }: AnomalyDetectionChartState): string | null {
   // An empty selection means "My Projects", which can be several projects.
@@ -41,6 +48,9 @@ export function getAnomalyDetectionDisabledReason({
   }
   if (getDiffInMinutes(datetime) < MIN_RANGE_MINUTES) {
     return t('Select a time range of at least 5 minutes');
+  }
+  if (hasSmoothing(transformations)) {
+    return t('Remove smoothing to detect anomalies');
   }
   return null;
 }

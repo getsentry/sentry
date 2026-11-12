@@ -149,6 +149,7 @@ describe('every time range and interval', () => {
           datetime,
           groupBys: [''],
           projects: [1],
+          transformations: [],
           yAxisCount: 1,
         })
       ).toBeNull();
@@ -201,20 +202,45 @@ describe('getAnomalyAggregate', () => {
 });
 
 describe('timeSeriesToAnomalyDataPoints', () => {
-  it('converts to seconds, sorts, fills nulls with 0 and drops incomplete buckets', () => {
+  it('converts to seconds, sorts, fills counts with 0 and drops incomplete buckets', () => {
     expect(
-      timeSeriesToAnomalyDataPoints([
-        TimeSeriesFixture({
-          values: [
-            {timestamp: 2_000_000, value: null},
-            {timestamp: 1_000_000, value: 4},
-            {timestamp: 3_000_000, value: 9, incomplete: true},
-          ],
-        }),
-      ])
+      timeSeriesToAnomalyDataPoints(
+        [
+          TimeSeriesFixture({
+            values: [
+              {timestamp: 2_000_000, value: null},
+              {timestamp: 1_000_000, value: 4},
+              {timestamp: 3_000_000, value: 9, incomplete: true},
+            ],
+          }),
+        ],
+        'count(span.duration)'
+      )
     ).toEqual([
       [1000, {count: 4}],
       [2000, {count: 0}],
+    ]);
+  });
+
+  it('carries the last value forward for functions where empty is not zero', () => {
+    expect(
+      timeSeriesToAnomalyDataPoints(
+        [
+          TimeSeriesFixture({
+            values: [
+              {timestamp: 1_000_000, value: null},
+              {timestamp: 2_000_000, value: 120},
+              {timestamp: 3_000_000, value: null},
+              {timestamp: 4_000_000, value: 80},
+            ],
+          }),
+        ],
+        'p95(span.duration)'
+      )
+    ).toEqual([
+      [2000, {count: 120}],
+      [3000, {count: 120}],
+      [4000, {count: 80}],
     ]);
   });
 });
@@ -275,6 +301,36 @@ describe('useExploreAnomalies', () => {
       })
     );
     expect(request.mock.calls[0][1].query.topEvents).toBeUndefined();
+  });
+
+  it("applies the chart's fill but not its smoothing to the scored series", async () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      body: {timeSeries: [], meta: {dataset: 'spans', start: 0, end: 0}},
+    });
+
+    renderHookWithProviders(
+      () =>
+        useExploreAnomalies({
+          enabled: true,
+          extrapolate: true,
+          isMainChartLoaded: true,
+          query: '',
+          visualize: new VisualizeFunction('p95(span.duration)', {
+            transformations: ['fill(linear)', 'smooth(sma,3)'],
+          }),
+        }),
+      {
+        organization: OrganizationFixture({
+          features: ['explore-interpolation-and-smoothing'],
+        }),
+      }
+    );
+
+    await waitFor(() => expect(request).toHaveBeenCalled());
+    expect(request.mock.calls[0][1].query['transformations[0]']).toEqual([
+      'fill(linear)',
+    ]);
   });
 
   it('scores a long, coarse chart at 1h over its last 28 days', async () => {

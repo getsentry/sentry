@@ -130,6 +130,29 @@ function formatTransformation(value: Transformation): string {
 
 type SmoothTransformation = Extract<Transformation, {kind: 'smooth'}>;
 
+/**
+ * Smoothing can't be on together with anomalies, since it hides the spikes and
+ * dips they're detected from.
+ */
+const SMOOTH_DISABLED_WITH_ANOMALIES = t('Remove anomalies to smooth');
+
+function getKindOptions({
+  anomaliesEnabled,
+  usedKinds,
+}: {
+  anomaliesEnabled: boolean;
+  usedKinds: ReadonlyArray<string | undefined>;
+}): Array<SelectOption<Transformation['kind']>> {
+  return KIND_OPTIONS.map(option => {
+    const blockedByAnomalies = anomaliesEnabled && option.value === 'smooth';
+    return {
+      ...option,
+      disabled: blockedByAnomalies || usedKinds.includes(option.value),
+      details: blockedByAnomalies ? SMOOTH_DISABLED_WITH_ANOMALIES : undefined,
+    };
+  });
+}
+
 const SMOOTH_DEFAULTS: Record<SmoothMethod, SmoothTransformation> = {
   sma: {kind: 'smooth', method: 'sma', window: 3},
   ema: {kind: 'smooth', method: 'ema', window: 10},
@@ -147,6 +170,10 @@ interface Props {
 }
 
 interface TransformationRowsProps extends Props {
+  /**
+   * Whether anomalies are on for the chart, which rules out smoothing
+   */
+  anomaliesEnabled?: boolean;
   gap?: SpaceSize;
   layout?: TransformationLayout;
   size?: FormSize;
@@ -160,6 +187,7 @@ export function VisualizeTransformationRows({
   layout = 'stacked',
   size = 'md',
   analyticsSource = 'explore',
+  anomaliesEnabled = false,
 }: TransformationRowsProps) {
   const organization = useOrganization();
 
@@ -171,6 +199,7 @@ export function VisualizeTransformationRows({
           <TransformationRow
             key={`${parseFunction(raw)?.name ?? 'unsupported'}-${index}`}
             transformation={transformation}
+            kindOptions={getKindOptions({anomaliesEnabled, usedKinds: []})}
             index={index}
             traceItemDataset={traceItemDataset}
             analyticsSource={analyticsSource}
@@ -268,10 +297,10 @@ export function AddTransformationButton({
   anomalies,
 }: AddTransformationButtonProps) {
   const organization = useOrganization();
-  const kindOptions: Array<SelectOption<string>> = KIND_OPTIONS.map(option => ({
-    ...option,
-    disabled: transformations.some(raw => parseFunction(raw)?.name === option.value),
-  }));
+  const kindOptions: Array<SelectOption<string>> = getKindOptions({
+    anomaliesEnabled: anomalies?.enabled ?? false,
+    usedKinds: transformations.map(raw => parseFunction(raw)?.name),
+  });
   if (anomalies) {
     kindOptions.push({
       value: ANOMALIES_OPTION_VALUE,
@@ -368,6 +397,7 @@ export function AnomaliesTransformationRow({anomalies}: AnomaliesTransformationR
 interface TransformationRowProps {
   analyticsSource: TransformationAnalyticsSource;
   index: number;
+  kindOptions: Array<SelectOption<Transformation['kind']>>;
   layout: TransformationLayout;
   onChange: (value: Transformation) => void;
   onRemove: () => void;
@@ -380,6 +410,7 @@ interface TransformationRowProps {
 function TransformationRow({
   analyticsSource,
   index,
+  kindOptions,
   layout,
   onChange,
   onRemove,
@@ -421,7 +452,7 @@ function TransformationRow({
             <PageFilterBar condensed size={size}>
               <CompactSelect
                 size={size}
-                options={KIND_OPTIONS}
+                options={kindOptions}
                 value={transformation.kind}
                 trigger={props => (
                   <OverlayTrigger.Button

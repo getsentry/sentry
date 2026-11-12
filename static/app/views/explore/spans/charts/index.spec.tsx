@@ -866,4 +866,89 @@ describe('ExploreCharts', () => {
       await screen.findByText('Aggregates cannot be used in conditional filters')
     ).toBeInTheDocument();
   });
+
+  describe('anomalies', () => {
+    const organization = OrganizationFixture({
+      features: ['explore-interpolation-and-smoothing'],
+    });
+
+    function emptyResultFor(yAxis: string) {
+      return timeseriesResultFixture({
+        data: {[yAxis]: [TimeSeriesFixture({yAxis, values: []})]},
+      });
+    }
+
+    function AnomalyCharts({yAxis}: {yAxis: string}) {
+      const visualizes = useMemo(() => [new VisualizeFunction(yAxis)], [yAxis]);
+      const timeseriesResult = useMemo(() => emptyResultFor(yAxis), [yAxis]);
+      return (
+        <SpansQueryParamsProvider>
+          <ChartSelectionProvider>
+            <ExploreCharts
+              extrapolate
+              query=""
+              timeseriesResult={timeseriesResult}
+              visualizes={visualizes}
+              setVisualizes={() => {}}
+              rawSpanCounts={{
+                total: {count: 0, isLoading: false},
+                normal: {count: 0, isLoading: false},
+              }}
+            />
+          </ChartSelectionProvider>
+        </SpansQueryParamsProvider>
+      );
+    }
+
+    beforeEach(() => {
+      PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [2]}));
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-timeseries/`,
+        body: {timeSeries: [], meta: {dataset: 'spans', start: 0, end: 0}},
+      });
+    });
+
+    afterEach(() => {
+      PageFiltersStore.reset();
+      MockApiClient.clearMockResponses();
+    });
+
+    it('keeps anomalies on when the function or attribute changes', async () => {
+      const {rerender} = render(<AnomalyCharts yAxis="p50(span.duration)" />, {
+        organization,
+      });
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Add Transformation'})
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'Anomalies'}));
+      expect(screen.getByRole('group', {name: 'Anomalies'})).toBeInTheDocument();
+
+      rerender(<AnomalyCharts yAxis="p75(span.duration)" />);
+      expect(await screen.findByRole('group', {name: 'Anomalies'})).toBeInTheDocument();
+
+      rerender(<AnomalyCharts yAxis="p75(span.self_time)" />);
+      expect(await screen.findByRole('group', {name: 'Anomalies'})).toBeInTheDocument();
+    });
+
+    it('disables smoothing while anomalies are on', async () => {
+      render(<AnomalyCharts yAxis="p50(span.duration)" />, {organization});
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Add Transformation'})
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'Anomalies'}));
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add Transformation'}));
+      expect(screen.getByRole('option', {name: /Smooth/})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+      expect(screen.getByText('Remove anomalies to smooth')).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Fill'})).not.toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
+  });
 });

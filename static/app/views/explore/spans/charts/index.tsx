@@ -166,6 +166,24 @@ export function ExploreCharts({
   // Aggregates selected together in the toolbar share a chart and Y axis.
   const chartGroups = useMemo(() => groupVisualizes(visualizes), [visualizes]);
 
+  // Each chart remounts when its function or attribute changes (see its key),
+  // so whether it shows anomalies is kept here, by chart position, to survive
+  // that swap.
+  const [anomalyChartIndices, setAnomalyChartIndices] = useState<ReadonlySet<number>>(
+    () => new Set()
+  );
+  function setShowAnomalies(index: number, show: boolean) {
+    setAnomalyChartIndices(current => {
+      const next = new Set(current);
+      if (show) {
+        next.add(index);
+      } else {
+        next.delete(index);
+      }
+      return next;
+    });
+  }
+
   useSynchronizeCharts(
     chartGroups.length,
     !timeseriesResult.isPending,
@@ -187,11 +205,13 @@ export function ExploreCharts({
               index={group.index}
               onChartTypeChange={chartType => updateVisualizes(indices, {chartType})}
               onChartVisibilityChange={visible => updateVisualizes(indices, {visible})}
+              onShowAnomaliesChange={show => setShowAnomalies(group.index, show)}
               onTransformationsChange={transformations =>
                 updateVisualizes(indices, {transformations})
               }
               query={query}
               queryExtras={queryExtras}
+              showAnomalies={anomalyChartIndices.has(group.index)}
               timeseriesResult={timeseriesResult}
               visualizes={group.visualizes}
               samplingMode={samplingMode}
@@ -294,9 +314,14 @@ interface ChartProps {
   index: number;
   onChartTypeChange: (chartType: ChartType) => void;
   onChartVisibilityChange: (visible: boolean) => void;
+  onShowAnomaliesChange: (show: boolean) => void;
   onTransformationsChange: (transformations: readonly string[]) => void;
   query: string;
   rawSpanCounts: RawCounts;
+  /**
+   * Whether anomalies are turned on for this chart
+   */
+  showAnomalies: boolean;
   timeseriesResult: SortedTimeSeries;
   /**
    * The visualizes plotted on this chart.
@@ -312,10 +337,12 @@ function Chart({
   index,
   onChartTypeChange,
   onChartVisibilityChange,
+  onShowAnomaliesChange,
   onTransformationsChange,
   query,
   queryExtras,
   rawSpanCounts,
+  showAnomalies,
   visualizes,
   timeseriesResult,
   samplingMode,
@@ -340,11 +367,11 @@ function Chart({
   const dataset = useSpansDataset();
   const droppedData = useDroppedDataLayer({dataset, interval});
 
-  const [showAnomalies, setShowAnomalies] = useState(false);
   const anomaliesDisabledReason = getAnomalyDetectionDisabledReason({
     datetime: selection.datetime,
     groupBys,
     projects: selection.projects,
+    transformations: visualize.transformations,
     yAxisCount: visualizes.length,
   });
 
@@ -397,7 +424,7 @@ function Chart({
   });
   const anomalies: AnomaliesToggle = {
     enabled: showAnomalies,
-    onChange: setShowAnomalies,
+    onChange: onShowAnomaliesChange,
     disabledReason: anomaliesDisabledReason,
     note: ANOMALY_STATUS_NOTES[detectedAnomalies.status],
     warning: getAnomalyScoringWarning(detectedAnomalies.plan, interval) ?? undefined,
@@ -656,6 +683,7 @@ function Chart({
               transformations={visualize.transformations}
               layout="inline"
               onChange={onTransformationsChange}
+              anomaliesEnabled={anomalies.enabled}
             />
             {anomalies.enabled ? (
               <AnomaliesTransformationRow anomalies={anomalies} />

@@ -11,6 +11,10 @@ import type {
   EventAnomalyPayload,
 } from 'sentry/utils/anomalyDetection/anomalyDetectionPayload';
 import {
+  getAnomalyTransformations,
+  isZeroWhenEmpty,
+} from 'sentry/utils/anomalyDetection/anomalyTransformations';
+import {
   getAnomalyScoringPlan,
   type AnomalyScoringPlan,
 } from 'sentry/utils/anomalyDetection/getAnomalyScoringPlan';
@@ -101,15 +105,33 @@ export const SETTLE_WAIT_MS = 1000;
  * Converts Explore time series into the endpoint's data points. Incomplete
  * buckets (e.g. the one still filling up) are dropped so a partial bucket isn't
  * flagged as a drop.
+ *
+ * Seer needs a value in every bucket. Buckets the chart's fill left empty are
+ * zero for counts and sums. For other functions (averages, percentiles, ...) an
+ * empty bucket means "no data", so the last value is carried forward instead
+ * of making quiet periods look like drops to 0, and empty buckets before the
+ * first value are dropped.
  */
 export function timeSeriesToAnomalyDataPoints(
-  timeSeries: readonly TimeSeries[]
+  timeSeries: readonly TimeSeries[],
+  yAxis: string
 ): AnomalyDataPoint[] {
-  const values = timeSeries[0]?.values ?? [];
-  return values
+  const zeroWhenEmpty = isZeroWhenEmpty(yAxis);
+  const values = (timeSeries[0]?.values ?? [])
     .filter(item => !item.incomplete)
-    .map((item): AnomalyDataPoint => [item.timestamp / 1000, {count: item.value ?? 0}])
-    .sort(([a], [b]) => a - b);
+    .toSorted((a, b) => a.timestamp - b.timestamp);
+
+  const points: AnomalyDataPoint[] = [];
+  let lastValue: number | null = null;
+  for (const item of values) {
+    const value: number | null = item.value ?? (zeroWhenEmpty ? 0 : lastValue);
+    if (value === null) {
+      continue;
+    }
+    lastValue = value;
+    points.push([item.timestamp / 1000, {count: value}]);
+  }
+  return points;
 }
 
 /**
@@ -163,8 +185,11 @@ export function useExploreAnomalies({
     [selection.datetime, plan]
   );
 
+  // Only the chart's fill is applied to what Seer scores. Smoothing turns
+  // anomalies off (see `getAnomalyDetectionDisabledReason`).
   const transformations = useMemo(
-    () => (transformationsEnabled ? visualize.transformations : []),
+    () =>
+      transformationsEnabled ? getAnomalyTransformations(visualize.transformations) : [],
     [transformationsEnabled, visualize.transformations]
   );
 
@@ -238,8 +263,12 @@ export function useExploreAnomalies({
   const isSettled = settledCacheKey === cacheKey;
 
   const {currentData, historicalData} = useMemo(
-    () => splitAnomalyDataPoints(timeSeriesToAnomalyDataPoints(fetchedTimeSeries), plan),
-    [fetchedTimeSeries, plan]
+    () =>
+      splitAnomalyDataPoints(
+        timeSeriesToAnomalyDataPoints(fetchedTimeSeries, visualize.yAxis),
+        plan
+      ),
+    [fetchedTimeSeries, plan, visualize.yAxis]
   );
 
   const canDetect =
