@@ -14,7 +14,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
 from rest_framework.request import Request
 
-from sentry import options
+from sentry import analytics, options
+from sentry.analytics.events.oauth_setup_code import OAuthSetupCodeRedeemedEvent
 from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError, outbox_context
 from sentry.locks import locks
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
@@ -703,17 +704,28 @@ class OAuthTokenView(View):
             # The code is consumed by any redemption attempt, including an expired one.
             setup_code_id = setup_code.id
             setup_code.delete()
-            if setup_code.is_expired():
-                return self.error(
-                    request=request, name="invalid_grant", reason="setup code expired"
+            token = (
+                None
+                if setup_code.is_expired()
+                else ApiToken.objects.create(
+                    application=application,
+                    user_id=setup_code.user_id,
+                    scope_list=setup_code.scope_list,
+                    scoping_organization_id=setup_code.organization_id,
                 )
-
-            token = ApiToken.objects.create(
-                application=application,
-                user_id=setup_code.user_id,
-                scope_list=setup_code.scope_list,
-                scoping_organization_id=setup_code.organization_id,
             )
+
+        analytics.record(
+            OAuthSetupCodeRedeemedEvent(
+                user_id=setup_code.user_id,
+                organization_id=setup_code.organization_id,
+                application_id=application.id,
+                setup_code_id=setup_code_id,
+                outcome="expired" if token is None else "exchanged",
+            )
+        )
+        if token is None:
+            return self.error(request=request, name="invalid_grant", reason="setup code expired")
 
         metrics.incr("oauth_setup_code.token_exchange", sample_rate=1.0)
         logger.info(

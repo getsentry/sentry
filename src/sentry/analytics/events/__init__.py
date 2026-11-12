@@ -64,6 +64,7 @@ from .missing_members_nudge import *  # noqa: F401,F403
 from .monitor_mark_failed import *  # noqa: F401,F403
 from .notification_tracking import *  # noqa: F401,F403
 from .oauth_consent import *  # noqa: F401,F403
+from .oauth_setup_code import *  # noqa: F401,F403
 from .onboarding_complete import *  # noqa: F401,F403
 from .onboarding_continuation_sent import *  # noqa: F401,F403
 from .org_auth_token_created import *  # noqa: F401,F403

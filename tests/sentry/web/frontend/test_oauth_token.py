@@ -10,6 +10,7 @@ import pytest
 from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 
+from sentry.analytics.events.oauth_setup_code import OAuthSetupCodeRedeemedEvent
 from sentry.hybridcloud.models import ApiTokenReplica
 from sentry.hybridcloud.models.outbox import ControlOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
@@ -21,6 +22,10 @@ from sentry.models.apisetupcode import ApiSetupCode
 from sentry.models.apitoken import ApiToken
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import (
+    assert_analytics_events_recorded,
+    assert_not_analytics_event,
+)
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -2151,7 +2156,8 @@ class OAuthTokenSetupCodeTest(TestCase):
             data["setup_code"] = code
         return self.client.post(self.path, data)
 
-    def test_exchanges_code_for_token(self) -> None:
+    @patch("sentry.analytics.record")
+    def test_exchanges_code_for_token(self, mock_record: mock.MagicMock) -> None:
         resp = self.exchange(self.code)
         assert resp.status_code == 200
         data = json.loads(resp.content)
@@ -2163,6 +2169,18 @@ class OAuthTokenSetupCodeTest(TestCase):
         assert "organization_id" not in data
         assert token.user_id == self.user.id
         assert not ApiSetupCode.objects.exists()
+        assert_analytics_events_recorded(
+            mock_record,
+            [
+                OAuthSetupCodeRedeemedEvent(
+                    user_id=self.user.id,
+                    organization_id=None,
+                    application_id=self.application.id,
+                    setup_code_id=self.setup_code.id,
+                    outcome="exchanged",
+                )
+            ],
+        )
 
     def test_code_is_single_use(self) -> None:
         assert self.exchange(self.code).status_code == 200
@@ -2171,13 +2189,26 @@ class OAuthTokenSetupCodeTest(TestCase):
         assert json.loads(resp.content) == {"error": "invalid_grant"}
         assert ApiToken.objects.filter(application=self.application).count() == 1
 
-    def test_expired_code_is_rejected_and_consumed(self) -> None:
+    @patch("sentry.analytics.record")
+    def test_expired_code_is_rejected_and_consumed(self, mock_record: mock.MagicMock) -> None:
         self.setup_code.update(expires_at=timezone.now() - timedelta(seconds=1))
         resp = self.exchange(self.code)
         assert resp.status_code == 400
         assert json.loads(resp.content) == {"error": "invalid_grant"}
         assert not ApiSetupCode.objects.exists()
         assert not ApiToken.objects.filter(application=self.application).exists()
+        assert_analytics_events_recorded(
+            mock_record,
+            [
+                OAuthSetupCodeRedeemedEvent(
+                    user_id=self.user.id,
+                    organization_id=None,
+                    application_id=self.application.id,
+                    setup_code_id=self.setup_code.id,
+                    outcome="expired",
+                )
+            ],
+        )
 
     def test_organization_scoped_code(self) -> None:
         organization = self.create_organization(owner=self.user)
@@ -2236,11 +2267,13 @@ class OAuthTokenSetupCodeTest(TestCase):
         assert resp.status_code == 400
         assert json.loads(resp.content) == {"error": "invalid_request"}
 
-    def test_invalid_setup_code(self) -> None:
+    @patch("sentry.analytics.record")
+    def test_invalid_setup_code(self, mock_record: mock.MagicMock) -> None:
         resp = self.exchange("sntryc_invalid")
         assert resp.status_code == 400
         assert json.loads(resp.content) == {"error": "invalid_grant"}
         assert ApiSetupCode.objects.exists()
+        assert_not_analytics_event(mock_record, OAuthSetupCodeRedeemedEvent)
 
     def test_wrong_application(self) -> None:
         other_application = ApiApplication.objects.create(
