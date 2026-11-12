@@ -1,10 +1,12 @@
 import logging
+import time
 from collections import defaultdict
 from collections.abc import Callable, Sequence
-from concurrent.futures import as_completed
+from concurrent.futures import FIRST_EXCEPTION, wait
 from dataclasses import dataclass
-from typing import Any, Literal, cast, get_args
+from typing import Any, Literal, NoReturn, cast, get_args
 
+import sentry_sdk
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -19,7 +21,7 @@ from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_trace_item_stats_types import TraceItemStatsResponse
 from sentry.api.event_search import translate_escape_sequences
 from sentry.api.serializers.base import serialize
-from sentry.api.utils import handle_query_errors
+from sentry.api.utils import TimeoutException, handle_query_errors
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.trace_item_stats_examples import TraceItemStatsExamples
 from sentry.apidocs.omissions import sentry_schema_serializer
@@ -44,10 +46,12 @@ from sentry.search.eap.spans.attributes import (
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import can_expose_attribute_to_api
+from sentry.search.events.constants import TIMEOUT_RPC_ERROR_MESSAGE
 from sentry.snuba import rpc_dataset_common
 from sentry.snuba.occurrences_rpc import Occurrences
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
+from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.cursors import Cursor, CursorResult
 
@@ -91,6 +95,37 @@ def get_trace_item_stats_config(item_type: SupportedItemType) -> TraceItemStatsC
         id_column="span_id",
         visibility_item_type=SupportedTraceItemType.SPANS,
     )
+
+
+class StatsRequestDeadline:
+    """
+    Overall time budget for one stats request. Each Snuba RPC has its own timeout,
+    but the request chains several of them, so without a shared budget a slow
+    request can run for several RPC timeouts back to back.
+    """
+
+    def __init__(self, seconds: float) -> None:
+        self._deadline = time.monotonic() + seconds if seconds > 0 else None
+
+    def remaining(self, stage: str) -> float | None:
+        """
+        Seconds left in the budget, or None when the budget is disabled. Raises a
+        timeout instead of returning once the budget is spent, so `stage` never starts.
+        """
+        if self._deadline is None:
+            return None
+        remaining = self._deadline - time.monotonic()
+        if remaining <= 0:
+            raise_deadline_exceeded(stage)
+        return remaining
+
+
+def raise_deadline_exceeded(stage: str) -> NoReturn:
+    # Match what handle_query_errors returns for a Snuba RPC timeout.
+    sentry_sdk.set_tag("query.error_reason", "Timeout")
+    sentry_sdk.set_attribute("query.error_reason", "Timeout")
+    metrics.incr("api.trace_item_stats.deadline_exceeded", tags={"stage": stage})
+    raise TimeoutException(detail=TIMEOUT_RPC_ERROR_MESSAGE)
 
 
 class TraceItemStatsPaginator:
@@ -222,6 +257,7 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
         value_substring_match = translate_escape_sequences(substring_match)
 
         max_attributes = options.get("explore.trace-items.keys.max")
+        deadline = StatsRequestDeadline(options.get("explore.trace-items.stats.deadline-seconds"))
         include_internal = is_active_superuser(request) or is_active_staff(request)
         include_internal_convention_attributes = request.user.is_staff or request.user.is_superuser
 
@@ -276,6 +312,7 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
             item_ids = [row[stats_config.id_column] for row in table_results["data"]]
             item_id_list = ",".join(item_ids)
 
+            deadline.remaining("preflight")
             preflight_stats = run_stats_query_with_item_ids(f"id:[{item_id_list}]")
             try:
                 internal_alias_attr_keys = list(
@@ -334,21 +371,28 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
                     AttributeKey(name=attr.name, type=AttributeKey.TYPE_STRING)
                 )
 
+            stats_timeout = deadline.remaining("stats")
             stats_results: dict[str, dict[str, dict[str, Any]]] = defaultdict(lambda: {"data": {}})
-            with ContextPropagatingThreadPoolExecutor(
+            query_thread_pool = ContextPropagatingThreadPoolExecutor(
                 thread_name_prefix=__name__,
                 max_workers=MAX_THREADS,
-            ) as query_thread_pool:
+            )
+            try:
                 futures = [
                     query_thread_pool.submit(run_stats_query_with_error_handling, attributes)
                     for attributes in chunked_attributes.values()
                 ]
-
-                for future in as_completed(futures):
+                done, not_done = wait(futures, timeout=stats_timeout, return_when=FIRST_EXCEPTION)
+                for future in done:
                     result = future.result()
                     for stats in result:
                         for stats_type, data in stats.items():
                             stats_results[stats_type]["data"].update(data["data"])
+                if not_done:
+                    raise_deadline_exceeded("stats")
+            finally:
+                # If the request fails or runs out of budget, don't wait on RPCs still in flight.
+                query_thread_pool.shutdown(wait=False, cancel_futures=True)
 
             return {"data": [{k: v} for k, v in stats_results.items()]}, total_attributes
 

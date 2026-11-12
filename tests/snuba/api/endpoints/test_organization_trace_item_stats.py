@@ -1,3 +1,4 @@
+import threading
 from typing import Any
 from unittest import mock
 
@@ -5,6 +6,7 @@ from django.urls import reverse
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
+from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.cases import (
     APITransactionTestCase,
     OccurrenceTestCase,
@@ -459,3 +461,75 @@ class OrganizationTraceItemStatsEndpointTest(
 
         assert "user.geo.subregion" not in attribute_distribution
         assert "user.geo.city" not in attribute_distribution
+
+    def _mock_clock(self, *readings: float) -> None:
+        patcher = mock.patch("sentry.api.endpoints.organization_trace_item_stats.time")
+        mock_time = patcher.start()
+        self.addCleanup(patcher.stop)
+        mock_time.monotonic.side_effect = list(readings)
+
+    @override_options({"explore.trace-items.stats.deadline-seconds": 15.0})
+    def test_deadline_exceeded_before_preflight(self) -> None:
+        self._store_span(sentry_tags={"browser": "chrome"})
+        # Request start, then the check before the preflight query.
+        self._mock_clock(0.0, 15.0)
+
+        with mock.patch.object(Spans, "run_stats_query") as mock_stats:
+            response = self.do_request(query={"statsType": ["attributeDistributions"]})
+
+        assert response.status_code == 504, response.data
+        assert "Query timeout" in response.data["detail"]
+        mock_stats.assert_not_called()
+
+    @override_options({"explore.trace-items.stats.deadline-seconds": 15.0})
+    def test_deadline_exceeded_before_stats(self) -> None:
+        self._store_span(sentry_tags={"browser": "chrome"})
+        # Request start, the preflight check, then the check before the stats queries.
+        self._mock_clock(0.0, 1.0, 16.0)
+        real_run_stats_query = Spans.run_stats_query
+
+        with mock.patch.object(
+            Spans, "run_stats_query", side_effect=real_run_stats_query
+        ) as mock_stats:
+            response = self.do_request(query={"statsType": ["attributeDistributions"]})
+
+        assert response.status_code == 504, response.data
+        # Only the preflight query ran; the per-attribute stats queries never started.
+        assert mock_stats.call_count == 1
+        assert "attributes" not in mock_stats.call_args.kwargs
+
+    @override_options({"explore.trace-items.stats.deadline-seconds": 15.0})
+    def test_deadline_exceeded_during_stats(self) -> None:
+        self._store_span(sentry_tags={"browser": "chrome"})
+        # Leave 10ms of budget for the stats queries, which then never finish in time.
+        self._mock_clock(0.0, 1.0, 14.99)
+        real_run_stats_query = Spans.run_stats_query
+        release = threading.Event()
+        finished = threading.Event()
+        self.addCleanup(release.set)
+
+        def run_stats_query(*args: Any, **kwargs: Any) -> Any:
+            if "attributes" in kwargs:
+                release.wait(timeout=10)
+                finished.set()
+                return []
+            return real_run_stats_query(*args, **kwargs)
+
+        with mock.patch.object(Spans, "run_stats_query", side_effect=run_stats_query):
+            response = self.do_request(query={"statsType": ["attributeDistributions"]})
+
+        assert response.status_code == 504, response.data
+        assert "Query timeout" in response.data["detail"]
+        # The response did not wait for the stats queries still in flight.
+        assert not finished.is_set()
+
+    @override_options({"explore.trace-items.stats.deadline-seconds": 15.0})
+    def test_within_deadline_returns_stats(self) -> None:
+        self._store_span(sentry_tags={"device": "mobile"})
+        self._mock_clock(0.0, 5.0, 10.0)
+
+        response = self.do_request(query={"statsType": ["attributeDistributions"]})
+
+        assert response.status_code == 200, response.data
+        attribute_distribution = response.data["data"][0]["attributeDistributions"]["data"]
+        assert {"label": "mobile", "value": 1.0} in attribute_distribution["sentry.device"]
