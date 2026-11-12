@@ -29,19 +29,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {WIDGET_BUILDER_ATTRIBUTE_STALE_TIME} from 'sentry/views/dashboards/constants';
 import {
-  type DatasetConfig,
-  type SearchBarData,
-  type SearchBarDataProviderProps,
-} from 'sentry/views/dashboards/datasetConfig/base';
-import {
-  getTableSortOptions,
-  getTimeseriesSortOptions,
-  renderTraceAsLinkable,
-} from 'sentry/views/dashboards/datasetConfig/events';
-import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
-import {handleOrderByReset} from 'sentry/views/dashboards/datasetConfig/utils/handleOrderByReset';
-import {spansResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/spansResponseTransforms';
-import {
   DisplayType,
   type DashboardFilters,
   type Widget,
@@ -65,6 +52,20 @@ import {
 import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+
+import {combineBaseFieldsWithTags} from './utils/combineBaseFieldsWithEapTags';
+import {handleOrderByReset} from './utils/handleOrderByReset';
+import {spansResponseTransforms} from './utils/spansResponseTransforms';
+import {
+  type DatasetConfig,
+  type SearchBarData,
+  type SearchBarDataProviderProps,
+} from './base';
+import {
+  getTableSortOptions,
+  getTimeseriesSortOptions,
+  renderTraceAsLinkable,
+} from './events';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',

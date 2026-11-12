@@ -1,6 +1,9 @@
 import type {ListState} from '@react-stately/list';
 import type {LocationRange} from 'peggy';
 
+import {defined} from 'sentry/utils/defined';
+
+import {parse} from './grammar.pegjs';
 import {
   isTokenFreeText,
   isTokenFunction,
@@ -18,10 +21,7 @@ import {
   TokenReference,
   type Token,
   type TokenParenthesis,
-} from 'sentry/components/arithmeticBuilder/token';
-import {defined} from 'sentry/utils/defined';
-
-import {parse} from './grammar.pegjs';
+} from './token';
 
 function space(prev: LocationRange | null, next: LocationRange | null): TokenFreeText {
   const location: LocationRange = {

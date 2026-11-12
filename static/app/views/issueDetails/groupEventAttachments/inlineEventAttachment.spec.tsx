@@ -5,7 +5,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {InlineEventAttachment} from 'sentry/views/issueDetails/groupEventAttachments/inlineEventAttachment';
+import {InlineEventAttachment} from './inlineEventAttachment';
 
 describe('InlineEventAttachment', () => {
   const organization = OrganizationFixture();

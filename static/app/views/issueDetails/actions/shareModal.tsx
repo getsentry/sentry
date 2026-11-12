@@ -2,20 +2,20 @@ import {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconRefresh} from '@sentry/icons/refresh';
 import {useQueryClient} from '@tanstack/react-query';
+import {useStore} from 'zustand';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Grid, type GridProps, Stack, Container} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Switch} from '@sentry/scraps/switch';
+import {toast} from '@sentry/scraps/toast';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {AutoSelectText} from 'sentry/components/autoSelectText';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -60,8 +60,10 @@ export function ShareIssueModal({
   );
 
   const urlRef = useRef<UrlRef>(null);
-  const groups = useLegacyStore(GroupStore);
-  const group = (groups as Group[]).find(item => item.id === groupId);
+  const group = useStore(
+    GroupStore,
+    state => state.find(item => item.id === groupId) as Group | undefined
+  );
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
@@ -117,7 +119,7 @@ export function ShareIssueModal({
         }),
       });
     } catch {
-      addErrorMessage(t('Error sharing'));
+      toast.error(t('Error sharing'));
       // oxlint-disable-next-line react/todo
     } finally {
       setLoading(false);

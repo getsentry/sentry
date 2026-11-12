@@ -11,8 +11,13 @@ import {useHotkeys} from '@sentry/scraps/hotkey';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
 import {Text} from '@sentry/scraps/text';
-import {useInvertedTheme} from '@sentry/scraps/theme';
+import {darkTheme} from '@sentry/scraps/theme';
 import {useOverlay, type UseOverlayProps} from '@sentry/scraps/useOverlay';
+
+import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {
   useTourReducer,
@@ -21,12 +26,8 @@ import {
   type TourState,
   type TourStep,
   type TourVariant,
-} from 'sentry/components/tours/tourContext';
-import {useMutateAssistant} from 'sentry/components/tours/useAssistant';
-import {t} from 'sentry/locale';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {defined} from 'sentry/utils/defined';
-import {useOrganization} from 'sentry/utils/useOrganization';
+} from './tourContext';
+import {useMutateAssistant} from './useAssistant';
 
 export interface TourContextProviderProps<T extends TourEnumType> {
   /**
@@ -370,6 +371,8 @@ export function TourElementContent<T extends TourEnumType>({
       isOpen={isOpen}
       position={position}
       handleDismiss={dismiss}
+      // Spotlight tours blur the page, so only subtle tours can be clicked away.
+      onClickOutside={variant === 'subtle' ? dismiss : undefined}
       onKeyDown={
         variant === 'subtle'
           ? event => {
@@ -404,8 +407,8 @@ interface TourGuideProps extends Omit<
   description: React.ReactNode;
   isOpen: UseOverlayProps['isOpen'];
   /**
-   * The <TourGuide /> component is very opinionated on styles. It uses a black background on light
-   * mode and purple on dark mode. For best results, use `<TourAction />` and `<TourTextAction/>`
+   * The <TourGuide /> component is very opinionated on styles. It always uses the dark theme,
+   * whatever the user's theme is. For best results, use `<TourAction />` and `<TourTextAction/>`
    * instead of regular buttons, since it may cause readibility issues if we use the user's theme.
    */
   actions?: React.ReactNode;
@@ -417,6 +420,10 @@ interface TourGuideProps extends Omit<
   id?: string;
   margin?: number;
   offset?: UseOverlayProps['offset'];
+  /**
+   * Called after a click outside the guide. The click still goes through.
+   */
+  onClickOutside?: () => void;
   /**
    * Handles keys pressed while focus is inside the guide. The guide can then be
    * focused, and returns focus to the page when it closes.
@@ -459,13 +466,13 @@ export function TourGuide({
   stepTotal,
   offset,
   margin,
+  onClickOutside,
   onKeyDown,
   focusHandoffRef,
   returnFocusRef,
   variant,
 }: TourGuideProps) {
   const theme = useTheme();
-  const invertedTheme = useInvertedTheme();
 
   const isStepCountVisible = defined(stepCount) && defined(stepTotal) && stepTotal !== 1;
   const isDismissVisible = defined(handleDismiss);
@@ -478,7 +485,25 @@ export function TourGuide({
     offset,
     strategy: 'fixed',
     preventOverflowOptions: keepGuideInViewport,
+    // react-aria swallows the click that dismisses an overlay. Guides that handle
+    // outside clicks let the click through instead.
+    isDismissable: !onClickOutside,
   });
+
+  useEffect(() => {
+    if (!isOpen || !onClickOutside) {
+      return;
+    }
+    const handleClick = (event: MouseEvent) => {
+      const target = event.target;
+      if (target instanceof Node && !overlayRef.current?.contains(target)) {
+        onClickOutside();
+      }
+    };
+    // Runs after the page handles the click, so the click still goes through.
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [isOpen, onClickOutside, overlayRef]);
 
   // Scroll the highlighted element rather than the guide. The element may live in
   // a nested scroll container (e.g. the issue details sidebar, which stacks below
@@ -558,7 +583,7 @@ export function TourGuide({
               zIndex={zIndex.overlay}
               {...mergeProps(overlayProps, focusProps)}
             >
-              <ThemeProvider theme={invertedTheme}>
+              <ThemeProvider theme={darkTheme}>
                 <ClassNames>
                   {({css, theme: currentTheme}) => (
                     <Overlay

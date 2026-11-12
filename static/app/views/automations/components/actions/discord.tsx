@@ -15,9 +15,10 @@ import {
   type ActionHandler,
 } from 'sentry/types/workflowEngine/actions';
 import {useActionNodeContext} from 'sentry/views/automations/components/actionNodeContext';
-import {IntegrationField} from 'sentry/views/automations/components/actions/integrationField';
-import {TagsField} from 'sentry/views/automations/components/actions/tagsField';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
+
+import {IntegrationField} from './integrationField';
+import {TagsField} from './tagsField';
 
 export function DiscordDetails({
   action,

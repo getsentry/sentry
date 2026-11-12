@@ -7,15 +7,16 @@ import {IconRewind10} from '@sentry/icons/rewind10';
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
-import {ReplayPreferenceDropdown} from 'sentry/components/replays/preferences/replayPreferenceDropdown';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {ReplayFullscreenButton} from 'sentry/components/replays/replayFullscreenButton';
-import {ReplayPlayPauseButton} from 'sentry/components/replays/replayPlayPauseButton';
-import {TimeAndScrubberGrid} from 'sentry/components/replays/timeAndScrubberGrid';
 import {t} from 'sentry/locale';
 import {getNextReplayFrame} from 'sentry/utils/replays/getReplayEvent';
 import {TimelineScaleContextProvider} from 'sentry/utils/replays/hooks/useTimelineScale';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
+
+import {ReplayPreferenceDropdown} from './preferences/replayPreferenceDropdown';
+import {useReplayContext} from './replayContext';
+import {ReplayFullscreenButton} from './replayFullscreenButton';
+import {ReplayPlayPauseButton} from './replayPlayPauseButton';
+import {TimeAndScrubberGrid} from './timeAndScrubberGrid';
 
 const SECOND = 1000;
 

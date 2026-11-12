@@ -4,10 +4,11 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {OutcomeRow} from 'sentry/components/droppedData/types';
-import {useDroppedDataLayer} from 'sentry/components/droppedData/useDroppedDataLayer';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+
+import type {OutcomeRow} from './types';
+import {useDroppedDataLayer} from './useDroppedDataLayer';
 
 const organization = OrganizationFixture({
   features: ['explore-data-fidelity-annotations'],
@@ -58,6 +59,34 @@ describe('useDroppedDataLayer', () => {
       showDroppedData: true,
       onChange: expect.any(Function),
     });
+  });
+
+  it('reports loading until the dropped data arrives', async () => {
+    mockDroppedData();
+
+    const {result} = renderHookWithProviders(
+      () => useDroppedDataLayer({dataset: DiscoverDatasets.SPANS, interval: '1h'}),
+      {organization}
+    );
+
+    expect(result.current.isLoading).toBe(true);
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.band).toBeDefined();
+  });
+
+  it('does not report loading when the band is hidden', () => {
+    mockDroppedData();
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useDroppedDataLayer(
+          {dataset: DiscoverDatasets.SPANS, interval: '1h'},
+          {hidden: true}
+        ),
+      {organization}
+    );
+
+    expect(result.current.isLoading).toBe(false);
   });
 
   it('removes the band and filter note when the layer is turned off', async () => {
@@ -144,6 +173,7 @@ describe('useDroppedDataLayer', () => {
     expect(result.current).toEqual({
       band: undefined,
       filterNote: undefined,
+      isLoading: false,
       layerControl: undefined,
     });
   });
@@ -160,6 +190,7 @@ describe('useDroppedDataLayer', () => {
     expect(result.current).toEqual({
       band: undefined,
       filterNote: undefined,
+      isLoading: false,
       layerControl: undefined,
     });
   });

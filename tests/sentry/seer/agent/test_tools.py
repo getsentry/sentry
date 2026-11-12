@@ -13,6 +13,7 @@ from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 from sentry import nodestore
 from sentry.api.client import client
 from sentry.constants import ObjectStatus
+from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.models.activity import Activity
@@ -21,6 +22,7 @@ from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
 from sentry.models.grouprelease import GroupRelease
+from sentry.models.organization import Organization
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
 from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
@@ -55,6 +57,7 @@ from sentry.seer.sentry_data_models import (
     ExecuteTimeseriesQueryErrorResponse,
     ExecuteTimeseriesQuerySuccessResponse,
     IssueDetailsResponse,
+    RepositoryDefinitionResponse,
 )
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.cases import (
@@ -64,9 +67,12 @@ from sentry.testutils.cases import (
     ReplaysSnubaTestCase,
     SnubaTestCase,
     SpanTestCase,
+    TestCase,
     TraceMetricsTestCase,
 )
+from sentry.testutils.helpers.action_log import action_log_activity_enabled
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.samples import load_data
@@ -3077,6 +3083,59 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
 
         assert result is None
 
+    def _finds(self, organization: Organization, repo_full_name: str) -> bool:
+        return isinstance(
+            get_repository_definition(
+                organization_id=organization.id, repo_full_name=repo_full_name
+            ),
+            RepositoryDefinitionResponse,
+        )
+
+    def _add_gitlab_repo(self, organization: Organization, **repo_params: Any) -> None:
+        Repository.objects.create(
+            organization_id=organization.id,
+            name="My Group / Sub / App",
+            url="https://gitlab.com/my-group/sub/app",
+            provider="integrations:gitlab",
+            external_id="1",
+            config={"path": "my-group/sub/app"},
+            **repo_params,
+        )
+
+    @with_feature("organizations:seer-cursor-origin-support")
+    def test_finds_a_repo_by_its_name_or_url_path(self) -> None:
+        for provider, name, url, path in (
+            ("github", "acme/app", "https://github.com/acme/app", "acme/app"),
+            ("github_enterprise", "acme/app", "https://ghe.example.com/acme/app", "acme/app"),
+            ("gitlab", "My Group / App", "https://gitlab.com/my-group/app", "my-group/app"),
+            ("cursor_origin", "acme/app", "https://cursor.com/codebase/acme/app", "acme/app"),
+        ):
+            organization = self.create_organization()
+            Repository.objects.create(
+                organization_id=organization.id,
+                name=name,
+                url=url,
+                provider=f"integrations:{provider}",
+                external_id="1",
+                config={"path": path},
+            )
+            with self.subTest(provider=provider):
+                assert self._finds(organization, name)
+                assert self._finds(organization, path)
+                assert self._finds(organization, path.upper())
+                assert not self._finds(organization, f"{path}-2")
+
+    def test_does_not_find_a_repo_whose_url_only_ends_the_same(self) -> None:
+        self._add_gitlab_repo(self.organization)
+
+        assert not self._finds(self.organization, "sub/app")
+
+    def test_does_not_find_another_organizations_or_an_inactive_repo(self) -> None:
+        self._add_gitlab_repo(self.create_organization())
+        self._add_gitlab_repo(self.organization, status=ObjectStatus.DISABLED)
+
+        assert not self._finds(self.organization, "my-group/sub/app")
+
     def test_get_repository_definition_not_found(self) -> None:
         """Test that nonexistent repository returns None"""
         result = get_repository_definition(
@@ -4294,3 +4353,98 @@ class TestGetDsn(APITestCase):
         )
 
         assert get_dsn(organization_id=self.organization.id, project_slug="wordcraft") is None
+
+
+class TestSeerActivityFeed(TestCase):
+    def _activity(self) -> list[dict[str, Any]]:
+        with (
+            patch("sentry.seer.agent.tools._get_issue_event_timeseries", return_value=None),
+            patch("sentry.seer.agent.tools.get_all_tags_overview", return_value=None),
+        ):
+            result = get_issue_details(
+                organization_id=self.organization.id, issue_id=str(self.group.id)
+            )
+        assert result is not None
+        return result["user_activity"]
+
+    @with_feature({"projects:issue-action-log-write-to-db": False})
+    def test_gal_context_and_live_comments(self) -> None:
+        app = self.create_sentry_app(organization=self.organization)
+        note = self.create_group_activity(
+            type=ActivityType.NOTE.value,
+            datetime=before_now(minutes=3),
+            user_id=self.user.id,
+            data={
+                "text": "edited comment",
+                "mentions": [{"id": self.user.id, "actor_type": "User"}],
+            },
+        )
+        self.create_group_action_log_entry(
+            type=GroupActionType.COMMENT,
+            idempotency_key=f"activity:{note.id}",
+            source="mcp:codex",
+            data={"comment_id": note.id, "text": "original comment"},
+        )
+        unlink = self.create_group_action_log_entry(
+            type=GroupActionType.UNLINK_PLATFORM_EXTERNAL_ISSUE,
+            date_added=note.datetime + timedelta(minutes=1),
+            actor_type=GroupActorType.SENTRY_APP,
+            actor_id=app.id,
+            source="api",
+            data={
+                "service_type": "example",
+                "display_name": "BUG-42",
+                "web_url": "https://example.com/42",
+            },
+        )
+        trigger = self.create_group_action_log_entry(
+            type=GroupActionType.TRIGGER_AUTOFIX,
+            date_added=note.datetime + timedelta(minutes=2),
+            actor_type=GroupActorType.USER,
+            actor_id=self.user.id,
+            source="web",
+            data={"referrer": "issue-details"},
+        )
+        with action_log_activity_enabled():
+            items = self._activity()
+
+        assert [item["type"] for item in items] == [
+            "trigger_autofix",
+            "unlink_platform_external_issue",
+            "note",
+        ]
+        assert items[0]["user"]["id"] == str(self.user.id)
+        assert items[0]["data"] == trigger.data
+        assert items[1]["user"] is None
+        assert items[1]["sentry_app"]["id"] == str(app.id)
+        assert items[1]["source"] == "api"
+        assert items[1]["data"] == unlink.data
+        assert items[2]["source"] == "mcp:codex"
+        assert items[2]["data"]["text"] == "edited comment"
+        assert items[2]["data"]["mentions"][0]["email"] == self.user.email
+
+    def test_gal_filters_before_limit(self) -> None:
+        entries = [
+            self.create_group_action_log_entry(type=GroupActionType.RESOLVE) for _ in range(51)
+        ]
+        for type_, actor_type in (
+            (GroupActionType.TRIGGER_AUTOFIX, GroupActorType.SYSTEM),
+            (GroupActionType.TRIGGER_AUTOFIX, GroupActorType.SENTRY_APP),
+            (GroupActionType.SEER_RCA_COMPLETED, GroupActorType.USER),
+        ):
+            self.create_group_action_log_entry(type=type_, actor_type=actor_type)
+
+        with action_log_activity_enabled():
+            items = self._activity()
+
+        assert [item["id"] for item in items] == [str(entry.id) for entry in reversed(entries[1:])]
+
+    @with_feature({"projects:issue-action-log-write-to-db": False})
+    def test_legacy_fallback_only_when_gal_is_unavailable(self) -> None:
+        self.create_group_activity(type=ActivityType.SET_RESOLVED.value)
+        with action_log_activity_enabled():
+            assert [item["type"] for item in self._activity()] == ["set_resolved"]
+            self.create_group_action_log_entry(type=GroupActionType.SEER_RCA_COMPLETED)
+            assert self._activity() == []
+            with self.feature({"projects:issue-action-log-activity": False}):
+                assert [item["type"] for item in self._activity()] == ["set_resolved"]

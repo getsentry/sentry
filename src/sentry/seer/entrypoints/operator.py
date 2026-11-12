@@ -4,22 +4,22 @@ from typing import Any, NotRequired, TypedDict
 from taskbroker_client.retry import Retry
 
 from sentry import features, options
-from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory
+from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.inbox.issue import record_issue_pr_ready_for_review
 from sentry.inbox.types import SYSTEM_ACTOR as INBOX_SYSTEM_ACTOR
 from sentry.inbox.types import InboxActor
 from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.investigations.services import create_agentic_breached_metric_investigation
 from sentry.investigations.services.breached_metrics import BreachedMetricSource
-from sentry.investigations.telemetry import record_investigation_started
 from sentry.issues.action_log.publish import action_context_scope
 from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, GroupActionActor
 from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
-from sentry.notebooks.access import has_investigations_access
+from sentry.notebooks.access import has_notebooks_access
 from sentry.notebooks.models import Notebook
+from sentry.notebooks.telemetry import record_notebook_started
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import CodingAgentState, SeerRunState
@@ -27,7 +27,14 @@ from sentry.seer.agent.client_utils import fetch_run_status
 from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
 from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.utils import AutofixStoppingPoint, get_automation_handoff
+from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
+from sentry.seer.autofix.feature.dispatch import check_autofix_billing
+from sentry.seer.autofix.utils import (
+    AutofixStoppingPoint,
+    get_automation_handoff,
+    is_issue_category_eligible,
+)
+from sentry.seer.credits import SeerOperation
 from sentry.seer.entrypoints.cache import (
     SeerOperatorAgentCache,
     SeerOperatorAutofixCache,
@@ -51,7 +58,7 @@ from sentry.seer.entrypoints.types import (
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access
-from sentry.sentry_apps.event_types import SentryAppEventType
+from sentry.sentry_apps.event_types import INTERNAL_SEER_EVENT_TYPES, SentryAppEventType
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
@@ -73,6 +80,7 @@ SEER_EVENT_TO_ACTIVITY_TYPE: dict[SentryAppEventType, ActivityType] = {
     SentryAppEventType.SEER_PR_READY_FOR_REVIEW: ActivityType.SEER_PR_READY_FOR_REVIEW,
     SentryAppEventType.SEER_ITERATION_STARTED: ActivityType.SEER_ITERATION_STARTED,
     SentryAppEventType.SEER_ITERATION_COMPLETED: ActivityType.SEER_ITERATION_COMPLETED,
+    SentryAppEventType.SEER_STOPPED: ActivityType.SEER_STOPPED,
 }
 
 
@@ -161,22 +169,22 @@ class SeerAutofixOperator[CachePayloadT]:
     def can_trigger_autofix(cls, *, group: Group) -> bool:
         """
         Checks if a group is permitted to trigger autofix.
-        Validates Seer access for the organization, the issue category, and autofix quota.
+        Validates Seer access for the organization, the issue category, and that the
+        organization can pay for the root cause step.
         """
-        from sentry import quotas
-        from sentry.seer.autofix.utils import is_free_cohort_org, is_issue_category_eligible
-
-        return (
-            has_seer_access(group.organization)
-            and is_issue_category_eligible(group)
-            and (
-                is_free_cohort_org(group.organization)
-                or quotas.backend.check_seer_quota(
-                    org_id=group.organization.id,
-                    data_category=DataCategory.SEER_AUTOFIX,
-                )
+        if not has_seer_access(group.organization) or not is_issue_category_eligible(group):
+            return False
+        try:
+            check_autofix_billing(
+                group.organization,
+                SeerOperation.AUTOFIX_ROOT_CAUSE,
+                is_new_run=True,
+                # Free cohort orgs have no subscription, so the quota check always fails for them.
+                skip_quota_for_free_cohort=True,
             )
-        )
+        except (NoSeerQuotaException, SeerOutOfCreditsException):
+            return False
+        return True
 
     def trigger_autofix(
         self,
@@ -209,7 +217,7 @@ class SeerAutofixOperator[CachePayloadT]:
             trigger_autofix_agent,
             trigger_push_changes,
         )
-        from sentry.seer.autofix.exceptions import NoSeerQuotaException
+        from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
         from sentry.seer.autofix.steps import AutofixStep
 
         event_lifecyle = SeerOperatorEventLifecycleMetric(
@@ -227,7 +235,9 @@ class SeerAutofixOperator[CachePayloadT]:
             )
 
             try:
-                existing_state = get_autofix_agent_state(group.organization, group.id)
+                existing_state = get_autofix_agent_state(
+                    group.organization, group.id, sources=(AUTOFIX_FEATURE_ID,)
+                )
             except Exception as e:
                 with SeerOperatorEventLifecycleMetric(
                     interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ERROR,
@@ -309,6 +319,16 @@ class SeerAutofixOperator[CachePayloadT]:
                 ).capture():
                     self.entrypoint.on_trigger_autofix_error(error=error)
                 lifecycle.record_failure(failure_reason=error)
+                return
+            except SeerOutOfCreditsException:
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ERROR,
+                    entrypoint_key=self.entrypoint.key,
+                ).capture():
+                    self.entrypoint.on_trigger_autofix_error(
+                        error="Your organization does not have enough Seer credits"
+                    )
+                lifecycle.record_halt(halt_reason="not_enough_seer_credits")
                 return
             except Exception as e:
                 with SeerOperatorEventLifecycleMetric(
@@ -566,7 +586,6 @@ class SeerAgentOperator[CachePayloadT]:
                     on_completion_hook=SeerOperatorCompletionHook,
                     is_interactive=True,
                     enable_coding=enable_coding,
-                    # The client still requires seer-explorer-allow-bash-mode.
                     enable_bash_mode=enable_coding,
                     enable_write_pull_request=enable_coding,
                     enable_code_mode_tools=enable_code_mode_tools,
@@ -644,7 +663,7 @@ class SeerInvestigationOperator[CachePayloadT]:
 
     @classmethod
     def has_access(cls, *, organization: Organization, entrypoint_key: SeerEntrypointKey) -> bool:
-        if not has_investigations_access(organization):
+        if not has_notebooks_access(organization):
             return False
         entrypoint_cls = investigation_entrypoint_registry.registrations.get(entrypoint_key)
         return entrypoint_cls is not None and entrypoint_cls.has_access(organization)
@@ -691,7 +710,7 @@ class SeerInvestigationOperator[CachePayloadT]:
             if not created:
                 return investigation, False
 
-            record_investigation_started(investigation)
+            record_notebook_started(investigation)
 
             # Cache before any Slack call so a failed callback can't cut the thread off from updates.
             with SeerOperatorEventLifecycleMetric(
@@ -768,6 +787,8 @@ def _create_seer_activity(
         iteration_index = event_payload.get("iteration_index")
         if iteration_index is not None:
             activity_data["iteration_index"] = iteration_index
+    elif event_type == SentryAppEventType.SEER_STOPPED:
+        activity_data.update(event_payload.get("stop") or {})
 
     Activity.objects.create_group_activity(
         group,
@@ -877,7 +898,10 @@ def process_autofix_updates(
             lifecycle.record_failure(failure_reason="missing_identifiers")
             return
 
-        if event_type not in SEER_EVENT_TO_ACTIVITY_TYPE:
+        if (
+            event_type not in SEER_EVENT_TO_ACTIVITY_TYPE
+            and event_type not in INTERNAL_SEER_EVENT_TYPES
+        ):
             lifecycle.record_halt(halt_reason="skipped")
             return
 
@@ -968,7 +992,7 @@ def process_investigation_updates(*, investigation_id: int) -> None:
             {"investigation_id": investigation_id, "organization_id": organization.id}
         )
 
-        if not has_investigations_access(organization):
+        if not has_notebooks_access(organization):
             lifecycle.record_halt(halt_reason="no_operator_access")
             return
 

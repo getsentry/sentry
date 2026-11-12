@@ -1,4 +1,4 @@
-import {Frame} from 'sentry/utils/profiling/frame';
+import {Frame} from './frame';
 
 describe('Frame', () => {
   describe.each([['javascript'], ['node']])(

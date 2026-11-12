@@ -14,6 +14,16 @@ type Props = AdminConfirmRenderProps & {
   subscription: Subscription;
 };
 
+const REMOVE_SPONSORSHIP = 'remove';
+
+const SPONSORED_TYPE_CHOICES: Array<[string, string]> = [
+  ['education', 'Education'],
+  ['open_source', 'Open source'],
+  ['non_profit', 'Non-profit'],
+  ['employee', 'Employee'],
+  ['friends_and_family', 'Friends and family'],
+];
+
 /**
  * Rendered as part of a openAdminConfirmModal call
  */
@@ -29,8 +39,9 @@ export function SponsorshipAction({
 
   const handleConfirm = useCallback(
     (_params: AdminConfirmParams) => {
-      const data = {sponsoredType};
-      onConfirm?.(data);
+      onConfirm?.({
+        sponsoredType: sponsoredType === REMOVE_SPONSORSHIP ? null : sponsoredType,
+      });
     },
     [sponsoredType, onConfirm]
   );
@@ -55,11 +66,25 @@ export function SponsorshipAction({
     return null;
   }
 
+  const choices: Array<[string, string]> = subscription.isSponsored
+    ? [[REMOVE_SPONSORSHIP, 'None (remove sponsorship)'], ...SPONSORED_TYPE_CHOICES]
+    : SPONSORED_TYPE_CHOICES;
+
   return (
     <Fragment>
       {subscription.isSponsored && (
         <Alert.Container>
           <Alert variant="info">This account is already sponsored.</Alert>
+        </Alert.Container>
+      )}
+      {sponsoredType === REMOVE_SPONSORSHIP && (
+        <Alert.Container>
+          <Alert variant="warning">
+            Removing the sponsorship takes effect immediately. The account keeps its
+            current plan and billing period, but the sponsorship's extra quotas, along
+            with any other custom reserved volumes or pay-as-you-go budget, go back to the
+            plan's defaults.
+          </Alert>
         </Alert.Container>
       )}
       <SelectField
@@ -71,13 +96,7 @@ export function SponsorshipAction({
         name="sponsored-type"
         value={sponsoredType}
         onChange={(val: any) => val && handleChange(val)}
-        choices={[
-          ['education', 'Education'],
-          ['open_source', 'Open source'],
-          ['non_profit', 'Non-profit'],
-          ['employee', 'Employee'],
-          ['friends_and_family', 'Friends and family'],
-        ]}
+        choices={choices}
       />
     </Fragment>
   );

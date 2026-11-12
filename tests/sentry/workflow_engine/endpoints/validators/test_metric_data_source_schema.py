@@ -5,6 +5,7 @@ import jsonschema
 import pytest
 
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case, convert_dict_key_case
+from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
 from sentry.incidents.logic import check_aggregate_column_support
 from sentry.utils import json
 from sentry.workflow_engine.endpoints.validators.api_docs_help_text import DATA_SOURCES_HELP_TEXT
@@ -46,6 +47,13 @@ def _help_text_examples() -> list[dict[str, Any]]:
 @pytest.mark.parametrize("example", _help_text_examples(), ids=lambda example: example["aggregate"])
 def test_help_text_examples_match_one_data_source(example: dict[str, Any]) -> None:
     assert len(_matching_titles(example)) == 1
+
+
+@pytest.mark.parametrize("example_index", [0, 1, 2])
+def test_documented_create_examples_match_one_data_source(example_index: int) -> None:
+    example = WorkflowEngineExamples.CREATE_DETECTOR[example_index]
+
+    assert len(_matching_titles(example.value["dataSources"][0])) == 1
 
 
 @pytest.mark.parametrize("aggregate", ERRORS_AGGREGATES)

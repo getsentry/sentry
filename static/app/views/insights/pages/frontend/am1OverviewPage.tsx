@@ -4,7 +4,7 @@ import {parseAsBoolean, parseAsString, useQueryStates} from 'nuqs';
 import {ExternalLink} from '@sentry/scraps/link';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
 import {
@@ -33,10 +33,6 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
-import {
-  FRONTEND_PLATFORMS,
-  OVERVIEW_PAGE_ALLOWED_OPS,
-} from 'sentry/views/insights/pages/frontend/settings';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import {
   generateFrontendOtherPerformanceEventView,
@@ -53,6 +49,8 @@ import {
   getTransactionSearchQuery,
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
+
+import {FRONTEND_PLATFORMS, OVERVIEW_PAGE_ALLOWED_OPS} from './settings';
 
 const DURATION_TOOLTIP = tct(
   'A heuristic measuring when a pageload or navigation completes. Based on whether the initial load of the webpage has become idle. [link:Learn more.]',

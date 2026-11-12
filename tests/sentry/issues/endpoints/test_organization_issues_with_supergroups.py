@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -24,11 +25,11 @@ class OrganizationIssuesWithSupergroupsEndpointTest(APITestCase, SnubaTestCase):
         super().setUp()
         self.login_as(self.user)
 
-    def _store(self, fingerprint: str, seconds_ago: int = 10) -> Any:
+    def _store(self, fingerprint: str) -> Any:
         return self.store_event(
             data={
                 "fingerprint": [fingerprint],
-                "timestamp": before_now(seconds=seconds_ago).isoformat(),
+                "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -121,8 +122,20 @@ class OrganizationIssuesWithSupergroupsEndpointTest(APITestCase, SnubaTestCase):
 
     @patch("sentry.seer.supergroups.by_group.make_supergroups_get_by_group_ids_request")
     def test_paginates_with_collapse_no_group_skip(self, mock_seer: MagicMock) -> None:
-        # Staggered timestamps pin sort order so events[0] is first.
-        events = [self._store(f"e{i}", seconds_ago=10 + i) for i in range(5)]
+        # last_seen sorts at whole-second precision with ties broken by group ID, so
+        # offset every event from one base time to keep them exactly 1s apart and
+        # events[0] first. Separate before_now() calls drift by store_event latency.
+        base = before_now(seconds=10)
+        events = [
+            self.store_event(
+                data={
+                    "fingerprint": [f"e{i}"],
+                    "timestamp": (base - timedelta(seconds=i)).isoformat(),
+                },
+                project_id=self.project.id,
+            )
+            for i in range(5)
+        ]
         # Cluster (e0, e1). Page 1 overfetches [e0..e3] and blends to
         # [rep(e0,e1), e2] — 3 raw groups consumed for 2 rows — so the
         # next cursor must land between e2 and e3.

@@ -46,6 +46,7 @@ import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import {useHovercardContext} from 'sentry/components/hovercard';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {NavigationItemClicked} from 'sentry/utils/analytics/navigationAnalyticsEvents';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -68,7 +69,10 @@ import {
   type NavigationTourElementProps,
 } from 'sentry/views/navigation/navigationTour';
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
-import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+import {
+  useNavigationGroupHoverEnabled,
+  usePrimaryNavigation,
+} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
@@ -117,6 +121,8 @@ function SecondarySidebarPanel({
   const containerRef = useObjectRef(tourRef);
   const resizeHandleRef = useRef<HTMLDivElement>(null);
   const {layout, activeGroup} = usePrimaryNavigation();
+  // Group switches only animate to smooth over hover previews.
+  const shouldAnimateGroupSwitch = useNavigationGroupHoverEnabled();
 
   const [secondarySidebarWidth, setSecondarySidebarWidth] = useSyncedLocalStorageState(
     NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
@@ -155,9 +161,9 @@ function SecondarySidebarPanel({
           width="100%"
           height="100%"
           key={activeGroup}
-          initial={{x: -6, opacity: 0}}
+          initial={shouldAnimateGroupSwitch ? {x: -6, opacity: 0} : false}
           animate={{x: 0, opacity: 1}}
-          exit={{x: 6, opacity: 0}}
+          exit={shouldAnimateGroupSwitch ? {x: 6, opacity: 0} : undefined}
           transition={{duration: 0.06}}
         >
           <Grid
@@ -274,6 +280,11 @@ interface SecondaryNavigationItemProps extends Omit<LinkProps, 'ref' | 'to'> {
   activeTo?: To | To[];
   analyticsItemName?: string;
   /**
+   * Extra parameters sent with `navigation.secondary_item_clicked`. Only used
+   * when `analyticsItemName` is set.
+   */
+  analyticsParams?: Omit<NavigationItemClicked, 'item'>;
+  /**
    * When passed, will not show the link as active for descendant paths.
    * Same as the RR6 `NavLink` `end` prop.
    */
@@ -325,8 +336,12 @@ function SecondaryNavigationHeaderTitle({children}: {children: ReactNode}) {
 
 function SecondaryNavigationToggle() {
   const {layout} = usePrimaryNavigation();
-  const {view, setView} = useSecondaryNavigation();
+  const {collapsible, view, setView} = useSecondaryNavigation();
   const isCollapsed = view !== 'expanded';
+
+  if (!collapsible) {
+    return null;
+  }
 
   if (layout === 'mobile') {
     return (
@@ -450,7 +465,9 @@ function SectionTitle(props: SectionTitleProps) {
 
   if (props.canCollapse) {
     return (
-      <Grid columns="1fr auto" align="center" width="100%" padding="sm lg">
+      // A Flex, not a Grid: the button label inherits the display but not the
+      // grid columns, so a Grid would stack the title and chevron.
+      <Flex justify="between" align="center" gap="sm" width="100%" padding="sm lg">
         {p => (
           <Button
             {...p}
@@ -470,7 +487,7 @@ function SectionTitle(props: SectionTitleProps) {
             </Flex>
           </Button>
         )}
-      </Grid>
+      </Flex>
     );
   }
 
@@ -522,6 +539,7 @@ function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
 
 function SecondaryNavigationLink({
   analyticsItemName,
+  analyticsParams,
   children,
   to,
   activeTo = to,
@@ -555,6 +573,7 @@ function SecondaryNavigationLink({
     onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
       if (analyticsItemName) {
         trackAnalytics('navigation.secondary_item_clicked', {
+          ...analyticsParams,
           item: analyticsItemName,
           organization,
         });
@@ -701,7 +720,11 @@ function Collapsible(props: CollapsibleProps) {
             expanded: {
               height: 'auto',
               // Let focus rings and other content extend beyond the expanded section.
-              ...(settingsV3 ? {transitionEnd: {overflow: 'visible'}} : {}),
+              // Animating `overflow` too gives it a motion value, which transitionEnd
+              // needs in order to update the DOM after a collapse and reopen.
+              ...(settingsV3
+                ? {overflow: 'hidden', transitionEnd: {overflow: 'visible'}}
+                : {}),
             },
           }}
           initial="collapsed"
@@ -878,6 +901,11 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
 
   return (
     <DndContext
+      // dnd-kit renders its position: fixed live region inline by default. While the
+      // panel animates, its transform turns that region into an absolute element
+      // below the scrolled list. If the list overflows, the page grows a scrollbar
+      // and the main content shifts.
+      accessibility={{container: document.body}}
       sensors={sensors}
       collisionDetection={closestCenter}
       modifiers={[restrictToVerticalAxis, restrictToParentElement]}

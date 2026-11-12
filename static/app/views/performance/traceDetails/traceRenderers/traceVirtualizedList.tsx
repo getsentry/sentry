@@ -2,11 +2,9 @@ import {useLayoutEffect, useRef, useState} from 'react';
 
 import {requestAnimationTimeout} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
-import type {TraceScheduler} from 'sentry/views/performance/traceDetails/traceRenderers/traceScheduler';
-import {
-  VirtualizedList,
-  type VirtualizedViewManager,
-} from 'sentry/views/performance/traceDetails/traceRenderers/virtualizedViewManager';
+
+import type {TraceScheduler} from './traceScheduler';
+import {VirtualizedList, type VirtualizedViewManager} from './virtualizedViewManager';
 
 export interface VirtualizedRow {
   index: number;

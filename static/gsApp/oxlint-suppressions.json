@@ -292,11 +292,6 @@
       "count": 1
     }
   },
-  "views/spendLimits/sharedSpendLimitPriceTable.tsx": {
-    "@sentry/scraps/no-manual-table": {
-      "count": 3
-    }
-  },
   "views/spikeProtection/components/accordionRow.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -309,11 +304,6 @@
   },
   "views/spikeProtection/spikeProtectionTimeDetails.tsx": {
     "@sentry/scraps/no-dom-coupling": {
-      "count": 2
-    }
-  },
-  "views/subscriptionPage/paymentHistory.tsx": {
-    "@sentry/scraps/no-manual-table": {
       "count": 2
     }
   },

@@ -12,6 +12,7 @@ on:
       - '.python-version'
       - '.envrc'
       - 'Brewfile'
+      - 'devenv/**'
       - 'scripts/**'
       - 'tools/**'
       - 'src/sentry/runner/commands/devserver.py'
@@ -44,7 +45,7 @@ jobs:
 
       - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
         with:
-          version: '0.13.5'
+          version: '0.13.7'
           # we just cache the venv-dir directly in action-setup-venv
           enable-cache: false
 
@@ -64,7 +65,7 @@ jobs:
 
       - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
         with:
-          version: '0.13.5'
+          version: '0.13.7'
           # we just cache the venv-dir directly in action-setup-venv
           enable-cache: false
 
@@ -77,3 +78,11 @@ jobs:
       - name: devenv sync
         run: |
           devenv --nocoderoot sync
+
+      - name: direnv activation
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq direnv
+          direnv allow
+          direnv exec . bash -euc 'test "$(command -v sentry)" = "$PWD/.venv/bin/sentry"' 2>&1 | tee direnv.log
+          if grep -q "isn't installed" direnv.log; then exit 1; fi

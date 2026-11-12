@@ -29,7 +29,8 @@ jobs:
   lint:
     name: pre-commit lint
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
-    timeout-minutes: 10
+    # Large PRs fall back to linting every file, which takes a few minutes.
+    timeout-minutes: 15
     permissions:
       contents: read
       pull-requests: read
@@ -74,7 +75,7 @@ jobs:
 
       - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
         with:
-          version: '0.13.5'
+          version: '0.13.7'
           # we just cache the venv-dir directly in action-setup-venv
           enable-cache: false
 
@@ -94,10 +95,16 @@ jobs:
       - name: Run prek on PR commits
         id: prek
         env:
-          ALL_FILES: ${{ steps.changes.outputs.all_files }}
+          # Linux caps a single environment variable at 128 KiB, so a huge file list
+          # stops bash from starting. Leave it empty and lint every file instead.
+          ALL_FILES: ${{ fromJSON(steps.changes.outputs.all_count) <= 1000 && steps.changes.outputs.all_files || '' }}
         run: |
-          jq '.[]' --raw-output <<< "$ALL_FILES" |
-            xargs .venv/bin/prek run -q --files
+          if [ -z "$ALL_FILES" ]; then
+            .venv/bin/prek run -q --all-files
+          else
+            jq '.[]' --raw-output <<< "$ALL_FILES" |
+              xargs .venv/bin/prek run -q --files
+          fi
 
       - name: Prune suppression budgets
         if: github.event_name == 'pull_request' && !cancelled() && (steps.prek.outcome == 'success' || steps.prek.outcome == 'failure') && steps.changes.outputs.frontend == 'true'

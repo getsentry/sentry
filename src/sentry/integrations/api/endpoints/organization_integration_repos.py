@@ -1,4 +1,4 @@
-from typing import Any, NotRequired, TypedDict
+from typing import Annotated, Any, NotRequired, TypedDict
 
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
@@ -8,6 +8,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -24,17 +25,30 @@ from sentry.shared_integrations.exceptions import IntegrationError
 
 
 class IntegrationRepository(TypedDict):
-    name: str
-    identifier: str
-    isInstalled: bool
-    defaultBranch: str | None
-    externalId: str
-    url: str | None
+    name: Annotated[str, ApiDescription("Name of the repository")]
+    identifier: Annotated[
+        str, ApiDescription("Identifier of the repository in the provider, such as owner/name")
+    ]
+    isInstalled: Annotated[
+        bool, ApiDescription("Whether the repository is already added to Sentry")
+    ]
+    defaultBranch: Annotated[str | None, ApiDescription("Default branch of the repository")]
+    externalId: Annotated[str, ApiDescription("ID of the repository in the provider")]
+    url: Annotated[str | None, ApiDescription("URL of the repository")]
 
 
 class IntegrationRepositoriesResponse(TypedDict):
-    repos: list[IntegrationRepository]
-    searchable: NotRequired[bool]
+    repos: Annotated[
+        list[IntegrationRepository], ApiDescription("Repositories the integration can access")
+    ]
+    searchable: NotRequired[
+        Annotated[
+            bool,
+            ApiDescription(
+                "Whether the provider supports searching repositories with the search query parameter"
+            ),
+        ]
+    ]
 
 
 @extend_schema(tags=["Integration"])

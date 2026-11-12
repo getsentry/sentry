@@ -52,6 +52,10 @@ export abstract class Visualize {
     this.visible = options?.visible ?? true;
   }
 
+  get hasSelectedChartType(): boolean {
+    return defined(this.selectedChartType);
+  }
+
   abstract clone(): Visualize;
   abstract replace({
     chartType,

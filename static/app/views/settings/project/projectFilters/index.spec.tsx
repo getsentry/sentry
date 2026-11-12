@@ -61,6 +61,11 @@ describe('ProjectFilters', () => {
     features: ['inbound-filters-v2', 'inbound-filters-v2-ui'],
   });
 
+  const environmentConditionOrg = OrganizationFixture({
+    ...inboundFiltersV2Org,
+    features: [...inboundFiltersV2Org.features, 'inbound-filters-environment-condition'],
+  });
+
   const nameSuggestionOrg = OrganizationFixture({
     ...inboundFiltersV2Org,
     features: [...inboundFiltersV2Org.features, 'inbound-filters-name-suggestion'],
@@ -1218,7 +1223,10 @@ describe('ProjectFilters', () => {
       within(dialog).getByRole('button', {name: 'Edit operator for filter: release'})
     );
     const names = screen.getAllByRole('option').map(option => option.textContent);
-    expect(names.slice(0, 6)).toEqual(['is', 'is not', '>=', '<=', '>', '<']);
+    expect(names.slice(0, 5)).toEqual(['is', '>=', '<=', '>', '<']);
+    // The API has no "is not" for text, so the menu only offers the other negations.
+    expect(names).not.toContain('is not');
+    expect(names).toContain('does not contain');
     await userEvent.click(screen.getByRole('option', {name: '<'}));
     expect(within(dialog).getByRole('row', {name: 'release:<1.0'})).toBeInTheDocument();
 
@@ -1347,6 +1355,7 @@ describe('ProjectFilters', () => {
         features: [
           'inbound-filters-v2',
           'inbound-filters-v2-ui',
+          'inbound-filters-environment-condition',
           'ourlogs-ingestion',
           'tracemetrics-ingestion',
         ],
@@ -1369,6 +1378,7 @@ describe('ProjectFilters', () => {
     expect(screen.getByRole('option', {name: 'error_type'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'geo_country_code'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'release'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'environment'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'ip_address'})).toBeInTheDocument();
     expect(screen.queryByRole('option', {name: 'metric_name'})).not.toBeInTheDocument();
     expect(screen.queryByRole('option', {name: 'log_message'})).not.toBeInTheDocument();
@@ -1507,8 +1517,20 @@ describe('ProjectFilters', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('creates a catch-all filter that applies to every data type', async () => {
+  it('hides the environment condition without its feature', async () => {
     renderInboundFilters([]);
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Add Filter'}));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(
+      within(dialog).getAllByRole('combobox', {name: 'Add a search term'}).at(-1)!
+    );
+    expect(await screen.findByRole('option', {name: 'release'})).toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'environment'})).not.toBeInTheDocument();
+  });
+
+  it('creates a catch-all filter that applies to every data type', async () => {
+    renderInboundFilters([], businessProject, environmentConditionOrg);
     expect(await screen.findByText('No custom inbound filters yet')).toBeInTheDocument();
 
     const createMock = MockApiClient.addMockResponse({
@@ -1537,6 +1559,7 @@ describe('ProjectFilters', () => {
       within(dialog).getAllByRole('combobox', {name: 'Add a search term'}).at(-1)!
     );
     expect(await screen.findByRole('option', {name: 'release'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'environment'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'ip_address'})).toBeInTheDocument();
     expect(screen.queryByRole('option', {name: 'error_message'})).not.toBeInTheDocument();
     expect(

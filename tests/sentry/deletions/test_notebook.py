@@ -13,11 +13,34 @@ from sentry.notebooks.models import (
     NotebookProject,
     NotebookSeen,
 )
+from sentry.notifications.models.inboxitem import InboxItem
+from sentry.notifications.models.inboxitemevent import InboxItemEvent
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 
 
 class DeleteNotebookTest(TransactionTestCase, HybridCloudTestMixin):
+    def test_deletes_matching_notebook_inbox_items(self) -> None:
+        item = self.create_inbox_item(subject_type="notebook", subject_id=str(self.notebook.id))
+        event = self.create_inbox_item_event(item)
+        other_type = self.create_inbox_item(subject_type="issue", subject_id=str(self.notebook.id))
+        other_org = self.create_inbox_item(
+            organization=self.create_organization(),
+            subject_type="notebook",
+            subject_id=str(self.notebook.id),
+        )
+        other_events = [self.create_inbox_item_event(item) for item in [other_type, other_org]]
+
+        self.ScheduledDeletion.schedule(instance=self.notebook, days=0)
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not InboxItem.objects.filter(id=item.id).exists()
+        assert not InboxItemEvent.objects.filter(id=event.id).exists()
+        assert (
+            InboxItemEvent.objects.filter(id__in=[event.id for event in other_events]).count() == 2
+        )
+
     def setUp(self) -> None:
         super().setUp()
         self.notebook = self.create_notebook(

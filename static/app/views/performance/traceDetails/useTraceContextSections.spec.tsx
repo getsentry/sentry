@@ -1,10 +1,10 @@
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
-import type {EAPTraceMeta} from 'sentry/views/performance/traceDetails/traceApi/types';
-import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
-import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 
+import type {EAPTraceMeta} from './traceApi/types';
+import type {TraceTree} from './traceModels/traceTree';
+import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
 import {useTraceContextSections} from './useTraceContextSections';
 
 function makeTree(overrides: Partial<TraceTree> = {}): TraceTree {

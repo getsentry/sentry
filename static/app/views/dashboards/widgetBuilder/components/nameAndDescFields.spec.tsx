@@ -1,8 +1,9 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {setWindowLocation} from 'sentry-test/utils';
 
-import {WidgetBuilderNameAndDescription} from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+
+import {WidgetBuilderNameAndDescription} from './nameAndDescFields';
 
 describe('WidgetBuilder', () => {
   it('edits name and description', async () => {

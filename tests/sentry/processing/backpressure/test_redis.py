@@ -10,7 +10,7 @@ from sentry.testutils.helpers.redis import use_redis_cluster
 
 
 @override_settings(SENTRY_PROCESSING_SERVICES={"redis": {"redis": "default"}})
-def test_rb_cluster_returns_some_usage() -> None:
+def test_single_host_returns_some_usage() -> None:
     services = load_service_definitions()
     redis_service = services["redis"]
     assert isinstance(redis_service, Redis)

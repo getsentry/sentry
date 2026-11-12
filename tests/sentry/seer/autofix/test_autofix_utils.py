@@ -12,7 +12,7 @@ from sentry.constants import (
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.projectrepository import ProjectRepository
+from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
     AutofixStatus,
@@ -20,6 +20,7 @@ from sentry.seer.autofix.constants import (
 )
 from sentry.seer.autofix.trigger import is_issue_eligible_for_seer_automation
 from sentry.seer.autofix.utils import (
+    MAX_SEER_REPOS_PER_PROJECT,
     AutofixState,
     AutofixStoppingPoint,
     AutomationCodingAgent,
@@ -43,6 +44,7 @@ from sentry.seer.models import (
     AutofixHandoffPoint,
     BranchOverride,
     SeerAutomationHandoffConfiguration,
+    SeerCodeMapping,
     SeerProjectPreference,
     SeerRepoDefinition,
 )
@@ -1050,6 +1052,38 @@ class ReadPreferenceFromSentryDbBaseTest(TestCase):
         assert len(result.repositories) == 1
         assert result.repositories[0].branch_name == "main"
 
+    def test_includes_link_source_and_code_mappings(self) -> None:
+        self.create_seer_project_repository(project=self.project, repository=self.repo)
+        self.create_seer_project_repository(project=self.project, repository=self.repo2)
+        self.create_code_mapping(
+            project=self.project,
+            repo=self.repo,
+            stack_root="app/",
+            source_root="services/api/app/",
+        )
+
+        result = read_preference_from_sentry_db(self.project)
+        repo_by_name = {r.name: r for r in result.repositories}
+        assert repo_by_name["test-repo"].project_repository_source == "seer_preference"
+        assert repo_by_name["test-repo"].code_mappings == [
+            SeerCodeMapping(stack_root="app/", source_root="services/api/app/")
+        ]
+        assert repo_by_name["other-repo"].code_mappings == []
+
+    def test_excludes_other_projects_code_mappings(self) -> None:
+        other_project = self.create_project(organization=self.organization)
+        self.create_seer_project_repository(project=self.project, repository=self.repo)
+        self.create_code_mapping(
+            project=other_project,
+            repo=self.repo,
+            stack_root="web/",
+            source_root="services/web/",
+        )
+
+        result = read_preference_from_sentry_db(self.project)
+        assert len(result.repositories) == 1
+        assert result.repositories[0].code_mappings == []
+
     def test_autofix_automation_tuning_default(self) -> None:
         self.create_seer_project_repository(
             project=self.project, repository=self.repo, branch_name="main"
@@ -1212,6 +1246,20 @@ class TestReadPreferenceFromSentryDbSeatBasedBilling(ReadPreferenceFromSentryDbB
         result = read_preference_from_sentry_db(self.project)
         assert result.repositories == []
 
+    def test_limit_repos_does_not_apply(self) -> None:
+        for i in range(MAX_SEER_REPOS_PER_PROJECT + 2):
+            repo = self.create_repo(
+                project=self.project,
+                provider="integrations:github",
+                integration_id=self.integration.id,
+                external_id=f"ext-{i}",
+                name=f"test-org/repo-{i}",
+            )
+            self.create_seer_project_repository(project=self.project, repository=repo)
+
+        result = read_preference_from_sentry_db(self.project, limit_repos=True)
+        assert len(result.repositories) == MAX_SEER_REPOS_PER_PROJECT + 2
+
 
 @with_feature(
     {
@@ -1233,6 +1281,82 @@ class TestReadPreferenceFromSentryDbTokenBasedBilling(ReadPreferenceFromSentryDb
         assert result.repositories[0].branch_name is None
         assert result.repositories[0].instructions is None
         assert result.repositories[0].branch_overrides == []
+
+    def test_includes_auto_link_source(self) -> None:
+        self.create_project_repository(
+            project=self.project,
+            repository=self.repo,
+            source=ProjectRepositorySource.AUTO_NAME_MATCH,
+        )
+
+        result = read_preference_from_sentry_db(self.project)
+        assert len(result.repositories) == 1
+        assert result.repositories[0].project_repository_source == "auto_name_match"
+
+    def _link_repo(self, name: str, source: ProjectRepositorySource) -> ProjectRepository:
+        repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            integration_id=self.integration.id,
+            external_id=name,
+            name=f"test-org/{name}",
+        )
+        return self.create_project_repository(project=self.project, repository=repo, source=source)
+
+    def _repo_names(self, limit_repos: bool = False) -> list[str]:
+        result = read_preference_from_sentry_db(self.project, limit_repos=limit_repos)
+        return [r.name for r in result.repositories]
+
+    def test_orders_by_link_confidence_then_id(self) -> None:
+        self._link_repo("name-match", ProjectRepositorySource.AUTO_NAME_MATCH)
+        self._link_repo("event-1", ProjectRepositorySource.AUTO_EVENT)
+        self._link_repo("manual", ProjectRepositorySource.MANUAL)
+        self._link_repo("event-2", ProjectRepositorySource.AUTO_EVENT)
+        self._link_repo("seer-preference", ProjectRepositorySource.SEER_PREFERENCE)
+
+        assert self._repo_names() == [
+            "manual",
+            "seer-preference",
+            "event-1",
+            "event-2",
+            "name-match",
+        ]
+
+    def test_link_with_seer_config_counts_as_user_created(self) -> None:
+        self._link_repo("name-match", ProjectRepositorySource.AUTO_NAME_MATCH)
+        self._link_repo("event", ProjectRepositorySource.AUTO_EVENT)
+        configured = self._link_repo("configured", ProjectRepositorySource.AUTO_NAME_MATCH)
+        SeerProjectRepository.objects.create(project_repository=configured)
+
+        assert self._repo_names() == ["configured", "event", "name-match"]
+
+    def test_limit_keeps_every_user_created_link(self) -> None:
+        manual = [f"manual-{i}" for i in range(MAX_SEER_REPOS_PER_PROJECT + 2)]
+        for name in manual:
+            self._link_repo(name, ProjectRepositorySource.MANUAL)
+        self._link_repo("event", ProjectRepositorySource.AUTO_EVENT)
+        configured = self._link_repo("configured", ProjectRepositorySource.AUTO_NAME_MATCH)
+        SeerProjectRepository.objects.create(project_repository=configured)
+
+        assert self._repo_names(limit_repos=True) == [*manual, "configured"]
+
+    def test_limit_fills_automatic_links_up_to_max(self) -> None:
+        self._link_repo("name-match", ProjectRepositorySource.AUTO_NAME_MATCH)
+        events = [f"event-{i}" for i in range(MAX_SEER_REPOS_PER_PROJECT)]
+        for name in events:
+            self._link_repo(name, ProjectRepositorySource.AUTO_EVENT)
+        self._link_repo("manual", ProjectRepositorySource.MANUAL)
+
+        assert self._repo_names(limit_repos=True) == [
+            "manual",
+            *events[: MAX_SEER_REPOS_PER_PROJECT - 1],
+        ]
+
+    def test_no_limit_returns_every_link(self) -> None:
+        for i in range(MAX_SEER_REPOS_PER_PROJECT + 2):
+            self._link_repo(f"event-{i}", ProjectRepositorySource.AUTO_EVENT)
+
+        assert len(self._repo_names()) == MAX_SEER_REPOS_PER_PROJECT + 2
 
 
 class BulkReadPreferencesFromSentryDbBaseTest(TestCase):
@@ -1341,6 +1465,23 @@ class BulkReadPreferencesFromSentryDbBaseTest(TestCase):
         assert pref is not None
         assert pref.autofix_automation_tuning == AutofixAutomationTuningSettings.OFF
 
+    def test_code_mappings_are_per_project(self) -> None:
+        for project, source_root in ((self.project1, "services/api/"), (self.project2, "web/")):
+            self.create_seer_project_repository(project=project, repository=self.repo)
+            self.create_code_mapping(
+                project=project, repo=self.repo, stack_root="", source_root=source_root
+            )
+
+        result = bulk_read_preferences_from_sentry_db(
+            self.organization.id, [self.project1.id, self.project2.id]
+        )
+        assert result[self.project1.id].repositories[0].code_mappings == [
+            SeerCodeMapping(stack_root="", source_root="services/api/")
+        ]
+        assert result[self.project2.id].repositories[0].code_mappings == [
+            SeerCodeMapping(stack_root="", source_root="web/")
+        ]
+
     def test_wrong_organization_excluded(self) -> None:
         other_org = self.create_organization()
         self.create_seer_project_repository(
@@ -1409,6 +1550,29 @@ class TestBulkReadPreferencesFromSentryDbTokenBasedBilling(BulkReadPreferencesFr
         assert [(r.name, r.branch_name) for r in result[self.project1.id].repositories] == [
             ("test-repo", None)
         ]
+
+    def test_limit_repos_applies_per_project(self) -> None:
+        for project in (self.project1, self.project2):
+            for i in range(MAX_SEER_REPOS_PER_PROJECT + 2):
+                repo = self.create_repo(
+                    project=project,
+                    provider="integrations:github",
+                    integration_id=self.integration.id,
+                    external_id=f"{project.id}-{i}",
+                    name=f"test-org/repo-{project.id}-{i}",
+                )
+                self.create_project_repository(
+                    project=project, repository=repo, source=ProjectRepositorySource.AUTO_EVENT
+                )
+
+        result = bulk_read_preferences_from_sentry_db(
+            self.organization.id, [self.project1.id, self.project2.id], limit_repos=True
+        )
+        assert len(result[self.project1.id].repositories) == MAX_SEER_REPOS_PER_PROJECT
+        assert len(result[self.project2.id].repositories) == MAX_SEER_REPOS_PER_PROJECT
+
+        result = bulk_read_preferences_from_sentry_db(self.organization.id, [self.project1.id])
+        assert len(result[self.project1.id].repositories) == MAX_SEER_REPOS_PER_PROJECT + 2
 
 
 class TestGetOrgDefaultSeerAutomationHandoff(TestCase):

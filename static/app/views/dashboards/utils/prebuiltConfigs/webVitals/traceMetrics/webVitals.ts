@@ -5,13 +5,6 @@ import {
   DASHBOARD_DESCRIPTION,
   DASHBOARD_TITLE,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/settings';
-import {
-  PAGELOADS_FIELD,
-  scoreBreakdownChartWidget,
-  scoreBreakdownWheelWidget,
-  WEB_VITALS_TRACE_METRICS_GLOBAL_FILTERS,
-  webVitalP75Meter,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/traceMetrics/widgets';
 import {ISSUE_TYPES} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
 import {
   OPPORTUNITY_SCORE_FIELD,
@@ -19,6 +12,14 @@ import {
   webVitalP75Field,
 } from 'sentry/views/dashboards/utils/webVitalTraceMetricFields';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+
+import {
+  PAGELOADS_FIELD,
+  scoreBreakdownChartWidget,
+  scoreBreakdownWheelWidget,
+  WEB_VITALS_TRACE_METRICS_GLOBAL_FILTERS,
+  webVitalP75Meter,
+} from './widgets';
 
 const PAGES_TABLE_COLUMNS = [SpanFields.TRANSACTION, SpanFields.PROJECT];
 const PAGES_TABLE_AGGREGATES = [
@@ -147,8 +148,7 @@ export const WEB_VITALS_TRACE_METRICS_PREBUILT_CONFIG: PrebuiltDashboard = {
               dashboardId: '-1',
               field: SpanFields.TRANSACTION,
               staticDashboardId: 7,
-              // The page details dashboard still has spans widgets, so filter those too
-              additionalGlobalFilterDatasetTargets: [WidgetType.ISSUE, WidgetType.SPANS],
+              additionalGlobalFilterDatasetTargets: [WidgetType.ISSUE],
             },
           ],
         },

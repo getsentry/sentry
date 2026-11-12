@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {SubscriptionBox} from 'sentry/views/settings/organizationDeveloperSettings/subscriptionBox';
+import {SubscriptionBox} from './subscriptionBox';
 
 describe('SubscriptionBox', () => {
   const onChange = jest.fn();

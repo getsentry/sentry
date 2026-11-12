@@ -1,28 +1,28 @@
-import {Fragment} from 'react';
-import type {Theme} from '@emotion/react';
-import styled from '@emotion/styled';
 import {IconSubtract} from '@sentry/icons/subtract';
 
 import {Button} from '@sentry/scraps/button';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
-import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelBody} from 'sentry/components/panels/panelBody';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
-import {PanelItem} from 'sentry/components/panels/panelItem';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TeamRoleSelect} from 'sentry/components/teamRoleSelect';
 import {TeamRoleColumnLabel} from 'sentry/components/teamRoleUtils';
 import {t} from 'sentry/locale';
 import type {Member, Organization, Team} from 'sentry/types/organization';
 import {useTeams} from 'sentry/utils/useTeams';
-import {RoleOverwritePanelAlert} from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
+import {RoleOverwriteAlert} from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
 import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
 
 import type {TeamSelectProps} from './utils';
 import {DropdownAddTeam} from './utils';
+
+const COLUMNS: TableColumnConfig[] = [
+  {key: 'team', width: {zero: 'minmax(200px, 1fr)', sm: 'minmax(150px, 1fr)'}},
+  {key: 'teamRole', width: {zero: 160, md: 200}},
+  {key: 'actions', width: 'max-content'},
+];
 
 type Props = TeamSelectProps & {
   /**
@@ -61,30 +61,42 @@ export function TeamSelect({
   const selectedTeams = teams.filter(tm => selectedTeamSlugs.has(tm.slug));
 
   return (
-    <Panel>
-      <TeamPanelHeader hasButtons>
-        <div>{t('Team')}</div>
-        <div>
-          <TeamRoleColumnLabel />
-        </div>
-        <div>
-          <DropdownAddTeam
-            disabled={disabled}
-            isLoadingTeams={isLoadingTeams}
-            isAddingTeamToMember
-            onSearch={onSearch}
-            onSelect={onAddTeam}
-            onCreateTeam={onCreateTeam}
-            organization={organization}
-            selectedTeams={selectedTeams.map(tm => tm.slug)}
-            teams={teams}
-          />
-        </div>
-      </TeamPanelHeader>
-
-      <PanelBody>
+    <Stack gap="md">
+      {!loadingTeams && selectedTeams.length > 0 && (
+        <RoleOverwriteAlert
+          orgRole={selectedOrgRole}
+          orgRoleList={organization.orgRoleList}
+          teamRoleList={organization.teamRoleList}
+        />
+      )}
+      <SimpleTable
+        aria-label={t('Teams')}
+        columns={COLUMNS}
+        scrollable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>{t('Team')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>
+              <TeamRoleColumnLabel />
+            </SimpleTable.HeaderCell>
+            <Flex as="th" role="columnheader" align="center" justify="end" padding="0 xl">
+              <DropdownAddTeam
+                disabled={disabled}
+                isLoadingTeams={isLoadingTeams}
+                isAddingTeamToMember
+                onSearch={onSearch}
+                onSelect={onAddTeam}
+                onCreateTeam={onCreateTeam}
+                organization={organization}
+                selectedTeams={selectedTeams.map(tm => tm.slug)}
+                teams={teams}
+              />
+            </Flex>
+          </SimpleTable.HeaderRow>
+        }
+      >
         {loadingTeams ? (
-          <LoadingIndicator />
+          <SimpleTable.Loading />
         ) : (
           <TeamSelectBody
             disabled={disabled}
@@ -97,8 +109,8 @@ export function TeamSelect({
             selectedTeams={selectedTeams}
           />
         )}
-      </PanelBody>
-    </Panel>
+      </SimpleTable>
+    </Stack>
   );
 }
 
@@ -124,38 +136,24 @@ function TeamSelectBody({
   selectedTeams,
 }: TeamSelectBodyProps) {
   if (selectedTeams.length === 0) {
-    return <EmptyMessage>{t('No Teams assigned')}</EmptyMessage>;
+    return <SimpleTable.Empty>{t('No Teams assigned')}</SimpleTable.Empty>;
   }
 
-  const {orgRoleList, teamRoleList} = organization;
-
-  return (
-    <Fragment>
-      {selectedOrgRole && (
-        <RoleOverwritePanelAlert
-          orgRole={selectedOrgRole}
-          orgRoleList={orgRoleList}
-          teamRoleList={teamRoleList}
-        />
-      )}
-
-      {selectedTeams.map(team => (
-        <TeamRow
-          key={team.slug}
-          disabled={disabled}
-          organization={organization}
-          team={team}
-          member={{
-            ...member,
-            orgRole: selectedOrgRole,
-            teamRoles: selectedTeamRoles,
-          }}
-          onChangeTeamRole={onChangeTeamRole}
-          onRemoveTeam={slug => onRemoveTeam(slug)}
-        />
-      ))}
-    </Fragment>
-  );
+  return selectedTeams.map(team => (
+    <TeamRow
+      key={team.slug}
+      disabled={disabled}
+      organization={organization}
+      team={team}
+      member={{
+        ...member,
+        orgRole: selectedOrgRole,
+        teamRoles: selectedTeamRoles,
+      }}
+      onChangeTeamRole={onChangeTeamRole}
+      onRemoveTeam={slug => onRemoveTeam(slug)}
+    />
+  ));
 }
 
 function TeamRow({
@@ -179,25 +177,31 @@ function TeamRow({
   const buttonHelpText = getButtonHelpText(isIdpProvisioned);
 
   return (
-    <TeamPanelItem data-test-id="team-row-for-member">
-      <div>
-        <Link to={`/settings/${organization.slug}/teams/${team.slug}/`}>
-          <TeamBadge team={team} />
-        </Link>
-      </div>
+    <SimpleTable.Row data-test-id="team-row-for-member">
+      <SimpleTable.RowCell>
+        <Container minWidth={0}>
+          <Link to={`/settings/${organization.slug}/teams/${team.slug}/`}>
+            <TeamBadge team={team} />
+          </Link>
+        </Container>
+      </SimpleTable.RowCell>
 
-      <div style={{whiteSpace: 'nowrap'}}>
-        <TeamRoleSelect
-          disabled={disabled}
-          size="xs"
-          organization={organization}
-          team={team}
-          member={member}
-          onChangeTeamRole={newRole => onChangeTeamRole(team.slug, newRole)}
-        />
-      </div>
+      <SimpleTable.RowCell>
+        <Container flex="1" minWidth={0}>
+          <TeamRoleSelect
+            disabled={disabled}
+            size="xs"
+            organization={organization}
+            team={team}
+            member={member}
+            onChangeTeamRole={newRole => onChangeTeamRole(team.slug, newRole)}
+            keepMenuInViewport
+            menuPortalTarget={document.body}
+          />
+        </Container>
+      </SimpleTable.RowCell>
 
-      <div>
+      <SimpleTable.RowCell justify="end">
         <Button
           size="xs"
           icon={<IconSubtract />}
@@ -207,26 +211,7 @@ function TeamRow({
         >
           {t('Remove')}
         </Button>
-      </div>
-    </TeamPanelItem>
+      </SimpleTable.RowCell>
+    </SimpleTable.Row>
   );
 }
-
-const GRID_TEMPLATE = (p: {theme: Theme}) => `
-  display: grid;
-  grid-template-columns: minmax(100px, 1fr) minmax(0px, 100px) 200px;
-  gap: ${p.theme.space.md};
-
-  > div:last-child {
-    margin-left: auto;
-  }
-`;
-
-const TeamPanelHeader = styled(PanelHeader)`
-  ${GRID_TEMPLATE}
-`;
-
-const TeamPanelItem = styled(PanelItem)`
-  ${GRID_TEMPLATE}
-  padding: ${p => p.theme.space.xl};
-`;

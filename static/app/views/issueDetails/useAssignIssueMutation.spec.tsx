@@ -5,8 +5,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {GroupStore} from 'sentry/stores/groupStore';
-import {useAssignIssueMutation} from 'sentry/views/issueDetails/useAssignIssueMutation';
-import {useGroup} from 'sentry/views/issueDetails/useGroup';
+
+import {useAssignIssueMutation} from './useAssignIssueMutation';
+import {useGroup} from './useGroup';
 
 describe('useAssignIssueMutation', () => {
   const organization = OrganizationFixture();

@@ -29,8 +29,9 @@ import {
   ProfilesProvider,
   useProfiles,
 } from 'sentry/views/explore/profiling/profilesProvider';
-import {SectionKey} from 'sentry/views/issueDetails/context';
-import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+
+import {SectionKey} from './context';
+import {FoldSection} from './foldSection';
 
 export function ProfilePreviewSection({
   event,

@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {DeviceName} from 'sentry/components/deviceName';
+import {DeviceName} from './deviceName';
 
 describe('DeviceName', () => {
   it('renders device name if module is loaded', async () => {

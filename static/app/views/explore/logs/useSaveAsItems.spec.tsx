@@ -11,10 +11,11 @@ import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {useSaveAsItems} from 'sentry/views/explore/logs/useSaveAsItems';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+import {LogsQueryParamsProvider} from './logsQueryParamsProvider';
+import {useSaveAsItems} from './useSaveAsItems';
 
 jest.mock('sentry/actionCreators/modal');
 
@@ -214,7 +215,38 @@ describe('useSaveAsItems', () => {
     expect(alertItem?.children).toHaveLength(1);
   });
 
-  it('preserves the selected chart type and pipeline when adding a dashboard widget', () => {
+  it('notes only the dashboard widget always matches case when ignoring case on a grouped view', () => {
+    const {result} = renderHookWithProviders(useSaveAsItems, {
+      additionalWrapper: Wrapper,
+      organization: OrganizationFixture({
+        features: ['ourlogs-enabled', 'explore-ignore-case-default'],
+      }),
+      initialRouterConfig: {
+        location: {
+          pathname: '/mock-pathname/',
+          query: {...initialLocation.query, logsQuery: '', caseInsensitive: '1'},
+        },
+      },
+      initialProps: {
+        visualizes: [new VisualizeFunction('count()')],
+        groupBys: ['message.template'],
+        interval: '5m',
+        mode: Mode.AGGREGATE,
+        search: new MutableSearch(''),
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
+      },
+    });
+
+    const getDetails = (key: string) => {
+      const item = result.current.find(saveAsItem => saveAsItem.key === key);
+      return item && 'details' in item ? item.details : undefined;
+    };
+
+    expect(getDetails('create-alert')).toBeNull();
+    expect(getDetails('add-to-dashboard')).toBe('Always matches case');
+  });
+
+  it('preserves the selected chart type and transformations when adding a dashboard widget', () => {
     const {result, router} = renderHookWithProviders(useSaveAsItems, {
       additionalWrapper: Wrapper,
       organization,

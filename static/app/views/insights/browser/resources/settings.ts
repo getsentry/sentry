@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
-import {ResourceSpanOps} from 'sentry/views/insights/browser/resources/types';
+
+import {ResourceSpanOps} from './types';
 
 export const MODULE_TITLE = t('Assets');
 export const DATA_TYPE = t('Asset');

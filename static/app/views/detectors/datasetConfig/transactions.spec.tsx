@@ -3,7 +3,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
-import {DetectorTransactionsConfig} from 'sentry/views/detectors/datasetConfig/transactions';
+
+import {DetectorTransactionsConfig} from './transactions';
 
 describe('DetectorTransactionsConfig', () => {
   describe('getSeriesQueryOptions', () => {

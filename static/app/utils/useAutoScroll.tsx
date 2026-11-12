@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useRef, type UIEventHandler} from 'react';
 
-import {defined} from 'sentry/utils/defined';
+import {defined} from './defined';
 
 // Tolerance for sub-pixel rounding when deciding whether we sit at the bottom.
 const BOTTOM_THRESHOLD_PX = 4;

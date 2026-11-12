@@ -8,15 +8,15 @@ import {useQueryState} from 'nuqs';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {Duration} from 'sentry/components/duration/duration';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {replayBulkDeleteAuditLogApiOptions} from 'sentry/components/replays/bulkDelete/replayBulkDeleteAuditLogApiOptions';
@@ -129,7 +129,7 @@ export function DeleteReplays({selectedIds, replays, queryOptions}: Props) {
               onConfirm: () => {
                 bulkDelete([deletePayload], {
                   onSuccess: () => {
-                    addSuccessMessage(
+                    toast.success(
                       tct('Replays are being deleted. [settings:View progress]', {
                         settings: <LinkWithUnderline to={settingsPath} />,
                       })
@@ -143,7 +143,7 @@ export function DeleteReplays({selectedIds, replays, queryOptions}: Props) {
                         ? Number.MAX_SAFE_INTEGER
                         : selectedIds.length;
                     const reason = getBulkDeleteErrorReason(error);
-                    addErrorMessage(
+                    toast.error(
                       reason
                         ? tn(
                             'Failed to delete replay: %2$s',

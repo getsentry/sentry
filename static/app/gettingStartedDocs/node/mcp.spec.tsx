@@ -2,7 +2,8 @@ import type {
   DocsParams,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getNodeMcpOnboarding} from 'sentry/gettingStartedDocs/node/utils';
+
+import {getNodeMcpOnboarding} from './utils';
 
 const DATA_COLLECTION_TITLE = 'Control the Data You Send to Sentry (Optional)';
 

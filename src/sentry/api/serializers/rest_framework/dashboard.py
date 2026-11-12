@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta
 from enum import Enum
 from math import floor
-from typing import Any, TypedDict, cast
+from typing import Annotated, Any, TypedDict, cast
 
 import sentry_sdk
 from django.db.models import Max
@@ -15,12 +15,13 @@ from sentry.api.helpers.creator import get_creator_reference
 from sentry.api.helpers.timeseries_transformations import parse_transformations
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns
 from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.issue_search import parse_search_query
-from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard import Dashboard, QueryPriorities
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
     DashboardFieldLink,
@@ -61,8 +62,27 @@ DATASET_SOURCE_MAP = {source[1]: source[0] for source in DatasetSourcesTypes.as_
 
 
 class QueryWarning(TypedDict):
-    queries: list[str | None]
-    columns: dict[str, str]
+    queries: Annotated[
+        list[str | None],
+        ApiDescription(
+            "One entry per widget query, in order: the reason on-demand metric extraction is "
+            "disabled for that query, or null if there is nothing to warn about."
+        ),
+    ]
+    columns: Annotated[
+        dict[str, str],
+        ApiDescription(
+            "Columns that disable on-demand metric extraction, mapped to the reason, such as "
+            "high cardinality."
+        ),
+    ]
+
+
+class DashboardWidgetValidationResponse(TypedDict):
+    warnings: Annotated[
+        QueryWarning,
+        ApiDescription("Warnings about the widget that don't block saving it."),
+    ]
 
 
 class LinkedDashboard(TypedDict):
@@ -185,7 +205,9 @@ DATASET_CONFIG: dict[int, DatasetConfig] = {
         )
     },
     DashboardWidgetTypes.PREPROD_APP_SIZE: {
-        "supported_display_types": frozenset({DashboardWidgetDisplayTypes.LINE_CHART})
+        "supported_display_types": frozenset(
+            {DashboardWidgetDisplayTypes.LINE_CHART, DashboardWidgetDisplayTypes.BAR_CHART}
+        )
     },
 }
 
@@ -483,29 +505,59 @@ class ThresholdMaxKeys(Enum):
 )
 class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     # Is a string because output serializers also make it a string.
-    id = serializers.CharField(required=False)
-    title = serializers.CharField(required=False, allow_blank=True, max_length=255)
-    description = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-    thresholds = serializers.JSONField(required=False, allow_null=True)
+    id = serializers.CharField(
+        required=False, help_text="ID of an existing widget. Omit it to create a new widget."
+    )
+    title = serializers.CharField(
+        required=False, allow_blank=True, max_length=255, help_text="Title of the widget."
+    )
+    description = serializers.CharField(
+        required=False, allow_null=True, allow_blank=True, help_text="Description of the widget."
+    )
+    thresholds = serializers.JSONField(
+        required=False, allow_null=True, help_text="Thresholds that color the widget's values."
+    )
     display_type = serializers.ChoiceField(
-        choices=DashboardWidgetDisplayTypes.as_text_choices(), required=False
+        choices=DashboardWidgetDisplayTypes.as_text_choices(),
+        required=False,
+        help_text="How the widget is displayed, such as line, area, bar, table or big_number.",
     )
-    interval = serializers.CharField(required=False, max_length=10)
-    queries = DashboardWidgetQuerySerializer(many=True, required=False)
+    interval = serializers.CharField(
+        required=False,
+        max_length=10,
+        help_text="Time interval for the widget's series, such as 5m.",
+    )
+    queries = DashboardWidgetQuerySerializer(
+        many=True, required=False, help_text="Queries that provide the widget's data."
+    )
     widget_type = serializers.ChoiceField(
-        choices=DashboardWidgetTypes.as_text_choices(), required=False, allow_null=True
+        choices=DashboardWidgetTypes.as_text_choices(),
+        required=False,
+        allow_null=True,
+        help_text="Dataset the widget queries, such as error-events, spans, logs or issue.",
     )
-    limit = serializers.IntegerField(min_value=1, required=False, allow_null=True)
-    layout: BaseWidgetLayoutSerializer = WidgetLayoutSerializer(required=False, allow_null=True)
+    limit = serializers.IntegerField(
+        min_value=1,
+        required=False,
+        allow_null=True,
+        help_text="Maximum number of series or rows the widget shows.",
+    )
+    layout: BaseWidgetLayoutSerializer = WidgetLayoutSerializer(
+        required=False,
+        allow_null=True,
+        help_text="Position and size of the widget on the dashboard grid.",
+    )
     axis_range = serializers.ChoiceField(
         choices=[("auto", "auto"), ("dataMin", "dataMin")],
         required=False,
         allow_null=True,
+        help_text="Y-axis range: auto or dataMin.",
     )
     legend_type = serializers.ChoiceField(
         choices=DashboardWidgetLegendType.as_text_choices(),
         required=False,
         allow_null=True,
+        help_text="Legend style: default or breakdown.",
     )
     query_warnings: QueryWarning = {"queries": [], "columns": {}}
     dataset_source = serializers.ChoiceField(
@@ -1065,6 +1117,12 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         allow_null=True,
         help_text="Permissions that restrict users from editing dashboards",
     )
+    query_priority = serializers.ChoiceField(
+        choices=QueryPriorities.as_text_choices(),
+        required=False,
+        allow_null=True,
+        help_text="The query priority",
+    )
 
     def validate_projects(self, projects: list[int]) -> set[int]:
         from sentry.api.validators import validate_project_ids
@@ -1246,6 +1304,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         self.instance = Dashboard.objects.create(
             organization=self.context["organization"],
             title=validated_data["title"],
+            query_priority=validated_data.get("query_priority"),
             **get_creator_reference(self.context["request"]),
         )
 
@@ -1272,6 +1331,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         bad things will happen
         """
         instance.title = validated_data.get("title", instance.title)
+        instance.query_priority = validated_data.get("query_priority", instance.query_priority)
         instance.save()
 
         if "widgets" in validated_data:
@@ -1693,6 +1753,12 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
     def remove_missing_queries(self, widget_id: int, keep_ids: list[int]) -> None:
         DashboardWidgetQuery.objects.filter(widget_id=widget_id).exclude(id__in=keep_ids).delete()
 
+    def validate_query_priority(self, query_priority: str) -> int:
+        priority = QueryPriorities.get_id_for_type_name(query_priority)
+        if priority is None:
+            return QueryPriorities.NORMAL
+        return priority
+
 
 class DashboardCreateWidgetSerializer(DashboardWidgetSerializer):
     layout: BaseWidgetLayoutSerializer = DashboardCreateWidgetLayoutSerializer(
@@ -1729,7 +1795,11 @@ class DashboardSerializer(DashboardDetailsSerializer):
 
 
 class DashboardStarredOrderSerializer(serializers.Serializer):
-    dashboard_ids = serializers.ListField(child=serializers.IntegerField(), required=True)
+    dashboard_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=True,
+        help_text="IDs of the requesting user's starred dashboards, in their new order.",
+    )
 
     def validate_dashboard_ids(self, dashboard_ids: list[int]) -> list[int]:
         if len(dashboard_ids) != len(set(dashboard_ids)):

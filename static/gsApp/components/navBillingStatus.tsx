@@ -20,7 +20,7 @@ import {
   usePrimaryNavigationButtonOverlay,
 } from 'sentry/views/navigation/primary/components';
 
-import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
+import {AddEventsCTA, type EventType} from 'getsentry/components/addEventsCTA';
 import {useBillingMembers} from 'getsentry/hooks/useBillingMembers';
 import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {

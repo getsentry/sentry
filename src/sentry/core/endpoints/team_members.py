@@ -1,5 +1,5 @@
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import cast
+from typing import Annotated, cast
 
 from django.db.models import Q, prefetch_related_objects
 from drf_spectacular.utils import extend_schema
@@ -14,6 +14,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.organization_member.response import OrganizationMemberResponse
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -26,9 +27,14 @@ from sentry.users.api.serializers.user import UserSerializerResponse
 class OrganizationMemberOnTeamResponse(OrganizationMemberResponse):
     # NOTE: We override users to be required b/c team members will always have
     # an existing user to be part of a team.
-    user: UserSerializerResponse  # type: ignore[misc]
-    teamRole: str | None
-    teamSlug: str
+    user: Annotated[UserSerializerResponse, ApiDescription("The member's user")]  # type: ignore[misc]
+    teamRole: Annotated[
+        str | None,
+        ApiDescription(
+            "ID of the member's team role, or null if the member has the minimum team role from their organization role"
+        ),
+    ]
+    teamSlug: Annotated[str, ApiDescription("Slug of the team")]
 
 
 @register(OrganizationMemberTeam)

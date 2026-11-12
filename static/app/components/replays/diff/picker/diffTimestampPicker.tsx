@@ -5,11 +5,12 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {useDiffCompareContext} from 'sentry/components/replays/diff/diffCompareContext';
-import {CrumbItem} from 'sentry/components/replays/diff/picker/crumbItem';
-import {MutationOption} from 'sentry/components/replays/diff/picker/mutationOption';
 import {After, Before} from 'sentry/components/replays/diff/utils';
 import {t} from 'sentry/locale';
 import {isHydrateCrumb, isRRWebChangeFrame} from 'sentry/utils/replays/types';
+
+import {CrumbItem} from './crumbItem';
+import {MutationOption} from './mutationOption';
 
 const maxOptions = 3;
 

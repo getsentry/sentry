@@ -29,7 +29,12 @@ from sentry.api.event_search import (
     translate_wildcard_as_clickhouse_pattern,
 )
 from sentry.constants import MODULE_ROOT
-from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
+from sentry.exceptions import (
+    IncompatibleMetricsQuery,
+    InvalidFunctionArgumentQuery,
+    InvalidSearchQuery,
+    SearchQueryParseError,
+)
 from sentry.search.events.constants import (
     TEAM_KEY_TRANSACTION_ALIAS,
     WILDCARD_OPERATOR_MAP,
@@ -1348,6 +1353,8 @@ def test_invalid_translate_wildcard_as_clickhouse_pattern(pattern: str) -> None:
         pytest.param("tags[foo:bar,number]:0", "tags[foo:bar,number]", "0"),
         pytest.param("tags[foo,boolean]:true", "tags[foo,boolean]", "true"),
         pytest.param("tags[foo:bar,boolean]:true", "tags[foo:bar,boolean]", "true"),
+        pytest.param("tags[foo,array]:bar", "tags[foo,array]", "bar"),
+        pytest.param("tags[foo:bar,array]:baz", "tags[foo:bar,array]", "baz"),
         pytest.param("flags[foo]:true", "flags[foo]", "true"),
         pytest.param("flags[foo,string]:true", "flags[foo,string]", "true"),
         pytest.param("flags[foo:bar,string]:true", "flags[foo:bar,string]", "true"),
@@ -1371,6 +1378,8 @@ def test_handles_special_character_in_tags_and_flags(query: str, key: str, value
         pytest.param("has:tags[foo:bar,string]", "tags[foo:bar,string]"),
         pytest.param("has:tags[foo:bar,number]", "tags[foo:bar,number]"),
         pytest.param("has:tags[foo:bar,boolean]", "tags[foo:bar,boolean]"),
+        pytest.param("has:tags[foo,array]", "tags[foo,array]"),
+        pytest.param("has:tags[foo:bar,array]", "tags[foo:bar,array]"),
         pytest.param("has:flags[foo]", "flags[foo]"),
         pytest.param("has:flags[foo,string]", "flags[foo,string]"),
         pytest.param("has:flags[foo,number]", "flags[foo,number]"),
@@ -1658,6 +1667,18 @@ def test_rejects_regex_filters_when_a_query_has_more_than_the_maximum_count() ->
 
 def test_parses_a_regex_value_on_an_array_includes_key_as_its_array_attribute() -> None:
     filters = parse_search_query("tags[foo[*],array]://^a//", config=regex_config)
+
+    assert filters == [
+        SearchFilter(
+            key=SearchKey(name="tags[foo,array]"),
+            operator="=",
+            value=SearchValue("^a", use_raw_value=True, is_regex=True),
+        )
+    ]
+
+
+def test_parses_a_regex_value_on_an_explicit_array_tag_key_as_its_array_attribute() -> None:
+    filters = parse_search_query("tags[foo,array]://^a//", config=regex_config)
 
     assert filters == [
         SearchFilter(
@@ -2022,3 +2043,35 @@ def test_array_includes_filter_passes_through_comparison_operators(
     query: str, expected: list[SearchFilter]
 ) -> None:
     assert parse_search_query(query) == expected
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        pytest.param("timestamp:>yesterday", id="invalid date"),
+        pytest.param("transaction.duration:>abc", id="invalid number"),
+        pytest.param("user.email:", id="empty value"),
+        pytest.param("is:foo", id="unsupported is"),
+    ],
+)
+def test_rejects_an_invalid_query_as_a_search_query_parse_error(query: str) -> None:
+    with pytest.raises(SearchQueryParseError):
+        parse_search_query(query)
+
+
+def test_rejects_an_incomplete_parse_as_a_search_query_parse_error() -> None:
+    with pytest.raises(SearchQueryParseError) as err:
+        parse_search_query("user.email:foo)")
+
+    assert err.value.extra == {"idx": 15}
+
+
+def test_keeps_an_invalid_function_argument_raised_while_parsing() -> None:
+    error = InvalidFunctionArgumentQuery(
+        "foo is invalid for parameter 1 in p75.", function="p75", argument="foo"
+    )
+    with patch("sentry.api.event_search.SearchVisitor.visit", side_effect=error):
+        with pytest.raises(InvalidFunctionArgumentQuery) as err:
+            parse_search_query("p75(foo):>1")
+
+    assert err.value is error

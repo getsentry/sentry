@@ -50,3 +50,9 @@ class InboxCountResponse(TypedDict):
     """Number of active inbox items matching the filters."""
 
     count: int
+
+
+class InboxUpdateResponse(TypedDict):
+    """Number of inbox items matching a bulk update, including unchanged items."""
+
+    updatedCount: int

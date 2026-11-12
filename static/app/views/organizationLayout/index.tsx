@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
 import {DemoHeader} from 'sentry/components/demo/demoHeader';
 import {useFeatureFlagOnboardingDrawer} from 'sentry/components/events/featureFlags/onboarding/featureFlagOnboardingSidebar';
@@ -18,6 +17,7 @@ import {useReplaysOnboardingDrawer} from 'sentry/components/replaysOnboarding/si
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {getOverride} from 'sentry/overrideRegistry';
 import {SentryOverlayProvider} from 'sentry/scrapsProviders/overlay';
+import {SentryPictureInPictureProvider} from 'sentry/scrapsProviders/pictureInPicture';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -56,13 +56,13 @@ export function OrganizationLayout() {
         <SentryOverlayProvider>
           <SeerExplorerSessionsProvider>
             <SeerExplorerChatStateProvider>
-              <PictureInPictureProvider>
+              <SentryPictureInPictureProvider>
                 <GlobalDrawer>
                   <SeerExplorerContextProvider>
                     <AppLayout organization={organization} />
                   </SeerExplorerContextProvider>
                 </GlobalDrawer>
-              </PictureInPictureProvider>
+              </SentryPictureInPictureProvider>
             </SeerExplorerChatStateProvider>
           </SeerExplorerSessionsProvider>
         </SentryOverlayProvider>

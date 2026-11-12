@@ -5,6 +5,7 @@ from drf_spectacular.utils import OpenApiParameter
 from sentry import constants
 from sentry.api.helpers.projects import PROJECT_ID_OR_SLUG_SCHEMA
 from sentry.snuba.sessions import STATS_PERIODS
+from sentry.workflow_engine.models.workflow import VISIBLE_WORKFLOW_TYPES
 
 # NOTE: Please add new params by path vs query, then in alphabetical order
 
@@ -168,14 +169,6 @@ class EnvironmentParams:
         required=True,
         type=str,
         description="The name of the environment.",
-    )
-    VISIBILITY = OpenApiParameter(
-        name="visibility",
-        location="query",
-        required=False,
-        type=str,
-        description="""The visibility of the environments to filter by. Defaults to `visible`.""",
-        enum=["all", "hidden", "visible"],
     )
 
 
@@ -441,16 +434,8 @@ class IssueParams:
 
     DEFAULT_QUERY = OpenApiParameter(
         name="query",
-        description="An optional search query for filtering issues. A default query will apply if no view/query is set. For all results use this parameter with an empty string.",
+        description="An optional search query for filtering issues. A default query will apply if no query is set. For all results use this parameter with an empty string.",
         default="is:unresolved",
-        location=OpenApiParameter.QUERY,
-        type=OpenApiTypes.STR,
-        required=False,
-    )
-
-    VIEW_ID = OpenApiParameter(
-        name="viewId",
-        description="The ID of the view to use. If no query is present, the view's query and filters will be applied.",
         location=OpenApiParameter.QUERY,
         type=OpenApiTypes.STR,
         required=False,
@@ -478,7 +463,7 @@ class IssueParams:
 
     LIMIT = OpenApiParameter(
         name="limit",
-        description="The maximum number of issues to affect. The maximum is 100.",
+        description="The maximum number of issues to return. The maximum is 100.",
         default=100,
         location=OpenApiParameter.QUERY,
         type=OpenApiTypes.INT,
@@ -684,6 +669,16 @@ class WorkflowParams:
         type=int,
         many=True,
         description="The IDs of monitors connected to the alerts you'd like to query.",
+    )
+
+    TYPE = OpenApiParameter(
+        name="type",
+        location="query",
+        required=False,
+        type=str,
+        many=True,
+        enum=sorted(workflow_type.value for workflow_type in VISIBLE_WORKFLOW_TYPES),
+        description="The type of workflow you'd like to query. If not specified, all types are returned.",
     )
 
     QUERY = OpenApiParameter(
@@ -931,9 +926,15 @@ When TopEvents is passed, both sort and groupBy are required parameters""",
         name="interval",
         location="query",
         required=False,
-        type=int,
+        type={
+            "anyOf": [
+                {"type": "integer"},
+                {"type": "string", "pattern": r"^\d+[smhdw]?$"},
+            ]
+        },
         description="""The size of the bucket for the timeseries to have, must be a value smaller than the window being
-queried. If the interval is invalid a default interval will be selected instead""",
+queried. Either a number of seconds, or a number with a unit suffix of `s`, `m`, `h`, `d`, or `w`, such as `5m` or
+`1h`. If the interval is invalid a default interval will be selected instead""",
     )
     GROUP_BY = OpenApiParameter(
         name="groupBy",
@@ -949,8 +950,10 @@ top events are""",
         location="query",
         required=False,
         type=str,
-        description="""The aggregate field to create the timeseries for, defaults to `count()` when
-        not included.
+        many=True,
+        description="""The aggregate fields to create timeseries for, defaults to `count()` when
+        not included. Pass the parameter more than once to get a timeseries for each aggregate, for
+        example `?yAxis=count()&yAxis=p95(span.duration)`.
 - `count()` - Total count of events over the period.
 - `avg(field)` - Average value of the field over the period.
 - `pXX(field)` - Percentile value of the field over the period. One of: `p50`, `p75`, `p90`, `p95`, `p99`, `p100`.
@@ -965,6 +968,21 @@ top events are""",
 - `performance_score(field)` - Web Vitals performance score for the selected measurement.
 - `opportunity_score(field)` - Web Vitals opportunity score for the selected measurement.
 """,
+    )
+    TRANSFORMATIONS = OpenApiParameter(
+        name="transformations[0]",
+        location="query",
+        required=False,
+        type=str,
+        many=True,
+        style="form",
+        explode=True,
+        description="""Ordered transformations for a zero-based `yAxis` position. Replace `0` with the target axis index.
+Repeat the indexed key for each operation, for example
+`transformations[0]=fill(locf)&transformations[0]=smooth(sma,3)`.
+Each axis accepts at most one fill and one smooth operation, in execution order.
+Fill modes are `locf`, `zero`, and `linear`. Smoothing modes are `sma`, `ema`, and `asap`.
+Omit the indexed key to leave that axis unchanged. Requires the interpolation and smoothing feature.""",
     )
     DISABLE_AGGREGATE_EXTRAPOLATION = OpenApiParameter(
         name="disableAggregateExtrapolation",
@@ -1148,6 +1166,15 @@ class TraceParams:
         required=True,
         type=str,
         description="The ID of the trace, a 32-character hexadecimal string.",
+    )
+    TIMESTAMP = OpenApiParameter(
+        name="timestamp",
+        location="query",
+        required=False,
+        type=str,
+        description="""The timestamp of an event in the trace, as an ISO 8601 string or Unix timestamp in
+seconds. When passed, the query is narrowed to a window around this time, which is faster than
+searching the full time range.""",
     )
 
 
@@ -1416,6 +1443,14 @@ class DashboardParams:
         description="""The ID of the dashboard you'd like to retrieve.""",
     )
 
+    REVISION_ID = OpenApiParameter(
+        name="revision_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the dashboard revision, from the dashboard's revision list.",
+    )
+
     FILTER = OpenApiParameter(
         name="filter",
         location="query",
@@ -1543,7 +1578,7 @@ Available fields are:
     )
 
 
-class InvestigationParams:
+class NotebookParams:
     BLOCK_ID = OpenApiParameter(
         name="block_id",
         location="path",
@@ -1565,7 +1600,7 @@ class InvestigationParams:
         type=str,
         description="The ID of an execution belonging to this block.",
     )
-    INVESTIGATION_ID = OpenApiParameter(
+    NOTEBOOK_ID = OpenApiParameter(
         name="investigation_id",
         location="path",
         required=True,
@@ -1604,4 +1639,42 @@ class InvestigationParams:
         enum=["active", "archived"],
         default="active",
         description="Return investigations with this status. Defaults to active.",
+    )
+    TRIGGER = OpenApiParameter(
+        name="trigger",
+        location="query",
+        type=str,
+        enum=["me", "user", "automation"],
+        description=(
+            "Return investigations started this way: me (created by the requesting user), "
+            "user (created by any user), or automation (started by a Seer automation run)."
+        ),
+    )
+    STRATEGY = OpenApiParameter(
+        name="strategy",
+        location="query",
+        type=str,
+        description=(
+            "Return investigations started by an automation with this strategy, for example "
+            "breached_metric_investigation. Can't be combined with trigger=me or trigger=user."
+        ),
+    )
+    RUN_STATUS = OpenApiParameter(
+        name="runStatus",
+        location="query",
+        type=str,
+        many=True,
+        enum=["pending", "processing", "awaiting_input", "completed", "failed", "cancelled"],
+        description=(
+            "Return investigations whose agentic run has one of these statuses. Repeat to match "
+            "several. Investigations without a run never match."
+        ),
+    )
+    SORT = OpenApiParameter(
+        name="sort",
+        location="query",
+        type=str,
+        enum=["dateUpdated", "dateCreated"],
+        default="dateUpdated",
+        description="Newest first by last update or by creation. Defaults to dateUpdated.",
     )

@@ -25,7 +25,6 @@ from sentry.issue_detection.performance_detection import (
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issue_detection.types import Span
 from sentry.issues.grouptype import (
-    PerformanceConsecutiveHTTPQueriesGroupType,
     PerformanceNPlusOneGroupType,
     PerformanceSlowDBQueryGroupType,
     registry,
@@ -38,11 +37,9 @@ from sentry.workflow_engine.models.detector import Detector
 
 BASE_DETECTOR_OPTIONS = {
     "performance.issues.n_plus_one_db.problem-creation": 1.0,
-    "performance.issues.n_plus_one_db_ext.problem-creation": 1.0,
 }
 BASE_DETECTOR_OPTIONS_OFF = {
     "performance.issues.n_plus_one_db.problem-creation": 0.0,
-    "performance.issues.n_plus_one_db_ext.problem-creation": 0.0,
 }
 
 
@@ -401,53 +398,6 @@ class PerformanceDetectionTest(TestCase):
 
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
         assert perf_problems == []
-
-    @override_options({"performance.issues.consecutive_http.problem-creation": True})
-    def test_boolean_system_option_disables_detector_issue_creation(self) -> None:
-        event = get_event("consecutive-http/consecutive-http-basic")
-        sdk_span_mock = Mock()
-
-        perf_problems = _detect_performance_problems(event, sdk_span_mock, self.project)
-        assert perf_problems == []
-
-    @override_options({"performance.issues.consecutive_http.problem-creation": False})
-    def test_boolean_system_option_enables_detector_issue_creation(self) -> None:
-        event = get_event("consecutive-http/consecutive-http-basic")
-        sdk_span_mock = Mock()
-
-        perf_problems = _detect_performance_problems(event, sdk_span_mock, self.project)
-        assert perf_problems == [
-            PerformanceProblem(
-                fingerprint="1-1009-6654ad4d1d494222ce02c656386e6955575c17ed",
-                op="http",
-                desc="GET https://my-api.io/api/users?page=1",
-                type=PerformanceConsecutiveHTTPQueriesGroupType,
-                parent_span_ids=[],
-                cause_span_ids=[],
-                offender_span_ids=[
-                    "96e0ae187b5481a1",
-                    "8d22b49a27b18270",
-                    "b2bc2ebb42248c74",
-                    "9336922774fd35bc",
-                    "a307ceb77c702cea",
-                    "ac1e90ff646617e7",
-                ],
-                evidence_data={
-                    "op": "http",
-                    "parent_span_ids": [],
-                    "cause_span_ids": [],
-                    "offender_span_ids": [
-                        "96e0ae187b5481a1",
-                        "8d22b49a27b18270",
-                        "b2bc2ebb42248c74",
-                        "9336922774fd35bc",
-                        "a307ceb77c702cea",
-                        "ac1e90ff646617e7",
-                    ],
-                },
-                evidence_display=[],
-            )
-        ]
 
     @override_options(BASE_DETECTOR_OPTIONS)
     def test_system_option_used_when_project_option_is_default(self) -> None:
