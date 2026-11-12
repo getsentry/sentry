@@ -1,5 +1,4 @@
 import {Temporal} from '@js-temporal/polyfill';
-import moment from 'moment-timezone';
 
 import {getSnapshot, type DateTimePreferences, type FormattingSnapshot} from './config';
 import {parseDate} from './parseDate';
@@ -28,14 +27,14 @@ export function formatDateTime(
 export function formatTimezone(
   epochMilliseconds: number,
   timezone: string,
-  locale: string
+  snapshot: Readonly<FormattingSnapshot> = getSnapshot()
 ) {
   if (timezone === 'UTC') {
     return 'UTC';
   }
   return (
-    moment.tz.zone(timezone)?.abbr(epochMilliseconds) ??
-    new Intl.DateTimeFormat(locale, {timeZone: timezone, timeZoneName: 'short'})
+    snapshot.getTimezoneAbbreviation?.(epochMilliseconds, timezone, snapshot.locale) ??
+    new Intl.DateTimeFormat(snapshot.locale, {timeZone: timezone, timeZoneName: 'short'})
       .formatToParts(epochMilliseconds)
       .find(part => part.type === 'timeZoneName')?.value ??
     ''
@@ -99,6 +98,6 @@ export function formatDateTimeWithSnapshot(
         ? timeText
         : `${dateText}${showYear ? ' ' : ', '}${timeText}`;
   return showTimezone
-    ? `${text} ${formatTimezone(value.epochMilliseconds, timezone, snapshot.locale)}`
+    ? `${text} ${formatTimezone(value.epochMilliseconds, timezone, snapshot)}`
     : text;
 }

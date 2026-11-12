@@ -10,6 +10,12 @@ export interface DateTimePreferences {
 export interface FormattingSnapshot extends DateTimePreferences {
   locale: string;
   messages: Translation;
+  /** Optional application label source. Returning undefined falls back to Intl. */
+  getTimezoneAbbreviation?: (
+    epochMilliseconds: number,
+    timezone: string,
+    locale: string
+  ) => string | undefined;
 }
 
 export interface FormattingSource {

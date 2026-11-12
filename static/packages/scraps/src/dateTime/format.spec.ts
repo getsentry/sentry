@@ -1,10 +1,17 @@
 import {Temporal} from '@js-temporal/polyfill';
+import moment from 'moment-timezone';
 
 import {
   configureFormatting,
   type DateTimeInput,
   formatDateTime,
 } from '@sentry/scraps/dateTime';
+
+import {getSnapshot} from './config';
+import {formatDateTimeWithSnapshot, formatTimezone} from './format';
+
+const getTimezoneAbbreviation = (epochMilliseconds: number, timezone: string) =>
+  moment.tz.zone(timezone)?.abbr(epochMilliseconds);
 
 beforeEach(() => {
   jest.useFakeTimers().setSystemTime(new Date('2025-01-01T01:00:00Z'));
@@ -52,13 +59,42 @@ it.each([
   ['2025-01-01T00:00:00Z', 'Etc/GMT+5', '7:00 PM -05'],
   ['2025-01-01T00:00:00Z', '+05:45', '5:45 AM GMT+5:45'],
 ])('preserves the existing timezone label at %s in %s', (date, timezone, expected) => {
+  const snapshot = {...getSnapshot(), getTimezoneAbbreviation};
+  const restore = configureFormatting({
+    getSnapshot: () => snapshot,
+    subscribe: () => () => {},
+  });
+  try {
+    expect(
+      formatDateTime(date, {
+        mode: 'time',
+        timezone,
+        showTimezone: true,
+      })
+    ).toBe(expected);
+  } finally {
+    restore();
+  }
+});
+
+it('uses the supplied snapshot label source and falls back to Intl when absent', () => {
+  const date = '2025-01-01T00:00:00Z';
+  const options = {
+    mode: 'time',
+    timezone: 'Australia/Sydney',
+    showTimezone: true,
+  } as const;
+  const snapshot = {...getSnapshot(), getTimezoneAbbreviation: () => 'configured label'};
+  expect(formatDateTimeWithSnapshot(date, options, snapshot)).toBe(
+    '11:00 AM configured label'
+  );
+  expect(formatTimezone(Date.parse(date), options.timezone)).toBe('GMT+11');
   expect(
-    formatDateTime(date, {
-      mode: 'time',
-      timezone,
-      showTimezone: true,
+    formatTimezone(Date.parse(date), options.timezone, {
+      ...snapshot,
+      getTimezoneAbbreviation: () => {},
     })
-  ).toBe(expected);
+  ).toBe('GMT+11');
 });
 
 it.each([
@@ -127,6 +163,7 @@ it.each([
 ] as const)('keeps a French 12 hour clock at %s precision', (precision, expected) => {
   const snapshot = {
     timezone: 'Europe/Paris',
+    getTimezoneAbbreviation,
     clock: '12' as const,
     locale: 'fr',
     messages: {
