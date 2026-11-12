@@ -980,9 +980,9 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                         )
 
                     for max_key, max_value in max_values.items():
-                        if not isinstance(max_value, int) or isinstance(max_value, bool):
+                        if not isinstance(max_value, (int, float)) or isinstance(max_value, bool):
                             raise serializers.ValidationError(
-                                {"thresholds": {max_key: "Maximum values must be integers."}}
+                                {"thresholds": {max_key: "Maximum values must be numbers."}}
                             )
                         if max_value < 0:
                             raise serializers.ValidationError(
