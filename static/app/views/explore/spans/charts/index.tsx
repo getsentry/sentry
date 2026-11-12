@@ -75,6 +75,13 @@ import {
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 import {ConfidenceFooter} from './confidenceFooter';
+import {
+  canUseSpansHeatMap,
+  getSpansHeatMapDisabledReason,
+  getSpansHeatMapYAxis,
+  isSpansHeatMap,
+  SpansHeatMap,
+} from './spansHeatMap';
 
 interface ExploreChartsProps {
   extrapolate: boolean;
@@ -100,6 +107,13 @@ export const EXPLORE_CHART_TYPE_OPTIONS = [
     label: t('Bar'),
   },
 ];
+
+const CHART_TYPE_TO_ICON: Record<ChartType, 'line' | 'area' | 'bar' | 'heatmap'> = {
+  [ChartType.LINE]: 'line',
+  [ChartType.AREA]: 'area',
+  [ChartType.BAR]: 'bar',
+  [ChartType.HEATMAP]: 'heatmap',
+};
 
 const EXPLORE_CHART_GROUP = 'explore-charts_group';
 
@@ -320,10 +334,28 @@ function Chart({
   const chartRef = useRef<ReactEchartsRef>(null);
   const chartWrapperRef = useRef<HTMLDivElement | null>(null);
 
-  const chartType = visualize.chartType;
   const isCombinedChart = visualizes.length > 1;
-  const chartIcon =
-    chartType === ChartType.LINE ? 'line' : chartType === ChartType.AREA ? 'area' : 'bar';
+  const isHeatMapEnabled = canUseSpansHeatMap(organization);
+  const heatMapYAxis = getSpansHeatMapYAxis(visualize);
+  const isHeatMap = !isCombinedChart && isSpansHeatMap(visualize, organization);
+  // Heatmaps with unsupported aggregates fall back to line charts.
+  const chartType = isHeatMap
+    ? ChartType.HEATMAP
+    : visualize.chartType === ChartType.HEATMAP
+      ? ChartType.LINE
+      : visualize.chartType;
+  const chartIcon = CHART_TYPE_TO_ICON[chartType];
+  const chartTypeOptions = isHeatMapEnabled
+    ? [
+        ...EXPLORE_CHART_TYPE_OPTIONS,
+        {
+          value: ChartType.HEATMAP,
+          label: t('Heatmap'),
+          disabled: defined(getSpansHeatMapDisabledReason(visualize)),
+          tooltip: getSpansHeatMapDisabledReason(visualize),
+        },
+      ]
+    : EXPLORE_CHART_TYPE_OPTIONS;
 
   const chartInfos = useMemo(
     () =>
@@ -374,7 +406,7 @@ function Chart({
 
   const Actions = visualize.visible ? (
     <Fragment>
-      {droppedData.layerControl ? (
+      {droppedData.layerControl && !isHeatMap ? (
         <DroppedDataLayerControl {...droppedData.layerControl} />
       ) : null}
       <Tooltip
@@ -398,13 +430,14 @@ function Chart({
           )}
           value={chartType}
           menuTitle="Type"
-          options={EXPLORE_CHART_TYPE_OPTIONS}
+          options={chartTypeOptions}
           onChange={option => onChartTypeChange(option.value)}
         />
       </Tooltip>
       <Tooltip title={t('Time interval displayed in this visualization (ex. 5m)')}>
         <CompactSelect
           value={interval}
+          disabled={isHeatMap}
           onChange={option => setInterval(option.value)}
           trigger={triggerProps => (
             <OverlayTrigger.Button
@@ -457,7 +490,14 @@ function Chart({
         TitleBadges={TitleBadges}
         Actions={Actions}
         Visualization={
-          visualize.visible && (
+          visualize.visible &&
+          (isHeatMap && defined(heatMapYAxis) ? (
+            <SpansHeatMap
+              query={query}
+              yAxis={heatMapYAxis}
+              samplingMode={samplingMode}
+            />
+          ) : (
             <ChartVisualization
               key={chartRemountKey}
               chartInfo={chartInfo}
@@ -506,7 +546,7 @@ function Chart({
                   : undefined
               }
             />
-          )
+          ))
         }
         Footer={
           visualize.visible && (
