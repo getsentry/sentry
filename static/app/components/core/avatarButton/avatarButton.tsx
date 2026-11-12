@@ -23,11 +23,6 @@ interface AvatarButtonProps extends Omit<
   'aria-label': string;
   /** Omit to render an empty/unassigned placeholder. */
   avatar?: BaseAvatarProps;
-  /**
-   * Color of the frame around the avatar: the button's border and raised edge.
-   * Defaults to a color derived from `avatar`.
-   */
-  frameColor?: string;
   /** Circular (e.g. users) vs squircle (e.g. teams) shape. Defaults to `avatar.round`. */
   round?: boolean;
   size?: AvatarButtonSize;
@@ -35,7 +30,6 @@ interface AvatarButtonProps extends Omit<
 
 export function AvatarButton({
   avatar,
-  frameColor,
   round: explicitRound,
   size: explicitSize,
   ...props
@@ -56,8 +50,6 @@ export function AvatarButton({
   });
 
   const colors = useAvatarColors(isSuggested ? undefined : avatar);
-  const avatarChonk = colors.type === 'none' ? undefined : colors.chonk;
-  const chonk = isSuggested ? undefined : (frameColor ?? avatarChonk);
 
   const contextSize = useSizeContext();
   const size = explicitSize ?? contextSize ?? 'md';
@@ -79,14 +71,17 @@ export function AvatarButton({
   }
 
   if (avatarDefinition.type === 'letter') {
+    const avatarChonk = colors.type === 'letter' ? colors.chonk : undefined;
+
     return (
-      <StyledAvatarButton {...props} size={size} round={round} chonk={chonk}>
+      <StyledAvatarButton {...props} size={size} round={round} chonk={avatarChonk}>
         <AvatarContainer
           size={size}
           round={round}
           padded={false}
           borderColor={
-            chonk ?? (isSuggested ? theme.tokens.border.neutral.vibrant : 'transparent')
+            avatarChonk ??
+            (isSuggested ? theme.tokens.border.neutral.vibrant : 'transparent')
           }
           borderStyle={isSuggested ? 'dashed' : 'solid'}
         >
@@ -98,6 +93,8 @@ export function AvatarButton({
       </StyledAvatarButton>
     );
   }
+
+  const chonk = colors.type === 'image' ? colors.chonk : undefined;
 
   return (
     <StyledAvatarButton {...props} size={size} round={round} chonk={chonk}>
