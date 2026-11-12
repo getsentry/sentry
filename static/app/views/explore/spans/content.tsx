@@ -2,13 +2,13 @@ import {Fragment, useEffect, useMemo} from 'react';
 import type {ReactNode} from 'react';
 import * as Sentry from '@sentry/react';
 import {useQuery} from '@tanstack/react-query';
+import {useStore} from 'zustand';
 
 import {Stack} from '@sentry/scraps/layout';
 
 import {getBootstrapOrganizationQueryOptions} from 'sentry/bootstrap/bootstrapRequests';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {DocumentationHint} from 'sentry/components/documentationHint';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {AiQueryProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
@@ -17,7 +17,6 @@ import {TourContextProvider} from 'sentry/components/tours/components';
 import {useAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
@@ -28,6 +27,7 @@ import {
   type MaxPickableDaysOptions,
 } from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {ExploreCaseInsensitivityDefault} from 'sentry/views/explore/caseInsensitivityDefault';
 import {ExploreSavedQueryBreadcrumbs} from 'sentry/views/explore/components/exploreSavedQueryBreadcrumbs';
 import {
   MAX_DAYS_FOR_CROSS_EVENTS,
@@ -64,7 +64,9 @@ export function ExploreContent() {
 
   return (
     <SpansQueryParamsProvider>
-      <ExploreContentInner />
+      <ExploreCaseInsensitivityDefault>
+        <ExploreContentInner />
+      </ExploreCaseInsensitivityDefault>
     </SpansQueryParamsProvider>
   );
 }
@@ -77,7 +79,7 @@ function ExploreContentInner() {
   });
 
   const organization = useOrganization();
-  const {loading: organizationLoading} = useLegacyStore(OrganizationStore);
+  const organizationLoading = useStore(OrganizationStore, state => state.loading);
   const {data: bootstrapOrganization, isPending: isBootstrapOrganizationPending} =
     useQuery(getBootstrapOrganizationQueryOptions(organization.slug));
 
@@ -247,14 +249,6 @@ function SpansTabHeader() {
           }}
         />
       )}
-      <TopBar.Slot name="feedback">
-        <FeedbackButton
-          aria-label={t('Give Feedback')}
-          tooltipProps={{title: t('Give Feedback')}}
-        >
-          {null}
-        </FeedbackButton>
-      </TopBar.Slot>
     </Fragment>
   );
 }

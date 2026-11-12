@@ -29,6 +29,7 @@ interface UseDroppedDataLayerOptions {
 interface DroppedDataLayer {
   band: DroppedDataProps | undefined;
   filterNote: Pick<DroppedDataFilterNoteProps, 'dataset' | 'environments'> | undefined;
+  isLoading: boolean;
   layerControl: DroppedDataLayerControlProps | undefined;
 }
 
@@ -42,7 +43,9 @@ export function useDroppedDataLayer(
 ): DroppedDataLayer {
   const {dataset} = params;
   const isEnabled = enabled && SUPPORTED_DATASETS.has(dataset);
-  const {droppedEvents, acceptedEvents} = useDroppedData(params, {enabled: isEnabled});
+  const {droppedEvents, acceptedEvents, isLoading} = useDroppedData(params, {
+    enabled: isEnabled,
+  });
   const [isLayerOn, setIsLayerOn] = useState(true);
   const openDroppedDataDrawer = useDroppedDataDrawer(params, {enabled: isEnabled});
 
@@ -55,6 +58,7 @@ export function useDroppedDataLayer(
       ? {dataset, droppedEvents, acceptedEvents, onClick: openDroppedDataDrawer}
       : undefined,
     filterNote: isBandShown ? {dataset, environments} : undefined,
+    isLoading: isEnabled && isLayerOn && !hidden && isLoading,
     layerControl: isLoaded
       ? {
           dataset,

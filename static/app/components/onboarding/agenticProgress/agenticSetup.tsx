@@ -8,6 +8,7 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {ToggleCard} from '@sentry/scraps/toggleCard';
 
+import {AgentHandoffFlow} from 'sentry/components/agentHandoff/useAgentHandoff';
 import {
   SETUP_CARD_ICON_SIZE,
   SETUP_CARD_MARKER_PX,
@@ -34,8 +35,8 @@ interface AgenticSetupProps {
   onSelectSnippet: (source: AgentSetupCopySource) => void;
   /** The host supplies the action for continuing with browser setup. */
   onSetupInBrowser: () => void;
-  prompt: string;
   run: AgenticProgressRun | undefined;
+  handoffFlow?: AgentHandoffFlow;
   onboardingCode?: string;
 }
 
@@ -47,12 +48,12 @@ export function AgenticSetup({
   onRetry,
   onSelectSnippet,
   onSetupInBrowser,
-  prompt,
   feedbackSource,
   issueLinkReferrer,
   hasProgressFailed,
   onRefresh,
   run,
+  handoffFlow = AgentHandoffFlow.ONBOARDING,
 }: AgenticSetupProps) {
   const hasRunFailed = run?.runStatus === 'failed' || run?.runStatus === 'cancelled';
   const showsProgress =
@@ -70,7 +71,7 @@ export function AgenticSetup({
             </Button>
           }
         >
-          {t('Could not start setup, so the prompt below will not report progress.')}
+          {t('Could not prepare agent setup. Try again or set up manually.')}
         </Alert>
       </ScmCollapsibleReveal>
 
@@ -125,11 +126,10 @@ export function AgenticSetup({
             >
               <AgentSetupCard
                 feedbackSource={feedbackSource}
-                hasSetupFailed={hasInitFailed}
-                onboardingCode={onboardingCode}
+                flow={handoffFlow}
                 onCopyCommand={onCopyCommand}
                 onSelectSnippet={onSelectSnippet}
-                prompt={prompt}
+                run={run}
               />
             </MotionContainer>
           )}

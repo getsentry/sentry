@@ -1,30 +1,36 @@
 import logging
 from collections.abc import Mapping, Sequence
+from datetime import timedelta
 from typing import Annotated, Any, TypedDict
 
 import sentry_sdk
+from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import traces
 
-from sentry.ai_monitoring.constants import AI_CONVERSATIONS_FIELDS
+from sentry.ai_monitoring.constants import AI_CONVERSATIONS_FIELDS, AI_CONVERSATIONS_SORT_FIELDS
 from sentry.ai_monitoring.conversation_aggregates import (
     CONVERSATION_AGGREGATE_COLUMNS,
     AIConversationAggregates,
     parse_conversation_aggregates,
 )
 from sentry.ai_monitoring.conversation_query import (
+    CONVERSATION_RESOLVER_CONFIG,
     compile_conversation_query,
     is_conversation_id_lookup,
 )
 from sentry.ai_monitoring.conversation_titles import fetch_conversation_titles
 from sentry.ai_monitoring.serializers import OrganizationAIConversationsSerializer
 from sentry.ai_monitoring.utils import (
+    MAX_RETENTION_DAYS,
     ConversationProject,
     get_aggregated_first_input,
     get_aggregated_last_output,
     get_conversation_url,
+    get_time_range_error,
+    has_time_range_params,
     serialize_conversation_project,
 )
 from sentry.api.api_owners import ApiOwner
@@ -43,7 +49,11 @@ from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.ai_conversation_examples import AIConversationExamples
 from sentry.apidocs.formats import Url, absolute_url
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
-from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
@@ -103,6 +113,18 @@ AI_CONVERSATIONS_QUERY_PARAM = OpenApiParameter(
     ),
 )
 
+AI_CONVERSATIONS_SORT_PARAM = OpenApiParameter(
+    name="sort",
+    location="query",
+    required=False,
+    type=str,
+    enum=[sort for field in AI_CONVERSATIONS_SORT_FIELDS for sort in (field, f"-{field}")],
+    description=(
+        "The field to sort conversations by. Prefix it with `-` to sort in descending order. "
+        "Defaults to `-conversation.age`, most recent first."
+    ),
+)
+
 AI_CONVERSATIONS_PER_PAGE_PARAM = OpenApiParameter(
     name="per_page",
     location="query",
@@ -154,6 +176,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             GlobalParams.START,
             GlobalParams.END,
             AI_CONVERSATIONS_QUERY_PARAM,
+            AI_CONVERSATIONS_SORT_PARAM,
             CursorQueryParam,
             AI_CONVERSATIONS_PER_PAGE_PARAM,
         ],
@@ -171,7 +194,10 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     def get(
         self, request: Request, organization: Organization
     ) -> (
-        Response[list[AIConversationResponse]] | Response[ValidationErrorResponse] | Response[None]
+        Response[list[AIConversationResponse]]
+        | Response[ValidationErrorResponse]
+        | Response[DetailResponse]
+        | Response[None]
     ):
         """Return AI conversations ordered by latest span time.
 
@@ -202,11 +228,21 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         Negation means no span matches, including when an attribute is absent. Payloads
         are searchable only when recorded and not scrubbed. Payload failure text does
         not mark a span as failed; set `span.status:error` for reliable failure search.
+
+        Conversations are searchable for the last 30 days. Ranges that reach further back,
+        including a `statsPeriod` longer than 30 days, return a 400.
         """
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response(status=404)
+
+        now = timezone.now()
+        if time_range_error := get_time_range_error(request, snuba_params, now):
+            return Response(DetailResponse(detail=time_range_error), status=400)
+        # The shared API default is 90 days; keep the list inside what details can load.
+        if not has_time_range_params(request) and snuba_params.start:
+            snuba_params.start = max(snuba_params.start, now - timedelta(days=MAX_RETENTION_DAYS))
 
         serializer = OrganizationAIConversationsSerializer(data=request.GET)
         if not serializer.is_valid():
@@ -217,14 +253,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         direct_id_lookup = is_conversation_id_lookup(user_query)
 
         with handle_query_errors():
-            resolver = Spans.get_resolver(
-                snuba_params,
-                SearchResolverConfig(
-                    auto_fields=True,
-                    disable_aggregate_extrapolation=True,
-                    fields_acl=FieldsACL(functions={"elapsed_if"}),
-                ),
-            )
+            resolver = Spans.get_resolver(snuba_params, CONVERSATION_RESOLVER_CONFIG)
             query_string = compile_conversation_query(user_query, resolver)
 
             def data_fn(offset: int, limit: int) -> list[AIConversationResponse]:
@@ -331,11 +360,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             offset=offset,
             limit=limit,
             referrer=Referrer.API_AI_CONVERSATIONS.value,
-            config=SearchResolverConfig(
-                auto_fields=True,
-                disable_aggregate_extrapolation=True,
-                fields_acl=FieldsACL(functions={"elapsed_if"}),
-            ),
+            config=CONVERSATION_RESOLVER_CONFIG,
             sampling_mode=sampling_mode,
         )
 

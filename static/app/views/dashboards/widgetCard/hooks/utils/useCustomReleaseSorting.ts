@@ -91,7 +91,7 @@ export function useCustomReleaseSorting({
     const isDescending = firstQuery.orderby.startsWith('-');
     return {
       releaseCondition: releaseQueryString,
-      releaseOrder: isDescending ? releasesUsed : [...releasesUsed].reverse(),
+      releaseOrder: isDescending ? releasesUsed : releasesUsed.toReversed(),
     };
   }, [firstQuery, isCustomReleaseSorting, releases]);
 
@@ -112,8 +112,8 @@ export function useCustomReleaseSorting({
   const sortGroups = useCallback(
     (data: SessionApiResponse): SessionApiResponse => {
       const groups = releaseOrder.length
-        ? [...data.groups]
-            .sort(
+        ? data.groups
+            .toSorted(
               (group1, group2) =>
                 releaseOrder.indexOf(group1.by.release as string) -
                 releaseOrder.indexOf(group2.by.release as string)

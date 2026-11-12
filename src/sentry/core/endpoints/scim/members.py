@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Any, cast
+from typing import Annotated, Any, cast
 
 import sentry_sdk
 from django.conf import settings
@@ -36,6 +36,7 @@ from sentry.apidocs.constants import (
     RESPONSE_SUCCESS,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.scim_examples import SCIMExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
@@ -496,7 +497,10 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
 
 
 class SCIMListMembersResponse(SCIMListBaseResponse):
-    Resources: list[OrganizationMemberSCIMSerializerResponse]
+    Resources: Annotated[
+        list[OrganizationMemberSCIMSerializerResponse],
+        ApiDescription("Organization members in this page, as SCIM users"),
+    ]
 
 
 @cell_silo_endpoint

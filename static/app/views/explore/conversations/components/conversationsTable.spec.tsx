@@ -80,6 +80,34 @@ describe('ConversationsTable', () => {
     });
   });
 
+  it('updates its table cursor while preserving unrelated query filters', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/agents/conversations/`,
+      body: [{...BASE_CONVERSATION, title: 'Paginated conversation'}],
+      headers: {
+        Link: '<https://example.com/next>; rel="next"; results="true"; cursor="next-conversation"',
+      },
+    });
+    const {router} = render(<TestConversationsTable />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/conversations/',
+          query: {environment: ['production', 'staging']},
+        },
+      },
+    });
+    await screen.findByText('Paginated conversation');
+    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+    await waitFor(() => {
+      expect(router.location.query).toEqual({
+        environment: ['production', 'staging'],
+        tableCursor: 'next-conversation',
+      });
+    });
+    expect(router.location.pathname).toBe('/conversations/');
+  });
+
   it('renders the shared no-data state when there are no conversations', async () => {
     mockConversations([]);
 

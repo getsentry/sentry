@@ -439,3 +439,7 @@ class OrganizationMemberUpdateArgs(TypedDict, total=False):
     flags: RpcOrganizationMemberFlags | None
     role: str
     invite_status: int
+
+
+class RpcOnboardingReportingCode(RpcModel):
+    code: str = Field(repr=False)

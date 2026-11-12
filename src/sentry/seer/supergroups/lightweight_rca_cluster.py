@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import logging
 
+from urllib3.exceptions import MaxRetryError
+from urllib3.exceptions import TimeoutError as Urllib3TimeoutError
+
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.eventstore import backend as eventstore
 from sentry.models.group import Group
@@ -92,15 +95,39 @@ def trigger_lightweight_rca_cluster(group: Group, event_id: str | None = None) -
     )
     viewer_context = SeerViewerContext(organization_id=group.organization.id)
 
-    # Keep the Seer timeout well under the task's processing deadline so a slow
-    # Seer response fails fast with a clear error instead of being killed by the
-    # taskworker deadline.
-    response = make_lightweight_rca_cluster_request(
-        body, timeout=LIGHTWEIGHT_RCA_CLUSTER_SEER_TIMEOUT, viewer_context=viewer_context
-    )
+    # The timeout applies to connect and to read separately. urllib3 does not retry
+    # a read timeout on POST, but the pool's default Retry(3) retries connect timeouts.
+    try:
+        response = make_lightweight_rca_cluster_request(
+            body, timeout=LIGHTWEIGHT_RCA_CLUSTER_SEER_TIMEOUT, viewer_context=viewer_context
+        )
+    except (Urllib3TimeoutError, MaxRetryError) as e:
+        # Clustering is best effort and the task has no retry. Seer timeouts are
+        # expected, so count them and return instead of reporting an error.
+        logger.warning(
+            "lightweight_rca_cluster.request_error",
+            extra={
+                "group_id": group.id,
+                "project_id": group.project.id,
+                "organization_id": group.organization.id,
+                "event_id": ready_event.event_id,
+                "error": type(e).__name__,
+            },
+        )
+        metrics.incr(
+            "seer.lightweight_rca_cluster.request",
+            tags={"outcome": "error", "error": type(e).__name__},
+        )
+        return
+
     if response.status >= 400:
+        metrics.incr(
+            "seer.lightweight_rca_cluster.request",
+            tags={"outcome": "error", "error": f"http_{response.status // 100}xx"},
+        )
         raise SeerApiError("Lightweight RCA cluster request failed", response.status)
 
+    metrics.incr("seer.lightweight_rca_cluster.request", tags={"outcome": "success"})
     logger.info(
         "lightweight_rca_cluster.success",
         extra={

@@ -146,6 +146,10 @@ const config: KnipConfig = {
     },
     'static/packages/scraps': {
       oxlint: scopedOxlint,
+      // Component docs are rendered by the app's story viewer, so their demos
+      // can use app dependencies that the package does not ship with.
+      entry: ['src/**/*.mdx'],
+      ignoreDependencies: ['nuqs'],
       project: [
         '**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx,mdx}!',
         // Test helpers and package verification scripts are not production code.

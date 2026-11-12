@@ -14,9 +14,7 @@ from django.utils import timezone as django_timezone
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.issues.action_log.publish import publish_action
 from sentry.issues.action_log.types import (
-    SYSTEM_ACTOR,
     ActionSource,
-    GroupAction,
     GroupActionActor,
     GroupActionType,
     GroupActorType,
@@ -82,8 +80,8 @@ from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
 from sentry.issues.progress_state import IssueProgressState
 from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.action_log import publish_action_for_test as _publish
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.outbox import outbox_runner
 from sentry.types.group import IssueAutofixStep, IssueBlocker
 from sentry.utils import json
 
@@ -150,17 +148,6 @@ class ReplayFeatureFromLogTest(TestCase):
         pipeline = Pipeline([count_views, accumulate_views, copy_accumulated, unrelated_aggregator])
 
         assert replay_feature_from_log(group.id, pipeline, result, history_limit=2) == 3
-
-
-def _publish(*, group: Group, action: GroupAction, actor: GroupActionActor = SYSTEM_ACTOR) -> None:
-    with outbox_runner():
-        publish_action(
-            action,
-            source=SOURCE,
-            group_id=group.id,
-            project=group.project,
-            actor=actor,
-        )
 
 
 def _age_action_log_entries(group_id: int) -> None:

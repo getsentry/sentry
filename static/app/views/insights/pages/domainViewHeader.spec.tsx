@@ -62,11 +62,11 @@ describe('DomainViewHeader', () => {
 
     const overviewTab = screen.getByRole('tab', {name: 'Overview'});
     const networkRequestsTab = screen.getByRole('tab', {name: 'Network Requests'});
-    expect(overviewTab.firstChild).toHaveAttribute(
+    expect(overviewTab).toHaveAttribute(
       'href',
       `/organizations/${organization.slug}/insights/frontend/domainBaseUrl?environment=prod&project=1&statsPeriod=14d`
     );
-    expect(networkRequestsTab.firstChild).toHaveAttribute(
+    expect(networkRequestsTab).toHaveAttribute(
       'href',
       `/organizations/${organization.slug}/insights/frontend/http/?environment=prod&project=1&statsPeriod=14d`
     );

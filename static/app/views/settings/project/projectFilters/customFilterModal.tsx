@@ -299,6 +299,10 @@ const EXACT_OPERATOR_LABELS: Partial<Record<TermOperator, string>> = {
   [TermOperator.NOT_EQUAL]: t('does not match'),
 };
 
+// The API has no "is not" for text. The menu offers the three "does not" operators
+// instead, and `tokenToCondition` refuses an "is not" typed as text.
+const TEXT_DISALLOWED_OPERATORS = [TermOperator.NOT_EQUAL] as const;
+
 // What the value dropdown says a value is under the operator. A wildcard operator
 // keeps the builder's own hint, which says how to get a wildcard back.
 function getValueHint(spec: ConditionSpec, operator: TermOperator): string | undefined {
@@ -333,6 +337,7 @@ function getFieldDefinitionGetter(dataType: FilterDataType): FieldDefinitionGett
         comparisonOperatorsFirst: spec.comparable,
         allowWildcard: !spec.exact,
         disallowWildcardOperators: spec.exact,
+        disallowedOperators: spec.exact ? undefined : TEXT_DISALLOWED_OPERATORS,
         operatorLabels: spec.exact ? EXACT_OPERATOR_LABELS : undefined,
         valueHint: operator => getValueHint(spec, operator),
       };
