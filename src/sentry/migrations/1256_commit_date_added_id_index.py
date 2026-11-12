@@ -3,6 +3,7 @@ from django.db import migrations, models
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.new_migrations.monkey.special import SafeRunSQL
 
+# Matches the name django generates for the index in Commit.Meta.indexes
 INDEX_NAME = "sentry_comm_date_ad_740455_idx"
 
 
@@ -26,11 +27,12 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        # A failed concurrent build leaves an invalid index behind; drop it so a retry can rebuild.
+        # AddIndex builds concurrently; a failed build leaves an invalid index that blocks a retry.
         SafeRunSQL(
             f'DROP INDEX CONCURRENTLY IF EXISTS "{INDEX_NAME}"',
             reverse_sql=migrations.RunSQL.noop,
             hints={"tables": ["sentry_commit"]},
+            # The drop waits for open transactions, which can outlast the timeout.
             use_statement_timeout=False,
         ),
         migrations.AddIndex(
