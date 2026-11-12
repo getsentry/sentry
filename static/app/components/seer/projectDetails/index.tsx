@@ -8,6 +8,7 @@ import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {DetailedProject} from 'sentry/types/project';
+import {isSeerTokenBasedBillingOnboardingEnabled} from 'sentry/utils/seer/isSeerTokenBasedBillingOnboardingEnabled';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {AutofixAgent} from './autofixAgent';
@@ -24,7 +25,9 @@ export function SeerProjectDetails({project}: {project: DetailedProject}) {
       <Stack paddingBottom="xl">
         <Text as="div" variant="muted">
           {tct(
-            'Connect repositories to projects, and choose which Agent should automatically process issues. [docs:Read the docs] to learn what Seer can do.',
+            isSeerTokenBasedBillingOnboardingEnabled(organization)
+              ? 'Link repositories to this project, and choose which Agent should automatically process issues. [docs:Read the docs] to learn what Seer can do.'
+              : 'Connect repositories to projects, and choose which Agent should automatically process issues. [docs:Read the docs] to learn what Seer can do.',
             {
               docs: (
                 <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/#seer-capabilities" />
