@@ -195,7 +195,7 @@ class TestApplySupersession:
         assert "react-native" in platforms
         assert "javascript-react" not in platforms
 
-    def test_expo_supersedes_react_native_and_react(self) -> None:
+    def test_expo_supersedes_react_but_keeps_react_native(self) -> None:
         results = [
             DetectedPlatform(
                 platform="expo",
@@ -221,7 +221,7 @@ class TestApplySupersession:
         ]
         filtered = _apply_supersession(results)
         platforms = [r["platform"] for r in filtered]
-        assert platforms == ["expo"]
+        assert platforms == ["expo", "react-native"]
 
     def test_no_supersession_keeps_all(self) -> None:
         results = [
