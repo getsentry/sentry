@@ -160,6 +160,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
     >
       {tourProps => (
         <AvatarButton
+          frame="neutral"
           avatar={avatarProps}
           size={size}
           aria-label={t('Toggle organization menu')}

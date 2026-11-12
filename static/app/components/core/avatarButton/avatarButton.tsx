@@ -23,6 +23,11 @@ interface AvatarButtonProps extends Omit<
   'aria-label': string;
   /** Omit to render an empty/unassigned placeholder. */
   avatar?: BaseAvatarProps;
+  /**
+   * `avatar` frames the button (border and raised edge) in a color sampled
+   * from the avatar. `neutral` keeps the default button frame.
+   */
+  frame?: 'avatar' | 'neutral';
   /** Circular (e.g. users) vs squircle (e.g. teams) shape. Defaults to `avatar.round`. */
   round?: boolean;
   size?: AvatarButtonSize;
@@ -30,6 +35,7 @@ interface AvatarButtonProps extends Omit<
 
 export function AvatarButton({
   avatar,
+  frame = 'avatar',
   round: explicitRound,
   size: explicitSize,
   ...props
@@ -49,20 +55,22 @@ export function AvatarButton({
           : undefined,
   });
 
-  // Only used to inset logos that don't fill the frame. The frame itself keeps
-  // the default button colors, whatever the avatar's color.
   const colors = useAvatarColors(isSuggested ? undefined : avatar);
-  // The avatar covers the button's own border, so redraw it in the same color.
-  const borderColor = isSuggested
+  const avatarChonk =
+    frame === 'avatar' && colors.type !== 'none' ? colors.chonk : undefined;
+  // The avatar covers the button's own border, so a neutral frame redraws it.
+  const fallbackBorderColor = isSuggested
     ? theme.tokens.border.neutral.vibrant
-    : theme.tokens.interactive.chonky.embossed.neutral.chonk;
+    : frame === 'neutral'
+      ? theme.tokens.interactive.chonky.embossed.neutral.chonk
+      : 'transparent';
 
   const contextSize = useSizeContext();
   const size = explicitSize ?? contextSize ?? 'md';
 
   if (!avatar) {
     return (
-      <StyledAvatarButton {...props} size={size} round={round}>
+      <StyledAvatarButton {...props} size={size} round={round} chonk={undefined}>
         <AvatarContainer
           size={size}
           round={round}
@@ -78,12 +86,12 @@ export function AvatarButton({
 
   if (avatarDefinition.type === 'letter') {
     return (
-      <StyledAvatarButton {...props} size={size} round={round}>
+      <StyledAvatarButton {...props} size={size} round={round} chonk={avatarChonk}>
         <AvatarContainer
           size={size}
           round={round}
           padded={false}
-          borderColor={borderColor}
+          borderColor={avatarChonk ?? fallbackBorderColor}
           borderStyle={isSuggested ? 'dashed' : 'solid'}
         >
           <StyledLetterAvatar
@@ -96,12 +104,12 @@ export function AvatarButton({
   }
 
   return (
-    <StyledAvatarButton {...props} size={size} round={round}>
+    <StyledAvatarButton {...props} size={size} round={round} chonk={avatarChonk}>
       <AvatarContainer
         size={size}
         round={round}
         padded={colors.type === 'image' && colors.style === 'padded'}
-        borderColor={borderColor}
+        borderColor={avatarChonk ?? fallbackBorderColor}
         borderStyle={isSuggested ? 'dashed' : 'solid'}
       >
         <StyledImageAvatar
@@ -163,12 +171,24 @@ const StyledLetterAvatar = styled(LetterAvatar)`
   position: relative;
 `;
 
+// Elevation per size, matching the base button's chonk depth.
+const AVATAR_BUTTON_ELEVATION: Record<AvatarButtonSize, string> = {
+  md: '2px',
+  sm: '2px',
+  xs: '1px',
+};
+
 type ResolvedAvatarButtonProps = DistributedOmit<AvatarTriggerProps, 'size'> & {
+  chonk: string | undefined;
   round: boolean;
   size: AvatarButtonSize;
 };
 
-function AvatarButtonBase({round: _round, ...props}: ResolvedAvatarButtonProps) {
+function AvatarButtonBase({
+  chonk: _chonk,
+  round: _round,
+  ...props
+}: ResolvedAvatarButtonProps) {
   return <OverlayTrigger.Button {...props} showChevron={false} />;
 }
 
@@ -184,6 +204,18 @@ const StyledAvatarButton = styled(AvatarButtonBase)`
       &&::before,
       &&::after {
         border-radius: ${p.theme.radius.full};
+      }
+    `}
+
+  ${p =>
+    p.chonk &&
+    css`
+      &&::before {
+        background: ${p.chonk};
+        box-shadow: 0 ${AVATAR_BUTTON_ELEVATION[p.size]} 0 0px ${p.chonk};
+      }
+      &&::after {
+        border-color: ${p.chonk};
       }
     `}
 `;

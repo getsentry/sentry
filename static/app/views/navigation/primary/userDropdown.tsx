@@ -94,6 +94,7 @@ export function UserDropdown() {
         minMenuWidth={224}
         trigger={triggerProps => (
           <AvatarButton
+            frame="neutral"
             {...triggerProps}
             aria-label={user.email}
             avatar={avatarProps}
@@ -195,6 +196,7 @@ export function UserDropdown() {
       minMenuWidth={200}
       trigger={triggerProps => (
         <AvatarButton
+          frame="neutral"
           {...triggerProps}
           aria-label={t('Account')}
           avatar={avatarProps}
