@@ -4,6 +4,7 @@ import {IconAdd} from '@sentry/icons/add';
 import {IconSlashForward} from '@sentry/icons/slashForward';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {t} from 'sentry/locale';
@@ -237,12 +238,17 @@ export function useExplorerMenu({
             children: allSlashCommands.map(item => ({
               key: item.key,
               label: item.title,
-              details: item.description,
+              details: (
+                <Container width="320px" maxWidth="calc(100vw - 64px)">
+                  {item.description}
+                </Container>
+              ),
               onAction: () => onSelect(item),
             })),
           },
         ]}
         position="top-start"
+        strategy="fixed"
         onOpenChange={setIsToolbarMenuOpen}
         size="sm"
         trigger={triggerProps => (
