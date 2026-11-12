@@ -19,6 +19,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
 import {makeFeedbackPathname} from './feedback/pathnames';
+import {makeIssueDetailsLocation} from './issueDetails/issueDetailsQueryParams';
 import {getTraceDetailsUrl} from './performance/traceDetails/traceUrl';
 
 /**
@@ -84,13 +85,15 @@ export function ProjectEventRedirect() {
       }
 
       navigate(
-        {
-          pathname: `/organizations/${organization.slug}/issues/${event.groupID}/events/${event.eventID}/`,
+        makeIssueDetailsLocation({
+          organization,
+          groupId: event.groupID,
+          eventId: event.eventID,
           query: {
             project: location.query.project,
             referrer: location.query.referrer,
           },
-        },
+        }),
         {replace: true}
       );
       return;

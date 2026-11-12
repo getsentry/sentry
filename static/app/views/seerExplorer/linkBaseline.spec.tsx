@@ -54,7 +54,7 @@ const BUS_CASES: BusCase[] = [
   [
     'issue with event (legacy get_issue_and_event_details)',
     {kind: 'get_issue_details', params: {issue_id: '54', event_id: 'deadbeef'}},
-    {pathname: '/organizations/org-slug/issues/54/events/deadbeef/', query: {}},
+    {pathname: '/organizations/org-slug/issues/54/', query: {eventId: 'deadbeef'}},
   ],
   [
     'issue with a time range',
@@ -75,7 +75,7 @@ const BUS_CASES: BusCase[] = [
   [
     'event',
     {kind: 'get_event_details', params: {event_id: 'deadbeef', issue_id: '54'}},
-    {pathname: '/organizations/org-slug/issues/54/events/deadbeef/', query: {}},
+    {pathname: '/organizations/org-slug/issues/54/', query: {eventId: 'deadbeef'}},
   ],
   [
     'event without an issue',
@@ -374,7 +374,7 @@ const RECORD_CASES: RecordCase[] = [
     }),
     {
       kind: 'get_event_details',
-      url: {pathname: '/organizations/org-slug/issues/54/events/deadbeef/', query: {}},
+      url: {pathname: '/organizations/org-slug/issues/54/', query: {eventId: 'deadbeef'}},
     },
   ],
   [

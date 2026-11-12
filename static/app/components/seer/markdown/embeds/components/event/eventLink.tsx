@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import {getShortEventId} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {makeEventPathname} from './eventPathnames';
+import {makeEventPath} from './eventPathnames';
 
 export function getEventLinkTitle({
   id,
@@ -26,7 +26,7 @@ export function EventLink({
   shortId,
 }: EmbedOutput<'event'> & ResourceLinkFormatProps) {
   const organization = useOrganization();
-  const href = makeEventPathname({
+  const href = makeEventPath({
     organizationSlug: organization.slug,
     issueId,
     eventId: id,

@@ -954,8 +954,9 @@ describe('LogsInfiniteTable', () => {
     await userEvent.click(errorRow!);
 
     expect(router.location.pathname).toBe(
-      `/organizations/${organization.slug}/issues/42/events/abc123def456/`
+      `/organizations/${organization.slug}/issues/42/`
     );
+    expect(router.location.query.eventId).toBe('abc123def456');
   });
 
   it('renders colored text without escape codes when an injected error row has an ANSI title', async () => {

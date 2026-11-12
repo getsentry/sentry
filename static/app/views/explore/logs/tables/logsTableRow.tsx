@@ -37,7 +37,6 @@ import {FieldValueType} from 'sentry/utils/fields';
 import {encodeSort} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getPageUrlWithParams} from 'sentry/utils/url/getPageUrlWithParams';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -131,6 +130,7 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getExploreUrl} from 'sentry/views/explore/utils';
+import {makeIssueDetailsLocation} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 import {TraceIcons} from 'sentry/views/performance/traceDetails/traceIcons';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 
@@ -350,9 +350,11 @@ export const LogRowContent = memo(function LogRowContentImpl({
       return;
     }
     navigate(
-      normalizeUrl(
-        `/organizations/${organization.slug}/issues/${errorRow.issue_id}/events/${errorRow.event_id}/`
-      )
+      makeIssueDetailsLocation({
+        organization,
+        groupId: String(errorRow.issue_id),
+        eventId: errorRow.event_id,
+      })
     );
   }
 

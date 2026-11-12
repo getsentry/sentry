@@ -5,6 +5,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
+import {makeIssueDetailsLocation} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 
 export const DEFAULT_QUERY = 'is:unresolved issue.priority:[high, medium]';
 
@@ -129,10 +130,10 @@ export function createIssueLink({
   // If we have passed in a custom event ID, use it; otherwise use default
   const finalEventId = eventId ?? latestEventId;
 
-  return {
-    pathname: `/organizations/${organization.slug}/issues/${
-      latestEventId ? groupID : id
-    }/${finalEventId ? `events/${finalEventId}/` : ''}`,
+  return makeIssueDetailsLocation({
+    organization,
+    groupId: latestEventId ? groupID! : id,
+    eventId: finalEventId,
     query: {
       referrer: referrer || 'event-or-group-header',
       query,
@@ -149,8 +150,8 @@ export function createIssueLink({
       // a project, we can properly take them back to the issue list
       // page with no project selected (and not the locked project
       // selected)
-      ...(location.query.project === undefined ? {_allp: 1} : {}),
+      ...(location.query.project === undefined ? {_allp: '1'} : {}),
       ...(project ? {project: project.id} : {}),
     },
-  };
+  });
 }

@@ -130,6 +130,7 @@ export function isNavItemVisible(
 import {toast} from '@sentry/scraps/toast';
 
 import {useNotificationPermission} from 'sentry/serviceWorker/client/useNotificationPermission';
+import {makeIssueDetailsPath} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 
 import {CMDKAction} from './cmdk';
 import {CommandPaletteSlot} from './commandPaletteSlot';
@@ -248,7 +249,11 @@ function ResolvedIdentifierCommandPaletteAction() {
       {data.kind === 'event' && (
         <CMDKAction
           display={{label: t('Go to event')}}
-          to={`/organizations/${organization.slug}/issues/${data.groupId}/events/${data.eventId}/`}
+          to={makeIssueDetailsPath({
+            organization,
+            groupId: data.groupId,
+            eventId: data.eventId,
+          })}
         />
       )}
       <CMDKAction

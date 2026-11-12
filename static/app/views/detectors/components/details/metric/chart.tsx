@@ -40,7 +40,7 @@ import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/use
 import {useMetricTimestamps} from 'sentry/views/detectors/hooks/useMetricTimestamps';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {getDetectorChartFormatters} from 'sentry/views/detectors/utils/detectorChartFormatting';
-import {getOpenPeriodIssuePath} from 'sentry/views/detectors/utils/getOpenPeriodIssuePath';
+import {getOpenPeriodIssueLocation} from 'sentry/views/detectors/utils/getOpenPeriodIssueLocation';
 
 import {useDetectorChartAxisBounds} from './utils/useDetectorChartAxisBounds';
 import {useIsMigratedExtrapolation} from './utils/useIsMigratedExtrapolation';
@@ -639,7 +639,7 @@ export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChar
 
   const navigateToOpenPeriodIssue = useCallback(
     (clickedOpenPeriod: GroupOpenPeriod) =>
-      navigate(getOpenPeriodIssuePath(clickedOpenPeriod, organization.slug)),
+      navigate(getOpenPeriodIssueLocation(clickedOpenPeriod, organization.slug)),
     [navigate, organization.slug]
   );
 

@@ -7,7 +7,7 @@ import {Text} from '@sentry/scraps/text';
 import {fetchIssueTagApiOptions} from 'sentry/actionCreators/group';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {EmbedSection} from 'sentry/components/seer/markdown/embeds/components/embedSection';
-import {makeIssueTagDistributionPathname} from 'sentry/components/seer/markdown/embeds/components/event/eventPathnames';
+import {makeIssueTagDistributionPath} from 'sentry/components/seer/markdown/embeds/components/event/eventPathnames';
 import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -90,7 +90,7 @@ export function EventTagView({
           icon={IconIssues}
           href={
             singleTagKey
-              ? makeIssueTagDistributionPathname({
+              ? makeIssueTagDistributionPath({
                   organizationSlug: organization.slug,
                   issueId,
                   tagKey: singleTagKey,

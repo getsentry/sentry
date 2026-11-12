@@ -38,7 +38,8 @@ describe('ProjectEventRedirect', () => {
     await waitFor(() => {
       expect(router.location).toEqual(
         expect.objectContaining({
-          pathname: `/organizations/${organization.slug}/issues/456/events/abc123/`,
+          pathname: `/organizations/${organization.slug}/issues/456/`,
+          query: expect.objectContaining({eventId: 'abc123'}),
         })
       );
     });
@@ -250,8 +251,9 @@ describe('ProjectEventRedirect', () => {
     await waitFor(() => {
       expect(router.location).toEqual(
         expect.objectContaining({
-          pathname: `/organizations/${organization.slug}/issues/456/events/abc123/`,
+          pathname: `/organizations/${organization.slug}/issues/456/`,
           query: {
+            eventId: 'abc123',
             project: '123',
             referrer: 'discover-events-table',
           },

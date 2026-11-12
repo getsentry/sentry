@@ -45,7 +45,6 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useDisableRouteAnalytics} from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import * as qs from 'sentry/utils/url/qs';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -53,6 +52,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {usePrevious} from 'sentry/utils/usePrevious';
+import {makeIssueDetailsLocation} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {
@@ -433,18 +433,11 @@ function IssueListOverviewInner({
 
       // If this is a direct hit, we redirect to the intended result directly.
       if (resp.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
-        let redirect: string;
-        if (data[0]?.matchingEventId) {
-          const {id, matchingEventId} = data[0];
-          redirect = `/organizations/${organization.slug}/issues/${id}/events/${matchingEventId}/`;
-        } else {
-          const {id} = data[0];
-          redirect = `/organizations/${organization.slug}/issues/${id}/`;
-        }
-
         navigate(
-          normalizeUrl({
-            pathname: redirect,
+          makeIssueDetailsLocation({
+            organization,
+            groupId: data[0]!.id,
+            eventId: data[0]!.matchingEventId,
             query: {
               referrer: 'issue-list',
               // The issue list's date range may come from pinned filters, let

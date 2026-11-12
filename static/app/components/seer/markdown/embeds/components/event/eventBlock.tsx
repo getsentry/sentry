@@ -20,7 +20,7 @@ import {groupEventApiOptions} from 'sentry/views/issueDetails/utils';
 import {EventTagView} from './eventViews/tag';
 import {EventTagsView} from './eventViews/tags';
 import {getEventLinkTitle} from './eventLink';
-import {makeEventPathname, makeIssueDistributionsPathname} from './eventPathnames';
+import {makeEventPath, makeIssueDistributionsPath} from './eventPathnames';
 
 type EventData = EmbedOutput<'event'>;
 
@@ -97,12 +97,12 @@ export default function SeerEventBlock({id, issueId, shortId, view, tagKeys}: Ev
   const organization = useOrganization();
   // A `tag` view without tag keys has nothing to break down -- show the summary.
   const resolvedView = view === 'tag' && !tagKeys?.length ? 'summary' : view;
-  const eventHref = makeEventPathname({
+  const eventHref = makeEventPath({
     organizationSlug: organization.slug,
     issueId,
     eventId: id,
   });
-  const distributionsHref = makeIssueDistributionsPathname({
+  const distributionsHref = makeIssueDistributionsPath({
     organizationSlug: organization.slug,
     issueId,
   });

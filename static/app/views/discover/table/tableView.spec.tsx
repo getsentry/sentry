@@ -474,7 +474,7 @@ describe('TableView > CellActions', () => {
 
     expect(link).toHaveAttribute(
       'href',
-      '/organizations/org-slug/issues/123/events/deadbeef/?referrer=discover-events-table'
+      '/organizations/org-slug/issues/123/?eventId=deadbeef&referrer=discover-events-table'
     );
   });
 

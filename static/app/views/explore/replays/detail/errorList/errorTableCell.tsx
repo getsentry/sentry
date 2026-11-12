@@ -14,12 +14,12 @@ import {
 import {getShortEventId} from 'sentry/utils/events';
 import type {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ErrorFrame} from 'sentry/utils/replays/types';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import {TimestampButton} from 'sentry/views/explore/replays/detail/timestampButton';
+import {makeIssueDetailsLocation} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 
 const EMPTY_CELL = '--';
 
@@ -51,14 +51,14 @@ export function ErrorTableCell({
 
   const eventUrl =
     groupId && eventId
-      ? {
-          pathname: normalizeUrl(
-            `/organizations/${organization.slug}/issues/${groupId}/events/${eventId}/`
-          ),
+      ? makeIssueDetailsLocation({
+          organization,
+          groupId: String(groupId),
+          eventId,
           query: {
             referrer: 'replay-errors',
           },
-        }
+        })
       : null;
 
   const columnProps = {

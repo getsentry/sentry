@@ -55,7 +55,7 @@ describe('EventAttachments', () => {
 
     expect(await screen.findByRole('link', {name: 'View crashes'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/issues/1/attachments/?attachmentFilter=onlyCrash'
+      '/organizations/org-slug/issues/1/?attachmentFilter=onlyCrash&tab=attachments'
     );
 
     expect(screen.getByRole('link', {name: 'configure limit'})).toHaveAttribute(

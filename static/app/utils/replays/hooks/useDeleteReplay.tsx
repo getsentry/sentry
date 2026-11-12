@@ -12,6 +12,8 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
+import {makeIssueDetailsLocation} from 'sentry/views/issueDetails/issueDetailsQueryParams';
+import {Tab} from 'sentry/views/issueDetails/types';
 
 interface DeleteButtonProps {
   projectSlug: string | null;
@@ -49,7 +51,7 @@ export function useDeleteReplay({projectSlug, replayId}: DeleteButtonProps) {
       await deleteReplay({projectIdOrSlug: projectSlug, replayId});
       navigate(
         issueReferrer
-          ? {pathname: `/organizations/${organization.slug}/issues/${groupId}/replays/`}
+          ? makeIssueDetailsLocation({organization, groupId, tab: Tab.REPLAYS})
           : makeReplaysPathname({
               path: '/',
               organization,

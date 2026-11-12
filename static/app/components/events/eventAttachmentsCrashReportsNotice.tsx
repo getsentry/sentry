@@ -4,6 +4,8 @@ import {Link} from '@sentry/scraps/link';
 import {tct} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {EventAttachmentFilter} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsFilter';
+import {makeIssueDetailsLocation} from 'sentry/views/issueDetails/issueDetailsQueryParams';
+import {Tab} from 'sentry/views/issueDetails/types';
 
 type Props = {
   groupId: string;
@@ -18,10 +20,13 @@ export function EventAttachmentsCrashReportsNotice({
 }: Props) {
   const location = useLocation();
   const settingsUrl = `/settings/${orgSlug}/projects/${projectSlug}/security-and-privacy/`;
-  const attachmentsUrl = {
-    pathname: `/organizations/${orgSlug}/issues/${groupId}/attachments/`,
-    query: {...location.query, attachmentFilter: EventAttachmentFilter.CRASH_REPORTS},
-  };
+  const attachmentsUrl = makeIssueDetailsLocation({
+    organization: {slug: orgSlug},
+    groupId,
+    tab: Tab.ATTACHMENTS,
+    tabParams: {attachmentFilter: EventAttachmentFilter.CRASH_REPORTS},
+    query: location.query,
+  });
 
   return (
     <Alert.Container>

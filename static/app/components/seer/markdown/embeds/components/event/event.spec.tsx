@@ -60,13 +60,13 @@ describe('Seer event embed', () => {
         issueId: ISSUE_ID,
         shortId: 'JAVASCRIPT-22SP',
       })
-    ).toBe(`/organizations/org-slug/issues/${ISSUE_ID}/events/${EVENT_ID}/`);
+    ).toBe(`/organizations/org-slug/issues/${ISSUE_ID}/?eventId=${EVENT_ID}`);
   });
 
   it('falls back to the short event id when there is no short id', () => {
     expect(
       getEmbedLinkHref('event', 'Event 8f2c1a9d', {id: EVENT_ID, issueId: ISSUE_ID})
-    ).toBe(`/organizations/org-slug/issues/${ISSUE_ID}/events/${EVENT_ID}/`);
+    ).toBe(`/organizations/org-slug/issues/${ISSUE_ID}/?eventId=${EVENT_ID}`);
   });
 
   it('renders the event title, message and culprit in the block', async () => {
@@ -95,7 +95,7 @@ describe('Seer event embed', () => {
     expect(screen.getByTestId('tree-key-level')).toHaveTextContent('level');
     expect(screen.getByRole('link', {name: 'All tags for this issue'})).toHaveAttribute(
       'href',
-      `/organizations/org-slug/issues/${ISSUE_ID}/distributions/`
+      `/organizations/org-slug/issues/${ISSUE_ID}/?drawer=distributions`
     );
   });
 
@@ -193,7 +193,7 @@ describe('Seer event embed', () => {
     expect(await screen.findByText('Firefox')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'All browser values'})).toHaveAttribute(
       'href',
-      `/organizations/org-slug/issues/${ISSUE_ID}/distributions/browser/`
+      `/organizations/org-slug/issues/${ISSUE_ID}/?drawer=distributions&tagKey=browser`
     );
   });
 
@@ -218,7 +218,7 @@ describe('Seer event embed', () => {
     // the issue's distributions page.
     expect(screen.getByRole('link', {name: 'All tags for this issue'})).toHaveAttribute(
       'href',
-      `/organizations/org-slug/issues/${ISSUE_ID}/distributions/`
+      `/organizations/org-slug/issues/${ISSUE_ID}/?drawer=distributions`
     );
   });
 

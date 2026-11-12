@@ -7,6 +7,7 @@ import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContex
 import {getShortEventId} from 'sentry/utils/events';
 import type {ErrorFrame} from 'sentry/utils/replays/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {makeIssueDetailsPath} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 
 export function CrumbErrorTitle({frame}: {frame: ErrorFrame}) {
   const organization = useOrganization();
@@ -26,7 +27,11 @@ export function CrumbErrorTitle({frame}: {frame: ErrorFrame}) {
       {capitalize(level)}:{' '}
       <Link
         onClick={handleClick}
-        to={`/organizations/${organization.slug}/issues/${frame.data.groupId}/events/${frame.data.eventId}/#replay`}
+        to={`${makeIssueDetailsPath({
+          organization,
+          groupId: String(frame.data.groupId),
+          eventId: frame.data.eventId,
+        })}#replay`}
       >
         {getShortEventId(frame.data.eventId)}
       </Link>

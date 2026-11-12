@@ -62,7 +62,7 @@ describe('IssueReplayCount', () => {
     expect(replayCount).toHaveTextContent('2');
     expect(replayCount).toHaveAttribute(
       'href',
-      `/organizations/${organization.slug}/issues/${groupId}/replays/`
+      `/organizations/${organization.slug}/issues/${groupId}/?tab=replays`
     );
     expect(mockGetReplayCountForIssue).toHaveBeenCalledWith(groupId, 'error');
   });

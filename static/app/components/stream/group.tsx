@@ -52,6 +52,8 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
+import {makeIssueDetailsLocation} from 'sentry/views/issueDetails/issueDetailsQueryParams';
+import {Tab} from 'sentry/views/issueDetails/types';
 import {useAssignIssueMutation} from 'sentry/views/issueDetails/useAssignIssueMutation';
 import {
   useOptionalIssueSelectionActions,
@@ -432,14 +434,16 @@ export function StreamGroup({
       );
     }
 
-    return {
-      pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
+    return makeIssueDetailsLocation({
+      organization,
+      groupId: group.id,
+      tab: Tab.EVENTS,
       query: {
         referrer,
         ...commonQuery,
         query: filteredQuery,
       },
-    };
+    });
   };
 
   const issueTypeConfig = getConfigForIssueType(group, group.project);

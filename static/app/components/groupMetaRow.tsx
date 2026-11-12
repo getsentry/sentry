@@ -9,6 +9,10 @@ import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay
 import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  IssueDetailsDrawer,
+  makeIssueDetailsLocation,
+} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 
 import {getAutofixRunExists, isIssueQuickFixable} from './events/autofix/utils';
 import {ShortId} from './group/inboxBadges/shortId';
@@ -95,10 +99,12 @@ export function GroupMetaRow({data, showLifetime = true}: Props) {
       {subtitle ? <Location>{subtitle}</Location> : null}
       {numComments > 0 ? (
         <CommentsLink
-          to={{
-            pathname: `${issuesPath}${id}/activity/`,
-            query: {filter: 'comments'},
-          }}
+          to={makeIssueDetailsLocation({
+            organization,
+            groupId: id,
+            drawer: IssueDetailsDrawer.ACTIVITY,
+            drawerParams: {filter: 'comments'},
+          })}
         >
           <IconChat
             size="xs"

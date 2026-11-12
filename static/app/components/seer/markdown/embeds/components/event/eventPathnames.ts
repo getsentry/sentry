@@ -1,12 +1,12 @@
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {
+  IssueDetailsDrawer,
+  makeIssueDetailsPath,
+} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 
 /**
- * There is no shared helper for issue event pathnames, so the embed builds them
- * here once and passes the results down. `tags/` is a legacy alias that
- * redirects to `distributions/` -- link at the canonical path directly.
+ * Issue details links for the event embed, built once and passed down.
  */
-export function makeEventPathname({
+export function makeEventPath({
   organizationSlug,
   issueId,
   eventId,
@@ -15,24 +15,28 @@ export function makeEventPathname({
   issueId: string;
   organizationSlug: string;
 }) {
-  return normalizeUrl(
-    `/organizations/${organizationSlug}/issues/${issueId}/events/${eventId}/`
-  );
+  return makeIssueDetailsPath({
+    organization: {slug: organizationSlug},
+    groupId: issueId,
+    eventId,
+  });
 }
 
-export function makeIssueDistributionsPathname({
+export function makeIssueDistributionsPath({
   organizationSlug,
   issueId,
 }: {
   issueId: string;
   organizationSlug: string;
 }) {
-  return normalizeUrl(
-    `/organizations/${organizationSlug}/issues/${issueId}/${TabPaths[Tab.DISTRIBUTIONS]}`
-  );
+  return makeIssueDetailsPath({
+    organization: {slug: organizationSlug},
+    groupId: issueId,
+    drawer: IssueDetailsDrawer.DISTRIBUTIONS,
+  });
 }
 
-export function makeIssueTagDistributionPathname({
+export function makeIssueTagDistributionPath({
   organizationSlug,
   issueId,
   tagKey,
@@ -41,7 +45,10 @@ export function makeIssueTagDistributionPathname({
   organizationSlug: string;
   tagKey: string;
 }) {
-  return normalizeUrl(
-    `/organizations/${organizationSlug}/issues/${issueId}/${TabPaths[Tab.DISTRIBUTIONS]}${encodeURIComponent(tagKey)}/`
-  );
+  return makeIssueDetailsPath({
+    organization: {slug: organizationSlug},
+    groupId: issueId,
+    drawer: IssueDetailsDrawer.DISTRIBUTIONS,
+    drawerParams: {tagKey},
+  });
 }

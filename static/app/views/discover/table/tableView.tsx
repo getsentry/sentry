@@ -48,6 +48,7 @@ import {
   getTargetForTransactionSummaryLink,
 } from 'sentry/views/discover/utils';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
+import {makeIssueDetailsLocation} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
@@ -641,8 +642,10 @@ function getIssueEventTarget(
   dataRow: IssueEventDataRow,
   organization: Organization
 ): LocationDescriptor {
-  return normalizeUrl({
-    pathname: `/organizations/${organization.slug}/issues/${dataRow['issue.id']}/events/${dataRow.id}/`,
+  return makeIssueDetailsLocation({
+    organization,
+    groupId: String(dataRow['issue.id']),
+    eventId: dataRow.id,
     query: {
       referrer: 'discover-events-table',
     },

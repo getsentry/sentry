@@ -20,6 +20,7 @@ import type {Project} from 'sentry/types/project';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {makeIssueDetailsPath} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 
 import {ScreenshotPagination} from './screenshotPagination';
 
@@ -128,7 +129,11 @@ export function ScreenshotModal({
                   value: currentEventAttachment.event_id,
                   action: groupId
                     ? {
-                        link: `/organizations/${organization.slug}/issues/${groupId}/events/${currentEventAttachment.event_id}/`,
+                        link: makeIssueDetailsPath({
+                          organization,
+                          groupId,
+                          eventId: currentEventAttachment.event_id,
+                        }),
                       }
                     : undefined,
                 },

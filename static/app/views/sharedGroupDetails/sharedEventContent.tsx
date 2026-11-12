@@ -19,6 +19,7 @@ import type {SharedViewOrganization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+import {makeIssueDetailsPath} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 
 interface Props {
   event: Event | undefined;
@@ -46,7 +47,12 @@ export function SharedEventContent({organization, project, event, group}: Props)
           <FoldSection sectionKey={SectionKey.USER_FEEDBACK} title={t('User Feedback')}>
             <EventUserFeedback
               report={userReport}
-              eventLink={`/organizations/${organization.slug}/issues/${group.id}/events/${userReport.eventID}/?referrer=user-feedback`}
+              eventLink={makeIssueDetailsPath({
+                organization,
+                groupId: group.id,
+                eventId: userReport.eventID,
+                query: {referrer: 'user-feedback'},
+              })}
             />
           </FoldSection>
         </ErrorBoundary>

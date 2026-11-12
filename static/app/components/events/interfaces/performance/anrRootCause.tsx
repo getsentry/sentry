@@ -28,6 +28,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+import {makeIssueDetailsLocation} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 import {useIssuesTraceTree} from 'sentry/views/performance/traceDetails/traceApi/useIssuesTraceTree';
 import {useTrace} from 'sentry/views/performance/traceDetails/traceApi/useTrace';
 import {useTraceStateAnalytics} from 'sentry/views/performance/traceDetails/useTraceStateAnalytics';
@@ -152,12 +153,12 @@ export function AnrRootCause({event, organization}: Props) {
           <IssueSummary key={occurence.issue_id}>
             <Title>
               <TitleWithLink
-                to={{
-                  pathname: `/organizations/${organization.id}/issues/${occurence.issue_id}/${
-                    occurence.event_id ? `events/${occurence.event_id}/` : ''
-                  }`,
+                to={makeIssueDetailsLocation({
+                  organization,
+                  groupId: String(occurence.issue_id),
+                  eventId: occurence.event_id,
                   query: extractSelectionParameters(location.query),
-                }}
+                })}
               >
                 {title}
                 <Fragment>

@@ -8,8 +8,9 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountForIssues';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {makeIssueDetailsLocation} from 'sentry/views/issueDetails/issueDetailsQueryParams';
+import {Tab} from 'sentry/views/issueDetails/types';
 
 interface Props {
   group: Group;
@@ -38,9 +39,11 @@ export function IssueReplayCount({group}: Props) {
   return (
     <Tooltip title={count > 50 ? titleOver50 : title50OrLess} skipWrapper>
       <ReplayCountLink
-        to={normalizeUrl(
-          `/organizations/${organization.slug}/issues/${group.id}/replays/`
-        )}
+        to={makeIssueDetailsLocation({
+          organization,
+          groupId: group.id,
+          tab: Tab.REPLAYS,
+        })}
         aria-label={t('replay-count')}
       >
         <Flex as="span" align="center" gap="xs">

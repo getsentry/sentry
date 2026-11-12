@@ -183,7 +183,7 @@ const ISSUE_RULE: LinkRule = {
     // Only reachable from the older `get_issue_and_event_details`, which carried both ids.
     const eventId = asUrlSegment(params.event_id);
     if (eventId) {
-      return {label, url: {pathname: `/issues/${issueId}/events/${eventId}/`, query}};
+      return {label, url: {pathname: `/issues/${issueId}/`, query: {...query, eventId}}};
     }
     return {label, url: {pathname: `/issues/${issueId}/`, query}};
   },
@@ -217,8 +217,8 @@ export const LINK_RULES: LinkRule[] = [
       return {
         label: title ?? t('View event'),
         url: {
-          pathname: `/issues/${issueId}/events/${eventId}/`,
-          query: {start: validateIso(start), end: validateIso(end)},
+          pathname: `/issues/${issueId}/`,
+          query: {start: validateIso(start), end: validateIso(end), eventId},
         },
       };
     },

@@ -17,6 +17,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {makeIssueDetailsLocation} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
 
 export default function EventDetails() {
@@ -52,9 +53,13 @@ export default function EventDetails() {
     }
 
     if (event.groupID && event.eventID) {
-      navigate({
-        pathname: `/organizations/${organization.slug}/issues/${event.groupID}/events/${event.eventID}`,
-      });
+      navigate(
+        makeIssueDetailsLocation({
+          organization,
+          groupId: event.groupID,
+          eventId: event.eventID,
+        })
+      );
 
       return;
     }
