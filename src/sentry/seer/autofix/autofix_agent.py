@@ -666,27 +666,30 @@ def _get_relevant_repo(
     run_id: int,
     group: Group,
 ) -> SeerRepoDefinition:
-    relevant_repo: str | None
+    # Most relevant first. Coding agents launch against one repo, so take the first the project
+    # has configured.
+    relevant_repos: list[str]
     if is_single_run(state):
-        # Coding agents launch against one repo, so take the most relevant.
-        relevant_repo = next(iter(single_run_relevant_repos(state)), None)
+        relevant_repos = single_run_relevant_repos(state)
     else:
         root_cause_artifact = state.get_artifacts().get("root_cause")
         relevant_repo = (
             (root_cause_artifact.data or {}).get("relevant_repo") if root_cause_artifact else None
         )
+        relevant_repos = [relevant_repo] if relevant_repo else []
     warning_extras = {
         "organization_id": group.organization.id,
         "run_id": run_id,
         "project_id": group.project_id,
     }
-    if relevant_repo:
-        match = next((r for r in repo_definitions if f"{r.owner}/{r.name}" == relevant_repo), None)
+    if relevant_repos:
+        repos_by_name = {f"{r.owner}/{r.name}": r for r in repo_definitions}
+        match = next((repos_by_name[n] for n in relevant_repos if n in repos_by_name), None)
         if match:
             return match
         logger.warning(
             "autofix.coding_agent_handoff.relevant_repo_not_found",
-            extra={**warning_extras, "relevant_repo": relevant_repo},
+            extra={**warning_extras, "relevant_repos": relevant_repos},
         )
     else:
         logger.warning(
