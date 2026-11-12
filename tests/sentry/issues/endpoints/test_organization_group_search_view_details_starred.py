@@ -252,9 +252,3 @@ class OrganizationGroupSearchViewDetailsStarredEndpointTest(APITestCase):
         assert not GroupSearchViewStarred.objects.filter(
             organization=self.org, user_id=self.user.id, group_search_view=view
         ).exists()
-
-    def test_org_read_can_star(self) -> None:
-        view = self.create_view()
-        self._use_token(["org:read"])
-        response = self.client.post(self.get_url(view.id), data={"starred": True})
-        assert response.status_code == 200, response.content

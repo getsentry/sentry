@@ -14,10 +14,10 @@ from sentry.models.organization import Organization
 
 class GroupSearchViewStarredOrderPermission(OrganizationPermission):
     scope_map = {
-        "PUT": ["org:read", "member:read", "member:write", "user_preference:write"],
+        "PUT": ["member:read", "member:write", "user_preference:write"],
     }
 
-    # user_preference:write replaces member:read and org:read in orgs with granular scopes.
+    # user_preference:write replaces member:read in orgs with granular scopes.
     rejects_deprecated_scopes = True
 
 

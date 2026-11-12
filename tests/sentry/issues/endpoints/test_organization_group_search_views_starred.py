@@ -190,7 +190,3 @@ class OrganizationGroupSearchViewsStarredEndpointTest(APITestCase):
     def test_member_read_accepted_without_granular_scopes(self) -> None:
         self._use_token(["member:read"])
         self.get_success_response(self.organization.slug)
-
-    def test_org_read_can_list_starred(self) -> None:
-        self._use_token(["org:read"])
-        self.get_success_response(self.organization.slug)
