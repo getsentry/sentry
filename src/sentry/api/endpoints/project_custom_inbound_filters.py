@@ -310,6 +310,23 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
         if stored is not None and stored.legacy_filter:
             _validate_legacy_row_change(stored, data_type, conditions)
 
+        if "conditions" in attrs and any(
+            condition["type"] == ConditionType.ENVIRONMENT for condition in conditions
+        ):
+            organization = self.context["project"].organization
+            if not features.has(
+                "organizations:inbound-filters-environment-condition",
+                organization,
+                actor=self.context["request"].user,
+            ):
+                raise serializers.ValidationError(
+                    {
+                        "conditions": (
+                            "The environment condition is not enabled for this organization."
+                        )
+                    }
+                )
+
         supported = get_supported_condition_types(data_type)
         unsupported = sorted({condition["type"] for condition in conditions} - set(supported))
         if unsupported:

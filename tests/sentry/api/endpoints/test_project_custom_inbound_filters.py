@@ -359,6 +359,34 @@ class CustomInboundFiltersTest(APITestCase):
                 f"{value} is not a release with a version such as 1.2.0 or myapp@1.2.0."
             )
 
+    def test_environment_condition_requires_feature(self) -> None:
+        conditions = [{"type": "environment", "operator": "equals", "value": ["staging"]}]
+
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                status_code=400,
+                name="Staging",
+                dataType="error",
+                conditions=conditions,
+            )
+        assert str(response.data["conditions"][0]) == (
+            "The environment condition is not enabled for this organization."
+        )
+
+        with self.feature([*self.features, "organizations:inbound-filters-environment-condition"]):
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                status_code=201,
+                name="Staging",
+                dataType="error",
+                conditions=conditions,
+            )
+
     def test_without_inbound_filters_v2_feature(self) -> None:
         with self.feature(["projects:custom-inbound-filters"]):
             self.get_error_response(self.organization.slug, self.project.slug, status_code=404)
