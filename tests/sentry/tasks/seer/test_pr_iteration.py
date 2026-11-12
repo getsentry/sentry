@@ -1853,7 +1853,6 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         assert called_group.id == self.group.id
         assert [f.feedback_id for f in kwargs["feedback"]] == ["777"]
         assert kwargs["iteration_index"] == 2
-        assert kwargs["pr_number"] == 7
 
     def _unpushed_edits_block(self) -> MemoryBlock:
         return MemoryBlock(

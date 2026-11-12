@@ -38,7 +38,6 @@ from sentry.seer.autofix.feature.models import (
     RCAStepArgs,
     SolutionStepArgs,
 )
-from sentry.seer.autofix.pr_iteration.display import pr_feedback_display
 from sentry.seer.autofix.pr_iteration.feedback import (
     Feedback,
     feedback_text,
@@ -236,7 +235,6 @@ def continue_single_run_from_pr_feedback(
     iteration_index: int,
     iteration_id: int | None,
     commit_author: SeerCommitAuthor | None,
-    pr_number: int | None,
     referrer: AutofixReferrer,
 ) -> SeerRun:
     check_autofix_billing(
@@ -263,7 +261,6 @@ def continue_single_run_from_pr_feedback(
             iteration_id=iteration_id,
             feedback=serialize_feedback(feedback),
         ),
-        reply_display=pr_feedback_display(feedback, pr_number),
     )
 
 
@@ -278,7 +275,6 @@ def _continue_single_run(
     enable_pr_context_tools: bool,
     referrer: AutofixReferrer,
     pr_feedback: PrIterationStepArgs | None = None,
-    reply_display: str | None = None,
 ) -> SeerRun:
     from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 
@@ -294,7 +290,6 @@ def _continue_single_run(
         reply=reply,
         pr_internal_settings=pr_internal_settings,
         pr_feedback=pr_feedback,
-        reply_display=reply_display,
     )
     agent_run_options = AgentRunOptions(
         is_context_engine_enabled=False,

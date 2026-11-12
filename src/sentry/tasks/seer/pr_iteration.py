@@ -849,8 +849,7 @@ def _drain_queued_autofix_feedback(
             agent_run = require_autofix_run_for_group(
                 group, run_id, sources=(SINGLE_RUN_FEATURE_ID,)
             )
-            pr_numbers = [pr.pr_number for pr in state.repo_pr_states.values() if pr.pr_number]
-            if not pr_numbers:
+            if not any(pr.pr_number for pr in state.repo_pr_states.values()):
                 raise PrIterationNoPullRequestException()
             continue_single_run_from_pr_feedback(
                 agent_run,
@@ -859,7 +858,6 @@ def _drain_queued_autofix_feedback(
                 iteration_index=get_open_iteration_index(state),
                 iteration_id=iteration_id,
                 commit_author=commit_author,
-                pr_number=pr_numbers[0],
                 referrer=referrer,
             )
         else:

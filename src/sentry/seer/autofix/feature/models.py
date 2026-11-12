@@ -120,5 +120,3 @@ class AutofixSingleRunFeaturePayload(BaseModel):
     reply: str | None = None
     # Marks the reply as a PR feedback turn, so Sentry can close out the iteration when it ends.
     pr_feedback: PrIterationStepArgs | None = None
-    # Shown in the chat in place of the full reply prompt.
-    reply_display: str | None = None

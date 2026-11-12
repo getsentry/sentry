@@ -778,18 +778,16 @@ class TestContinueSingleRunFromPrFeedback(TestCase):
                 iteration_index=2,
                 iteration_id=7,
                 commit_author=self.author,
-                pr_number=12,
                 referrer=AutofixReferrer.GITHUB_PR_COMMENT,
             )
         return mock_client_cls
 
-    def test_sends_feedback_display_and_pr_settings(self) -> None:
+    def test_sends_feedback_and_pr_settings(self) -> None:
         mock_client_cls = self._send()
         kwargs = mock_client_cls.return_value.continue_feature_run.call_args.kwargs
         payload = kwargs["payload"]
 
         assert payload["reply"] == "rename it"
-        assert payload["reply_display"] == "@octo on #12: rename it"
         assert payload["existing_run_id"] == 123
         assert payload["pr_feedback"]["iteration_index"] == 2
         assert payload["pr_feedback"]["iteration_id"] == 7
