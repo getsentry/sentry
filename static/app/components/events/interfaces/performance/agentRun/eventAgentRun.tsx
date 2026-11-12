@@ -108,8 +108,29 @@ interface AgentRunProps {
   event: Event;
 }
 
+function getFocusNode(agentRun: InsideOrElsewhere) {
+  return agentRun.type === 'inside' ? agentRun.failingNode : agentRun.focusNode;
+}
+
+type InsideOrElsewhere = Extract<EventAgentRun, {type: 'inside' | 'elsewhere'}>;
+
 /**
- * Opens the trace's Agent Activity tab, with the failing step selected when there is one.
+ * Where the error was raised relative to an agent run it was not part of.
+ */
+function getErrorPosition(runNode: AITraceSpanNode, errorTimestamp: number) {
+  const [start, duration] = runNode.space;
+  const end = start + duration;
+  if (errorTimestamp < start) {
+    return t('%s before this run', getDuration((start - errorTimestamp) / 1000, 2, true));
+  }
+  if (errorTimestamp > end) {
+    return t('%s after this run', getDuration((errorTimestamp - end) / 1000, 2, true));
+  }
+  return t('During this run, outside its spans');
+}
+
+/**
+ * Opens the trace's Agent Activity tab, with the step closest to the error selected.
  */
 export function OpenAgentActivityButton({agentRun, event}: AgentRunProps) {
   const getAgentActivityLink = useAgentActivityLink(event);
@@ -118,7 +139,9 @@ export function OpenAgentActivityButton({agentRun, event}: AgentRunProps) {
     <LinkButton
       size="xs"
       to={getAgentActivityLink(
-        agentRun.type === 'inside' ? agentRun.failingNode.id : undefined
+        agentRun.type === 'inside' || agentRun.type === 'elsewhere'
+          ? getFocusNode(agentRun).id
+          : undefined
       )}
       analyticsEventName="Issue Details: Open Agent Activity Clicked"
       analyticsEventKey="issue_details.agent_run.open_agent_activity_clicked"
@@ -139,40 +162,38 @@ export function EventAgentActivity({agentRun, event}: AgentRunProps) {
     return null;
   }
 
-  if (agentRun.type === 'elsewhere') {
-    return (
-      <Text as="p" variant="muted">
-        {agentRun.agentRunCount > 0
-          ? tn(
-              'This error was raised outside the agent run in this trace, which may give context for it.',
-              'This error was raised outside the %s agent runs in this trace, which may give context for it.',
-              agentRun.agentRunCount
-            )
-          : t(
-              'This error was raised outside the AI spans in this trace, which may give context for it.'
-            )}
-      </Text>
-    );
-  }
-
-  const {runNode, failingNode, nodes} = agentRun;
+  const {runNode, nodes} = agentRun;
+  const focusNode = getFocusNode(agentRun);
+  const isInside = agentRun.type === 'inside';
   const summary = [
     {
       label: t('Agent'),
       value: resolveAgentName(runNode.attributes ?? {}) ?? runNode.description,
     },
-    {label: t('Model'), value: getModel(nodes, failingNode)},
-    {
-      label: t('Error raised in'),
-      value: failingNode.description ?? failingNode.op,
-    },
+    {label: t('Model'), value: getModel(nodes, focusNode)},
+    isInside
+      ? {label: t('Error raised in'), value: focusNode.description ?? focusNode.op}
+      : {
+          label: t('Error raised'),
+          value: getErrorPosition(runNode, agentRun.errorTimestamp),
+        },
     {label: t('Duration'), value: getDuration(runNode.space[1] / 1000, 2, true)},
   ].filter(item => item.value);
-  const {steps, hiddenBefore, hiddenAfter} = getVisibleSteps(nodes, failingNode);
-  const fullActivityLink = getAgentActivityLink(failingNode.id);
+  const {steps, hiddenBefore, hiddenAfter} = getVisibleSteps(nodes, focusNode);
+  const fullActivityLink = getAgentActivityLink(focusNode.id);
 
   return (
     <Stack gap="lg">
+      {agentRun.type === 'elsewhere' && (
+        <Text as="p" variant="muted">
+          {agentRun.agentRunCount > 1
+            ? t(
+                'This error was raised outside the %s agent runs in this trace. This is the run closest to it.',
+                agentRun.agentRunCount
+              )
+            : t('This error was raised outside the agent activity in this trace.')}
+        </Text>
+      )}
       <Grid columns={`repeat(${summary.length}, max-content)`} gap="2xs xl">
         {summary.map(({label}) => (
           <Text key={`label-${label}`} size="xs" variant="muted" uppercase>
@@ -189,7 +210,8 @@ export function EventAgentActivity({agentRun, event}: AgentRunProps) {
         <HiddenStepsLink count={hiddenBefore} to={fullActivityLink} />
         <AiSpanTimeline
           nodes={steps}
-          selectedNodeKey={failingNode.id}
+          // Only highlight a step when the error was raised inside it.
+          selectedNodeKey={isInside ? focusNode.id : null}
           onSelectNode={node => navigate(getAgentActivityLink(node.id))}
         />
         <HiddenStepsLink count={hiddenAfter} to={fullActivityLink} />

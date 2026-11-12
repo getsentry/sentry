@@ -89,6 +89,51 @@ function makeTrace({errorInsideTool}: {errorInsideTool: boolean}) {
   ];
 }
 
+function makeRun(name: string, start: number) {
+  return makeEAPSpan({
+    event_id: `${name}-agent`,
+    op: 'gen_ai.invoke_agent',
+    name: 'gen_ai.invoke_agent',
+    description: `invoke_agent ${name}`,
+    start_timestamp: start,
+    end_timestamp: start + 2,
+    additional_attributes: {
+      'gen_ai.operation.type': 'agent',
+      'gen_ai.agent.name': `${name}-agent`,
+    },
+    children: [
+      makeEAPSpan({
+        event_id: `${name}-tool`,
+        op: 'gen_ai.execute_tool',
+        name: 'gen_ai.execute_tool',
+        start_timestamp: start + 1,
+        end_timestamp: start + 2,
+        additional_attributes: {
+          'gen_ai.operation.type': 'tool',
+          'gen_ai.tool.name': `${name}_tool`,
+        },
+      }),
+    ],
+  });
+}
+
+/**
+ * Two agent runs, and an error raised after the second one ended.
+ */
+function makeTwoRunTrace() {
+  return [
+    makeEAPSpan({
+      event_id: 'root-span',
+      op: 'http.server',
+      is_transaction: true,
+      start_timestamp: 0,
+      end_timestamp: 12,
+      errors: [makeEAPError({event_id: errorEventId, start_timestamp: 10})],
+      children: [makeRun('early', 1), makeRun('late', 6)],
+    }),
+  ];
+}
+
 describe('getEventAgentRun', () => {
   it('finds the agent run and the step the error was raised in', () => {
     const agentRun = getEventAgentRun(
@@ -110,10 +155,16 @@ describe('getEventAgentRun', () => {
     ]);
   });
 
-  it('counts agent runs when the error was raised outside them', () => {
-    expect(
-      getEventAgentRun(makeTrace({errorInsideTool: false}), errorEventId, organization)
-    ).toEqual({type: 'elsewhere', agentRunCount: 1});
+  it('picks the agent run closest to an error raised outside them', () => {
+    const agentRun = getEventAgentRun(makeTwoRunTrace(), errorEventId, organization);
+
+    expect(agentRun.type).toBe('elsewhere');
+    if (agentRun.type !== 'elsewhere') {
+      return;
+    }
+    expect(agentRun.agentRunCount).toBe(2);
+    expect(agentRun.runNode.id).toBe('late-agent');
+    expect(agentRun.focusNode.id).toBe('late-tool');
   });
 
   it('returns none for a trace without AI spans', () => {
@@ -228,10 +279,10 @@ describe('EventAgentActivity', () => {
     expect(screen.getByRole('link', {name: '2 more steps'})).toBeInTheDocument();
   });
 
-  it('says when the error was raised outside the agent runs', () => {
+  it('shows the closest agent run when the error was raised outside them', () => {
     render(
       <EventAgentActivity
-        agentRun={{type: 'elsewhere', agentRunCount: 2}}
+        agentRun={getEventAgentRun(makeTwoRunTrace(), errorEventId, organization)}
         event={event}
       />,
       {organization}
@@ -239,9 +290,12 @@ describe('EventAgentActivity', () => {
 
     expect(
       screen.getByText(
-        'This error was raised outside the 2 agent runs in this trace, which may give context for it.'
+        'This error was raised outside the 2 agent runs in this trace. This is the run closest to it.'
       )
     ).toBeInTheDocument();
+    expect(screen.getByText(/after this run/)).toBeInTheDocument();
+    expect(screen.getByText('late_tool')).toBeInTheDocument();
+    expect(screen.queryByText('early_tool')).not.toBeInTheDocument();
   });
 });
 
