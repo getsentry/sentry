@@ -18,22 +18,24 @@ export function SeerProjectDetails({project}: {project: DetailedProject}) {
   const organization = useOrganization();
 
   const canWrite = hasEveryAccess(['project:write'], {organization, project});
+  const docsLink = (
+    <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/#seer-capabilities" />
+  );
 
   return (
     <AnalyticsArea name="project-details">
       <SentryDocumentTitle title={t('Seer for %s', project.slug)} />
       <Stack paddingBottom="xl">
         <Text as="div" variant="muted">
-          {tct(
-            isSeerTokenBasedBillingOnboardingEnabled(organization)
-              ? 'Link repositories to this project, and choose which Agent should automatically process issues. [docs:Read the docs] to learn what Seer can do.'
-              : 'Connect repositories to projects, and choose which Agent should automatically process issues. [docs:Read the docs] to learn what Seer can do.',
-            {
-              docs: (
-                <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/#seer-capabilities" />
-              ),
-            }
-          )}
+          {isSeerTokenBasedBillingOnboardingEnabled(organization)
+            ? tct(
+                'Link repositories to this project, and choose which Agent should automatically process issues. [docs:Read the docs] to learn what Seer can do.',
+                {docs: docsLink}
+              )
+            : tct(
+                'Connect repositories to projects, and choose which Agent should automatically process issues. [docs:Read the docs] to learn what Seer can do.',
+                {docs: docsLink}
+              )}
         </Text>
       </Stack>
       {canWrite ? null : (
