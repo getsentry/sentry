@@ -5,6 +5,9 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {Container} from '@sentry/scraps/layout';
 
+import type {Organization} from 'sentry/types/organization';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
+
 import {NavigationMenuHeader} from './navigationMenuHeader';
 
 function solidImage(hex: string): string {
@@ -41,12 +44,23 @@ function sampledQueryClient(hex?: string): QueryClient {
   return queryClient;
 }
 
-function Frame({children, sampledColor}: {children: ReactNode; sampledColor?: string}) {
+function Frame({
+  children,
+  organization = null,
+  sampledColor,
+}: {
+  children: ReactNode;
+  /** The current organization, which the header takes its gradient from. */
+  organization?: Organization | null;
+  sampledColor?: string;
+}) {
   return (
     <QueryClientProvider client={sampledQueryClient(sampledColor)}>
-      <Container width="258px" padding="sm lg">
-        {children}
-      </Container>
+      <OrganizationContext value={organization}>
+        <Container width="258px" padding="sm lg">
+          {children}
+        </Container>
+      </OrganizationContext>
     </QueryClientProvider>
   );
 }
@@ -61,18 +75,20 @@ const LOGOS = [
   {kind: 'neutral', color: '#000000'},
 ];
 
+const LETTER_ORGANIZATION = OrganizationFixture({name: 'Acme', slug: 'acme'});
+
 describe('NavigationMenuHeader', () => {
   for (const {kind, color} of LOGOS) {
     it.snapshot(
       `organization-logo-${kind}`,
-      () => (
-        <Frame sampledColor={color}>
-          <NavigationMenuHeader
-            organization={logoOrganization(color)}
-            projectCount={12}
-          />
-        </Frame>
-      ),
+      () => {
+        const organization = logoOrganization(color);
+        return (
+          <Frame organization={organization} sampledColor={color}>
+            <NavigationMenuHeader organization={organization} projectCount={12} />
+          </Frame>
+        );
+      },
       {tags: {avatar: 'image', logo: kind, area: 'core'}}
     );
   }
@@ -80,25 +96,22 @@ describe('NavigationMenuHeader', () => {
   // Before an image avatar has been sampled, the header uses its default gradient.
   it.snapshot(
     'organization-logo-unsampled',
-    () => (
-      <Frame>
-        <NavigationMenuHeader
-          organization={logoOrganization('#ffd744')}
-          projectCount={12}
-        />
-      </Frame>
-    ),
+    () => {
+      const organization = logoOrganization('#ffd744');
+      return (
+        <Frame organization={organization}>
+          <NavigationMenuHeader organization={organization} projectCount={12} />
+        </Frame>
+      );
+    },
     {tags: {avatar: 'image', logo: 'unsampled', area: 'core'}}
   );
 
   it.snapshot(
     'organization-letter-avatar',
     () => (
-      <Frame>
-        <NavigationMenuHeader
-          organization={OrganizationFixture({name: 'Acme', slug: 'acme'})}
-          projectCount={1}
-        />
+      <Frame organization={LETTER_ORGANIZATION}>
+        <NavigationMenuHeader organization={LETTER_ORGANIZATION} projectCount={1} />
       </Frame>
     ),
     {tags: {avatar: 'letter', area: 'core'}}
@@ -108,10 +121,9 @@ describe('NavigationMenuHeader', () => {
   it.snapshot(
     'user-with-organization-logo',
     () => (
-      <Frame sampledColor="#ffd744">
+      <Frame organization={logoOrganization('#ffd744')} sampledColor="#ffd744">
         <NavigationMenuHeader
           user={UserFixture({name: 'Jane Doe', email: 'jane@example.com'})}
-          organization={logoOrganization('#ffd744')}
         />
       </Frame>
     ),

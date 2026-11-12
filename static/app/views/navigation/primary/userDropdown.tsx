@@ -5,7 +5,6 @@ import {IconSliders} from '@sentry/icons/sliders';
 import {IconUpload} from '@sentry/icons/upload';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
-import {AvatarButton} from '@sentry/scraps/avatarButton';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
@@ -23,6 +22,7 @@ import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationCon
 import {useSettingsScope} from 'sentry/views/settings/useSettingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
+import {NavigationAvatarButton} from './navigationAvatarButton';
 import {NavigationMenuHeader} from './navigationMenuHeader';
 
 // Stable module-level component to avoid remounts when used as `renderWrapAs`
@@ -93,7 +93,7 @@ export function UserDropdown() {
         position={layout === 'mobile' ? 'bottom' : 'right-end'}
         minMenuWidth={224}
         trigger={triggerProps => (
-          <AvatarButton
+          <NavigationAvatarButton
             {...triggerProps}
             aria-label={user.email}
             avatar={avatarProps}
@@ -102,7 +102,7 @@ export function UserDropdown() {
             analyticsParams={{item: 'account'}}
           />
         )}
-        menuTitle={<NavigationMenuHeader user={user} organization={organization} />}
+        menuTitle={<NavigationMenuHeader user={user} />}
         items={[
           {
             key: 'account-actions',
@@ -194,7 +194,7 @@ export function UserDropdown() {
       position={layout === 'mobile' ? 'bottom' : 'right-end'}
       minMenuWidth={200}
       trigger={triggerProps => (
-        <AvatarButton
+        <NavigationAvatarButton
           {...triggerProps}
           aria-label={t('Account')}
           avatar={avatarProps}
