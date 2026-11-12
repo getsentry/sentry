@@ -35,7 +35,11 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import acting_user_id
-from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.hybridcloud.models.outbox import (
+    OutboxDatabaseError,
+    OutboxFlushError,
+    outbox_context,
+)
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.services.organization import (
     RpcOrganization,
@@ -55,22 +59,6 @@ from sentry.utils.security.orgauthtoken_token import SystemUrlPrefixMissingExcep
 logger = logging.getLogger(__name__)
 
 DEFAULT_TOKEN_LIFETIME = timedelta(days=30)
-
-
-def _flush_token_outboxes(token: ServiceAccountToken) -> None:
-    """Replicate the token to its cell now, but don't fail the request if that fails.
-
-    The token and its outbox are already committed, so the scheduled outbox drain
-    replicates it later.
-    """
-    try:
-        for outbox in token.outboxes_for_update():
-            outbox.drain_shard()
-    except Exception:
-        logger.exception(
-            "service_accounts.token.outbox_flush_failed",
-            extra={"token_id": token.id, "organization_id": token.organization_id},
-        )
 
 
 class ServiceAccountTokenResponse(TypedDict):
@@ -253,22 +241,30 @@ class OrganizationServiceAccountTokenIndexEndpoint(ServiceAccountTokenEndpointBa
             )
         stored = stored_token_fields(token_str)
 
-        # Flushing inside the transaction would turn a replication failure into a 500 that
-        # hides the only copy of the plaintext token, so flush after commit instead.
-        with outbox_context(
-            transaction.atomic(using=router.db_for_write(ServiceAccountToken)), flush=False
-        ):
-            token = ServiceAccountToken.objects.create(
-                service_account=service_account,
-                organization_id=organization.id,
-                name=data["name"],
-                scope_list=data["scopes"],
-                token_hashed=stored.token_hashed,
-                token_last_characters=stored.token_last_characters,
-                created_by_id=acting_user_id(request.user),
-                date_expires=data.get("expiresAt", timezone.now() + DEFAULT_TOKEN_LIFETIME),
+        token: ServiceAccountToken | None = None
+        try:
+            # Binds `token` before the flush runs, so it's set when only replication fails.
+            with outbox_context(transaction.atomic(using=router.db_for_write(ServiceAccountToken))):
+                token = ServiceAccountToken.objects.create(
+                    service_account=service_account,
+                    organization_id=organization.id,
+                    name=data["name"],
+                    scope_list=data["scopes"],
+                    token_hashed=stored.token_hashed,
+                    token_last_characters=stored.token_last_characters,
+                    created_by_id=acting_user_id(request.user),
+                    date_expires=data.get("expiresAt", timezone.now() + DEFAULT_TOKEN_LIFETIME),
+                )
+        except (OutboxDatabaseError, OutboxFlushError):
+            if token is None:
+                raise
+            # The token and its outbox are committed, so it reaches the cell when the
+            # outbox drains. Failing here would lose the only copy of the plaintext token.
+            logger.warning(
+                "service_accounts.token.outbox-flush-failure",
+                extra={"token_id": token.id, "organization_id": organization.id},
+                exc_info=True,
             )
-        _flush_token_outboxes(token)
 
         self.create_audit_entry(
             request,

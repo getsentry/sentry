@@ -194,7 +194,7 @@ class OrganizationServiceAccountTokenIndexTest(ServiceAccountTokenTestCase):
         with (
             self.feature(FEATURE_FLAG),
             mock.patch(
-                "sentry.hybridcloud.models.outbox.ControlOutbox.drain_shard",
+                "sentry.service_accounts.models.ServiceAccountToken.handle_async_replication",
                 side_effect=Exception("cell unavailable"),
             ),
         ):
