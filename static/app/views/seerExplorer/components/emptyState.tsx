@@ -1,5 +1,5 @@
 import {Fragment, useEffect, useRef} from 'react';
-import {keyframes, useTheme} from '@emotion/react';
+import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconSeer} from '@sentry/icons/seer';
 
@@ -12,7 +12,7 @@ import seerEye from 'sentry-images/spot/seer-eye.svg';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Image} from '@sentry/scraps/image';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack, Surface} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -21,7 +21,9 @@ import {t, tct} from 'sentry/locale';
 import type {ChatSuggestionsState} from 'sentry/views/seerExplorer/hooks/useChatSuggestions';
 import type {ChatSuggestion, SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 
-const SUGGESTION_PLACEHOLDER_WIDTHS = ['90%', '100%', '65%'];
+const SUGGESTION_PLACEHOLDER_COUNT = 3;
+const SUGGESTION_PLACEHOLDER_WIDTHS = ['90%', '70%'];
+const TRACTOR_LIFT = 72;
 
 interface EmptyStateProps {
   displaySlackAgentReminder?: boolean;
@@ -46,8 +48,12 @@ export function EmptyState({
   onSuggestionClick,
   suggestions,
 }: EmptyStateProps) {
-  const theme = useTheme();
   const characterRef = useRef<HTMLDivElement>(null);
+  const marqueeRef = useRef<HTMLDivElement>(null);
+  const suggestionCount = suggestions?.isLoading
+    ? SUGGESTION_PLACEHOLDER_COUNT
+    : (suggestions?.suggestions.length ?? 0);
+  const hasSuggestions = Boolean(onSuggestionClick && suggestions);
   const runIdDisplay = runId?.toString() ?? 'null';
 
   useEffect(() => {
@@ -82,6 +88,91 @@ export function EmptyState({
       reducedMotion.removeEventListener('change', resetPupil);
     };
   }, [isError, isLoading]);
+
+  useEffect(() => {
+    const marquee = marqueeRef.current;
+    if (!marquee || isError || isLoading || !hasSuggestions || suggestionCount === 0) {
+      return;
+    }
+    const cards = Array.from(
+      marquee.querySelectorAll<HTMLElement>('[data-tractor-card]')
+    );
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const lifts = new Map<HTMLElement, number>();
+    const releases = new Map<HTMLElement, {at: number; lift: number}>();
+    let frame: number | undefined;
+    let previousTime = 0;
+    let activeTime = 0;
+
+    const animate = (now: number) => {
+      const elapsed = previousTime ? now - previousTime : 1000 / 60;
+      previousTime = now;
+      if (marquee.matches(':hover, :focus-within')) {
+        frame = requestAnimationFrame(animate);
+        return;
+      }
+      activeTime += elapsed;
+      const bounds = marquee.getBoundingClientRect();
+      const center = bounds.left + bounds.width / 2;
+      const delta = elapsed / (1000 / 60);
+      const targets = cards.map(card => {
+        const rect = card.getBoundingClientRect();
+        const distance = Math.abs(rect.left + rect.width / 2 - center);
+        return {card, target: Math.max(0, 1 - distance / 60) * TRACTOR_LIFT};
+      });
+
+      let beamLift = 0;
+      targets.forEach(({card, target}) => {
+        const current = lifts.get(card) ?? 0;
+        let lift: number;
+        if (target > 0) {
+          lift = current + (target - current) * (1 - 0.7 ** delta);
+          releases.delete(card);
+        } else {
+          const release = releases.get(card) ?? {at: activeTime, lift: current};
+          releases.set(card, release);
+          lift = release.lift * (1 - Math.min((activeTime - release.at) / 350, 1)) ** 3;
+        }
+        beamLift = Math.max(beamLift, lift);
+        lifts.set(card, lift);
+        card.style.setProperty('--card-lift', `${lift}`);
+        card.toggleAttribute('data-lifting', target > 0 || lift >= 1);
+      });
+      characterRef.current?.style.setProperty(
+        '--beam-lift',
+        `${beamLift / TRACTOR_LIFT}`
+      );
+      frame = requestAnimationFrame(animate);
+    };
+
+    function updateMotion() {
+      if (frame !== undefined) {
+        cancelAnimationFrame(frame);
+      }
+      previousTime = 0;
+      activeTime = 0;
+      if (reducedMotion.matches) {
+        characterRef.current?.style.removeProperty('--beam-lift');
+        cards.forEach(card => {
+          card.style.removeProperty('--card-lift');
+          card.removeAttribute('data-lifting');
+        });
+        lifts.clear();
+        releases.clear();
+      } else {
+        frame = requestAnimationFrame(animate);
+      }
+    }
+
+    updateMotion();
+    reducedMotion.addEventListener('change', updateMotion);
+    return () => {
+      if (frame !== undefined) {
+        cancelAnimationFrame(frame);
+      }
+      reducedMotion.removeEventListener('change', updateMotion);
+    };
+  }, [isError, isLoading, suggestionCount, hasSuggestions]);
 
   return (
     <Fragment>
@@ -160,38 +251,90 @@ export function EmptyState({
             </FloatingCharacter>
             <Stack position="absolute" top="43%" left="0" right="0" align="center">
               <Container width="100%">
-                <Text as="div" align="center" variant="secondary" density="comfortable">
+                <BeamCaption
+                  as="div"
+                  align="center"
+                  variant="secondary"
+                  density="comfortable"
+                >
                   {t('Ask Seer anything about your application.')}
-                </Text>
+                </BeamCaption>
               </Container>
               {onSuggestionClick && suggestions && (
-                <Stack
+                <SuggestionMarquee
+                  ref={marqueeRef}
                   align="center"
-                  width="100%"
-                  gap="md"
-                  paddingTop="2xl"
+                  width="calc(100% + 96px)"
+                  height="172px"
+                  gap="lg"
+                  padding="0 xl"
+                  position="relative"
+                  containerType="inline-size"
+                  overflowX="auto"
+                  overflowY="hidden"
+                  role="group"
+                  aria-label={t('Suggested questions')}
                   aria-hidden={suggestions.isLoading || undefined}
                 >
-                  {suggestions.isLoading
-                    ? SUGGESTION_PLACEHOLDER_WIDTHS.map(width => (
-                        <SuggestionPlaceholder
-                          key={width}
-                          width={width}
-                          height={theme.form.sm.height}
-                          testId="suggestion-placeholder"
-                        />
-                      ))
-                    : suggestions.suggestions.map((suggestion, index) => (
-                        <Container key={index} maxWidth="100%">
-                          <SuggestionButton
-                            size="sm"
-                            onClick={() => onSuggestionClick(suggestion, index)}
+                  {Array.from({length: suggestionCount}, (_, index) => {
+                    const suggestion = suggestions.isLoading
+                      ? undefined
+                      : suggestions.suggestions[index];
+                    return (
+                      <TractorCard
+                        key={index}
+                        data-tractor-card=""
+                        position="relative"
+                        width="200px"
+                        flexShrink={0}
+                        $index={index}
+                        $count={suggestionCount}
+                      >
+                        <Surface
+                          data-tractor-surface=""
+                          variant="overlay"
+                          elevation="medium"
+                          radius="lg"
+                          height="88px"
+                        >
+                          <SuggestionCard
+                            variant="transparent"
+                            size="zero"
+                            disabled={!suggestion}
+                            onClick={
+                              suggestion
+                                ? () => onSuggestionClick(suggestion, index)
+                                : undefined
+                            }
                           >
-                            {suggestion.text}
-                          </SuggestionButton>
-                        </Container>
-                      ))}
-                </Stack>
+                            {suggestion ? (
+                              <Text
+                                size="sm"
+                                align="center"
+                                density="comfortable"
+                                wrap="normal"
+                                textWrap="pretty"
+                              >
+                                {suggestion.text}
+                              </Text>
+                            ) : (
+                              <Stack width="100%" gap="md" align="center">
+                                {SUGGESTION_PLACEHOLDER_WIDTHS.map(width => (
+                                  <SuggestionPlaceholder
+                                    key={width}
+                                    width={width}
+                                    height="10px"
+                                    testId="suggestion-placeholder"
+                                  />
+                                ))}
+                              </Stack>
+                            )}
+                          </SuggestionCard>
+                        </Surface>
+                      </TractorCard>
+                    );
+                  })}
+                </SuggestionMarquee>
               )}
             </Stack>
           </Container>
@@ -235,14 +378,6 @@ const float = keyframes`
   50% { transform: translateY(-5px); }
 `;
 
-const scan = keyframes`
-  0% { transform: translateY(-100%); opacity: 0; }
-  20% { opacity: 0.25; }
-  45% { opacity: 0.55; }
-  70% { opacity: 0.25; }
-  100% { transform: translateY(500%); opacity: 0; }
-`;
-
 const pulse = keyframes`
   0%, 100% { opacity: 0.45; }
   50% { opacity: 0.8; }
@@ -251,6 +386,56 @@ const pulse = keyframes`
 const armDrift = keyframes`
   0%, 100% { transform: rotate(0); }
   50% { transform: rotate(var(--arm-tilt)) translateY(1px); }
+`;
+
+const tractor = keyframes`
+  from { transform: translateX(calc(50cqw + 20px)); }
+  to { transform: translateX(calc(-50cqw - 100% - 20px)); }
+`;
+
+const rock = keyframes`
+  0%, 100% { transform: rotate(calc(var(--card-lift, 0) * -0.0125deg)); }
+  50% { transform: rotate(calc(var(--card-lift, 0) * 0.0125deg)); }
+`;
+
+const SuggestionMarquee = styled(Flex)`
+  @media (prefers-reduced-motion: no-preference) {
+    overflow: hidden;
+    mask-image: linear-gradient(to right, transparent, #000 15%, #000 85%, transparent);
+
+    &:hover [data-tractor-card],
+    &:focus-within [data-tractor-card],
+    &:hover [data-tractor-card] [data-tractor-surface],
+    &:focus-within [data-tractor-card] [data-tractor-surface] {
+      animation-play-state: paused;
+    }
+
+    &:has(:focus-visible) [data-tractor-card]:focus-within {
+      animation: none;
+      transform: translateX(-50%);
+      z-index: 1;
+    }
+  }
+`;
+
+const TractorCard = styled(Container)<{$count: number; $index: number}>`
+  @media (prefers-reduced-motion: no-preference) {
+    position: absolute;
+    left: 50%;
+    top: 82px;
+    animation: ${tractor} 30s linear infinite;
+    animation-delay: ${p => -(15 + (30 * p.$index) / p.$count)}s;
+
+    [data-tractor-surface] {
+      translate: 0 calc(-1px * var(--card-lift, 0));
+      animation: ${rock} 1.4s ease-in-out infinite;
+      transition: filter 300ms ease-out;
+    }
+
+    &[data-lifting] [data-tractor-surface] {
+      filter: drop-shadow(0 -4px 14px rgb(158 229 76 / 30%));
+    }
+  }
 `;
 
 const Arm = styled(Container)<{$side: 'left' | 'right'}>`
@@ -287,6 +472,10 @@ const Beam = styled(Container)`
   z-index: 3;
 `;
 
+const BeamCaption = styled(Text)`
+  mix-blend-mode: luminosity;
+`;
+
 const Pupil = styled(Container)`
   aspect-ratio: 1;
   background: #181225;
@@ -316,7 +505,8 @@ const BeamScan = styled(Container)`
     );
 
     @media (prefers-reduced-motion: no-preference) {
-      animation: ${scan} 6s ease-in-out infinite;
+      transform: translateY(calc(450% - var(--beam-lift, 0) * 500%));
+      opacity: calc(var(--beam-lift, 0) * 0.55);
     }
   }
 `;
@@ -330,16 +520,10 @@ const SuggestionPlaceholder = styled(Placeholder)`
   }
 `;
 
-const SuggestionButton = styled(Button)`
+const SuggestionCard = styled(Button)`
   width: 100%;
-  height: auto;
-  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
-  font-size: ${p => p.theme.font.size.sm};
+  height: 100%;
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   font-weight: ${p => p.theme.font.weight.sans.regular};
-  line-height: 16px;
-
-  > span:last-child {
-    white-space: normal;
-    text-wrap: balance;
-  }
+  border-radius: ${p => p.theme.radius.lg};
 `;
