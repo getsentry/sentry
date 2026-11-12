@@ -46,7 +46,7 @@ from sentry.utils.sdk import bind_organization_context, set_current_event_projec
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import build_sdk_crash_detection_configs
 from sentry.utils.services import build_instance_from_options_of_type
 from sentry.utils.validators import normalize_event_id
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 if TYPE_CHECKING:
     from sentry.eventstream.base import GroupState
@@ -477,7 +477,7 @@ def update_existing_attachments(job: PostProcessJob) -> None:
     event = job["event"]
 
     # Update attachments from reprocessed events or feedback events,
-    # which get their group ID after `save_generic_event`.
+    # which get their group ID after `save_generic_events`.
     EventAttachment.objects.filter(project_id=event.project_id, event_id=event.event_id).exclude(
         group_id=event.group_id
     ).update(group_id=event.group_id)
@@ -656,9 +656,9 @@ def post_process_group(
 
         with viewer_context_scope(
             ViewerContext(
+                actor=Actor(type=ActorType.SYSTEM),
                 organization_id=event.project.organization_id,
                 project_id=event.project_id,
-                actor_type=ActorType.SYSTEM,
             )
         ):
             is_reprocessed = is_reprocessed_event(event.data)
@@ -1350,11 +1350,11 @@ def process_data_forwarding(job: PostProcessJob) -> None:
 
 
 def process_similarity(job: PostProcessJob) -> None:
+    from sentry.seer.similarity.utils import project_uses_seer_similarity
+
     if not options.get("sentry.similarity.indexing.enabled"):
         return
-    if job["is_reprocessed"] or job["event"].group.project.get_option(
-        "sentry:similarity_backfill_completed"
-    ):
+    if job["is_reprocessed"] or project_uses_seer_similarity(job["event"].group.project):
         return
 
     from sentry import similarity
@@ -1559,7 +1559,7 @@ def detect_new_escalation(job: PostProcessJob) -> None:
     group = job["event"].group
     if not group:
         return
-    extra = {
+    extra: dict[str, object] = {
         "org_id": group.organization.id,
         "project_id": job["event"].project.id,
         "group_id": group.id,
@@ -1691,7 +1691,7 @@ def kick_off_lightweight_rca_cluster(job: PostProcessJob) -> None:
     ):
         return
 
-    trigger_lightweight_rca_cluster_task.delay(group.id)
+    trigger_lightweight_rca_cluster_task.delay(group.id, event_id=event.event_id)
 
 
 def _noop_siem_security_log_hook(job: PostProcessJob) -> None:

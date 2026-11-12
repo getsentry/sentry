@@ -1,9 +1,5 @@
-import {Rect} from 'sentry/utils/profiling/speedscope';
-import {
-  makeFormatter,
-  makeFormatTo,
-  makeTimelineFormatter,
-} from 'sentry/utils/profiling/units/units';
+import {makeFormatter, makeFormatTo, makeTimelineFormatter} from './units/units';
+import {Rect} from './speedscope';
 
 export type UIFrameNode = {
   duration: number;

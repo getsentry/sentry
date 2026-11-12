@@ -19,7 +19,6 @@ from sentry.api.event_search import (
     SearchKey,
     SearchValue,
 )
-from sentry.constants import DataCategory
 from sentry.discover.arithmetic import is_equation
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
@@ -73,16 +72,18 @@ class OnDemandMetricSpecVersioning:
     ]
 
     @classmethod
-    def get_query_spec_version(cls: Any, organization_id: int) -> SpecVersion:
+    def get_query_spec_version(
+        cls: type[OnDemandMetricSpecVersioning], organization_id: int
+    ) -> SpecVersion:
         return cls.spec_versions[0]
 
     @classmethod
-    def get_spec_versions(cls: Any) -> Sequence[SpecVersion]:
+    def get_spec_versions(cls: type[OnDemandMetricSpecVersioning]) -> Sequence[SpecVersion]:
         """Get all spec versions."""
         return cls.spec_versions
 
     @classmethod
-    def get_default_spec_version(cls: Any) -> SpecVersion:
+    def get_default_spec_version(cls: type[OnDemandMetricSpecVersioning]) -> SpecVersion:
         return cls.spec_versions[0]
 
 
@@ -1336,7 +1337,7 @@ class OnDemandMetricSpec:
             extended_tags_conditions.append(self._tag_for_field("environment"))
 
         metric_spec: MetricSpec = {
-            "category": DataCategory.TRANSACTION.api_name(),
+            "category": "transaction",
             "mri": self.mri,
             "field": self.field_to_extract,
             "tags": extended_tags_conditions,
@@ -1469,7 +1470,7 @@ class OnDemandMetricSpec:
                 return FieldParsingResult(function=function, arguments=arguments, alias=alias)
 
             # TODO: why is this here?
-            column = query_builder.resolve_column(value)
+            column = cast("FieldParsingResult", query_builder.resolve_column(value))
             return column
         except InvalidSearchQuery as e:
             raise OnDemandMetricSpecError(
@@ -1582,7 +1583,7 @@ def _get_satisfactory_metric(project: Project) -> str:
     if len(result) == 0:
         metric = TransactionMetric.DURATION.value
     else:
-        metric = result[0][0]
+        metric = cast(int, result[0][0])
 
     if metric == TransactionMetric.DURATION.value:
         metric_field = "transaction.duration"

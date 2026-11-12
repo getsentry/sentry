@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 
 import {AssistantActions, AssistantMessage, MessageRow} from '@sentry/scraps/chat';
+import {Flex} from '@sentry/scraps/layout';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import type {SeerEmbedScope} from 'sentry/components/seer/markdown/embeds/renderTracking';
@@ -58,15 +59,7 @@ export function AssistantBlock({
     <Fragment>
       {hasValidContent(content) && (
         <MessageRow from="assistant" density={compact ? 'compact' : undefined}>
-          <AssistantMessage
-            // Room below a block embed that ends the answer, so the floating actions don't
-            // cover it.
-            css={theme => css`
-              [data-seer-embed]:last-child {
-                margin-bottom: ${theme.space['2xl']};
-              }
-            `}
-          >
+          <AssistantMessage>
             <SeerMarkdown raw={content} scope={embedScope} />
           </AssistantMessage>
         </MessageRow>
@@ -131,12 +124,9 @@ function BlockActionBar({
   }
 
   return (
-    <Fragment>
+    <Flex justify="end" padding="0 md xs">
       {copyTextNode}
       <AssistantActions
-        position="absolute"
-        bottom="2px"
-        right="8px"
         visibility="hidden"
         onFeedback={trackFeedback}
         feedbackDisabled={feedbackSubmitted}
@@ -151,6 +141,6 @@ function BlockActionBar({
           }
         `}
       />
-    </Fragment>
+    </Flex>
   );
 }

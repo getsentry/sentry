@@ -127,6 +127,7 @@ def build_tag_fields(
                 continue
 
             labeled_value = tagstore.backend.get_tag_value_label(key, value)
+            assert labeled_value is not None
             fields.append(
                 DiscordMessageEmbedField(
                     std_key,

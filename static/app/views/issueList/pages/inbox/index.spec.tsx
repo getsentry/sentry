@@ -28,9 +28,9 @@ import {DiffFileType} from 'sentry/components/events/autofix/types';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import {ProgressState} from 'sentry/types/group';
-import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/pages/inbox/utils';
 
 import InboxPage from './index';
+import {INBOX_AUTOFIX_CATEGORY_FILTER} from './utils';
 
 function InboxPageInContainer() {
   return (
@@ -342,7 +342,6 @@ describe('InboxPage', () => {
       body: {
         hasSupportedScmIntegration: true,
         isAutofixEnabled: false,
-        isCodeReviewEnabled: false,
         isSeerConfigured: false,
       },
     });
@@ -538,10 +537,6 @@ describe('InboxPage', () => {
     expect(
       within(fixSection).queryByRole('link', {name: 'Pull request #14, Merged'})
     ).not.toBeInTheDocument();
-    const shortId = within(fixSection).getByText('PROJECT-101');
-    expect(
-      openPullRequest.compareDocumentPosition(shortId) & Node.DOCUMENT_POSITION_FOLLOWING
-    ).toBeTruthy();
     expect(diagnosedPullRequests).not.toHaveBeenCalled();
     expect(assignedPullRequests).not.toHaveBeenCalled();
   });
@@ -1159,18 +1154,6 @@ describe('InboxPage', () => {
     );
   });
 
-  it('shows the Seer empty state for an assigned issue', async () => {
-    mockAssignedPreview(AutofixSetupFixture({}));
-    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
-
-    const preview = await openAssignedPreview();
-
-    expect(await within(preview).findByText('Have Seer...')).toBeInTheDocument();
-    expect(
-      within(preview).getByRole('button', {name: 'Find Root Cause'})
-    ).toBeInTheDocument();
-  });
-
   it('shows root cause generation after starting Autofix for an assigned issue', async () => {
     mockAssignedPreview(AutofixSetupFixture({}));
     MockApiClient.addMockResponse({
@@ -1223,19 +1206,15 @@ describe('InboxPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows project setup for an assigned issue with paid Seer', async () => {
+  it('keeps Resolve available when the assigned project has no Seer repository', async () => {
     mockAssignedPreview(AutofixSetupFixture({seerReposLinked: false}));
     render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
 
     const preview = await openAssignedPreview();
 
     expect(
-      await within(preview).findByText('Finish Configuring Seer')
+      await within(preview).findByRole('button', {name: 'Resolve'})
     ).toBeInTheDocument();
-    expect(
-      within(preview).getByRole('button', {name: 'Set Up Seer for This Project'})
-    ).toHaveAttribute('href', '/settings/org-slug/projects/project-slug/seer/');
-    expect(within(preview).getByRole('button', {name: 'Resolve'})).toBeInTheDocument();
   });
 
   it('keeps Resolve available for an assigned issue without Seer quota', async () => {
@@ -1534,7 +1513,7 @@ describe('InboxPage', () => {
     );
   });
 
-  it('does not render without the progress UI feature', () => {
+  it('does not render without the issue-inbox feature', () => {
     render(<InboxPage />, {
       organization: OrganizationFixture({features: []}),
       initialRouterConfig,

@@ -155,6 +155,52 @@ describe('getValidOpsForFilter', () => {
   });
 });
 
+describe('getValidOpsForFilter comparison operators first', () => {
+  it('lists the comparison operators right after the basic ones', () => {
+    const fieldDefinition: FieldDefinition = {
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+      allowComparisonOperators: true,
+      comparisonOperatorsFirst: true,
+    };
+
+    const ops = getValidOpsForFilter({
+      filterToken: parseFilterToken('release:1.0'),
+      fieldDefinition,
+    });
+
+    expect(ops.slice(0, 7)).toEqual([
+      TermOperator.DEFAULT,
+      TermOperator.NOT_EQUAL,
+      TermOperator.GREATER_THAN_EQUAL,
+      TermOperator.LESS_THAN_EQUAL,
+      TermOperator.GREATER_THAN,
+      TermOperator.LESS_THAN,
+      TermOperator.EQUAL,
+    ]);
+    expect(ops).toEqual(expect.arrayContaining([TermOperator.CONTAINS]));
+  });
+
+  it('keeps the default order without the flag', () => {
+    const fieldDefinition: FieldDefinition = {
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+      allowComparisonOperators: true,
+    };
+
+    const ops = getValidOpsForFilter({
+      filterToken: parseFilterToken('release:1.0'),
+      fieldDefinition,
+    });
+
+    expect(ops.slice(0, 3)).toEqual([
+      TermOperator.DEFAULT,
+      TermOperator.NOT_EQUAL,
+      TermOperator.CONTAINS,
+    ]);
+  });
+});
+
 describe('getValidOpsForFilter regex operators', () => {
   it('allows regex operators for string fields only when allowRegexOperators is true', () => {
     const fieldDefinition: FieldDefinition = {

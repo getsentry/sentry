@@ -8,7 +8,6 @@ import {ScrapsProviders} from 'sentry/scrapsProviders';
 import type {OverrideName} from 'sentry/types/overrides';
 import {errorHandler} from 'sentry/utils/errorHandler';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
-import {translateSentryRoute} from 'sentry/utils/reactRouter6Compat/router';
 import {withDomainRedirect} from 'sentry/utils/withDomainRedirect';
 import {withDomainRequired} from 'sentry/utils/withDomainRequired';
 import {App} from 'sentry/views/app';
@@ -44,6 +43,7 @@ import {redirectDeprecatedProjectRoute} from 'sentry/views/projects/redirectDepr
 import {RouteNotFound} from 'sentry/views/routeNotFound';
 import {SettingsWrapper} from 'sentry/views/settings/components/settingsWrapper';
 
+import {translateSentryRoute} from './translateSentryRoute';
 import {type SentryRouteObject} from './types';
 
 const routeHook = (name: OverrideName): SentryRouteObject => {
@@ -131,6 +131,10 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/sharedGroupDetails')),
     },
     {
+      path: '/organizations/:orgId/share/issue/:shareId/',
+      component: make(() => import('sentry/views/sharedGroupDetails')),
+    },
+    {
       path: '/unsubscribe/project/:id/',
       component: make(() => import('sentry/views/unsubscribe/project')),
       customerDomainOnlyRoute: true,
@@ -197,10 +201,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: '/user-feedback/',
       redirectTo: '/feedback/',
-    },
-    {
-      path: '/organizations/:orgId/share/issue/:shareId/',
-      component: make(() => import('sentry/views/sharedGroupDetails')),
     },
     {
       path: '/organizations/new/',
@@ -533,8 +533,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
-          switchTo: '/settings/:orgId/projects/:projectId/',
         },
+        settingsProjectSwitch: {switchTo: '/settings/:orgId/projects/:projectId/'},
       },
       index: true,
       name: t('General'),
@@ -549,8 +549,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
-          switchTo: '/settings/:orgId/projects/:projectId/teams/',
         },
+        settingsProjectSwitch: {switchTo: '/settings/:orgId/projects/:projectId/teams/'},
       },
       path: 'teams/',
       name: t('Teams'),
@@ -561,8 +561,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
-          switchTo: '/settings/:orgId/projects/:projectId/alerts/',
         },
+        settingsProjectSwitch: {switchTo: '/settings/:orgId/projects/:projectId/alerts/'},
       },
       path: 'alerts/',
       name: t('Alerts'),
@@ -603,20 +603,43 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/attributes/',
         },
       },
       path: 'attributes/',
       name: t('Attributes'),
-      component: make(() => import('sentry/views/settings/project/projectAttributes')),
+      children: [
+        {
+          index: true,
+          component: make(
+            () => import('sentry/views/settings/project/projectAttributes')
+          ),
+        },
+        {
+          handle: {
+            settingsBreadcrumb: {
+              type: 'link',
+              label: t('Attributes'),
+              to: '/settings/:orgId/projects/:projectId/attributes/',
+            },
+          },
+          path: ':attributeType/:attributeName/',
+          name: t('Attribute Details'),
+          component: make(
+            () => import('sentry/views/settings/project/projectAttributeDetails')
+          ),
+        },
+      ],
     },
     {
       handle: {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
-          switchTo: '/settings/:orgId/projects/:projectId/tags/',
         },
+        settingsProjectSwitch: {switchTo: '/settings/:orgId/projects/:projectId/tags/'},
       },
       path: 'tags/',
       name: t('Tags & Context'),
@@ -627,6 +650,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/environments/',
         },
       },
@@ -647,6 +672,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/ownership/',
         },
       },
@@ -663,6 +690,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/user-feedback/',
         },
       },
@@ -675,6 +704,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/toolbar/',
         },
       },
@@ -687,6 +718,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/filters/',
         },
       },
@@ -708,6 +741,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/security-and-privacy/',
         },
       },
@@ -733,6 +768,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/issue-grouping/',
         },
       },
@@ -745,6 +782,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/debug-symbols/',
         },
       },
@@ -757,6 +796,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/proguard/',
         },
       },
@@ -769,6 +810,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/source-maps/',
         },
       },
@@ -806,6 +849,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/performance/',
         },
       },
@@ -822,6 +867,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/replays/',
         },
       },
@@ -834,8 +881,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
-          switchTo: '/settings/:orgId/projects/:projectId/logs/',
         },
+        settingsProjectSwitch: {switchTo: '/settings/:orgId/projects/:projectId/logs/'},
       },
       path: 'logs/',
       name: t('Logs'),
@@ -846,6 +893,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/playstation/',
         },
       },
@@ -858,6 +907,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/mobile-builds/',
         },
       },
@@ -870,6 +921,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/snapshots/',
         },
       },
@@ -882,8 +935,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
-          switchTo: '/settings/:orgId/projects/:projectId/keys/',
         },
+        settingsProjectSwitch: {switchTo: '/settings/:orgId/projects/:projectId/keys/'},
       },
       path: 'keys/',
       name: t('Client Keys'),
@@ -913,6 +966,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/loader-script/',
         },
       },
@@ -925,6 +980,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/release-tracking/',
         },
       },
@@ -939,6 +996,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/security-headers/',
         },
       },
@@ -974,6 +1033,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/legacy-webhooks/',
         },
       },
@@ -1455,11 +1516,6 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/settings/earlyFeatures')),
     },
     {
-      path: 'dynamic-sampling/',
-      name: t('Dynamic Sampling'),
-      component: make(() => import('sentry/views/settings/dynamicSampling')),
-    },
-    {
       path: 'mcp-cli/',
       name: t('MCP & CLI'),
       component: make(() => import('sentry/views/settings/organizationMcpCli')),
@@ -1641,7 +1697,7 @@ function buildRoutes(): RouteObject[] {
   const dashboardChildren: SentryRouteObject[] = [
     {
       path: '/dashboards/',
-      component: withDomainRequired(make(() => import('sentry/views/dashboards'))),
+      component: withDomainRequired(NoOp),
       customerDomainOnlyRoute: true,
       children: [
         {
@@ -1653,7 +1709,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: '/organizations/:orgId/dashboards/',
-      component: withDomainRedirect(make(() => import('sentry/views/dashboards'))),
+      component: withDomainRedirect(NoOp),
       children: [
         {
           index: true,
@@ -1870,7 +1926,6 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'new/',
-      component: make(() => import('sentry/views/alerts/builder/projectProvider')),
       children: [
         {
           index: true,
@@ -2705,14 +2760,6 @@ function buildRoutes(): RouteObject[] {
       path: 'saved-formulas/:formulaId/',
       component: make(() => import('sentry/views/explore/savedFormulas/formulaBuilder')),
     },
-    {
-      path: 'investigations/',
-      component: make(() => import('sentry/views/investigations')),
-    },
-    {
-      path: 'investigations/:investigationId/',
-      component: make(() => import('sentry/views/investigations/detail')),
-    },
     // Unknown /explore/ subpaths redirect to the default explore view, rather
     // than falling through to the `/:orgId/:projectId/` legacy redirect and
     // rendering "The project you were looking for was not found".
@@ -2736,6 +2783,80 @@ function buildRoutes(): RouteObject[] {
     path: '/explore/',
     withOrgPath: true,
     children: exploreChildren,
+  };
+
+  const seerChildren: SentryRouteObject[] = [
+    {
+      index: true,
+      redirectTo: 'automations/',
+    },
+    {
+      path: 'investigations/',
+      component: make(() => import('sentry/views/investigations')),
+    },
+    {
+      path: 'investigations/:investigationId/',
+      component: make(() => import('sentry/views/investigations/detail')),
+    },
+    {
+      path: 'automations/',
+      component: make(() => import('sentry/views/seerWorkflows')),
+      children: [
+        {
+          index: true,
+          component: make(() => import('sentry/views/seerWorkflows/automations')),
+        },
+        {
+          path: 'runs/',
+          component: make(() => import('sentry/views/seerWorkflows/automations/runs')),
+        },
+      ],
+    },
+    {
+      path: 'automations/new/',
+      component: make(() => import('sentry/views/seerWorkflows/automations/new')),
+    },
+    {
+      path: 'automations/:automationId/',
+      component: make(() => import('sentry/views/seerWorkflows/automations/detail')),
+      children: [
+        {
+          index: true,
+          component: make(
+            () => import('sentry/views/seerWorkflows/automations/detail/configuration')
+          ),
+        },
+        {
+          path: 'runs/',
+          component: make(
+            () => import('sentry/views/seerWorkflows/automations/detail/runs')
+          ),
+        },
+      ],
+    },
+    {
+      path: 'classifiers/',
+      component: make(() => import('sentry/views/classifiers')),
+      children: [
+        {
+          index: true,
+          component: make(() => import('sentry/views/classifiers/list')),
+        },
+        {
+          path: 'new/',
+          component: make(() => import('sentry/views/classifiers/new')),
+        },
+        {
+          path: ':classifierId/',
+          component: make(() => import('sentry/views/classifiers/detail')),
+        },
+      ],
+    },
+  ];
+  const seerRoutes: SentryRouteObject = {
+    path: '/seer/',
+    withOrgPath: true,
+    children: seerChildren,
   };
 
   const preprodChildren: SentryRouteObject[] = [
@@ -2930,10 +3051,6 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/seerWorkflows/overview')),
     },
     {
-      path: 'autofix/workflows/',
-      component: make(() => import('sentry/views/seerWorkflows')),
-    },
-    {
       path: 'autofix/recent/',
       component: make(() => import('sentry/views/issueList/pages/autofix/recentlyRun')),
     },
@@ -3001,6 +3118,23 @@ function buildRoutes(): RouteObject[] {
     },
     traceView,
   ];
+  const inboxRoutes: SentryRouteObject = {
+    path: '/inbox/',
+    withOrgPath: true,
+    component: make(() => import('sentry/views/inbox')),
+    children: [
+      {
+        index: true,
+      },
+      {
+        path: 'issue/:id/',
+      },
+      {
+        path: 'notebook/:id/',
+      },
+    ],
+  };
+
   const issueRoutes: SentryRouteObject = {
     path: '/issues/',
     withOrgPath: true,
@@ -3218,6 +3352,7 @@ function buildRoutes(): RouteObject[] {
       projectsRoutes,
       dashboardRoutes,
       feedbackv2Routes,
+      inboxRoutes,
       issueRoutes,
       alertRoutes,
       monitorRoutes,
@@ -3232,6 +3367,7 @@ function buildRoutes(): RouteObject[] {
       domainViewRoutes,
       tracesRoutes,
       exploreRoutes,
+      seerRoutes,
       llmMonitoringRedirects,
       profilingRoutes,
       gettingStartedRoutes,
@@ -3331,7 +3467,7 @@ function buildRoutes(): RouteObject[] {
       },
       {
         path: ':projectId/group/:groupId/',
-        redirectTo: 'issues/:groupId/',
+        redirectTo: '/organizations/:orgId/issues/:groupId/',
       },
       {
         path: ':projectId/issues/:groupId/',

@@ -1,6 +1,7 @@
 import type {GroupActivity} from 'sentry/types/group';
 import {GroupActivityType, SEER_ACTIVITY_TYPES} from 'sentry/types/group';
-import {deduplicatePullRequestActivities} from 'sentry/views/issueDetails/activitySection/activityLineItem/deduplicatePullRequestActivities';
+
+import {deduplicatePullRequestActivities} from './deduplicatePullRequestActivities';
 
 type ActivityOfType<Type extends GroupActivityType> = Extract<
   GroupActivity,
@@ -35,6 +36,7 @@ export type ActivityFeedItem = (
   | CollapsedSeerActivity
 ) & {
   body?: React.ReactNode;
+  variant?: 'card';
 };
 
 interface CollapsedStatusActivity {
@@ -45,6 +47,16 @@ interface CollapsedStatusActivity {
 }
 
 export type DisplayedActivityFeedItem = ActivityFeedItem | CollapsedStatusActivity;
+
+/**
+ * The activity that attributes a feed item. A collapsed Seer pair is
+ * attributed to whoever started the run, since completions come from Seer.
+ */
+export function getActorActivity(item: ActivityFeedItem): GroupActivity {
+  return item.type === 'activity'
+    ? (item.actorActivity ?? item.activity)
+    : item.startedActivity;
+}
 
 const RESOLUTION_ACTIVITY_TYPES = new Set<GroupActivityType>([
   GroupActivityType.SET_RESOLVED,

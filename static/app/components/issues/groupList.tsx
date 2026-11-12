@@ -2,18 +2,18 @@ import {Fragment, useCallback, useEffect, useEffectEvent, useMemo} from 'react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Container} from '@sentry/scraps/layout';
-import {Pagination} from '@sentry/scraps/pagination';
+import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
-import {Placeholder} from 'sentry/components/placeholder';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
 import {
   DEFAULT_STREAM_GROUP_STATS_PERIOD,
+  LoadingStreamGroup,
   StreamGroup,
 } from 'sentry/components/stream/group';
 import {
@@ -27,6 +27,7 @@ import type {Group, PriorityLevel} from 'sentry/types/group';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
 import {indexMembersByProject} from 'sentry/utils/members/shared';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {isRetryableRequestError} from 'sentry/utils/queryClientConfig';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -66,12 +67,7 @@ export type GroupListProps = {
       };
   onFetchSuccess?: (
     groupListState: State,
-    onCursor: (
-      cursor: string,
-      path: string,
-      query: Record<string, any>,
-      pageDiff: number
-    ) => void
+    onCursor: (cursor: string | undefined, pageDiff: -1 | 1) => void
   ) => void;
   /**
    * Use `query` within `queryParams` for passing the parameter to the endpoint
@@ -151,13 +147,9 @@ export function GroupList({
   );
 
   const handleCursorChange = useCallback(
-    (
-      cursor: string | undefined,
-      path: string,
-      queryParam: Record<string, any>,
-      pageDiff: number
-    ) => {
-      const queryPageInt = parseInt(queryParam.page, 10);
+    (cursor: string | undefined, pageDiff: -1 | 1) => {
+      const {pathname: path, query: queryParam} = location;
+      const queryPageInt = parseInt(String(queryParam.page), 10);
       let nextPage: number | undefined = isNaN(queryPageInt)
         ? pageDiff
         : queryPageInt + pageDiff;
@@ -175,7 +167,7 @@ export function GroupList({
         query: {...queryParam, cursor, page: nextPage},
       });
     },
-    [navigate]
+    [location, navigate]
   );
 
   const parsedQuery = useMemo(
@@ -287,7 +279,7 @@ export function GroupList({
   const hasError = hasLogicBoolean || isQueryError;
   const loading = !hasLogicBoolean && isPending;
 
-  const notifyFetchSuccess = useEffectEvent(() => {
+  const notifyFetchSuccess = useEffectEvent((cursorHandler: CursorHandler) => {
     onFetchSuccess?.(
       {
         error: false,
@@ -297,16 +289,18 @@ export function GroupList({
         pageLinks,
         memberList,
       },
-      handleCursorChange
+      cursorHandler
     );
   });
 
   useEffect(() => {
     if (isQuerySuccess) {
-      notifyFetchSuccess();
+      notifyFetchSuccess(handleCursorChange);
     }
   }, [
     isQuerySuccess,
+    // External pagination controls must receive a handler for the current URL.
+    handleCursorChange,
     // Sometimes data is already cached, so we need to include this in order to
     // trigger onFetchSuccess when new data is shown
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
@@ -360,9 +354,12 @@ export function GroupList({
         <SimpleTable.Body>
           {loading
             ? Array.from({length: numPlaceholderRows}, (_, i) => (
-                <SimpleTable.FullWidthRow key={i}>
-                  <Placeholder height="50px" />
-                </SimpleTable.FullWidthRow>
+                <LoadingStreamGroup
+                  key={i}
+                  canSelect={canSelectGroups}
+                  withChart={withChart}
+                  withColumns={withColumns}
+                />
               ))
             : groups.map(group => {
                 const members = memberList?.get(group.project.slug);
@@ -393,7 +390,7 @@ export function GroupList({
         </SimpleTable.Body>
       </StreamGroupTable>
       {withPagination && (
-        <Pagination pageLinks={pageLinks} onCursor={handleCursorChange} />
+        <Pagination {...getPaginationProps(pageLinks)} onCursor={handleCursorChange} />
       )}
     </Fragment>
   );

@@ -3,62 +3,57 @@ from __future__ import annotations
 import os
 import uuid
 from collections.abc import Generator
-from typing import Any
+from typing import Any, assert_type, cast
 from unittest import TestCase, mock
 
 import pytest
-import rb
 from django.db import transaction
-from redis.client import Script
+from redis.client import Script, StrictRedis
 from redis.exceptions import ResponseError
+from sentry_redis_tools.clients import RedisCluster
 from sentry_redis_tools.failover_redis import FailoverRedis
 
 from sentry import options
 from sentry.exceptions import InvalidConfiguration
+from sentry.locks import locks
+from sentry.options import OptionsManager
 from sentry.testutils.cases import TestCase as SentryTestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.redis import use_redis_cluster
 from sentry.testutils.pytest import xdist
 from sentry.utils import imports
+from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.redis import (
-    RBClusterManager,
     RedisClusterManager,
     _add_transaction_checks,
     _matches_redis_transaction_lock_ratchet,
     _matches_redis_transaction_ratchet,
     _redis_transaction_callers,
-    _shared_pool,
     _to_str,
-    check_cluster_versions,
-    get_cluster_from_options,
+    get_dynamic_cluster_from_options,
+    pop_redis_transaction_violations,
     pop_used_key_prefix_clients,
     redis_clusters,
 )
 from sentry.utils.redis_key_specs import COMMAND_KEY_SPECS, KeySpec
-from sentry.utils.versioning import Version
-from sentry.utils.warnings import DeprecatedSettingWarning
 
 
-def _options_manager():
-    return {
-        "redis.clusters": {
-            "foo": {"hosts": {0: {"db": 0}}},
-            "bar": {"hosts": {0: {"db": 0}, 1: {"db": 1}}},
-            "baz": {"is_redis_cluster": True, "hosts": {0: {}}},
-        }
-    }
+def _options_manager() -> OptionsManager:
+    return cast(
+        OptionsManager,
+        {
+            "redis.clusters": {
+                "foo": {"hosts": {0: {"db": 0}}},
+                "bar": {"hosts": {0: {"db": 0}, 1: {"db": 1}}},
+                "baz": {"is_redis_cluster": True, "hosts": {0: {}}},
+            }
+        },
+    )
 
 
 class ClusterManagerTestCase(TestCase):
     def setUp(self) -> None:
         imports._cache.clear()
-
-    def test_get(self) -> None:
-        manager = RBClusterManager(_options_manager())
-        assert manager.get("foo") is manager.get("foo")
-        assert manager.get("foo") is not manager.get("bar")
-        assert manager.get("foo").pool_cls is _shared_pool
-        with pytest.raises(KeyError):
-            manager.get("invalid")
 
     @mock.patch("sentry.utils.redis._add_transaction_checks", side_effect=lambda client: client)
     @mock.patch("sentry.utils.redis.RetryingRedisCluster")
@@ -134,6 +129,13 @@ class TransactionCheckingRedisTest(SentryTestCase):
             ):
                 client.get("test:redis-transaction-guard")
 
+        assert pop_redis_transaction_violations() == [
+            (
+                "Redis commands must run outside database transactions",
+                ("sentry.new_code.unexpected_redis_call",),
+            )
+        ]
+
     @mock.patch(
         "sentry.utils.redis._redis_transaction_callers",
         return_value=("sentry.new_code.unexpected_redis_call",),
@@ -151,6 +153,13 @@ class TransactionCheckingRedisTest(SentryTestCase):
             ):
                 pipeline.execute()
 
+        assert pop_redis_transaction_violations() == [
+            (
+                "Redis pipeline commands must run outside database transactions",
+                ("sentry.new_code.unexpected_redis_call",),
+            )
+        ]
+
     @use_redis_cluster("transaction-guard-cluster")
     @mock.patch(
         "sentry.utils.redis._redis_transaction_callers",
@@ -160,7 +169,7 @@ class TransactionCheckingRedisTest(SentryTestCase):
         self, _redis_transaction_callers: mock.MagicMock
     ) -> None:
         client = redis_clusters.get("transaction-guard-cluster")
-        assert all(info["redis_mode"] == "cluster" for info in client.info("server").values())
+        assert all(info["server_mode"] == "cluster" for info in client.info("server").values())
 
         with transaction.atomic(using="default"):
             with pytest.raises(
@@ -168,6 +177,33 @@ class TransactionCheckingRedisTest(SentryTestCase):
                 match="Redis commands must run outside database transactions",
             ):
                 client.get("test:redis-transaction-guard")
+
+        assert pop_redis_transaction_violations() == [
+            (
+                "Redis commands must run outside database transactions",
+                ("sentry.new_code.unexpected_redis_call",),
+            )
+        ]
+
+    def test_caught_lock_call_inside_transaction_is_recorded(self) -> None:
+        # Lock.acquire turns the check's AssertionError into UnableToAcquireLock, so only the
+        # record shows the violation.
+        lock = locks.get(
+            f"test:redis-transaction-guard:{uuid.uuid4().hex}", duration=5, name="test"
+        )
+
+        with transaction.atomic(using="default"):
+            with pytest.raises(UnableToAcquireLock):
+                lock.acquire()
+
+        violations = pop_redis_transaction_violations()
+        assert violations
+        for message, callers in violations:
+            assert message == "Redis commands must run outside database transactions"
+            assert callers[0] == "sentry.utils.locking.backends.redis.BaseRedisLockBackend.acquire"
+            assert callers[-1] == (
+                f"{__name__}.TransactionCheckingRedisTest.test_caught_lock_call_inside_transaction_is_recorded"
+            )
 
     def test_transaction_ratchet_matches_only_existing_call_path(self) -> None:
         existing_callers = (
@@ -232,14 +268,25 @@ class TransactionCheckingRedisTest(SentryTestCase):
             "sentry.new_code.create_monitor",
         )
 
-        assert _matches_redis_transaction_lock_ratchet((*acquire, *project_save))
-        assert _matches_redis_transaction_lock_ratchet((*release, *project_save))
-        assert _matches_redis_transaction_lock_ratchet(monitor_from_mockdata)
-        assert not _matches_redis_transaction_lock_ratchet(nested_lock)
-        assert not _matches_redis_transaction_lock_ratchet(not_a_lock)
-        assert not _matches_redis_transaction_lock_ratchet(locked_check)
-        assert not _matches_redis_transaction_lock_ratchet(monitor_from_new_code)
-        assert not _matches_redis_transaction_lock_ratchet(acquire)
+        # Example entries so that the test does not depend on the real allowlist
+        allowlist = frozenset(
+            {
+                ("sentry.models.project.Project.save",),
+                (
+                    "sentry.monitors.models.Monitor.save",
+                    "sentry.utils.mockdata.core.create_monitor",
+                ),
+            }
+        )
+
+        assert _matches_redis_transaction_lock_ratchet((*acquire, *project_save), allowlist)
+        assert _matches_redis_transaction_lock_ratchet((*release, *project_save), allowlist)
+        assert _matches_redis_transaction_lock_ratchet(monitor_from_mockdata, allowlist)
+        assert not _matches_redis_transaction_lock_ratchet(nested_lock, allowlist)
+        assert not _matches_redis_transaction_lock_ratchet(not_a_lock, allowlist)
+        assert not _matches_redis_transaction_lock_ratchet(locked_check, allowlist)
+        assert not _matches_redis_transaction_lock_ratchet(monitor_from_new_code, allowlist)
+        assert not _matches_redis_transaction_lock_ratchet(acquire, allowlist)
 
     def test_transaction_callers_include_application_frames_until_test_harness(self) -> None:
         def outer_caller() -> tuple[str, ...]:
@@ -269,76 +316,86 @@ class TransactionCheckingRedisTest(SentryTestCase):
         assert f"{__name__}.{outer_caller.__qualname__}" in callers
 
 
-def test_get_cluster_from_options_cluster_provided() -> None:
-    backend = mock.sentinel.backend
-    manager = RBClusterManager(_options_manager())
+type _StrClient = RedisCluster[str] | StrictRedis[str]
+type _BytesClient = RedisCluster[bytes] | StrictRedis[bytes]
 
-    cluster, options = get_cluster_from_options(
-        backend, {"cluster": "foo", "foo": "bar"}, cluster_manager=manager
-    )
-
-    assert cluster is manager.get("foo")
-    assert isinstance(cluster, rb.Cluster)
-    assert cluster.pool_cls is _shared_pool
-    assert options == {"foo": "bar"}
-
-
-def test_get_cluster_from_options_legacy_hosts_option() -> None:
-    backend = mock.sentinel.backend
-    manager = RBClusterManager(_options_manager())
-
-    with pytest.warns(DeprecatedSettingWarning) as warninfo:
-        cluster, options = get_cluster_from_options(
-            backend, {"hosts": {0: {"db": 0}}, "foo": "bar"}, cluster_manager=manager
-        )
-
-    # it should have warned about the deprecated setting
-    (warn,) = warninfo
-    assert isinstance(warn.message, DeprecatedSettingWarning)
-    assert warn.message.setting == "'hosts' parameter of sentinel.backend"
-    assert warn.message.replacement == 'sentinel.backend["cluster"]'
-
-    assert cluster is not manager.get("foo")  # kind of a silly assertion
-    assert isinstance(cluster, rb.Cluster)
-    assert cluster.pool_cls is _shared_pool
-    assert options == {"foo": "bar"}
-
-
-def test_get_cluster_from_options_both_options_invalid() -> None:
-    backend = mock.sentinel.backend
-    manager = RBClusterManager(_options_manager())
-
-    with pytest.raises(InvalidConfiguration):
-        cluster, options = get_cluster_from_options(
-            backend,
-            {"hosts": {0: {"db": 0}}, "cluster": "foo", "foo": "bar"},
-            cluster_manager=manager,
-        )
-
-
-@pytest.mark.parametrize(
-    "version_value",
+# `default` is a single host and `cluster` has `is_redis_cluster`. Only the single host path
+# removes `cluster` from the returned config.
+_DYNAMIC_CLUSTER_SHAPES = pytest.mark.parametrize(
+    ("cluster_name", "expected_is_redis_cluster", "expected_config"),
     [
-        pytest.param("7.2.4", id="string_three_part"),
-        pytest.param("7.2", id="string_two_part"),
-        pytest.param(7.2, id="float_two_part"),
+        pytest.param("default", False, {"foo": "bar"}, id="single-host"),
+        pytest.param("cluster", True, {"cluster": "cluster", "foo": "bar"}, id="redis-cluster"),
     ],
 )
-def test_check_cluster_versions_parses_version_formats(version_value: str | float) -> None:
-    cluster = mock.MagicMock(spec=rb.Cluster)
-    mock_host = mock.MagicMock()
-    mock_host.host = "localhost"
-    mock_host.port = 6379
-    cluster.hosts = {0: mock_host}
 
-    mock_results = mock.MagicMock()
-    mock_results.value = {0: {"redis_version": version_value}}
-    cluster.all.return_value.__enter__ = mock.MagicMock(return_value=mock.MagicMock())
-    cluster.all.return_value.__enter__.return_value.info.return_value = mock_results
-    cluster.all.return_value.__exit__ = mock.MagicMock(return_value=False)
 
-    # Should not raise - all test versions meet requirement 5.0.0
-    check_cluster_versions(cluster, Version((5, 0, 0)))
+@_DYNAMIC_CLUSTER_SHAPES
+def test_get_dynamic_cluster_from_options_decode_responses_true(
+    cluster_name: str, expected_is_redis_cluster: bool, expected_config: dict[str, str]
+) -> None:
+    is_redis_cluster, client, config = get_dynamic_cluster_from_options(
+        "SETTING", {"cluster": cluster_name, "foo": "bar"}, decode_responses=True
+    )
+
+    assert_type(client, _StrClient)
+    assert is_redis_cluster is expected_is_redis_cluster
+    assert client is redis_clusters.get(cluster_name)
+    assert config == expected_config
+
+
+@_DYNAMIC_CLUSTER_SHAPES
+def test_get_dynamic_cluster_from_options_decode_responses_false(
+    cluster_name: str, expected_is_redis_cluster: bool, expected_config: dict[str, str]
+) -> None:
+    is_redis_cluster, client, config = get_dynamic_cluster_from_options(
+        "SETTING", {"cluster": cluster_name, "foo": "bar"}, decode_responses=False
+    )
+
+    assert_type(client, _BytesClient)
+    assert is_redis_cluster is expected_is_redis_cluster
+    assert client is redis_clusters.get_binary(cluster_name)
+    assert config == expected_config
+
+
+def _get_dynamic_cluster(config: dict[str, object], decode_responses: bool) -> None:
+    if decode_responses:
+        get_dynamic_cluster_from_options("SETTING", config, decode_responses=True)
+    else:
+        get_dynamic_cluster_from_options("SETTING", config, decode_responses=False)
+
+
+@pytest.mark.parametrize("decode_responses", [True, False])
+def test_get_dynamic_cluster_from_options_multi_host_without_is_redis_cluster(
+    decode_responses: bool,
+) -> None:
+    clusters_config = {
+        **options.get("redis.clusters"),
+        "multi-host": {"hosts": {0: {"db": 0}, 1: {"db": 1}}},
+    }
+    with override_options({"redis.clusters": clusters_config}):
+        with pytest.raises(InvalidConfiguration) as excinfo:
+            _get_dynamic_cluster({"cluster": "multi-host"}, decode_responses)
+
+    message = str(excinfo.value)
+    assert "SETTING" in message
+    assert "'multi-host'" in message
+    assert "2 hosts" in message
+    assert "is_redis_cluster" in message
+
+
+@pytest.mark.parametrize("decode_responses", [True, False])
+def test_get_dynamic_cluster_from_options_unknown_cluster_raises_key_error(
+    decode_responses: bool,
+) -> None:
+    with pytest.raises(KeyError):
+        _get_dynamic_cluster({"cluster": "does-not-exist"}, decode_responses)
+
+
+@pytest.mark.parametrize("decode_responses", [True, False])
+def test_get_dynamic_cluster_from_options_hosts_option_invalid(decode_responses: bool) -> None:
+    with pytest.raises(InvalidConfiguration):
+        _get_dynamic_cluster({"hosts": {0: {"db": 0}}}, decode_responses)
 
 
 @pytest.fixture

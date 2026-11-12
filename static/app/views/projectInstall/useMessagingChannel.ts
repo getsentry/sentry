@@ -5,12 +5,13 @@ import {t} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
 import {
   type ChannelIdentityField,
   getChannelSelectedBy,
   type IntegrationChannel,
-} from 'sentry/views/projectInstall/messagingIntegrationTypes';
-import {validateChannelQueryOptions} from 'sentry/views/projectInstall/useValidateChannel';
+} from './messagingIntegrationTypes';
+import {validateChannelQueryOptions} from './useValidateChannel';
 
 type Channel = {
   display: string;

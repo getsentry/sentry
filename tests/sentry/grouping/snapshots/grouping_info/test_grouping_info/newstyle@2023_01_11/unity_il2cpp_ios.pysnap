@@ -106,6 +106,39 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                     ]
                   },
                   {
+                    "contributes": true,
+                    "hint": "marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "main.mm"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "-[UnityFramework runUIApplicationMainWithArgc:argv:]"
+                        ]
+                      }
+                    ]
+                  },
+                  {
                     "contributes": false,
                     "hint": "non app frame",
                     "id": "frame",
@@ -497,7 +530,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
       },
       "contributes": true,
       "description": "exception stacktrace — in-app frames",
-      "hash": "7eb77a6781dde25799f955a0b9f1aa77",
+      "hash": "b1bcdf7355443041394a45279217c6c1",
       "hint": null,
       "key": "app_exception_stacktrace",
       "type": "component"
@@ -599,6 +632,39 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "name": null,
                         "values": [
                           "main"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "main.mm"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "-[UnityFramework runUIApplicationMainWithArgc:argv:]"
                         ]
                       }
                     ]
@@ -995,7 +1061,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
       },
       "contributes": true,
       "description": "exception stacktrace — all frames",
-      "hash": "ebc0b0fd747d0339916308cc175666f7",
+      "hash": "458a27b32da3cf5c5043160391caa919",
       "hint": null,
       "key": "system_exception_stacktrace",
       "type": "component"

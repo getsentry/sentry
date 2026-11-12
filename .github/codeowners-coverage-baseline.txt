@@ -311,7 +311,6 @@ static/app/actionCreators/events.tsx
 static/app/actionCreators/group.spec.tsx
 static/app/actionCreators/group.tsx
 static/app/actionCreators/guides.tsx
-static/app/actionCreators/indicator.tsx
 static/app/actionCreators/integrations.tsx
 static/app/actionCreators/members.tsx
 static/app/actionCreators/modal.tsx
@@ -412,9 +411,6 @@ static/app/components/badge/groupPriority.tsx
 static/app/components/badge/iconCellSignal.tsx
 static/app/components/banner.spec.tsx
 static/app/components/banner.tsx
-static/app/components/breadcrumbs.spec.tsx
-static/app/components/breadcrumbs.stories.tsx
-static/app/components/breadcrumbs.tsx
 static/app/components/calendar/calendar.stories.tsx
 static/app/components/calendar/calendarStylesWrapper.tsx
 static/app/components/calendar/datePicker.tsx
@@ -1025,7 +1021,6 @@ static/app/components/searchBar/utils.spec.tsx
 static/app/components/searchBar/utils.tsx
 static/app/components/searchSyntax/evaluator.spec.tsx
 static/app/components/searchSyntax/evaluator.tsx
-static/app/components/searchSyntax/grammar.pegjs
 static/app/components/searchSyntax/mutableSearch.spec.tsx
 static/app/components/searchSyntax/mutableSearch.tsx
 static/app/components/searchSyntax/parser.spec.tsx
@@ -1897,7 +1892,6 @@ tests/sentry/db/models/fields/encryption/test_encrypted_text_field.py
 tests/sentry/db/models/fields/test_bounded.py
 tests/sentry/db/models/fields/test_hybrid_cloud_foreign_key.py
 tests/sentry/db/models/fields/test_jsonfield.py
-tests/sentry/db/models/fields/test_picklefield.py
 tests/sentry/db/models/fields/test_slug.py
 tests/sentry/db/models/manager/__init__.py
 tests/sentry/db/models/manager/test_base_query_set.py
@@ -2166,7 +2160,6 @@ tests/sentry/quotas/__init__.py
 tests/sentry/quotas/test_base.py
 tests/sentry/quotas/test_redis.py
 tests/sentry/ratelimits/__init__.py
-tests/sentry/ratelimits/test_cardinality.py
 tests/sentry/ratelimits/test_config.py
 tests/sentry/ratelimits/test_leaky_bucket.py
 tests/sentry/ratelimits/test_redis.py
@@ -2248,7 +2241,6 @@ tests/sentry/snuba/metrics/test_metrics_layer/test_metrics_enhanced_performance.
 tests/sentry/snuba/metrics/test_metrics_layer/test_release_health.py
 tests/sentry/snuba/metrics/test_metrics_query_layer/__init__.py
 tests/sentry/snuba/metrics/test_metrics_query_layer/test_metrics_query_layer.py
-tests/sentry/snuba/metrics/test_mqb_query_transformer.py
 tests/sentry/snuba/metrics/test_naming_layer.py
 tests/sentry/snuba/metrics/test_query.py
 tests/sentry/snuba/metrics/test_query_builder.py
@@ -2345,7 +2337,6 @@ tests/sentry/testutils/thread_leaks/test_sentry.py
 tests/sentry/tsdb/__init__.py
 tests/sentry/tsdb/test_base.py
 tests/sentry/tsdb/test_redis.py
-tests/sentry/tsdb/test_redissnuba.py
 tests/sentry/tsdb/test_snuba.py
 tests/sentry/types/__init__.py
 tests/sentry/types/test_actor.py

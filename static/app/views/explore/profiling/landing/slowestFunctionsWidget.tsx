@@ -36,6 +36,7 @@ import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {getShortEventId} from 'sentry/utils/events';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {Frame} from 'sentry/utils/profiling/frame';
 import type {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {
@@ -118,25 +119,23 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
   );
 
   const handleCursor = useCallback(
-    (cursor: any, pathname: any, query: any) => {
+    (cursor: string | undefined) => {
+      const {pathname, query} = location;
       navigate({
         pathname,
         query: {...query, [cursorName]: cursor},
       });
     },
-    [cursorName, navigate]
+    [cursorName, location, navigate]
   );
 
-  const paginationAnalyticsEvent = useCallback(
-    (direction: string) => {
-      trackAnalytics('profiling_views.landing.widget.pagination', {
-        organization,
-        direction,
-        source: analyticsSource,
-      });
-    },
-    [organization, analyticsSource]
-  );
+  const paginationAnalyticsEvent = (direction: string) => {
+    trackAnalytics('profiling_views.landing.widget.pagination', {
+      organization,
+      direction,
+      source: analyticsSource,
+    });
+  };
 
   const functionsQueryOptions = useProfileFunctionsOptions<FunctionsField>({
     fields: functionsFields.includes(sortFunction as any)
@@ -252,10 +251,12 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
           </Flex>
         </Subtitle>
         <StyledPagination
-          pageLinks={functionsQuery.data?.headers.Link ?? null}
+          {...getPaginationProps(functionsQuery.data?.headers.Link ?? null)}
           size="xs"
           onCursor={handleCursor}
-          paginationAnalyticsEvent={paginationAnalyticsEvent}
+          onPageChange={(_cursor, delta) =>
+            paginationAnalyticsEvent(delta === -1 ? 'Previous' : 'Next')
+          }
         />
       </HeaderContainer>
       <Stack flex="1 1 auto" justify="center">
@@ -457,7 +458,7 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
           }}
           items={examples}
           menuTitle={t('Example Profiles')}
-          maxMenuHeight={300}
+          maxHeight={300}
         />
       </AccordionItem>
       {isExpanded && (

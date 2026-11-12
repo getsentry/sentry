@@ -6,6 +6,7 @@ import sys
 import traceback
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
+from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any, Literal, overload
 
@@ -22,11 +23,18 @@ from urllib3.exceptions import MaxRetryError, ReadTimeoutError, TimeoutError
 
 from sentry import options, quotas
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.auth.principal import has_user
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.fields.bounded import BoundedBigAutoField
 from sentry.discover.arithmetic import ArithmeticError
-from sentry.exceptions import IncompatibleMetricsQuery, InvalidParams, InvalidSearchQuery
+from sentry.exceptions import (
+    IncompatibleMetricsQuery,
+    InvalidFunctionArgumentQuery,
+    InvalidParams,
+    InvalidSearchQuery,
+    SearchQueryParseError,
+)
 from sentry.hybridcloud.rpc import extract_id_from
 from sentry.models.apikey import is_api_key_auth
 from sentry.models.apitoken import is_api_token_auth
@@ -39,6 +47,7 @@ from sentry.organizations.services.organization import (
     organization_service,
 )
 from sentry.search.events.constants import (
+    INVALID_REGEX_ERROR_MESSAGE,
     RATE_LIMIT_ERROR_MESSAGE,
     TIMEOUT_ERROR_MESSAGE,
     TIMEOUT_RPC_ERROR_MESSAGE,
@@ -68,6 +77,7 @@ from sentry.utils.snuba import (
 )
 from sentry.utils.snuba_rpc import (
     SnubaRPCError,
+    SnubaRPCInvalidRegex,
     SnubaRPCRateLimitExceeded,
     SnubaRPCTooManySimultaneous,
     SnubaRPCUnavailable,
@@ -304,7 +314,9 @@ def is_member_disabled_from_limit(
     if is_active_superuser(request) or is_active_staff(request):
         return False
 
-    # must be a simple user at this point
+    # Only a member can be limited; with no user, a membership lookup would match pending invites.
+    if not has_user(user):
+        return False
 
     member: RpcOrganizationMember | None
     if isinstance(organization, RpcUserOrganizationContext):
@@ -339,7 +351,8 @@ def generate_locality_url(locality_name: str | None = None) -> str:
     ):
         locality_name = get_locality_name_for_cell(settings.SENTRY_LOCAL_CELL)
     if not region_url_template or not locality_name:
-        return options.get("system.url-prefix")
+        url_prefix = options.get("system.url-prefix")
+        return url_prefix
     return region_url_template.replace("{region}", locality_name)
 
 
@@ -398,6 +411,18 @@ def handle_query_errors() -> Iterator[None]:
         sentry_sdk.set_tag("query.error_reason", message)
         sentry_sdk.set_attribute("query.error_reason", message)
         logger.info("A query error was handled", extra={"query.error_reason": message})
+        if isinstance(error, InvalidFunctionArgumentQuery):
+            body = {
+                "detail": original_error,
+                "code": "invalid_function_argument",
+                "function": error.function,
+                "argument": error.argument,
+            }
+            if error.hint is not None:
+                body["hint"] = error.hint
+            raise ParseError(detail=body)
+        if isinstance(error, SearchQueryParseError):
+            raise ParseError(detail={"detail": original_error, "code": "invalid_search_query"})
         raise ParseError(detail=original_error)
     except ArithmeticError as error:
         message = str(error)
@@ -418,6 +443,10 @@ def handle_query_errors() -> Iterator[None]:
         sentry_sdk.set_tag("query.error_reason", f"Metric Error: {message}")
         sentry_sdk.set_attribute("query.error_reason", f"Metric Error: {message}")
         raise ParseError(detail=message)
+    except SnubaRPCInvalidRegex:
+        sentry_sdk.set_tag("query.error_reason", "InvalidRegex")
+        sentry_sdk.set_attribute("query.error_reason", "InvalidRegex")
+        raise ParseError(detail=INVALID_REGEX_ERROR_MESSAGE)
     except SnubaRPCRateLimitExceeded:
         sentry_sdk.set_tag("query.error_reason", "RateLimitExceeded")
         sentry_sdk.set_attribute("query.error_reason", "RateLimitExceeded")
@@ -590,3 +619,23 @@ def to_valid_int_id_list(name: str, val: Sequence[str | int]) -> list[int]:
     Raises a ValidationError if any of the values are not a valid integer id.
     """
     return [to_valid_int_id(name, v) for v in val]
+
+
+@dataclass(frozen=True)
+class SortBy:
+    """A single sortBy value with direction and field parsed out"""
+
+    field: str
+    descending: bool
+
+    @property
+    def order_by(self) -> str:
+        return f"{'-' if self.descending else ''}{self.field}"
+
+
+def parse_sort_by(value: str, allowed_fields: list[str] | None = None) -> SortBy:
+    descending = value.startswith("-")
+    field = value[1:] if descending else value
+    if not field or (allowed_fields is not None and field not in allowed_fields):
+        raise ValidationError("Invalid sort field")
+    return SortBy(field=field, descending=descending)

@@ -1,7 +1,10 @@
+from typing import TypedDict
+
 from rest_framework import serializers
 
 from sentry.api.exceptions import ParameterValidationError
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
+from sentry.db.models.fields.bounded import I64_MAX
 from sentry.integrations.types import PERSONAL_NOTIFICATION_PROVIDERS
 from sentry.notifications.api.parsers.notifications import (
     validate_scope_type,
@@ -11,19 +14,29 @@ from sentry.notifications.api.parsers.notifications import (
 from sentry.notifications.types import NOTIFICATION_SETTING_CHOICES, NotificationScopeEnum
 
 
-class UserNotificationSettingsOptionsDetailsSerializer(CamelSnakeSerializer):
+class UserNotificationSettingData(TypedDict, total=False):
+    type: str
+    scope_type: str
+    scope_identifier: int
+    value: str
+    providers: list[str]
+
+
+class UserNotificationSettingsOptionsDetailsSerializer(
+    CamelSnakeSerializer[UserNotificationSettingData]
+):
     type = serializers.CharField()
-    scope_identifier = serializers.CharField()
+    scope_identifier = serializers.IntegerField(min_value=0, max_value=I64_MAX)
     scope_type = serializers.CharField()
 
-    def validate_type(self, value):
+    def validate_type(self, value: str) -> str:
         try:
             validate_type(value)
             return value
         except ParameterValidationError:
             raise serializers.ValidationError("Invalid type")
 
-    def validate_scope_type(self, value):
+    def validate_scope_type(self, value: str) -> str:
         try:
             validate_scope_type(value)
             return value
@@ -36,12 +49,12 @@ class UserNotificationSettingOptionWithValueSerializer(
 ):
     value = serializers.CharField()
 
-    def validate_value(self, value):
+    def validate_value(self, value: str) -> str:
         if value not in NOTIFICATION_SETTING_CHOICES:
             raise serializers.ValidationError("Invalid value")
         return value
 
-    def validate(self, data):
+    def validate(self, data: UserNotificationSettingData) -> UserNotificationSettingData:
         try:
             enum_type = validate_type(data["type"])
             validate_value(enum_type, data["value"])
@@ -55,13 +68,13 @@ class UserNotificationSettingsProvidersDetailsSerializer(
 ):
     providers = serializers.ListField(child=serializers.CharField())
 
-    def validate_providers(self, value):
+    def validate_providers(self, value: list[str]) -> list[str]:
         for provider in value:
             if provider not in PERSONAL_NOTIFICATION_PROVIDERS:
                 raise serializers.ValidationError("Invalid provider")
         return value
 
-    def validate_scope_type(self, value):
+    def validate_scope_type(self, value: str) -> str:
         # for now, we limit the scopes for provider settings
         if value not in [
             NotificationScopeEnum.USER.value,

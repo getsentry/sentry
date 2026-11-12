@@ -9,13 +9,11 @@ import {Text} from '@sentry/scraps/text';
 import type {Theme} from '@sentry/scraps/theme';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import type {
-  ExternalIssueAction,
-  ExternalIssueIntegration,
-} from 'sentry/components/group/externalIssuesList/hooks/types';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import type {ExternalIssueAction, ExternalIssueIntegration} from './hooks/types';
 
 const ISSUE_TRACKER_MENU_MAX_HEIGHT = 300;
 
@@ -150,7 +148,7 @@ export function InlineIssueTrackerActions({
         return (
           <ErrorBoundary key={integration.key} mini>
             <DropdownMenu
-              maxMenuHeight={ISSUE_TRACKER_MENU_MAX_HEIGHT}
+              maxHeight={ISSUE_TRACKER_MENU_MAX_HEIGHT}
               trigger={triggerProps => (
                 <IssueActionDropdownMenu
                   {...sharedButtonProps}
@@ -274,7 +272,7 @@ export function IssueTrackerActionDropdown({
 
   return (
     <DropdownMenu
-      maxMenuHeight={ISSUE_TRACKER_MENU_MAX_HEIGHT}
+      maxHeight={ISSUE_TRACKER_MENU_MAX_HEIGHT}
       trigger={(triggerProps, isOpen) => {
         const DropdownButtonComponent = fullWidth
           ? FullWidthDropdownButton

@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Mapping
 
 from django.http import HttpRequest
 from django.http.response import HttpResponse
@@ -46,7 +47,9 @@ class AccountConfirmationView(BaseView):
         return render_to_response("sentry/idp_account_not_verified.html", request=request)
 
     @staticmethod
-    def _recover_org_slug(verification_value):
+    def _recover_org_slug(
+        verification_value: Mapping[str, str | int | None],
+    ) -> str | None:
         organization_id = verification_value.get("organization_id")
         if organization_id is None:
             return None

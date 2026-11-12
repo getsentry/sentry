@@ -20,8 +20,6 @@
     "strictBindCallApply": false,
 
     "paths": {
-      "react-router": ["./static/app/utils/reactRouterV6/types.d.ts"],
-      "react-router/dom": ["./static/app/utils/reactRouterV6/dom.ts"],
       // The app falls back to core components until they move into scraps.
       "@sentry/scraps/*": [
         "./static/packages/scraps/src/*",
@@ -53,6 +51,7 @@
   ],
   "references": [
     {"path": "./static/packages/icons"},
-    {"path": "./static/packages/scraps/tsconfig.test.json"}
+    {"path": "./static/packages/scraps/tsconfig.test.json"},
+    {"path": "./static/packages/search-syntax"}
   ]
 }

@@ -1,4 +1,7 @@
+from typing import Any
+
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.explore.models import (
     TraceItemAttributeValueContext,
@@ -44,7 +47,9 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
             ]
         )
 
-    def create_context(self, value, metric_type=TraceMetricTypes.COUNTER, **kwargs):
+    def create_context(
+        self, value: str | int, metric_type: int = TraceMetricTypes.COUNTER, **kwargs: object
+    ) -> TraceItemAttributeValueContext:
         return TraceItemAttributeValueContext.objects.create(
             organization=self.organization,
             attribute_name="metric.name",
@@ -55,17 +60,22 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
             **kwargs,
         )
 
-    def do_request(self, query=None, features=None):
+    def do_request(
+        self,
+        query: dict[str, Any] | None = None,
+        features: dict[str, bool] | None = None,
+    ) -> Response:
         if features is None:
             features = self.feature_flags
         if query is None:
             query = {"project": self.project.id}
         url = reverse(self.viewname, kwargs={"organization_id_or_slug": self.organization.slug})
         with self.feature(features):
-            return self.client.get(
+            response: Response[Any] = self.client.get(
                 url,
                 QUERY_STRING="&".join(f"{name}={value}" for name, value in query.items()),
             )
+            return response
 
     def test_lists_metrics(self) -> None:
         self.store_metric("checkout.requests", "counter")

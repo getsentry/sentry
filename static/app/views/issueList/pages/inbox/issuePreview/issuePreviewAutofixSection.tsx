@@ -6,6 +6,7 @@ import type {
 import {IssuePreviewAutofixPlanSection} from './issuePreviewAutofixPlanSection';
 import {IssuePreviewAutofixProposalSection} from './issuePreviewAutofixProposalSection';
 import {IssuePreviewAutofixRootCauseSection} from './issuePreviewAutofixRootCauseSection';
+import {RetryableAutofixSection} from './retryableAutofixSection';
 
 interface Props {
   autofix: ReturnType<typeof useExplorerAutofix>;
@@ -14,15 +15,33 @@ interface Props {
   readOnly?: boolean;
 }
 
-export function IssuePreviewAutofixSection(props: Props) {
-  switch (props.section.step) {
+export function IssuePreviewAutofixSection({autofix, groupId, section, readOnly}: Props) {
+  let content: React.ReactNode;
+
+  switch (section.step) {
     case 'root_cause':
-      return <IssuePreviewAutofixRootCauseSection {...props} />;
+      content = (
+        <IssuePreviewAutofixRootCauseSection groupId={groupId} section={section} />
+      );
+      break;
     case 'solution':
-      return <IssuePreviewAutofixPlanSection {...props} />;
+      content = <IssuePreviewAutofixPlanSection section={section} />;
+      break;
     case 'code_changes':
-      return <IssuePreviewAutofixProposalSection {...props} />;
+      content = <IssuePreviewAutofixProposalSection section={section} />;
+      break;
     default:
       return null;
   }
+
+  return (
+    <RetryableAutofixSection
+      autofix={autofix}
+      readOnly={readOnly}
+      section={section}
+      step={section.step}
+    >
+      {content}
+    </RetryableAutofixSection>
+  );
 }

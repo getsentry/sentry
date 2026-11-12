@@ -9,14 +9,15 @@ import {Text} from '@sentry/scraps/text';
 
 import {Hovercard} from 'sentry/components/hovercard';
 import {ReplayList} from 'sentry/components/replays/list/__stories__/replayList';
-import {EnvironmentPicker} from 'sentry/components/replays/player/__stories__/environmentPicker';
-import {Providers} from 'sentry/components/replays/player/__stories__/providers';
 import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoadingState';
 import * as Storybook from 'sentry/stories';
 import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {replayListInfiniteApiOptions} from 'sentry/utils/replays/replayListApiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
+
+import {EnvironmentPicker} from './environmentPicker';
+import {Providers} from './providers';
 
 interface Props {
   children: ReactNode;

@@ -21,7 +21,7 @@ class DetectorDeletionTask(ModelDeletionTask[Detector]):
 
         # If this detector was dual-written from an AlertRule, cascade deletion
         # to the AlertRule. AlertRuleDeletionTask will handle cleaning up
-        # AlertRuleDetector, AlertRuleWorkflow, triggers, and incidents.
+        # AlertRuleDetector and AlertRuleWorkflow.
         # NOTE: AlertRule must be deleted before DataSource so that
         # QuerySubscriptionDeletionTask sees no remaining AlertRule referencing
         # the SnubaQuery and can safely delete it.

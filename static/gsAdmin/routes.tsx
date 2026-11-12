@@ -1,5 +1,5 @@
+import {translateSentryRoute} from 'sentry/router/translateSentryRoute';
 import type {SentryRouteObject} from 'sentry/router/types';
-import {translateSentryRoute} from 'sentry/utils/reactRouter6Compat/router';
 
 import {BeaconDetails} from 'admin/views/beaconDetails';
 import {Beacons} from 'admin/views/beacons';
@@ -8,7 +8,6 @@ import {BillingPlans} from 'admin/views/billingPlans';
 import {BillingPlatform} from 'admin/views/billingPlatform';
 import {BroadcastDetails} from 'admin/views/broadcastDetails';
 import {Broadcasts} from 'admin/views/broadcasts';
-import {CustomerContractDetails} from 'admin/views/customerContractDetails';
 import {CustomerDetails} from 'admin/views/customerDetails';
 import {Customers} from 'admin/views/customers';
 import {DataRequests} from 'admin/views/dataRequests';
@@ -90,10 +89,6 @@ function buildRoutes() {
               {
                 index: true,
                 component: CustomerDetails,
-              },
-              {
-                path: 'contract/',
-                component: CustomerContractDetails,
               },
               {
                 path: 'projects/:projectId/',

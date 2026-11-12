@@ -4,8 +4,7 @@ from unittest import TestCase
 from unittest.mock import ANY, MagicMock, patch
 
 import time_machine
-from django.conf import settings
-from redis.client import Pipeline
+from django.test import override_settings
 
 from sentry.ratelimits.sliding_windows import (
     GrantedQuota,
@@ -116,8 +115,7 @@ class MockCircuitBreaker(CircuitBreaker):
 
     def _delete_from_redis(self, keys: list[str]) -> Any:
         for key in keys:
-            self.redis_pipeline.delete(key)
-        return self.redis_pipeline.execute()
+            self.limiter.client.delete(key)
 
 
 @freeze_time()
@@ -129,8 +127,7 @@ class CircuitBreakerTest(TestCase):
         )
 
         # Clear all existing keys from redis
-        self.breaker.redis_pipeline.flushdb()
-        self.breaker.redis_pipeline.execute()
+        self.breaker.limiter.client.flushdb()
 
     def test_sets_default_values(self) -> None:
         breaker = self.breaker
@@ -149,7 +146,6 @@ class CircuitBreakerTest(TestCase):
             "limiter": ANY,
             "primary_quota": ANY,
             "recovery_quota": ANY,
-            "redis_pipeline": ANY,
             "trip_strategy": ANY,
         }
         assert isinstance(breaker.limiter, RedisSlidingWindowRateLimiter)
@@ -167,7 +163,6 @@ class CircuitBreakerTest(TestCase):
             "limit": 20,
             "prefix_override": "dogs_are_great.circuit_breaker.recovery",
         }
-        assert isinstance(breaker.redis_pipeline, Pipeline)
 
     def test_metrics_key_defaults_to_key(self) -> None:
         breaker = MockCircuitBreaker(
@@ -204,10 +199,10 @@ class CircuitBreakerTest(TestCase):
             (True, mock_logger.error),
             (False, mock_logger.warning),
         ]:
-            settings.DEBUG = settings_debug_value
-            breaker = MockCircuitBreaker(
-                "dogs_are_great", config, CountBasedTripStrategy.from_config(config)
-            )
+            with override_settings(DEBUG=settings_debug_value):
+                breaker = MockCircuitBreaker(
+                    "dogs_are_great", config, CountBasedTripStrategy.from_config(config)
+                )
 
             expected_log_function.assert_called_with(
                 "Circuit breaker '%s' has a recovery error limit (%d) greater than or equal"
@@ -232,10 +227,10 @@ class CircuitBreakerTest(TestCase):
             (True, mock_logger.error),
             (False, mock_logger.warning),
         ]:
-            settings.DEBUG = settings_debug_value
-            breaker = MockCircuitBreaker(
-                "dogs_are_great", config, CountBasedTripStrategy.from_config(config)
-            )
+            with override_settings(DEBUG=settings_debug_value):
+                breaker = MockCircuitBreaker(
+                    "dogs_are_great", config, CountBasedTripStrategy.from_config(config)
+                )
 
             expected_log_function.assert_called_with(
                 "Circuit breaker '%s' has BROKEN and RECOVERY state durations (%d and %d sec, respectively)"
@@ -261,8 +256,7 @@ class RecordErrorTest(TestCase):
         )
 
         # Clear all existing keys from redis
-        self.breaker.redis_pipeline.flushdb()
-        self.breaker.redis_pipeline.execute()
+        self.breaker.limiter.client.flushdb()
 
     def test_increments_error_count(self) -> None:
         config = self.config
@@ -335,7 +329,7 @@ class RecordErrorTest(TestCase):
     @patch("sentry.utils.circuit_breaker2.logger")
     def test_handles_hitting_max_errors_in_non_broken_state(
         self, mock_logger: MagicMock, mock_metrics_incr: MagicMock
-    ):
+    ) -> None:
         config = self.config
         breaker = self.breaker
         now = int(time.time())
@@ -385,7 +379,7 @@ class RecordErrorTest(TestCase):
     @patch("sentry.utils.circuit_breaker2.logger")
     def test_stays_in_current_state_if_redis_call_changing_state_fails(
         self, mock_logger: MagicMock
-    ):
+    ) -> None:
         breaker = self.breaker
 
         for current_state, quota, limit, seconds_left in [
@@ -435,8 +429,7 @@ class ShouldAllowRequestTest(TestCase):
         )
 
         # Clear all existing keys from redis
-        self.breaker.redis_pipeline.flushdb()
-        self.breaker.redis_pipeline.execute()
+        self.breaker.limiter.client.flushdb()
 
     def test_allows_request_in_non_broken_state_with_quota_remaining(self) -> None:
         breaker = self.breaker
@@ -454,7 +447,7 @@ class ShouldAllowRequestTest(TestCase):
     @patch("sentry.utils.circuit_breaker2.metrics.incr")
     def test_blocks_request_in_non_broken_state_with_no_quota_remaining(
         self, mock_metrics_incr: MagicMock
-    ):
+    ) -> None:
         breaker = self.breaker
 
         for state, quota, limit in [
@@ -494,6 +487,31 @@ class ShouldAllowRequestTest(TestCase):
                 "Couldn't get state from redis for circuit breaker '%s'", breaker.key
             )
 
+    @patch("sentry.utils.circuit_breaker2.logger")
+    def test_failed_redis_execute_does_not_leak_commands_into_next_call(
+        self, mock_logger: MagicMock
+    ) -> None:
+        breaker = self.breaker
+        pipeline_class = type(breaker.limiter.client.pipeline())
+        original_execute = pipeline_class.execute
+        calls = {"count": 0}
+
+        # Mimic redis-py failing to get a connection: raise without resetting the pipeline, which
+        # leaves the queued commands on it
+        def flaky_execute(pipeline: Any, *args: Any, **kwargs: Any) -> Any:
+            calls["count"] += 1
+            if calls["count"] == 1:
+                raise TimeoutError("Timeout connecting to server")
+            return original_execute(pipeline, *args, **kwargs)
+
+        with patch.object(pipeline_class, "execute", autospec=True, side_effect=flaky_execute):
+            assert breaker._get_state_and_remaining_time() == (CircuitBreakerState.OK, None)
+            assert mock_logger.exception.call_count == 1
+
+            # The second read must only see its own two GETs
+            assert breaker._get_state_and_remaining_time() == (CircuitBreakerState.OK, None)
+            assert mock_logger.exception.call_count == 1
+
 
 # --- Rate-based circuit breaker tests ---
 
@@ -516,8 +534,7 @@ class RateBasedCircuitBreakerTest(TestCase):
         )
 
         # Clear all existing keys from redis
-        self.breaker.redis_pipeline.flushdb()
-        self.breaker.redis_pipeline.execute()
+        self.breaker.limiter.client.flushdb()
 
     def test_sets_rate_based_defaults(self) -> None:
         breaker = self.breaker
@@ -689,8 +706,7 @@ class RateBasedCircuitBreakerTest(TestCase):
         count_breaker = MockCircuitBreaker(
             "count_only", DEFAULT_CONFIG, CountBasedTripStrategy.from_config(DEFAULT_CONFIG)
         )
-        count_breaker.redis_pipeline.flushdb()
-        count_breaker.redis_pipeline.execute()
+        count_breaker.limiter.client.flushdb()
 
         assert isinstance(count_breaker.trip_strategy, CountBasedTripStrategy)
         assert count_breaker.trip_strategy.tracking_quotas() == []

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 import boto3
 import orjson
@@ -15,7 +16,9 @@ class ConfigurationError(Exception):
 logger = logging.getLogger(__name__)
 
 
-def gen_aws_client(account_number, region, aws_external_id, service_name="lambda"):
+def gen_aws_client(
+    account_number: str, region: str, aws_external_id: str, service_name: str = "lambda"
+) -> Any:
     """
     account_number - account ID in AWS
     region - region in AWS

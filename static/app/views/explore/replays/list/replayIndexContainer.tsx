@@ -8,23 +8,19 @@ import {Pagination} from '@sentry/scraps/pagination';
 import {useReplayTableSort} from 'sentry/components/replays/table/useReplayTableSort';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import {replayListApiOptions} from 'sentry/utils/replays/replayListApiOptions';
-import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ReplayIndexTable} from 'sentry/views/explore/replays/list/replayIndexTable';
+
+import {ReplayIndexTable} from './replayIndexTable';
 
 const replayListParsers = {
+  ...pageFilterParsers,
   cursor: parseAsString.withDefault(''),
-  end: parseAsString.withDefault(''),
-  environment: parseAsStringArray,
-  project: parseAsStringArray,
   query: parseAsString.withDefault(''),
-  start: parseAsString.withDefault(''),
-  statsPeriod: parseAsString.withDefault(''),
-  utc: parseAsString.withDefault(''),
 };
 
 interface Props {
@@ -39,7 +35,6 @@ export function ReplayIndexContainer({
   widgetIsOpen,
 }: Props) {
   const organization = useOrganization();
-  const navigate = useNavigate();
 
   const {sortQuery} = useReplayTableSort();
   const [query] = useQueryStates(replayListParsers);
@@ -75,15 +70,11 @@ export function ReplayIndexContainer({
         widgetIsOpen={widgetIsOpen}
       />
       <PaginationNoMargin
-        pageLinks={pageLinks}
-        onCursor={(cursor, path, searchQuery) => {
+        {...getPaginationProps(pageLinks)}
+        onPageChange={(_cursor, delta) => {
           trackAnalytics('replay.list-paginated', {
             organization,
-            direction: cursor?.endsWith(':1') ? 'prev' : 'next',
-          });
-          navigate({
-            pathname: path,
-            query: {...searchQuery, cursor},
+            direction: delta === -1 ? 'prev' : 'next',
           });
         }}
       />

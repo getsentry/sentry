@@ -45,6 +45,7 @@ from sentry.notifications.platform.types import (
     NotificationRenderedTemplate,
     NotificationSource,
 )
+from sentry.seer.agent.client_models import RepoPRState
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
 
 if TYPE_CHECKING:
@@ -259,21 +260,20 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 if change.get("diff"):
                     change_mrkdwn.append(f"```{change['diff']}```")
                 blocks.append(SectionBlock(text=MarkdownTextObject(text="\n".join(change_mrkdwn))))
-        if data.pull_requests:
-            action_id = encode_action_id(
-                action=SlackAction.SEER_AUTOFIX_VIEW_PR.value,
-                organization_id=data.organization_id,
-                project_id=data.project_id,
-            )
-            for pr in data.pull_requests[:MAX_PRS]:
-                action_elements.append(
-                    LinkButtonElement(
-                        text=f"View PR (#{pr['pr_number']})",
-                        style="primary",
-                        url=link_decorator.decorate_url(pr["pr_url"]),
-                        action_id=f"{action_id}::{pr['pr_number']}",
-                    )
+        for pr in data.pull_requests[:MAX_PRS]:
+            action_elements.append(
+                LinkButtonElement(
+                    text=f"View PR (#{pr['pr_number']})",
+                    style="primary",
+                    url=link_decorator.decorate_url(pr["pr_url"]),
+                    action_id=encode_action_id(
+                        action=SlackAction.SEER_AUTOFIX_VIEW_PR.value,
+                        organization_id=data.organization_id,
+                        project_id=data.project_id,
+                        suffix=str(pr["pr_number"]),
+                    ),
                 )
+            )
 
         if action_elements:
             blocks.append(ActionsBlock(elements=action_elements))
@@ -373,7 +373,18 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
     def _render_investigation_conclusion(
         cls, data: SeerInvestigationConclusion, link_decorator: NotificationLinkDecorator
     ) -> SlackRenderable:
-        blocks: list[Block] = [MarkdownBlock(text=section) for section in data.sections]
+        from sentry.integrations.slack.utils.escape import escape_slack_text
+
+        text = f"*{escape_slack_text(data.summary)}*"
+        if data.summary_description:
+            text += f"\n{escape_slack_text(data.summary_description)}"
+        blocks: list[Block] = [SectionBlock(text=MarkdownTextObject(text=text))]
+        if data.next_step:
+            next_step = (
+                f"*Suggested next step:* {escape_slack_text(data.next_step['title'])}\n"
+                f"{escape_slack_text(data.next_step['rationale'])}"
+            )
+            blocks.append(SectionBlock(text=MarkdownTextObject(text=next_step)))
         blocks.append(DividerBlock())
         blocks.append(
             ActionsBlock(
@@ -398,6 +409,9 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         from sentry.seer.endpoints.utils import get_seer_run
 
         blocks: list[Block] = [MarkdownBlock(text=data.summary)]
+        if data.repo_pr_states:
+            pr_status = "\n".join(cls._render_agent_pr_state(pr) for pr in data.repo_pr_states)
+            blocks.append(ContextBlock(elements=[MarkdownTextObject(text=pr_status)]))
         try:
             organization = Organization.objects.get_from_cache(id=data.organization_id)
         except Organization.DoesNotExist:
@@ -428,6 +442,23 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             )
 
         return SlackRenderable(blocks=blocks, text="Seer Agent has finished")
+
+    @staticmethod
+    def _render_agent_pr_state(pr: RepoPRState) -> str:
+        repo_text = f"`{pr.repo_name}`"
+        pr_text = f"<{pr.pr_url}|{pr.repo_name}#{pr.pr_number}>" if pr.pr_url else repo_text
+        match pr.pr_creation_status:
+            case "creating":
+                return (
+                    f"Updating {pr_text}..." if pr.pr_number else f"Creating a PR in {repo_text}..."
+                )
+            case "error":
+                return f"Latest push failed for {pr_text}"
+            case "completed":
+                commit = f" (`{pr.commit_sha[:7]}`)" if pr.commit_sha else ""
+                return f"Latest push complete for {pr_text}{commit}"
+            case _:
+                return pr_text
 
     @classmethod
     def _render_link_button(

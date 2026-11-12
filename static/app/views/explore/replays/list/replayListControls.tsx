@@ -1,10 +1,10 @@
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 
-import {ReplaysFilters} from 'sentry/views/explore/replays/list/filters';
-import {ReplayIndexTimestampPrefPicker} from 'sentry/views/explore/replays/list/replayIndexTimestampPrefPicker';
-import {ReplayWidgetsToggleButton} from 'sentry/views/explore/replays/list/replayWidgetsToggleButton';
-import {SaveReplayQueryButton} from 'sentry/views/explore/replays/list/saveReplayQueryButton';
-import {ReplaysSearch} from 'sentry/views/explore/replays/list/search';
+import {ReplaysFilters} from './filters';
+import {ReplayIndexTimestampPrefPicker} from './replayIndexTimestampPrefPicker';
+import {ReplayWidgetsToggleButton} from './replayWidgetsToggleButton';
+import {SaveReplayQueryButton} from './saveReplayQueryButton';
+import {ReplaysSearch} from './search';
 
 interface Props {
   onToggleWidgets: () => void;

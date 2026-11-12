@@ -12,7 +12,7 @@ class JiraCSPTest(APITestCase):
         self.issue_key = "APP-123"
         self.path = absolute_uri(f"extensions/jira/issue/{self.issue_key}/") + "?xdm_e=base_url"
 
-    def _split_csp_policy(self, policy):
+    def _split_csp_policy(self, policy: str) -> dict[str, list[str]]:
         csp = {}
         for directive in policy.split("; "):
             parts = directive.split(" ")

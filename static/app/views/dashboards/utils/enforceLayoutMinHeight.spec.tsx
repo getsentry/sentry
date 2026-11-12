@@ -1,7 +1,8 @@
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {DisplayType} from 'sentry/views/dashboards/types';
-import {enforceLayoutMinHeight} from 'sentry/views/dashboards/utils/enforceLayoutMinHeight';
+
+import {enforceLayoutMinHeight} from './enforceLayoutMinHeight';
 
 describe('enforceLayoutMinHeight', () => {
   it('expands undersized widgets and compacts widgets affected directly and indirectly', () => {

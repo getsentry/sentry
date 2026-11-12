@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import {IconClose} from '@sentry/icons/close';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 
 import {fetchGuides} from 'sentry/actionCreators/guides';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ModalTask} from 'sentry/components/onboardingWizard/modalTask';
 import {t} from 'sentry/locale';
 import {

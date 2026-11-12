@@ -8,20 +8,6 @@ import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
-  AlwaysPresentLogFields,
-  QUERY_PAGE_LIMIT,
-  QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH,
-} from 'sentry/views/explore/logs/constants';
-import {
-  useLogsFrozenProjectIds,
-  useLogsFrozenReplayInfo,
-  useLogsFrozenSearch,
-  useLogsFrozenTraceIds,
-  useLogsFrozenTraceTimestamp,
-} from 'sentry/views/explore/logs/logsFrozenContext';
-import type {EventsLogsResult} from 'sentry/views/explore/logs/types';
-import {useLogsQueryTruncate} from 'sentry/views/explore/logs/useLogsQueryTruncate';
-import {
   useQueryParamsCursor,
   useQueryParamsFields,
   useQueryParamsGroupBys,
@@ -30,14 +16,49 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
 
+import {
+  AlwaysPresentLogFields,
+  QUERY_PAGE_LIMIT,
+  QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH,
+} from './constants';
+import {
+  useLogsFrozenProjectIds,
+  useLogsFrozenReplayInfo,
+  useLogsFrozenSearch,
+  useLogsFrozenTraceIds,
+  useLogsFrozenTraceTimestamp,
+} from './logsFrozenContext';
+import type {EventsLogsResult} from './types';
+import {useLogsQueryTruncate} from './useLogsQueryTruncate';
+
 const LOGS_DATA_CATEGORIES = [DataCategory.LOG_BYTE] as const;
+
+function getSamplingMode({
+  highAccuracy,
+  highFidelity,
+}: {
+  highAccuracy?: boolean;
+  highFidelity?: boolean;
+}) {
+  if (highAccuracy) {
+    return SAMPLING_MODE.HIGH_ACCURACY;
+  }
+
+  if (highFidelity) {
+    return SAMPLING_MODE.FLEX_TIME;
+  }
+
+  return SAMPLING_MODE.NORMAL;
+}
 
 function useLogsApiOptions({
   limit,
   referrer,
+  highAccuracy,
   highFidelity,
 }: {
   referrer: string;
+  highAccuracy?: boolean;
   highFidelity?: boolean;
   limit?: number;
 }) {
@@ -103,7 +124,7 @@ function useLogsApiOptions({
     orderby,
     per_page: limit ? limit : undefined,
     referrer,
-    sampling: highFidelity ? SAMPLING_MODE.FLEX_TIME : SAMPLING_MODE.NORMAL,
+    sampling: getSamplingMode({highAccuracy, highFidelity}),
     caseInsensitive: caseInsensitive ? '1' : undefined,
     truncate,
   };
@@ -138,15 +159,18 @@ function useLogsApiOptions({
 export function useLogsApiOptionsWithInfinite({
   referrer,
   autoRefresh,
+  highAccuracy,
   highFidelity,
 }: {
   autoRefresh: boolean;
   referrer: string;
+  highAccuracy?: boolean;
   highFidelity?: boolean;
 }) {
   const {infiniteApiOptions, eventView, pageFiltersReady} = useLogsApiOptions({
     limit: autoRefresh ? QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH : QUERY_PAGE_LIMIT,
     referrer,
+    highAccuracy,
     highFidelity,
   });
   return {
@@ -157,3 +181,7 @@ export function useLogsApiOptionsWithInfinite({
     },
   };
 }
+
+export type LogsInfiniteQueryKey = ReturnType<
+  typeof useLogsApiOptionsWithInfinite
+>['infiniteApiOptions']['queryKey'];

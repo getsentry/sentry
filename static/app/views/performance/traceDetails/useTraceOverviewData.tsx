@@ -12,9 +12,10 @@ import {
   type EventsLogsResult,
 } from 'sentry/views/explore/logs/types';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
-import type {TraceMetaQueryResults} from 'sentry/views/performance/traceDetails/traceApi/useTraceMeta';
-import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
-import type {TraceViewQueryParams} from 'sentry/views/performance/traceDetails/useTraceQueryParams';
+
+import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
+import type {TraceTree} from './traceModels/traceTree';
+import type {TraceViewQueryParams} from './useTraceQueryParams';
 
 type TraceDataAvailability = 'loading' | 'present' | 'absent' | 'unknown';
 

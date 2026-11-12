@@ -5,6 +5,7 @@ import orjson
 import pytest
 import responses
 from django.urls import reverse
+from requests import PreparedRequest
 
 from fixtures.integrations.jira.stub_client import StubJiraApiClient
 from fixtures.integrations.stub_service import StubService
@@ -40,7 +41,7 @@ DEFAULT_PROJECT_ID = 10000
 DEFAULT_ISSUE_TYPE_ID = 10000
 
 
-def get_client():
+def get_client() -> StubJiraApiClient:
     return StubJiraApiClient()
 
 
@@ -728,7 +729,10 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
             content_type="json",
         )
 
-        def responder(request):
+        def responder(
+            request: PreparedRequest,
+        ) -> tuple[int, dict[str, str], str]:
+            assert request.body is not None
             body = orjson.loads(request.body)
             assert body["fields"]["labels"] == ["fuzzy", "bunnies"]
             assert body["fields"]["customfield_10200"] == {"value": "sad"}

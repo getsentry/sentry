@@ -1,4 +1,5 @@
 import pytest
+from django.test import override_settings
 from django.urls import NoReverseMatch, reverse
 
 from sentry.discover.models import (
@@ -10,6 +11,8 @@ from sentry.discover.models import (
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryDataset
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
@@ -41,7 +44,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
         self.query_id_without_access = invalid.id
 
-    def setup_no_team_user(self):
+    def setup_no_team_user(self) -> None:
         # disable Open Membership
         self.org.flags.allow_joinleave = False
         self.org.save()
@@ -181,7 +184,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
             {"yAxes": ["count(span.duration)"], "chartType": 2}
         ]
         assert set(response.data["exploreQuery"]["projects"]) == set(self.project_ids)
-        assert response.data["exploreQuery"]["range"] == "24h"
+        assert "range" not in response.data["exploreQuery"]
         assert response.data["exploreQuery"]["statsPeriod"] == "24h"
 
     def test_get_org_without_access(self) -> None:
@@ -603,7 +606,7 @@ class OrganizationDiscoverQueryVisitTest(APITestCase, SnubaTestCase):
 
         self.query.set_projects(self.project_ids)
 
-    def url(self, query_id):
+    def url(self, query_id: int) -> str:
         return reverse(
             "sentry-api-0-discover-saved-query-visit",
             kwargs={"organization_id_or_slug": self.org.slug, "query_id": query_id},
@@ -623,6 +626,31 @@ class OrganizationDiscoverQueryVisitTest(APITestCase, SnubaTestCase):
         assert query.visits == 2
         assert query.last_visited is not None
         assert query.last_visited > last_visited
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_visit_query_as_service_account(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.org, project_ids=self.project_ids
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.org.id,
+            ),
+            key="service-account-secret",
+        )
+
+        with self.feature("organizations:discover-query"):
+            response = self.client.post(
+                self.url(self.query.id), HTTP_X_VIEWER_CONTEXT=viewer_context
+            )
+
+        assert response.status_code == 204, response.content
+        assert DiscoverSavedQuery.objects.get(id=self.query.id).visits == 2
+        assert not DiscoverSavedQueryLastVisited.objects.filter(
+            discover_saved_query=self.query
+        ).exists()
 
     def test_visit_query_no_access(self) -> None:
         last_visited = self.query.last_visited

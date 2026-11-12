@@ -4,12 +4,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   DashboardFilterKeys,
-  WidgetType,
   type DashboardFilters,
   type GlobalFilter,
 } from 'sentry/views/dashboards/types';
 import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
 import type {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+
 import {
   bucketsKeepThresholds,
   getBucketsFromGlobalFilters,
@@ -18,20 +18,11 @@ import {
   isWebVitalsPrebuiltDashboard,
   WEB_VITALS_NAVIGATION_TYPE_FEATURE,
   type NavigationTypeBucket,
-} from 'sentry/views/insights/browser/webVitals/navigationType/settings';
-
-export function spanFilterQueryFromGlobalFilters(filters: GlobalFilter[]): string {
-  return filters
-    .filter(filter => filter.dataset === WidgetType.SPANS && filter.value)
-    .map(filter => filter.value)
-    .join(' ');
-}
+} from './settings';
 
 type NavigationTypeExperiment = {
   buckets: NavigationTypeBucket[];
   isEnabled: boolean;
-  /** The other active spans filters, for keeping side queries in sync. */
-  otherSpanFilterQuery: string;
   supportsThresholds: boolean;
 };
 
@@ -55,9 +46,6 @@ export function useNavigationTypeExperiment(
     isEnabled,
     buckets,
     supportsThresholds: bucketsKeepThresholds(buckets),
-    otherSpanFilterQuery: spanFilterQueryFromGlobalFilters(
-      globalFilters.filter(filter => !isNavigationTypeGlobalFilter(filter))
-    ),
   };
 }
 

@@ -1,12 +1,20 @@
 import type {Location} from 'history';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
-import {getReadableQueryParamsFromLocation} from 'sentry/views/explore/logs/logsQueryParams';
+import {
+  LOGS_ANCHOR_TIMESTAMP_KEY,
+  LOGS_QUERY_KEY,
+} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import type {ReadableQueryParamsOptions} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+import {
+  getReadableQueryParamsFromLocation,
+  getTargetWithReadableQueryParams,
+} from './logsQueryParams';
 
 function locationFixture(query: Location['query']): Location {
   return LocationFixture({query});
@@ -301,5 +309,29 @@ describe('getReadableQueryParamsFromLocation', () => {
         })
       )
     );
+  });
+});
+
+describe('getTargetWithReadableQueryParams', () => {
+  it('drops the log anchor when the query changes', () => {
+    const location = locationFixture({
+      [LOGS_ANCHOR_TIMESTAMP_KEY]: '5000',
+      [LOGS_QUERY_KEY]: 'severity:error',
+    });
+
+    const target = getTargetWithReadableQueryParams(location, {query: 'severity:info'});
+
+    expect(target.query).toEqual({[LOGS_QUERY_KEY]: 'severity:info'});
+  });
+
+  it('keeps the log anchor when the query is written unchanged', () => {
+    const location = locationFixture({
+      [LOGS_ANCHOR_TIMESTAMP_KEY]: '5000',
+      [LOGS_QUERY_KEY]: 'severity:error',
+    });
+
+    const target = getTargetWithReadableQueryParams(location, {query: 'severity:error'});
+
+    expect(target.query).toEqual(location.query);
   });
 });

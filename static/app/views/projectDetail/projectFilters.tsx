@@ -8,6 +8,7 @@ import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils/defined';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import type {TagValueLoader} from 'sentry/views/issueList/types';
 
@@ -35,7 +36,7 @@ export function ProjectFilters({
   const getTagValues = useCallback<GetTagValues>(
     async ({tag, searchQuery}) => {
       const values = await tagValueLoader(tag.key, searchQuery);
-      return values.map(({value}) => value);
+      return values.map(({value}) => value).filter(defined);
     },
     [tagValueLoader]
   );

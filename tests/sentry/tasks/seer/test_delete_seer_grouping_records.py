@@ -8,7 +8,13 @@ from sentry.tasks.seer.delete_seer_grouping_records import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context, viewer_context_scope
+from sentry.viewer_context import (
+    Actor,
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+    viewer_context_scope,
+)
 
 
 @django_db_all
@@ -101,8 +107,7 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
         expected_context = ViewerContext(
             organization_id=self.organization.id,
             project_id=self.project.id,
-            user_id=self.user.id,
-            actor_type=ActorType.USER,
+            actor=Actor(type=ActorType.USER, actor_id=self.user.id),
         )
 
         def assert_viewer_context(_project_id: int, _hashes: list[str]) -> None:
@@ -124,8 +129,7 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
         expected_context = ViewerContext(
             organization_id=self.organization.id,
             project_id=missing_project_id,
-            user_id=self.user.id,
-            actor_type=ActorType.USER,
+            actor=Actor(type=ActorType.USER, actor_id=self.user.id),
         )
 
         def assert_viewer_context(_project_id: int, _hashes: list[str]) -> None:
@@ -148,8 +152,7 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
         expected_context = ViewerContext(
             organization_id=self.organization.id,
             project_id=self.project.id,
-            user_id=self.user.id,
-            actor_type=ActorType.USER,
+            actor=Actor(type=ActorType.USER, actor_id=self.user.id),
         )
 
         def assert_viewer_context(*_args: object, **_kwargs: object) -> None:

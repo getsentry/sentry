@@ -15,20 +15,6 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {FRAME_TOOLTIP_MAX_WIDTH} from 'sentry/components/events/interfaces/frame/defaultTitle';
-import {OpenInContextLine} from 'sentry/components/events/interfaces/frame/openInContextLine';
-import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
-import {
-  getLeadHint,
-  hasAssembly,
-  hasContextRegisters,
-  hasContextSource,
-  hasContextVars,
-  isExpandable,
-  trimPackage,
-} from 'sentry/components/events/interfaces/frame/utils';
-import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
-import {formatAddress, parseAddress} from 'sentry/components/events/interfaces/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {StrictClick} from 'sentry/components/strictClick';
@@ -40,7 +26,8 @@ import type {SentryAppSchemaStacktraceLink} from 'sentry/types/integrations';
 import type {PlatformKey} from 'sentry/types/platform';
 import {StackView, type StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils/defined';
-import {useSentryAppComponentsStore} from 'sentry/utils/useSentryAppComponentsStore';
+import {useProjects} from 'sentry/utils/useProjects';
+import {useSentryAppComponents} from 'sentry/utils/useSentryAppComponents';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/context';
 import {getFoldSectionKey} from 'sentry/views/issueDetails/foldSection';
@@ -48,7 +35,21 @@ import {getFoldSectionKey} from 'sentry/views/issueDetails/foldSection';
 import {useOptionalDebugMetaSearch} from './debugMeta/debugMetaSearchContext';
 import {combineStatus} from './debugMeta/utils';
 import {Context} from './frame/context';
+import {FRAME_TOOLTIP_MAX_WIDTH} from './frame/defaultTitle';
+import {OpenInContextLine} from './frame/openInContextLine';
+import {StacktraceLink} from './frame/stacktraceLink';
+import {
+  getLeadHint,
+  hasAssembly,
+  hasContextRegisters,
+  hasContextSource,
+  hasContextVars,
+  isExpandable,
+  trimPackage,
+} from './frame/utils';
+import {useStacktraceContext} from './stackTraceContext';
 import {SymbolicatorStatus} from './types';
+import {formatAddress, parseAddress} from './utils';
 
 type Props = {
   emptySourceNotation: boolean;
@@ -97,14 +98,18 @@ export function NativeFrame({
   emptySourceNotation,
   isHoverPreviewed = false,
 }: Props) {
-  const components = useSentryAppComponentsStore<SentryAppSchemaStacktraceLink>({
+  const {projects} = useProjects();
+  // Projects aren't loaded on the shared issue page, which can't make
+  // authenticated requests
+  const hasProject = projects.some(p => p.id === event.projectID);
+  const components = useSentryAppComponents<SentryAppSchemaStacktraceLink>({
     componentType: 'stacktrace-link',
+    enabled: hasProject,
   });
   const isDartAsyncSuspensionFrame =
     frame.filename === '<asynchronous suspension>' ||
     frame.absPath === '<asynchronous suspension>';
-  const {displayOptions, stackView, hasScmSourceContext, collapseAll} =
-    useStacktraceContext();
+  const {displayOptions, stackView, hasScmSourceContext} = useStacktraceContext();
 
   const {sectionData} = useIssueDetails();
   const debugMetaSearch = useOptionalDebugMetaSearch();
@@ -148,7 +153,7 @@ export function NativeFrame({
     defined(frame.function) &&
     frame.function !== frame.rawFunction;
 
-  const [expanded, setExpanded] = useState(() => !collapseAll && isFirstInAppFrame);
+  const [expanded, setExpanded] = useState(() => isFirstInAppFrame);
   const [isHovering, setHovering] = useState(false);
 
   const contextLine = (frame?.context || []).find(l => l[0] === frame.lineNo);

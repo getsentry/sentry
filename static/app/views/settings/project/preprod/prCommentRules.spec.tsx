@@ -4,7 +4,7 @@ import {RepositoryFixture} from 'sentry-fixture/repository';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {PrCommentRules} from 'sentry/views/settings/project/preprod/prCommentRules';
+import {PrCommentRules} from './prCommentRules';
 
 describe('PrCommentRules', () => {
   const {organization} = initializeOrg();
@@ -44,11 +44,8 @@ describe('PrCommentRules', () => {
       await screen.findByRole('checkbox', {name: 'Toggle PR comments'})
     ).not.toBeChecked();
     expect(
-      screen.getByText('Enable PR comments above to configure rules.')
+      screen.getByRole('button', {name: 'Create PR Comment Rule'})
     ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', {name: 'Create PR Comment Rule'})
-    ).not.toBeInTheDocument();
   });
 
   it('reflects an enabled project from the explicit field', async () => {
@@ -122,9 +119,6 @@ describe('PrCommentRules', () => {
     expect(
       await screen.findByRole('checkbox', {name: 'Toggle PR comments'})
     ).not.toBeChecked();
-    expect(
-      screen.getByText('Enable PR comments above to configure rules.')
-    ).toBeInTheDocument();
   });
 
   it('enables PR comments when toggled on', async () => {

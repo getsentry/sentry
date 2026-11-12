@@ -2,12 +2,7 @@ import pickBy from 'lodash/pickBy';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {TagCollection} from 'sentry/types/group';
-import type {
-  EventsStats,
-  GroupedMultiSeriesEventsStats,
-  MultiSeriesEventsStats,
-  Organization,
-} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -16,18 +11,6 @@ import {AggregationKey, attributeTypeFromKind} from 'sentry/utils/fields';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {WIDGET_BUILDER_ATTRIBUTE_STALE_TIME} from 'sentry/views/dashboards/constants';
-import {
-  type DatasetConfig,
-  type SearchBarData,
-  type SearchBarDataProviderProps,
-  type WidgetBuilderSearchBarProps,
-} from 'sentry/views/dashboards/datasetConfig/base';
-import {
-  getTableSortOptions,
-  getTimeseriesSortOptions,
-} from 'sentry/views/dashboards/datasetConfig/events';
-import {eventsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/eventsResponseTransforms';
-import {handleOrderByReset} from 'sentry/views/dashboards/datasetConfig/utils/handleOrderByReset';
 import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {
   useLogsSeriesQuery,
@@ -44,6 +27,16 @@ import {useLogItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttri
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {LOG_AGGREGATES} from 'sentry/views/explore/logs/logsToolbar';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {eventsResponseTransforms} from './utils/eventsResponseTransforms';
+import {handleOrderByReset} from './utils/handleOrderByReset';
+import {
+  type DatasetConfig,
+  type SearchBarData,
+  type SearchBarDataProviderProps,
+  type WidgetBuilderSearchBarProps,
+} from './base';
+import {getTableSortOptions, getTimeseriesSortOptions} from './events';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
@@ -221,10 +214,7 @@ function useLogsSearchBarDataProvider(props: SearchBarDataProviderProps): Search
 }
 
 export const LogsConfig: DatasetConfig<
-  | EventsStats
-  | MultiSeriesEventsStats
-  | GroupedMultiSeriesEventsStats
-  | EventsTimeSeriesResponse,
+  EventsTimeSeriesResponse,
   TableData | EventsTableData
 > = {
   defaultCategoryField: 'severity',

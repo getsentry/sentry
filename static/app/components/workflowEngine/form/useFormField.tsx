@@ -4,7 +4,8 @@ import {observe} from 'mobx';
 
 import {FormContext} from 'sentry/components/forms/formContext';
 import type {FieldValue} from 'sentry/components/forms/types';
-import {getFormFieldValue} from 'sentry/components/workflowEngine/form/getFormFieldValue';
+
+import {getFormFieldValue} from './getFormFieldValue';
 
 // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 export function useFormField<Value extends FieldValue = FieldValue>(

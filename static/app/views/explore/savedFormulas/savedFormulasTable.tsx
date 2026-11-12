@@ -1,31 +1,32 @@
 import {Fragment} from 'react';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {openConfirmModal} from '@sentry/scraps/confirm';
+import {Flex} from '@sentry/scraps/layout';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
+import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {t} from 'sentry/locale';
+import type {Sort} from 'sentry/utils/discover/fields';
+import {userDisplayName} from 'sentry/utils/formatters';
+import {encodeSort} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useDeleteFormula} from 'sentry/views/explore/hooks/useDeleteFormula';
 import type {
   FormulaDataset,
   SavedFormula,
 } from 'sentry/views/explore/hooks/useGetSavedFormulas';
-import {stripNamePrefix} from 'sentry/views/explore/savedFormulas/formulaBuilder/draft';
-import {
-  buildTokenMap,
-  FormulaToken,
-  FormulaTokens,
-} from 'sentry/views/explore/savedFormulas/formulaTokens';
-import {makeSavedFormulasPathname} from 'sentry/views/explore/savedFormulas/pathnames';
+
+import {stripNamePrefix} from './formulaBuilder/draft';
+import {buildTokenMap, FormulaToken, FormulaTokens} from './formulaTokens';
+import {makeSavedFormulasPathname} from './pathnames';
 
 const DATASET_LABEL_MAP: Record<FormulaDataset, string> = {
   spans: t('Spans'),
@@ -47,9 +48,24 @@ type Props = {
   formulas: SavedFormula[] | undefined;
   isError: boolean;
   isPending: boolean;
+  sort: Sort;
 };
 
-export function SavedFormulasTable({formulas, isError, isPending}: Props) {
+export function SavedFormulasTable({formulas, isError, isPending, sort}: Props) {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  function handleSort(field: string) {
+    navigate({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        sort: encodeSort(getNextSort(field, sort, 'asc')),
+        cursor: undefined,
+      },
+    });
+  }
+
   return (
     <SavedEntityTable
       columns={COLUMNS}
@@ -59,7 +75,11 @@ export function SavedFormulasTable({formulas, isError, isPending}: Props) {
       emptyMessage={t('No saved formulas found')}
       header={
         <SavedEntityTable.Header>
-          <SavedEntityTable.HeaderCell divider={false}>
+          <SavedEntityTable.HeaderCell
+            divider={false}
+            sort={sort.field === 'name' ? sort.kind : undefined}
+            handleSortClick={() => handleSort('name')}
+          >
             {t('Name')}
           </SavedEntityTable.HeaderCell>
           <SavedEntityTable.HeaderCell>{t('Dataset')}</SavedEntityTable.HeaderCell>
@@ -78,6 +98,29 @@ export function SavedFormulasTable({formulas, isError, isPending}: Props) {
   );
 }
 
+function FormulaCreator({formula}: {formula: SavedFormula}) {
+  if (!formula.prebuilt) {
+    // User created formulas are created by a user, so show only the creator.
+    return formula.createdBy ? <UserAvatar user={formula.createdBy} hasTooltip /> : null;
+  }
+
+  // Prebuilt formulas are created by Sentry, so show the Sentry avatar and last editor (if a user edited it.)
+  return (
+    <Flex gap="xs" align="center">
+      <Tooltip title={t('Created by Sentry')}>
+        <ActivityAvatar type="system" size={20} />
+      </Tooltip>
+      {formula.updatedBy && (
+        <UserAvatar
+          user={formula.updatedBy}
+          hasTooltip
+          tooltip={t('Edited by %s', userDisplayName(formula.updatedBy))}
+        />
+      )}
+    </Flex>
+  );
+}
+
 function FormulaRow({formula, isFirst}: {formula: SavedFormula; isFirst: boolean}) {
   const organization = useOrganization();
   const {deleteFormula} = useDeleteFormula();
@@ -90,12 +133,12 @@ function FormulaRow({formula, isFirst}: {formula: SavedFormula; isFirst: boolean
       confirmText: t('Delete Formula'),
       priority: 'danger',
       onConfirm: async () => {
-        addLoadingMessage(t('Deleting formula...'));
+        toast.loading(t('Deleting formula...'));
         try {
           await deleteFormula(formula.id);
-          addSuccessMessage(t('Formula deleted'));
+          toast.success(t('Formula deleted'));
         } catch {
-          addErrorMessage(t('Unable to delete formula'));
+          toast.error(t('Unable to delete formula'));
         }
       },
     });
@@ -148,11 +191,7 @@ function FormulaRow({formula, isFirst}: {formula: SavedFormula; isFirst: boolean
         </Tooltip>
       </SavedEntityTable.Cell>
       <SavedEntityTable.Cell justify="center">
-        {formula.prebuilt ? (
-          <Tooltip title="Sentry">
-            <ActivityAvatar type="system" size={20} />
-          </Tooltip>
-        ) : null}
+        <FormulaCreator formula={formula} />
       </SavedEntityTable.Cell>
       <SavedEntityTable.Cell hasButton>
         <SavedEntityTable.CellActions

@@ -1,17 +1,44 @@
-import type {Theme} from '@emotion/react';
-
-import {
-  DROPPED_DATA_DOCS_URL,
-  REASON_INFO,
-} from 'sentry/components/droppedData/reasonInfo';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {Outcome} from 'sentry/types/core';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
+interface TelemetryName {
+  noun: (count: number) => string;
+  title: string;
+}
+
+const TELEMETRY_NAMES: Partial<Record<DiscoverDatasets, TelemetryName>> = {
+  errors: {title: t('Errors'), noun: count => tn('error', 'errors', count)},
+  ourlogs: {title: t('Logs'), noun: count => tn('log', 'logs', count)},
+  spans: {title: t('Spans'), noun: count => tn('span', 'spans', count)},
+  tracemetrics: {title: t('Metrics'), noun: count => tn('metric', 'metrics', count)},
+};
+
+const DEFAULT_TELEMETRY_NAME: TelemetryName = {
+  title: t('Events'),
+  noun: count => tn('event', 'events', count),
+};
+
+function telemetryName(dataset: DiscoverDatasets): TelemetryName {
+  return TELEMETRY_NAMES[dataset] ?? DEFAULT_TELEMETRY_NAME;
+}
+
+export function droppedDataLabel(dataset: DiscoverDatasets): string {
+  return t('Dropped %s', telemetryName(dataset).title);
+}
+
+export function droppedAndFilteredLabel(dataset: DiscoverDatasets): string {
+  return t('Dropped and Filtered %s', telemetryName(dataset).title);
+}
+
+export function datasetNoun(dataset: DiscoverDatasets, count: number): string {
+  return telemetryName(dataset).noun(count);
+}
+
 const OUTCOME_LABELS: Partial<Record<Outcome, string>> = {
   [Outcome.CLIENT_DISCARD]: t('Client Discard'),
-  [Outcome.FILTERED]: t('Inbound Filter'),
+  [Outcome.FILTERED]: t('Inbound Filters'),
   [Outcome.INVALID]: t('Invalid or Malformed'),
   [Outcome.RATE_LIMITED]: t('Rate Limited'),
   [Outcome.ABUSE]: t('Abuse Limit'),
@@ -20,65 +47,6 @@ const OUTCOME_LABELS: Partial<Record<Outcome, string>> = {
 
 export function outcomeLabel(outcome: string): string {
   return OUTCOME_LABELS[outcome as Outcome] ?? outcome;
-}
-
-function normalizeReason(reason: string): string {
-  if (reason === 'ignored') {
-    return 'ignore_spans';
-  }
-  if (REASON_INFO[reason]) {
-    return reason;
-  }
-  // Reasons like `Sampled:0` or `custom-inbound-filter:foo` carry a dynamic
-  // suffix; the registry keys on the bare prefix. Exact keys (`too_large:span`)
-  // are matched above, so this only strips genuinely dynamic suffixes.
-  const prefix = reason.slice(0, reason.indexOf(':'));
-  if (reason.includes(':') && REASON_INFO[prefix]) {
-    return prefix;
-  }
-  return reason.endsWith('_usage_exceeded') ? 'usage_exceeded' : reason;
-}
-
-export function reasonTitle(reason: string): string {
-  return REASON_INFO[normalizeReason(reason)]?.title ?? reason;
-}
-
-export function reasonDocsUrl(reason: string): string {
-  const anchor = REASON_INFO[normalizeReason(reason)]?.docsAnchor;
-  return anchor ? `${DROPPED_DATA_DOCS_URL}#${anchor}` : DROPPED_DATA_DOCS_URL;
-}
-
-export function buildAskSeerPrompt(args: {
-  dataset: DiscoverDatasets;
-  outcome: string;
-  reason: string;
-}): string {
-  return t(
-    'My %(dataset)s data is being dropped as "%(outcome)s" (%(reason)s). Why is this happening and how do I fix it?',
-    {
-      dataset: args.dataset,
-      outcome: outcomeLabel(args.outcome),
-      reason: reasonTitle(args.reason),
-    }
-  );
-}
-
-export type OutcomeColors = Record<string, string>;
-
-export function getOutcomeColors(outcomes: string[], theme: Theme): OutcomeColors {
-  const orderedOutcomes = [...new Set(outcomes)].sort();
-  const palette = theme.chart.getColorPalette(Math.max(orderedOutcomes.length - 1, 0));
-
-  return orderedOutcomes.reduce<OutcomeColors>((acc, outcome, index) => {
-    acc[outcome] = palette[index % palette.length]!;
-    return acc;
-  }, {});
-}
-
-export type OutcomeSelection = Record<string, boolean>;
-
-export function isOutcomeSelected(selection: OutcomeSelection, outcome: string): boolean {
-  return selection[outcome] !== false;
 }
 
 // Shares run tiny (a reason can be a sliver of all traffic), so floor the

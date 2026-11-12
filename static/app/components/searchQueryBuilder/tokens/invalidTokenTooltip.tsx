@@ -2,7 +2,7 @@ import type {ReactNode} from 'react';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
@@ -81,17 +81,28 @@ export function InvalidTokenTooltip({
   );
 }
 
-type GridInvalidTokenTooltipProps = InvalidTokenTooltipProps & {
-  columnCount: number;
-};
+type GridInvalidTokenTooltipProps = InvalidTokenTooltipProps &
+  Pick<GridProps, 'height' | 'minHeight'> & {
+    columnCount: number;
+  };
+
+// The token's height defaults to one line; pass `auto` with a `minHeight` for a
+// token whose content wraps.
 
 export function GridInvalidTokenTooltip({
   children,
   columnCount,
+  height = '22px',
+  minHeight,
   ...props
 }: GridInvalidTokenTooltipProps) {
   return (
-    <Grid align="stretch" height="22px" columns={`repeat(${columnCount}, auto)`}>
+    <Grid
+      align="stretch"
+      height={height}
+      minHeight={minHeight}
+      columns={`repeat(${columnCount}, auto)`}
+    >
       {styleProps => (
         <InvalidTokenTooltip {...props} {...styleProps}>
           {children}

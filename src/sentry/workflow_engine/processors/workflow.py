@@ -1,11 +1,10 @@
 from collections import defaultdict
-from collections.abc import Collection, Iterable, Sequence
-from dataclasses import asdict, dataclass, replace
+from collections.abc import Iterable, Sequence
+from dataclasses import dataclass, replace
 from datetime import datetime
 from enum import StrEnum
 
 import sentry_sdk
-from django.db.models import Q
 from sentry_sdk import traces
 
 from sentry import features, options
@@ -205,7 +204,7 @@ def evaluate_workflow_triggers(
                 logger.debug(
                     "workflow_engine.process_workflows.enqueue_workflow.activity",
                     extra={
-                        "event_id": event_data.event.id,
+                        "event_id": event_data.event_id,
                         "workflow_id": workflow.id,
                     },
                 )
@@ -229,17 +228,13 @@ def evaluate_workflow_triggers(
         except Environment.DoesNotExist:
             return {}, {}, stats, {}
 
-    event_id = (
-        event_data.event.event_id
-        if isinstance(event_data.event, GroupEvent)
-        else event_data.event.id
-    )
+    event_id = event_data.event_id
     logger.debug(
         "workflow_engine.process_workflows.triggered_workflows",
         extra={
-            "group_id": event_data.group.id,
+            "group_id": event_data.group_id,
             "event_id": event_id,
-            "event_data": asdict(event_data),
+            "organization_id": event_data.get_organization().id,
             "event_environment_id": environment.id if environment else None,
             "triggered_workflows": [workflow.id for workflow in triggered_workflows],
             "queue_workflows": sorted(wf.id for wf in queue_items_by_workflow.keys()),
@@ -344,7 +339,7 @@ def evaluate_workflows_action_filters(
                     logger.debug(
                         "workflow_engine.process_workflows.enqueue_workflow.activity",
                         extra={
-                            "event_id": event_data.event.id,
+                            "event_id": event_data.event_id,
                         },
                     )
             else:
@@ -372,16 +367,12 @@ def evaluate_workflows_action_filters(
         workflow_to_result[wf.id] for wf in fully_evaluated_workflows
     )
 
-    event_id = (
-        event_data.event.event_id
-        if isinstance(event_data.event, GroupEvent)
-        else event_data.event.id
-    )
+    event_id = event_data.event_id
 
     logger.debug(
         "workflow_engine.evaluate_workflows_action_filters",
         extra={
-            "group_id": event_data.group.id,
+            "group_id": event_data.group_id,
             "event_id": event_id,
             "workflow_ids": [wf.id for wf in action_conditions_to_workflow.values()],
             "action_conditions": [
@@ -403,7 +394,7 @@ def get_environment_by_event(event_data: WorkflowEventData) -> Environment | Non
         except Environment.DoesNotExist:
             logger.info(
                 "workflow_engine.process_workflows.environment_not_found",
-                extra={"event_id": event_data.event.event_id},
+                extra={"event_id": event_data.event_id},
             )
             raise Environment.DoesNotExist("Environment does not exist for the event")
 
@@ -411,7 +402,7 @@ def get_environment_by_event(event_data: WorkflowEventData) -> Environment | Non
     elif isinstance(event_data.event, Activity):
         if "activity_environment" not in event_data._cache:
             event_data._cache["activity_environment"] = _get_environment_by_group(
-                event_data.group.id
+                event_data.group_id
             )
         return event_data._cache["activity_environment"]
 
@@ -441,31 +432,6 @@ def _get_environment_by_group(group_id: int) -> Environment | None:
 
     metrics_incr("process_workflows.activity_environment", tags={"outcome": outcome})
     return environment
-
-
-def _get_associated_workflows(
-    detectors: Collection[Detector], environment: Environment | None
-) -> set[Workflow]:
-    """
-    Get workflows associated with detectors and environment via direct DB query.
-    Used as fallback when cache is disabled via feature flag.
-    """
-    detector_ids = [detector.id for detector in detectors]
-
-    environment_filter = (
-        (Q(environment_id=None) | Q(environment_id=environment.id))
-        if environment
-        else Q(environment_id=None)
-    )
-    return set(
-        Workflow.objects.filter(
-            environment_filter,
-            detectorworkflow__detector_id__in=detector_ids,
-            enabled=True,
-        )
-        .select_related("environment")
-        .distinct()
-    )
 
 
 def _build_workflow_evaluations(
@@ -535,16 +501,12 @@ def _build_process_workflows_result(
     detector: Detector | None = None,
     evaluations: dict[WorkflowId, WorkflowEvaluation] | None = None,
 ) -> ProcessWorkflowsResult:
-    event_id = (
-        event_data.event.event_id
-        if isinstance(event_data.event, GroupEvent)
-        else event_data.event.id
-    )
+    event_id = event_data.event_id
     return ProcessWorkflowsResult(
         evaluations=evaluations or {},
         outcome=outcome,
-        project_id=event_data.event.project_id,
-        group_id=event_data.group.id,
+        project_id=event_data.project_id,
+        group_id=event_data.group_id,
         event_id=str(event_id) if event_id else None,
         detector_id=detector.id if detector else None,
         detector_type=detector.type if detector else None,
@@ -570,7 +532,7 @@ def process_workflows(
         fire_actions,
     )
 
-    organization = event_data.event.project.organization
+    organization = event_data.get_organization()
 
     try:
         event_detectors = get_detectors_for_event_data(event_data, detector)
@@ -579,7 +541,7 @@ def process_workflows(
             raise Detector.DoesNotExist("No Detectors associated with the issue were found")
 
         log_context.add_extras(
-            detector_id=event_detectors.preferred_detector.id, group_id=event_data.group.id
+            detector_id=event_detectors.preferred_detector.id, group_id=event_data.group_id
         )
 
         # set the detector / org information asap, this is used in `get_environment_by_event` as well.
@@ -646,15 +608,11 @@ def process_workflows(
         )
 
     metrics_incr("process_workflows", len(workflows))
-    event_id = (
-        event_data.event.event_id
-        if isinstance(event_data.event, GroupEvent)
-        else event_data.event.id
-    )
+    event_id = event_data.event_id
     logger.debug(
         "workflow_engine.process_workflows",
         extra={
-            "group_id": event_data.group.id,
+            "group_id": event_data.group_id,
             "event_id": event_id,
             "event_environment_id": environment.id if environment else None,
             "workflows": [workflow.id for workflow in workflows],

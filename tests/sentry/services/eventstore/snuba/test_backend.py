@@ -295,7 +295,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert [e.event_id for e in with_inner] == [event_middle.event_id, event_newest.event_id]
 
     def test_get_event_beyond_retention(self) -> None:
-        event = self.store_event(
+        self.store_event(
             data={
                 "event_id": "d" * 32,
                 "type": "default",
@@ -308,8 +308,8 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         )
 
         with mock.patch("sentry.quotas.backend.get_event_retention", return_value=7):
-            event = self.eventstore.get_event_by_id(self.project2.id, "d" * 32)
-            assert event is None
+            retained_event = self.eventstore.get_event_by_id(self.project2.id, "d" * 32)
+            assert retained_event is None
 
     def test_get_adjacent_event_ids(self) -> None:
         event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)
@@ -359,6 +359,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
 
     def test_get_adjacent_event_ids_with_excluded_group(self) -> None:
         event = self.event2
+        assert event.group_id is not None
         event_filter = Filter(
             project_ids=[event.project_id],
             group_ids=[event.group_id],
@@ -376,6 +377,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
 
     def test_get_adjacent_event_ids_propagates_query_construction_error(self) -> None:
         event = self.event2
+        assert event.group_id is not None
         event_filter = Filter(project_ids=[event.project_id], group_ids=[event.group_id])
 
         with mock.patch(
@@ -387,6 +389,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
 
     def test_get_adjacent_event_ids_propagates_query_execution_error(self) -> None:
         event = self.event2
+        assert event.group_id is not None
         event_filter = Filter(project_ids=[event.project_id], group_ids=[event.group_id])
 
         with mock.patch(
@@ -424,6 +427,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert event1.group_id == event2.group_id
         # the 2 events should have the same timestamp
         assert event1.datetime == event2.datetime
+        assert event1.group_id is not None
 
         _filter = Filter(
             project_ids=[project.id],
@@ -1081,6 +1085,7 @@ class EAPEventStorageTest(TestCase, SnubaTestCase, OccurrenceTestCase):
             project_id=self.project.id,
         )
 
+        assert event.group_id is not None
         trace_item = self.create_eap_occurrence(
             group_id=event.group_id,
             event_id=event.event_id,

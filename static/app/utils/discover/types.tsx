@@ -32,6 +32,21 @@ export const DiscoverDatasetsToDatasetMap = {
   [DiscoverDatasets.TRANSACTIONS]: Dataset.TRANSACTIONS,
 };
 
+// Public, user-facing name for each dataset, used in URLs. Keeps internal keys
+// (ourlogs, tracemetrics) out of user-facing URLs.
+export const DiscoverDatasetToUrlParam: Record<DiscoverDatasets, string> = {
+  [DiscoverDatasets.DISCOVER]: 'discover',
+  [DiscoverDatasets.ERRORS]: 'errors',
+  [DiscoverDatasets.METRICS]: 'metrics',
+  [DiscoverDatasets.METRICS_ENHANCED]: 'metricsEnhanced',
+  [DiscoverDatasets.ISSUE_PLATFORM]: 'issuePlatform',
+  [DiscoverDatasets.OURLOGS]: 'logs',
+  [DiscoverDatasets.PREPROD_SIZE]: 'preprodSize',
+  [DiscoverDatasets.SPANS]: 'spans',
+  [DiscoverDatasets.TRANSACTIONS]: 'transactions',
+  [DiscoverDatasets.TRACEMETRICS]: 'metrics',
+};
+
 export enum SavedQueryDatasets {
   DISCOVER = 'discover',
   ERRORS = 'error-events',

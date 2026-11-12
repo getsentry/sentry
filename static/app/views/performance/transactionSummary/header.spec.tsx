@@ -10,8 +10,9 @@ import {TeamStore} from 'sentry/stores/teamStore';
 import type {PlatformKey} from 'sentry/types/platform';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {TransactionHeader} from 'sentry/views/performance/transactionSummary/header';
-import {Tab} from 'sentry/views/performance/transactionSummary/tabs';
+
+import {TransactionHeader} from './header';
+import {Tab} from './tabs';
 
 const TRANSACTION_NAME = 'transaction_name';
 
@@ -89,10 +90,6 @@ describe('Performance > Transaction Summary Header', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/replay-count/',
       body: {},
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-has-measurements/',
-      body: {measurements: true},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/project-transaction-threshold-override/',

@@ -617,9 +617,9 @@ describe('OrganizationStats', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows Application Metrics category when tracemetrics-stats-bytes-ui flag is enabled', async () => {
+  it('shows Application Metrics category when tracemetrics-enabled flag is enabled', async () => {
     const newOrg = OrganizationFixture({
-      features: ['team-insights', 'tracemetrics-enabled', 'tracemetrics-stats-bytes-ui'],
+      features: ['team-insights', 'tracemetrics-enabled'],
     });
 
     render(<OrganizationStats />, {
@@ -630,9 +630,9 @@ describe('OrganizationStats', () => {
     expect(screen.getByRole('option', {name: 'Application Metrics'})).toBeInTheDocument();
   });
 
-  it('does not show Application Metrics category without tracemetrics-stats-bytes-ui flag', async () => {
+  it('does not show Application Metrics category without tracemetrics-enabled flag', async () => {
     const newOrg = OrganizationFixture({
-      features: ['team-insights', 'tracemetrics-enabled'],
+      features: ['team-insights'],
     });
 
     render(<OrganizationStats />, {

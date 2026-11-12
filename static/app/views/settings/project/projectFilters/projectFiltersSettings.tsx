@@ -22,10 +22,10 @@ import {
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Access} from 'sentry/components/acl/access';
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -341,10 +341,10 @@ function CustomFiltersForm({
         .mutateAsync({options: value})
         .then(() => {
           formApi.reset(value);
-          addSuccessMessage(t('Filter settings saved.'));
+          toast.success(t('Filter settings saved.'));
         })
         .catch(() => {
-          addErrorMessage(t('Unable to save filter changes.'));
+          toast.error(t('Unable to save filter changes.'));
         }),
   });
 
@@ -890,9 +890,13 @@ export function ProjectFiltersSettings({project, params}: Props) {
               </AutoSaveForm>
             </FieldGroup>
 
-            <CustomFiltersForm project={currentProject} disabled={!hasAccess} />
-
-            {showCustomFilters && <CustomFilters project={project} />}
+            {/* The table lists the legacy lists as rows of its own once it shows, so
+                the form that edits them as text goes away with it. */}
+            {showCustomFilters ? (
+              <CustomFilters project={project} />
+            ) : (
+              <CustomFiltersForm project={currentProject} disabled={!hasAccess} />
+            )}
           </Fragment>
         )}
       </Access>

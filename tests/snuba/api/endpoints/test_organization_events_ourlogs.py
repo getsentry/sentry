@@ -1,6 +1,6 @@
 import math
 from datetime import datetime, timedelta, timezone
-from unittest.mock import ANY, patch
+from unittest.mock import ANY, MagicMock, patch
 from uuid import uuid4
 
 import pytest
@@ -837,7 +837,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert data[0]["message.parameter.username"] == "bob"
         assert data[1]["message.parameter.username"] == "alice"
 
-    def test_high_accuracy_flex_time_filter_trace(self):
+    def test_high_accuracy_flex_time_filter_trace(self) -> None:
         trace_id = "1" * 32
         logs = [
             self.create_ourlog(
@@ -865,7 +865,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert links["previous"]["results"] == "false"
         assert links["next"]["results"] == "false"
 
-    def test_high_accuracy_flex_time_without_orderby(self):
+    def test_high_accuracy_flex_time_without_orderby(self) -> None:
         response = self.do_request(
             {
                 "field": ["count()"],
@@ -881,7 +881,21 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
             response.data["detail"]
         )
 
-    def test_high_accuracy_flex_time_ascending_orderby(self):
+    def test_high_accuracy_flex_time_rejects_aggregates(self) -> None:
+        response = self.do_request(
+            {
+                "field": ["timestamp", "count()"],
+                "query": "",
+                "orderby": "-timestamp",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "sampling": "HIGHEST_ACCURACY_FLEX_TIME",
+            },
+        )
+        assert response.status_code == 400, response.content
+        assert "aggregates are not supported with flextime sampling" in str(response.data["detail"])
+
+    def test_high_accuracy_flex_time_ascending_orderby(self) -> None:
         response = self.do_request(
             {
                 "field": ["timestamp", "message", "id"],
@@ -897,7 +911,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
             response.data["detail"]
         )
 
-    def test_high_accuracy_flex_time_order_by_timestamp(self):
+    def test_high_accuracy_flex_time_order_by_timestamp(self) -> None:
         logs = [
             self.create_ourlog(
                 {"body": "foo"},
@@ -930,7 +944,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
 
         assert [row["message"] for row in response.data["data"]] == ["foo", "bar", "qux"]
 
-    def test_high_accuracy_flex_time_empty_page_no_next(self):
+    def test_high_accuracy_flex_time_empty_page_no_next(self) -> None:
         response = self.do_request(
             {
                 "field": ["timestamp", "message"],
@@ -953,7 +967,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert links["previous"]["results"] == "false"
         assert links["next"]["results"] == "false"
 
-    def test_high_accuracy_flex_time_partial_page_no_next(self):
+    def test_high_accuracy_flex_time_partial_page_no_next(self) -> None:
         logs = [
             self.create_ourlog(
                 {"body": "log"},
@@ -983,7 +997,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert links["previous"]["results"] == "false"
         assert links["next"]["results"] == "false"
 
-    def test_high_accuracy_flex_time_full_page_no_next(self):
+    def test_high_accuracy_flex_time_full_page_no_next(self) -> None:
         n = 5
         logs = [
             self.create_ourlog(
@@ -1019,7 +1033,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert links["previous"]["results"] == "false"
         assert links["next"]["results"] == "false"
 
-    def test_high_accuracy_flex_time_full_page_with_next(self):
+    def test_high_accuracy_flex_time_full_page_with_next(self) -> None:
         n = 8
         logs = [
             self.create_ourlog(
@@ -1071,7 +1085,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert links["previous"]["results"] == "false"
         assert links["next"]["results"] == "false"
 
-    def test_high_accuracy_flex_time_partial_page_with_next(self):
+    def test_high_accuracy_flex_time_partial_page_with_next(self) -> None:
         hour_1 = before_now(hours=4).replace(minute=0, second=0, microsecond=0)
         hour_2 = before_now(hours=3).replace(minute=0, second=0, microsecond=0)
         hour_3 = before_now(hours=2).replace(minute=0, second=0, microsecond=0)
@@ -1152,7 +1166,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert links["previous"]["results"] == "false"
         assert links["next"]["results"] == "true"
 
-    def test_high_accuracy_flex_time_empty_page_with_next(self):
+    def test_high_accuracy_flex_time_empty_page_with_next(self) -> None:
         hour_1 = before_now(hours=4).replace(minute=0, second=0, microsecond=0)
         hour_2 = before_now(hours=3).replace(minute=0, second=0, microsecond=0)
         hour_3 = before_now(hours=2).replace(minute=0, second=0, microsecond=0)
@@ -1228,7 +1242,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert links["previous"]["results"] == "false"
         assert links["next"]["results"] == "true"
 
-    def test_bytes_scanned(self):
+    def test_bytes_scanned(self) -> None:
         self.store_eap_items([self.create_ourlog({"body": "log"}, timestamp=self.ten_mins_ago)])
 
         request = {
@@ -1242,7 +1256,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert response.status_code == 200
         assert response.data["meta"]["bytesScanned"] > 0
 
-    def test_count_message(self):
+    def test_count_message(self) -> None:
         self.store_eap_items([self.create_ourlog({"body": "log"}, timestamp=self.ten_mins_ago)])
         request = {
             "field": ["count(message)"],
@@ -1255,7 +1269,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert response.status_code == 200
         assert response.data["data"] == [{"count(message)": 1}]
 
-    def test_count_if_message(self):
+    def test_count_if_message(self) -> None:
         self.store_eap_items(
             [
                 self.create_ourlog({"body": "log"}, timestamp=self.ten_mins_ago),
@@ -1273,7 +1287,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert response.status_code == 200
         assert response.data["data"] == [{"count_if(`message:log`, message)": 1}]
 
-    def test_p50_if_message(self):
+    def test_p50_if_message(self) -> None:
         self.store_eap_items(
             [
                 self.create_ourlog(
@@ -1299,7 +1313,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert response.status_code == 200
         assert response.data["data"] == [{"p50_if(`message:log`,payload_size)": 1234567}]
 
-    def test_any_function(self):
+    def test_any_function(self) -> None:
         log = self.create_ourlog(
             {"body": "log"},
             attributes={"sentry.payload_size_bytes": 1234567},
@@ -1402,7 +1416,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert response.data["data"] == [{"release": "test@1.2.4"}]
 
     @override_settings(SENTRY_MODE=SentryMode.SAAS)
-    def test_no_project_sent_logs(self):
+    def test_no_project_sent_logs(self) -> None:
         project1 = self.create_project()
         project2 = self.create_project()
 
@@ -1420,7 +1434,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
 
     @override_settings(SENTRY_MODE=SentryMode.SAAS)
     @patch("sentry.utils.snuba_rpc.table_rpc", wraps=table_rpc)
-    def test_sent_logs_project_optimization(self, mock_table_rpc):
+    def test_sent_logs_project_optimization(self, mock_table_rpc: MagicMock) -> None:
         project1 = self.create_project()
         project2 = self.create_project()
 

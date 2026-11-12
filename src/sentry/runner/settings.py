@@ -4,6 +4,7 @@ import warnings
 import click
 
 from sentry.runner import importer
+from sentry.runner.boot_gc import frozen_after_boot
 
 DEFAULT_SETTINGS_CONF = "config.yml"
 DEFAULT_SETTINGS_OVERRIDE = "sentry.conf.py"
@@ -16,7 +17,8 @@ def get_sentry_conf() -> str:
     """
     try:
         ctx = click.get_current_context()
-        return ctx.obj["config"]
+        config = ctx.obj["config"]
+        return config
     except (RuntimeError, KeyError, TypeError):
         try:
             return os.environ["SENTRY_CONF"]
@@ -65,6 +67,17 @@ def configure(
     if __installed:
         return
 
+    # This creates most of the long-lived objects a process accumulates during
+    # boot. See sentry.runner.boot_gc for why GC is paused while it runs and
+    # the heap frozen after it.
+    with frozen_after_boot("configure"):
+        _configure(ctx, py, yaml, skip_service_validation)
+        __installed = True
+
+
+def _configure(
+    ctx: click.Context | None, py: str, yaml: str | None, skip_service_validation: bool
+) -> None:
     # Make sure that our warnings are always displayed.
     warnings.filterwarnings("default", "", Warning, r"^sentry")
 
@@ -85,6 +98,27 @@ def configure(
     ):
         mimetypes.add_type(type, "." + ext)
 
+    configure_settings(ctx, py, yaml)
+
+    from django.conf import settings
+
+    from .initializer import initialize_app
+
+    initialize_app(
+        {"config_path": py, "settings": settings, "options": yaml},
+        skip_service_validation=skip_service_validation,
+    )
+
+    if os.environ.get("OPENAPIGENERATE", False):
+        # see https://drf-spectacular.readthedocs.io/en/latest/customization.html#step-5-extensions
+        from sentry.apidocs import extensions  # NOQA
+
+
+def configure_settings(ctx: click.Context | None, py: str, yaml: str | None) -> None:
+    """
+    Load the settings files without initializing the app, which takes most of
+    the time `configure` does.
+    """
     if yaml is None:
         # `yaml` will be None when SENTRY_CONF is pointed
         # directly to a file, in which case, this file must exist
@@ -112,19 +146,6 @@ def configure(
     # HACK: we need to force access of django.conf.settings to
     # ensure we don't hit any import-driven recursive behavior
     hasattr(settings, "INSTALLED_APPS")
-
-    from .initializer import initialize_app
-
-    initialize_app(
-        {"config_path": py, "settings": settings, "options": yaml},
-        skip_service_validation=skip_service_validation,
-    )
-
-    if os.environ.get("OPENAPIGENERATE", False):
-        # see https://drf-spectacular.readthedocs.io/en/latest/customization.html#step-5-extensions
-        from sentry.apidocs import extensions  # NOQA
-
-    __installed = True
 
 
 __installed = False

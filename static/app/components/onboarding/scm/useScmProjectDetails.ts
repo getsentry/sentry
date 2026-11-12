@@ -1,11 +1,9 @@
 import {useCallback, useRef, useState} from 'react';
 import isEqual from 'lodash/isEqual';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {captureProjectCreationFailure} from 'sentry/components/onboarding/captureProjectCreationFailure';
-import {linkProjectToRepository} from 'sentry/components/onboarding/scm/linkProjectToRepository';
-import type {ProjectDetailsFormState} from 'sentry/components/onboarding/scm/scmProjectDetailsTypes';
-import {getScmDefaultProjectName} from 'sentry/components/onboarding/scm/scmProjectName';
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
@@ -30,6 +28,10 @@ import {
   type IssueAlertNotificationProps,
   MultipleCheckboxOptions,
 } from 'sentry/views/projectInstall/messagingIntegrationTypes';
+
+import {linkProjectToRepository} from './linkProjectToRepository';
+import type {ProjectDetailsFormState} from './scmProjectDetailsTypes';
+import {getScmDefaultProjectName} from './scmProjectName';
 
 export function isProjectNameManuallyModified(
   projectDetailsForm: ProjectDetailsFormState | undefined
@@ -434,7 +436,7 @@ export function useScmProjectDetails({
             organization,
             variant: 'scm',
           });
-          addErrorMessage(t('Failed to create project'));
+          toast.error(t('Failed to create project'));
           captureProjectCreationFailure({
             error,
             organization,

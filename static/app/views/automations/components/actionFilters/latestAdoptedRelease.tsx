@@ -1,21 +1,23 @@
+import {useQuery} from '@tanstack/react-query';
+
 import type {SelectValue} from '@sentry/scraps/select';
 
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {t, tct} from 'sentry/locale';
 import type {Environment} from 'sentry/types/project';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
+import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
+import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
+
 import {
   AGE_COMPARISON_CHOICES,
   MODEL_AGE_CHOICES,
   type AgeComparison,
   type ModelAge,
-} from 'sentry/views/automations/components/actionFilters/constants';
-import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
-import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
-import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
+} from './constants';
 
 export function LatestAdoptedReleaseDetails({condition}: {condition: DataCondition}) {
   return tct(
@@ -104,16 +106,12 @@ function EnvironmentField() {
 
 function useOrganizationEnvironments() {
   const organization = useOrganization();
-  const {data: environments = [], isLoading} = useApiQuery<Environment[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/environments/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: {visibility: 'visible'}},
-    ],
-    {
+  const {data: environments = [], isLoading} = useQuery(
+    apiOptions.as<Environment[]>()('/organizations/$organizationIdOrSlug/environments/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {visibility: 'visible'},
       staleTime: 30_000,
-    }
+    })
   );
   return {environments, isLoading};
 }

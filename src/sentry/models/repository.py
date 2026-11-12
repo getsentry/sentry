@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, ClassVar, Literal
+from typing import TYPE_CHECKING, Any, ClassVar, Literal
 
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import models, router, transaction
@@ -32,6 +32,9 @@ from sentry.signals import pending_delete
 from sentry.users.services.user import RpcUser
 from sentry.utils.email import MessageBuilder
 
+if TYPE_CHECKING:
+    from sentry.plugins.providers import IntegrationRepositoryProvider
+
 REPOSITORY_NAME_LENGTH = 500
 REPOSITORY_URL_LENGTH = 512
 
@@ -44,16 +47,19 @@ RepoLookup = Literal["external_id", "name"]
 
 class RepositoryManager(BaseManager["Repository"]):
     def provider_match(self, provider: str) -> models.Q:
-        """Match a bare provider against both stored shapes.
+        """Match a provider against both stored shapes.
 
         Sentry stores the ``integrations:``-prefixed provider (e.g. ``integrations:github``)
-        while many callers carry the bare form (``github``). This is the single place that
-        owns the dual shape, so provider lookups stay consistent across SCM-reporting paths.
+        while many callers carry the bare form (``github``). Normalize either input shape
+        here so provider lookups stay consistent across SCM-reporting paths.
         """
-        return models.Q(provider=provider) | models.Q(provider=f"integrations:{provider}")
+        normalized_provider = provider.removeprefix("integrations:").lower()
+        return models.Q(provider=normalized_provider) | models.Q(
+            provider=f"integrations:{normalized_provider}"
+        )
 
     def _resolve_active_unique(
-        self, *, organization_id: int, normalized_provider: str | None, **identity: str
+        self, *, organization_id: int, normalized_provider: str | None, **identity: str | int
     ) -> tuple[Repository | None, RepoResolution]:
         """Resolve to the single active org repo matching ``identity``, or say why not.
 
@@ -108,6 +114,44 @@ class RepositoryManager(BaseManager["Repository"]):
             external_id=external_id,
         )
 
+    def resolve_active_by_reference(
+        self,
+        *,
+        organization_id: int,
+        repository_id: int | None = None,
+        provider: str | None = None,
+        external_id: str | None = None,
+        name: str | None = None,
+    ) -> tuple[Repository | None, RepoResolution]:
+        """Resolve one active repository using the strongest supplied identity.
+
+        Repository IDs take precedence over provider-side external IDs, which take
+        precedence over names. A failed lookup never falls back to a weaker identity:
+        doing so could silently resolve a different repository than the caller specified.
+        """
+        normalized_provider = (
+            provider.removeprefix("integrations:").lower() if provider is not None else None
+        )
+        if repository_id is not None:
+            return self._resolve_active_unique(
+                organization_id=organization_id,
+                normalized_provider=None,
+                id=repository_id,
+            )
+        if external_id is not None:
+            return self.resolve_active_by_external_id(
+                organization_id=organization_id,
+                external_id=external_id,
+                normalized_provider=normalized_provider,
+            )
+        if name is not None:
+            return self.resolve_active(
+                organization_id=organization_id,
+                name=name,
+                normalized_provider=normalized_provider,
+            )
+        return None, "not_found"
+
 
 @cell_silo_model
 class Repository(Model):
@@ -137,19 +181,21 @@ class Repository(Model):
 
     __repr__ = sane_repr("organization_id", "name", "provider")
 
-    def has_integration_provider(self):
-        return self.provider and self.provider.startswith("integrations:")
+    def has_integration_provider(self) -> bool:
+        return bool(self.provider and self.provider.startswith("integrations:"))
 
-    def get_provider(self):
+    def get_provider(self) -> IntegrationRepositoryProvider | None:
         from sentry.plugins.base import bindings
 
         if not self.has_integration_provider():
             return None
 
-        provider_cls = bindings.get("integration-repository.provider").get(self.provider)
-        return provider_cls(self.provider)
+        provider = self.provider
+        assert provider is not None
+        provider_cls = bindings.get("integration-repository.provider").get(provider)
+        return provider_cls(provider)
 
-    def generate_delete_fail_email(self, error_message):
+    def generate_delete_fail_email(self, error_message: str) -> MessageBuilder:
         provider = self.get_provider()
         new_context = {
             "repo": self,
@@ -164,7 +210,7 @@ class Repository(Model):
             html_template="sentry/emails/unable-to-delete-repo.html",
         )
 
-    def send_delete_fail_email(self, error_message, actor_email):
+    def send_delete_fail_email(self, error_message: str, actor_email: str) -> None:
         from sentry.notifications.platform.service import NotificationService
         from sentry.notifications.platform.target import GenericNotificationTarget
         from sentry.notifications.platform.templates.repository import UnableToDeleteRepository
@@ -265,7 +311,7 @@ class Repository(Model):
         )
 
 
-def on_delete(instance, actor: RpcUser | None = None, **kwargs):
+def on_delete(instance: Repository, actor: RpcUser | None = None, **kwargs: object) -> None:
     """
     Remove webhooks for repository providers that use repository level webhooks.
     This is called from sentry.deletions.tasks.run_deletion()
@@ -274,7 +320,7 @@ def on_delete(instance, actor: RpcUser | None = None, **kwargs):
     if not instance.provider:
         return
 
-    def handle_exception(e):
+    def handle_exception(e: Exception) -> None:
         from sentry.exceptions import InvalidIdentity, PluginError
         from sentry.shared_integrations.exceptions import IntegrationError
 
@@ -287,7 +333,9 @@ def on_delete(instance, actor: RpcUser | None = None, **kwargs):
 
     if instance.has_integration_provider():
         try:
-            instance.get_provider().on_delete_repository(repo=instance)
+            provider = instance.get_provider()
+            assert provider is not None
+            provider.on_delete_repository(repo=instance)
         except Exception as exc:
             handle_exception(exc)
 

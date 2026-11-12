@@ -1,4 +1,5 @@
-from typing import cast
+from collections.abc import Mapping
+from typing import Any, cast
 
 import pytest
 from sentry_conventions.attributes import ATTRIBUTE_METADATA, ATTRIBUTE_NAMES
@@ -490,7 +491,9 @@ def test_write_tags_for_performance_issue_detection() -> None:
     }
 
 
-def _mock_performance_issue_span(is_segment, attributes, **fields) -> SpanEvent:
+def _mock_performance_issue_span(
+    is_segment: bool, attributes: Mapping[str, object], **fields: object
+) -> SpanEvent:
     return cast(
         SpanEvent,
         {
@@ -621,7 +624,7 @@ def test_shared_attributes_have_unique_deprecation_chains() -> None:
     ],
 )
 def test_shared_attributes_preserve_segment_keys(attribute_names: tuple[str, ...]) -> None:
-    segment_attributes = {
+    segment_attributes: dict[str, Any] = {
         name: {"type": "string", "value": f"segment-value-{i}"}
         for i, name in enumerate(attribute_names)
     }

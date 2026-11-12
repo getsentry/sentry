@@ -11,18 +11,18 @@ import styled from '@emotion/styled';
 import {IconSeer} from '@sentry/icons/seer';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
+import {parseAsString} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {GroupList} from 'sentry/components/issues/groupList';
 import {Placeholder} from 'sentry/components/placeholder';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
@@ -45,7 +45,6 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {
   buildDetectorZoomQuery,
   computeZoomRangeMs,
@@ -61,13 +60,14 @@ import {
 } from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
+import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
 import {
   investigationCandidatesQueryOptions,
   getInvestigationDetailQueryOptions,
   investigationOrchestrationQueryOptions,
   useLaunchInvestigationMutation,
 } from 'sentry/views/investigations/api';
-import {shouldPollInvestigationBlocks} from 'sentry/views/investigations/detail/cell';
+import {shouldPollInvestigationBlocks} from 'sentry/views/investigations/detail/block';
 import {shouldPollInvestigationRun} from 'sentry/views/investigations/hypotheses/investigationHypotheses';
 import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
 import {SeerStatusBlock} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
@@ -76,7 +76,9 @@ import type {
   InvestigationOrchestration,
   MetricOpenPeriodInvestigationSource,
 } from 'sentry/views/investigations/types';
+import {getInvestigationPath} from 'sentry/views/investigations/utils';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
 
 import {AttributeComparisonSection} from './attributeComparisonSection';
 import {OpenPeriodTimelineSection} from './openPeriodTimelineSection';
@@ -177,6 +179,12 @@ function getFormattedEvaluatedValue({
   return `${value.toLocaleString()}${unitSuffix}`;
 }
 
+const timePeriodParsers = {
+  statsPeriod: parseAsString,
+  start: parseAsString,
+  end: parseAsString,
+};
+
 /**
  * Once the open period loads, this hook will set the time range to visibly center the open period.
  * If the URL already has a time period, this hook will do nothing
@@ -193,17 +201,17 @@ function useZoomTimeRangeToOpenPeriod({
   openPeriodStart: string | null;
 }) {
   const organization = useOrganization();
-  const params = useParams<{groupId: string; eventId?: string}>();
+  const groupId = useGroupId();
   const location = useLocation();
   const navigate = useNavigate();
 
   const zoomTimeRangeToOpenPeriod = useEffectEvent(() => {
-    const hasTimePeriod =
-      defined(location.query.statsPeriod) ||
-      defined(location.query.start) ||
-      defined(location.query.end);
+    const {statsPeriod, start, end} = loadQueryParamsFromLocation(
+      timePeriodParsers,
+      location
+    );
 
-    if (hasTimePeriod) {
+    if (statsPeriod !== null || start !== null || end !== null) {
       return;
     }
 
@@ -219,7 +227,7 @@ function useZoomTimeRangeToOpenPeriod({
       navigate(
         {
           pathname: normalizeUrl(
-            `/organizations/${organization.slug}/issues/${params.groupId}/events/${eventId}/`
+            `/organizations/${organization.slug}/issues/${groupId}/events/${eventId}/`
           ),
           query,
         },
@@ -450,28 +458,14 @@ function TriggeredConditionDetails({
         title="Triggered Condition"
         sectionKey="triggered_condition"
         actions={
-          <Flex gap="xs">
-            <FeedbackButton
-              variant="secondary"
-              aria-label={t('Give feedback on metric issues')}
-              size="xs"
-              feedbackOptions={{
-                messagePlaceholder: t('Tell us what you think about this metric issue.'),
-                tags: {
-                  'feedback.source': 'metric_issue_details',
-                  'feedback.owner': 'aci',
-                },
-              }}
+          isOpenPeriodLoading ? null : (
+            <OpenInDestinationButton
+              snubaQuery={snubaQuery}
+              projectId={projectId}
+              start={startDate}
+              end={endDate}
             />
-            {!isOpenPeriodLoading && (
-              <OpenInDestinationButton
-                snubaQuery={snubaQuery}
-                projectId={projectId}
-                start={startDate}
-                end={endDate}
-              />
-            )}
-          </Flex>
+          )
         }
       >
         <KeyValueTableCard
@@ -667,7 +661,7 @@ function SeerInvestigationSection({
   const hasSummary = Boolean(
     existingInvestigation?.summary && existingInvestigation.summaryDescription
   );
-  const {data: orchestration} = useQuery({
+  const {data: orchestration, dataUpdatedAt: orchestrationReceivedAt} = useQuery({
     ...investigationOrchestrationQueryOptions(
       organization.slug,
       existingInvestigationId ?? 'disabled'
@@ -688,7 +682,11 @@ function SeerInvestigationSection({
         : false;
     },
   });
-  const statusBlock = getInvestigationStatusBlock(existingInvestigation, orchestration);
+  const statusBlock = getInvestigationStatusBlock(
+    existingInvestigation,
+    orchestration,
+    orchestrationReceivedAt
+  );
 
   const launchMutation = useLaunchInvestigationMutation(organization.slug, {
     onSuccess: launchedInvestigation => {
@@ -701,20 +699,14 @@ function SeerInvestigationSection({
           .queryKey,
         {json: launchedInvestigation, headers: {}}
       );
-      navigate(
-        normalizeUrl(
-          `/organizations/${organization.slug}/explore/investigations/${launchedInvestigation.id}/`
-        )
-      );
+      navigate(getInvestigationPath(organization.slug, launchedInvestigation.id));
     },
-    onError: () => addErrorMessage(t('Unable to launch investigation.')),
+    onError: () => toast.error(t('Unable to launch investigation.')),
   });
 
   const investigationPath =
     candidate?.status === 'view'
-      ? normalizeUrl(
-          `/organizations/${organization.slug}/explore/investigations/${candidate.investigationId}/`
-        )
+      ? getInvestigationPath(organization.slug, candidate.investigationId)
       : null;
 
   if (
@@ -791,7 +783,8 @@ function SeerInvestigationSection({
  */
 function getInvestigationStatusBlock(
   investigation: InvestigationDetail | undefined,
-  orchestration: InvestigationOrchestration | undefined
+  orchestration: InvestigationOrchestration | undefined,
+  orchestrationReceivedAt: number
 ): ComponentProps<typeof SeerStatusBlock> | null {
   // The run's projection carries the summary too, so it shows even when the
   // detail query stopped polling before the summary was written.
@@ -816,7 +809,9 @@ function getInvestigationStatusBlock(
       ),
     };
   }
-  const runStatus = orchestration ? getSeerStatusBlock(orchestration) : null;
+  const runStatus = orchestration
+    ? getSeerStatusBlock(orchestration, orchestrationReceivedAt)
+    : null;
   if (!runStatus) {
     return null;
   }
@@ -832,6 +827,7 @@ function getInvestigationStatusBlock(
     // what happened, carry it here.
     description: runStatus.variant === 'running' ? undefined : runStatus.description,
     toolActivity: runStatus.toolActivity,
+    startTime: runStatus.startTime,
   };
 }
 

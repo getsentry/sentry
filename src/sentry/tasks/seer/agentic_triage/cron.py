@@ -28,7 +28,6 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.seer.agent.client import SeerAgentClient
-from sentry.seer.agent.client_utils import AgentRunOptions
 from sentry.seer.agentic_triage.models import AgenticTriagePayload, TriageCandidate, TriageTweaks
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
@@ -39,6 +38,7 @@ from sentry.seer.autofix.utils import (
     is_free_cohort_org,
     is_seer_autotriggered_autofix_rate_limited,
     is_seer_seat_based_tier_enabled,
+    is_seer_token_based_billing_onboarding_enabled,
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.models.agentic_triage import SeerAgenticTriageRunErrorType
@@ -95,6 +95,7 @@ class SeerAgenticTriageRunOptions(TypedDict):
     source: WorkflowRunSource
     max_candidates: int
     dry_run: bool
+    single_run: bool
     intelligence_level: IntelligenceLevel
     reasoning_effort: ReasoningEffort
     extra_triage_instructions: str
@@ -107,6 +108,7 @@ class SeerAgenticTriageRunOptionsPartial(TypedDict, total=False):
     source: WorkflowRunSource
     max_candidates: int
     dry_run: bool
+    single_run: bool
     intelligence_level: IntelligenceLevel
     reasoning_effort: ReasoningEffort
     extra_triage_instructions: str
@@ -268,7 +270,7 @@ def _prepare_scheduled_run(
     run, created = SeerWorkflowRun.objects.get_or_create(
         organization=organization,
         workflow_config=workflow_config,
-        schedule_id=schedule_id,
+        trigger_key=schedule_id,
         defaults={"extras": extras},
     )
     if created:
@@ -354,7 +356,7 @@ def run_agentic_triage_for_org(
         existing_run = SeerWorkflowRun.objects.filter(
             organization=organization,
             workflow_config__strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
-            schedule_id=schedule_id,
+            trigger_key=schedule_id,
         ).first()
         # Without quota, only completed runs or runs with persisted executions can continue.
         if existing_run is None or (
@@ -543,6 +545,7 @@ def _run_option_defaults(data: Mapping[str, Any]) -> SeerAgenticTriageRunOptions
         source=data.get("source", "cron"),
         max_candidates=default_max_candidates() if max_candidates is None else max_candidates,
         dry_run=data.get("dry_run", False),
+        single_run=data.get("single_run", False),
         intelligence_level=data.get("intelligence_level", DEFAULT_INTELLIGENCE_LEVEL),
         reasoning_effort=data.get("reasoning_effort", DEFAULT_REASONING_EFFORT),
         extra_triage_instructions=data.get(
@@ -636,11 +639,11 @@ def _get_eligible_orgs_from_batch(
     if options.get("seer.night_shift.enable_for_legacy_orgs"):
         return eligible
 
-    # seat-based-seer-enabled: required for paid path, bypassed by free cohort
     paid_eligible: list[Organization] = []
     free_cohort_eligible: list[Organization] = []
     for org in eligible:
-        if all(features.has(f, org) for f in PER_ORG_FEATURE_NAMES):
+        has_seat_based_seer = all(features.has(f, org) for f in PER_ORG_FEATURE_NAMES)
+        if has_seat_based_seer or is_seer_token_based_billing_onboarding_enabled(org):
             paid_eligible.append(org)
         elif is_free_cohort_org(org):
             free_cohort_eligible.append(org)
@@ -820,7 +823,6 @@ def _build_shard_plans(
                     group_id=candidate.group.id,
                     title=candidate.group.title,
                     culprit=candidate.group.culprit,
-                    fixability=candidate.fixability,
                     times_seen=candidate.group.times_seen,
                     first_seen=candidate.group.first_seen.isoformat(),
                     priority=priority_label(candidate.group.priority),
@@ -884,19 +886,12 @@ def _dispatch_pending_shards(
         return ShardDispatchStatus.NO_SEER_ACCESS
 
     using = router.db_for_write(SeerWorkflowRunExecution)
-    agent_run_options: AgentRunOptions = {
-        "enable_code_mode_tools": (
-            "only"
-            if features.has("organizations:seer-night-shift-code-mode", organization)
-            else "off"
-        )
-    }
     planned_shards = list(run.executions.order_by("id"))
     dispatched = 0
     for shard_index, planned_shard in enumerate(planned_shards):
         with transaction.atomic(using=using):
             shard = SeerWorkflowRunExecution.objects.select_for_update().get(id=planned_shard.id)
-            if shard.seer_run_id is not None:
+            if shard.seer_run_id:
                 dispatched += 1
                 continue
 
@@ -915,11 +910,7 @@ def _dispatch_pending_shards(
 
             def _link_shard(created: SeerRun) -> None:
                 shard.seer_run = created
-                shard.extras = {
-                    **shard.extras,
-                    "enable_code_mode_tools": agent_run_options["enable_code_mode_tools"],
-                }
-                shard.save(update_fields=["seer_run", "extras"])
+                shard.save(update_fields=["seer_run"])
 
             try:
                 client.start_feature_run(
@@ -929,7 +920,6 @@ def _dispatch_pending_shards(
                     flush=False,
                     on_run_created=_link_shard,
                     referrer="night_shift",
-                    agent_run_options=agent_run_options,
                 )
             except Exception:
                 logger.exception(

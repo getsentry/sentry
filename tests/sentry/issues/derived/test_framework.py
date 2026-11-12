@@ -338,9 +338,10 @@ class TestEnumCodecCoverage:
         ("from_column", "decode"),
     ],
 )
-def test_codec_error_context(method: str, stage: Literal["decode", "encode"]) -> None:
-    cause = RuntimeError("codec failed")
-
+@pytest.mark.parametrize("cause", [RuntimeError("codec failed"), ValueError("codec failed")])
+def test_codec_error_context(
+    method: str, stage: Literal["decode", "encode"], cause: Exception
+) -> None:
     class BrokenCodec(Codec[Any]):
         def _validate(self, value: Any) -> Any:
             raise cause

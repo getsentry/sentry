@@ -1,5 +1,6 @@
 import uuid
-from unittest.mock import patch
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 
@@ -13,7 +14,7 @@ from sentry.utils.eap import hex_to_item_id
 
 
 class ProduceProcessingErrorsToEAPTest(TestCase):
-    def _make_event_data(self, **overrides):
+    def _make_event_data(self, **overrides: object) -> dict[str, Any]:
         data = {
             "event_id": "a" * 32,
             "timestamp": 1234567890,
@@ -24,7 +25,9 @@ class ProduceProcessingErrorsToEAPTest(TestCase):
 
     @patch("sentry.processing_errors.eap.producer._eap_producer")
     @patch("sentry.processing_errors.eap.producer.get_topic_definition")
-    def test_basic_error_produces_trace_item(self, mock_get_topic, mock_producer):
+    def test_basic_error_produces_trace_item(
+        self, mock_get_topic: MagicMock, mock_producer: MagicMock
+    ) -> None:
         mock_get_topic.return_value = {"real_topic_name": "test-eap-items"}
 
         event_data = self._make_event_data()
@@ -56,7 +59,9 @@ class ProduceProcessingErrorsToEAPTest(TestCase):
 
     @patch("sentry.processing_errors.eap.producer._eap_producer")
     @patch("sentry.processing_errors.eap.producer.get_topic_definition")
-    def test_multiple_errors_produce_multiple_items(self, mock_get_topic, mock_producer):
+    def test_multiple_errors_produce_multiple_items(
+        self, mock_get_topic: MagicMock, mock_producer: MagicMock
+    ) -> None:
         mock_get_topic.return_value = {"real_topic_name": "test-eap-items"}
 
         event_data = self._make_event_data()
@@ -72,7 +77,9 @@ class ProduceProcessingErrorsToEAPTest(TestCase):
 
     @patch("sentry.processing_errors.eap.producer._eap_producer")
     @patch("sentry.processing_errors.eap.producer.get_topic_definition")
-    def test_deterministic_item_id(self, mock_get_topic, mock_producer):
+    def test_deterministic_item_id(
+        self, mock_get_topic: MagicMock, mock_producer: MagicMock
+    ) -> None:
         mock_get_topic.return_value = {"real_topic_name": "test-eap-items"}
         codec = get_topic_codec(Topic.SNUBA_ITEMS)
 
@@ -95,7 +102,9 @@ class ProduceProcessingErrorsToEAPTest(TestCase):
 
     @patch("sentry.processing_errors.eap.producer._eap_producer")
     @patch("sentry.processing_errors.eap.producer.get_topic_definition")
-    def test_optional_fields_included_when_present(self, mock_get_topic, mock_producer):
+    def test_optional_fields_included_when_present(
+        self, mock_get_topic: MagicMock, mock_producer: MagicMock
+    ) -> None:
         mock_get_topic.return_value = {"real_topic_name": "test-eap-items"}
         codec = get_topic_codec(Topic.SNUBA_ITEMS)
 
@@ -129,7 +138,9 @@ class ProduceProcessingErrorsToEAPTest(TestCase):
 
     @patch("sentry.processing_errors.eap.producer._eap_producer")
     @patch("sentry.processing_errors.eap.producer.get_topic_definition")
-    def test_optional_fields_omitted_when_absent(self, mock_get_topic, mock_producer):
+    def test_optional_fields_omitted_when_absent(
+        self, mock_get_topic: MagicMock, mock_producer: MagicMock
+    ) -> None:
         mock_get_topic.return_value = {"real_topic_name": "test-eap-items"}
         codec = get_topic_codec(Topic.SNUBA_ITEMS)
 
@@ -152,7 +163,7 @@ class ProduceProcessingErrorsToEAPTest(TestCase):
 
     @patch("sentry.processing_errors.eap.producer.logger")
     @patch("sentry.processing_errors.eap.producer._eap_producer")
-    def test_skips_when_no_trace_id(self, mock_producer, mock_logger):
+    def test_skips_when_no_trace_id(self, mock_producer: MagicMock, mock_logger: MagicMock) -> None:
         event_data = self._make_event_data()
         del event_data["contexts"]["trace"]["trace_id"]
         errors = [{"type": "js_no_source"}]
@@ -166,7 +177,7 @@ class ProduceProcessingErrorsToEAPTest(TestCase):
 
     @patch("sentry.processing_errors.eap.producer.logger")
     @patch("sentry.processing_errors.eap.producer._eap_producer")
-    def test_skips_when_no_contexts(self, mock_producer, mock_logger):
+    def test_skips_when_no_contexts(self, mock_producer: MagicMock, mock_logger: MagicMock) -> None:
         event_data = self._make_event_data()
         del event_data["contexts"]
         errors = [{"type": "js_no_source"}]
@@ -180,7 +191,9 @@ class ProduceProcessingErrorsToEAPTest(TestCase):
 
     @patch("sentry.processing_errors.eap.producer.logger")
     @patch("sentry.processing_errors.eap.producer._eap_producer")
-    def test_skips_when_contexts_is_none(self, mock_producer, mock_logger):
+    def test_skips_when_contexts_is_none(
+        self, mock_producer: MagicMock, mock_logger: MagicMock
+    ) -> None:
         event_data = self._make_event_data(contexts=None)
         errors = [{"type": "js_no_source"}]
 
@@ -193,7 +206,9 @@ class ProduceProcessingErrorsToEAPTest(TestCase):
 
     @patch("sentry.processing_errors.eap.producer.logger")
     @patch("sentry.processing_errors.eap.producer._eap_producer")
-    def test_skips_when_trace_context_is_none(self, mock_producer, mock_logger):
+    def test_skips_when_trace_context_is_none(
+        self, mock_producer: MagicMock, mock_logger: MagicMock
+    ) -> None:
         event_data = self._make_event_data(contexts={"trace": None})
         errors = [{"type": "js_no_source"}]
 
@@ -206,7 +221,9 @@ class ProduceProcessingErrorsToEAPTest(TestCase):
 
     @patch("sentry.processing_errors.eap.producer._eap_producer")
     @patch("sentry.processing_errors.eap.producer.logger")
-    def test_error_handling_does_not_raise(self, mock_logger, mock_producer):
+    def test_error_handling_does_not_raise(
+        self, mock_logger: MagicMock, mock_producer: MagicMock
+    ) -> None:
         mock_producer.produce.side_effect = Exception("Kafka error")
 
         event_data = self._make_event_data()
@@ -220,7 +237,9 @@ class ProduceProcessingErrorsToEAPTest(TestCase):
     @patch("sentry.processing_errors.eap.producer.metrics")
     @patch("sentry.processing_errors.eap.producer._eap_producer")
     @patch("sentry.processing_errors.eap.producer.get_topic_definition")
-    def test_success_metrics(self, mock_get_topic, mock_producer, mock_metrics):
+    def test_success_metrics(
+        self, mock_get_topic: MagicMock, mock_producer: MagicMock, mock_metrics: MagicMock
+    ) -> None:
         mock_get_topic.return_value = {"real_topic_name": "test-eap-items"}
 
         event_data = self._make_event_data()
@@ -236,7 +255,7 @@ class ProduceProcessingErrorsToEAPTest(TestCase):
 
     @patch("sentry.processing_errors.eap.producer.metrics")
     @patch("sentry.processing_errors.eap.producer._eap_producer")
-    def test_failure_metrics(self, mock_producer, mock_metrics):
+    def test_failure_metrics(self, mock_producer: MagicMock, mock_metrics: MagicMock) -> None:
         mock_producer.produce.side_effect = Exception("Kafka error")
 
         event_data = self._make_event_data()
@@ -251,7 +270,9 @@ class ProduceProcessingErrorsToEAPTest(TestCase):
 
     @patch("sentry.processing_errors.eap.producer._eap_producer")
     @patch("sentry.processing_errors.eap.producer.get_topic_definition")
-    def test_error_type_defaults_to_unknown(self, mock_get_topic, mock_producer):
+    def test_error_type_defaults_to_unknown(
+        self, mock_get_topic: MagicMock, mock_producer: MagicMock
+    ) -> None:
         mock_get_topic.return_value = {"real_topic_name": "test-eap-items"}
         codec = get_topic_codec(Topic.SNUBA_ITEMS)
 

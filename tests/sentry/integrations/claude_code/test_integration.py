@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Mapping
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -26,10 +26,17 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
+if TYPE_CHECKING:
+    from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
+
 MOCK_GET_CLIENT_CLASS = "sentry.integrations.claude_code.integration._get_client_class"
 
 
-def _mock_client_class(validate_return=True, validate_side_effect=None, **client_attrs):
+def _mock_client_class(
+    validate_return: bool = True,
+    validate_side_effect: object = None,
+    **client_attrs: object,
+) -> tuple[MagicMock, MagicMock]:
     """Create a mock client class whose instances have validate_api_key and optional attributes."""
     mock_client = MagicMock()
     mock_client.model = "claude-opus-4-6"
@@ -47,8 +54,8 @@ def _mock_client_class(validate_return=True, validate_side_effect=None, **client
 class ClaudeCodeIntegrationTest(IntegrationTestCase):
     provider = ClaudeCodeAgentIntegrationProvider
 
-    def _make_metadata(self, **overrides):
-        defaults = {
+    def _make_metadata(self, **overrides: object) -> dict[str, object]:
+        defaults: dict[str, object] = {
             "api_key": "sk-ant-test-api-key-123",
             "domain_name": "anthropic.com",
         }
@@ -64,7 +71,7 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
         digest = hashlib.sha256(f"{PROVIDER_KEY}:{self.organization.id}".encode()).hexdigest()
         return digest[:32]
 
-    def _create_installation(self, **metadata_overrides) -> ClaudeCodeAgentIntegration:
+    def _create_installation(self, **metadata_overrides: object) -> ClaudeCodeAgentIntegration:
         """Helper to create an integration and return its installation."""
         integration = self.create_integration(
             organization=self.organization,
@@ -459,7 +466,7 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
         )
         mock_cls, mock_client = _mock_client_class()
 
-        def archive_with_concurrent_write(vault_id):
+        def archive_with_concurrent_write(vault_id: str) -> None:
             with assume_test_silo_mode(SiloMode.CONTROL):
                 fresh = Integration.objects.get(id=installation.model.id)
                 fresh.metadata["installation_vault_ids"]["99"] = "vault_new"
@@ -478,13 +485,13 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
 
     def _setup_launch(
         self,
-        environment_id=None,
-        client_environment_id=None,
-        agent_id=None,
-        agent_version=None,
-        client_agent_id=None,
-        client_agent_version=None,
-    ):
+        environment_id: str | None = None,
+        client_environment_id: str | None = None,
+        agent_id: str | None = None,
+        agent_version: int | None = None,
+        client_agent_id: str | None = None,
+        client_agent_version: int | None = None,
+    ) -> tuple[ClaudeCodeAgentIntegration, MagicMock, MagicMock, CodingAgentLaunchRequest]:
         """Set up mocks for launch tests. Returns (installation, mock_client, mock_cls, request)."""
         from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
         from sentry.seer.autofix.constants import CodingAgentStatus

@@ -22,7 +22,6 @@ import {
   modalCss,
   ScreenshotModal,
 } from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
-import {getRuntimeLabelAndTooltip} from 'sentry/components/events/highlights/util';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {Version} from 'sentry/components/version';
 import {VersionHoverCard} from 'sentry/components/versionHoverCard';
@@ -34,6 +33,8 @@ import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {SectionDivider} from 'sentry/views/issueDetails/foldSection';
+
+import {getRuntimeLabelAndTooltip} from './util';
 
 interface HighlightsIconSummaryProps {
   event: Event;

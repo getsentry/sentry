@@ -13,7 +13,7 @@ import {OAuthFlowTransition} from 'sentry/views/authV2/oauth/oauthFlowTransition
 import {OAuthLayout} from 'sentry/views/authV2/oauth/oauthLayout';
 import {OrganizationConsentCard} from 'sentry/views/authV2/oauth/organizationConsentCard';
 import {useOAuthOrganization} from 'sentry/views/authV2/oauth/useOAuthOrganization';
-import {useBrandedAuthLoading} from 'sentry/views/authV2/useBrandedAuthLoading';
+import {useAuthPageLoading} from 'sentry/views/authV2/useAuthPageLoading';
 
 import {useOAuthAuthorizeFlow} from './useOAuthAuthorizeFlow';
 
@@ -24,7 +24,7 @@ export default function OAuthAuthorize() {
     state.status === 'consent' ? state.consent.transactionId : undefined
   );
   const isLoading = state.status === 'loading' || state.status === 'submitting';
-  useBrandedAuthLoading(isLoading);
+  useAuthPageLoading(isLoading);
 
   if (isLoading) {
     return null;

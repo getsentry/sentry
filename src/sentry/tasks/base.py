@@ -46,7 +46,7 @@ def instrumented_task(
     silenced_exceptions: tuple[type[BaseException], ...] | None = None,
     silo_mode: SiloMode | None = None,
     pass_headers: bool = False,
-    **kwargs,
+    **kwargs: object,
 ) -> Callable[[Callable[P, R]], Task[P, R]]:
     """
     Decorator for defining tasks.
@@ -165,8 +165,8 @@ def instrumented_task(
     return wrapped
 
 
-def track_group_async_operation(function):
-    def wrapper(*args, **kwargs):
+def track_group_async_operation(function: Callable[P, R]) -> Callable[P, R]:
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
         from sentry.utils import snuba
 
         try:

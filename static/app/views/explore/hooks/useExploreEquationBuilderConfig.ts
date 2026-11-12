@@ -9,9 +9,10 @@ import {
   FieldKind,
   getExploreEquationFieldDefinition,
 } from 'sentry/utils/fields';
-import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
-import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {useExploreSuggestedAttribute} from './useExploreSuggestedAttribute';
+import {useGetTraceItemAttributeValues} from './useGetTraceItemAttributeValues';
 
 function traceItemTagsToFunctionArguments(
   numberTags: TagCollection,

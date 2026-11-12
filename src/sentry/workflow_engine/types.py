@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
+from types import MappingProxyType
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -64,6 +65,21 @@ class DetectorException(Exception):
     pass
 
 
+class DetectorType(StrEnum):
+    """Detector implementation identities. Values are persisted and used by the API."""
+
+    ERROR = "error"
+    ISSUE_STREAM = "issue_stream"
+    METRIC_ISSUE = "metric_issue"
+    MONITOR_CHECK_IN_FAILURE = "monitor_check_in_failure"
+    UPTIME_DOMAIN_FAILURE = "uptime_domain_failure"
+    PREPROD_SIZE_ANALYSIS = "preprod_size_analysis"
+    SOURCEMAP_CONFIGURATION = "sourcemap_configuration"
+    PERFORMANCE_SLOW_DB_QUERY = "performance_slow_db_query"
+    PERFORMANCE_LARGE_HTTP_PAYLOAD = "performance_large_http_payload"
+    QUERY_INJECTION_VULNERABILITY = "query_injection_vulnerability"
+
+
 class DetectorPriorityLevel(IntEnum):
     OK = 0
     LOW = PriorityLevel.LOW
@@ -109,6 +125,7 @@ class WorkflowEventData:
     # True when an issue transitions to the ESCALATING substatus for any reason.
     has_escalated: bool | None = None
     workflow_env: Environment | None = None
+    organization: Organization | None = field(default=None, kw_only=True)
 
     # The cache field is used to deduplicate repeated work within the context
     # of a single event. This field violates the "frozen" requirement of the
@@ -117,6 +134,29 @@ class WorkflowEventData:
     _cache: _WorkflowEventLocalCache = field(
         default_factory=lambda: _WorkflowEventLocalCache(), repr=False, compare=False, hash=False
     )
+
+    def get_organization(self) -> Organization:
+        if self.organization is not None:
+            if self.organization.id != self.event.project.organization_id:
+                raise ValueError(
+                    "Workflow event and organization must belong to the same organization"
+                )
+            return self.organization
+        return self.event.project.organization
+
+    @property
+    def event_id(self) -> str:
+        from sentry.services.eventstore.models import GroupEvent
+
+        return str(self.event.event_id if isinstance(self.event, GroupEvent) else self.event.id)
+
+    @property
+    def project_id(self) -> int:
+        return self.event.project_id
+
+    @property
+    def group_id(self) -> int:
+        return self.group.id
 
 
 @dataclass(frozen=True)
@@ -140,6 +180,8 @@ class ConfigTransformer(ABC):
     A ConfigTransformer is used to transform the config between API and internal representations.
     """
 
+    api_schema: dict[str, Any]
+
     @abstractmethod
     def from_api(self, config: dict[str, Any]) -> dict[str, Any]:
         raise NotImplementedError
@@ -152,6 +194,7 @@ class ConfigTransformer(ABC):
 class ActionHandler:
     config_schema: ClassVar[dict[str, Any]]
     data_schema: ClassVar[dict[str, Any]]
+    required_features: ClassVar[tuple[FeatureGate, ...]] = ()
 
     class Group(StrEnum):
         NOTIFICATION = "notification"
@@ -159,6 +202,26 @@ class ActionHandler:
         OTHER = "other"
 
     group: ClassVar[Group]
+
+    @classmethod
+    def get_dedup_key(cls, action: Action) -> str:
+        key_parts = [action.type]
+        if action.integration_id:
+            key_parts.append(str(action.integration_id))
+
+        if action.config:
+            config = action.config.copy()
+            config.pop("target_display", None)
+            key_parts.append(str(config))
+
+        if action.data:
+            data = action.data.copy()
+            if "dynamic_form_fields" in data:
+                data = data["dynamic_form_fields"]
+
+            key_parts.append(str(data))
+
+        return ":".join(key_parts)
 
     @classmethod
     def get_config_transformer(cls) -> ConfigTransformer | None:
@@ -301,10 +364,33 @@ class SnubaQueryDataSourceType(TypedDict, total=False):
     event_types: list[SnubaQueryEventType.EventType]
 
 
+class DetectorAPIOperation(StrEnum):
+    LIST = "list"
+    DISCOVER = "discover"
+    GET = "GET"
+    POST = "POST"
+    PUT = "PUT"
+    DELETE = "DELETE"
+
+
+@dataclass(frozen=True)
+class FeatureGate:
+    name: str
+
+
+APIGate: TypeAlias = bool | FeatureGate
+
+
 class DetectorSettings:
+    DEFAULT_API_AVAILABILITY: ClassVar[Mapping[DetectorAPIOperation, APIGate]] = MappingProxyType(
+        {operation: True for operation in DetectorAPIOperation}
+    )
+
+    api_availability: ClassVar[Mapping[DetectorAPIOperation, APIGate]] = DEFAULT_API_AVAILABILITY
     handler: ClassVar[type[BaseDetectorHandler[Any, Any]] | None] = None
     validator: ClassVar[type[BaseDetectorTypeValidator] | None] = None
-    config_schema: ClassVar[dict[str, Any]] = {}
+    # None preserves legacy detectors whose configuration is validated outside this model.
+    config_schema: ClassVar[dict[str, Any] | None] = {}
     filter: ClassVar[Q | None] = None
 
 

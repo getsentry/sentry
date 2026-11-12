@@ -3,12 +3,13 @@ import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {OpenInContextLine} from 'sentry/components/events/interfaces/frame/openInContextLine';
 import type {
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types/integrations';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
+
+import {OpenInContextLine} from './openInContextLine';
 
 describe('OpenInContextLine', () => {
   const filename = '/sentry/app.py';
@@ -17,6 +18,7 @@ describe('OpenInContextLine', () => {
   const components: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>> = [
     {
       uuid: 'ed517da4-a324-44c0-aeea-1894cd9923fb',
+      installationUuid: install.uuid,
       type: 'stacktrace-link',
       schema: {
         uri: '/redirection',
@@ -32,6 +34,7 @@ describe('OpenInContextLine', () => {
     },
     {
       uuid: 'dd9cc6d7-17f9-4d25-9017-4802821e694f',
+      installationUuid: '25d10adb-7b89-45ac-99b5-edaa714341ba',
       type: 'stacktrace-link',
       schema: {
         url: 'http://localhost:4000/something?installationId=25d10adb-7b89-45ac-99b5-edaa714341ba&projectSlug=internal',

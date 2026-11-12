@@ -20,7 +20,9 @@ class TestPreparerIssueLink(TestCase):
 
         self.install = self.create_sentry_app_installation(slug=self.sentry_app.slug)
 
-        self.component = self.sentry_app.components.first()
+        component = self.sentry_app.components.first()
+        assert component is not None
+        self.component = component
         with assume_test_silo_mode(SiloMode.CELL):
             self.project = Organization.objects.get(
                 id=self.install.organization_id
@@ -100,7 +102,9 @@ class TestPreparerStacktraceLink(TestCase):
 
         self.install = self.create_sentry_app_installation(slug=self.sentry_app.slug)
 
-        self.component = self.sentry_app.components.first()
+        component = self.sentry_app.components.first()
+        assert component is not None
+        self.component = component
         with assume_test_silo_mode(SiloMode.CELL):
             self.project = Organization.objects.get(
                 id=self.install.organization_id
@@ -171,11 +175,13 @@ class TestPreparerAlertRuleAction(TestCase):
             slug="pied-piper", organization=self.project.organization
         )
 
-        self.component = self.sentry_app.components.first()
+        component = self.sentry_app.components.first()
+        assert component is not None
+        self.component = component
         with assume_test_silo_mode(SiloMode.CELL):
-            self.project = Organization.objects.get(
-                id=self.install.organization_id
-            ).project_set.first()
+            project = Organization.objects.get(id=self.install.organization_id).project_set.first()
+            assert project is not None
+            self.project = project
 
     @responses.activate
     def test_prepares_components_requiring_requests(self) -> None:

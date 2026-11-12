@@ -11,6 +11,7 @@ from sentry.issues.auto_source_code_config.code_mapping import (
 from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.repository import Repository
 from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.utils.event_frames import EventFrame
 
 
@@ -29,12 +30,15 @@ class PerforceCodeMappingTest(IntegrationTestCase):
             external_id="perforce-test",
             metadata={},
         )
-        self.installation = self.integration.get_installation(self.organization.id)
+        self.installation = get_installation_of_type(
+            PerforceIntegration, self.integration, self.organization.id
+        )
         self.project = self.create_project(organization=self.organization)
-        self.org_integration = self.integration.organizationintegration_set.first()
-        assert self.org_integration is not None
+        org_integration = self.integration.organizationintegration_set.first()
+        assert org_integration is not None
+        self.org_integration = org_integration
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
 
     def test_code_mapping_depot_root_to_slash(self) -> None:
@@ -352,10 +356,13 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
             external_id="perforce-test",
             metadata={},
         )
-        self.installation = self.integration.get_installation(self.organization.id)
+        self.installation = get_installation_of_type(
+            PerforceIntegration, self.integration, self.organization.id
+        )
         self.project = self.create_project(organization=self.organization)
-        self.org_integration = self.integration.organizationintegration_set.first()
-        assert self.org_integration is not None
+        org_integration = self.integration.organizationintegration_set.first()
+        assert org_integration is not None
+        self.org_integration = org_integration
 
         self.repo = Repository.objects.create(
             name="//depot",
@@ -386,7 +393,7 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
         )
         self.check_file_patcher.start()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.check_file_patcher.stop()
         super().tearDown()
 

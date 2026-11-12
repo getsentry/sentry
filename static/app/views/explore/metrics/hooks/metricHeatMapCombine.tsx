@@ -5,7 +5,8 @@ import type {
   HeatMapItem,
   HeatMapSeries,
 } from 'sentry/views/dashboards/widgets/common/types';
-import type {TimeDomain} from 'sentry/views/explore/metrics/hooks/partitionHeatMapWindows';
+
+import type {TimeDomain} from './partitionHeatMapWindows';
 
 export interface ChunkedHeatMapResult {
   error: Error | null;

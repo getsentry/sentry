@@ -5,7 +5,7 @@ import uuid
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from time import time
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
@@ -36,6 +36,7 @@ from sentry.dynamic_sampling.rules.helpers.latest_releases import LatestReleaseB
 from sentry.event_manager import (
     EventManager,
     _get_event_instance,
+    _handle_regression,
     get_event_type,
     has_pending_commit_resolution,
     materialize_metadata,
@@ -49,7 +50,7 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.integrations.models.external_issue import ExternalIssue
-from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.issues.action_log.types import SetRegressedAction
 from sentry.issues.grouptype import (
     GroupCategory,
@@ -765,6 +766,22 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         log.assert_logged(
             SetRegressedAction, group_id=group.id, source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR
         )
+
+    @patch("sentry.issues.attributes.produce_snapshot_to_kafka")
+    def test_regression_emits_snapshot(self, produce_snapshot: MagicMock) -> None:
+        event = self.store_event(data={}, project_id=self.project.id)
+
+        assert event.group_id is not None
+        group = Group.objects.get(id=event.group_id)
+
+        group.update(status=GroupStatus.RESOLVED, substatus=None, active_at=before_now(days=1))
+
+        produce_snapshot.reset_mock()
+
+        with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+            _handle_regression(group, event, None)
+
+        assert produce_snapshot.called
 
     @mock.patch("sentry.tasks.activity.send_activity_notifications.delay")
     def test_marks_as_unresolved_with_new_release(
@@ -2993,8 +3010,11 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_creation(self) -> None:
-        event = self.create_performance_issue(
-            event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view"))
+        event = cast(
+            "GroupEvent",
+            self.create_performance_issue(
+                event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view"))
+            ),
         )
         data = event.data
         assert event.get_event_type() == "transaction"
@@ -3051,7 +3071,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.level == 40
         assert group.issue_category == GroupCategory.DB_QUERY
         assert group.issue_type == PerformanceNPlusOneGroupType
-        assert isinstance(event, GroupEvent)
         assert event.occurrence
         assert event.occurrence.evidence_display == [
             IssueEvidence(
@@ -3205,9 +3224,12 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     )
     def test_perf_issue_slow_db_issue_is_created(self) -> None:
         def attempt_to_generate_slow_db_issue() -> GroupEvent:
-            return self.create_performance_issue(
-                event_data=make_event(**get_event("slow-db/slow-db-spans")),
-                issue_type=PerformanceSlowDBQueryGroupType,
+            return cast(
+                "GroupEvent",
+                self.create_performance_issue(
+                    event_data=make_event(**get_event("slow-db/slow-db-spans")),
+                    issue_type=PerformanceSlowDBQueryGroupType,
+                ),
             )
 
         last_event = attempt_to_generate_slow_db_issue()

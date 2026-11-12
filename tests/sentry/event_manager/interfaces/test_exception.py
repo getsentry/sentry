@@ -275,10 +275,14 @@ def test_context_with_two_exceptions_having_mechanism(
 
 def test_iteration() -> None:
     inst = Exception.to_python({"values": [None, {"type": "ValueError"}, None]})
+    assert inst is not None
 
     assert len(inst) == 1
-    assert inst[0].type == "ValueError"
+    first = inst.exceptions()[0]
+    assert first is not None
+    assert first.type == "ValueError"
     for exc in inst:
+        assert exc is not None
         assert exc.type == "ValueError"
 
 
@@ -303,6 +307,8 @@ def test_get_api_meta_with_non_numeric_keys() -> None:
         }
     )
 
+    assert inst is not None
+
     # Test mix of valid single-digit, multi-digit, and invalid keys
     meta: dict[str, dict[str, dict[str, object]]] = {
         "values": {
@@ -320,6 +326,7 @@ def test_get_api_meta_with_non_numeric_keys() -> None:
     }
 
     result = inst.get_api_meta(meta)
+    assert result is not None
 
     # Valid single-digit keys should be present
     assert "0" in result["values"]

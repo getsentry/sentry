@@ -32,6 +32,7 @@ from sentry.notifications.platform.types import (
     ParagraphSection,
     PlainTextBlock,
 )
+from sentry.organizations.services.organization.serial import serialize_organization_summary
 from sentry.testutils.cases import TestCase
 from sentry.testutils.notifications.platform import MockNotification, MockNotificationTemplate
 from sentry.types.activity import ActivityType
@@ -227,7 +228,12 @@ class EmailNotificationProviderTest(TestCase):
         assert self.provider.target_class == GenericNotificationTarget
         assert self.provider.target_resource_types == [NotificationTargetResourceType.EMAIL]
         assert EmailNotificationProvider.is_available() is True
-        assert EmailNotificationProvider.is_available(organization=self.organization) is True
+        assert (
+            EmailNotificationProvider.is_available(
+                organization=serialize_organization_summary(self.organization)
+            )
+            is True
+        )
 
     @mock.patch("sentry.notifications.platform.email.provider.send_messages")
     def test_send(self, mock_send_messages: mock.MagicMock) -> None:

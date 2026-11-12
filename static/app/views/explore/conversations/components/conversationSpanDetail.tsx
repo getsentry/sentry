@@ -19,20 +19,12 @@ import {capitalize} from 'sentry/utils/string/capitalize';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {SpanDetailCard} from 'sentry/views/explore/conversations/components/conversationLayout';
-import {
-  EvaluationInputTab,
-  EvaluationOutputTab,
-} from 'sentry/views/explore/conversations/components/evaluationSpanTabs';
-import {
-  MemoryInputTab,
-  MemoryOutputTab,
-} from 'sentry/views/explore/conversations/components/memorySpanTabs';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getNodeTimeBounds} from 'sentry/views/insights/pages/agents/components/aiSpanList';
 import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
 import {EvaluationResultSummary} from 'sentry/views/insights/pages/agents/components/evaluationContent';
+import {ExtractionResultSummary} from 'sentry/views/insights/pages/agents/components/extractionContent';
 import {getTraceNodeAttribute} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
   getCodeModeInput,
@@ -42,6 +34,11 @@ import {
   getNodeEvaluation,
   type Evaluation,
 } from 'sentry/views/insights/pages/agents/utils/evaluation';
+import {
+  getNodeExtraction,
+  hasValue,
+  type Extraction,
+} from 'sentry/views/insights/pages/agents/utils/extraction';
 import {getNodeMemory} from 'sentry/views/insights/pages/agents/utils/memory';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {useInvalidEvaluationDetection} from 'sentry/views/insights/pages/agents/utils/useInvalidEvaluationDetection';
@@ -65,17 +62,58 @@ import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/trace
 import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
 import {traceGridCssVariables} from 'sentry/views/performance/traceDetails/traceWaterfallStyles';
 
-const AI_SPAN_INPUT_JSON_MAX_DEFAULT_DEPTH = 3;
-const AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH = 100;
-const AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT = 100_000;
+import {SpanDetailCard} from './conversationLayout';
+import {EvaluationTab} from './evaluationSpanTab';
+import {ExtractionTab} from './extractionSpanTab';
+import {MemoryInputTab, MemoryOutputTab} from './memorySpanTabs';
+import {
+  EmptySpanTab,
+  SPAN_TAB_JSON_AUTO_COLLAPSE_LIMIT,
+  SPAN_TAB_JSON_MAX_DEFAULT_DEPTH,
+  SpanTabContent,
+} from './spanTabContent';
 
-export type DetailTab = 'input' | 'output' | 'attributes';
+const AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH = 100;
+
+export type DetailTab = 'input' | 'output' | 'decision' | 'extraction' | 'attributes';
+
+type CombinedTab = Extract<DetailTab, 'decision' | 'extraction'>;
 
 export const CONVERSATION_SPAN_DETAIL_TABS: readonly DetailTab[] = [
   'input',
   'output',
+  'decision',
+  'extraction',
   'attributes',
 ];
+
+/**
+ * Decision and extraction spans show a single tab in place of Input and Output.
+ * The selected tab is mapped rather than changed, so it carries over when
+ * moving between these and other spans.
+ */
+function getVisibleTab(tab: DetailTab, combinedTab: CombinedTab | null): DetailTab {
+  if (tab === 'attributes') {
+    return tab;
+  }
+  if (combinedTab) {
+    return combinedTab;
+  }
+  return tab === 'decision' || tab === 'extraction' ? 'input' : tab;
+}
+
+function getCombinedTab(
+  evaluation: Evaluation | null,
+  extraction: Extraction | null
+): CombinedTab | null {
+  if (evaluation) {
+    return 'decision';
+  }
+  if (extraction) {
+    return 'extraction';
+  }
+  return null;
+}
 
 /** The fetched attribute list, or undefined while it's still loading. */
 type SpanAttributes = Parameters<typeof getAIInputMessages>[1];
@@ -148,6 +186,11 @@ export function ConversationSpanDetail({
   );
   useInvalidEvaluationDetection(evaluation);
 
+  const extraction = useMemo(
+    () => (node && !isAttributesLoading ? getNodeExtraction(node, attributes) : null),
+    [node, attributes, isAttributesLoading]
+  );
+
   const memory = useMemo(
     () => (node && !isAttributesLoading ? getNodeMemory(node, attributes) : null),
     [node, attributes, isAttributesLoading]
@@ -159,6 +202,8 @@ export function ConversationSpanDetail({
 
   // Memory spans share a generic span op in the trace waterfall, so name the
   // heading after the operation to distinguish search, create, update, etc.
+  const combinedTab = getCombinedTab(evaluation, extraction);
+
   const title = memory?.operation || node.op || node.description || t('Span');
   const duration = getNodeTimeBounds(node).duration;
   const comparison = getDurationComparison(
@@ -205,7 +250,12 @@ export function ConversationSpanDetail({
         {isAttributesLoading ? (
           <SpanMetadataSkeleton />
         ) : (
-          <SpanMetadata node={node} attributes={attributes} evaluation={evaluation} />
+          <SpanMetadata
+            node={node}
+            attributes={attributes}
+            evaluation={evaluation}
+            extraction={extraction}
+          />
         )}
       </Stack>
 
@@ -226,12 +276,25 @@ export function ConversationSpanDetail({
       {isAttributesLoading ? (
         <SpanTabsSkeleton />
       ) : isError ? (
-        <EmptyTab message={t('Failed to load span details')} />
+        <EmptySpanTab message={t('Failed to load span details')} />
       ) : (
-        <TabStateProvider<DetailTab> value={activeTab} onChange={onTabChange}>
+        <TabStateProvider<DetailTab>
+          value={getVisibleTab(activeTab, combinedTab)}
+          onChange={onTabChange}
+        >
           <TabList>
-            <TabList.Item key="input">{t('Input')}</TabList.Item>
-            <TabList.Item key="output">{t('Output')}</TabList.Item>
+            <TabList.Item key="input" hidden={combinedTab !== null}>
+              {t('Input')}
+            </TabList.Item>
+            <TabList.Item key="output" hidden={combinedTab !== null}>
+              {t('Output')}
+            </TabList.Item>
+            <TabList.Item key="decision" hidden={combinedTab !== 'decision'}>
+              {t('Decision')}
+            </TabList.Item>
+            <TabList.Item key="extraction" hidden={combinedTab !== 'extraction'}>
+              {t('Extraction')}
+            </TabList.Item>
             <TabList.Item key="attributes">{t('Attributes')}</TabList.Item>
           </TabList>
 
@@ -252,11 +315,6 @@ export function ConversationSpanDetail({
               <TabPanels.Item key="input">
                 {memory ? (
                   <MemoryInputTab memory={memory} />
-                ) : evaluation?.rawInput ? (
-                  <EvaluationInputTab
-                    input={evaluation.input}
-                    raw={evaluation.rawInput}
-                  />
                 ) : (
                   <InputTab node={node} attributes={attributes} />
                 )}
@@ -264,15 +322,15 @@ export function ConversationSpanDetail({
               <TabPanels.Item key="output">
                 {memory ? (
                   <MemoryOutputTab memory={memory} />
-                ) : evaluation?.rawOutput ? (
-                  <EvaluationOutputTab
-                    answers={evaluation.answers}
-                    questions={evaluation.input?.questions}
-                    raw={evaluation.rawOutput}
-                  />
                 ) : (
                   <OutputTab node={node} attributes={attributes} />
                 )}
+              </TabPanels.Item>
+              <TabPanels.Item key="decision">
+                {evaluation ? <EvaluationTab evaluation={evaluation} /> : null}
+              </TabPanels.Item>
+              <TabPanels.Item key="extraction">
+                {extraction ? <ExtractionTab extraction={extraction} /> : null}
               </TabPanels.Item>
               <TabPanels.Item key="attributes">
                 <AttributesTab node={node} attributes={attributes} />
@@ -289,16 +347,21 @@ function SpanMetadata({
   node,
   attributes,
   evaluation,
+  extraction,
 }: {
   attributes: SpanAttributes;
   evaluation: Evaluation | null;
+  extraction: Extraction | null;
   node: AITraceSpanNode;
 }) {
   const rows = getHighlightedSpanAttributes({
     op: node.op,
     spanId: node.id,
     attributes: attributes ?? node.attributes,
+    projectId: node.value.project_id,
+    description: node.description,
   });
+
   // Skip the row when no answer has a short label to show.
   if (evaluation?.answers?.some(answer => answer.kind !== 'invalid')) {
     rows.push({
@@ -309,6 +372,13 @@ function SpanMetadata({
           questions={evaluation.input?.questions}
         />
       ),
+    });
+  }
+
+  if (extraction?.answers?.some(answer => answer.kind === 'answer' && hasValue(answer))) {
+    rows.push({
+      name: t('Result'),
+      value: <ExtractionResultSummary answers={extraction.answers} />,
     });
   }
 
@@ -365,7 +435,7 @@ function InputTab({
 
   const hasContent = (messages && messages.length > 0) || toolArgs || embeddingsInput;
   if (!hasContent) {
-    return <EmptyTab message={t('No input for this span')} />;
+    return <EmptySpanTab message={t('No input for this span')} />;
   }
 
   return (
@@ -376,7 +446,7 @@ function InputTab({
             {capitalize(message.role)}
           </TraceDrawerComponents.MultilineTextLabel>
           {/* System prompts are usually long, repetitive, and sit on top, so keep them clipped */}
-          <InputMessageContent
+          <SpanTabContent
             key={`${node.id}:message:${index}`}
             content={message.content}
             clip={message.role === 'system'}
@@ -387,8 +457,8 @@ function InputTab({
         <TraceDrawerComponents.MultilineJSON
           key={`${node.id}:tool-input`}
           value={toolArgs}
-          maxDefaultDepth={AI_SPAN_INPUT_JSON_MAX_DEFAULT_DEPTH}
-          autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
+          maxDefaultDepth={SPAN_TAB_JSON_MAX_DEFAULT_DEPTH}
+          autoCollapseLimit={SPAN_TAB_JSON_AUTO_COLLAPSE_LIMIT}
         />
       ) : null}
       {embeddingsInput ? (
@@ -427,7 +497,7 @@ function OutputTab({
     !toolCalls &&
     !hasToolOutput
   ) {
-    return <EmptyTab message={t('No output for this span')} />;
+    return <EmptySpanTab message={t('No output for this span')} />;
   }
 
   return (
@@ -441,7 +511,7 @@ function OutputTab({
             key={`${node.id}:reasoning-text`}
             text={reasoningText}
             maxJsonDepth={AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH}
-            autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
+            autoCollapseLimit={SPAN_TAB_JSON_AUTO_COLLAPSE_LIMIT}
             clip={clipReasoning}
           />
         </Fragment>
@@ -455,7 +525,7 @@ function OutputTab({
             key={`${node.id}:response-text`}
             text={responseText}
             maxJsonDepth={AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH}
-            autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
+            autoCollapseLimit={SPAN_TAB_JSON_AUTO_COLLAPSE_LIMIT}
             clip={false}
           />
         </Fragment>
@@ -469,7 +539,7 @@ function OutputTab({
             key={`${node.id}:response-object`}
             text={responseObject}
             maxJsonDepth={AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH}
-            autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
+            autoCollapseLimit={SPAN_TAB_JSON_AUTO_COLLAPSE_LIMIT}
             clip={false}
           />
         </Fragment>
@@ -483,7 +553,7 @@ function OutputTab({
             key={`${node.id}:tool-calls`}
             value={toolCalls}
             maxDefaultDepth={AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH}
-            autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
+            autoCollapseLimit={SPAN_TAB_JSON_AUTO_COLLAPSE_LIMIT}
           />
         </Fragment>
       ) : null}
@@ -491,30 +561,6 @@ function OutputTab({
         <ToolOutput key={`${node.id}:tool-output`} value={toolOutput} />
       ) : null}
     </Fragment>
-  );
-}
-
-function InputMessageContent({
-  content,
-  clip = false,
-}: {
-  content: unknown;
-  clip?: boolean;
-}) {
-  return typeof content === 'string' ? (
-    <AIContentRenderer
-      text={content}
-      maxJsonDepth={AI_SPAN_INPUT_JSON_MAX_DEFAULT_DEPTH}
-      autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
-      clip={clip}
-    />
-  ) : (
-    <TraceDrawerComponents.MultilineJSON
-      value={content}
-      maxDefaultDepth={AI_SPAN_INPUT_JSON_MAX_DEFAULT_DEPTH}
-      autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
-      clip={clip}
-    />
   );
 }
 
@@ -533,7 +579,7 @@ function AttributesTab({
   const project = projectSlug ? projects.find(p => p.slug === projectSlug) : undefined;
 
   if (!isEAPSpanNode(node) || !attributes) {
-    return <EmptyTab message={t('No attributes for this span')} />;
+    return <EmptySpanTab message={t('No attributes for this span')} />;
   }
 
   return (
@@ -555,14 +601,6 @@ const StyledIssueList = styled(IssueList)`
   ${traceGridCssVariables}
   flex-shrink: 0;
 `;
-
-function EmptyTab({message}: {message: string}) {
-  return (
-    <Flex flex="1" background="secondary" radius="md" padding="xl">
-      <Text variant="muted">{message}</Text>
-    </Flex>
-  );
-}
 
 function SpanDetailSkeleton({embedded}: {embedded?: boolean}) {
   return (

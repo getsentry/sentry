@@ -1,5 +1,8 @@
+from contextlib import AbstractContextManager
 from operator import itemgetter
+from typing import Any
 from unittest import mock
+from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
@@ -7,8 +10,10 @@ from django.db import connections
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
+from rest_framework.response import Response
 from sentry_conventions.attributes import ATTRIBUTE_METADATA
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
+    TraceItemAttributeNamesRequest,
     TraceItemAttributeNamesResponse,
 )
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
@@ -24,6 +29,8 @@ from sentry.explore.models import (
     TraceItemAttributeTypes,
     TraceItemTypes,
 )
+from sentry.models.project import Project
+from sentry.models.release import ReleaseStatus
 from sentry.search.eap import constants
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SupportedTraceItemType
@@ -101,7 +108,11 @@ class OrganizationTraceItemAttributesEndpointTestBase(APITestCase, SnubaTestCase
         super().setUp()
         self.login_as(user=self.user)
 
-    def do_request(self, query=None, features=None, **kwargs):
+    def do_request(
+        self,
+        query: dict[str, Any] | None = None,
+        features: dict[str, bool] | None = None,
+    ) -> Response:
         if query is None:
             query = {}
         if "dataset" not in query:
@@ -115,7 +126,8 @@ class OrganizationTraceItemAttributesEndpointTestBase(APITestCase, SnubaTestCase
                 self.viewname,
                 kwargs={"organization_id_or_slug": self.organization.slug},
             )
-            return self.client.get(url, query, format="json", **kwargs)
+            response: Response = self.client.get(url, query, format="json")
+            return response
 
 
 class OrganizationTraceItemAttributesEndpointLogsTest(
@@ -149,6 +161,29 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         response = self.do_request(query={"attributeType": "string"})
         assert response.status_code == 200, response.content
         assert response.data == []
+
+    def test_expand_context_units(self) -> None:
+        self.store_eap_items(
+            [
+                self.create_ourlog(
+                    extra_data={"body": "log message"},
+                    organization=self.organization,
+                    project=self.project,
+                    attributes={
+                        "cache.item_size": {"int_value": 1024},
+                        "sentry.payload_size_bytes": {"int_value": 2048},
+                    },
+                )
+            ]
+        )
+
+        response = self.do_request(query={"attributeType": "number", "expand": "context"})
+        assert response.status_code == 200, response.content
+
+        attributes = {item["name"]: item for item in response.data}
+        assert attributes["cache.item_size"]["context"]["isConvention"] is True
+        assert attributes["cache.item_size"]["context"]["unit"] == "byte"
+        assert attributes["payload_size"]["context"] == {"unit": "byte"}
 
     def test_substring_matching_logs(self) -> None:
         logs = [
@@ -542,11 +577,15 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         assert "data_export.blob_offsets" in by_name
         assert by_name["data_export.blob_offsets"]["attributeType"] == "array"
 
-    def _mock_attribute_names_rpc(self, response_by_type):
+    def _mock_attribute_names_rpc(
+        self, response_by_type: dict[AttributeKey.Type.ValueType, TraceItemAttributeNamesResponse]
+    ) -> AbstractContextManager[MagicMock]:
         """Patch the attribute-names RPC to return a patched response when snuba
         gates  co-occurring-attrs v2 attributes"""
 
-        def _fake(rpc_request, debug=False):
+        def _fake(
+            rpc_request: TraceItemAttributeNamesRequest, debug: bool = False
+        ) -> TraceItemAttributeNamesResponse:
             return response_by_type.get(rpc_request.type, TraceItemAttributeNamesResponse())
 
         return mock.patch(
@@ -727,6 +766,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             "brief": "The model identifier being used for the request.",
             "examples": ["gpt-4-turbo-preview"],
             "isDeprecated": False,
+            "isInOtel": True,
         }
         # `http.route` is a convention defined in sentry-conventions but not in
         # attributes.py, so it resolves as a `user` source attribute but is still
@@ -746,6 +786,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             ],
             "examples": ["/users/:id"],
             "isDeprecated": False,
+            "isInOtel": True,
         }
         # `span.description` is a Sentry-defined attribute that isn't a sentry
         # convention. It's always included (this segment sets no description) and
@@ -790,14 +831,56 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert message["name"] == "message"
         assert message["context"] == {}
 
+    def test_expand_context_units(self) -> None:
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            organization_id=self.organization.id,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            measurements={
+                "http.response_content_length": 100,
+                "react_native.module.duration.max": 3.0,
+                "gen_ai.tool.call.result.size": 5,
+                "sampling_rate": 0.5,
+                "cart_total": 42.0,
+            },
+        )
+
+        response = self.do_request(query={"attributeType": "number", "expand": "context"})
+        assert response.status_code == 200, response.data
+
+        attributes = {item["key"]: item for item in response.data}
+        assert attributes["http.response_content_length"]["context"]["unit"] == "byte"
+        assert attributes["react_native.module.duration.max"]["context"]["unit"] == "millisecond"
+        assert attributes["gen_ai.tool.call.result.size"]["context"]["unit"] == "byte"
+        assert attributes["tags[sampling_rate,number]"]["context"] == {}
+        assert attributes["tags[cart_total,number]"]["context"] == {}
+
+    def test_expand_context_no_unit_for_string_attribute_named_like_unit_column(self) -> None:
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            organization_id=self.organization.id,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            tags={"http.response_content_length": "large"},
+        )
+
+        response = self.do_request(query={"attributeType": "string", "expand": "context"})
+        assert response.status_code == 200, response.data
+
+        attributes = {item["key"]: item for item in response.data}
+        assert attributes["tags[http.response_content_length,string]"]["context"] == {}
+
     def create_context(
         self,
-        attribute_key,
-        project=None,
-        item_type=TraceItemTypes.SPANS,
-        attribute_type=TraceItemAttributeTypes.STRING,
-        **kwargs,
-    ):
+        attribute_key: str,
+        project: Project | None = None,
+        item_type: int = TraceItemTypes.SPANS,
+        attribute_type: int = TraceItemAttributeTypes.STRING,
+        **kwargs: object,
+    ) -> TraceItemAttributeContext:
         kwargs.setdefault("brief", f"Authored brief for {attribute_key}")
         return TraceItemAttributeContext.objects.create(
             organization=self.organization,
@@ -1978,7 +2061,12 @@ class OrganizationTraceItemAttributeValuesEndpointBaseTest(APITestCase, SnubaTes
         super().setUp()
         self.login_as(user=self.user)
 
-    def do_request(self, query=None, features=None, key=None, **kwargs):
+    def do_request(
+        self,
+        query: dict[str, Any] | None = None,
+        features: dict[str, bool] | None = None,
+        key: str | None = None,
+    ) -> Response:
         if query is None:
             query = {}
 
@@ -1995,7 +2083,8 @@ class OrganizationTraceItemAttributeValuesEndpointBaseTest(APITestCase, SnubaTes
                 self.viewname,
                 kwargs={"organization_id_or_slug": self.organization.slug, "key": key},
             )
-            return self.client.get(url, query, format="json", **kwargs)
+            response: Response = self.client.get(url, query, format="json")
+            return response
 
 
 class OrganizationTraceItemAttributeValuesEndpointLogsTest(
@@ -2025,6 +2114,11 @@ class OrganizationTraceItemAttributeValuesEndpointLogsTest(
         response = self.do_request(query={"attributeType": "string"})
         assert response.status_code == 200, response.content
         assert response.data == []
+
+    def test_key_too_long(self) -> None:
+        self.create_project(organization=self.organization)
+        response = self.do_request(key="a" * 201)
+        assert response.status_code == 400, response.content
 
     def test_attribute_values(self) -> None:
         logs = [
@@ -2526,7 +2620,6 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             "span_id",
             "parent_span",
             "parent_span_id",
-            "trace",
             "trace_id",
             "transaction.id",
             "transaction_id",
@@ -2915,6 +3008,10 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
     def test_autocomplete_release_semver_attributes(self) -> None:
         release_1 = self.create_release(version="foo@1.2.3+121")
         release_2 = self.create_release(version="qux@2.2.4+122")
+        # Archived releases must not appear in any release autocomplete dropdown (REL-27).
+        # Distinct package/version/build so each of the three release paths would surface it if unfiltered.
+        archived_release = self.create_release(version="baz@9.9.9+999")
+        archived_release.update(status=ReleaseStatus.ARCHIVED)
         self.store_spans(
             [
                 self.create_span(
@@ -3133,7 +3230,12 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
         self.login_as(user=self.user)
         self.project = self.create_project()
 
-    def do_request(self, payload=None, features=None, query_params=None, **kwargs):
+    def do_request(
+        self,
+        payload: dict[str, Any] | None = None,
+        features: dict[str, bool] | None = None,
+        query_params: dict[str, str] | None = None,
+    ) -> Response:
         if features is None:
             features = self.feature_flags
 
@@ -3142,11 +3244,12 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
                 self.viewname,
                 kwargs={"organization_id_or_slug": self.organization.slug},
             )
-            return self.client.post(
-                url, payload, format="json", query_params=query_params, **kwargs
+            response: Response = self.client.post(
+                url, payload, format="json", query_params=query_params
             )
+            return response
 
-    def test_no_feature(self):
+    def test_no_feature(self) -> None:
         response = self.do_request(
             payload={"attributes": ["span.duration"]},
             query_params={"itemType": "spans"},
@@ -3154,34 +3257,34 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
         )
         assert response.status_code == 404
 
-    def test_missing_item_type(self):
+    def test_missing_item_type(self) -> None:
         response = self.do_request(
             payload={"attributes": ["span.duration"]},
         )
         assert response.status_code == 400
 
-    def test_missing_attributes(self):
+    def test_missing_attributes(self) -> None:
         response = self.do_request(
             payload={},
             query_params={"itemType": "spans"},
         )
         assert response.status_code == 400
 
-    def test_empty_attributes_list(self):
+    def test_empty_attributes_list(self) -> None:
         response = self.do_request(
             payload={"attributes": []},
             query_params={"itemType": "spans"},
         )
         assert response.status_code == 400
 
-    def test_too_many_attributes(self):
+    def test_too_many_attributes(self) -> None:
         response = self.do_request(
             payload={"attributes": [f"attr{i}" for i in range(101)]},
             query_params={"itemType": "spans"},
         )
         assert response.status_code == 400
 
-    def test_unsupported_item_type(self):
+    def test_unsupported_item_type(self) -> None:
         response = self.do_request(
             payload={"attributes": ["some.attr"]},
             query_params={"itemType": "uptime_results"},
@@ -3189,7 +3292,7 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
         assert response.status_code == 400
         assert "Unsupported item type" in response.data["detail"]
 
-    def test_well_known_attributes(self):
+    def test_well_known_attributes(self) -> None:
         response = self.do_request(
             payload={"attributes": ["span.duration"]},
             query_params={"itemType": "spans"},
@@ -3199,7 +3302,7 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
         assert attr["valid"] is True
         assert attr["type"] == "number"
 
-    def test_virtual_context_attributes(self):
+    def test_virtual_context_attributes(self) -> None:
         response = self.do_request(
             payload={"attributes": ["project"]},
             query_params={"itemType": "spans"},
@@ -3209,7 +3312,7 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
         assert attr["valid"] is True
         assert attr["type"] == "string"
 
-    def test_user_tags_not_in_storage(self):
+    def test_user_tags_not_in_storage(self) -> None:
         response = self.do_request(
             payload={
                 "attributes": [
@@ -3225,7 +3328,7 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
             assert response.data["attributes"][key]["valid"] is False
             assert "error" in response.data["attributes"][key]
 
-    def test_user_tags_in_storage(self):
+    def test_user_tags_in_storage(self) -> None:
         self.store_segment(
             self.project.id,
             uuid4().hex,
@@ -3256,7 +3359,7 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
         "sentry.search.eap.utils.ATTRIBUTE_NAME_LIMIT",
         TRUNCATED_ATTRIBUTE_NAME_LIMIT,
     )
-    def test_user_tag_beyond_the_attribute_name_limit(self):
+    def test_user_tag_beyond_the_attribute_name_limit(self) -> None:
         tags = {f"my.tag.{i:03}": "hello" for i in range(TRUNCATED_ATTRIBUTE_NAME_LIMIT)}
         tags["zz.custom.tag"] = "hello"
         self.store_segment(
@@ -3283,7 +3386,7 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
         assert attr["valid"] is True
         assert attr["type"] == "string"
 
-    def test_user_tags_same_name_different_types(self):
+    def test_user_tags_same_name_different_types(self) -> None:
         self.store_segment(
             self.project.id,
             uuid4().hex,
@@ -3311,7 +3414,7 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
         assert attrs["tags[foo,number]"]["valid"] is False
         assert "error" in attrs["tags[foo,number]"]
 
-    def test_invalid_attributes(self):
+    def test_invalid_attributes(self) -> None:
         long_attr = "a" * 201
         response = self.do_request(
             payload={"attributes": [long_attr, "tags[foo,faketype]"]},
@@ -3325,7 +3428,7 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
         assert response.data["attributes"]["tags[foo,faketype]"]["valid"] is False
         assert "error" in response.data["attributes"]["tags[foo,faketype]"]
 
-    def test_mixed_valid_and_invalid(self):
+    def test_mixed_valid_and_invalid(self) -> None:
         # Existing and nonexistent tags are validated in separate requests because
         # the local test Snuba (used in CI) returns empty results for an OrFilter
         # containing multiple ExistsFilters when some reference nonexistent
@@ -3382,7 +3485,7 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
         assert "error" in attrs["nonexistent.tag"]
 
     @pytest.mark.xfail(reason="Flaky test - PR #111993")  # noqa: F821
-    def test_stats_period_limits_time_range(self):
+    def test_stats_period_limits_time_range(self) -> None:
         self.store_segment(
             self.project.id,
             uuid4().hex,

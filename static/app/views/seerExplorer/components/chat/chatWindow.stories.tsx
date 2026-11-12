@@ -31,21 +31,55 @@ const APPROVAL_ID = '11111111-1111-4111-8111-111111111111';
 type Session = NonNullable<SeerExplorerResponse['session']>;
 
 /**
+ * The organization's Seer credits, which getsentry reads for the usage meter beside the send
+ * button and for the out-of-credits copy.
+ */
+interface Wallet {
+  autoReloadEnabled: boolean;
+  remaining: number;
+  total: number;
+}
+
+/**
  * Answers every query the chat window makes from fixtures, so the story never reaches the API.
  * Per-query options outrank client defaults, which is why this replaces `queryFn` after
  * defaulting rather than setting a default. Sending a message is a mutation and is not stubbed.
  */
 class FixtureQueryClient extends QueryClient {
-  session: Session;
+  session: Session | null;
+  hasEnoughCredits: boolean;
+  wallet: Wallet | undefined;
 
-  constructor(session: Session) {
+  constructor(session: Session | null, hasEnoughCredits: boolean, wallet?: Wallet) {
     super({defaultOptions: {queries: {retry: false}}});
     this.session = session;
+    this.hasEnoughCredits = hasEnoughCredits;
+    this.wallet = wallet;
   }
 
   respond(url: string): unknown {
     if (url.includes(`/seer/explorer-chat/${RUN_ID}/`)) {
       return {session: this.session} satisfies SeerExplorerResponse;
+    }
+    if (url.includes('/seer/credit-check/')) {
+      return {hasEnoughCredits: this.hasEnoughCredits};
+    }
+    if (this.wallet && url.includes('/seer-wallet/auto-top-up/')) {
+      return {
+        enabled: this.wallet.autoReloadEnabled,
+        thresholdCredits: 100,
+        topUpCredits: 500,
+        dailySpendCapCents: 5000,
+      };
+    }
+    if (this.wallet && url.includes('/seer-wallet/')) {
+      const {remaining, total} = this.wallet;
+      return {
+        balance: remaining,
+        percentUsed: 1 - remaining / total,
+        included: {remaining, resetsAt: null, total},
+        purchased: {remaining: 0, expiresAt: null, total: 0},
+      };
     }
     // Run history, integrations and the like: every other query in the window is a list.
     return [];
@@ -62,21 +96,46 @@ class FixtureQueryClient extends QueryClient {
 
 const noopDispatch = () => {};
 
+interface ChatWindowProps {
+  /** A new chat when null. */
+  session: Session | null;
+  /**
+   * Turns on `seer-credit-checks` and `token-billed-seer-enabled`, and answers
+   * the chat's credit check with this.
+   */
+  hasEnoughCredits?: boolean;
+  initialQuery?: string;
+  /** Viewed by a billing member of an organization with these credits. */
+  wallet?: Wallet;
+}
+
 /**
  * The whole Explorer chat window — header, transcript, pending-input blocks, and composer — as
  * the sidebar renders it, for a fixed run.
  */
-function ChatWindow({session}: {session: Session}) {
+function ChatWindow({session, hasEnoughCredits, initialQuery, wallet}: ChatWindowProps) {
   const organization = useOrganization();
-  const [queryClient] = useState(() => new FixtureQueryClient(session));
+  const [queryClient] = useState(
+    () => new FixtureQueryClient(session, hasEnoughCredits ?? true, wallet)
+  );
 
   return (
     <OrganizationContext.Provider
       value={{
         ...organization,
+        // The meter and the alert's copy are for billing members.
+        access: wallet ? [...organization.access, 'org:billing'] : organization.access,
         openMembership: true,
         hideAiFeatures: false,
-        features: [...organization.features, 'seer-explorer'],
+        features: [
+          // Generated suggestions would come back as a fixture list, so a new chat shows the
+          // fixed ones instead.
+          ...organization.features.filter(feature => feature !== 'seer-chat-suggestions'),
+          'seer-explorer',
+          ...(hasEnoughCredits === undefined
+            ? []
+            : ['seer-credit-checks', 'token-billed-seer-enabled']),
+        ],
       }}
     >
       <QueryClientProvider client={queryClient}>
@@ -84,7 +143,7 @@ function ChatWindow({session}: {session: Session}) {
             persist the story's run over the viewer's own Explorer session. */}
         <SeerExplorerChatDispatchContext.Provider value={noopDispatch}>
           <SeerExplorerChatStateContext.Provider
-            value={{runId: RUN_ID, chatPrompt: null, chatStates: {}}}
+            value={{runId: session ? RUN_ID : null, chatPrompt: null, chatStates: {}}}
           >
             <PictureInPictureProvider>
               <SeerExplorerSessionsProvider>
@@ -92,6 +151,8 @@ function ChatWindow({session}: {session: Session}) {
                   <SeerExplorerContent
                     getPageReferrer={() => '/issues/'}
                     onClose={() => {}}
+                    initialQuery={initialQuery}
+                    appendInitialQuery={!!session}
                   />
                 </Container>
               </SeerExplorerSessionsProvider>
@@ -177,7 +238,6 @@ const ANSWER: Block = {
   loading: false,
 };
 
-// An answer that ends in a block embed, the case the trailing embed space exists for.
 const ANSWER_ENDING_IN_EMBED: Block = {
   id: 'assistant-dsn',
   message: {
@@ -372,12 +432,38 @@ export default Storybook.story('ChatWindow', story => {
   story('Answer actions', () => (
     <Fragment>
       <p>
-        Hover the answer to reveal its actions: thumbs up, thumbs down, and copy. They
-        float over the bottom-right corner of the answer, so when an answer ends in a
-        block embed (here a DSN), the answer leaves space below the embed for them. Tool
-        results in the thinking block have no actions, so they leave none.
+        Hover the answer to reveal its actions: thumbs up, thumbs down, and copy. They sit
+        in a row below the answer, including when it ends in a block embed (here a DSN).
+        Their space stays reserved while hidden so hovering does not shift the
+        conversation.
       </p>
       <ChatWindow session={ANSWER_ENDING_IN_EMBED_SESSION} />
+    </Fragment>
+  ));
+
+  story('Answer actions with inline code', () => (
+    <Fragment>
+      <p>
+        A compact answer below a thinking block ends with a long URL in inline code. Hover
+        to reveal the actions below the message without covering the final line.
+      </p>
+      <ChatWindow
+        session={{
+          ...COMPLETED_SESSION,
+          blocks: [
+            USER_QUESTION,
+            SEARCH_SPANS,
+            {
+              ...ANSWER,
+              message: {
+                role: 'assistant',
+                content:
+                  '`https://example.com/organizations/org-slug/explore/traces/?query=span.op%3Adb%20span.description%3ASELECT&field=count%28%29&sort=-count%28%29&statsPeriod=24h`',
+              },
+            },
+          ],
+        }}
+      />
     </Fragment>
   ));
 
@@ -400,6 +486,59 @@ export default Storybook.story('ChatWindow', story => {
         block.
       </p>
       <ChatWindow session={RESUMED_AFTER_APPROVAL_SESSION} />
+    </Fragment>
+  ));
+
+  story('New chat', () => (
+    <Fragment>
+      <p>
+        A new chat for an organization with credits, to compare with the out-of-credits
+        stories below: the suggested questions show and the composer sends. Billing
+        members see how much of the organization's Seer credits are used next to the send
+        button; hover it for the details. Open source renders no meter; getsentry fills it
+        in.
+      </p>
+      <ChatWindow
+        session={null}
+        hasEnoughCredits
+        wallet={{autoReloadEnabled: false, remaining: 250, total: 1000}}
+      />
+    </Fragment>
+  ));
+
+  story('Out of credits in a new chat', () => (
+    <Fragment>
+      <p>
+        The organization can't afford another message and auto reload is off. The
+        out-of-credits CTA sits right above the composer, the usage meter turns
+        warning-colored, the suggested questions are gone, and nothing sends: not the send
+        button, Enter, or the /investigate command. Typing still works so a draft isn't
+        lost. A question forwarded from elsewhere in Sentry (here, the one in the
+        composer) waits there instead of being sent. Open source renders no CTA; getsentry
+        fills it in.
+      </p>
+      <ChatWindow
+        session={null}
+        hasEnoughCredits={false}
+        initialQuery="Why is checkout slow since this morning?"
+        wallet={{autoReloadEnabled: false, remaining: 50, total: 1000}}
+      />
+    </Fragment>
+  ));
+
+  story('Out of credits in a conversation', () => (
+    <Fragment>
+      <p>
+        The same gate partway through a conversation, for an organization that has used
+        every auto reload it allows. The transcript stays readable, the CTA sits above the
+        composer, and the follow-up in the composer can't be sent until someone tops up.
+      </p>
+      <ChatWindow
+        session={COMPLETED_SESSION}
+        hasEnoughCredits={false}
+        initialQuery="Open a pull request that prefetches product in the cart query."
+        wallet={{autoReloadEnabled: true, remaining: 50, total: 1000}}
+      />
     </Fragment>
   ));
 

@@ -28,12 +28,11 @@ from sentry.db.models.fields.slug import SentryOrgSlugField
 from sentry.db.models.indexes import IndexWithPostgresNameLimits
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.db.models.utils import slugify_instance
+from sentry.db.models.utils import save_with_unique_slug, slugify_instance
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.hybridcloud.outbox.base import ReplicatedCellModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
-from sentry.locks import locks
 from sentry.notifications.services import notifications_service
 from sentry.organizations.absolute_url import (
     api_absolute_url,
@@ -44,11 +43,11 @@ from sentry.roles.manager import OrganizationRole, Role, RoleLevel
 from sentry.users.services.user import RpcUser, RpcUserProfile
 from sentry.users.services.user.service import user_service
 from sentry.utils.http import is_using_customer_domain
-from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import generate_snowflake_id, save_with_snowflake_id, snowflake_id_model
 
 if TYPE_CHECKING:
     from sentry.models.options.organization_option import OrganizationOptionManager
+    from sentry.users.models.user import User
 
 NON_MEMBER_SCOPES = frozenset(["org:write", "project:write", "team:write"])
 ORGANIZATION_NAME_MAX_LENGTH = 64
@@ -68,11 +67,11 @@ class OrganizationStatus(IntEnum):
         return self.name
 
     @property
-    def label(self):
+    def label(self) -> str:
         return OrganizationStatus_labels[self]
 
     @classmethod
-    def as_choices(cls):
+    def as_choices(cls) -> tuple[tuple[int, str], ...]:
         result = []
         for name, member in cls.__members__.items():
             # an alias
@@ -110,7 +109,9 @@ class OrganizationManager(BaseManager["Organization"]):
             id__in=Team.objects.filter(id__in=team_ids).values("organization"),
         )
 
-    def get_for_user(self, user, scope=None, only_visible=True) -> list[Organization]:
+    def get_for_user(
+        self, user: User | RpcUser, scope: str | None = None, only_visible: bool = True
+    ) -> list[Organization]:
         """
         Returns a set of all organizations a user has access to.
         """
@@ -227,7 +228,7 @@ class Organization(ReplicatedCellModel):
     __repr__ = sane_repr("owner_id", "name", "slug")
 
     @classmethod
-    def get_default(cls):
+    def get_default(cls) -> Organization:
         """
         Return the organization used in single organization mode.
         """
@@ -242,32 +243,47 @@ class Organization(ReplicatedCellModel):
 
     snowflake_redis_key = "organization_snowflake_key"
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        save_callback = lambda: super(Organization, self).save(*args, **kwargs)
         slugify_target = None
         if not self.slug:
             slugify_target = self.name
         elif not self.id:
             slugify_target = self.slug
-        if slugify_target is not None:
-            lock = locks.get("slug:organization", duration=5, name="organization_slug")
-            with TimedRetryPolicy(10)(lock.acquire):
-                slugify_target = slugify_target.lower().replace("_", "-").strip("-")
-                slugify_instance(self, slugify_target, reserved=RESERVED_ORGANIZATION_SLUGS)
+        if slugify_target is None:
+            self._save_organization(save_callback)
+            return
 
+        target = slugify_target.lower().replace("_", "-").strip("-")
+        pick_slug: Callable[[], None] = lambda: slugify_instance(
+            self, target, reserved=RESERVED_ORGANIZATION_SLUGS
+        )
+
+        if self.slug:
+            # Explicit slugs shouldn't be modified or retried if there's a conflict.
+            pick_slug()
+            self._save_organization(save_callback)
+            return
+
+        self._save_organization(
+            lambda: save_with_unique_slug(self, pick_slug=pick_slug, save_callback=save_callback)
+        )
+
+    def _save_organization(self, save_callback: Callable[[], object]) -> None:
         if settings.SENTRY_USE_SNOWFLAKE:
             save_with_snowflake_id(
                 instance=self,
                 snowflake_redis_key=self.snowflake_redis_key,
-                save_callback=lambda: super(Organization, self).save(*args, **kwargs),
+                save_callback=save_callback,
             )
         else:
-            super().save(*args, **kwargs)
+            save_callback()
 
     @classmethod
-    def reserve_snowflake_id(cls):
+    def reserve_snowflake_id(cls) -> int:
         return generate_snowflake_id(cls.snowflake_redis_key)
 
-    def delete(self, *args, **kwargs):
+    def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
         if self.is_default:
             raise Exception("You cannot delete the default organization.")
         return super().delete(*args, **kwargs)
@@ -294,20 +310,21 @@ class Organization(ReplicatedCellModel):
         )
 
     @cached_property
-    def is_default(self):
+    def is_default(self) -> bool:
         if not settings.SENTRY_SINGLE_ORGANIZATION:
             return False
 
         return self == type(self).get_default()
 
-    def has_access(self, user: RpcUser, access=None):
+    def has_access(self, user: RpcUser, access: int | None = None) -> bool:
         queryset = self.member_set.filter(user_id=user.id)
         if access is not None:
             queryset = queryset.filter(type__lte=access)
 
-        return queryset.exists()
+        exists: bool = queryset.exists()
+        return exists
 
-    def get_audit_log_data(self):
+    def get_audit_log_data(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "slug": self.slug,
@@ -332,7 +349,7 @@ class Organization(ReplicatedCellModel):
         return self._default_owner
 
     @property
-    def default_owner_id(self):
+    def default_owner_id(self) -> int | None:
         """
         Similar to get_default_owner but won't raise a key error
         if there is no owner. Used for analytics primarily.
@@ -418,7 +435,7 @@ class Organization(ReplicatedCellModel):
             if user_id in profile_table
         }
 
-    def has_single_owner(self):
+    def has_single_owner(self) -> bool:
         owners = list(
             self.get_members_with_org_roles([roles.get_top_dog().id])[:2].values_list(
                 "id", flat=True
@@ -430,7 +447,7 @@ class Organization(ReplicatedCellModel):
         self,
         roles: Collection[str],
         include_null_users: bool = False,
-    ):
+    ) -> BaseQuerySet[Any]:
         members_with_role = self.member_set.filter(role__in=roles)
         if not include_null_users:
             members_with_role = members_with_role.filter(user_id__isnull=False, user_is_active=True)
@@ -444,8 +461,10 @@ class Organization(ReplicatedCellModel):
 
         return OrganizationOption.objects
 
-    def _handle_requirement_change(self, request, task):
-        actor_id = request.user.id if request.user.is_authenticated else None
+    def _handle_requirement_change(self, request: Any, task: Any) -> None:
+        from sentry.auth.principal import acting_user_id  # circular import
+
+        actor_id = acting_user_id(request.user)
         api_key_id = (
             request.auth.entity_id
             if request.auth is not None and request.auth.kind == "api_key"
@@ -462,7 +481,7 @@ class Organization(ReplicatedCellModel):
             using=router.db_for_write(Organization),
         )
 
-    def handle_2fa_required(self, request):
+    def handle_2fa_required(self, request: Any) -> None:
         from sentry.tasks.auth.auth import remove_2fa_non_compliant_members
 
         self._handle_requirement_change(request, remove_2fa_non_compliant_members)

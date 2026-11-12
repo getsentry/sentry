@@ -191,7 +191,7 @@ function TooltipHeader({children, leadingItems, trailingItems}: TooltipHeaderPro
           {children}
         </Text>
       </Flex>
-      {defined(trailingItems) && (
+      {trailingItems != null && (
         <Text bold align="right" wrap="nowrap">
           {trailingItems}
         </Text>
@@ -305,7 +305,7 @@ function TooltipFooter({children, leadingItems, trailingItems}: TooltipFooterPro
           {children}
         </Text>
       </Flex>
-      {defined(trailingItems) && (
+      {trailingItems != null && (
         <Text variant="muted" align="right" wrap="nowrap">
           {trailingItems}
         </Text>
@@ -354,7 +354,3 @@ export const Tooltip = Object.assign(TooltipComponent, {
   Row: TooltipRow,
   Footer: TooltipFooter,
 });
-
-function defined(value: unknown): boolean {
-  return value !== undefined && value !== null;
-}

@@ -1,5 +1,6 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {createSerializer, parseAsString, useQueryState} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -8,8 +9,8 @@ import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   ConversationDetailPanel,
@@ -20,14 +21,18 @@ import {AiSpanTimeline} from 'sentry/views/insights/pages/agents/components/aiSp
 import {useAITrace} from 'sentry/views/insights/pages/agents/hooks/useAITrace';
 import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+import {AiSpanDetails} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/aiSpanDetails';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import {TraceLayoutTabKeys} from 'sentry/views/performance/traceDetails/useTraceLayoutTabs';
 import {getScrollToPath} from 'sentry/views/performance/traceDetails/useTraceScrollToPath';
 
+const serializeTab = createSerializer({
+  tab: parseAsString,
+});
+
 function useAiSpanSelection(nodes: AITraceSpanNode[]) {
   const organization = useOrganization();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [, setNode] = useQueryState('node', parseAsStringArray);
 
   const [selectedNodeKey, setSelectedNodeKey] = useState<string | null>(() => {
     const path = getScrollToPath()?.path;
@@ -54,18 +59,9 @@ function useAiSpanSelection(nodes: AITraceSpanNode[]) {
       });
 
       const nodeIdentifier: TraceTree.NodePath = `span-${eventId}`;
-      navigate(
-        {
-          ...location,
-          query: {
-            ...location.query,
-            node: nodeIdentifier,
-          },
-        },
-        {replace: true}
-      );
+      setNode([nodeIdentifier]);
     },
-    [location, navigate, organization]
+    [organization, setNode]
   );
 
   return {selectedNode, handleSelectNode};
@@ -123,13 +119,9 @@ export function TraceAiSpans({
         <LinkButton
           size="xs"
           onClick={handleViewFullTraceClick}
-          to={{
-            ...location,
-            query: {
-              ...location.query,
-              tab: TraceLayoutTabKeys.WATERFALL,
-            },
-          }}
+          to={serializeTab(`${location.pathname}${location.search}${location.hash}`, {
+            tab: TraceLayoutTabKeys.WATERFALL,
+          })}
         >
           {t('View in Full Trace')}
         </LinkButton>
@@ -150,14 +142,7 @@ export function TraceAiSpans({
         overflowX="hidden"
         overflowY="auto"
       >
-        {selectedNode?.renderDetails({
-          node: selectedNode,
-          onTabScrollToNode: () => {},
-          organization,
-          traceId: traceSlug,
-          hideNodeActions: true,
-          initiallyCollapseAiIO: false,
-        })}
+        {selectedNode ? <AiSpanDetails node={selectedNode} traceId={traceSlug} /> : null}
       </Container>
     </Wrapper>
   );
@@ -175,14 +160,6 @@ export function AiSpansSplitView({
   traceSlug: string;
 }) {
   const {selectedNode, handleSelectNode} = useAiSpanSelection(nodes);
-
-  const nodeTraceMap = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const node of nodes) {
-      map.set(node.id, traceSlug);
-    }
-    return map;
-  }, [nodes, traceSlug]);
 
   if (nodes.length === 0) {
     return <EmptyMessage>{t('No AI spans found')}</EmptyMessage>;
@@ -204,11 +181,11 @@ export function AiSpansSplitView({
         </ConversationLeftPanel>
       }
       right={
-        <ConversationDetailPanel
-          selectedNode={selectedNode}
-          nodeTraceMap={nodeTraceMap}
-          initiallyCollapseAiIO={false}
-        />
+        <ConversationDetailPanel>
+          {selectedNode ? (
+            <AiSpanDetails node={selectedNode} traceId={traceSlug} />
+          ) : null}
+        </ConversationDetailPanel>
       }
     />
   );

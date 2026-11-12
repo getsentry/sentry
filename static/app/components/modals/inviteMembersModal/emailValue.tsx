@@ -2,22 +2,19 @@ import styled from '@emotion/styled';
 import {IconWarning} from '@sentry/icons/warning';
 
 import {Grid} from '@sentry/scraps/layout';
-import type {MultiValueProps, OptionTypeBase} from '@sentry/scraps/select';
-import {components as selectComponents} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 
 import type {InviteStatus} from './types';
 
-export function EmailValue<Option extends OptionTypeBase>({
+export function EmailValue({
   status,
-  valueProps,
+  children,
 }: {
+  children: React.ReactNode;
   status: InviteStatus[string];
-  valueProps: MultiValueProps<Option>;
 }) {
-  const {children, ...props} = valueProps;
   const error = status?.error;
 
   const emailLabel =
@@ -33,14 +30,12 @@ export function EmailValue<Option extends OptionTypeBase>({
       </Tooltip>
     );
 
-  return (
-    <selectComponents.MultiValue {...props}>{emailLabel}</selectComponents.MultiValue>
-  );
+  return emailLabel;
 }
 
 const SendingIndicator = styled(LoadingIndicator)`
   margin: 0;
-  .loading-indicator {
+  .scraps-spinner-ring {
     border-width: 2px;
   }
 `;

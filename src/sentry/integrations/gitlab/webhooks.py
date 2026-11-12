@@ -46,7 +46,6 @@ from sentry.pr_metrics.lifecycle_mapping import (
     map_gitlab_state_to_pullrequest_lifecycle,
     update_pull_request_from_scm_snapshot,
 )
-from sentry.seer.code_review.webhooks.logging import debug_log
 from sentry.seer.code_review.webhooks.merge_request import (
     handle_merge_request_event,
     handle_merge_request_note_event,
@@ -75,7 +74,7 @@ class WebhookProcessor(Protocol):
     ) -> None: ...
 
 
-def _extract_payload_repo_info(request) -> dict[str, Any]:
+def _extract_payload_repo_info(request: HttpRequest) -> dict[str, str | int]:
     """
     Best-effort identifiers pulled from the webhook body.
 
@@ -105,7 +104,9 @@ def _extract_payload_repo_info(request) -> dict[str, Any]:
     return {k: v for k, v in info.items() if v is not None}
 
 
-def get_gitlab_external_id(request, extra) -> tuple[str, str] | HttpResponse:
+def get_gitlab_external_id(
+    request: HttpRequest, extra: dict[str, object]
+) -> tuple[str, str] | HttpResponse:
     token = "<unknown>"
     try:
         # Munge the token to extract the integration external_id.
@@ -208,7 +209,7 @@ class GitlabWebhook(SCMWebhook, ABC):
 
     def get_repo(
         self, integration: RpcIntegration, organization: RpcOrganization, event: Mapping[str, Any]
-    ):
+    ) -> Repository | None:
         """
         Given a webhook payload, get the associated Repository record.
 
@@ -224,7 +225,7 @@ class GitlabWebhook(SCMWebhook, ABC):
             return None
         return repo
 
-    def update_repo_data(self, repo: Repository, event: Mapping[str, Any]):
+    def update_repo_data(self, repo: Repository, event: Mapping[str, Any]) -> None:
         """
         Given a webhook payload, update stored repo data if needed.
 
@@ -253,7 +254,7 @@ class IssuesEventWebhook(GitlabWebhook):
 
     EVENT_TYPE = IntegrationWebhookEventType.INBOUND_SYNC
 
-    def __call__(self, event: Mapping[str, Any], **kwargs):
+    def __call__(self, event: Mapping[str, Any], **kwargs: Any) -> None:
         if not (
             (organization := kwargs.get("organization"))
             and (integration := kwargs.get("integration"))
@@ -466,7 +467,7 @@ class MergeEventWebhook(GitlabWebhook):
         handle_merge_request_event,
     )
 
-    def __call__(self, event: Mapping[str, Any], **kwargs):
+    def __call__(self, event: Mapping[str, Any], **kwargs: Any) -> None:
         if not (
             (organization := kwargs.get("organization"))
             and (integration := kwargs.get("integration"))
@@ -475,11 +476,9 @@ class MergeEventWebhook(GitlabWebhook):
 
         repo = self.get_repo(integration, organization, event)
         if repo is None:
-            debug_log(
-                logger,
-                organization,
+            logger.info(
                 "gitlab.merge_request.repo_not_found",
-                {
+                extra={
                     "integration_id": integration.id,
                     "project_id": (event.get("project") or {}).get("id"),
                 },
@@ -487,11 +486,9 @@ class MergeEventWebhook(GitlabWebhook):
             return
 
         object_attributes = event.get("object_attributes") or {}
-        debug_log(
-            logger,
-            organization,
+        logger.info(
             "gitlab.merge_request.received",
-            {
+            extra={
                 "organization_slug": organization.slug,
                 "integration_id": integration.id,
                 "repo_id": repo.id,
@@ -538,11 +535,9 @@ class MergeEventWebhook(GitlabWebhook):
             return
 
         if not author_email:
-            debug_log(
-                logger,
-                organization,
+            logger.info(
                 "gitlab.merge_request.missing_author_email",
-                {
+                extra={
                     "integration_id": integration.id,
                     "repo_id": repo.id,
                     "pr_number": number,
@@ -620,7 +615,7 @@ class NoteEventWebhook(GitlabWebhook):
     EVENT_TYPE = IntegrationWebhookEventType.ISSUE_COMMENT
     WEBHOOK_EVENT_PROCESSORS = (handle_merge_request_note_event,)
 
-    def __call__(self, event: Mapping[str, Any], **kwargs):
+    def __call__(self, event: Mapping[str, Any], **kwargs: Any) -> None:
         if not (
             (organization := kwargs.get("organization"))
             and (integration := kwargs.get("integration"))
@@ -629,11 +624,9 @@ class NoteEventWebhook(GitlabWebhook):
 
         repo = self.get_repo(integration, organization, event)
         if repo is None:
-            debug_log(
-                logger,
-                organization,
+            logger.info(
                 "gitlab.note.repo_not_found",
-                {
+                extra={
                     "integration_id": integration.id,
                     "project_id": (event.get("project") or {}).get("id"),
                 },
@@ -642,11 +635,9 @@ class NoteEventWebhook(GitlabWebhook):
 
         object_attributes = event.get("object_attributes") or {}
         merge_request = event.get("merge_request") or {}
-        debug_log(
-            logger,
-            organization,
+        logger.info(
             "gitlab.note.received",
-            {
+            extra={
                 "organization_slug": organization.slug,
                 "integration_id": integration.id,
                 "repo_id": repo.id,
@@ -677,7 +668,7 @@ class PushEventWebhook(GitlabWebhook):
 
     EVENT_TYPE = IntegrationWebhookEventType.PUSH
 
-    def __call__(self, event: Mapping[str, Any], **kwargs):
+    def __call__(self, event: Mapping[str, Any], **kwargs: Any) -> None:
         if not (
             (organization := kwargs.get("organization"))
             and (integration := kwargs.get("integration"))
@@ -712,11 +703,11 @@ class PushEventWebhook(GitlabWebhook):
                     email=author_email,
                     defaults={"name": commit["author"]["name"]},
                 )[0]
+                # Only look up users once per unique author, not once per commit.
+                author.preload_users()
             else:
                 author = authors[author_email]
             try:
-                if author is not None:
-                    author.preload_users()
                 with transaction.atomic(router.db_for_write(Commit)):
                     commit_row = Commit.objects.create(
                         repository_id=repo.id,
@@ -775,7 +766,7 @@ class GitlabWebhookEndpoint(Endpoint):
     }
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405, reason="HTTP method not supported.")
 

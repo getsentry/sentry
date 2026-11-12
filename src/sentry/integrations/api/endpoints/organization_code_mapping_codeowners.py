@@ -1,3 +1,6 @@
+from collections.abc import Mapping
+from typing import cast
+
 from django.http import Http404
 from rest_framework import status
 from rest_framework.exceptions import NotFound
@@ -13,10 +16,11 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import ApiError
 
 
-def get_codeowner_contents(config):
+def get_codeowner_contents(config: RepositoryProjectPathConfig) -> Mapping[str, str] | None:
     if not config.organization_integration_id:
         raise NotFound(detail="No associated integration")
 
@@ -30,6 +34,7 @@ def get_codeowner_contents(config):
     install = integration.get_installation(organization_id=org_id)
     if isinstance(install, RepositoryIntegration):
         return install.get_codeowner_file(repository, ref=config.default_branch)
+    return None
 
 
 @cell_silo_endpoint
@@ -40,11 +45,18 @@ class OrganizationCodeMappingCodeOwnersEndpoint(OrganizationEndpoint):
     }
     permission_classes = (OrganizationIntegrationsPermission,)
 
-    def convert_args(self, request: Request, organization_id_or_slug, config_id, *args, **kwargs):
+    def convert_args(
+        self,
+        request: Request,
+        organization_id_or_slug: str,
+        config_id: str,
+        *args: object,
+        **kwargs: object,
+    ) -> tuple[tuple[object, ...], dict[str, object]]:
         args, kwargs = super().convert_args(
             request, organization_id_or_slug, config_id, *args, **kwargs
         )
-        organization = kwargs["organization"]
+        organization = cast(Organization, kwargs["organization"])
 
         try:
             kwargs["config"] = RepositoryProjectPathConfig.objects.select_related(
@@ -59,7 +71,13 @@ class OrganizationCodeMappingCodeOwnersEndpoint(OrganizationEndpoint):
 
         return (args, kwargs)
 
-    def get(self, request: Request, config_id, organization, config) -> Response:
+    def get(
+        self,
+        request: Request,
+        config_id: str,
+        organization: Organization,
+        config: RepositoryProjectPathConfig,
+    ) -> Response:
         project = config.project_repository.project
         if not request.access.has_project_access(project):
             return self.respond(status=status.HTTP_403_FORBIDDEN)

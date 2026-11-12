@@ -1,0 +1,324 @@
+---
+title: Disclosure
+description: Disclosure components display content that can be toggled open and closed.
+category: controls
+source: '@sentry/scraps/disclosure'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/packages/scraps/src/disclosure/disclosure.tsx
+  a11y:
+    WCAG 1.4.3: https://www.w3.org/TR/WCAG22/#contrast-minimum
+    WCAG 1.4.4: https://www.w3.org/TR/WCAG22/#resize-text
+    WCAG 1.4.6: https://www.w3.org/TR/WCAG22/#contrast-enhanced
+    WCAG 1.4.8: https://www.w3.org/TR/WCAG22/#visual-presentation
+    WCAG 1.4.12: https://www.w3.org/TR/WCAG22/#text-spacing
+---
+
+import {useState} from 'react';
+
+import {IconEdit} from '@sentry/icons/edit';
+
+import {Button} from '@sentry/scraps/button';
+import {Disclosure} from '@sentry/scraps/disclosure';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+
+import * as Storybook from 'sentry/stories';
+
+export const documentation = import('!!type-loader!@sentry/scraps/disclosure/disclosure');
+
+To create a disclosure, wrap content in a `<Disclosure>` component.
+
+The disclosure component supports a controlled and uncontrolled state via the `defaultExpanded` and `expanded` props.
+
+`Disclosure.Content` controls the panel layout. It does not apply typography to its
+children. Wrap prose in `Text` and set its size explicitly when needed.
+
+<Storybook.Demo>
+  <Flex width="100%">
+    <Disclosure flex={1}>
+      <Disclosure.Title>This is a disclosure</Disclosure.Title>
+      <Disclosure.Content>
+        <Text>This is the content of the disclosure</Text>
+      </Disclosure.Content>
+    </Disclosure>
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<Disclosure>
+  <Disclosure.Title>This is a disclosure</Disclosure.Title>
+  <Disclosure.Content>
+    <Text>This is the content of the disclosure</Text>
+  </Disclosure.Content>
+</Disclosure>
+```
+
+## Controlling Expanded State
+
+The disclosure can be uncontrolled by setting the `defaultExpanded` prop, or controlled by setting the `expanded` prop.
+
+<Storybook.Demo>
+  <Flex width="100%">
+    <Disclosure defaultExpanded flex={1}>
+      <Disclosure.Title>This is a default expanded disclosure</Disclosure.Title>
+      <Disclosure.Content>
+        <Text>This is the content of the disclosure</Text>
+      </Disclosure.Content>
+    </Disclosure>
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<Disclosure defaultExpanded>
+  <Disclosure.Title>This is a default expanded disclosure</Disclosure.Title>
+  <Disclosure.Content>
+    <Text>This is the content of the disclosure</Text>
+  </Disclosure.Content>
+</Disclosure>
+```
+
+### Sizes
+
+The disclosure can be sized by setting the `size` prop.
+
+<Storybook.Demo>
+  <Flex width="100%">
+    <Stack direction="column" justify="center" gap="2xl" flex={1}>
+      <Disclosure size="md" defaultExpanded>
+        <Disclosure.Title>This is medium disclosure</Disclosure.Title>
+        <Disclosure.Content>
+          <Text size="md">This is the content of the disclosure</Text>
+        </Disclosure.Content>
+      </Disclosure>
+      <Disclosure size="sm" defaultExpanded>
+        <Disclosure.Title>This is small disclosure</Disclosure.Title>
+        <Disclosure.Content>
+          <Text size="sm">This is the content of the disclosure</Text>
+        </Disclosure.Content>
+      </Disclosure>
+      <Disclosure size="xs" defaultExpanded>
+        <Disclosure.Title>This is extra small disclosure</Disclosure.Title>
+        <Disclosure.Content>
+          <Text size="xs">This is the content of the disclosure</Text>
+        </Disclosure.Content>
+      </Disclosure>
+    </Stack>
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<Disclosure size="md" defaultExpanded>
+  <Disclosure.Title>This is medium disclosure</Disclosure.Title>
+  <Disclosure.Content>
+    <Text size="md">This is the content of the disclosure</Text>
+  </Disclosure.Content>
+</Disclosure>
+<Disclosure size="sm" defaultExpanded>
+  <Disclosure.Title>This is small disclosure</Disclosure.Title>
+  <Disclosure.Content>
+    <Text size="sm">This is the content of the disclosure</Text>
+  </Disclosure.Content>
+</Disclosure>
+<Disclosure size="xs" defaultExpanded>
+  <Disclosure.Title>This is extra small disclosure</Disclosure.Title>
+  <Disclosure.Content>
+    <Text size="xs">This is the content of the disclosure</Text>
+  </Disclosure.Content>
+</Disclosure>
+```
+
+### Trailing Items
+
+Add interactive elements like buttons, links or badges to the right side of disclosures using the `trailingItems` prop.
+
+Note: The trailing items should be sized to match the disclosure size - this is currently **not** done automatically.
+
+<Storybook.Demo>
+  <Flex width="100%">
+    <Disclosure size="sm" defaultExpanded flex={1}>
+      <Disclosure.Title
+        trailingItems={
+          <Button size="xs" icon={<IconEdit />}>
+            Trailing Item
+          </Button>
+        }
+      >
+        Title With Trailing Items
+      </Disclosure.Title>
+      <Disclosure.Content>
+        <Text size="sm">This is the content of the disclosure</Text>
+      </Disclosure.Content>
+    </Disclosure>
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<Disclosure size="sm" defaultExpanded>
+  <Disclosure.Title
+    trailingItems={
+      <Button size="xs" icon={<IconEdit />}>
+        Trailing Item
+      </Button>
+    }
+  >
+    Title With Trailing Items
+  </Disclosure.Title>
+  <Disclosure.Content>
+    <Text size="sm">This is the content of the disclosure</Text>
+  </Disclosure.Content>
+</Disclosure>
+```
+
+### Leading Items
+
+Add a glyph or avatar before the title with `leadingItems`. When present, the
+chevron moves to sit after the title so the leading slot is the row's first
+element.
+
+<Storybook.Demo>
+  <Flex width="100%">
+    <Disclosure size="sm" defaultExpanded flex={1}>
+      <Disclosure.Title leadingItems={<IconEdit size="xs" />}>
+        Title With A Leading Glyph
+      </Disclosure.Title>
+      <Disclosure.Content>
+        <Text size="sm">This is the content of the disclosure</Text>
+      </Disclosure.Content>
+    </Disclosure>
+  </Flex>
+</Storybook.Demo>
+
+### Outline Variant
+
+Set `variant="outline"` to render the content as a bordered, rounded card below
+the title instead of the default left-indented panel.
+
+<Storybook.Demo>
+  <Flex width="100%">
+    <Disclosure size="sm" variant="outline" defaultExpanded flex={1}>
+      <Disclosure.Title>Outlined Disclosure</Disclosure.Title>
+      <Disclosure.Content>
+        <Text size="sm">This content sits in a bordered card.</Text>
+      </Disclosure.Content>
+    </Disclosure>
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<Disclosure size="sm" variant="outline" defaultExpanded>
+  <Disclosure.Title>Outlined Disclosure</Disclosure.Title>
+  <Disclosure.Content>
+    <Text size="sm">This content sits in a bordered card.</Text>
+  </Disclosure.Content>
+</Disclosure>
+```
+
+### Remembering Expanded State
+
+The disclosure component provides a `onExpandedChange` prop that can be used to listen for changes to the expanded state - this allows you to store the state in a storage of your choice.
+
+Consider storing it inside URL State or localStorage for persistent storage.
+
+export function LocalStorageDisclosure() {
+    const [expanded, setExpanded] = useLocalStorageState('my-disclosure-key', false);
+
+    return (
+        <Disclosure expanded={expanded} onExpandedChange={setExpanded} flex={1}>
+            <Disclosure.Title>The expanded state is saved to localStorage</Disclosure.Title>
+            <Disclosure.Content>
+                <Text>Reload the page to see the expanded state is remembered</Text>
+            </Disclosure.Content>
+        </Disclosure>
+    );
+
+}
+
+Disclosures can maintain their expanded state across page reloads by using localStorage or URL state.
+
+#### LocalStorage
+
+<Storybook.Demo>
+  <Flex width="100%">
+    <LocalStorageDisclosure />
+  </Flex>
+</Storybook.Demo>
+
+```tsx
+function LocalStorageDisclosure() {
+  const [expanded, setExpanded] = useLocalStorageState('my-disclosure-key', false);
+
+  return (
+    <Disclosure expanded={expanded} onExpandedChange={setExpanded}>
+      <Disclosure.Title>The expanded state is saved to localStorage</Disclosure.Title>
+      <Disclosure.Content>
+        <Text>Reload the page to see the expanded state is remembered</Text>
+      </Disclosure.Content>
+    </Disclosure>
+  );
+}
+```
+
+#### URL State
+
+Disclosures can maintain their expanded state across page reloads by using URL state.
+
+import {parseAsBoolean, useQueryState} from 'nuqs';
+
+export function URLStateDisclosure() {
+    const [expanded, setExpanded] = useQueryState('my-disclosure-key', parseAsBoolean.withDefault(false));
+
+    return (
+        <Disclosure defaultExpanded={expanded} onExpandedChange={setExpanded} flex={1}>
+            <Disclosure.Title>The expanded state is saved to URL state</Disclosure.Title>
+            <Disclosure.Content>
+                <Text>Reload the page to see the expanded state is remembered and new params are added to the URL</Text>
+            </Disclosure.Content>
+        </Disclosure>
+    );
+
+}
+
+<Storybook.Demo>
+  <Flex width="100%">
+    <URLStateDisclosure />
+  </Flex>
+</Storybook.Demo>
+
+```tsx
+import {parseAsBoolean, useQueryState} from 'nuqs';
+
+function URLStateDisclosure() {
+  const [expanded, setExpanded] = useQueryState(
+    'my-disclosure-key',
+    parseAsBoolean.withDefault(false)
+  );
+
+  return (
+    <Disclosure defaultExpanded={expanded} onExpandedChange={setExpanded}>
+      <Disclosure.Title>The expanded state is saved to URL state</Disclosure.Title>
+      <Disclosure.Content>
+        <Text>Reload the page to see the expanded state is remembered</Text>
+      </Disclosure.Content>
+    </Disclosure>
+  );
+}
+```
+
+### Scrolling to a Disclosure
+
+Disclosures can be scrolled to with the help of a render ref.
+
+```tsx
+<Disclosure
+  ref={ref => {
+    if (ref) ref.scrollIntoView();
+  }}
+>
+  <Disclosure.Title>This is a disclosure</Disclosure.Title>
+  <Disclosure.Content>
+    <Text>This is the content of the disclosure</Text>
+  </Disclosure.Content>
+</Disclosure>
+```

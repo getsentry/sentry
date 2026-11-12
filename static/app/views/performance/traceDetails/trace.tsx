@@ -10,11 +10,11 @@ import {
 } from 'react';
 import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useStore} from 'zustand';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -154,7 +154,7 @@ export function Trace({
   const organization = useOrganization();
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
-  const {theme: colorMode} = useLegacyStore(ConfigStore);
+  const colorMode = useStore(ConfigStore, state => state.theme);
 
   const rerenderRef = useRef(rerender);
   rerenderRef.current = rerender;
@@ -274,7 +274,7 @@ export function Trace({
       }
 
       if (event.key === 'ArrowLeft') {
-        if (node.expanded) {
+        if (node.canCollapse) {
           onNodeExpand(event, node, false);
         }
       } else if (event.key === 'ArrowRight') {
@@ -596,7 +596,7 @@ function RenderTraceRow(props: {
   const onExpandProp = props.onExpand;
   const onExpand = useCallback(
     (e: React.MouseEvent) => {
-      onExpandProp(e, node, !node.expanded);
+      onExpandProp(e, node, !node.canCollapse);
     },
     [node, onExpandProp]
   );
@@ -1696,11 +1696,11 @@ const TraceStylingWrapper = styled('div')`
         }
       }
 
-      .loading-indicator {
+      .scraps-spinner-ring {
         border-width: 2px;
       }
 
-      .loading-message {
+      .scraps-spinner-message {
         display: none;
       }
     }

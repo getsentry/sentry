@@ -5,11 +5,9 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
-import {DetailsTimeline} from 'sentry/views/detectors/components/uptime/detailsTimeline';
-import {
-  CheckStatus,
-  type CheckStatusBucket,
-} from 'sentry/views/detectors/components/uptime/types';
+
+import {DetailsTimeline} from './detailsTimeline';
+import {CheckStatus, type CheckStatusBucket} from './types';
 
 jest.mock('sentry/components/checkInTimeline/hooks/useTimeWindowConfig');
 

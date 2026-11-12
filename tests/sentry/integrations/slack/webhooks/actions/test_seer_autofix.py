@@ -1,4 +1,5 @@
-from unittest.mock import patch
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 import orjson
 
@@ -14,7 +15,7 @@ class SeerAutofixActionTest(BaseEventTest):
         super().setUp()
         self.group = self.create_group(project=self.project)
 
-    def get_original_message(self):
+    def get_original_message(self) -> dict[str, Any]:
         return {
             "ts": "1458170866.000004",
             "blocks": [
@@ -26,7 +27,7 @@ class SeerAutofixActionTest(BaseEventTest):
             ],
         }
 
-    def get_autofix_start_action(self):
+    def get_autofix_start_action(self) -> dict[str, Any]:
         return {
             "action_id": encode_action_id(
                 action=SlackAction.SEER_AUTOFIX_START,
@@ -40,7 +41,7 @@ class SeerAutofixActionTest(BaseEventTest):
             "action_ts": "1458170917.164398",
         }
 
-    def get_autofix_handoff_action(self):
+    def get_autofix_handoff_action(self) -> dict[str, Any]:
         return {
             "action_id": encode_action_id(
                 action=SlackAction.SEER_AUTOFIX_HANDOFF,
@@ -54,7 +55,7 @@ class SeerAutofixActionTest(BaseEventTest):
             "action_ts": "1458170917.164398",
         }
 
-    def non_member_slack_user(self):
+    def non_member_slack_user(self) -> dict[str, Any]:
         """A Slack user with a linked Sentry identity but no membership in the org"""
         non_member = self.create_user()
         external_id = "slack:2"
@@ -68,7 +69,9 @@ class SeerAutofixActionTest(BaseEventTest):
 
     @patch("sentry.integrations.slack.webhooks.action.send_not_org_member_message")
     @patch("sentry.integrations.slack.webhooks.action.SeerAutofixOperator.trigger_autofix")
-    def test_autofix_start_non_member_is_blocked(self, mock_trigger, mock_not_member_message):
+    def test_autofix_start_non_member_is_blocked(
+        self, mock_trigger: MagicMock, mock_not_member_message: MagicMock
+    ) -> None:
         response = self.post_webhook_block_kit(
             action_data=[self.get_autofix_start_action()],
             original_message=self.get_original_message(),
@@ -82,7 +85,9 @@ class SeerAutofixActionTest(BaseEventTest):
 
     @patch("sentry.integrations.slack.webhooks.action.send_not_org_member_message")
     @patch("sentry.integrations.slack.webhooks.action.SeerAutofixOperator.trigger_autofix")
-    def test_autofix_start_member_is_allowed(self, mock_trigger, mock_not_member_message):
+    def test_autofix_start_member_is_allowed(
+        self, mock_trigger: MagicMock, mock_not_member_message: MagicMock
+    ) -> None:
         # The default Slack user is linked to the org owner
         response = self.post_webhook_block_kit(
             action_data=[self.get_autofix_start_action()],
@@ -95,7 +100,9 @@ class SeerAutofixActionTest(BaseEventTest):
 
     @patch("sentry.integrations.slack.webhooks.action.send_not_org_member_message")
     @patch("sentry.integrations.slack.webhooks.action.SeerAutofixOperator.trigger_handoff")
-    def test_autofix_handoff_non_member_is_blocked(self, mock_trigger, mock_not_member_message):
+    def test_autofix_handoff_non_member_is_blocked(
+        self, mock_trigger: MagicMock, mock_not_member_message: MagicMock
+    ) -> None:
         response = self.post_webhook_block_kit(
             action_data=[self.get_autofix_handoff_action()],
             original_message=self.get_original_message(),
@@ -110,7 +117,9 @@ class SeerAutofixActionTest(BaseEventTest):
 
     @patch("sentry.integrations.slack.webhooks.action.send_not_org_member_message")
     @patch("sentry.integrations.slack.webhooks.action.SeerAutofixOperator.trigger_handoff")
-    def test_autofix_handoff_member_is_allowed(self, mock_trigger, mock_not_member_message):
+    def test_autofix_handoff_member_is_allowed(
+        self, mock_trigger: MagicMock, mock_not_member_message: MagicMock
+    ) -> None:
         response = self.post_webhook_block_kit(
             action_data=[self.get_autofix_handoff_action()],
             original_message=self.get_original_message(),

@@ -65,9 +65,6 @@ import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageStat
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
 import {IssueListContainer} from 'sentry/views/issueList';
-import {InboxLayout} from 'sentry/views/issueList/pages/inbox/inboxLayout';
-import {IssuePreview} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreview';
-import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/pages/inbox/utils';
 import {InboxEmptyState} from 'sentry/views/issueList/pages/inboxEmptyState';
 import {
   assignmentFilterParser,
@@ -77,6 +74,10 @@ import {useInboxPreviewPrefetch} from 'sentry/views/issueList/pages/useInboxPrev
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {getProgressIcon} from 'sentry/views/issueList/utils/progress';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {IssuePreview} from './issuePreview/issuePreview';
+import {InboxLayout} from './inboxLayout';
+import {INBOX_AUTOFIX_CATEGORY_FILTER} from './utils';
 
 const TITLE = t('Inbox');
 const ISSUE_LIMIT = 10;
@@ -812,6 +813,12 @@ function InboxPullRequestMetadata({group}: {group: Group}) {
       <Grid columns="8px minmax(0, 1fr) max-content" gap="md">
         <span />
         <Flex align="center" gap="xs">
+          <Flex minWidth={0} align="center" gap="2xs">
+            <ProjectAvatar project={group.project} size={12} />
+            <Text size="xs" variant="muted" ellipsis>
+              {group.shortId}
+            </Text>
+          </Flex>
           {pullRequests.slice(0, 2).map(pullRequest => (
             <PullRequestBadgeLink
               key={`${pullRequest.repository.id}:${pullRequest.id}`}
@@ -829,12 +836,6 @@ function InboxPullRequestMetadata({group}: {group: Group}) {
               </Badge>
             </PullRequestBadgeLink>
           ))}
-          <Flex minWidth={0} align="center" gap="2xs">
-            <ProjectAvatar project={group.project} size={12} />
-            <Text size="xs" variant="muted" ellipsis>
-              {group.shortId}
-            </Text>
-          </Flex>
         </Flex>
         <span />
       </Grid>

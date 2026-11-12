@@ -1,10 +1,7 @@
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {
-  type ColumnAlign,
-  SortableHeaderCell,
-} from 'sentry/components/tables/sortableHeaderCell';
+import {type ColumnAlign, SortableHeaderCell} from './sortableHeaderCell';
 
 describe('SortableHeaderCell', () => {
   it.snapshot.each<ColumnAlign>(['left', 'center', 'right'])(

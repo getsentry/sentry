@@ -1,27 +1,9 @@
 from datetime import datetime
 from typing import Any, NotRequired, TypedDict
 
-from sentry.investigations.endpoints.serializers.investigation import (
-    InvestigationOrchestrationSerializerResponse,
+from sentry.notebooks.endpoints.serializers.notebook import (
+    NotebookOrchestrationSerializerResponse,
 )
-
-
-class InvestigationExecutionResponse(TypedDict):
-    """Execution accepted for asynchronous processing; poll its detail endpoint."""
-
-    id: str
-    status: str
-
-
-class InvestigationExecutionDetailsResponse(InvestigationExecutionResponse):
-    """Agent transcript and pending input are Seer-owned JSON payloads. Partial Markdown is available for text blocks while they run."""
-
-    blocks: list[dict[str, Any]]
-    transcriptTruncated: bool
-    pendingUserInput: dict[str, Any] | None
-    partialMarkdown: str | None
-    error: Any
-
 
 # The orchestration projection's nested shapes mirror the contract serializers in
 # `sentry.investigations.contracts`, which validate every projection Seer sends.
@@ -41,6 +23,12 @@ class InvestigationToolActivityResponse(TypedDict):
     title: str
     kind: str
     status: str
+
+
+class InvestigationThoughtResponse(TypedDict):
+    id: str
+    text: str
+    beforeActivityId: NotRequired[str | None]
 
 
 class InvestigationEvidenceResponse(TypedDict):
@@ -99,6 +87,7 @@ class InvestigationHypothesisResponse(TypedDict):
     planningStatus: NotRequired[str]
     heartbeatAt: NotRequired[str | None]
     toolActivity: NotRequired[list[InvestigationToolActivityResponse]]
+    thoughts: NotRequired[list[InvestigationThoughtResponse]]
     evidence: NotRequired[list[InvestigationEvidenceResponse]]
     verificationSteps: NotRequired[list[InvestigationVerificationStepResponse]]
     agentVerdict: NotRequired[InvestigationAgentVerdictResponse | None]
@@ -112,6 +101,7 @@ class InvestigationBroadScanResponse(TypedDict):
     heartbeatAt: NotRequired[str | None]
     error: NotRequired[InvestigationProjectionErrorResponse | None]
     toolActivity: NotRequired[list[InvestigationToolActivityResponse]]
+    thoughts: NotRequired[list[InvestigationThoughtResponse]]
     generation: NotRequired[int]
     attempt: NotRequired[int]
     automaticRetryCount: NotRequired[int]
@@ -151,6 +141,7 @@ class InvestigationReportResponse(TypedDict):
     currentBlockKey: NotRequired[str | None]
     currentBlockStatus: NotRequired[str]
     currentBlockToolActivity: NotRequired[list[InvestigationToolActivityResponse]]
+    currentBlockThoughts: NotRequired[list[InvestigationThoughtResponse]]
     heartbeatAt: NotRequired[str | None]
     automaticRetryCount: NotRequired[int]
     clearIntent: NotRequired[InvestigationReportClearIntentResponse | None]
@@ -236,25 +227,8 @@ class InvestigationCommandResponse(TypedDict):
 class InvestigationCandidateResponse(TypedDict):
     status: str
     investigationId: NotRequired[str]
-    orchestration: NotRequired[InvestigationOrchestrationSerializerResponse]
+    orchestration: NotRequired[NotebookOrchestrationSerializerResponse]
 
 
 class InvestigationCandidatesResponse(TypedDict):
     items: list[InvestigationCandidateResponse]
-
-
-class InvestigationViewerResponse(TypedDict):
-    userId: str
-    lastSeen: datetime
-    active: bool
-
-
-class InvestigationPresenceResponse(TypedDict):
-    viewers: list[InvestigationViewerResponse]
-    total: int
-    heartbeatIntervalMs: int
-
-
-class InvestigationTitlePreviewResponse(TypedDict):
-    status: str | None
-    preview: str | None

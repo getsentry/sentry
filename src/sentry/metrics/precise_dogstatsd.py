@@ -1,10 +1,11 @@
 import atexit
-from typing import Any
+from typing import Any, cast
 
 from datadog.dogstatsd.base import DogStatsd
 from datadog.util.hostname import get_hostname
 
 from .base import MetricsBackend, Tags
+from .datadog_stats import DatadogStats
 
 __all__ = ["PreciseDogStatsdMetricsBackend"]
 
@@ -20,6 +21,11 @@ class PreciseDogStatsdMetricsBackend(MetricsBackend):
             # When enabled, a background thread will be used to send metric payloads to the Agent.
             "disable_background_sender": False,
         }
+        # Same option name as `datadog.initialize`, so this backend and DogStatsdMetricsBackend
+        # can be configured with the same tags. Unlike `tags`, these are appended alongside
+        # call-site tags instead of overriding them.
+        if constant_tags := kwargs.get("statsd_constant_tags"):
+            instance_kwargs["constant_tags"] = list(constant_tags)
         if socket_path := kwargs.get("statsd_socket_path"):
             instance_kwargs["socket_path"] = socket_path
         else:
@@ -28,7 +34,7 @@ class PreciseDogStatsdMetricsBackend(MetricsBackend):
             if port := kwargs.get("statsd_port"):
                 instance_kwargs["port"] = int(port)
 
-        self.statsd = DogStatsd(**instance_kwargs)
+        self.statsd: DatadogStats = cast("DatadogStats", DogStatsd(**instance_kwargs))
 
         # Origin detection is enabled after 0.45 by default.
         # Disable it since it silently fails.

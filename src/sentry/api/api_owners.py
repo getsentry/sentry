@@ -7,6 +7,7 @@ class ApiOwner(Enum):
     Value should map to team's github group
     """
 
+    AGENT_TRACING = "agent-tracing"
     ALERTS_MONITORS = "alerts-monitors"
     BILLING = "revenue"
     CODING_WORKFLOWS = "agent-interfaces-sentry-backend"
@@ -17,7 +18,7 @@ class ApiOwner(Enum):
     EMERGE_TOOLS = "emerge-tools"
     EXPLORE = "explore"
     FEEDBACK = "feedback-backend"
-    FLAG = "replay-backend"
+    FLAG = "replay"
     FOUNDATIONAL_STORAGE = "foundational-storage"
     FOUNDATIONS = "foundations"
     GDX = "gdx"
@@ -33,7 +34,7 @@ class ApiOwner(Enum):
     OWNERS_SNUBA = "owners-snuba"
     PROFILING = "profiling"
     PROJECT_MANAGEMENT_INTEGRATIONS = "project-management-integrations"
-    REPLAY = "replay-backend"
+    REPLAY = "replay"
     SECURITY = "security"
     TELEMETRY_EXPERIENCE = "telemetry-experience"
     UNOWNED = "unowned"

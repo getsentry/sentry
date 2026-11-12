@@ -9,12 +9,16 @@ import type {PlatformIntegration} from 'sentry/types/project';
 import {
   AGENT_INTEGRATION_ICONS,
   AGENT_INTEGRATION_LABELS,
+  BUN_AGENT_INTEGRATIONS,
   DENO_AGENT_INTEGRATIONS,
   DEPLOYMENT_TARGET_ICONS,
   DEPLOYMENT_TARGET_LABELS,
   DeploymentTarget,
   getDefaultAgentIntegration,
+  getDeploymentTargets,
   getIntegrationDeploymentTarget,
+  getPlatformDeploymentTarget,
+  getProjectDeploymentTargets,
   hidesDeploymentTargetSelector,
   NODE_AGENT_INTEGRATIONS,
   PHP_AGENT_INTEGRATIONS,
@@ -31,16 +35,20 @@ export function useAgentOnboardingOptions({
   const platformId = platform ?? '';
   const isPythonPlatform = platformId.startsWith('python');
   const isDenoPlatform = platformId === 'deno';
+  const isBunPlatform = platformId === 'bun';
   const isPhpPlatform = platformId.startsWith('php');
   const isNodePlatform = platformId.startsWith('node');
-  const isCloudflareWorkers = platformId === 'node-cloudflare-workers';
   const isCloudflarePages = platformId === 'node-cloudflare-pages';
   const projectAgentIntegration = getDefaultAgentIntegration(platform);
+  const platformDeploymentTarget = getPlatformDeploymentTarget(platform);
+  // Framework projects normally pin both the SDK and the runtime, but some let
+  // the user pick the runtime the framework runs on.
+  const hasProjectDeploymentTargets = !!getProjectDeploymentTargets(platform);
   const showDeploymentTarget =
     isNodePlatform &&
-    !isCloudflareWorkers &&
+    !platformDeploymentTarget &&
     !isCloudflarePages &&
-    !projectAgentIntegration;
+    (!projectAgentIntegration || hasProjectDeploymentTargets);
 
   const integrations = projectAgentIntegration
     ? [projectAgentIntegration]
@@ -48,9 +56,11 @@ export function useAgentOnboardingOptions({
       ? PYTHON_AGENT_INTEGRATIONS
       : isDenoPlatform
         ? DENO_AGENT_INTEGRATIONS
-        : isPhpPlatform
-          ? PHP_AGENT_INTEGRATIONS
-          : NODE_AGENT_INTEGRATIONS;
+        : isBunPlatform
+          ? BUN_AGENT_INTEGRATIONS
+          : isPhpPlatform
+            ? PHP_AGENT_INTEGRATIONS
+            : NODE_AGENT_INTEGRATIONS;
 
   const platformOptions: BasePlatformOptions = {
     integration: {
@@ -78,7 +88,7 @@ export function useAgentOnboardingOptions({
           deploymentTarget: {
             label: t('Deployment'),
             defaultValue: DeploymentTarget.NODE,
-            items: [DeploymentTarget.NODE, DeploymentTarget.CLOUDFLARE].map(target => ({
+            items: getDeploymentTargets(platform).map(target => ({
               label: DEPLOYMENT_TARGET_LABELS[target],
               value: target,
               leadingItems: (
@@ -95,32 +105,35 @@ export function useAgentOnboardingOptions({
   };
 
   const selectedPlatformOptions = useUrlPlatformOptions(platformOptions);
-  const integrationDeploymentTarget = getIntegrationDeploymentTarget(
-    selectedPlatformOptions.integration
-  );
+  const integrationDeploymentTarget =
+    hasProjectDeploymentTargets || platformDeploymentTarget
+      ? undefined
+      : getIntegrationDeploymentTarget(selectedPlatformOptions.integration);
   const selectedDeploymentTarget = Object.values(DeploymentTarget).find(
     target => target === selectedPlatformOptions.deploymentTarget
   );
-  const deploymentTarget = isCloudflareWorkers
-    ? DeploymentTarget.CLOUDFLARE
-    : (integrationDeploymentTarget ?? selectedDeploymentTarget);
+  const deploymentTarget =
+    platformDeploymentTarget ?? integrationDeploymentTarget ?? selectedDeploymentTarget;
 
   // Drop the runtime selector from the options the dropdown renders. The full
   // options above still resolve the selection from the URL.
   const {deploymentTarget: _deploymentTargetOption, ...optionsWithoutDeploymentTarget} =
     platformOptions;
+  // Framework projects fix the SDK, so only their runtime selector is rendered.
+  const {integration: _integrationOption, ...optionsWithoutIntegration} = platformOptions;
 
   return {
     deploymentTarget,
     integrationDeploymentTarget,
-    isCloudflareTarget:
-      isNodePlatform && deploymentTarget === DeploymentTarget.CLOUDFLARE,
     isPhpPlatform,
     isPythonPlatform,
-    platformOptions: hidesDeploymentTargetSelector(selectedPlatformOptions.integration)
-      ? optionsWithoutDeploymentTarget
-      : platformOptions,
+    platformOptions: hasProjectDeploymentTargets
+      ? optionsWithoutIntegration
+      : hidesDeploymentTargetSelector(selectedPlatformOptions.integration)
+        ? optionsWithoutDeploymentTarget
+        : platformOptions,
     projectAgentIntegration,
     selectedPlatformOptions,
+    showPlatformOptions: !projectAgentIntegration || hasProjectDeploymentTargets,
   };
 }

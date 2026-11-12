@@ -1,20 +1,17 @@
 import {Fragment, useMemo, useState} from 'react';
+import {useQuery} from '@tanstack/react-query';
 import classNames from 'classnames';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
-import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
+import {openModal, type ModalRenderProps} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
+
 import {FormModel} from 'sentry/components/forms/model';
 import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {useApi} from 'sentry/utils/useApi';
 
@@ -47,17 +44,13 @@ function ChangePlanAction({
     data: configs,
     isPending,
     isError,
-  } = useApiQuery<BillingConfig>(
-    [
-      getApiUrl('/customers/$organizationIdOrSlug/billing-config/', {
-        path: {organizationIdOrSlug: orgId},
-      }),
-      {query: {tier: BillingConfigTier.ALL}},
-    ],
-    {
+  } = useQuery(
+    apiOptions.as<BillingConfig>()('/customers/$organizationIdOrSlug/billing-config/', {
+      path: {organizationIdOrSlug: orgId},
+      query: {tier: BillingConfigTier.ALL},
       // TODO(isabella): pass billing config from customerDetails
       staleTime: Infinity,
-    }
+    })
   );
 
   const planList = useMemo(() => configs?.planList ?? [], [configs]);
@@ -101,7 +94,9 @@ function ChangePlanAction({
       return null;
     }
 
-    const availableTiers = categoryBuckets.map((tier: {events: number}) => tier.events);
+    const availableTiers: number[] = categoryBuckets.map(
+      (tier: {events: number}) => tier.events
+    );
 
     // If the exact value exists, use it
     if (availableTiers.includes(currentValue)) {
@@ -109,7 +104,7 @@ function ChangePlanAction({
     }
 
     // Find the closest tier, preferring the next higher tier if not exact
-    const sortedTiers = [...availableTiers].sort((a, b) => a - b);
+    const sortedTiers = availableTiers.toSorted((a, b) => a - b);
 
     // Find the first tier that's greater than the current value
     const nextHigherTier = sortedTiers.find(tier => tier > currentValue);
@@ -118,7 +113,7 @@ function ChangePlanAction({
     }
 
     // If no higher tier, take the highest available
-    return sortedTiers[sortedTiers.length - 1];
+    return sortedTiers[sortedTiers.length - 1] ?? null;
   };
 
   /**
@@ -160,7 +155,7 @@ function ChangePlanAction({
     onSubmitSuccess: (data: Data) => void,
     onSubmitError: (error: any) => void
   ) => {
-    addLoadingMessage('Updating plan\u2026');
+    toast.loading('Updating plan\u2026');
 
     if (!data.plan || !planList.some(p => p.id === data.plan)) {
       onSubmitError('Plan not found');
@@ -222,14 +217,15 @@ function ChangePlanAction({
         onSubmit={handleSubmit}
         onCancel={closeModal}
         onSubmitSuccess={(data: Data) => {
-          addSuccessMessage(
+          toast.success(
             `Customer account has been updated with ${JSON.stringify(data)}.`
           );
           closeModal();
           onSuccess();
         }}
         onSubmitError={(error: any) => {
-          addErrorMessage(error?.responseJSON?.detail ?? error);
+          const detail: unknown = error?.responseJSON?.detail;
+          toast.error(typeof detail === 'string' ? detail : 'Unable to change plan');
         }}
         onPlanChange={handlePlanChange}
         tierPlans={getPlanList()}

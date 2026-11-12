@@ -24,7 +24,6 @@ from sentry.utils.batching_kafka_consumer import wait_for_topics
 pytestmark = [requires_kafka]
 
 SENTRY_KAFKA_HOSTS = os.environ.get("SENTRY_KAFKA_HOSTS", "127.0.0.1:9092")
-settings.KAFKA_CLUSTERS["default"] = {"common": {"bootstrap.servers": SENTRY_KAFKA_HOSTS}}
 
 
 def kafka_message_payload() -> Any:
@@ -52,6 +51,9 @@ def kafka_message_payload() -> Any:
 
 
 @thread_leak_allowlist(reason="post process forwarder", issue=97038)
+@override_settings(
+    KAFKA_CLUSTERS={"default": {"common": {"bootstrap.servers": SENTRY_KAFKA_HOSTS}}}
+)
 class PostProcessForwarderTest(TestCase):
     def _get_producer(self, cluster_name: str) -> Producer:
         conf = settings.KAFKA_CLUSTERS[cluster_name]["common"]

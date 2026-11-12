@@ -15,14 +15,6 @@ import {
   type RPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
-  useLogsFrozenProjectIds,
-  useLogsFrozenSearch,
-} from 'sentry/views/explore/logs/logsFrozenContext';
-import {
-  OurLogKnownFieldKey,
-  type LogsAggregatesResult,
-} from 'sentry/views/explore/logs/types';
-import {
   useQueryParamsAggregateCursor,
   useQueryParamsAggregateSortBys,
   useQueryParamsGroupBys,
@@ -36,6 +28,9 @@ import {
 } from 'sentry/views/explore/utils/conditionalAggregate';
 import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
 import {getStaleTimeForEventView} from 'sentry/views/insights/common/queries/useSpansQuery';
+
+import {useLogsFrozenProjectIds, useLogsFrozenSearch} from './logsFrozenContext';
+import {OurLogKnownFieldKey, type LogsAggregatesResult} from './types';
 
 interface UseLogsAggregatesTableOptions {
   enabled: boolean;
@@ -240,7 +235,7 @@ function useLogsAggregatesApiOptions({
         per_page: limit ? limit : undefined,
         cursor: aggregateCursor,
         referrer,
-        caseInsensitive,
+        caseInsensitive: caseInsensitive ? '1' : undefined,
         sampling: queryExtras?.samplingMode,
       },
       staleTime: getStaleTimeForEventView(eventView),

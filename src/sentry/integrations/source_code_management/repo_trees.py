@@ -138,7 +138,10 @@ class RepoTreesIntegration(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_repositories(self, query: str | None = None) -> list[RepositoryInfo]:
+    def get_repositories(
+        self,
+        query: str | None = None,
+    ) -> list[RepositoryInfo]:
         raise NotImplementedError
 
     @property
@@ -356,7 +359,8 @@ class RepoTreesIntegration(ABC):
         """
         key = f"{self.integration_name}:repo:{repo_full_name}:source-code"
         if cache.has_key(key):
-            return cache.get(key, [])
+            files = cache.get(key, [])
+            return files
         return None
 
 

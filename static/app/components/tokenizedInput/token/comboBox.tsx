@@ -31,12 +31,13 @@ import {Overlay} from '@sentry/scraps/overlay';
 import {useOverlay} from '@sentry/scraps/useOverlay';
 
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
+
 import {
   isQueryBuilderPanelChrome,
   useComboBoxLayout,
   withPanelOverlayProps,
-} from 'sentry/components/tokenizedInput/token/comboBoxLayout';
-import {UnstyledInput} from 'sentry/components/tokenizedInput/token/unstyledInput';
+} from './comboBoxLayout';
+import {UnstyledInput} from './unstyledInput';
 
 interface ComboBoxProps {
   children: CollectionChildren<SelectOptionOrSectionWithKey<string>>;
@@ -376,7 +377,7 @@ export function ComboBox({
     [inputProps, onInputKeyUp]
   );
 
-  const autosizeInputRef = useAutosizeInput({value: inputValue});
+  const autosizeInputRef = useAutosizeInput({value: inputValue, placeholder});
 
   const overlayProps = withPanelOverlayProps(positionedOverlayProps, menuPresentation);
 

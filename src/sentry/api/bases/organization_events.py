@@ -30,6 +30,7 @@ from sentry.api.helpers.mobile import get_readable_device_name
 from sentry.api.helpers.teams import get_teams
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.api.utils import handle_query_errors
+from sentry.auth.principal import has_user
 from sentry.discover.arithmetic import is_equation, parse_arithmetic, strip_equation
 from sentry.discover.models import (
     DatasetSourcesTypes,
@@ -55,6 +56,7 @@ from sentry.search.eap.types import AdditionalQueries, SupportedTraceItemType
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS
 from sentry.search.events.fields import get_function_alias, is_function
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
@@ -207,15 +209,13 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 end=filter_params["end"],
                 environments=filter_params.get("environment_objects", []),
                 projects=filter_params["project_objects"],
-                user=serialize_generic_user(
-                    request.user if request.user.is_authenticated else None
-                ),
+                user=serialize_generic_user(request.user if has_user(request.user) else None),
                 teams=self.get_teams(request, organization),
                 organization=organization,
                 query_string=query,
                 sampling_mode=sampling_mode,
                 debug=request.user.is_superuser and request.GET.get("debug", False),
-                case_insensitive=request.GET.get("caseInsensitive", "0") == "1",
+                case_insensitive=request.GET.get("caseInsensitive") in ("1", "true"),
             )
             return params
 
@@ -291,7 +291,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         has_errors: bool,
         has_transactions_data: bool,
         organization: Organization,
-        user: User | AnonymousUser,
+        user: User | AnonymousUser | ServiceAccountPrincipal,
     ) -> int | None:
         """This can be removed once the discover dataset has been fully split"""
         source = DashboardDatasetSourcesTypes.INFERRED.value

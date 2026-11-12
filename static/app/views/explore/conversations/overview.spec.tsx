@@ -8,10 +8,13 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {Referrer} from 'sentry/views/explore/conversations/utils/referrers';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {AI_AGENTS_GETTING_STARTED_DOCS_LINK} from 'sentry/views/insights/pages/agents/utils/docsLinks';
 
+import {Referrer} from './utils/referrers';
 import ConversationsOverviewPage from './overview';
+
+jest.mock('sentry/utils/analytics');
 
 const organization = OrganizationFixture({
   features: ['gen-ai-conversations'],
@@ -181,6 +184,60 @@ describe('ConversationsOverviewPage', () => {
     expect(conversationsRequest).toHaveBeenCalledTimes(1);
   });
 
+  it('filters conversations to those with errors', async () => {
+    const allRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/agents/conversations/`,
+      body: [],
+      match: [MockApiClient.matchQuery({query: ''})],
+    });
+    const errorsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/agents/conversations/`,
+      body: [],
+      match: [MockApiClient.matchQuery({query: 'conversation.errors:>0'})],
+    });
+    const {router} = render(<ConversationsOverviewPage />, {organization});
+
+    const toggle = await screen.findByRole('checkbox', {name: 'Errors only'});
+    expect(toggle).not.toBeChecked();
+    await waitFor(() => expect(allRequest).toHaveBeenCalledTimes(1));
+    expect(errorsRequest).not.toHaveBeenCalled();
+
+    await userEvent.click(toggle);
+    await waitFor(() => expect(errorsRequest).toHaveBeenCalledTimes(1));
+    expect(router.location.query.errorsOnly).toBe('true');
+
+    await waitFor(() =>
+      expect(screen.getByRole('checkbox', {name: 'Errors only'})).toBeChecked()
+    );
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Errors only'}));
+    await waitFor(() => expect(router.location.query.errorsOnly).toBeUndefined());
+
+    // Toggling back and forth within the cache window reuses earlier responses.
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Errors only'}));
+    await waitFor(() => expect(router.location.query.errorsOnly).toBe('true'));
+    expect(allRequest).toHaveBeenCalledTimes(1);
+    expect(errorsRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides the errors toggle outside the Conversations tab', async () => {
+    render(<ConversationsOverviewPage />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/agents/`,
+          query: {table: 'traces'},
+        },
+      },
+    });
+
+    expect(
+      await screen.findByPlaceholderText(
+        'Search by trace ID, operation, service, or user'
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', {name: 'Errors only'})).not.toBeInTheDocument();
+  });
+
   it('tailors the search placeholder to the selected table', async () => {
     render(<ConversationsOverviewPage />, {organization});
 
@@ -254,9 +311,44 @@ describe('ConversationsOverviewPage', () => {
     expect(
       banner.compareDocumentPosition(costChartTitle) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
-    expect(
-      screen.queryByRole('button', {name: 'Dismiss banner'})
-    ).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Dismiss banner'}));
+
+    expect(screen.queryByText(MISSING_AGENT_SPANS_MESSAGE)).not.toBeInTheDocument();
+    expect(screen.getByText('Estimated Cost')).toBeInTheDocument();
+  });
+
+  it('does not show the setup banner once it has been dismissed', async () => {
+    localStorage.setItem(
+      `${organization.id}:agents-charts-missing-agent-data-banner-dismissed`,
+      Date.now().toString()
+    );
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      match: [
+        MockApiClient.matchQuery({
+          referrer: Referrer.CHART,
+          query: LLM_QUERY,
+        }),
+      ],
+      body: {data: [{id: 'llm-span-id'}]},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      match: [
+        MockApiClient.matchQuery({
+          referrer: Referrer.CHART,
+          query: AGENT_OR_TOOL_QUERY,
+        }),
+      ],
+      body: {data: []},
+    });
+
+    render(<ConversationsOverviewPage />, {organization});
+
+    expect(await screen.findByText('Estimated Cost')).toBeInTheDocument();
+    expect(screen.queryByText('Agent Runs')).not.toBeInTheDocument();
+    expect(screen.queryByText(MISSING_AGENT_SPANS_MESSAGE)).not.toBeInTheDocument();
   });
 
   it('does not show the banner when the selected time range has no LLM spans', async () => {
@@ -276,13 +368,13 @@ describe('ConversationsOverviewPage', () => {
 
   it('does not apply the table search to agent charts', async () => {
     const chartRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+      url: `/organizations/${organization.slug}/events-timeseries/`,
       match: [
         MockApiClient.matchQuery({
           referrer: 'api.dashboards.widget.bar-chart',
         }),
       ],
-      body: {data: []},
+      body: {timeSeries: []},
     });
 
     render(<ConversationsOverviewPage />, {
@@ -327,11 +419,24 @@ describe('ConversationsOverviewPage', () => {
       'true'
     );
 
+    expect(trackAnalytics).not.toHaveBeenCalledWith(
+      'conversations.onboarding.page-view',
+      expect.anything()
+    );
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.table.page-view',
+      expect.objectContaining({tab: 'traces'})
+    );
+
     await userEvent.click(screen.getByRole('tab', {name: 'Conversations'}));
 
     expect(
       await screen.findByRole('tab', {name: 'Conversations', selected: true})
     ).toBeInTheDocument();
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.onboarding.page-view',
+      expect.objectContaining({empty_state: 'no_conversations'})
+    );
     expect(
       screen.queryByRole('combobox', {name: 'Add a search term'})
     ).not.toBeInTheDocument();
@@ -339,7 +444,48 @@ describe('ConversationsOverviewPage', () => {
     expect(await screen.findByRole('button', {name: 'Copy prompt'})).toBeInTheDocument();
   });
 
-  it('only opens a pasted conversation ID after selecting the Conversations tab', async () => {
+  it('tracks a table page view for each tab', async () => {
+    render(<ConversationsOverviewPage />, {organization});
+
+    await waitFor(() =>
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'conversations.table.page-view',
+        expect.objectContaining({tab: 'conversations'})
+      )
+    );
+
+    await userEvent.click(await screen.findByRole('tab', {name: 'Traces'}));
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.table.page-view',
+      expect.objectContaining({tab: 'traces'})
+    );
+
+    await userEvent.click(screen.getByRole('tab', {name: 'LLM Calls'}));
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.table.page-view',
+      expect.objectContaining({tab: 'spans'})
+    );
+  });
+
+  it('tracks adding an agent chart to a dashboard', async () => {
+    render(<ConversationsOverviewPage />, {organization});
+
+    const [widgetActions] = await screen.findAllByRole('button', {
+      name: 'Widget actions',
+    });
+    await userEvent.click(widgetActions!);
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to Dashboard'}));
+
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.save_as',
+      expect.objectContaining({
+        chart: 'explore-agents-estimated-cost',
+        save_type: 'dashboard',
+      })
+    );
+  });
+
+  it('does not open a pasted conversation ID on the Traces tab', async () => {
     const {router} = render(<ConversationsOverviewPage />, {organization});
 
     await userEvent.click(await screen.findByRole('tab', {name: 'Traces'}));
@@ -379,13 +525,6 @@ describe('ConversationsOverviewPage', () => {
     await waitFor(() => expect(router.location.query.query).toBe('abcdef12'));
     expect(router.location.pathname).not.toContain('/conversations/abcdef12/');
     expect(conversationsRequest).not.toHaveBeenCalled();
-
-    await userEvent.click(screen.getByRole('tab', {name: 'Conversations'}));
-    await waitFor(() => {
-      expect(router.location.pathname).toBe(
-        `/organizations/${organization.slug}/explore/agents/conversations/abcdef12/`
-      );
-    });
   });
 
   it('shows conversation onboarding without data tabs when there are no gen AI spans', async () => {
@@ -402,6 +541,10 @@ describe('ConversationsOverviewPage', () => {
     expect(screen.queryByRole('tab', {name: 'Traces'})).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', {name: 'LLM Calls'})).not.toBeInTheDocument();
     expect(screen.queryByText('Agent Runs')).not.toBeInTheDocument();
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.onboarding.page-view',
+      expect.objectContaining({empty_state: 'no_agent_spans'})
+    );
   });
 
   it('shows agent data without the project flag or conversation IDs', async () => {

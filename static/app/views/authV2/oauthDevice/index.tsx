@@ -17,7 +17,7 @@ import {OAuthFlowTransition} from 'sentry/views/authV2/oauth/oauthFlowTransition
 import {OAuthLayout} from 'sentry/views/authV2/oauth/oauthLayout';
 import {OrganizationConsentCard} from 'sentry/views/authV2/oauth/organizationConsentCard';
 import {useOAuthOrganization} from 'sentry/views/authV2/oauth/useOAuthOrganization';
-import {useBrandedAuthLoading} from 'sentry/views/authV2/useBrandedAuthLoading';
+import {useAuthPageLoading} from 'sentry/views/authV2/useAuthPageLoading';
 
 import {useOAuthDeviceFlow} from './useOAuthDeviceFlow';
 
@@ -28,7 +28,7 @@ export default function OAuthDevice() {
     state.status === 'consent' ? state.sessionKey : undefined
   );
   const theme = useTheme();
-  useBrandedAuthLoading(false);
+  useAuthPageLoading(false);
 
   return (
     <OAuthLayout>

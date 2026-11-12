@@ -1,6 +1,7 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import {IconClock} from '@sentry/icons/clock';
+import {IconTimer} from '@sentry/icons/timer';
 import type {Location} from 'history';
 import {createParser, useQueryState} from 'nuqs';
 
@@ -26,24 +27,6 @@ import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import {AddFilter} from 'sentry/views/dashboards/globalFilter/addFilter';
-import {GenericFilterSelector} from 'sentry/views/dashboards/globalFilter/genericFilterSelector';
-import {
-  getTagKeysInMultipleDatasets,
-  globalFilterKeysAreEqual,
-  globalFiltersAreEqual,
-  mergeGlobalFilters,
-} from 'sentry/views/dashboards/globalFilter/utils';
-import {useDashboardChartInterval} from 'sentry/views/dashboards/hooks/useDashboardChartInterval';
-import {useDashboardMaxPickableDays} from 'sentry/views/dashboards/hooks/useDashboardMaxPickableDays';
-import {useDatasetSearchBarData} from 'sentry/views/dashboards/hooks/useDatasetSearchBarData';
-import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
-import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
-import {
-  PREBUILT_DASHBOARDS,
-  type PrebuiltDashboardId,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {NavigationTypeSwitcher} from 'sentry/views/insights/browser/webVitals/navigationType/navigationTypeSwitcher';
 import {
   hidesNavigationTypeChip,
@@ -51,15 +34,40 @@ import {
   useNavigationTypeExperiment,
 } from 'sentry/views/insights/browser/webVitals/navigationType/utils';
 
+import {AddFilter} from './globalFilter/addFilter';
+import {GenericFilterSelector} from './globalFilter/genericFilterSelector';
+import {
+  getTagKeysInMultipleDatasets,
+  globalFilterKeysAreEqual,
+  globalFiltersAreEqual,
+  mergeGlobalFilters,
+} from './globalFilter/utils';
+import {useDashboardChartInterval} from './hooks/useDashboardChartInterval';
+import {useDashboardMaxPickableDays} from './hooks/useDashboardMaxPickableDays';
+import {
+  enqueueDashboardWrite,
+  isSavedDashboardId,
+  useDashboardQueryPriority,
+  useSaveDashboardQueryPriority,
+} from './hooks/useDashboardQueryPriority';
+import {useDatasetSearchBarData} from './hooks/useDatasetSearchBarData';
+import {useInvalidateStarredDashboards} from './hooks/useInvalidateStarredDashboards';
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
+import {
+  getPrebuiltDashboardConfig,
+  type PrebuiltDashboardId,
+} from './utils/prebuiltConfigs';
+import {DataSet} from './widgetBuilder/utils';
 import {SortableReleasesSelect} from './sortableReleasesSelect';
 import type {
   DashboardDetails,
   DashboardFilters,
   DashboardPermissions,
+  DashboardQueryPriority,
   GlobalFilter,
 } from './types';
 import {DashboardFilterKeys} from './types';
+import {getDashboardFiltersFromURL} from './utils';
 
 export type FiltersBarProps = {
   filters: DashboardFilters;
@@ -73,6 +81,7 @@ export type FiltersBarProps = {
   dashboardPermissions?: DashboardPermissions;
   onAddWidget?: (dataset: DataSet, openWidgetTemplates?: boolean) => void;
   onCancel?: () => void;
+  onDashboardQueryPrioritySaved?: (dashboard: DashboardDetails) => void;
   onSave?: () => Promise<void>;
   prebuiltDashboardId?: PrebuiltDashboardId;
   shouldBusySaveButton?: boolean;
@@ -91,6 +100,7 @@ export function FiltersBar({
   location,
   onCancel,
   onDashboardFilterChange,
+  onDashboardQueryPrioritySaved,
   onSave,
   shouldBusySaveButton,
   prebuiltDashboardId,
@@ -102,7 +112,8 @@ export function FiltersBar({
   const {getSearchBarData, onFilterKeySearch} = useDatasetSearchBarData();
   const isPrebuiltDashboard = defined(prebuiltDashboardId);
   const prebuiltDashboardFilters = prebuiltDashboardId
-    ? (PREBUILT_DASHBOARDS[prebuiltDashboardId].filters.globalFilter ?? [])
+    ? (getPrebuiltDashboardConfig(prebuiltDashboardId, organization).filters
+        .globalFilter ?? [])
     : [];
 
   const maxPickableDaysOptions = useDashboardMaxPickableDays(dashboard?.widgets);
@@ -218,6 +229,65 @@ export function FiltersBar({
   const tagKeysInMultipleDatasets = getTagKeysInMultipleDatasets(visibleGlobalFilters);
 
   const [interval, setInterval, intervalOptions] = useDashboardChartInterval();
+  const {
+    enabled: showQueryPriority,
+    options: queryPriorityOptions,
+    priority,
+    setPriority,
+  } = useDashboardQueryPriority(dashboard?.queryPriority);
+  const {mutateAsync: saveQueryPriority} = useSaveDashboardQueryPriority();
+  // Bumps when the selection is replaced, so an older request does not start
+  // or update the page. Unmount is separate: the write still goes out, but
+  // its result must not land on whatever page is open now.
+  const queryPrioritySaveId = useRef(0);
+  const queryPriorityUnmounted = useRef(false);
+  useEffect(
+    () => () => {
+      queryPriorityUnmounted.current = true;
+    },
+    []
+  );
+  const handleQueryPriorityChange = (value: DashboardQueryPriority) => {
+    const previous = priority;
+    setPriority(value);
+    // Viewers can still change the selection for this visit. Only an editor
+    // of a saved dashboard writes it back.
+    if (!hasEditAccess || isPreview || !dashboard || !isSavedDashboardId(dashboard.id)) {
+      return;
+    }
+    // Compare the selection the user already sees. Props can still hold the
+    // previous saved value after a save finishes, and using them would skip
+    // the write that puts the old value back.
+    if (previous === value) {
+      return;
+    }
+    const saveId = ++queryPrioritySaveId.current;
+    const dashboardId = dashboard.id;
+    enqueueDashboardWrite(async () => {
+      if (saveId !== queryPrioritySaveId.current) {
+        return;
+      }
+      try {
+        const updated = await saveQueryPriority({dashboardId, queryPriority: value});
+        if (
+          updated &&
+          saveId === queryPrioritySaveId.current &&
+          !queryPriorityUnmounted.current
+        ) {
+          onDashboardQueryPrioritySaved?.(updated);
+        }
+      } catch {
+        // The mutation already reports the error. Put the dropdown back only
+        // when the failed selection is still the one on screen.
+        if (saveId === queryPrioritySaveId.current && !queryPriorityUnmounted.current) {
+          setPriority(previous);
+        }
+      }
+    });
+  };
+  const queryPriorityLabel =
+    queryPriorityOptions.find(option => option.value === priority)?.label ??
+    t('Balanced Querying');
   return (
     <Flex
       align={{zero: 'stretch', xl: 'start'}}
@@ -376,6 +446,24 @@ export function FiltersBar({
           )}
       </Flex>
       <Grid flow="column" align="center" gap="md">
+        {showQueryPriority && (
+          <CompactSelect
+            value={priority}
+            onChange={option => handleQueryPriorityChange(option.value)}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button
+                {...triggerProps}
+                icon={<IconTimer />}
+                aria-label={t('Query Speed: %s', queryPriorityLabel)}
+              >
+                {queryPriorityLabel}
+              </OverlayTrigger.Button>
+            )}
+            menuTitle={t('Query Speed')}
+            menuWidth={240}
+            options={queryPriorityOptions}
+          />
+        )}
         <CompactSelect
           value={interval}
           onChange={option => setInterval(option.value)}

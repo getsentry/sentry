@@ -1,7 +1,7 @@
 from collections.abc import Mapping, MutableMapping
 from datetime import datetime
 from types import TracebackType
-from typing import Any, Self
+from typing import Any, Self, cast
 from urllib.parse import urlencode, urlparse
 
 import brotli
@@ -122,10 +122,13 @@ def get_from_profiling_service(
             metrics.distribution(metric_name, len(data), tags=metric_tags)
 
         kwargs["body"] = brotli.compress(data, quality=6, mode=brotli.MODE_TEXT)
-    return _profiling_pool.urlopen(
-        method,
-        path,
-        **kwargs,
+    return cast(
+        VroomResponse,
+        _profiling_pool.urlopen(
+            method,
+            path,
+            **kwargs,
+        ),
     )
 
 

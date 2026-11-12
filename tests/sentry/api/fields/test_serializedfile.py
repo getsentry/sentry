@@ -1,6 +1,8 @@
 import unittest
 from base64 import b64encode
+from collections.abc import Sequence
 from io import BytesIO
+from typing import cast
 
 import pytest
 from rest_framework import serializers
@@ -14,9 +16,9 @@ class SerializedFileFieldTest(unittest.TestCase):
         field = SerializedFileField()
 
         assert field.to_representation(None) == ""
-        assert field.to_representation("") == ""
+        assert field.to_representation(cast(FileUpload | None, "")) == ""
         with pytest.raises(ValueError):
-            assert field.to_representation(1)
+            assert field.to_representation(cast(FileUpload | None, 1))
 
         result = field.to_representation(
             FileUpload(name="filename.txt", content=BytesIO(b"hello world"))
@@ -29,7 +31,7 @@ class SerializedFileFieldTest(unittest.TestCase):
         assert field.to_internal_value("") is None
         assert field.to_internal_value(None) is None
         with pytest.raises(serializers.ValidationError):
-            assert field.to_internal_value(True)
+            assert field.to_internal_value(cast(Sequence[str | bytes] | None, True))
 
         result = field.to_internal_value(["filename.txt", b64encode(b"hello world")])
         assert isinstance(result, FileUpload)

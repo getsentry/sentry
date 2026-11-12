@@ -1,6 +1,7 @@
+import {useQuery} from '@tanstack/react-query';
+
 import type {OrganizationIntegration} from 'sentry/types/integrations';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 /**
@@ -11,21 +12,18 @@ import {useOrganization} from 'sentry/utils/useOrganization';
  */
 export function useIntegrationInstallation(provider_key: string) {
   const organization = useOrganization();
-  const {data, isPending} = useApiQuery<OrganizationIntegration[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  const {data, isPending} = useQuery(
+    apiOptions.as<OrganizationIntegration[]>()(
+      '/organizations/$organizationIdOrSlug/integrations/',
       {
+        path: {organizationIdOrSlug: organization.slug},
         query: {
           includeConfig: 0,
           provider_key,
         },
-      },
-    ],
-    {
-      staleTime: 0,
-    }
+        staleTime: 0,
+      }
+    )
   );
 
   return {

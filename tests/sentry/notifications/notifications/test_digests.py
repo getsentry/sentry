@@ -199,6 +199,23 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
         self.run_test(event_count=2)
         assert "new alerts since" in mail.outbox[0].subject
 
+    def test_sends_digest_with_workflow_link_for_dual_written_rule(self) -> None:
+        rule = self.create_project_rule(project=self.project)
+        self.create_alert_rule_workflow(rule_id=rule.id, workflow=self.workflow)
+
+        self.run_test(event_count=2)
+
+        message = mail.outbox[0]
+        assert isinstance(message, EmailMultiAlternatives)
+        html = str(message.alternatives[0][0])
+        assert (
+            f"/organizations/{self.organization.slug}/monitors/alerts/{self.workflow.id}/" in html
+        )
+        assert (
+            f"/organizations/{self.organization.slug}/issues/alerts/rules/"
+            f"{self.project.slug}/{rule.id}/details/" not in html
+        )
+
     def test_digest_email_uses_user_timezone(self) -> None:
         self.organization.member_set.exclude(user_id=self.user.id).delete()
 

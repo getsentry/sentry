@@ -1,12 +1,9 @@
 import {Fragment, isValidElement, useCallback, useEffect, useRef, useState} from 'react';
 
+import type {ConfirmMessageRenderProps, OpenConfirmOptions} from '@sentry/scraps/confirm';
+import {Confirm, openConfirmModal} from '@sentry/scraps/confirm';
 import {Container} from '@sentry/scraps/layout';
 
-import type {
-  ConfirmMessageRenderProps,
-  OpenConfirmOptions,
-} from 'sentry/components/confirm';
-import {Confirm, openConfirmModal} from 'sentry/components/confirm';
 import {InputField} from 'sentry/components/forms/fields/inputField';
 import {TextareaField} from 'sentry/components/forms/fields/textareaField';
 

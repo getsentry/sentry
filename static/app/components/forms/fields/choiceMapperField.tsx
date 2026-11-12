@@ -21,6 +21,8 @@ import {Select} from '@sentry/scraps/select';
 import {Client} from 'sentry/api';
 import {FormField} from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
+import type {Choices} from 'sentry/types/core';
+import {convertFromSelect2Choices} from 'sentry/utils/convertFromSelect2Choices';
 import {defined} from 'sentry/utils/defined';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 
@@ -43,7 +45,21 @@ interface DefaultProps {
   perItemMapping?: boolean;
 }
 
-type MappedSelectors = Record<string, Partial<ControlProps>>;
+type MappedSelector = DistributedOmit<
+  ControlProps<string | number>,
+  'options' | 'value' | 'onChange'
+> & {
+  choices?: Choices;
+  options?: ControlProps<string | number>['options'];
+};
+type MappedSelectors = Record<string, MappedSelector>;
+
+function getSelectProps({choices, options, ...props}: MappedSelector = {}) {
+  return {
+    ...props,
+    options: options ?? convertFromSelect2Choices(choices) ?? [],
+  };
+}
 
 export interface ChoiceMapperProps extends DefaultProps {
   /**
@@ -399,10 +415,11 @@ export function ChoiceMapperField({
               <Flex align="center" flex="1 0 0" marginLeft="md" key={fieldKey}>
                 <Control>
                   <Select
-                    {...(perItemMapping
-                      ? (mappedSelectors[itemKey] as any)[fieldKey]
-                      : mappedSelectors[fieldKey])}
-                    height={30}
+                    {...getSelectProps(
+                      perItemMapping
+                        ? (mappedSelectors[itemKey] as any)[fieldKey]
+                        : mappedSelectors[fieldKey]
+                    )}
                     disabled={disabled}
                     onChange={(v: any) => setValue(itemKey, fieldKey, v ? v.value : null)}
                     value={value[itemKey][fieldKey]}

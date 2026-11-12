@@ -3,7 +3,7 @@ import {
   type QueryStatus,
   type QueryFunctionContext,
 } from '@tanstack/react-query';
-import * as qs from 'query-string';
+import {createLoader} from 'nuqs';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -15,6 +15,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {traceDateTimeParsers} from 'sentry/views/performance/traceDetails/useTraceQueryParams';
 
 import type {EAPTraceMeta, ResponseEAPTraceMeta} from './types';
 
@@ -24,6 +25,8 @@ export type TraceMetaTrace = {
 };
 
 type UseTraceMetaOptions = TraceMetaTrace | TraceMetaTrace[];
+
+const loadTraceMetaQueryParams = createLoader(traceDateTimeParsers);
 
 type TraceMetaQueryParams =
   | {
@@ -173,7 +176,7 @@ export function useTraceMeta(
   const traces = getTraceMetaTraces(options);
 
   const normalizedParams = normalizeDateTimeParams(
-    disableUrlSync ? {} : qs.parse(location.search),
+    disableUrlSync ? {} : loadTraceMetaQueryParams(location.search),
     {allowAbsolutePageDatetime: true}
   );
 

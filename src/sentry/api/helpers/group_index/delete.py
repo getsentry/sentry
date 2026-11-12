@@ -18,6 +18,7 @@ from sentry.api.utils import to_valid_int_id_list
 from sentry.apidocs.response_types import ValidationErrorResponse
 from sentry.deletions.defaults.group import GROUP_CHUNK_SIZE
 from sentry.deletions.tasks.groups import delete_groups_for_project
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import GroupInbox
 from sentry.models.project import Project
@@ -187,6 +188,8 @@ def schedule_tasks_to_delete_groups(
             )
         except ValidationError as exc:
             return Response({"detail": str(exc)}, status=400)
+        except InvalidSearchQuery:
+            return Response({"detail": "Invalid search query."}, status=400)
 
         group_list = list(cursor_result)
 

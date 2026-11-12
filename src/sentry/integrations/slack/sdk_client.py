@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Callable
 from functools import wraps
 from types import FunctionType
 
@@ -49,9 +50,9 @@ def is_response_fatal(response: SlackResponse) -> bool:
     return False
 
 
-def wrapper(method: FunctionType):
+def wrapper(method: FunctionType) -> Callable[..., SlackResponse]:
     @wraps(method)
-    def wrapped(*args, **kwargs):
+    def wrapped(*args: object, **kwargs: object) -> SlackResponse:
         try:
             response = method(*args, **kwargs)
             track_response_data(response=response, method=method.__name__)
@@ -74,14 +75,14 @@ def wrapper(method: FunctionType):
     return wrapped
 
 
-def wrap_api_call(cls):
+def wrap_api_call(cls: type) -> None:
     for name, attribute in vars(cls).items():
         if isinstance(attribute, FunctionType) and attribute.__name__ in SLACK_SDK_WRAP_METHODS:
             setattr(cls, name, wrapper(attribute))
 
 
 class MetaClass(type):
-    def __new__(meta, name, bases, dct):
+    def __new__(meta, name: str, bases: tuple[type, ...], dct: dict[str, object]) -> type:
         cls = super().__new__(meta, name, bases, dct)
         for parent in cls.__bases__:
             for base in parent.__bases__:

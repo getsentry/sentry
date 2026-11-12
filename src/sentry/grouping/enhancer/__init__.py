@@ -193,7 +193,7 @@ def _add_rule_source_to_hint(hint: str | None, custom_rules: set[str]) -> str | 
     if not hint:
         return None
 
-    def _add_type_to_rule(rule_regex_match: re.Match) -> str:
+    def _add_type_to_rule(rule_regex_match: re.Match[str]) -> str:
         rule_str = rule_regex_match.group(1)
         rule_type = "custom" if rule_str in custom_rules else "built-in"
         return f"{rule_type} stacktrace rule ({rule_str})"
@@ -389,7 +389,7 @@ class EnhancementsConfig:
     # NOTE: You must add a version to ``VERSIONS`` any time attributes are added
     # to this class, s.t. no enhancements lacking these attributes are loaded
     # from cache.
-    # See ``GroupingConfigLoader._get_enhancements`` in src/sentry/grouping/api.py.
+    # See ``GroupingConfigLoader._get_base64_enhancements`` in src/sentry/grouping/api.py.
 
     def __init__(
         self,
