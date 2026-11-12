@@ -1,4 +1,7 @@
+from datetime import timedelta
+from typing import Any
 from unittest import mock
+from uuid import uuid4
 
 import orjson
 from django.test import override_settings
@@ -7,6 +10,12 @@ from urllib3.response import HTTPResponse
 from sentry.api.serializers import serialize
 from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.endpoints.group_related import ALL_TYPES_UNAVAILABLE_DETAIL
+from sentry.issues.related.contributing import (
+    ISSUE_SEARCH_UNAVAILABLE_DETAIL,
+    NOT_A_METRIC_ISSUE_DETAIL,
+    UNSUPPORTED_DATASET_DETAIL,
+    UNSUPPORTED_QUERY_DETAIL,
+)
 from sentry.issues.related.same_trace import NO_TRACE_DETAIL, TRACE_SEARCH_UNAVAILABLE_DETAIL
 from sentry.issues.related.similar_stacktrace import (
     NO_STACKTRACE_DETAIL,
@@ -16,10 +25,13 @@ from sentry.issues.related.similar_stacktrace import (
 )
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
+from sentry.models.groupopenperiod import get_latest_open_period
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
 from sentry.utils.snuba import QueryExecutionError
+from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 TRACE_ID = "a7d67cf796774551a95be6543cacd459"
 
@@ -54,10 +66,24 @@ ERROR_EVENT_DATA = {
     "platform": "python",
 }
 
-# Only external services are mocked: Seer's HTTP call, and the trace query to Snuba when a test
-# needs it to fail.
+# Only external services are mocked: Seer's HTTP call, and a Snuba query when a test needs it to
+# fail.
 SEER_URLOPEN = "sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen"
 TRACE_SNUBA_QUERY = "sentry.issues.related.trace_connected.bulk_snuba_queries"
+ISSUE_SEARCH_SNUBA_QUERY = "sentry.search.snuba.executors.bulk_raw_query"
+
+
+def detector_query(**overrides: Any) -> dict[str, Any]:
+    """A metric detector's query, as a metric issue's event records it."""
+    return {
+        "dataset": "events",
+        "query": "transaction:/checkout",
+        "aggregate": "count()",
+        "time_window": 60,
+        "environment": None,
+        "event_types": ["error", "default"],
+        **overrides,
+    }
 
 
 def seer_response(*matches: tuple[str, float]) -> HTTPResponse:
@@ -68,7 +94,7 @@ def seer_response(*matches: tuple[str, float]) -> HTTPResponse:
     return HTTPResponse(orjson.dumps({"responses": responses}), status=200)
 
 
-class GroupRelatedEndpointTest(APITestCase, SnubaTestCase):
+class GroupRelatedEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     def setUp(self) -> None:
         super().setUp()
         # Seer requests carry a ViewerContext signed with this secret; without it they fail.
@@ -79,6 +105,26 @@ class GroupRelatedEndpointTest(APITestCase, SnubaTestCase):
         assert self.event.group is not None
         self.group = self.event.group
         self.path = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/related/"
+
+    def store_metric_issue(self, snuba_query: dict[str, Any]) -> tuple[Event, Group]:
+        """
+        A metric issue that opened five minutes ago. Its event records the detector's query in the
+        evidence data, where detectors put it; the lookup reads nothing else from there.
+        """
+        event, _occurrence, group_info = self.store_search_issue(
+            project_id=self.project.id,
+            user_id=self.user.id,
+            fingerprints=[uuid4().hex],
+            insert_time=before_now(minutes=5),
+            override_occurrence_data={
+                # The event loads its occurrence by project, and the builder defaults to project 1
+                "project_id": self.project.id,
+                "type": MetricIssue.type_id,
+                "evidence_data": {"data_sources": [{"query_obj": {"snuba_query": snuba_query}}]},
+            },
+        )
+        assert group_info is not None
+        return event, group_info.group
 
     @mock.patch(SEER_URLOPEN)
     def test_similar_issues(self, mock_seer_request: mock.MagicMock) -> None:
@@ -291,6 +337,11 @@ class GroupRelatedEndpointTest(APITestCase, SnubaTestCase):
                         "eventId": latest_event.event_id,
                         "traceId": latest_event.trace_id,
                     },
+                    {
+                        "type": "contributing",
+                        "status": "not_applicable",
+                        "detail": NOT_A_METRIC_ISSUE_DETAIL,
+                    },
                 ]
             },
         }
@@ -317,6 +368,11 @@ class GroupRelatedEndpointTest(APITestCase, SnubaTestCase):
                     "type": "same_trace",
                     "status": "not_applicable",
                     "detail": NO_TRACE_DETAIL,
+                },
+                {
+                    "type": "contributing",
+                    "status": "not_applicable",
+                    "detail": NOT_A_METRIC_ISSUE_DETAIL,
                 },
             ]
         }
@@ -386,6 +442,11 @@ class GroupRelatedEndpointTest(APITestCase, SnubaTestCase):
                         "eventId": self.event.event_id,
                         "traceId": TRACE_ID,
                     },
+                    {
+                        "type": "contributing",
+                        "status": "not_applicable",
+                        "detail": NOT_A_METRIC_ISSUE_DETAIL,
+                    },
                 ]
             },
         }
@@ -410,8 +471,179 @@ class GroupRelatedEndpointTest(APITestCase, SnubaTestCase):
                     "eventId": self.event.event_id,
                     "traceId": TRACE_ID,
                 },
+                {
+                    "type": "contributing",
+                    "status": "not_applicable",
+                    "detail": NOT_A_METRIC_ISSUE_DETAIL,
+                },
             ]
         }
+
+    def test_contributing(self) -> None:
+        metric_event, metric_issue = self.store_metric_issue(
+            detector_query(environment="production", event_types=["error"])
+        )
+        checkout_error = {
+            **ERROR_EVENT_DATA,
+            "transaction": "/checkout",
+            "environment": "production",
+            "timestamp": before_now(minutes=4).isoformat(),
+        }
+        busy_event = self.store_event(
+            data={**checkout_error, "fingerprint": ["busy"]}, project_id=self.project.id
+        )
+        self.store_event(
+            data={**checkout_error, "fingerprint": ["busy"]}, project_id=self.project.id
+        )
+        quiet_event = self.store_event(
+            data={**checkout_error, "fingerprint": ["quiet"]}, project_id=self.project.id
+        )
+        # Each of these misses one part of the detector's query
+        self.store_event(
+            data={**checkout_error, "fingerprint": ["cart"], "transaction": "/cart"},
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={**checkout_error, "fingerprint": ["staging"], "environment": "staging"},
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "message": "A message, not an error",
+                "fingerprint": ["message"],
+                "transaction": "/checkout",
+                "environment": "production",
+                "timestamp": before_now(minutes=4).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                **checkout_error,
+                "fingerprint": ["before"],
+                "timestamp": before_now(minutes=30).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        assert busy_event.group is not None and quiet_event.group is not None
+        open_period = get_latest_open_period(metric_issue)
+        assert open_period is not None
+
+        response = self.client.get(
+            f"/api/0/organizations/{self.organization.slug}/issues/{metric_issue.id}/related/",
+            {"type": "contributing"},
+        )
+
+        assert response.status_code == 200
+        # Most events first
+        assert response.data == {
+            "data": [
+                {
+                    "issue": serialize(Group.objects.get(id=busy_event.group.id), self.user),
+                    "relations": [{"type": "contributing"}],
+                },
+                {
+                    "issue": serialize(Group.objects.get(id=quiet_event.group.id), self.user),
+                    "relations": [{"type": "contributing"}],
+                },
+            ],
+            "meta": {
+                "types": [
+                    {
+                        "type": "contributing",
+                        "status": "ok",
+                        "eventId": metric_event.event_id,
+                        # One detector interval (60s) and a minute before the metric issue opened,
+                        # at the start of that minute. No end: the metric issue is still open.
+                        "start": (open_period.date_started - timedelta(minutes=2))
+                        .replace(second=0, microsecond=0)
+                        .isoformat(),
+                    }
+                ]
+            },
+        }
+
+    def test_contributing_for_unsupported_detectors(self) -> None:
+        spans_event, spans_issue = self.store_metric_issue(
+            detector_query(dataset="events_analytics_platform", event_types=["trace_item_span"])
+        )
+        boolean_event, boolean_issue = self.store_metric_issue(
+            detector_query(query="transaction:/checkout OR transaction:/cart")
+        )
+
+        response = self.client.get(
+            f"/api/0/organizations/{self.organization.slug}/issues/{spans_issue.id}/related/",
+            {"type": "contributing"},
+        )
+
+        assert response.status_code == 200
+        assert response.data["meta"] == {
+            "types": [
+                {
+                    "type": "contributing",
+                    "status": "not_applicable",
+                    "detail": UNSUPPORTED_DATASET_DETAIL,
+                    "eventId": spans_event.event_id,
+                }
+            ]
+        }
+
+        response = self.client.get(
+            f"/api/0/organizations/{self.organization.slug}/issues/{boolean_issue.id}/related/",
+            {"type": "contributing"},
+        )
+
+        # Issue search doesn't support AND or OR
+        assert response.status_code == 200
+        assert response.data["meta"] == {
+            "types": [
+                {
+                    "type": "contributing",
+                    "status": "not_applicable",
+                    "detail": UNSUPPORTED_QUERY_DETAIL,
+                    "eventId": boolean_event.event_id,
+                }
+            ]
+        }
+
+    @mock.patch(ISSUE_SEARCH_SNUBA_QUERY, side_effect=QueryExecutionError("timeout"))
+    def test_issue_search_error(self, mock_snuba_query: mock.MagicMock) -> None:
+        metric_event, metric_issue = self.store_metric_issue(detector_query())
+        open_period = get_latest_open_period(metric_issue)
+        assert open_period is not None
+
+        # setUp's error issue is a candidate for the search, so it reaches Snuba
+        response = self.client.get(
+            f"/api/0/organizations/{self.organization.slug}/issues/{metric_issue.id}/related/"
+        )
+
+        # same_trace still answered, so it's not a 503
+        assert response.status_code == 200
+        assert response.data["meta"] == {
+            "types": [
+                {
+                    "type": "similar_stacktrace",
+                    "status": "not_applicable",
+                    "detail": NOT_AN_ERROR_DETAIL,
+                },
+                {
+                    "type": "same_trace",
+                    "status": "ok",
+                    "eventId": metric_event.event_id,
+                    "traceId": metric_event.trace_id,
+                },
+                {
+                    "type": "contributing",
+                    "status": "unavailable",
+                    "detail": ISSUE_SEARCH_UNAVAILABLE_DETAIL,
+                    "eventId": metric_event.event_id,
+                    "start": (open_period.date_started - timedelta(minutes=2))
+                    .replace(second=0, microsecond=0)
+                    .isoformat(),
+                },
+            ]
+        }
+        mock_snuba_query.assert_called()
 
     @override_options({"seer.similarity-killswitch.enabled": True})
     @mock.patch(SEER_URLOPEN)

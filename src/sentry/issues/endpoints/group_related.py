@@ -19,12 +19,17 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.issue_examples import IssueExamples
 from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.apidocs.response_types import DetailResponse
+from sentry.apidocs.spectacular_ports import build_choice_description_list
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.related.combine import combine
-from sentry.issues.related.same_trace import same_trace_issues
-from sentry.issues.related.similar_stacktrace import similar_stacktrace_issues
+from sentry.issues.related.contributing import CONTRIBUTING_DESCRIPTION, contributing_issues
+from sentry.issues.related.same_trace import SAME_TRACE_DESCRIPTION, same_trace_issues
+from sentry.issues.related.similar_stacktrace import (
+    SIMILAR_STACKTRACE_DESCRIPTION,
+    similar_stacktrace_issues,
+)
 from sentry.issues.related.types import (
     RelatedIssuesContext,
     RelatedIssuesResponse,
@@ -40,18 +45,29 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 ALL_TYPES_UNAVAILABLE_DETAIL = "Related issues are temporarily unavailable. Try again later."
 
 
+# Each type and what it finds. The type parameter's description lists them.
+TYPE_DESCRIPTIONS = [
+    (RelationType.SIMILAR_STACKTRACE.value, SIMILAR_STACKTRACE_DESCRIPTION),
+    (RelationType.SAME_TRACE.value, SAME_TRACE_DESCRIPTION),
+    (RelationType.CONTRIBUTING.value, CONTRIBUTING_DESCRIPTION),
+]
+
+
 class GroupRelatedQuerySerializer(serializers.Serializer[dict[str, Any]]):
     type = serializers.MultipleChoiceField(
-        choices=[t.value for t in RelationType],
+        choices=[value for value, _description in TYPE_DESCRIPTIONS],
         required=False,
-        help_text="Which kinds of related issues to return. Repeat to ask for several. Defaults to all.",
+        help_text=(
+            "Which types of related issues to return. Repeat to ask for several. Defaults to all."
+            "\n\n" + build_choice_description_list(TYPE_DESCRIPTIONS)
+        ),
     )
     limit = serializers.IntegerField(
         required=False,
         default=10,
         min_value=1,
         max_value=100,
-        help_text="The maximum number of issues to return for each kind.",
+        help_text="The maximum number of issues to return for each type.",
     )
 
 
@@ -76,14 +92,11 @@ class GroupRelatedEndpoint(GroupEndpoint):
         operation_id="listOrganizationIssueRelatedIssues",
         summary="Find issues related to an issue",
         description=(
-            "Returns other issues related to this one, each with the reasons it's related. "
-            "Use it when triaging an issue, before resolving or ignoring it, to check whether it "
-            "duplicates another issue or is another error from the same request. "
-            "similar_stacktrace finds issues in the same project whose stack traces Seer finds "
-            "similar to this issue's latest event. same_trace finds issues, in any project you "
-            "can read, with errors in the same trace as this issue's latest event. meta.types "
-            "says whether each requested type ran, doesn't apply to this issue, or failed. "
-            "Returns 503 only when every requested type failed."
+            "Returns other issues related to this one, each with the types of relation that "
+            "matched it. Use it when triaging an issue, before resolving or ignoring it, to find "
+            "duplicates and other issues connected to it. The type parameter lists each type and "
+            "what it finds. meta.types says whether each requested type ran, doesn't apply to "
+            "this issue, or failed. Returns 503 only when every requested type failed."
         ),
         parameters=[GlobalParams.ORG_ID_OR_SLUG, IssueParams.ISSUE_ID, GroupRelatedQuerySerializer],
         responses={
@@ -118,6 +131,8 @@ class GroupRelatedEndpoint(GroupEndpoint):
             results[RelationType.SAME_TRACE] = same_trace_issues(
                 ctx, _readable_projects(request, group.project.organization_id)
             )
+        if not requested_types or RelationType.CONTRIBUTING in requested_types:
+            results[RelationType.CONTRIBUTING] = contributing_issues(ctx)
 
         if all(
             result.meta["status"] == RelationTypeStatus.UNAVAILABLE for result in results.values()

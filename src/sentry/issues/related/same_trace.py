@@ -22,6 +22,11 @@ from sentry.models.project import Project
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils.snuba import SnubaError
 
+# What this type finds, for the API docs
+SAME_TRACE_DESCRIPTION = (
+    "Issues, in any project you can read, with errors in the same trace as this issue's latest "
+    "event."
+)
 NO_TRACE_DETAIL = "This issue's event has no trace."
 TRACE_SEARCH_UNAVAILABLE_DETAIL = "Trace search is temporarily unavailable. Try again later."
 
