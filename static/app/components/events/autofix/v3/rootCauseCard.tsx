@@ -8,6 +8,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {
   getAutofixArtifactFromSection,
+  getSingleRunStop,
   isRootCauseArtifact,
   isSingleRunAutofix,
   type AutofixSection,
@@ -40,6 +41,15 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
     const sectionArtifact = getAutofixArtifactFromSection(section);
     return isRootCauseArtifact(sectionArtifact) ? sectionArtifact : null;
   }, [section]);
+  const stop = getSingleRunStop(section);
+  const stopDetails = stop ? (
+    <ArtifactDetails>
+      <Text bold>{t('Why Seer stopped')}</Text>
+      <SeerMarkdown raw={stop.reason} />
+      <Text bold>{t('Suggestion')}</Text>
+      <SeerMarkdown raw={stop.suggestion} />
+    </ArtifactDetails>
+  ) : null;
 
   const {copy} = useCopyToClipboard();
   const openSingleRunChat = useOpenSingleRunChat();
@@ -137,7 +147,10 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
               </Flex>
             </ArtifactDetails>
           )}
+          {stopDetails}
         </Fragment>
+      ) : stopDetails ? (
+        stopDetails
       ) : (
         <ArtifactDetails>
           <Text>

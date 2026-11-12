@@ -1,11 +1,9 @@
-import type {UseQueryResult} from '@tanstack/react-query';
-import {useQuery} from '@tanstack/react-query';
+import {skipToken, type SkipToken} from '@tanstack/react-query';
 
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import type {Event} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
 export interface SourceMapDebugResponseFrame {
   debug_id_process: {
@@ -51,36 +49,35 @@ export interface SourceMapDebugResponse {
   min_debug_id_sdk_version?: string | null;
 }
 
-export type SourceMapDebugQueryResult = UseQueryResult<SourceMapDebugResponse>;
+interface SourceMapDebugParams {
+  eventId: string;
+  organizationSlug: string | undefined;
+  projectSlug: string;
+  sdkName: string | null;
+}
 
-export function useSourceMapDebugQuery(
-  projectSlug: string,
-  eventId: string,
-  sdkName: string | null = null
-): SourceMapDebugQueryResult {
-  const organization = useOrganization({allowNull: true});
-  const isSdkThatShouldShowSourceMapsDebugger =
-    sdkName?.startsWith('sentry.javascript.') ?? false;
-  return useQuery({
+export function sourceMapDebugApiOptions(params: SourceMapDebugParams | SkipToken) {
+  const path =
+    params === skipToken ||
+    !params.organizationSlug ||
+    !params.projectSlug ||
+    !params.eventId ||
+    !params.sdkName?.startsWith('sentry.javascript.')
+      ? skipToken
+      : {
+          organizationIdOrSlug: params.organizationSlug,
+          projectIdOrSlug: params.projectSlug,
+          eventId: params.eventId,
+        };
+
+  return {
     ...apiOptions.as<SourceMapDebugResponse>()(
       '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/source-map-debug/',
-      {
-        path: {
-          organizationIdOrSlug: organization!.slug,
-          projectIdOrSlug: projectSlug,
-          eventId,
-        },
-        staleTime: Infinity,
-      }
+      {path, staleTime: Infinity}
     ),
-    enabled:
-      isSdkThatShouldShowSourceMapsDebugger &&
-      !!organization &&
-      !!projectSlug &&
-      !!eventId,
     retry: false,
     refetchOnWindowFocus: false,
-  });
+  };
 }
 
 function getDebugIdProgress(

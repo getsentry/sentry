@@ -29,6 +29,10 @@ export function getDatasetLabel(dataset: ClassifierDataset) {
   return dataset === 'conversation' ? t('Conversations') : t('Spans');
 }
 
+export function getResultAttributeKey(resultAttribute: string) {
+  return `sentry.enrichment.${resultAttribute}`;
+}
+
 export function getEnvironmentsFilter(environments: readonly string[]) {
   if (environments.length === 0) {
     return '';

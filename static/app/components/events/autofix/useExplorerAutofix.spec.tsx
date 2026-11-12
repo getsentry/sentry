@@ -13,6 +13,7 @@ import {
   getAutofixArtifactFromSection,
   getOrderedAutofixSections,
   getPollInterval,
+  getSingleRunStop,
   hideErroredPrIteration,
   isCodeChangesArtifact,
   isCodingAgentsArtifact,
@@ -702,6 +703,45 @@ describe('getOrderedAutofixSections', () => {
           data: {one_line_description: 'H', cause: 'C', five_whys: []},
         })
       );
+    });
+
+    it('keeps why the run stopped on the root cause section', () => {
+      const sections = getOrderedAutofixSections(
+        makeSingleRun([
+          makeBlock({message: {metadata: {step: 'single_run'}}}),
+          makeBlock({
+            artifacts: [
+              {
+                key: 'stop',
+                reason: 'stop',
+                data: {reason: 'R', suggestion: 'N'},
+              },
+            ],
+          }),
+        ])
+      );
+
+      expect(getSingleRunStop(sections[0]!)).toEqual({reason: 'R', suggestion: 'N'});
+    });
+
+    it('drops the stop once the run has code changes', () => {
+      const sections = getOrderedAutofixSections(
+        makeSingleRun([
+          makeBlock({message: {metadata: {step: 'single_run'}}}),
+          makeBlock({
+            artifacts: [
+              {
+                key: 'stop',
+                reason: 'stop',
+                data: {reason: 'R', suggestion: 'N'},
+              },
+            ],
+            merged_file_patches: [makePatch('org/repo', 'a.py')],
+          }),
+        ])
+      );
+
+      expect(getSingleRunStop(sections[0]!)).toBeNull();
     });
 
     it('has only a root cause section without patches', () => {

@@ -11,7 +11,7 @@ import {useHotkeys} from '@sentry/scraps/hotkey';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
 import {Text} from '@sentry/scraps/text';
-import {useInvertedTheme} from '@sentry/scraps/theme';
+import {darkTheme} from '@sentry/scraps/theme';
 import {useOverlay, type UseOverlayProps} from '@sentry/scraps/useOverlay';
 
 import {t} from 'sentry/locale';
@@ -407,8 +407,8 @@ interface TourGuideProps extends Omit<
   description: React.ReactNode;
   isOpen: UseOverlayProps['isOpen'];
   /**
-   * The <TourGuide /> component is very opinionated on styles. It uses a black background on light
-   * mode and purple on dark mode. For best results, use `<TourAction />` and `<TourTextAction/>`
+   * The <TourGuide /> component is very opinionated on styles. It always uses the dark theme,
+   * whatever the user's theme is. For best results, use `<TourAction />` and `<TourTextAction/>`
    * instead of regular buttons, since it may cause readibility issues if we use the user's theme.
    */
   actions?: React.ReactNode;
@@ -473,7 +473,6 @@ export function TourGuide({
   variant,
 }: TourGuideProps) {
   const theme = useTheme();
-  const invertedTheme = useInvertedTheme();
 
   const isStepCountVisible = defined(stepCount) && defined(stepTotal) && stepTotal !== 1;
   const isDismissVisible = defined(handleDismiss);
@@ -584,7 +583,7 @@ export function TourGuide({
               zIndex={zIndex.overlay}
               {...mergeProps(overlayProps, focusProps)}
             >
-              <ThemeProvider theme={invertedTheme}>
+              <ThemeProvider theme={darkTheme}>
                 <ClassNames>
                   {({css, theme: currentTheme}) => (
                     <Overlay
