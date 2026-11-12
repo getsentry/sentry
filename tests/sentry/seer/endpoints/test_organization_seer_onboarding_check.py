@@ -8,8 +8,10 @@ from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.seer.endpoints.organization_seer_onboarding_check import (
+    has_code_review_access,
     has_supported_scm_integration,
     is_autofix_enabled,
+    is_code_review_enabled,
 )
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -88,6 +90,103 @@ class TestHasSupportedScmIntegration(TestCase):
         assert not has_supported_scm_integration(self.organization)
         with self.feature("organizations:seer-cursor-origin-support"):
             assert has_supported_scm_integration(self.organization)
+
+
+class TestIsCodeReviewEnabled(TestCase):
+    """Unit tests for is_code_review_enabled()"""
+
+    def test_code_review_enabled(self) -> None:
+        repo = self.create_repo(project=self.project)
+
+        self.create_repository_settings(
+            repository=repo,
+            enabled_code_review=True,
+        )
+
+        assert is_code_review_enabled(self.organization)
+
+    def test_code_review_disabled(self) -> None:
+        repo = self.create_repo(project=self.project)
+
+        self.create_repository_settings(
+            repository=repo,
+            enabled_code_review=False,
+        )
+
+        assert not is_code_review_enabled(self.organization)
+
+    def test_multiple_repositories(self) -> None:
+        repo1 = self.create_repo(project=self.project)
+        repo2 = self.create_repo(project=self.project)
+
+        self.create_repository_settings(
+            repository=repo1,
+            enabled_code_review=True,
+        )
+
+        self.create_repository_settings(
+            repository=repo2,
+            enabled_code_review=False,
+        )
+
+        assert is_code_review_enabled(self.organization)
+
+    def test_no_repositories(self) -> None:
+        assert not is_code_review_enabled(self.organization)
+
+    def test_inactive_repository(self) -> None:
+        repo = self.create_repo(project=self.project)
+        repo.status = ObjectStatus.DISABLED
+        repo.save()
+
+        self.create_repository_settings(
+            repository=repo,
+            enabled_code_review=True,
+        )
+
+        assert not is_code_review_enabled(self.organization)
+
+    def test_no_settings(self) -> None:
+        self.create_repo(project=self.project)
+        assert not is_code_review_enabled(self.organization)
+
+    def test_multiple_organizations(self) -> None:
+        org1 = self.organization
+        org2 = self.create_organization()
+
+        project1 = self.create_project(organization=org1)
+        project2 = self.create_project(organization=org2)
+
+        repo1 = self.create_repo(project=project1)
+        repo2 = self.create_repo(project=project2)
+
+        self.create_repository_settings(
+            repository=repo1,
+            enabled_code_review=True,
+        )
+
+        self.create_repository_settings(
+            repository=repo2,
+            enabled_code_review=False,
+        )
+
+        assert is_code_review_enabled(org1)
+        assert not is_code_review_enabled(org2)
+
+
+class TestHasCodeReviewAccess(TestCase):
+    """Unit tests for has_code_review_access()"""
+
+    def test_no_access(self) -> None:
+        assert not has_code_review_access(self.organization)
+
+    @with_feature("organizations:seat-based-seer-enabled")
+    def test_seat_based_seer(self) -> None:
+        assert has_code_review_access(self.organization)
+
+    @with_feature("organizations:code-review-beta")
+    def test_code_review_beta(self) -> None:
+        assert has_code_review_access(self.organization)
 
 
 class TestIsAutofixEnabled(TestCase):
@@ -294,10 +393,13 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             "isSeerConfigured": True,
         }
 
-    def test_code_review_does_not_configure_seer(self) -> None:
-        self.create_github_integration()
+    def create_code_review_repo(self) -> None:
         repo = self.create_repo(project=self.project)
         self.create_repository_settings(repository=repo, enabled_code_review=True)
+
+    def test_code_review_without_access_does_not_configure_seer(self) -> None:
+        self.create_github_integration()
+        self.create_code_review_repo()
 
         response = self.get_response(self.organization.slug)
 
@@ -306,4 +408,32 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
             "hasSupportedScmIntegration": True,
             "isAutofixEnabled": False,
             "isSeerConfigured": False,
+        }
+
+    @with_feature("organizations:seat-based-seer-enabled")
+    def test_code_review_configures_seer_for_seat_based_org(self) -> None:
+        self.create_github_integration()
+        self.create_code_review_repo()
+
+        response = self.get_response(self.organization.slug)
+
+        assert response.status_code == 200
+        assert response.data == {
+            "hasSupportedScmIntegration": True,
+            "isAutofixEnabled": False,
+            "isSeerConfigured": True,
+        }
+
+    @with_feature("organizations:code-review-beta")
+    def test_code_review_configures_seer_for_code_review_beta_org(self) -> None:
+        self.create_github_integration()
+        self.create_code_review_repo()
+
+        response = self.get_response(self.organization.slug)
+
+        assert response.status_code == 200
+        assert response.data == {
+            "hasSupportedScmIntegration": True,
+            "isAutofixEnabled": False,
+            "isSeerConfigured": True,
         }

@@ -13,9 +13,11 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.projectrepository import ProjectRepository
+from sentry.models.repositorysettings import RepositorySettings
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.utils import (
     get_token_based_billing_repo_filter,
+    is_seer_seat_based_tier_enabled,
     is_seer_token_based_billing_onboarding_enabled,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
@@ -41,6 +43,23 @@ def has_supported_scm_integration(organization: Organization) -> bool:
     )
 
     return len(organization_integrations) > 0
+
+
+def has_code_review_access(organization: Organization) -> bool:
+    """Check if the organization's plan lets code review run, mirroring the org check in
+    `CodeReviewPreflightService`."""
+    return is_seer_seat_based_tier_enabled(organization) or features.has(
+        "organizations:code-review-beta", organization
+    )
+
+
+def is_code_review_enabled(organization: Organization) -> bool:
+    """Check if code review is enabled for any active repository in the organization."""
+    return RepositorySettings.objects.filter(
+        repository__organization_id=organization.id,
+        repository__status=ObjectStatus.ACTIVE,
+        enabled_code_review=True,
+    ).exists()
 
 
 def is_autofix_enabled(organization: Organization) -> bool:
@@ -83,11 +102,17 @@ class OrganizationSeerOnboardingCheck(OrganizationEndpoint):
         """Check if the organization has completed Seer onboarding/configuration."""
         autofix_enabled = is_autofix_enabled(organization)
         has_scm_integration = has_supported_scm_integration(organization)
+        # Repos keep their code review setting after the org loses code review, so the setting
+        # alone doesn't mean Seer is set up.
+        is_seer_configured = has_scm_integration and (
+            autofix_enabled
+            or (is_code_review_enabled(organization) and has_code_review_access(organization))
+        )
 
         return Response(
             {
                 "hasSupportedScmIntegration": has_scm_integration,
                 "isAutofixEnabled": autofix_enabled,
-                "isSeerConfigured": has_scm_integration and autofix_enabled,
+                "isSeerConfigured": is_seer_configured,
             }
         )
