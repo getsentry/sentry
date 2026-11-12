@@ -16,8 +16,6 @@ from sentry.seer.workflows.schedule import (
     ScheduleTrigger,
 )
 
-# Each kind of automation is one trigger paired with one action. A config picks its kind through
-# ``strategy``; what varies within a kind, like the cron or the prompt, is saved on the config.
 DEFINITIONS: Mapping[SeerWorkflowStrategy, WorkflowDefinition[Any]] = {
     SeerWorkflowStrategy.AGENTIC_TRIAGE_V2: WorkflowDefinition[ScheduledRunInputs](
         trigger=ScheduleTrigger(), action=PromptedInvestigationAction()
