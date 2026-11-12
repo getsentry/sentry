@@ -212,34 +212,12 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization: Organization) -> Response:
         """List automation runs with their executions, newest first.
 
-        ``config`` filters by one config ID; omit it for organization-wide history.
-        Invalid or repeated IDs return 400; no visible matches return ``{"runs": []}``.
-        Pagination links are in headers.
-
-        ``status`` distinguishes failed/rejected records, which include an ``error``
-        code and display-safe message, from other records, which omit ``error``.
-        A run fails or is rejected in one of two ways:
-
-        - Rejected (e.g. over quota) or failed before starting any execution: the
-          run's ``error`` says why and it has no executions.
-        - Failed because one or more executions failed: the run's ``error`` is null
-          and each failed execution carries its own ``error``.
-
-        Missing error details use code ``unknown``. Historical rows without lifecycle
-        tracking retain a null status. ``configName`` is the automation's current
-        user-supplied name, or null when it has none. ``trigger`` describes what started
-        the run, discriminated by ``type``: ``monitor`` (detector, event, occurrence, issue,
-        and project; ``detectorName`` is the detector's current name, or null when it has
-        since been deleted or the viewer cannot access its project; ``groupExists`` is
-        false once the issue has been deleted) or ``cron`` (scheduled run). It is
-        null for other runs. ``seerRunId`` is the linked Seer UUID or null.
-        Each execution's ``outputs`` lists linked investigations by type, ID, and title
-        when the viewer has investigation access, including archived investigations.
-        The same investigation can be linked to multiple executions.
         Limited-access members see a run started by a trigger in one project (such as a
         monitor) when they can access that project. For other runs they must be able to
         access every project in the saved run snapshot; runs without a saved scope are
         hidden from them.
+
+        Execution ``outputs`` are empty without investigation access.
         """
         if not features.has("organizations:seer-automations", organization, actor=request.user):
             raise NotFound
