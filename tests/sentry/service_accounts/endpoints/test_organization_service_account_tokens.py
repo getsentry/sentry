@@ -30,7 +30,6 @@ from sentry.service_accounts.tokens import (
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 FEATURE_FLAG = "organizations:service-accounts"
@@ -418,7 +417,7 @@ class OrganizationServiceAccountTokenDetailsTest(ServiceAccountTokenTestCase):
         self.token = self.create_token()
 
     def test_revoke(self) -> None:
-        with self.feature(FEATURE_FLAG), outbox_runner():
+        with self.feature(FEATURE_FLAG):
             self.get_success_response(
                 self.organization.slug, self.service_account.id, self.token.id, status_code=204
             )
@@ -440,6 +439,21 @@ class OrganizationServiceAccountTokenDetailsTest(ServiceAccountTokenTestCase):
             "service_account_id": self.service_account.id,
             "service_account_name": "ci",
         }
+
+    def test_revoke_succeeds_when_outbox_flush_fails(self) -> None:
+        with (
+            self.feature(FEATURE_FLAG),
+            mock.patch(
+                "sentry.service_accounts.models.ServiceAccountToken.handle_async_replication",
+                side_effect=Exception("cell unavailable"),
+            ),
+        ):
+            self.get_success_response(
+                self.organization.slug, self.service_account.id, self.token.id, status_code=204
+            )
+
+        self.token.refresh_from_db()
+        assert self.token.date_deactivated is not None
 
     def test_revoked_token_returns_404(self) -> None:
         with self.feature(FEATURE_FLAG):

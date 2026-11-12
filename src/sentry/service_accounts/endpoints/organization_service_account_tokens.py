@@ -315,22 +315,32 @@ class OrganizationServiceAccountTokenDetailsEndpoint(ServiceAccountTokenEndpoint
         token_id: str,
     ) -> Response:
         """Revoke a token. It stops working once the revocation reaches the org's cell."""
-        # The revocation commits before replication, so a failed flush shouldn't fail the
-        # request; the outbox is drained later.
-        with outbox_context(
-            transaction.atomic(using=router.db_for_write(ServiceAccountToken)), flush=False
-        ):
-            try:
-                token = ServiceAccountToken.objects.select_for_update().get(
-                    id=to_valid_int_id("token_id", token_id, raise_404=True),
-                    service_account=service_account,
-                    organization_id=organization.id,
-                    date_deactivated__isnull=True,
-                )
-            except ServiceAccountToken.DoesNotExist:
-                raise ResourceDoesNotExist
-            token.date_deactivated = timezone.now()
-            token.save()
+        # Set only once the save succeeds, so a flush failure is told apart from a failed save.
+        revoked: ServiceAccountToken | None = None
+        try:
+            with outbox_context(transaction.atomic(using=router.db_for_write(ServiceAccountToken))):
+                try:
+                    token = ServiceAccountToken.objects.select_for_update().get(
+                        id=to_valid_int_id("token_id", token_id, raise_404=True),
+                        service_account=service_account,
+                        organization_id=organization.id,
+                        date_deactivated__isnull=True,
+                    )
+                except ServiceAccountToken.DoesNotExist:
+                    raise ResourceDoesNotExist
+                token.date_deactivated = timezone.now()
+                token.save()
+                revoked = token
+        except (OutboxDatabaseError, OutboxFlushError):
+            if revoked is None:
+                raise
+            # The revocation and its outbox are committed, so it reaches the cell when the
+            # outbox drains.
+            logger.warning(
+                "service_accounts.token.outbox-flush-failure",
+                extra={"token_id": revoked.id, "organization_id": organization.id},
+                exc_info=True,
+            )
 
         self.create_audit_entry(
             request,
