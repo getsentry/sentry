@@ -3,12 +3,13 @@ import styled from '@emotion/styled';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {IconOpen} from '@sentry/icons/open';
 import type {Location} from 'history';
+import noop from 'lodash/noop';
 import pick from 'lodash/pick';
 
 import {Badge, FeatureBadge} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
-import {TabList} from '@sentry/scraps/tabs';
+import {Container, Stack} from '@sentry/scraps/layout';
+import {Tabs} from '@sentry/scraps/tabs';
 
 import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -235,15 +236,25 @@ export function ReleaseHeader({
         ]}
       />
       <TopBar.Slot name="feedback" feedbackOptions={releaseFeedbackOptions} />
-      <Layout.HeaderTabs value={getActiveTabTo()}>
-        <TabList>
-          {tabs.map(tab => (
-            <TabList.Item key={tab.to} to={getTabUrl(tab.to)} textValue={tab.textValue}>
-              {tab.title}
-            </TabList.Item>
-          ))}
-        </TabList>
-      </Layout.HeaderTabs>
+      <Stack column="1 / -1">
+        {tabsRootProps => (
+          <Tabs onChange={noop} value={getActiveTabTo()} {...tabsRootProps}>
+            {({TabList}) => (
+              <TabList>
+                {tabs.map(tab => (
+                  <TabList.Item
+                    key={tab.to}
+                    to={getTabUrl(tab.to)}
+                    textValue={tab.textValue}
+                  >
+                    {tab.title}
+                  </TabList.Item>
+                ))}
+              </TabList>
+            )}
+          </Tabs>
+        )}
+      </Stack>
     </Layout.Header>
   );
 }

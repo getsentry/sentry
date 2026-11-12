@@ -1,14 +1,13 @@
 import React, {Fragment, useEffect} from 'react';
-import styled from '@emotion/styled';
 import {ErrorBoundary} from '@sentry/react';
 import {useQuery} from '@tanstack/react-query';
-import {parseAsString, useQueryState} from 'nuqs';
+import {parseAsStringEnum, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {InlineCode} from '@sentry/scraps/code';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+import {Tabs, type TabsComponents} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
@@ -32,6 +31,8 @@ import {
 import type {StoryExports as StoryExportValues} from './useStory';
 import {StoryContextProvider, useStory} from './useStory';
 
+type StoryTab = 'usage' | 'api' | 'resources';
+
 export function StoryExports(props: {story: StoryDescriptor}) {
   return (
     <StoryContextProvider story={props.story}>
@@ -44,7 +45,9 @@ function StoryLayout() {
   const {story} = useStory();
   const [tab, setTab] = useQueryState(
     'tab',
-    parseAsString.withOptions({history: 'push'}).withDefault('usage')
+    parseAsStringEnum<StoryTab>(['usage', 'api', 'resources'])
+      .withOptions({history: 'push'})
+      .withDefault('usage')
   );
   const documentation = useStoryDocumentation(
     (isMDXStory(story) ? story.exports.documentation : story.exports.documentation) as
@@ -55,26 +58,30 @@ function StoryLayout() {
 
   return (
     <Tabs value={tab} onChange={setTab}>
-      {isMDXStory(story) ? <MDXStoryTitle story={story} /> : null}
-      <StoryGrid>
-        <Stack
-          width="100%"
-          minWidth="0px"
-          maxWidth={{zero: '580px', '3xl': '832px'}}
-          gap="3xl"
-          padding="0 xl"
-          margin={{zero: '0', '3xl': '0 auto'}}
-        >
-          <Stack flexGrow={1} minWidth="0px">
-            <StoryTabPanels documentation={documentation} />
-          </Stack>
-          <ErrorBoundary>
-            <StorySourceLinks />
-          </ErrorBoundary>
-          <StoryFooter />
-        </Stack>
-        <StoryTableOfContents />
-      </StoryGrid>
+      {({TabList, TabPanels}) => (
+        <Fragment>
+          {isMDXStory(story) ? <MDXStoryTitle story={story} TabList={TabList} /> : null}
+          <StoryGrid>
+            <Stack
+              width="100%"
+              minWidth="0px"
+              maxWidth={{zero: '580px', '3xl': '832px'}}
+              gap="3xl"
+              padding="0 xl"
+              margin={{zero: '0', '3xl': '0 auto'}}
+            >
+              <Stack flexGrow={1} minWidth="0px">
+                <StoryTabPanels documentation={documentation} TabPanels={TabPanels} />
+              </Stack>
+              <ErrorBoundary>
+                <StorySourceLinks />
+              </ErrorBoundary>
+              <StoryFooter />
+            </Stack>
+            <StoryTableOfContents />
+          </StoryGrid>
+        </Fragment>
+      )}
     </Tabs>
   );
 }
@@ -83,7 +90,10 @@ function makeStorybookDocumentTitle(title: string | undefined): string {
   return title ? `${title} — Scraps` : 'Scraps';
 }
 
-function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
+function MDXStoryTitle(props: {
+  TabList: TabsComponents<StoryTab>['TabList'];
+  story: MDXStoryDescriptor;
+}) {
   const title = props.story.exports.frontmatter?.title;
   const description = props.story.exports.frontmatter?.description;
 
@@ -141,7 +151,7 @@ function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
             )}
           </Stack>
 
-          <StoryTabList />
+          <StoryTabList TabList={props.TabList} />
         </Stack>
         <StoryTableOfContentsPlaceholder />
       </StoryGrid>
@@ -149,7 +159,7 @@ function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
   );
 }
 
-function StoryTabList() {
+function StoryTabList({TabList}: {TabList: TabsComponents<StoryTab>['TabList']}) {
   const {story} = useStory();
 
   if (!isMDXStory(story)) {
@@ -173,7 +183,13 @@ function StoryTabList() {
   );
 }
 
-function StoryTabPanels(props: {documentation: TypeLoader.TypeLoaderResult | undefined}) {
+function StoryTabPanels({
+  TabPanels,
+  ...props
+}: {
+  TabPanels: TabsComponents<StoryTab>['TabPanels'];
+  documentation: TypeLoader.TypeLoaderResult | undefined;
+}) {
   const {story} = useStory();
 
   if (!isMDXStory(story)) {
@@ -191,18 +207,22 @@ function StoryTabPanels(props: {documentation: TypeLoader.TypeLoaderResult | und
   }
 
   return (
-    <StyledTabPanels>
-      <TabPanels.Item key="usage">
-        <StoryModuleExports exports={props.documentation?.exports} />
-        <StoryUsage />
-      </TabPanels.Item>
-      <TabPanels.Item key="api">
-        <StoryAPI documentation={props.documentation} />
-      </TabPanels.Item>
-      <TabPanels.Item key="resources">
-        <StoryResources />
-      </TabPanels.Item>
-    </StyledTabPanels>
+    <Container flexGrow={1} minWidth="0">
+      {layoutProps => (
+        <TabPanels {...layoutProps}>
+          <TabPanels.Item key="usage">
+            <StoryModuleExports exports={props.documentation?.exports} />
+            <StoryUsage />
+          </TabPanels.Item>
+          <TabPanels.Item key="api">
+            <StoryAPI documentation={props.documentation} />
+          </TabPanels.Item>
+          <TabPanels.Item key="resources">
+            <StoryResources />
+          </TabPanels.Item>
+        </TabPanels>
+      )}
+    </Container>
   );
 }
 const EXPECTED_EXPORTS = new Set<keyof StoryExportValues>([
@@ -319,8 +339,3 @@ function StoryModuleExports(props: {
   }
   return <Storybook.ModuleExports exports={props.exports} />;
 }
-
-const StyledTabPanels = styled(TabPanels)`
-  flex-grow: 1;
-  min-width: 0;
-`;

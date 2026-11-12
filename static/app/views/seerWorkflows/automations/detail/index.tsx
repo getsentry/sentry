@@ -4,12 +4,13 @@ import {IconDelete} from '@sentry/icons/delete';
 import {IconEdit} from '@sentry/icons/edit';
 import {IconPause} from '@sentry/icons/pause';
 import {IconPlay} from '@sentry/icons/play';
+import noop from 'lodash/noop';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {openConfirmModal} from '@sentry/scraps/confirm';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
@@ -332,23 +333,25 @@ export default function AutomationDetail() {
               {headerCosts}
             </Stack>
           </Flex>
-          <Tabs value={activeTab} size="sm">
-            <TabList>
-              <TabList.Item
-                key="configuration"
-                to={basePath}
-                textValue={t('Configuration')}
-              >
-                <Text bold={activeTab === 'configuration'} variant="inherit">
-                  {t('Configuration')}
-                </Text>
-              </TabList.Item>
-              <TabList.Item key="runs" to={`${basePath}runs/`} textValue={t('Runs')}>
-                <Text bold={activeTab === 'runs'} variant="inherit">
-                  {t('Runs')}
-                </Text>
-              </TabList.Item>
-            </TabList>
+          <Tabs onChange={noop} value={activeTab} size="sm">
+            {({TabList}) => (
+              <TabList>
+                <TabList.Item
+                  key="configuration"
+                  to={basePath}
+                  textValue={t('Configuration')}
+                >
+                  <Text bold={activeTab === 'configuration'} variant="inherit">
+                    {t('Configuration')}
+                  </Text>
+                </TabList.Item>
+                <TabList.Item key="runs" to={`${basePath}runs/`} textValue={t('Runs')}>
+                  <Text bold={activeTab === 'runs'} variant="inherit">
+                    {t('Runs')}
+                  </Text>
+                </TabList.Item>
+              </TabList>
+            )}
           </Tabs>
         </Stack>
         <Container padding="xl">

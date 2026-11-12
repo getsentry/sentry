@@ -1,21 +1,21 @@
 import styled from '@emotion/styled';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 
 import {t} from 'sentry/locale';
 
-const TABS = {
+const TABS = ['details', 'request', 'response'] as const;
+
+export type TabKey = (typeof TABS)[number];
+
+const TAB_LABELS: Record<TabKey, string> = {
   details: t('Details'),
   request: t('Request'),
   response: t('Response'),
 };
 
-export type TabKey = keyof typeof TABS;
-
-export const networkDetailsTabParser = parseAsStringLiteral(
-  Object.keys(TABS) as TabKey[]
-).withDefault('details');
+export const networkDetailsTabParser = parseAsStringLiteral(TABS).withDefault('details');
 
 function NetworkDetailsTabs() {
   const [activeTab, setActiveTab] = useQueryState(
@@ -26,11 +26,13 @@ function NetworkDetailsTabs() {
   return (
     <TabsContainer>
       <Tabs value={activeTab} onChange={tab => setActiveTab(tab)}>
-        <TabList>
-          {Object.entries(TABS).map(([tab, label]) => (
-            <TabList.Item key={tab}>{label}</TabList.Item>
-          ))}
-        </TabList>
+        {({TabList}) => (
+          <TabList>
+            {TABS.map(tab => (
+              <TabList.Item key={tab}>{TAB_LABELS[tab]}</TabList.Item>
+            ))}
+          </TabList>
+        )}
       </Tabs>
     </TabsContainer>
   );

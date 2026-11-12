@@ -1,6 +1,6 @@
 import type {PropsWithChildren, ReactNode} from 'react';
 import {Fragment, useMemo, useState} from 'react';
-import {useTheme, css} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconCircle} from '@sentry/icons/circle';
@@ -20,7 +20,7 @@ import {Flex, Stack, Container} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import type {ModalRenderProps} from '@sentry/scraps/modal';
-import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
@@ -644,233 +644,247 @@ export function SourceMapsDebuggerModal({
               )}
             </p>
           )}
-          <Tabs<'debug-ids' | 'release' | 'fetching'>
-            value={activeTab}
-            onChange={setActiveTab}
-          >
-            <TabList>
-              <TabList.Item
-                key="debug-ids"
-                textValue={`${t('Debug IDs')} (${
-                  sourceResolutionResults.debugIdProgress
-                }/4)`}
-                hidden={hideDebugIdsTab || hideAllTabs}
-              >
-                <StyledProgressRing
-                  progressColor={
-                    activeTab === 'debug-ids'
-                      ? theme.tokens.graphics.accent.vibrant
-                      : theme.tokens.graphics.neutral.vibrant
-                  }
-                  backgroundColor={theme.tokens.background.transparent.neutral.muted}
-                  value={sourceResolutionResults.debugIdProgressPercent * 100}
-                  size={16}
-                  barWidth={4}
-                />
-                {`${t('Debug IDs')}${
-                  sourceResolutionResults.sdkDebugIdSupport === 'not-supported'
-                    ? ''
-                    : ' ' + t('(recommended)')
-                }`}
-              </TabList.Item>
-              <TabList.Item
-                key="release"
-                textValue={`${t('Releases')} (${
-                  sourceResolutionResults.releaseProgress
-                }/4)`}
-                hidden={hideReleasesTab || hideAllTabs}
-              >
-                <StyledProgressRing
-                  progressColor={
-                    activeTab === 'release'
-                      ? theme.tokens.graphics.accent.vibrant
-                      : theme.tokens.graphics.neutral.vibrant
-                  }
-                  backgroundColor={theme.tokens.background.transparent.neutral.muted}
-                  value={sourceResolutionResults.releaseProgressPercent * 100}
-                  size={16}
-                  barWidth={4}
-                />
-                {t('Releases')}
-              </TabList.Item>
-              <TabList.Item
-                key="fetching"
-                textValue={`${t('Hosting Publicly')} (${
-                  sourceResolutionResults.scrapingProgress
-                }/4)`}
-                hidden={hideHostingPubliclyTab || hideAllTabs}
-              >
-                <StyledProgressRing
-                  progressColor={
-                    activeTab === 'fetching'
-                      ? theme.tokens.graphics.accent.vibrant
-                      : theme.tokens.graphics.neutral.vibrant
-                  }
-                  backgroundColor={theme.tokens.background.transparent.neutral.muted}
-                  value={sourceResolutionResults.scrapingProgressPercent * 100}
-                  size={16}
-                  barWidth={4}
-                />
-                {t('Hosting Publicly')}
-              </TabList.Item>
-            </TabList>
-            <StyledTabPanels hideAllTabs={hideAllTabs}>
-              <TabPanels.Item key="debug-ids">
-                {hideAllTabs ? (
-                  <p>
-                    {isReactNativeSDK({sdkName: sourceResolutionResults.sdkName})
-                      ? tct(
-                          "After confirming your setup is correct, the next step is verifying your Debug IDs, which link your source files to the source maps. Let's make sure they're set up properly by running through this quick checklist:",
-                          {
-                            link: sourceMapsDocLinks.debugIds ? (
-                              <ExternalLink href={sourceMapsDocLinks.debugIds} />
-                            ) : undefined,
-                          }
-                        )
-                      : tct(
-                          "We rely on [link:Debug IDs] to link your source files to the maps, so let's make sure they're set up correctly:",
-                          {
-                            link: sourceMapsDocLinks.debugIds ? (
-                              <ExternalLink href={sourceMapsDocLinks.debugIds} />
-                            ) : undefined,
-                          }
-                        )}
-                  </p>
-                ) : (
-                  <p>
-                    {tct(
-                      '[link:Debug IDs] are a way of matching your source files to source maps. Follow all of the steps below to get a readable stack trace:',
-                      {
-                        link: defined(sourceMapsDocLinks.debugIds) ? (
-                          <ExternalLinkWithIcon href={sourceMapsDocLinks.debugIds} />
+          <Tabs value={activeTab} onChange={setActiveTab}>
+            {({TabList, TabPanels}) => (
+              <Fragment>
+                <TabList>
+                  <TabList.Item
+                    key="debug-ids"
+                    textValue={`${t('Debug IDs')} (${
+                      sourceResolutionResults.debugIdProgress
+                    }/4)`}
+                    hidden={hideDebugIdsTab || hideAllTabs}
+                  >
+                    <StyledProgressRing
+                      progressColor={
+                        activeTab === 'debug-ids'
+                          ? theme.tokens.graphics.accent.vibrant
+                          : theme.tokens.graphics.neutral.vibrant
+                      }
+                      backgroundColor={theme.tokens.background.transparent.neutral.muted}
+                      value={sourceResolutionResults.debugIdProgressPercent * 100}
+                      size={16}
+                      barWidth={4}
+                    />
+                    {`${t('Debug IDs')}${
+                      sourceResolutionResults.sdkDebugIdSupport === 'not-supported'
+                        ? ''
+                        : ' ' + t('(recommended)')
+                    }`}
+                  </TabList.Item>
+                  <TabList.Item
+                    key="release"
+                    textValue={`${t('Releases')} (${
+                      sourceResolutionResults.releaseProgress
+                    }/4)`}
+                    hidden={hideReleasesTab || hideAllTabs}
+                  >
+                    <StyledProgressRing
+                      progressColor={
+                        activeTab === 'release'
+                          ? theme.tokens.graphics.accent.vibrant
+                          : theme.tokens.graphics.neutral.vibrant
+                      }
+                      backgroundColor={theme.tokens.background.transparent.neutral.muted}
+                      value={sourceResolutionResults.releaseProgressPercent * 100}
+                      size={16}
+                      barWidth={4}
+                    />
+                    {t('Releases')}
+                  </TabList.Item>
+                  <TabList.Item
+                    key="fetching"
+                    textValue={`${t('Hosting Publicly')} (${
+                      sourceResolutionResults.scrapingProgress
+                    }/4)`}
+                    hidden={hideHostingPubliclyTab || hideAllTabs}
+                  >
+                    <StyledProgressRing
+                      progressColor={
+                        activeTab === 'fetching'
+                          ? theme.tokens.graphics.accent.vibrant
+                          : theme.tokens.graphics.neutral.vibrant
+                      }
+                      backgroundColor={theme.tokens.background.transparent.neutral.muted}
+                      value={sourceResolutionResults.scrapingProgressPercent * 100}
+                      size={16}
+                      barWidth={4}
+                    />
+                    {t('Hosting Publicly')}
+                  </TabList.Item>
+                </TabList>
+                <Container paddingTop={hideAllTabs ? undefined : 'xl'}>
+                  {layoutProps => (
+                    <TabPanels {...layoutProps}>
+                      <TabPanels.Item key="debug-ids">
+                        {hideAllTabs ? (
+                          <p>
+                            {isReactNativeSDK({sdkName: sourceResolutionResults.sdkName})
+                              ? tct(
+                                  "After confirming your setup is correct, the next step is verifying your Debug IDs, which link your source files to the source maps. Let's make sure they're set up properly by running through this quick checklist:",
+                                  {
+                                    link: sourceMapsDocLinks.debugIds ? (
+                                      <ExternalLink href={sourceMapsDocLinks.debugIds} />
+                                    ) : undefined,
+                                  }
+                                )
+                              : tct(
+                                  "We rely on [link:Debug IDs] to link your source files to the maps, so let's make sure they're set up correctly:",
+                                  {
+                                    link: sourceMapsDocLinks.debugIds ? (
+                                      <ExternalLink href={sourceMapsDocLinks.debugIds} />
+                                    ) : undefined,
+                                  }
+                                )}
+                          </p>
                         ) : (
-                          <Fragment />
-                        ),
-                      }
-                    )}
-                  </p>
-                )}
-                <CheckList>
-                  <InstalledSdkChecklistItem
-                    setActiveTab={setActiveTab}
-                    sourceResolutionResults={sourceResolutionResults}
-                  />
-                  <HasDebugIdChecklistItem
-                    shouldValidate={
-                      sourceResolutionResults.sdkDebugIdSupport === 'full' ||
-                      sourceResolutionResults.sdkDebugIdSupport === 'unofficial-sdk' ||
-                      sourceResolutionResults.eventHasDebugIds
-                    }
-                    sourceResolutionResults={sourceResolutionResults}
-                  />
-                  <UploadedSourceFileWithCorrectDebugIdChecklistItem
-                    shouldValidate={sourceResolutionResults.stackFrameDebugId !== null}
-                    sourceResolutionResults={sourceResolutionResults}
-                    projectSlug={project?.slug}
-                  />
-                  <UploadedSourceMapWithCorrectDebugIdChecklistItem
-                    shouldValidate={
-                      sourceResolutionResults.uploadedSourceFileWithCorrectDebugId
-                    }
-                    sourceResolutionResults={sourceResolutionResults}
-                    projectSlug={project?.slug}
-                  />
-                </CheckList>
-                {sourceResolutionResults.debugIdProgressPercent === 1 ? (
-                  <ChecklistDoneNote />
-                ) : (
-                  <VerifyAgainNote />
-                )}
-              </TabPanels.Item>
-              <TabPanels.Item key="release">
-                {hideAllTabs ? (
-                  <p>
-                    {isReactNativeSDK({
-                      sdkName: sourceResolutionResults.sdkName,
-                    })
-                      ? tct(
-                          "After confirming your setup is correct, the next step is to check whether your source maps are properly linked to your stack traces. This happens through [link:Releases] and artifact names, so let's make sure those are configured correctly:",
-                          {
-                            link: (
-                              <ExternalLinkWithIcon href="https://docs.sentry.io/product/releases/" />
-                            ),
-                          }
-                        )
-                      : t(
-                          "Now, let's go through a checklist to troubleshoot why your source maps aren't showing up. Your stack trace is matched to your source code using [link:Releases] and artifact names, so let's ensure that's set up correctly:",
-                          {
-                            link: (
-                              <ExternalLinkWithIcon href="https://docs.sentry.io/product/releases/" />
-                            ),
-                          }
+                          <p>
+                            {tct(
+                              '[link:Debug IDs] are a way of matching your source files to source maps. Follow all of the steps below to get a readable stack trace:',
+                              {
+                                link: defined(sourceMapsDocLinks.debugIds) ? (
+                                  <ExternalLinkWithIcon
+                                    href={sourceMapsDocLinks.debugIds}
+                                  />
+                                ) : (
+                                  <Fragment />
+                                ),
+                              }
+                            )}
+                          </p>
                         )}
-                  </p>
-                ) : (
-                  <p>
-                    {tct(
-                      'You can match your stack trace to your source code based on [link:Releases] and artifact names. Follow all of the steps below to get a readable stack trace:',
-                      {
-                        link: (
-                          <ExternalLinkWithIcon href="https://docs.sentry.io/product/releases/" />
-                        ),
-                      }
-                    )}
-                  </p>
-                )}
-                <CheckList>
-                  <EventHasReleaseNameChecklistItem
-                    sourceResolutionResults={sourceResolutionResults}
-                  />
-                  <ReleaseHasUploadedArtifactsChecklistItem
-                    shouldValidate={sourceResolutionResults.release !== null}
-                    sourceResolutionResults={sourceResolutionResults}
-                  />
-                  <ReleaseSourceFileMatchingChecklistItem
-                    shouldValidate={sourceResolutionResults.releaseHasSomeArtifact}
-                    sourceResolutionResults={sourceResolutionResults}
-                  />
-                  <ReleaseSourceMapMatchingChecklistItem
-                    shouldValidate={
-                      sourceResolutionResults.sourceFileReleaseNameFetchingResult ===
-                      'found'
-                    }
-                    sourceResolutionResults={sourceResolutionResults}
-                  />
-                </CheckList>
-                {sourceResolutionResults.releaseProgressPercent === 1 ? (
-                  <ChecklistDoneNote />
-                ) : (
-                  <VerifyAgainNote />
-                )}
-              </TabPanels.Item>
-              <TabPanels.Item key="fetching">
-                <p>
-                  {tct(
-                    'Sentry will fetch your source files and source maps if you [link:host them publicly].',
-                    {
-                      link: defined(sourceMapsDocLinks.hostingPublicly) ? (
-                        <ExternalLinkWithIcon href={sourceMapsDocLinks.hostingPublicly} />
-                      ) : (
-                        <Fragment />
-                      ),
-                    }
+                        <CheckList>
+                          <InstalledSdkChecklistItem
+                            setActiveTab={setActiveTab}
+                            sourceResolutionResults={sourceResolutionResults}
+                          />
+                          <HasDebugIdChecklistItem
+                            shouldValidate={
+                              sourceResolutionResults.sdkDebugIdSupport === 'full' ||
+                              sourceResolutionResults.sdkDebugIdSupport ===
+                                'unofficial-sdk' ||
+                              sourceResolutionResults.eventHasDebugIds
+                            }
+                            sourceResolutionResults={sourceResolutionResults}
+                          />
+                          <UploadedSourceFileWithCorrectDebugIdChecklistItem
+                            shouldValidate={
+                              sourceResolutionResults.stackFrameDebugId !== null
+                            }
+                            sourceResolutionResults={sourceResolutionResults}
+                            projectSlug={project?.slug}
+                          />
+                          <UploadedSourceMapWithCorrectDebugIdChecklistItem
+                            shouldValidate={
+                              sourceResolutionResults.uploadedSourceFileWithCorrectDebugId
+                            }
+                            sourceResolutionResults={sourceResolutionResults}
+                            projectSlug={project?.slug}
+                          />
+                        </CheckList>
+                        {sourceResolutionResults.debugIdProgressPercent === 1 ? (
+                          <ChecklistDoneNote />
+                        ) : (
+                          <VerifyAgainNote />
+                        )}
+                      </TabPanels.Item>
+                      <TabPanels.Item key="release">
+                        {hideAllTabs ? (
+                          <p>
+                            {isReactNativeSDK({
+                              sdkName: sourceResolutionResults.sdkName,
+                            })
+                              ? tct(
+                                  "After confirming your setup is correct, the next step is to check whether your source maps are properly linked to your stack traces. This happens through [link:Releases] and artifact names, so let's make sure those are configured correctly:",
+                                  {
+                                    link: (
+                                      <ExternalLinkWithIcon href="https://docs.sentry.io/product/releases/" />
+                                    ),
+                                  }
+                                )
+                              : t(
+                                  "Now, let's go through a checklist to troubleshoot why your source maps aren't showing up. Your stack trace is matched to your source code using [link:Releases] and artifact names, so let's ensure that's set up correctly:",
+                                  {
+                                    link: (
+                                      <ExternalLinkWithIcon href="https://docs.sentry.io/product/releases/" />
+                                    ),
+                                  }
+                                )}
+                          </p>
+                        ) : (
+                          <p>
+                            {tct(
+                              'You can match your stack trace to your source code based on [link:Releases] and artifact names. Follow all of the steps below to get a readable stack trace:',
+                              {
+                                link: (
+                                  <ExternalLinkWithIcon href="https://docs.sentry.io/product/releases/" />
+                                ),
+                              }
+                            )}
+                          </p>
+                        )}
+                        <CheckList>
+                          <EventHasReleaseNameChecklistItem
+                            sourceResolutionResults={sourceResolutionResults}
+                          />
+                          <ReleaseHasUploadedArtifactsChecklistItem
+                            shouldValidate={sourceResolutionResults.release !== null}
+                            sourceResolutionResults={sourceResolutionResults}
+                          />
+                          <ReleaseSourceFileMatchingChecklistItem
+                            shouldValidate={
+                              sourceResolutionResults.releaseHasSomeArtifact
+                            }
+                            sourceResolutionResults={sourceResolutionResults}
+                          />
+                          <ReleaseSourceMapMatchingChecklistItem
+                            shouldValidate={
+                              sourceResolutionResults.sourceFileReleaseNameFetchingResult ===
+                              'found'
+                            }
+                            sourceResolutionResults={sourceResolutionResults}
+                          />
+                        </CheckList>
+                        {sourceResolutionResults.releaseProgressPercent === 1 ? (
+                          <ChecklistDoneNote />
+                        ) : (
+                          <VerifyAgainNote />
+                        )}
+                      </TabPanels.Item>
+                      <TabPanels.Item key="fetching">
+                        <p>
+                          {tct(
+                            'Sentry will fetch your source files and source maps if you [link:host them publicly].',
+                            {
+                              link: defined(sourceMapsDocLinks.hostingPublicly) ? (
+                                <ExternalLinkWithIcon
+                                  href={sourceMapsDocLinks.hostingPublicly}
+                                />
+                              ) : (
+                                <Fragment />
+                              ),
+                            }
+                          )}
+                        </p>
+                        <CheckList>
+                          <ScrapingSourceFileAvailableChecklistItem
+                            sourceResolutionResults={sourceResolutionResults}
+                          />
+                          <ScrapingSourceMapAvailableChecklistItem
+                            sourceResolutionResults={sourceResolutionResults}
+                          />
+                        </CheckList>
+                        {sourceResolutionResults.scrapingProgressPercent === 1 ? (
+                          <ChecklistDoneNote />
+                        ) : (
+                          <VerifyAgainNote />
+                        )}
+                      </TabPanels.Item>
+                    </TabPanels>
                   )}
-                </p>
-                <CheckList>
-                  <ScrapingSourceFileAvailableChecklistItem
-                    sourceResolutionResults={sourceResolutionResults}
-                  />
-                  <ScrapingSourceMapAvailableChecklistItem
-                    sourceResolutionResults={sourceResolutionResults}
-                  />
-                </CheckList>
-                {sourceResolutionResults.scrapingProgressPercent === 1 ? (
-                  <ChecklistDoneNote />
-                ) : (
-                  <VerifyAgainNote />
-                )}
-              </TabPanels.Item>
-            </StyledTabPanels>
+                </Container>
+              </Fragment>
+            )}
           </Tabs>
         </DebuggerSection>
       </Body>
@@ -1982,14 +1996,6 @@ function SourceMapStepNotRequiredNote() {
     </CheckListInstruction>
   );
 }
-
-const StyledTabPanels = styled(TabPanels)<{hideAllTabs: boolean}>`
-  ${p =>
-    !p.hideAllTabs &&
-    css`
-      padding-top: ${p.theme.space.xl};
-    `}
-`;
 
 const CheckList = styled('ul')`
   margin: 0;

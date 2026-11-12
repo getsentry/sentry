@@ -51,7 +51,7 @@ static/app/components/core/<category>/<component>/<component>.tsx
 Read the component file to understand:
 
 - Props and their types
-- Exported named variants and sub-components (e.g., `Component.SubComponent`, `export {TabList, TabPanels}`)
+- Exported named variants and sub-components (e.g., `Component.SubComponent` or components supplied through a child function)
 - Available values for enum/union props
 - Default prop values
 
@@ -186,16 +186,20 @@ To create a basic <component>, wrap content in `<ComponentName>`.
 When a component exposes sub-components, show the full compound usage early:
 
 ```mdx
-`<Tabs>` is a compound component. Use `<TabList>` and `<TabPanels>` together:
+`<Tabs>` provides typed components through its child function and supplies the tab layout. Import only `Tabs` from the tabs package:
 
 ```jsx
-<Tabs>
-  <TabList>
-    <TabList.Item key="tab1">Tab 1</TabList.Item>
-  </TabList>
-  <TabPanels>
-    <TabPanels.Item key="tab1">Content 1</TabPanels.Item>
-  </TabPanels>
+<Tabs defaultValue="tab1">
+  {({TabList, TabPanels}) => (
+    <Fragment>
+      <TabList>
+        <TabList.Item key="tab1">Tab 1</TabList.Item>
+      </TabList>
+      <TabPanels>
+        <TabPanels.Item key="tab1">Content 1</TabPanels.Item>
+      </TabPanels>
+    </Fragment>
+  )}
 </Tabs>
 ````
 

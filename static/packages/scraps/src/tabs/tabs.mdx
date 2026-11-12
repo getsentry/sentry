@@ -17,42 +17,50 @@ import {useLocation} from 'react-router';
 import {createSerializer, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {Stack} from '@sentry/scraps/layout';
-import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
 
 export const documentation = import('!!type-loader!@sentry/scraps/tabs');
 
-`<Tabs>` is a compound component for creating tabbed interfaces. Built on React Aria, it provides full keyboard navigation, accessibility features, and automatic overflow handling out of the box.
+`<Tabs>` manages tab selection and gives its child function typed `TabList` and `TabPanels` components. It uses React Aria for keyboard navigation and accessibility, and moves tabs into an overflow menu when needed.
 
 Use `<Tabs>` to organize related content into separate views that users can switch between without leaving the page.
 
 ```jsx
-<Tabs>
-  <TabList>
-    <TabList.Item key="tab1">Tab 1</TabList.Item>
-    <TabList.Item key="tab2">Tab 2</TabList.Item>
-  </TabList>
-  <TabPanels>
-    <TabPanels.Item key="tab1">Content for Tab 1</TabPanels.Item>
-    <TabPanels.Item key="tab2">Content for Tab 2</TabPanels.Item>
-  </TabPanels>
+<Tabs defaultValue="tab1">
+  {({TabList, TabPanels}) => (
+    <Fragment>
+      <TabList>
+        <TabList.Item key="tab1">Tab 1</TabList.Item>
+        <TabList.Item key="tab2">Tab 2</TabList.Item>
+      </TabList>
+      <TabPanels>
+        <TabPanels.Item key="tab1">Content for Tab 1</TabPanels.Item>
+        <TabPanels.Item key="tab2">Content for Tab 2</TabPanels.Item>
+      </TabPanels>
+    </Fragment>
+  )}
 </Tabs>
 ```
 
 ## Compound Components
 
-`<Tabs>` uses a compound component pattern with four main parts:
+Import only `Tabs`. Get `TabList` and `TabPanels` from its child function. These components share the string key type of that `Tabs` instance. Use matching string keys for each tab and its panel. Numeric keys are not supported.
 
-- **`<Tabs>`**: Root component that manages state and provides context
+- **`<Tabs>`**: Root component that manages state, provides context, and renders the tab layout
 - **`<TabList>`**: Container for tab buttons
 - **`<TabList.Item>`**: Individual tab button
 - **`<TabPanels>`**: Container for tab content panels
 - **`<TabPanels.Item>`**: Individual content panel
 
 > [!NOTE]
-> All tab content is rendered upfront, including React hooks. The tabs system manages visibility, not mounting/unmounting. This ensures state is preserved when switching tabs.
+> Only the selected panel content is mounted. Switching tabs unmounts the previous panel. Store state outside the panel if it must survive a tab change.
+
+## Layout
+
+`Tabs` renders a flex container. It arranges horizontal tabs in a column and vertical tabs in a row. Place `TabList` and `TabPanels` directly in the child function.
 
 ## Basic Usage
 
@@ -65,17 +73,21 @@ export function BasicDemo() {
     {key: 'three', label: 'Label 3', content: 'This is the third panel.'},
   ];
   return (
-    <Tabs>
-      <TabList>
-        {TABS.map(tab => (
-          <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-        ))}
-      </TabList>
-      <TabPanels>
-        {TABS.map(tab => (
-          <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
-        ))}
-      </TabPanels>
+    <Tabs defaultValue="one">
+      {({TabList, TabPanels}) => (
+        <Fragment>
+          <TabList>
+            {TABS.map(tab => (
+              <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+            ))}
+          </TabList>
+          <TabPanels>
+            {TABS.map(tab => (
+              <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
+            ))}
+          </TabPanels>
+        </Fragment>
+      )}
     </Tabs>
   );
 }
@@ -85,17 +97,21 @@ export function BasicDemo() {
 </Storybook.Demo>
 
 ```jsx
-<Tabs>
-  <TabList>
-    <TabList.Item key="one">Label 1</TabList.Item>
-    <TabList.Item key="two">Label 2</TabList.Item>
-    <TabList.Item key="three">Label 3</TabList.Item>
-  </TabList>
-  <TabPanels>
-    <TabPanels.Item key="one">Content 1</TabPanels.Item>
-    <TabPanels.Item key="two">Content 2</TabPanels.Item>
-    <TabPanels.Item key="three">Content 3</TabPanels.Item>
-  </TabPanels>
+<Tabs defaultValue="one">
+  {({TabList, TabPanels}) => (
+    <Fragment>
+      <TabList>
+        <TabList.Item key="one">Label 1</TabList.Item>
+        <TabList.Item key="two">Label 2</TabList.Item>
+        <TabList.Item key="three">Label 3</TabList.Item>
+      </TabList>
+      <TabPanels>
+        <TabPanels.Item key="one">Content 1</TabPanels.Item>
+        <TabPanels.Item key="two">Content 2</TabPanels.Item>
+        <TabPanels.Item key="three">Content 3</TabPanels.Item>
+      </TabPanels>
+    </Fragment>
+  )}
 </Tabs>
 ```
 
@@ -107,60 +123,83 @@ export function BasicDemo() {
   {['md', 'sm', 'xs'].map(size => (
     <Stack key={size} gap="md">
       <Text>{size === 'md' ? 'md (default)' : size}</Text>
-      <Tabs size={size}>
-        <TabList aria-label={`${size} tabs`}>
-          <TabList.Item key="one">Tab 1</TabList.Item>
-          <TabList.Item key="two">Tab 2</TabList.Item>
-          <TabList.Item key="three">Tab 3</TabList.Item>
-        </TabList>
-        <TabPanels>
-          <TabPanels.Item key="one">Content 1</TabPanels.Item>
-          <TabPanels.Item key="two">Content 2</TabPanels.Item>
-          <TabPanels.Item key="three">Content 3</TabPanels.Item>
-        </TabPanels>
+      <Tabs defaultValue="one" size={size}>
+        {({TabList, TabPanels}) => (
+          <Fragment>
+            <TabList aria-label={`${size} tabs`}>
+              <TabList.Item key="one">Tab 1</TabList.Item>
+              <TabList.Item key="two">Tab 2</TabList.Item>
+              <TabList.Item key="three">Tab 3</TabList.Item>
+            </TabList>
+            <TabPanels>
+              <TabPanels.Item key="one">Content 1</TabPanels.Item>
+              <TabPanels.Item key="two">Content 2</TabPanels.Item>
+              <TabPanels.Item key="three">Content 3</TabPanels.Item>
+            </TabPanels>
+          </Fragment>
+        )}
       </Tabs>
     </Stack>
   ))}
 </Storybook.Demo>
 
 ```jsx
-<Tabs size="md">{/* tabs and panels */}</Tabs>
-<Tabs size="sm">{/* tabs and panels */}</Tabs>
-<Tabs size="xs">{/* tabs and panels */}</Tabs>
+<Tabs defaultValue="one" size="md">
+{({TabList, TabPanels}) => (
+<Fragment>{/* tabs and panels */}</Fragment>
+)}
+</Tabs>
+<Tabs defaultValue="one" size="sm">
+{({TabList, TabPanels}) => (
+<Fragment>{/* tabs and panels */}</Fragment>
+)}
+</Tabs>
+<Tabs defaultValue="one" size="xs">
+{({TabList, TabPanels}) => (
+<Fragment>{/* tabs and panels */}</Fragment>
+)}
+</Tabs>
 ```
 
 ## Default Selection
 
-Set `defaultValue` to specify which tab is selected initially (uncontrolled):
+Uncontrolled tabs require `defaultValue` to specify the initial selection. A typed `onChange` callback can supply a key union for the items and default value. Without one, keys default to `string`. `defaultValue` does not determine the key type, so `defaultValue="foo"` still permits other string keys. Do not pass `value` with `defaultValue`.
 
 <Storybook.Demo>
   <Tabs defaultValue="two">
-    <TabList>
-      <TabList.Item key="one">Tab 1</TabList.Item>
-      <TabList.Item key="two">Tab 2 (default)</TabList.Item>
-      <TabList.Item key="three">Tab 3</TabList.Item>
-    </TabList>
-    <TabPanels>
-      <TabPanels.Item key="one">Content 1</TabPanels.Item>
-      <TabPanels.Item key="two">Content 2 (initially visible)</TabPanels.Item>
-      <TabPanels.Item key="three">Content 3</TabPanels.Item>
-    </TabPanels>
+    {({TabList, TabPanels}) => (
+      <Fragment>
+        <TabList>
+          <TabList.Item key="one">Tab 1</TabList.Item>
+          <TabList.Item key="two">Tab 2 (default)</TabList.Item>
+          <TabList.Item key="three">Tab 3</TabList.Item>
+        </TabList>
+        <TabPanels>
+          <TabPanels.Item key="one">Content 1</TabPanels.Item>
+          <TabPanels.Item key="two">Content 2 (initially visible)</TabPanels.Item>
+          <TabPanels.Item key="three">Content 3</TabPanels.Item>
+        </TabPanels>
+      </Fragment>
+    )}
   </Tabs>
 </Storybook.Demo>
 
-```jsx
-<Tabs defaultValue="two">
-  <TabList>
-    <TabList.Item key="two">Tab 2</TabList.Item>
-    {/* other tabs */}
-  </TabList>
-  {/* panels */}
-</Tabs>
+```tsx
+const handleChange = (tab: string) => console.log(tab);
+
+<Tabs defaultValue="two" onChange={handleChange}>
+  {({TabList}) => (
+    <TabList>
+      <TabList.Item key="two">Tab 2</TabList.Item>
+      {/* other tabs */}
+    </TabList>
+  )}
+</Tabs>;
 ```
 
 ## Controlled Tabs
 
-For controlled tabs, use `value` and `onChange` to manage the active tab externally:
+Controlled tabs require both `value` and `onChange`. `value` determines the allowed item keys and the `onChange` parameter type. Use a union for known keys. Do not pass `defaultValue`.
 
 export function ControlledDemo() {
   const [selected, setSelected] = useState('two');
@@ -168,16 +207,20 @@ export function ControlledDemo() {
     <Fragment>
       <p>Selected: {selected}</p>
       <Tabs value={selected} onChange={setSelected}>
-        <TabList>
-          <TabList.Item key="one">Tab 1</TabList.Item>
-          <TabList.Item key="two">Tab 2</TabList.Item>
-          <TabList.Item key="three">Tab 3</TabList.Item>
-        </TabList>
-        <TabPanels>
-          <TabPanels.Item key="one">Content 1</TabPanels.Item>
-          <TabPanels.Item key="two">Content 2</TabPanels.Item>
-          <TabPanels.Item key="three">Content 3</TabPanels.Item>
-        </TabPanels>
+        {({TabList, TabPanels}) => (
+          <Fragment>
+            <TabList>
+              <TabList.Item key="one">Tab 1</TabList.Item>
+              <TabList.Item key="two">Tab 2</TabList.Item>
+              <TabList.Item key="three">Tab 3</TabList.Item>
+            </TabList>
+            <TabPanels>
+              <TabPanels.Item key="one">Content 1</TabPanels.Item>
+              <TabPanels.Item key="two">Content 2</TabPanels.Item>
+              <TabPanels.Item key="three">Content 3</TabPanels.Item>
+            </TabPanels>
+          </Fragment>
+        )}
       </Tabs>
     </Fragment>
   );
@@ -187,11 +230,12 @@ export function ControlledDemo() {
   <ControlledDemo />
 </Storybook.Demo>
 
-```jsx
-const [selected, setSelected] = useState('one');
+```tsx
+type TabKey = 'one' | 'two' | 'three';
+const [selected, setSelected] = useState<TabKey>('one');
 
 <Tabs value={selected} onChange={setSelected}>
-  {/* tabs and panels */}
+  {({TabList, TabPanels}) => <Fragment>{/* tabs and panels */}</Fragment>}
 </Tabs>;
 ```
 
@@ -203,32 +247,40 @@ Disable all tabs with the `disabled` prop on `<Tabs>`, or disable individual tab
   <Storybook.SideBySide>
     <div>
       <p>All tabs disabled</p>
-      <Tabs disabled>
-        <TabList>
-          <TabList.Item key="one">Tab 1</TabList.Item>
-          <TabList.Item key="two">Tab 2</TabList.Item>
-        </TabList>
-        <TabPanels>
-          <TabPanels.Item key="one">Content 1</TabPanels.Item>
-          <TabPanels.Item key="two">Content 2</TabPanels.Item>
-        </TabPanels>
+      <Tabs defaultValue="one" disabled>
+        {({TabList, TabPanels}) => (
+          <Fragment>
+            <TabList>
+              <TabList.Item key="one">Tab 1</TabList.Item>
+              <TabList.Item key="two">Tab 2</TabList.Item>
+            </TabList>
+            <TabPanels>
+              <TabPanels.Item key="one">Content 1</TabPanels.Item>
+              <TabPanels.Item key="two">Content 2</TabPanels.Item>
+            </TabPanels>
+          </Fragment>
+        )}
       </Tabs>
     </div>
     <div>
       <p>One tab disabled</p>
-      <Tabs>
-        <TabList>
-          <TabList.Item key="one">Tab 1</TabList.Item>
-          <TabList.Item key="two" disabled>
-            Tab 2 (disabled)
-          </TabList.Item>
-          <TabList.Item key="three">Tab 3</TabList.Item>
-        </TabList>
-        <TabPanels>
-          <TabPanels.Item key="one">Content 1</TabPanels.Item>
-          <TabPanels.Item key="two">Content 2</TabPanels.Item>
-          <TabPanels.Item key="three">Content 3</TabPanels.Item>
-        </TabPanels>
+      <Tabs defaultValue="one">
+        {({TabList, TabPanels}) => (
+          <Fragment>
+            <TabList>
+              <TabList.Item key="one">Tab 1</TabList.Item>
+              <TabList.Item key="two" disabled>
+                Tab 2 (disabled)
+              </TabList.Item>
+              <TabList.Item key="three">Tab 3</TabList.Item>
+            </TabList>
+            <TabPanels>
+              <TabPanels.Item key="one">Content 1</TabPanels.Item>
+              <TabPanels.Item key="two">Content 2</TabPanels.Item>
+              <TabPanels.Item key="three">Content 3</TabPanels.Item>
+            </TabPanels>
+          </Fragment>
+        )}
       </Tabs>
     </div>
   </Storybook.SideBySide>
@@ -236,8 +288,12 @@ Disable all tabs with the `disabled` prop on `<Tabs>`, or disable individual tab
 
 ```jsx
 // Disable all tabs
-<Tabs disabled>
+<Tabs defaultValue="two" disabled>
+{({TabList, TabPanels}) => (
+<Fragment>
   {/* tabs and panels */}
+</Fragment>
+)}
 </Tabs>
 
 // Disable individual tab
@@ -254,17 +310,21 @@ Tabs come in two visual variants: `flat` (default) and `floating`. The variant i
   {['flat', 'floating'].map(variant => (
     <Stack key={variant} gap="md">
       <Text>{variant === 'flat' ? 'flat (default)' : variant}</Text>
-      <Tabs>
-        <TabList variant={variant} aria-label={`${variant} tabs`}>
-          <TabList.Item key="one">Tab 1</TabList.Item>
-          <TabList.Item key="two">Tab 2</TabList.Item>
-          <TabList.Item key="three">Tab 3</TabList.Item>
-        </TabList>
-        <TabPanels>
-          <TabPanels.Item key="one">{variant} variant content 1</TabPanels.Item>
-          <TabPanels.Item key="two">{variant} variant content 2</TabPanels.Item>
-          <TabPanels.Item key="three">{variant} variant content 3</TabPanels.Item>
-        </TabPanels>
+      <Tabs defaultValue="one">
+        {({TabList, TabPanels}) => (
+          <Fragment>
+            <TabList variant={variant} aria-label={`${variant} tabs`}>
+              <TabList.Item key="one">Tab 1</TabList.Item>
+              <TabList.Item key="two">Tab 2</TabList.Item>
+              <TabList.Item key="three">Tab 3</TabList.Item>
+            </TabList>
+            <TabPanels>
+              <TabPanels.Item key="one">{variant} variant content 1</TabPanels.Item>
+              <TabPanels.Item key="two">{variant} variant content 2</TabPanels.Item>
+              <TabPanels.Item key="three">{variant} variant content 3</TabPanels.Item>
+            </TabPanels>
+          </Fragment>
+        )}
       </Tabs>
     </Stack>
   ))}
@@ -277,34 +337,50 @@ Tabs come in two visual variants: `flat` (default) and `floating`. The variant i
 
 ## Orientation
 
-Tabs support both horizontal and vertical orientation:
+Set `orientation` to control keyboard navigation and tab styling. Choose the matching layout on the parent component.
 
 <Storybook.Demo direction="column" align="stretch" gap="3xl">
-  <Tabs orientation="horizontal">
-    <TabList>
-      <TabList.Item key="one">Tab 1</TabList.Item>
-      <TabList.Item key="two">Tab 2</TabList.Item>
-    </TabList>
-    <TabPanels>
-      <TabPanels.Item key="one">Horizontal content 1</TabPanels.Item>
-      <TabPanels.Item key="two">Horizontal content 2</TabPanels.Item>
-    </TabPanels>
+  <Tabs defaultValue="one" orientation="horizontal">
+    {({TabList, TabPanels}) => (
+      <Fragment>
+        <TabList>
+          <TabList.Item key="one">Tab 1</TabList.Item>
+          <TabList.Item key="two">Tab 2</TabList.Item>
+        </TabList>
+        <TabPanels>
+          <TabPanels.Item key="one">Horizontal content 1</TabPanels.Item>
+          <TabPanels.Item key="two">Horizontal content 2</TabPanels.Item>
+        </TabPanels>
+      </Fragment>
+    )}
   </Tabs>
-  <Tabs orientation="vertical">
-    <TabList>
-      <TabList.Item key="one">Tab 1</TabList.Item>
-      <TabList.Item key="two">Tab 2</TabList.Item>
-    </TabList>
-    <TabPanels>
-      <TabPanels.Item key="one">Vertical content 1</TabPanels.Item>
-      <TabPanels.Item key="two">Vertical content 2</TabPanels.Item>
-    </TabPanels>
+  <Tabs defaultValue="one" orientation="vertical">
+    {({TabList, TabPanels}) => (
+      <Fragment>
+        <TabList>
+          <TabList.Item key="one">Tab 1</TabList.Item>
+          <TabList.Item key="two">Tab 2</TabList.Item>
+        </TabList>
+        <TabPanels>
+          <TabPanels.Item key="one">Vertical content 1</TabPanels.Item>
+          <TabPanels.Item key="two">Vertical content 2</TabPanels.Item>
+        </TabPanels>
+      </Fragment>
+    )}
   </Tabs>
 </Storybook.Demo>
 
 ```jsx
-<Tabs orientation="horizontal">{/* default */}</Tabs>
-<Tabs orientation="vertical">{/* side-by-side layout */}</Tabs>
+<Tabs defaultValue="overview" orientation="horizontal">
+{({TabList, TabPanels}) => (
+<Fragment>{/* default */}</Fragment>
+)}
+</Tabs>
+<Tabs defaultValue="overview" orientation="vertical">
+{({TabList, TabPanels}) => (
+<Fragment>{/* side-by-side layout */}</Fragment>
+)}
+</Tabs>
 ```
 
 ## Overflow Handling
@@ -315,39 +391,47 @@ Resize the demo to see tabs move into and out of the overflow menu.
 
 <Storybook.Demo resizable>
   <Tabs defaultValue="overview">
-    <TabList>
-      <TabList.Item key="overview">Overview</TabList.Item>
-      <TabList.Item key="activity">Activity</TabList.Item>
-      <TabList.Item key="feedback">User Feedback</TabList.Item>
-      <TabList.Item key="attachments">Attachments</TabList.Item>
-      <TabList.Item key="settings">Settings</TabList.Item>
-    </TabList>
-    <TabPanels>
-      <TabPanels.Item key="overview">Overview content</TabPanels.Item>
-      <TabPanels.Item key="activity">Activity content</TabPanels.Item>
-      <TabPanels.Item key="feedback">User feedback content</TabPanels.Item>
-      <TabPanels.Item key="attachments">Attachments content</TabPanels.Item>
-      <TabPanels.Item key="settings">Settings content</TabPanels.Item>
-    </TabPanels>
+    {({TabList, TabPanels}) => (
+      <Fragment>
+        <TabList>
+          <TabList.Item key="overview">Overview</TabList.Item>
+          <TabList.Item key="activity">Activity</TabList.Item>
+          <TabList.Item key="feedback">User Feedback</TabList.Item>
+          <TabList.Item key="attachments">Attachments</TabList.Item>
+          <TabList.Item key="settings">Settings</TabList.Item>
+        </TabList>
+        <TabPanels>
+          <TabPanels.Item key="overview">Overview content</TabPanels.Item>
+          <TabPanels.Item key="activity">Activity content</TabPanels.Item>
+          <TabPanels.Item key="feedback">User feedback content</TabPanels.Item>
+          <TabPanels.Item key="attachments">Attachments content</TabPanels.Item>
+          <TabPanels.Item key="settings">Settings content</TabPanels.Item>
+        </TabPanels>
+      </Fragment>
+    )}
   </Tabs>
 </Storybook.Demo>
 
-```jsx
+```tsx
 <Tabs defaultValue="overview">
-  <TabList>
-    <TabList.Item key="overview">Overview</TabList.Item>
-    <TabList.Item key="activity">Activity</TabList.Item>
-    <TabList.Item key="feedback">User Feedback</TabList.Item>
-    <TabList.Item key="attachments">Attachments</TabList.Item>
-    <TabList.Item key="settings">Settings</TabList.Item>
-  </TabList>
-  <TabPanels>
-    <TabPanels.Item key="overview">Overview content</TabPanels.Item>
-    <TabPanels.Item key="activity">Activity content</TabPanels.Item>
-    <TabPanels.Item key="feedback">User feedback content</TabPanels.Item>
-    <TabPanels.Item key="attachments">Attachments content</TabPanels.Item>
-    <TabPanels.Item key="settings">Settings content</TabPanels.Item>
-  </TabPanels>
+  {({TabList, TabPanels}) => (
+    <Fragment>
+      <TabList>
+        <TabList.Item key="overview">Overview</TabList.Item>
+        <TabList.Item key="activity">Activity</TabList.Item>
+        <TabList.Item key="feedback">User Feedback</TabList.Item>
+        <TabList.Item key="attachments">Attachments</TabList.Item>
+        <TabList.Item key="settings">Settings</TabList.Item>
+      </TabList>
+      <TabPanels>
+        <TabPanels.Item key="overview">Overview content</TabPanels.Item>
+        <TabPanels.Item key="activity">Activity content</TabPanels.Item>
+        <TabPanels.Item key="feedback">User feedback content</TabPanels.Item>
+        <TabPanels.Item key="attachments">Attachments content</TabPanels.Item>
+        <TabPanels.Item key="settings">Settings content</TabPanels.Item>
+      </TabPanels>
+    </Fragment>
+  )}
 </Tabs>
 ```
 
@@ -372,25 +456,29 @@ export function LinkedTabsDemo() {
   const [value] = useQueryState('linkedTab', parser);
   const serialize = createSerializer({linkedTab: parser});
   return (
-    <Tabs value={value}>
-      <TabList aria-label="Linked tabs">
-        {tabs.map(({key, label}) => (
-          <TabList.Item
-            key={key}
-            to={{
-              search: serialize(location.search, {linkedTab: key}),
-              hash: location.hash,
-            }}
-          >
-            {label}
-          </TabList.Item>
-        ))}
-      </TabList>
-      <TabPanels>
-        {tabs.map(({key, label}) => (
-          <TabPanels.Item key={key}>{label} content</TabPanels.Item>
-        ))}
-      </TabPanels>
+    <Tabs onChange={() => {}} value={value}>
+      {({TabList, TabPanels}) => (
+        <Fragment>
+          <TabList aria-label="Linked tabs">
+            {tabs.map(({key, label}) => (
+              <TabList.Item
+                key={key}
+                to={{
+                  search: serialize(location.search, {linkedTab: key}),
+                  hash: location.hash,
+                }}
+              >
+                {label}
+              </TabList.Item>
+            ))}
+          </TabList>
+          <TabPanels>
+            {tabs.map(({key, label}) => (
+              <TabPanels.Item key={key}>{label} content</TabPanels.Item>
+            ))}
+          </TabPanels>
+        </Fragment>
+      )}
     </Tabs>
   );
 }
@@ -403,7 +491,8 @@ export function LinkedTabsDemo() {
 import {useLocation} from 'react-router';
 import {createSerializer, parseAsStringLiteral, useQueryState} from 'nuqs';
 
-import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+import {Flex} from '@sentry/scraps/layout';
+import {Tabs} from '@sentry/scraps/tabs';
 
 function LinkedTabsDemo() {
   const location = useLocation();
@@ -418,25 +507,29 @@ function LinkedTabsDemo() {
   const [value] = useQueryState('linkedTab', parser);
   const serialize = createSerializer({linkedTab: parser});
   return (
-    <Tabs value={value}>
-      <TabList aria-label="Linked tabs">
-        {tabs.map(({key, label}) => (
-          <TabList.Item
-            key={key}
-            to={{
-              search: serialize(location.search, {linkedTab: key}),
-              hash: location.hash,
-            }}
-          >
-            {label}
-          </TabList.Item>
-        ))}
-      </TabList>
-      <TabPanels>
-        {tabs.map(({key, label}) => (
-          <TabPanels.Item key={key}>{label} content</TabPanels.Item>
-        ))}
-      </TabPanels>
+    <Tabs onChange={() => {}} value={value}>
+      {({TabList, TabPanels}) => (
+        <Fragment>
+          <TabList aria-label="Linked tabs">
+            {tabs.map(({key, label}) => (
+              <TabList.Item
+                key={key}
+                to={{
+                  search: serialize(location.search, {linkedTab: key}),
+                  hash: location.hash,
+                }}
+              >
+                {label}
+              </TabList.Item>
+            ))}
+          </TabList>
+          <TabPanels>
+            {tabs.map(({key, label}) => (
+              <TabPanels.Item key={key}>{label} content</TabPanels.Item>
+            ))}
+          </TabPanels>
+        </Fragment>
+      )}
     </Tabs>
   );
 }
@@ -459,23 +552,27 @@ function LinkedTabsDemo() {
 Use tabs to organize related content into distinct views:
 
 ```jsx
-<Tabs>
-  <TabList>
-    <TabList.Item key="overview">Overview</TabList.Item>
-    <TabList.Item key="activity">Activity</TabList.Item>
-    <TabList.Item key="settings">Settings</TabList.Item>
-  </TabList>
-  <TabPanels>
-    <TabPanels.Item key="overview">
-      <OverviewContent />
-    </TabPanels.Item>
-    <TabPanels.Item key="activity">
-      <ActivityFeed />
-    </TabPanels.Item>
-    <TabPanels.Item key="settings">
-      <SettingsForm />
-    </TabPanels.Item>
-  </TabPanels>
+<Tabs defaultValue="overview">
+  {({TabList, TabPanels}) => (
+    <Fragment>
+      <TabList>
+        <TabList.Item key="overview">Overview</TabList.Item>
+        <TabList.Item key="activity">Activity</TabList.Item>
+        <TabList.Item key="settings">Settings</TabList.Item>
+      </TabList>
+      <TabPanels>
+        <TabPanels.Item key="overview">
+          <OverviewContent />
+        </TabPanels.Item>
+        <TabPanels.Item key="activity">
+          <ActivityFeed />
+        </TabPanels.Item>
+        <TabPanels.Item key="settings">
+          <SettingsForm />
+        </TabPanels.Item>
+      </TabPanels>
+    </Fragment>
+  )}
 </Tabs>
 ```
 
@@ -494,7 +591,11 @@ const [tab, setTab] = useQueryState(
 );
 
 <Tabs value={tab} onChange={setTab}>
+{({TabList, TabPanels}) => (
+<Fragment>
   {/* tabs */}
+</Fragment>
+)}
 </Tabs>;
 ```
 
@@ -538,8 +639,8 @@ The component automatically includes:
 
 **State Preservation**
 
-- Remember that all panel content is rendered upfront
-- Tab switches don't remount components—state is preserved
-- This is good for preserving form data, scroll positions, etc.
+- Only the selected panel content is mounted
+- Switching tabs unmounts the previous panel and mounts the next panel
+- Keep form data or other shared state above `Tabs` when it must survive tab changes
 
 For more information, see the [WAI-ARIA Tabs practices](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/).

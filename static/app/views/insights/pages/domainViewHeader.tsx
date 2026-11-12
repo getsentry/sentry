@@ -1,14 +1,15 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {IconBusiness} from '@sentry/icons/business';
+import noop from 'lodash/noop';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import type {
   BreadcrumbListProps,
   BreadcrumbTitleItem,
 } from '@sentry/scraps/breadcrumbList';
-import type {TabListItemProps} from '@sentry/scraps/tabs';
-import {TabList} from '@sentry/scraps/tabs';
+import {Container} from '@sentry/scraps/layout';
+import {Tabs, type TabListItemProps, type TabsComponents} from '@sentry/scraps/tabs';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
@@ -33,7 +34,7 @@ import {
   isModuleVisible,
 } from './utils';
 
-export type Props = {
+export type Props<T extends string = string> = {
   domainBaseUrl: string;
   domainTitle: string;
   modules: ModuleName[];
@@ -42,10 +43,14 @@ export type Props = {
   additonalHeaderActions?: React.ReactNode;
   headerTitle?: string | BreadcrumbTitleItem;
   hideDefaultTabs?: boolean;
-  tabs?: {onTabChange: (key: string) => void; tabList: React.ReactNode; value: string};
+  tabs?: {
+    onTabChange: (key: T) => void;
+    renderTabList: (TabList: TabsComponents<T>['TabList']) => React.ReactNode;
+    value: T;
+  };
 };
 
-export function DomainViewHeader({
+export function DomainViewHeader<T extends string = string>({
   modules,
   headerTitle,
   domainTitle,
@@ -55,7 +60,7 @@ export function DomainViewHeader({
   additionalBreadCrumbs = [],
   domainBaseUrl,
   tabs,
-}: Props) {
+}: Props<T>) {
   const organization = useOrganization();
   const location = useLocation();
   const moduleURLBuilder = useModuleURLBuilder();
@@ -67,9 +72,6 @@ export function DomainViewHeader({
   const isNextJsInsights = isNextJsInsightsAvailable && isInOverviewPage;
   const isAgentMonitoring = view === 'ai-agents';
   const isSessionsInsights = selectedModule === ModuleName.SESSIONS;
-
-  const tabValue =
-    hideDefaultTabs && tabs?.value ? tabs.value : (selectedModule ?? OVERVIEW_PAGE_TITLE);
 
   const globalQuery = {
     ...extractSelectionParameters(location?.query),
@@ -89,7 +91,7 @@ export function DomainViewHeader({
         ]
       : undefined;
 
-  const tabList: TabListItemProps[] = [
+  const tabList = [
     {
       key: OVERVIEW_PAGE_TITLE,
       children: OVERVIEW_PAGE_TITLE,
@@ -106,7 +108,7 @@ export function DomainViewHeader({
           query: globalQuery,
         },
       })),
-  ];
+  ] satisfies TabListItemProps[];
 
   const feedbackConfig: Array<[boolean, {owner: string; source: string}]> = [
     [isAgentMonitoring, {owner: 'telemetry-experience', source: 'agent-monitoring'}],
@@ -141,16 +143,31 @@ export function DomainViewHeader({
           <TopBar.Slot name="actions">{additonalHeaderActions}</TopBar.Slot>
         )}
         <TopBar.Slot name="feedback" feedbackOptions={feedbackOptions} />
-        <Layout.HeaderTabs value={tabValue} onChange={tabs?.onTabChange}>
-          {!hideDefaultTabs && (
-            <TabList>
-              {tabList.map(tab => (
-                <TabList.Item {...tab} key={tab.key} />
-              ))}
-            </TabList>
-          )}
-          {hideDefaultTabs && tabs?.tabList}
-        </Layout.HeaderTabs>
+        <Container column="1 / -1">
+          {tabsRootProps =>
+            hideDefaultTabs && tabs ? (
+              <Tabs value={tabs.value} onChange={tabs.onTabChange} {...tabsRootProps}>
+                {({TabList}) => tabs.renderTabList(TabList)}
+              </Tabs>
+            ) : (
+              <Tabs
+                onChange={noop}
+                value={selectedModule ?? OVERVIEW_PAGE_TITLE}
+                {...tabsRootProps}
+              >
+                {({TabList}) =>
+                  !hideDefaultTabs && (
+                    <TabList>
+                      {tabList.map(tab => (
+                        <TabList.Item {...tab} key={tab.key} />
+                      ))}
+                    </TabList>
+                  )
+                }
+              </Tabs>
+            )
+          }
+        </Container>
       </Layout.Header>
     </Fragment>
   );

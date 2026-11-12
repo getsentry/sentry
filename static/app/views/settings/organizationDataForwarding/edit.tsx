@@ -1,11 +1,12 @@
 import {Fragment, useMemo} from 'react';
 import {IconArrow} from '@sentry/icons/arrow';
+import noop from 'lodash/noop';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {FieldGroup} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {Access} from 'sentry/components/acl/access';
@@ -33,6 +34,7 @@ import {
   DATA_FORWARDING_FEATURES,
   DataForwarderProviderSlug,
   ProviderLabels,
+  PROVIDER_TAB_ORDER,
   type DataForwarder,
   type DataForwarderPayload,
 } from './util/types';
@@ -122,29 +124,31 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
                   )}
                 />
               )}
-              <Tabs value={dataForwarder.provider}>
-                <TabList variant="floating">
-                  {Object.entries(ProviderLabels).map(([key, label]) => (
-                    <TabList.Item
-                      key={key}
-                      disabled={key !== provider || !hasFeature}
-                      tooltip={
-                        key === provider
-                          ? undefined
-                          : {
-                              title: t(
-                                'Cannot update provider after setup, create a new forwarder instead.'
-                              ),
-                            }
-                      }
-                    >
-                      <Flex align="center" gap="sm">
-                        <PluginIcon pluginId={key} />
-                        <b>{label}</b>
-                      </Flex>
-                    </TabList.Item>
-                  ))}
-                </TabList>
+              <Tabs onChange={noop} value={dataForwarder.provider}>
+                {({TabList}) => (
+                  <TabList variant="floating">
+                    {PROVIDER_TAB_ORDER.map(key => (
+                      <TabList.Item
+                        key={key}
+                        disabled={key !== provider || !hasFeature}
+                        tooltip={
+                          key === provider
+                            ? undefined
+                            : {
+                                title: t(
+                                  'Cannot update provider after setup, create a new forwarder instead.'
+                                ),
+                              }
+                        }
+                      >
+                        <Flex align="center" gap="sm">
+                          <PluginIcon pluginId={key} />
+                          <b>{ProviderLabels[key]}</b>
+                        </Flex>
+                      </TabList.Item>
+                    ))}
+                  </TabList>
+                )}
               </Tabs>
               <Access access={['org:write']}>
                 {({hasAccess}) =>

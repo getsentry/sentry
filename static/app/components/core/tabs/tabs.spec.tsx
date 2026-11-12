@@ -2,7 +2,7 @@ import {useLocation} from 'react-router';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 
 const TABS = [
   {key: 'details', label: 'Details', content: 'So by colonel hearted ferrars.'},
@@ -25,38 +25,40 @@ const TABS = [
 ] as const;
 
 function LinkedTabs({
-  value,
-  onChange,
   keyboardActivation = 'manual',
   disabled,
+  ...selection
 }: {
   disabled?: boolean;
   keyboardActivation?: 'manual' | 'automatic';
-  onChange?: (key: string) => void;
-  value?: string;
-}) {
+} & (
+  | {onChange: (key: string) => void; value: string}
+  | {onChange?: (key: string) => void; value?: never}
+)) {
   return (
     <Tabs
-      defaultValue="details"
-      value={value}
-      onChange={onChange}
+      {...(selection.value === undefined
+        ? {defaultValue: 'details', onChange: selection.onChange}
+        : selection)}
       keyboardActivation={keyboardActivation}
       disabled={disabled}
     >
-      <TabList>
-        {TABS.map(tab => (
-          <TabList.Item key={tab.key} to={`/tabs/${tab.key}/`}>
-            {tab.label}
-          </TabList.Item>
-        ))}
-      </TabList>
+      {({TabList}) => (
+        <TabList>
+          {TABS.map(tab => (
+            <TabList.Item key={tab.key} to={`/tabs/${tab.key}/`}>
+              {tab.label}
+            </TabList.Item>
+          ))}
+        </TabList>
+      )}
     </Tabs>
   );
 }
 
 function RoutedTabs({onChange}: {onChange: (key: string) => void}) {
   const {pathname} = useLocation();
-  return <LinkedTabs value={pathname.split('/')[2]} onChange={onChange} />;
+  return <LinkedTabs value={pathname.split('/')[2] ?? 'details'} onChange={onChange} />;
 }
 
 describe('Tabs routing', () => {

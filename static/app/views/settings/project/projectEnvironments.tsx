@@ -2,13 +2,14 @@ import {Fragment, useDeferredValue, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import noop from 'lodash/noop';
 import {parseAsInteger, parseAsString, parseAsStringEnum, useQueryStates} from 'nuqs';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import type {TableColumnConfig} from '@sentry/scraps/table';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
@@ -276,21 +277,23 @@ export default function ProjectEnvironments() {
       <SentryDocumentTitle title={t('Environments')} projectSlug={params.projectId} />
       <SettingsPageHeader title={t('Manage Environments')} />
       <TabsContainer>
-        <Tabs value={isHidden ? 'hidden' : 'environments'}>
-          <TabList>
-            <TabList.Item
-              key="environments"
-              to={`/settings/${organization.slug}/projects/${params.projectId}/environments/`}
-            >
-              {t('Environments')}
-            </TabList.Item>
-            <TabList.Item
-              key="hidden"
-              to={`/settings/${organization.slug}/projects/${params.projectId}/environments/hidden/`}
-            >
-              {t('Hidden')}
-            </TabList.Item>
-          </TabList>
+        <Tabs onChange={noop} value={isHidden ? 'hidden' : 'environments'}>
+          {({TabList}) => (
+            <TabList>
+              <TabList.Item
+                key="environments"
+                to={`/settings/${organization.slug}/projects/${params.projectId}/environments/`}
+              >
+                {t('Environments')}
+              </TabList.Item>
+              <TabList.Item
+                key="hidden"
+                to={`/settings/${organization.slug}/projects/${params.projectId}/environments/hidden/`}
+              >
+                {t('Hidden')}
+              </TabList.Item>
+            </TabList>
+          )}
         </Tabs>
       </TabsContainer>
       <ProjectPermissionAlert project={project} />

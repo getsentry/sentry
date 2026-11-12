@@ -14,7 +14,7 @@ import type {BreadcrumbTitleItem} from '@sentry/scraps/breadcrumbList';
 import {Flex, Stack, Grid, Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {singleLineRenderer} from '@sentry/scraps/markdown';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Access} from 'sentry/components/acl/access';
@@ -89,9 +89,9 @@ function IntegrationTabs({
   getTabDisplay,
 }: {
   activeTab: IntegrationTab;
+  onTabChange: (tab: IntegrationTab) => void;
   tabs: readonly IntegrationTab[];
   getTabDisplay?: (tab: IntegrationTab) => string;
-  onTabChange?: (tab: IntegrationTab) => void;
 }) {
   // If getTabDisplay is not provided, use the tab as the display text
   const renderTab = useMemo(
@@ -105,13 +105,15 @@ function IntegrationTabs({
 
   return (
     <Tabs value={activeTab} onChange={onTabChange}>
-      <TabList>
-        {tabs.map(tab => (
-          <TabList.Item key={tab} textValue={getTabDisplay ? getTabDisplay(tab) : tab}>
-            <Capitalized>{renderTab(tab)}</Capitalized>
-          </TabList.Item>
-        ))}
-      </TabList>
+      {({TabList}) => (
+        <TabList>
+          {tabs.map(tab => (
+            <TabList.Item key={tab} textValue={getTabDisplay ? getTabDisplay(tab) : tab}>
+              <Capitalized>{renderTab(tab)}</Capitalized>
+            </TabList.Item>
+          ))}
+        </TabList>
+      )}
     </Tabs>
   );
 }
