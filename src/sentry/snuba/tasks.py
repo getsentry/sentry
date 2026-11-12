@@ -496,7 +496,9 @@ def recheck_broken_subscription(query_subscription_id: int, **kwargs: Any) -> No
         metrics.incr("snuba.subscriptions.broken.verified")
         return
 
-    # Claim the subscription so a concurrent edit or delete wins over this recheck.
+    # Mark the create as in progress. Writes after it only apply while the status is still
+    # CREATING, so an edit or delete made during the Snuba call isn't overwritten. If this
+    # task dies partway, `subscription_checker` finishes the create.
     updated = QuerySubscription.objects.filter(
         id=subscription.id, status=QuerySubscription.Status.BROKEN.value
     ).update(status=QuerySubscription.Status.CREATING.value, date_updated=timezone.now())
