@@ -409,7 +409,7 @@ const appConfig: Configuration = {
         type: 'css/auto',
         // Inject a <style> tag, like style-loader did
         parser: {exportType: 'style'},
-        // Resolve asset URLs against __webpack_public_path__ (set in setupStatics)
+        // Resolve asset URLs against `import.meta.rspackPublicPath` (set in setupStatics)
         generator: {runtimePublicPath: true},
       },
       {
