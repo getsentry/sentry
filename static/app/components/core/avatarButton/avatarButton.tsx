@@ -49,14 +49,20 @@ export function AvatarButton({
           : undefined,
   });
 
+  // Only used to inset logos that don't fill the frame. The frame itself keeps
+  // the default button colors, whatever the avatar's color.
   const colors = useAvatarColors(isSuggested ? undefined : avatar);
+  // The avatar covers the button's own border, so redraw it in the same color.
+  const borderColor = isSuggested
+    ? theme.tokens.border.neutral.vibrant
+    : theme.tokens.interactive.chonky.embossed.neutral.chonk;
 
   const contextSize = useSizeContext();
   const size = explicitSize ?? contextSize ?? 'md';
 
   if (!avatar) {
     return (
-      <StyledAvatarButton {...props} size={size} round={round} chonk={undefined}>
+      <StyledAvatarButton {...props} size={size} round={round}>
         <AvatarContainer
           size={size}
           round={round}
@@ -71,18 +77,13 @@ export function AvatarButton({
   }
 
   if (avatarDefinition.type === 'letter') {
-    const avatarChonk = colors.type === 'letter' ? colors.chonk : undefined;
-
     return (
-      <StyledAvatarButton {...props} size={size} round={round} chonk={avatarChonk}>
+      <StyledAvatarButton {...props} size={size} round={round}>
         <AvatarContainer
           size={size}
           round={round}
           padded={false}
-          borderColor={
-            avatarChonk ??
-            (isSuggested ? theme.tokens.border.neutral.vibrant : 'transparent')
-          }
+          borderColor={borderColor}
           borderStyle={isSuggested ? 'dashed' : 'solid'}
         >
           <StyledLetterAvatar
@@ -94,17 +95,13 @@ export function AvatarButton({
     );
   }
 
-  const chonk = colors.type === 'image' ? colors.chonk : undefined;
-
   return (
-    <StyledAvatarButton {...props} size={size} round={round} chonk={chonk}>
+    <StyledAvatarButton {...props} size={size} round={round}>
       <AvatarContainer
         size={size}
         round={round}
         padded={colors.type === 'image' && colors.style === 'padded'}
-        borderColor={
-          chonk ?? (isSuggested ? theme.tokens.border.neutral.vibrant : 'transparent')
-        }
+        borderColor={borderColor}
         borderStyle={isSuggested ? 'dashed' : 'solid'}
       >
         <StyledImageAvatar
@@ -166,24 +163,12 @@ const StyledLetterAvatar = styled(LetterAvatar)`
   position: relative;
 `;
 
-// Elevation per size, matching the base button's chonk depth.
-const AVATAR_BUTTON_ELEVATION: Record<AvatarButtonSize, string> = {
-  md: '2px',
-  sm: '2px',
-  xs: '1px',
-};
-
 type ResolvedAvatarButtonProps = DistributedOmit<AvatarTriggerProps, 'size'> & {
-  chonk: string | undefined;
   round: boolean;
   size: AvatarButtonSize;
 };
 
-function AvatarButtonBase({
-  chonk: _chonk,
-  round: _round,
-  ...props
-}: ResolvedAvatarButtonProps) {
+function AvatarButtonBase({round: _round, ...props}: ResolvedAvatarButtonProps) {
   return <OverlayTrigger.Button {...props} showChevron={false} />;
 }
 
@@ -199,18 +184,6 @@ const StyledAvatarButton = styled(AvatarButtonBase)`
       &&::before,
       &&::after {
         border-radius: ${p.theme.radius.full};
-      }
-    `}
-
-  ${p =>
-    p.chonk &&
-    css`
-      &&::before {
-        background: ${p.chonk};
-        box-shadow: 0 ${AVATAR_BUTTON_ELEVATION[p.size]} 0 0px ${p.chonk};
-      }
-      &&::after {
-        border-color: ${p.chonk};
       }
     `}
 `;
