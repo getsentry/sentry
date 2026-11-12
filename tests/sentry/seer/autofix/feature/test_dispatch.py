@@ -37,7 +37,6 @@ from sentry.seer.models import SeerPermissionError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.utils import json
 
 
 @django_db_all
@@ -795,7 +794,6 @@ class TestContinueSingleRunFromPrFeedback(TestCase):
         assert payload["pr_feedback"]["iteration_index"] == 2
         assert payload["pr_feedback"]["iteration_id"] == 7
         assert payload["pr_feedback"]["feedback"] == serialize_feedback(self.feedback)
-        assert json.loads(payload["pr_feedback"]["commit_author"]) == self.author
         assert payload["pr_internal_settings"]["commit_author"] == self.author
         assert payload["pr_internal_settings"]["allow_force_push"] is False
         assert kwargs["agent_run_options"]["enable_pr_context_tools"] is True

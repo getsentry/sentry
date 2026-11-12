@@ -49,7 +49,7 @@ from sentry.seer.models.run import SeerAgentRun, SeerRun
 from sentry.seer.models.seer_api_models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPermissionError
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 
 if TYPE_CHECKING:
     from sentry.seer.autofix.pr_iteration.feedback import Feedback
@@ -262,7 +262,6 @@ def continue_single_run_from_pr_feedback(
             iteration_index=iteration_index,
             iteration_id=iteration_id,
             feedback=serialize_feedback(feedback),
-            commit_author=json.dumps(commit_author) if commit_author is not None else None,
         ),
         reply_display=pr_feedback_display(feedback, pr_number),
     )
