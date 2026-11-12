@@ -49,7 +49,7 @@ export function CheckInTooltip<Status extends string>({
   ...props
 }: CheckInTooltipProps<Status>) {
   const {startTs, endTs, stats} = jobTick;
-  const {dateLabelFormat} = timeWindowConfig;
+  const {dateLabelOptions} = timeWindowConfig;
   const representsSingleJob =
     Object.values<number>(stats).reduce((sum, count) => sum + count, 0) === 1;
 
@@ -59,11 +59,11 @@ export function CheckInTooltip<Status extends string>({
   const tooltipTitle = (
     <Stack gap="md">
       <Flex justify="center">
-        <DateTime date={startTs * 1000} format={dateLabelFormat} />
+        <DateTime date={startTs * 1000} {...dateLabelOptions} />
         {!representsSingleJob && (
           <Fragment>
             <Text>{'\u2014'}</Text>
-            <DateTime date={endTs * 1000} format={dateLabelFormat} />
+            <DateTime date={endTs * 1000} {...dateLabelOptions} />
           </Fragment>
         )}
       </Flex>

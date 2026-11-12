@@ -53,27 +53,50 @@ The package does not include application providers, global CSS, or fonts.
 
 ## Date and duration formatting
 
-Import date presentation, preferences, and formatting from one entry:
+Components and plain formatters share the same presentation options:
 
 ```tsx
 import {DateTime, formatDateTime} from '@sentry/scraps/dateTime';
 import {getDuration} from '@sentry/scraps/duration';
 
-formatDateTime(date, {timezone: 'America/New_York', timeOnly: true});
+const date = '2025-01-01T12:00:00Z';
+formatDateTime(date, {timezone: 'America/New_York', mode: 'time'});
+<DateTime date={date} mode="time" precision="second" />;
 getDuration(65, {precision: 1, style: 'short'}); // "1.1min"
-<DateTime date={date} timeOnly />;
+getDuration(55, {minimumUnit: 'minute'}); // "1 minute"
 ```
 
-Without configuration, dates use UTC and a 12-hour clock. Applications can call
-`configureDateTime` before rendering with timezone and clock getters and an
-optional change subscription. Plain formatters read those getters on each call;
-React consumers subscribe to the same source. `DateTimeProvider` overrides
-preferences for a React subtree; pass explicit options to plain formatters when
-formatting for that subtree.
+Dates accept a `Date`, epoch milliseconds, or an ISO timestamp with an explicit
+`Z` or UTC offset. Offset-free strings, calendar-only dates, invalid dates, and
+unknown timezone identifiers return `Invalid date`.
 
-`configureTranslation` from `@sentry/scraps/translation` registers `t`, `tn`,
-and `pgettext` once for formatter localization. Translations resolve at call
-time, so changing the active locale does not leave cached duration labels.
+Use `mode` to choose `dateTime`, `date`, or `time`. Time precision is
+`minute`, `second`, or `millisecond`; year display is `auto`, `always`, or
+`never`. Set `timezone: 'UTC'` for UTC output and `clock` to `'12'` or
+`'24'`. UTC output includes its timezone label by default; `showTimezone`
+controls the label explicitly. Formatting-engine types and patterns are private.
+
+Without configuration, dates use UTC and a 12-hour clock. Applications call
+`configureFormatting` before rendering with one source. Its `getSnapshot`
+returns the same object until preferences change, and `subscribe` notifies
+consumers after a new snapshot is ready. Each snapshot contains `timezone`,
+`clock`, `locale`, and matching `messages` with `t`, `tn`, and `pgettext`.
+The source feeds a Zustand store shared by plain formatters and React consumers.
+Plain formatters read its current snapshot; React consumers subscribe to changes.
+The cleanup returned by `configureFormatting` disconnects the source and restores
+the previous snapshot.
+
+`DateTimeProvider` accepts partial timezone and clock overrides and inherits
+unspecified values from its parent. Explicit component or function options win
+over defaults. Use `useDateTimeFormatter()` to bind a formatter to the nearest
+provider for callbacks and copied text. A free `formatDateTime` call reads
+application preferences, without a React subtree's overrides.
+
+`getDuration` accepts seconds and uses the same configured messages. Its
+`minimumUnit` is a unit name such as `'millisecond'` or `'minute'`, and its
+`style` is `'long'`, `'short'`, or `'narrow'`. The default style is long,
+the minimum is one millisecond, and `precision` controls decimal places.
+Month and year conversions remain approximate elapsed durations.
 
 ## Prepare a release
 

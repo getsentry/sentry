@@ -348,8 +348,14 @@ function ReleaseOverview() {
                               {releaseBoundsLabel}
                               <br />
                               <ReleaseBoundsDescription primary={defaultDateTimeSelected}>
-                                <DateTime date={releaseBounds.releaseStart} />
-                                –<DateTime date={releaseBounds.releaseEnd} />
+                                {releaseBounds.releaseStart && (
+                                  <DateTime date={releaseBounds.releaseStart} />
+                                )}
+                                {releaseBounds.releaseEnd && (
+                                  <Fragment>
+                                    –<DateTime date={releaseBounds.releaseEnd} />
+                                  </Fragment>
+                                )}
                               </ReleaseBoundsDescription>
                             </Fragment>
                           ),

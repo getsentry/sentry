@@ -10,6 +10,8 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {DateTimeProvider} from '@sentry/scraps/dateTime';
+
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import InvoiceDetails from 'getsentry/views/invoiceDetails';
@@ -82,14 +84,19 @@ describe('InvoiceDetails', () => {
       method: 'GET',
       body: basicInvoice,
     });
-    render(<InvoiceDetails />, {
-      initialRouterConfig: {
-        location: {
-          pathname: `/organizations/${organization.slug}/invoices/${params.invoiceGuid}/`,
+    render(
+      <DateTimeProvider value={{timezone: 'America/New_York'}}>
+        <InvoiceDetails />
+      </DateTimeProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/invoices/${params.invoiceGuid}/`,
+          },
+          route: '/organizations/:orgId/invoices/:invoiceGuid/',
         },
-        route: '/organizations/:orgId/invoices/:invoiceGuid/',
-      },
-    });
+      }
+    );
     await waitFor(() => expect(mockapi).toHaveBeenCalled());
 
     expect(await screen.findByText('Sentry')).toBeInTheDocument();

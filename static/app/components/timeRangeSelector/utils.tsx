@@ -161,10 +161,30 @@ export function getAbsoluteSummary(
   end: DateString,
   utc?: boolean | null
 ) {
+  if (!start || !end) {
+    return null;
+  }
+  // Page filters serialize UTC without an offset. Convert at this boundary so
+  // the formatter receives instants, including when displaying the viewer's timezone.
+  const startDate = moment.utc(start).toDate();
+  const endDate = moment.utc(end).toDate();
+
   // XXX: These are NOT used for display purpose but only to determine if the
   // dates are at the start or end of the day
-  const startTimeFormatted = formatDateTime(start, {format: 'HH:mm:ss', utc: false});
-  const endTimeFormatted = formatDateTime(end, {format: 'HH:mm:ss', utc: false});
+  const startTimeFormatted = formatDateTime(startDate, {
+    mode: 'time',
+    precision: 'second',
+    clock: '24',
+    showTimezone: false,
+    timezone: utc ? 'UTC' : undefined,
+  });
+  const endTimeFormatted = formatDateTime(endDate, {
+    mode: 'time',
+    precision: 'second',
+    clock: '24',
+    showTimezone: false,
+    timezone: utc ? 'UTC' : undefined,
+  });
 
   const showDateOnly =
     startTimeFormatted === DEFAULT_DAY_START_TIME &&
@@ -172,9 +192,19 @@ export function getAbsoluteSummary(
 
   return (
     <Fragment>
-      <DateTime date={start} dateOnly={showDateOnly} utc={!!utc} />
+      <DateTime
+        date={startDate}
+        mode={showDateOnly ? 'date' : 'dateTime'}
+        timezone={utc ? 'UTC' : undefined}
+        showTimezone={!showDateOnly && Boolean(utc)}
+      />
       {'–'}
-      <DateTime date={end} dateOnly={showDateOnly} utc={!!utc} />
+      <DateTime
+        date={endDate}
+        mode={showDateOnly ? 'date' : 'dateTime'}
+        timezone={utc ? 'UTC' : undefined}
+        showTimezone={!showDateOnly && Boolean(utc)}
+      />
     </Fragment>
   );
 }

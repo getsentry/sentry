@@ -1,27 +1,17 @@
-import moment from 'moment-timezone';
-
-import {useClockDisplay, useTimezone, DateTime, getFormat} from '@sentry/scraps/dateTime';
+import {useDateTimeFormatter, DateTime} from '@sentry/scraps/dateTime';
 import {getRelativeDate} from '@sentry/scraps/relativeTime';
 
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
 import {TimeSince} from 'sentry/components/timeSince';
-import {t} from 'sentry/locale';
 
 /**
  * Formatted the way `DateTime` draws it, so a copied date matches the one on
  * screen. A component because the timezone and clock preferences are hooks.
  */
 function AbsoluteTimestampMarkdown({value}: {value: EmbedOutput<'timestamp'>['value']}) {
-  const clockDisplay = useClockDisplay();
-  const timeZone = useTimezone();
-
-  return moment.tz(value, timeZone).format(
-    getFormat({
-      year: moment.tz(timeZone).year() !== moment.tz(value, timeZone).year(),
-      clock24Hours: clockDisplay === '24',
-    })
-  );
+  const formatDateTime = useDateTimeFormatter();
+  return formatDateTime(value);
 }
 
 export const Timestamp = defineSeerEmbed({
@@ -32,7 +22,7 @@ export const Timestamp = defineSeerEmbed({
         // The rendered relative time ticks; a copy fixes it at the moment
         // it was taken.
         return format === 'relative' ? (
-          getRelativeDate(value, t('ago'), t('in'))
+          getRelativeDate(value)
         ) : (
           <AbsoluteTimestampMarkdown value={value} />
         );

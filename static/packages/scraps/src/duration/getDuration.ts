@@ -1,93 +1,108 @@
-import {pgettext, t, tn} from '@sentry/scraps/translation';
+import {getSnapshot} from '../dateTime/config';
+import type {Translation} from '../translation/translate';
 
 export interface DurationOptions {
   absolute?: boolean;
-  /** Smallest unit in milliseconds. Defaults to one millisecond. */
-  minimumUnit?: number;
+  /** Smallest display unit. Defaults to milliseconds. */
+  minimumUnit?: DurationUnit;
   precision?: number;
-  style?: 'regular' | 'short' | 'narrow';
+  style?: 'long' | 'short' | 'narrow';
 }
 
-// Resolve translations when formatting, so changing the locale does not leave
-// previously cached labels in another language.
 const units = [
   {
+    unit: 'year',
     size: 31536000000,
-    regular: (count: number) => tn('year', 'years', count),
-    short: () => t('yr'),
-    narrow: () => t('y'),
+    long: (count: number, {tn}: Translation) => tn('year', 'years', count),
+    short: ({t}: Translation) => t('yr'),
+    narrow: ({t}: Translation) => t('y'),
   },
   {
+    unit: 'month',
     size: 2629800000,
-    regular: (count: number) => tn('month', 'months', count),
-    short: () => t('mo'),
-    narrow: () => pgettext('abbreviated months', 'm'),
+    long: (count: number, {tn}: Translation) => tn('month', 'months', count),
+    short: ({t}: Translation) => t('mo'),
+    narrow: ({pgettext}: Translation) => pgettext('abbreviated months', 'm'),
   },
   {
+    unit: 'week',
     size: 604800000,
-    regular: (count: number) => tn('week', 'weeks', count),
-    short: () => t('wk'),
-    narrow: () => t('w'),
+    long: (count: number, {tn}: Translation) => tn('week', 'weeks', count),
+    short: ({t}: Translation) => t('wk'),
+    narrow: ({t}: Translation) => t('w'),
   },
   {
+    unit: 'day',
     size: 86400000,
-    regular: (count: number) => tn('day', 'days', count),
-    short: () => t('d'),
-    narrow: () => t('d'),
+    long: (count: number, {tn}: Translation) => tn('day', 'days', count),
+    short: ({t}: Translation) => t('d'),
+    narrow: ({t}: Translation) => t('d'),
   },
   {
+    unit: 'hour',
     size: 3600000,
-    regular: (count: number) => tn('hour', 'hours', count),
-    short: () => t('hr'),
-    narrow: () => t('h'),
+    long: (count: number, {tn}: Translation) => tn('hour', 'hours', count),
+    short: ({t}: Translation) => t('hr'),
+    narrow: ({t}: Translation) => t('h'),
   },
   {
+    unit: 'minute',
     size: 60000,
-    regular: (count: number) => tn('minute', 'minutes', count),
-    short: () => t('min'),
-    narrow: () => pgettext('abbreviated minutes', 'm'),
+    long: (count: number, {tn}: Translation) => tn('minute', 'minutes', count),
+    short: ({t}: Translation) => t('min'),
+    narrow: ({pgettext}: Translation) => pgettext('abbreviated minutes', 'm'),
   },
   {
+    unit: 'second',
     size: 1000,
-    regular: (count: number) => tn('second', 'seconds', count),
-    short: () => t('s'),
-    narrow: () => t('s'),
+    long: (count: number, {tn}: Translation) => tn('second', 'seconds', count),
+    short: ({t}: Translation) => t('s'),
+    narrow: ({t}: Translation) => t('s'),
   },
   {
+    unit: 'millisecond',
     size: 1,
-    regular: (count: number) => tn('millisecond', 'milliseconds', count),
-    short: () => t('ms'),
-    narrow: () => t('ms'),
+    long: (count: number, {tn}: Translation) => tn('millisecond', 'milliseconds', count),
+    short: ({t}: Translation) => t('ms'),
+    narrow: ({t}: Translation) => t('ms'),
   },
   {
+    unit: 'microsecond',
     size: 0.001,
-    regular: (count: number) => tn('microsecond', 'microseconds', count),
+    long: (count: number, {tn}: Translation) => tn('microsecond', 'microseconds', count),
     short: () => 'μs',
     narrow: () => 'μs',
   },
 ] as const;
 
+export type DurationUnit = (typeof units)[number]['unit'];
+
 /** Format seconds using the shared application translations. */
-export function getDuration(
+export function getDuration(seconds: number, options: DurationOptions = {}): string {
+  return getDurationWithMessages(seconds, options, getSnapshot().messages);
+}
+
+export function getDurationWithMessages(
   seconds: number,
   {
     precision = 0,
-    style = 'regular',
+    style = 'long',
     absolute = false,
-    minimumUnit = 1,
-  }: DurationOptions = {}
+    minimumUnit = 'millisecond',
+  }: DurationOptions,
+  messages: Translation
 ): string {
   const milliseconds = seconds * 1000;
   const magnitude = Math.abs(milliseconds);
   const unit =
-    units.find(({size}) => magnitude >= size || minimumUnit === size) ?? units[8];
+    units.find(({size, unit}) => magnitude >= size || minimumUnit === unit) ?? units[8];
   const value = (absolute ? magnitude : milliseconds) / unit.size;
   const label = value.toFixed(precision);
 
-  if (style !== 'regular') {
-    return `${label}${unit[style]()}`;
+  if (style !== 'long') {
+    return `${label}${unit[style](messages)}`;
   }
 
   const count = precision <= 0 ? Math.round(value) : value;
-  return `${label} ${unit.regular(count)}`;
+  return `${label} ${unit.long(count, messages)}`;
 }

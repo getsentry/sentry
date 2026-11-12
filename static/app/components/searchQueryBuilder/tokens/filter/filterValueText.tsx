@@ -1,5 +1,6 @@
 import {Fragment, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import moment from 'moment-timezone';
 
 import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex} from '@sentry/scraps/layout';
@@ -278,7 +279,12 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
       const isUtc = token.value.tz?.toLowerCase() === 'z' || !token.value.tz;
 
       return (
-        <DateTime date={token.value.value} dateOnly={!token.value.time} utc={isUtc} />
+        <DateTime
+          date={isUtc ? moment.utc(token.value.value).toDate() : token.value.value}
+          mode={token.value.time ? 'dateTime' : 'date'}
+          timezone={isUtc ? 'UTC' : undefined}
+          showTimezone={isUtc && Boolean(token.value.time)}
+        />
       );
     }
     default: {

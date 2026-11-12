@@ -7,4 +7,4 @@ export const TranslationContextProvider = TranslationContext.Provider;
 
 export {useTranslation} from './useTranslation';
 
-export {configureTranslation, pgettext, t, tn, type Translation} from './translate';
+export {pgettext, t, tn, type Translation} from './translate';

@@ -1,7 +1,5 @@
 import moment from 'moment-timezone';
 
-import {getFormat} from '@sentry/scraps/dateTime';
-
 import type {
   RollupConfig,
   TimeWindowConfig,
@@ -277,8 +275,25 @@ export function getConfigFromTimeRange(
       timelineWidth,
       rollupConfig,
       intervals: {...intervals, normalMarkerInterval: minutes},
-      dateTimeProps: {timeOnly},
-      dateLabelFormat: getFormat({timeOnly, seconds: displaySeconds}),
+      dateTimeProps: {
+        mode: timeOnly ? 'time' : 'dateTime',
+        showTimezone: false,
+        timezone,
+      },
+      dateLabelOptions: timeOnly
+        ? {
+            mode: 'time',
+            precision: displaySeconds ? 'second' : 'minute',
+            showTimezone: false,
+            timezone,
+          }
+        : {
+            mode: 'dateTime',
+            year: 'never',
+            precision: displaySeconds ? 'second' : 'minute',
+            showTimezone: false,
+            timezone,
+          },
       timezone,
     };
   }
@@ -294,8 +309,8 @@ export function getConfigFromTimeRange(
     timelineWidth,
     rollupConfig,
     intervals: {...intervals, normalMarkerInterval},
-    dateTimeProps: {dateOnly: true},
-    dateLabelFormat: getFormat(),
+    dateTimeProps: {mode: 'date', showTimezone: false, timezone},
+    dateLabelOptions: {year: 'never', showTimezone: false, timezone},
     timezone,
   };
 }

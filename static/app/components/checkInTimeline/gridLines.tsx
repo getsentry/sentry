@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import moment from 'moment-timezone';
 
-import {DateTime} from '@sentry/scraps/dateTime';
+import {DateTime, useDateTimeFormatter} from '@sentry/scraps/dateTime';
 import {Container} from '@sentry/scraps/layout';
 
 import {updateDateTime} from 'sentry/components/pageFilters/actions';
@@ -81,7 +81,7 @@ function getTimeMarkersFromConfig(config: TimeWindowConfig) {
     {
       date: periodStart,
       position: startOffset,
-      dateTimeProps: {timeZone: true},
+      dateTimeProps: {showTimezone: true, timezone},
     },
   ];
 
@@ -232,7 +232,8 @@ export function GridLineOverlay({
 }: GridLineOverlayProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const {periodStart, timelineWidth, dateLabelFormat, rollupConfig, timezone} =
+  const formatDateTime = useDateTimeFormatter();
+  const {periodStart, timelineWidth, dateLabelOptions, rollupConfig, timezone} =
     timeWindowConfig;
   const {timelineUnderscanWidth} = rollupConfig;
 
@@ -250,8 +251,12 @@ export function GridLineOverlay({
   );
 
   const makeCursorLabel = useCallback(
-    (position: number) => dateFromPosition(position).format(dateLabelFormat),
-    [dateFromPosition, dateLabelFormat]
+    (position: number) =>
+      formatDateTime(dateFromPosition(position).valueOf(), {
+        ...dateLabelOptions,
+        timezone,
+      }),
+    [dateFromPosition, dateLabelOptions, formatDateTime, timezone]
   );
 
   const handleZoom = useCallback(

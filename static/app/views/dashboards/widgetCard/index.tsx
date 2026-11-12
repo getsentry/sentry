@@ -77,7 +77,9 @@ const SESSION_DURATION_INGESTION_STOP_DATE = new Date('2023-01-12');
 const SESSION_DURATION_ALERT_TEXT = tct(
   'session.duration is no longer being recorded as of [date]. Data in this widget may be incomplete.',
   {
-    date: <DateTime dateOnly year date={SESSION_DURATION_INGESTION_STOP_DATE} />,
+    date: (
+      <DateTime date={SESSION_DURATION_INGESTION_STOP_DATE} mode="date" year="always" />
+    ),
   }
 );
 
