@@ -18,7 +18,7 @@ import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 import {useSeerExplorerDrawer} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
 
 import {RestartAutofixModal} from './restartAutofixModal';
-import {useOpenSingleRunChat} from './useToggleSingleRunChat';
+import {useRerunSingleRun} from './useToggleSingleRunChat';
 import {artifactToMarkdown} from './utils';
 
 /**
@@ -84,24 +84,17 @@ function useHandleRestart({
 }: {
   aiAutofix: ReturnType<typeof useExplorerAutofix>;
 }): () => void {
-  const {startStep, runState} = aiAutofix;
   const {openModal} = useModal();
-  const openSingleRunChat = useOpenSingleRunChat();
-  const failed = runState?.status === 'error';
+  const {rerun} = useRerunSingleRun(aiAutofix, {enabled: false});
+  const failed = aiAutofix.runState?.status === 'error';
 
   return useCallback(() => {
-    const restart = async (userContext?: string) => {
-      const run = await startStep('root_cause', {userContext});
-      if (run.isSingleRun) {
-        openSingleRunChat(run.runId);
-      }
-    };
     if (failed) {
-      restart();
+      rerun();
       return;
     }
-    openModal(deps => <RestartAutofixModal {...deps} onRestart={restart} />);
-  }, [failed, openModal, startStep, openSingleRunChat]);
+    openModal(deps => <RestartAutofixModal {...deps} onRestart={rerun} />);
+  }, [failed, openModal, rerun]);
 }
 
 function useHandleOpenSeerAgent({

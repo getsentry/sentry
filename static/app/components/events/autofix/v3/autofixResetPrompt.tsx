@@ -15,6 +15,7 @@ interface AutofixResetPromptProps {
   onReset: (userContext: string) => void;
   placeholder: string;
   prompt: ReactNode;
+  submitLabel?: string;
 }
 
 export function AutofixResetPrompt({
@@ -22,6 +23,7 @@ export function AutofixResetPrompt({
   onReset,
   placeholder,
   prompt,
+  submitLabel = t('Re-run from here'),
 }: AutofixResetPromptProps) {
   const [userContext, setUserContext] = useState('');
 
@@ -49,11 +51,11 @@ export function AutofixResetPrompt({
           variant="primary"
           size="xs"
           icon={<IconRefresh size="xs" />}
-          aria-label={t('Re-run from here')}
+          aria-label={submitLabel}
           disabled={!userContext.trim()}
-          onClick={() => onReset(userContext)}
+          onClick={() => onReset(userContext.trim())}
         >
-          {t('Re-run from here')}
+          {submitLabel}
         </Button>
       </Flex>
     </Stack>

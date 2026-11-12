@@ -261,7 +261,7 @@ describe('SeerDrawer', () => {
     );
 
     await waitFor(() => expect(postMock).toHaveBeenCalled());
-    expect(screen.queryByText('Start a new analysis')).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('starts a new root cause analysis with what the user wants changed', async () => {
