@@ -35,6 +35,24 @@ permissions:
   scopes:
     - read:app-system-token
     - read:jira-work
-    - write:jira-work
     - read:jira-user
     - read:email-address:jira
+    # Granular write scopes instead of write:jira-work, which maps to the Connect
+    # DELETE scope the Connect app never had, so every site admin would have to approve
+    # the update. Each write call needs its whole granular set, reads included.
+    - write:issue:jira
+    - write:issue.property:jira
+    - write:comment:jira
+    - write:comment.property:jira
+    - write:attachment:jira
+    - read:issue:jira
+    - read:comment:jira
+    - read:comment.property:jira
+    - read:project:jira
+    - read:project-role:jira
+    - read:user:jira
+    - read:group:jira
+    - read:avatar:jira
+    # Project status lookups for the status-sync settings. The classic scope for them
+    # (manage:jira-configuration) maps to Connect ADMIN; this one maps to READ.
+    - read:workflow:jira
