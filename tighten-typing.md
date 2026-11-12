@@ -5,7 +5,7 @@
 - **Goal:** every cast, `Any`, `type: ignore`, and fixed-name `getattr`/`setattr` that [#129614](https://github.com/getsentry/sentry/pull/129614) (merged as `ae29b66fe41a`) added has been replaced by a contract that matches runtime behavior, or is kept under a named exemption from **Decisions → Escape-hatch policy**. Each change ships as a small draft PR.
 - **Integration baseline:** `f5c759434c9` (`origin/master`, 2026-11-12). The combined draft [#130956](https://github.com/getsentry/sentry/pull/130956) integrates all 37 related open PRs, including the earlier typing fixes. Every source PR stays draft and is rebased onto this baseline.
 - **Last recorded sweep:** cast 1203, Any 3364, type-ignore 13, fixed-name-reflection 79, measured on `master` at `de37779b53f` on 2026-11-03. These historical counts do not describe the integration branch.
-- **Items:** C1 #129702 is merged. B1 #129704 is included in the integration draft. Other seed items and all 159 sweep packages retain their ledger status; collecting open PRs does not complete the campaign.
+- **Items:** C1 #129702 is merged. B1 #129704 is included in the integration draft (consolidated into #130968). Other seed items and all 159 sweep packages retain their ledger status; collecting open PRs does not complete the campaign.
 - **Verification:** refreshing the pinned dependencies cleared the eight baseline errors in the Seer credit-check files. Full-tree mypy passes on the baseline. Integration validation is recorded below.
 - **Next:** review the combined draft and its validation, then resume B2.
 
