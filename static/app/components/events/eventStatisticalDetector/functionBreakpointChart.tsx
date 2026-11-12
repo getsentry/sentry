@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import {ChartType} from 'sentry/chartcuterie/types';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
@@ -12,13 +13,18 @@ import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {type BreakpointEvidenceData} from './breakpointChartOptions';
 import {RELATIVE_DAYS_WINDOW} from './consts';
+import {getResolvedAt} from './getResolvedAt';
 import {LineChart as Chart} from './lineChart';
 
 type EventFunctionBreakpointChartProps = {
   event: Event;
+  group: Group;
 };
 
-export function EventFunctionBreakpointChart({event}: EventFunctionBreakpointChartProps) {
+export function EventFunctionBreakpointChart({
+  event,
+  group,
+}: EventFunctionBreakpointChartProps) {
   const evidenceData = event.occurrence?.evidenceData;
   const fingerprint = evidenceData?.fingerprint;
   const breakpoint = evidenceData?.breakpoint;
@@ -47,6 +53,7 @@ export function EventFunctionBreakpointChart({event}: EventFunctionBreakpointCha
       breakpoint={breakpoint}
       evidenceData={evidenceData!}
       fingerprint={fingerprint}
+      resolvedAt={getResolvedAt(group)}
     />
   );
 }
@@ -55,6 +62,7 @@ type EventFunctionBreakpointChartInnerProps = {
   breakpoint: number;
   evidenceData: Record<string, any>;
   fingerprint: number;
+  resolvedAt?: number;
 };
 
 const SERIES = ['p95()'];
@@ -63,6 +71,7 @@ function EventFunctionBreakpointChartInner({
   breakpoint,
   evidenceData,
   fingerprint,
+  resolvedAt,
 }: EventFunctionBreakpointChartInnerProps) {
   const datetime = useRelativeDateTime({
     anchor: breakpoint,
@@ -92,6 +101,7 @@ function EventFunctionBreakpointChartInner({
         percentileData={functionPercentileData}
         evidenceData={normalizedOccurrenceEvent}
         datetime={datetime}
+        resolvedAt={resolvedAt}
         chartType={ChartType.SLACK_PERFORMANCE_FUNCTION_REGRESSION}
       />
     </FoldSection>
