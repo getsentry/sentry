@@ -11,6 +11,7 @@ from sentry.incidents.charts import (
     incident_date_range,
 )
 from sentry.incidents.grouptype import MetricIssue
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
 from sentry.incidents.typings.metric_detector import AlertContext, OpenPeriodContext
 from sentry.incidents.utils.process_update_helpers import calculate_event_date_from_update_date
 from sentry.models.groupopenperiod import GroupOpenPeriod
@@ -91,6 +92,19 @@ class IncidentDateRangeTest(TestCase):
 
 
 class BuildMetricAlertChartTest(TestCase):
+    def alert_context(self) -> AlertContext:
+        detector = self.create_detector(project=self.project)
+        return AlertContext(
+            name=detector.name,
+            action_identifier_id=detector.id,
+            threshold_type=AlertRuleThresholdType.ABOVE,
+            detection_type=AlertRuleDetectionType.STATIC,
+            comparison_delta=None,
+            sensitivity=None,
+            resolve_threshold=None,
+            alert_threshold=None,
+        )
+
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     @patch("sentry.incidents.charts.client.get")
     def test_eap_alert(self, mock_client_get: MagicMock, mock_generate_chart: MagicMock) -> None:
@@ -106,7 +120,7 @@ class BuildMetricAlertChartTest(TestCase):
 
         url = build_metric_alert_chart(
             self.organization,
-            alert_context=AlertContext.from_alert_rule_incident(alert_rule),
+            alert_context=self.alert_context(),
             snuba_query=alert_rule.snuba_query,
             open_period_context=open_period_context,
         )
@@ -143,7 +157,7 @@ class BuildMetricAlertChartTest(TestCase):
 
         url = build_metric_alert_chart(
             self.organization,
-            alert_context=AlertContext.from_alert_rule_incident(alert_rule),
+            alert_context=self.alert_context(),
             snuba_query=alert_rule.snuba_query,
             open_period_context=open_period_context,
             detector_serialized_response=get_detector_serializer(detector),
@@ -174,7 +188,7 @@ class BuildMetricAlertChartTest(TestCase):
 
         url = build_metric_alert_chart(
             self.organization,
-            alert_context=AlertContext.from_alert_rule_incident(alert_rule),
+            alert_context=self.alert_context(),
             snuba_query=alert_rule.snuba_query,
             open_period_context=open_period_context,
         )
@@ -205,7 +219,7 @@ class BuildMetricAlertChartTest(TestCase):
 
         url = build_metric_alert_chart(
             self.organization,
-            alert_context=AlertContext.from_alert_rule_incident(alert_rule),
+            alert_context=self.alert_context(),
             snuba_query=alert_rule.snuba_query,
             open_period_context=open_period_context,
         )
