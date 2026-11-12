@@ -96,8 +96,6 @@ class AutofixSingleRunPrInternalSettings(BaseModel):
     ready_for_review: bool
     # Credits pushed commits to this person instead of the Seer bot.
     commit_author: SeerCommitAuthor | None = None
-    # False refuses to overwrite commits on the branch that Seer didn't push.
-    allow_force_push: bool = True
 
 
 class AutofixSingleRunFeaturePayload(BaseModel):

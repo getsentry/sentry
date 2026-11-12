@@ -793,7 +793,6 @@ class TestContinueSingleRunFromPrFeedback(TestCase):
         assert payload["pr_feedback"]["iteration_id"] == 7
         assert payload["pr_feedback"]["feedback"] == serialize_feedback(self.feedback)
         assert payload["pr_internal_settings"]["commit_author"] == self.author
-        assert payload["pr_internal_settings"]["allow_force_push"] is False
         assert kwargs["agent_run_options"]["enable_pr_context_tools"] is True
         assert kwargs["agent_run_options"]["enable_write_pull_request"] is True
         assert mock_client_cls.call_args.kwargs["user"] is None

@@ -141,7 +141,6 @@ def _single_run_pr_internal_settings(
     group: Group,
     referrer: AutofixReferrer,
     commit_author: SeerCommitAuthor | None = None,
-    allow_force_push: bool = True,
 ) -> AutofixSingleRunPrInternalSettings:
     from sentry.seer.autofix.autofix_agent import (
         build_pr_description_suffix,
@@ -152,7 +151,6 @@ def _single_run_pr_internal_settings(
         description_suffix=build_pr_description_suffix(group, referrer),
         ready_for_review=not should_open_autofix_pr_as_draft(group.organization),
         commit_author=commit_author,
-        allow_force_push=allow_force_push,
     )
 
 
@@ -250,7 +248,7 @@ def continue_single_run_from_pr_feedback(
         user=None,
         enable_coding=enable_coding,
         pr_internal_settings=(
-            _single_run_pr_internal_settings(group, referrer, commit_author, allow_force_push=False)
+            _single_run_pr_internal_settings(group, referrer, commit_author)
             if enable_coding
             else None
         ),
