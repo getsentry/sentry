@@ -46,7 +46,7 @@ class OrganizationAgentHandoffTest(APITestCase):
         assert not url.fragment
         code = response.data["prompt"].split("`")[1]
         assert response.data["prompt"] == (
-            f"Fetch and follow the instructions at {response.data['guideUrl']}. "
+            f"Follow the instructions verbatim at {response.data['guideUrl']}. "
             f"Your secret token is `{code}`."
         )
         record = consume_handoff(code, ip_address="127.0.0.1")

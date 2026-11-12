@@ -88,3 +88,19 @@ class GetEmbedWidgetsTest(TestCase):
 
         names = {w["name"] for w in widgets}
         assert names == {"timestamp", "multi"}
+
+    def test_autofix_widgets_excluded_without_a_seer_plan(self) -> None:
+        names = {w["name"] for w in get_embed_widgets(self.organization, self.user)}
+
+        assert not names & {"autofix", "autofixRef"}
+
+    def test_autofix_widgets_included_for_each_seer_plan(self) -> None:
+        for plan_flag in (
+            "organizations:seat-based-seer-enabled",
+            "organizations:seer-added",
+            "organizations:token-billed-seer-enabled",
+        ):
+            with self.subTest(plan_flag=plan_flag), self.feature(plan_flag):
+                names = {w["name"] for w in get_embed_widgets(self.organization, self.user)}
+
+                assert {"autofix", "autofixRef"} <= names

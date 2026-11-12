@@ -4,11 +4,11 @@ from this module, so everything else can change freely.
 
 A trigger is identified by (organization, trigger type, target id), where the target id
 says what the trigger is for; its meaning depends on the trigger type. Each trigger has a
-schedule, and fires when the schedule comes due: the action registered for its trigger type
-is called with a batch of firings. Actions should do nothing more than schedule a task or
-publish a Kafka message per firing; see `TriggerAction` for the contract.
+schedule, and fires when the schedule comes due: the handler registered for its trigger
+type dispatches a batch of firings. Dispatching should be cheap, such as scheduling a task
+or publishing a Kafka message per firing; see `TriggerHandler` for the contract.
 
-Firings are never handed off before they are due (their scheduled time plus their offset
+Firings are never dispatched before they are due (their scheduled time plus their offset
 within their trigger type's spread window), and normally within 20 seconds of it, but can
 be arbitrarily late while Cadence is behind. See "Timing" in README.md.
 """
@@ -24,7 +24,13 @@ from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 
 from sentry.cadence.models import ScheduledTrigger, ScheduledTriggerType
-from sentry.cadence.registry import TriggerAction, TriggerFiring, register_trigger_action
+from sentry.cadence.registry import (
+    TriggerFiring,
+    TriggerHandler,
+    TriggerTarget,
+    missing_targets,
+    register_trigger_type,
+)
 from sentry.cadence.schedule import (
     CronSchedule,
     IntervalSchedule,
@@ -45,13 +51,15 @@ __all__ = (
     "Schedule",
     "ScheduledTriggerInfo",
     "ScheduledTriggerType",
-    "TriggerAction",
+    "TriggerHandler",
     "TriggerFiring",
+    "TriggerTarget",
     "clear_schedule",
     "cron",
     "every",
     "get_schedules",
-    "register_trigger_action",
+    "missing_targets",
+    "register_trigger_type",
     "set_schedule",
 )
 
@@ -136,8 +144,8 @@ def set_schedule(
     change that moves it into the past skips it rather than firing it at once.
 
     Each firing may happen up to its trigger type's spread window after it is scheduled for;
-    see `register_trigger_action`. Raises NoRegistrationExistsError if `trigger_type` has no
-    registered action, so a trigger is never created without knowing its spread window.
+    see `TriggerHandler`. Raises NoRegistrationExistsError if `trigger_type` has no
+    registered handler, so a trigger is never created without knowing its spread window.
     """
     trigger_type = ScheduledTriggerType(trigger_type)
     for attempt in range(2):

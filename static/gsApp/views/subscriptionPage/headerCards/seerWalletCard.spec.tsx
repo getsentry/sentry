@@ -176,7 +176,7 @@ describe('SeerWalletCard', () => {
       AutoTopUpFixture({enabled: true})
     );
     await userEvent.click(
-      await screen.findByRole('button', {name: 'Turn on and pay $10.00 + tax'})
+      await screen.findByRole('button', {name: 'Turn on and pay $15.00 + tax'})
     );
 
     expect(saveMock).toHaveBeenCalled();
