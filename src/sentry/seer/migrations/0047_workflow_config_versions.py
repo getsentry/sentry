@@ -49,9 +49,23 @@ class Migration(CheckedMigration):
                         "sentry.User", db_index=True, null=True, on_delete="SET_NULL"
                     ),
                 ),
+                (
+                    "config",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="versions",
+                        to="seer.seerworkflowconfig",
+                    ),
+                ),
             ],
             options={
                 "db_table": "seer_workflowconfigversion",
+                "constraints": [
+                    models.UniqueConstraint(
+                        fields=("config", "version"),
+                        name="seer_workflowconfigversion_config_version_uniq",
+                    ),
+                ],
             },
         ),
         migrations.AddField(
@@ -80,21 +94,6 @@ class Migration(CheckedMigration):
                 ),
                 fields=("workflow_config",),
                 name="seer_nightshiftrun_one_active_exclusive_run",
-            ),
-        ),
-        migrations.AddField(
-            model_name="seerworkflowconfigversion",
-            name="config",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="versions",
-                to="seer.seerworkflowconfig",
-            ),
-        ),
-        migrations.AddConstraint(
-            model_name="seerworkflowconfigversion",
-            constraint=models.UniqueConstraint(
-                fields=("config", "version"), name="seer_workflowconfigversion_config_version_uniq"
             ),
         ),
     ]
