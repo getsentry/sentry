@@ -169,6 +169,33 @@ class ComparePreprodArtifactSizeAnalysisTest(_CompareTaskHelpers, TestCase):
         assert self._result_files() == []
         status_check.assert_not_called()
 
+    @patch(
+        "sentry.preprod.size_analysis.comparison_run.create_preprod_status_check_task.apply_async"
+    )
+    def test_run_interrupted_while_recording_rolls_back_recorded_rows(
+        self, status_check: MagicMock
+    ) -> None:
+        head_artifact, _ = self._create_comparable_pair()
+        recorded: list[Any] = []
+
+        def record_first_then_hit_deadline(*args: Any) -> None:
+            if recorded:
+                raise ProcessingDeadline()
+            _record_size_analysis_comparison(*args)
+            recorded.append(args)
+
+        with patch(
+            "sentry.preprod.size_analysis.comparison_run._record_size_analysis_comparison",
+            side_effect=record_first_then_hit_deadline,
+        ):
+            with pytest.raises(ProcessingDeadline):
+                self._run_task(head_artifact)
+
+        assert len(recorded) == 1
+        assert not PreprodArtifactSizeComparison.objects.exists()
+        assert self._result_files() == []
+        status_check.assert_not_called()
+
     def test_failed_upload_leaves_nothing_behind(self) -> None:
         head_artifact, _ = self._create_comparable_pair()
         with patch.object(File, "putfile", side_effect=OSError("bucket unreachable")):

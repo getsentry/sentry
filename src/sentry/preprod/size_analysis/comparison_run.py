@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
-class PreparedSizeComparison:
+class _PreparedSizeComparison:
     """A comparison computed ahead of its row; result_file is None for a missing analysis file."""
 
     head_metric: PreprodArtifactSizeMetrics
@@ -33,10 +33,10 @@ def run_size_analysis_comparisons(
     comparisons: Sequence[dict[str, PreprodArtifactSizeMetrics]],
     follow_up_artifact_ids: Iterable[int],
 ) -> None:
-    """A run's comparisons, recorded together once all are computed so a failure leaves no rows."""
+    """One task invocation's comparisons, recorded together last so a failure leaves no rows."""
     result_files: list[File] = []
     try:
-        prepared_comparisons: list[PreparedSizeComparison] = []
+        prepared_comparisons: list[_PreparedSizeComparison] = []
         for comp in comparisons:
             prepared = _prepare_size_analysis_comparison(
                 org_id, comp["head_metric"], comp["base_metric"]
@@ -132,7 +132,7 @@ def _prepare_size_analysis_comparison(
     org_id: int,
     head_size_metric: PreprodArtifactSizeMetrics,
     base_size_metric: PreprodArtifactSizeMetrics,
-) -> PreparedSizeComparison | None:
+) -> _PreparedSizeComparison | None:
     existing_comparisons = PreprodArtifactSizeComparison.objects.filter(
         head_size_analysis=head_size_metric,
         base_size_analysis=base_size_metric,
@@ -155,7 +155,7 @@ def _prepare_size_analysis_comparison(
 
     analysis_files = _get_analysis_files(head_size_metric, base_size_metric)
     if analysis_files is None:
-        return PreparedSizeComparison(
+        return _PreparedSizeComparison(
             head_metric=head_size_metric, base_metric=base_size_metric, result_file=None
         )
     head_analysis_file, base_analysis_file = analysis_files
@@ -188,12 +188,12 @@ def _prepare_size_analysis_comparison(
 
     provisional_file_name = f"{head_size_metric.id}-{base_size_metric.id}"
     result_file = _store_size_comparison_results(provisional_file_name, comparison_results)
-    return PreparedSizeComparison(
+    return _PreparedSizeComparison(
         head_metric=head_size_metric, base_metric=base_size_metric, result_file=result_file
     )
 
 
-def _record_size_analysis_comparison(org_id: int, prepared: PreparedSizeComparison) -> None:
+def _record_size_analysis_comparison(org_id: int, prepared: _PreparedSizeComparison) -> None:
     locked_comparisons = PreprodArtifactSizeComparison.objects.select_for_update().filter(
         head_size_analysis=prepared.head_metric,
         base_size_analysis=prepared.base_metric,
@@ -207,7 +207,7 @@ def _record_size_analysis_comparison(org_id: int, prepared: PreparedSizeComparis
 
     if comparison.state != PreprodArtifactSizeComparison.State.PENDING:
         logger.info(
-            "preprod.size_analysis.compare.existing_comparison",
+            "preprod.size_analysis.compare.recorded_by_another_run",
             extra={
                 "head_artifact_size_metric_id": prepared.head_metric.id,
                 "base_artifact_size_metric_id": prepared.base_metric.id,
@@ -354,7 +354,7 @@ def _store_size_comparison_results(name: str, comparison_results: ComparisonResu
         results_bytes = results_json.encode()
         file.putfile(BytesIO(results_bytes))
     except BaseException:
-        file.delete()
+        _delete_unreferenced_result_files([file])
         raise
     return file
 
