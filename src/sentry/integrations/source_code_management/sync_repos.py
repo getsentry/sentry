@@ -83,7 +83,7 @@ def bump_org_integration_last_sync(
     `repos_changed` is True, also stamp `config["last_repos_change"]` to record
     the last time the repo set actually changed.
     """
-    oi = OrganizationIntegration.objects.filter(id=organization_integration_id).first()
+    oi = OrganizationIntegration.objects.filter(id=organization_integration_id).first()  # noqa: S034
     if oi is None:
         return
     now = timezone.now().isoformat()

@@ -79,7 +79,7 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
 
         org_mapping = OrganizationMapping.objects.filter(
             organization_id=sentry_app.owner_id
-        ).first()
+        ).first()  # noqa: S034
         if not org_mapping:
             return Response(
                 {"detail": "Cannot publish a custom integration without an organization"},

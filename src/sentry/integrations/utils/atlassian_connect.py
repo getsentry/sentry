@@ -185,4 +185,4 @@ def parse_integration_from_request(request: HttpRequest, provider: str) -> Integ
         query_params=request.GET,
         method=request.method if request.method else "POST",
     )
-    return Integration.objects.filter(id=rpc_integration.id).first()
+    return Integration.objects.filter(id=rpc_integration.id).first()  # noqa: S034

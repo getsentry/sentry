@@ -89,7 +89,7 @@ def is_activity_tracking_enabled(
             verdict = (
                 PullRequestMetrics.objects.filter(pull_request=pr)
                 .values_list("verdict", flat=True)
-                .first()
+                .first()  # noqa: S034
             )
             if verdict is not None and verdict != PullRequestVerdict.WAITING_EVENT_COOLDOWN:
                 return False
@@ -221,7 +221,7 @@ def load_activity_document(pull_request: PullRequest) -> ActivityDoc | None:
     absent (return None) so readers fall back to the legacy store instead of
     computing zeroed metrics from a phantom, empty document.
     """
-    row = PullRequestActivityLog.objects.filter(pull_request=pull_request).first()
+    row = PullRequestActivityLog.objects.filter(pull_request=pull_request).first()  # noqa: S034
     if row is None:
         return None
     if not (row.data and row.data.get("version")):
@@ -280,7 +280,7 @@ def seer_run_link_for_pull_request(pull_request: PullRequest) -> tuple[list[int]
     link = (
         SeerRunPullRequest.objects.select_related("seer_run__agent")
         .filter(pull_request=pull_request)
-        .first()
+        .first()  # noqa: S034
     )
     if link is None:
         return [], None

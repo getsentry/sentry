@@ -35,14 +35,14 @@ def get_identity_or_404(
         _logger.info("provider is not part of supported external providers", extra=logger_metadata)
         raise Http404
 
-    integration = Integration.objects.filter(id=integration_id).first()
+    integration = Integration.objects.filter(id=integration_id).first()  # noqa: S034
     if integration is None:
         _logger.info("failed to find an integration", extra=logger_metadata)
         raise Http404
 
     idp = IdentityProvider.objects.filter(
         external_id=integration.external_id, type=integration.provider
-    ).first()
+    ).first()  # noqa: S034
     logger_metadata["external_id"] = integration.external_id
     if idp is None:
         _logger.info("failed to find an identity provider", extra=logger_metadata)

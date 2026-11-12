@@ -35,7 +35,7 @@ class DatabaseBackedIdentityService(IdentityService):
             else {"type": provider_type, "external_id": provider_ext_id}
         )
 
-        idp = IdentityProvider.objects.filter(**idp_kwargs).first()
+        idp = IdentityProvider.objects.filter(**idp_kwargs).first()  # noqa: S034
 
         return serialize_identity_provider(idp) if idp else None
 
@@ -93,7 +93,7 @@ class DatabaseBackedIdentityService(IdentityService):
             ai.delete()
 
     def update_data(self, *, identity_id: int, data: Any) -> RpcIdentity | None:
-        identity: Identity | None = Identity.objects.filter(id=identity_id).first()
+        identity: Identity | None = Identity.objects.filter(id=identity_id).first()  # noqa: S034
         if identity is None:
             return None
         identity.update(data=data)

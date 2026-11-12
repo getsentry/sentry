@@ -76,7 +76,7 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
             project = (
                 Project.objects.select_related("organization")
                 .filter(id=project_id, organization_id=organization_id)
-                .first()
+                .first()  # noqa: S034
             )
             if not project:
                 return RpcSelectRequesterResult(

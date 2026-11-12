@@ -51,7 +51,7 @@ class BitbucketInstalledEndpoint(Endpoint):
         existing = Integration.objects.filter(
             provider=IntegrationProviderSlug.BITBUCKET.value,
             external_id=client_key,
-        ).first()
+        ).first()  # noqa: S034
 
         if existing:
             try:

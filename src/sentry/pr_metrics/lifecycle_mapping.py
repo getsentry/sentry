@@ -116,7 +116,7 @@ def update_pull_request_from_scm_snapshot(
         stored = (
             PullRequest.objects.select_for_update()
             .filter(organization_id=organization_id, repository_id=repository_id, key=key)
-            .first()
+            .first()  # noqa: S034
         )
 
         if stored is not None and is_stale_pull_request_snapshot(

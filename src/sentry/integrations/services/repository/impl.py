@@ -51,7 +51,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
         id: int,
         as_user: RpcUser | None = None,
     ) -> Any | None:
-        repository = Repository.objects.filter(organization_id=organization_id, id=id).first()
+        repository = Repository.objects.filter(organization_id=organization_id, id=id).first()  # noqa: S034
         if repository is None:
             return None
         return serialize(repository, user=as_user)
@@ -89,7 +89,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
         return [serialize_repository(repo) for repo in query]
 
     def get_repository(self, *, organization_id: int, id: int) -> RpcRepository | None:
-        repository = Repository.objects.filter(organization_id=organization_id, id=id).first()
+        repository = Repository.objects.filter(organization_id=organization_id, id=id).first()  # noqa: S034
         if repository is None:
             return None
         return serialize_repository(repository)
@@ -111,7 +111,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
             repository = (
                 Repository.objects.filter(organization_id=organization_id, id=update.id)
                 .select_for_update()
-                .first()
+                .first()  # noqa: S034
             )
             if repository is None:
                 return
@@ -138,7 +138,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
             repository = (
                 Repository.objects.filter(organization_id=organization_id, id=id)
                 .select_for_update()
-                .first()
+                .first()  # noqa: S034
             )
             if repository is None or repository.status != ObjectStatus.ACTIVE:
                 return False
@@ -203,7 +203,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
             repository = (
                 Repository.objects.filter(organization_id=organization_id, id=update.id)
                 .select_for_update()
-                .first()
+                .first()  # noqa: S034
             )
             if repository is None or repository.status not in (
                 ObjectStatus.ACTIVE,

@@ -82,7 +82,7 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
         slug = serializer.validated_data.get("slug")
 
         # only published or owned apps are allowed to be installed
-        app = SentryApp.objects.filter(slug=slug).first()
+        app = SentryApp.objects.filter(slug=slug).first()  # noqa: S034
         if app is None or (
             app.status != SentryAppStatus.PUBLISHED
             and app.owner_id != organization.id

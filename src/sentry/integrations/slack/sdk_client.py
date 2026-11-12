@@ -110,7 +110,7 @@ class SlackSdkClient(WebClient, metaclass=MetaClass):
         else:  # control or monolith (local)
             integration = Integration.objects.filter(
                 id=integration_id, status=ObjectStatus.ACTIVE
-            ).first()
+            ).first()  # noqa: S034
 
         if integration is None:
             raise ValueError(f"Integration with id {integration_id} not found")

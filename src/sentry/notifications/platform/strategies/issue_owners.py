@@ -57,7 +57,7 @@ class IssueOwnersActivityAlertStrategy(NotificationStrategy):
         user_ids: set[int] = set()
         team_ids: set[int] = set()
 
-        assignee = GroupAssignee.objects.filter(group=self.group).first()
+        assignee = GroupAssignee.objects.filter(group=self.group).first()  # noqa: S034
         if assignee is not None:
             if assignee.user_id is not None:
                 user_ids.add(assignee.user_id)

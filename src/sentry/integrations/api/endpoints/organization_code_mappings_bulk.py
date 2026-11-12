@@ -205,7 +205,7 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
                 organization_id=organization.id,
                 provider=repo_provider,
                 status=ObjectStatus.ACTIVE,
-            ).first()
+            ).first()  # noqa: S034
             return existing, None
 
     @extend_schema(

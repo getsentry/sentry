@@ -53,7 +53,7 @@ class IssueLinkCreator:
             if self.expected_external_issue_url is not None:
                 existing = PlatformExternalIssue.objects.filter(
                     group_id=self.group.id, service_type=self.install.sentry_app.slug
-                ).first()
+                ).first()  # noqa: S034
                 if existing is not None:
                     self._verify_expected_url(existing.web_url)
                     return existing
