@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {IconClock} from '@sentry/icons/clock';
-import {IconFire} from '@sentry/icons/fire';
 import {IconIssues} from '@sentry/icons/issues';
+import {IconSiren} from '@sentry/icons/siren';
 import upperFirst from 'lodash/upperFirst';
 import {useQueryState} from 'nuqs';
 
@@ -237,13 +237,6 @@ const UnderlineLink = styled(Link)`
   }
 `;
 
-/**
- * A name whose monitor or issue can no longer be opened
- */
-const UnavailableText = styled(Text)`
-  cursor: not-allowed;
-`;
-
 function OutputLink({output}: {output: RunOutput}) {
   const organization = useOrganization();
   if (output.type !== 'investigation') {
@@ -299,7 +292,7 @@ function MonitorTriggerCell({trigger}: {trigger: MonitorTrigger}) {
   return (
     <Stack gap="xs" minWidth="0">
       <Flex gap="xs" align="center" minWidth="0">
-        <IconFire size="xs" variant="muted" />
+        <IconSiren size="xs" variant="muted" />
         <InfoText title={monitorLabel} mode="overflowOnly">
           {trigger.detectorName ? (
             <UnderlineLink
@@ -308,7 +301,7 @@ function MonitorTriggerCell({trigger}: {trigger: MonitorTrigger}) {
               {monitorLabel}
             </UnderlineLink>
           ) : (
-            <UnavailableText>{monitorLabel}</UnavailableText>
+            <Text cursor="not-allowed">{monitorLabel}</Text>
           )}
         </InfoText>
       </Flex>
@@ -326,7 +319,7 @@ function MonitorTriggerCell({trigger}: {trigger: MonitorTrigger}) {
                 {issueLabel}
               </UnderlineLink>
             ) : (
-              <UnavailableText>{issueLabel}</UnavailableText>
+              <Text cursor="not-allowed">{issueLabel}</Text>
             )}
           </Text>
         </Flex>
