@@ -52,7 +52,10 @@ export function AvatarButton({
   // Only used to inset logos that don't fill the frame. The frame itself keeps
   // the default button colors, whatever the avatar's color.
   const colors = useAvatarColors(isSuggested ? undefined : avatar);
-  const borderColor = isSuggested ? theme.tokens.border.neutral.vibrant : 'transparent';
+  // The avatar covers the button's own border, so redraw it in the same color.
+  const borderColor = isSuggested
+    ? theme.tokens.border.neutral.vibrant
+    : theme.tokens.interactive.chonky.embossed.neutral.chonk;
 
   const contextSize = useSizeContext();
   const size = explicitSize ?? contextSize ?? 'md';
