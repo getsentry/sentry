@@ -1,7 +1,7 @@
 import {useQuery} from '@tanstack/react-query';
+import {useStore} from 'zustand';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {StatusPageComponent, StatuspageIncident} from 'sentry/types/system';
 
 interface UseServiceIncidentsOptions {
@@ -26,7 +26,7 @@ export function useServiceIncidents({
   includeResolved,
   componentFilter,
 }: UseServiceIncidentsOptions = {}) {
-  const {statuspage} = useLegacyStore(ConfigStore);
+  const statuspage = useStore(ConfigStore, state => state.statuspage);
   const {api_host, id} = statuspage ?? {};
 
   return useQuery<StatuspageIncident[] | null>({

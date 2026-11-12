@@ -1046,6 +1046,11 @@ class EmailActionData(TypedDict):
     fallthrough_type: NotRequired[Literal["AllMembers", "ActiveMembers", "NoOne"]]
 
 
+# data_schema of the email action handler
+class EmailActionDataResponse(TypedDict):
+    fallthroughType: NotRequired[Literal["AllMembers", "ActiveMembers", "NoOne"]]
+
+
 # The schema allows keys that aren't listed here.
 class GithubActionDataAdditionalFields(TypedDict):
     """Additional fields that aren't part of standard fields"""
@@ -1062,6 +1067,15 @@ class GithubActionData(TypedDict):
     # The schema leaves this object open, so it can have any keys.
     dynamic_form_fields: NotRequired[list[dict[str, Any]]]
     additional_fields: GithubActionDataAdditionalFields
+
+
+# data_schema of the github action handler
+class GithubActionDataResponse(TypedDict):
+    """Schema for GitHub ticket creation action data blob"""
+
+    # The schema leaves this object open, so it can have any keys.
+    dynamicFormFields: NotRequired[list[dict[str, Any]]]
+    additionalFields: GithubActionDataAdditionalFields
 
 
 # The schema allows keys that aren't listed here.
@@ -1082,6 +1096,15 @@ class GithubEnterpriseActionData(TypedDict):
     additional_fields: GithubEnterpriseActionDataAdditionalFields
 
 
+# data_schema of the github_enterprise action handler
+class GithubEnterpriseActionDataResponse(TypedDict):
+    """Schema for GitHub ticket creation action data blob"""
+
+    # The schema leaves this object open, so it can have any keys.
+    dynamicFormFields: NotRequired[list[dict[str, Any]]]
+    additionalFields: GithubEnterpriseActionDataAdditionalFields
+
+
 # data_schema of the jira action handler
 class JiraActionData(TypedDict):
     """Schema for ticket creation action data blob"""
@@ -1090,6 +1113,16 @@ class JiraActionData(TypedDict):
     dynamic_form_fields: NotRequired[list[dict[str, Any]]]
     # The schema leaves this object open, so it can have any keys.
     additional_fields: NotRequired[dict[str, Any]]
+
+
+# data_schema of the jira action handler
+class JiraActionDataResponse(TypedDict):
+    """Schema for ticket creation action data blob"""
+
+    # The schema leaves this object open, so it can have any keys.
+    dynamicFormFields: NotRequired[list[dict[str, Any]]]
+    # The schema leaves this object open, so it can have any keys.
+    additionalFields: NotRequired[dict[str, Any]]
 
 
 # data_schema of the jira_server action handler
@@ -1102,23 +1135,27 @@ class JiraServerActionData(TypedDict):
     additional_fields: NotRequired[dict[str, Any]]
 
 
+# data_schema of the jira_server action handler
+class JiraServerActionDataResponse(TypedDict):
+    """Schema for ticket creation action data blob"""
+
+    # The schema leaves this object open, so it can have any keys.
+    dynamicFormFields: NotRequired[list[dict[str, Any]]]
+    # The schema leaves this object open, so it can have any keys.
+    additionalFields: NotRequired[dict[str, Any]]
+
+
 # data_schema of the msteams action handler
 class MsteamsActionData(TypedDict):
     """Schema for MSTeams action data blob"""
 
 
 # data_schema of the opsgenie action handler
-# Leaves out `additionalProperties`: the schema puts it inside `properties`,
-# where it declares a property with that name instead of closing the object.
-# The schema allows keys that aren't listed here.
 class OpsgenieActionData(TypedDict):
     priority: NotRequired[Literal["P1", "P2", "P3", "P4", "P5"]]
 
 
 # data_schema of the pagerduty action handler
-# Leaves out `additionalProperties`: the schema puts it inside `properties`,
-# where it declares a property with that name instead of closing the object.
-# The schema allows keys that aren't listed here.
 class PagerdutyActionData(TypedDict):
     priority: NotRequired[Literal["default", "critical", "warning", "error", "info"]]
 
@@ -1165,6 +1202,16 @@ class VstsActionData(TypedDict):
     dynamic_form_fields: NotRequired[list[dict[str, Any]]]
     # The schema leaves this object open, so it can have any keys.
     additional_fields: NotRequired[dict[str, Any]]
+
+
+# data_schema of the vsts action handler
+class VstsActionDataResponse(TypedDict):
+    """Schema for ticket creation action data blob"""
+
+    # The schema leaves this object open, so it can have any keys.
+    dynamicFormFields: NotRequired[list[dict[str, Any]]]
+    # The schema leaves this object open, so it can have any keys.
+    additionalFields: NotRequired[dict[str, Any]]
 
 
 # data_schema of the webhook action handler
@@ -1235,6 +1282,27 @@ ActionData: TypeAlias = (
 )
 
 
+# Any action's data, as the API returns it
+ActionDataResponse: TypeAlias = (
+    DiscordActionData
+    | EmailActionDataResponse
+    | GithubActionDataResponse
+    | GithubEnterpriseActionDataResponse
+    | JiraActionDataResponse
+    | JiraServerActionDataResponse
+    | MsteamsActionData
+    | OpsgenieActionData
+    | PagerdutyActionData
+    | PluginActionData
+    | SeerWorkflowActionData
+    | SentryAppActionData
+    | SlackActionData
+    | SlackStagingActionData
+    | VstsActionDataResponse
+    | WebhookActionData
+)
+
+
 # config_schema of the error detector
 class ErrorDetectorConfig(TypedDict):
     pass
@@ -1251,20 +1319,18 @@ class IssueStreamDetectorConfigResponse(TypedDict):
 
 
 # config_schema of the metric_issue detector
-# The schema allows keys that aren't listed here.
 class MetricIssueDetectorConfig(TypedDict):
     """A representation of a metric detector config dict"""
 
-    comparison_delta: NotRequired[Literal[300, 900, 3600, 86400, 604800, 2592000] | None]
+    comparison_delta: NotRequired[Literal[300, 900, 3600, 86400, 604800, 2592000]]
     detection_type: Literal["static", "percent", "dynamic"]
 
 
 # config_schema of the metric_issue detector
-# The schema allows keys that aren't listed here.
 class MetricIssueDetectorConfigResponse(TypedDict):
     """A representation of a metric detector config dict"""
 
-    comparisonDelta: NotRequired[Literal[300, 900, 3600, 86400, 604800, 2592000] | None]
+    comparisonDelta: NotRequired[Literal[300, 900, 3600, 86400, 604800, 2592000]]
     detectionType: Literal["static", "percent", "dynamic"]
 
 

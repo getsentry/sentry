@@ -1,6 +1,7 @@
 import {useEffect, useRef} from 'react';
 import {useLocation} from 'react-router';
 import {useMutation, useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryState, useQueryStates} from 'nuqs';
 
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
@@ -19,26 +20,25 @@ import type {
 import {useOAuthAuthenticationState} from 'sentry/views/authV2/oauth/useOAuthAuthenticationState';
 import {useOAuthSession} from 'sentry/views/authV2/oauth/useOAuthSession';
 
-const authorizationFields = [
-  'client_id',
-  'response_type',
-  'redirect_uri',
-  'scope',
-  'state',
-  'code_challenge',
-  'code_challenge_method',
-  'prompt',
-] as const;
+const authorizationParsers = {
+  client_id: parseAsString,
+  response_type: parseAsString,
+  redirect_uri: parseAsString,
+  scope: parseAsString,
+  state: parseAsString,
+  code_challenge: parseAsString,
+  code_challenge_method: parseAsString,
+  prompt: parseAsString,
+};
 
 export function useOAuthAuthorizeFlow() {
   const location = useLocation();
-  const search = new URLSearchParams(location.search);
+  const [authorizationValues] = useQueryStates(authorizationParsers);
+  const [forcePromptParam] = useQueryState('force_prompt');
   const params: AuthorizationParameters = Object.fromEntries(
-    authorizationFields.flatMap(key => {
-      const value = search.get(key);
-
-      return value === null ? [] : [[key, value]];
-    })
+    Object.entries(authorizationValues).flatMap(([key, value]) =>
+      value === null ? [] : [[key, value]]
+    )
   );
 
   // Application details must be available before login; consent transactions belong
@@ -79,7 +79,7 @@ export function useOAuthAuthorizeFlow() {
 
   // Prior consent can skip the prompt, but approval still needs a fresh transaction.
   // Remember its submission because an effect rerun must not redeem it twice.
-  const forcePrompt = Boolean(search.get('force_prompt'));
+  const forcePrompt = Boolean(forcePromptParam);
   const autoApprove =
     consent?.stage === 'consent' && consent.hasExistingConsent && !forcePrompt;
   const {mutate} = decision;

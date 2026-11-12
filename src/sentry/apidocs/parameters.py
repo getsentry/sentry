@@ -5,6 +5,7 @@ from drf_spectacular.utils import OpenApiParameter
 from sentry import constants
 from sentry.api.helpers.projects import PROJECT_ID_OR_SLUG_SCHEMA
 from sentry.snuba.sessions import STATS_PERIODS
+from sentry.workflow_engine.models.workflow import VISIBLE_WORKFLOW_TYPES
 
 # NOTE: Please add new params by path vs query, then in alphabetical order
 
@@ -670,6 +671,16 @@ class WorkflowParams:
         description="The IDs of monitors connected to the alerts you'd like to query.",
     )
 
+    TYPE = OpenApiParameter(
+        name="type",
+        location="query",
+        required=False,
+        type=str,
+        many=True,
+        enum=sorted(workflow_type.value for workflow_type in VISIBLE_WORKFLOW_TYPES),
+        description="The type of workflow you'd like to query. If not specified, all types are returned.",
+    )
+
     QUERY = OpenApiParameter(
         name="query",
         location="query",
@@ -957,6 +968,21 @@ top events are""",
 - `performance_score(field)` - Web Vitals performance score for the selected measurement.
 - `opportunity_score(field)` - Web Vitals opportunity score for the selected measurement.
 """,
+    )
+    TRANSFORMATIONS = OpenApiParameter(
+        name="transformations[0]",
+        location="query",
+        required=False,
+        type=str,
+        many=True,
+        style="form",
+        explode=True,
+        description="""Ordered transformations for a zero-based `yAxis` position. Replace `0` with the target axis index.
+Repeat the indexed key for each operation, for example
+`transformations[0]=fill(locf)&transformations[0]=smooth(sma,3)`.
+Each axis accepts at most one fill and one smooth operation, in execution order.
+Fill modes are `locf`, `zero`, and `linear`. Smoothing modes are `sma`, `ema`, and `asap`.
+Omit the indexed key to leave that axis unchanged. Requires the interpolation and smoothing feature.""",
     )
     DISABLE_AGGREGATE_EXTRAPOLATION = OpenApiParameter(
         name="disableAggregateExtrapolation",
@@ -1552,7 +1578,7 @@ Available fields are:
     )
 
 
-class InvestigationParams:
+class NotebookParams:
     BLOCK_ID = OpenApiParameter(
         name="block_id",
         location="path",
@@ -1574,7 +1600,7 @@ class InvestigationParams:
         type=str,
         description="The ID of an execution belonging to this block.",
     )
-    INVESTIGATION_ID = OpenApiParameter(
+    NOTEBOOK_ID = OpenApiParameter(
         name="investigation_id",
         location="path",
         required=True,
@@ -1613,4 +1639,42 @@ class InvestigationParams:
         enum=["active", "archived"],
         default="active",
         description="Return investigations with this status. Defaults to active.",
+    )
+    TRIGGER = OpenApiParameter(
+        name="trigger",
+        location="query",
+        type=str,
+        enum=["me", "user", "automation"],
+        description=(
+            "Return investigations started this way: me (created by the requesting user), "
+            "user (created by any user), or automation (started by a Seer automation run)."
+        ),
+    )
+    STRATEGY = OpenApiParameter(
+        name="strategy",
+        location="query",
+        type=str,
+        description=(
+            "Return investigations started by an automation with this strategy, for example "
+            "breached_metric_investigation. Can't be combined with trigger=me or trigger=user."
+        ),
+    )
+    RUN_STATUS = OpenApiParameter(
+        name="runStatus",
+        location="query",
+        type=str,
+        many=True,
+        enum=["pending", "processing", "awaiting_input", "completed", "failed", "cancelled"],
+        description=(
+            "Return investigations whose agentic run has one of these statuses. Repeat to match "
+            "several. Investigations without a run never match."
+        ),
+    )
+    SORT = OpenApiParameter(
+        name="sort",
+        location="query",
+        type=str,
+        enum=["dateUpdated", "dateCreated"],
+        default="dateUpdated",
+        description="Newest first by last update or by creation. Defaults to dateUpdated.",
     )

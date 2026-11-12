@@ -1,6 +1,6 @@
 export type AgenticRunSession = {
   clientRunId: string;
-  onboardingCode: string;
+  onboardingCode?: string;
 };
 
 type AgenticProgressStage =
@@ -52,8 +52,4 @@ export type AgenticProgressRun = {
   stages: AgenticProgressStageState[];
   updatedAt: string;
   onboardingCode?: string;
-};
-
-export type InitializedAgenticProgressRun = AgenticProgressRun & {
-  onboardingCode: string;
 };

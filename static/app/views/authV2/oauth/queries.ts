@@ -1,6 +1,6 @@
 import type {AuthConfigResponse} from 'sentry/types/auth';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {normalizeQueryKey} from 'sentry/utils/api/apiQueryKey';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 
 import type {
   AuthorizationConsent,
@@ -30,10 +30,10 @@ export function oauthAuthConfigQueryOptions(returnTo: string, sessionKey: string
     allowAuthError: true,
     staleTime: 0,
   });
-  const key = normalizeQueryKey(options.queryKey);
+  const queryKey: ApiQueryKey = options.queryKey;
   return {
     ...options,
-    queryKey: [key[0], key[1], {infinite: false, sessionKey}] as const,
+    queryKey: [...queryKey, {sessionKey}] as const,
     ...preparationPolicy,
   };
 }
@@ -64,11 +64,11 @@ export function authorizationConsentQueryOptions(
   const options = apiOptions.as<
     AuthorizationConsent | OAuthReauthentication | OAuthRedirect
   >()('/auth/oauth/authorize/', {query, staleTime: 0, allowAuthError: true});
-  const key = normalizeQueryKey(options.queryKey);
+  const queryKey: ApiQueryKey = options.queryKey;
   return {
     ...options,
     // Keep account-bound transactions isolated across authentication and page mounts.
-    queryKey: [key[0], key[1], {infinite: false, sessionKey}] as const,
+    queryKey: [...queryKey, {sessionKey}] as const,
     ...preparationPolicy,
   };
 }
@@ -95,10 +95,10 @@ export function deviceConsentQueryOptions(userCode: string, sessionKey: string) 
     staleTime: 0,
     allowAuthError: true,
   });
-  const key = normalizeQueryKey(options.queryKey);
+  const queryKey: ApiQueryKey = options.queryKey;
   return {
     ...options,
-    queryKey: [key[0], key[1], {infinite: false, sessionKey}] as const,
+    queryKey: [...queryKey, {sessionKey}] as const,
     ...preparationPolicy,
   };
 }

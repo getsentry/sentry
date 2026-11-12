@@ -9,14 +9,17 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import signal
 import threading
-from collections.abc import MutableMapping
+from collections.abc import Iterator, MutableMapping
 from typing import Any
 
 import orjson
 from arroyo.backends.kafka import KafkaProducer
 from django.conf import settings
 from django.core.cache.backends.base import BaseCache
+from django.db import connections
+from django.db.backends.base.base import BaseDatabaseWrapper
 from sentry_sdk import capture_exception
 from taskbroker_client.metrics import DatadogMetrics, MetricsBackend, NoOpMetricsBackend
 from taskbroker_client.router import TaskRouter as LibraryRouter
@@ -140,6 +143,93 @@ class ViewerContextHook:
         if ctx is None:
             return contextlib.nullcontext()
         return viewer_context_scope(ctx)
+
+
+class LocalCacheClearHook:
+    """
+    ContextHook that clears process-local caches when a task finishes, so a
+    later task in the same worker doesn't read options cached by an earlier one.
+    """
+
+    def on_dispatch(self, headers: MutableMapping[str, Any]) -> None:
+        return None
+
+    @contextlib.contextmanager
+    def on_execute(self, headers: dict[str, str]) -> Iterator[None]:
+        try:
+            yield
+        finally:
+            clear_local_caches()
+
+
+def clear_local_caches() -> None:
+    """Clear the process-local option and group meta caches."""
+    # Imported here because models can't be imported while the task app is set up.
+    from sentry.models.groupmeta import GroupMeta
+    from sentry.models.options.organization_option import OrganizationOption
+
+    try:
+        # Every OptionManager shares one process-local dict, so this clears the
+        # organization, project and user option caches together.
+        OrganizationOption.objects.clear_local_cache()
+        GroupMeta.objects.clear_local_cache()
+    except Exception:
+        logger.exception("taskworker.clear_local_caches.failed")
+
+
+class DatabaseConnectionResetHook:
+    """
+    Workers re-use database connections
+    However, if a processing deadline is hit, it could happen in the middle of Django's transaction cleanup
+    This leaves a connection mid-transaction and with auto-commit off, causing later tasks that
+    re-use the connection to fail until the worker is recycled
+
+    This hook makes it so that when a task raises any error, or leaves a connection mid-transaction,
+    it closes all open database connections to prevent this class of bugs from happening
+    """
+
+    def on_dispatch(self, headers: MutableMapping[str, Any]) -> None:
+        return None
+
+    @contextlib.contextmanager
+    def on_execute(self, headers: dict[str, str]) -> Iterator[None]:
+        try:
+            yield
+        except BaseException:
+            reset_database_connections()
+            raise
+
+        # A task can catch the error a deadline leaves behind and still succeed
+        if any_database_connection_left_mid_transaction():
+            reset_database_connections()
+
+
+def any_database_connection_left_mid_transaction() -> bool:
+    return any(
+        is_left_mid_transaction(connection) for connection in connections.all(initialized_only=True)
+    )
+
+
+def is_left_mid_transaction(connection: BaseDatabaseWrapper) -> bool:
+    return connection.connection is not None and not connection.get_autocommit()
+
+
+def reset_database_connections() -> None:
+    # It is possible for this step to get SIGALRM'd too, so delay it to the end of the function
+    alarm_signal_mask = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGALRM})
+
+    try:
+        for connection in connections.all(initialized_only=True):
+            # Since we may have interrupted Django's transaction cleanup we
+            # need to reset these flags
+            # The test cases showcase why this is necessary
+            connection.in_atomic_block = False
+            connection.run_on_commit = []
+
+            connection.close()
+    finally:
+        # Immediately trigger a SIGALRM if one was pending
+        signal.pthread_sigmask(signal.SIG_SETMASK, alarm_signal_mask)
 
 
 _producers: dict[str, SingletonProducer] = {}

@@ -154,6 +154,10 @@ class ArtifactBundleIndex(Model):
         app_label = "sentry"
         db_table = "sentry_artifactbundleindex"
 
+        # URL lookups check each candidate bundle's rows within its organization. US and DE built
+        # this index by hand first, so there it's renamed instead of built (see migration 1256).
+        indexes = (models.Index(fields=("organization_id", "artifact_bundle")),)
+
 
 @cell_silo_model
 class ReleaseArtifactBundle(Model):

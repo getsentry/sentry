@@ -124,6 +124,16 @@ def send_incident_alert_notification(
 
     if notification_context.target_identifier is None:
         raise ValueError("Can't send without `target_identifier`")
+    if notification_context.integration_id is None:
+        return False
+
+    if (
+        integration_service.organization_context(
+            organization_id=organization.id, integration_id=notification_context.integration_id
+        ).active()
+        is None
+    ):
+        return False
 
     attachment = build_incident_attachment(
         alert_context=alert_context,
