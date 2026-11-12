@@ -10,6 +10,7 @@ from collections.abc import Mapping
 from datetime import datetime, timedelta
 from typing import Any, NotRequired, TypedDict, cast
 
+from django.db import router, transaction
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
@@ -33,6 +34,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import acting_user_id
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.services.organization import (
     RpcOrganization,
@@ -232,16 +234,22 @@ class OrganizationServiceAccountTokenIndexEndpoint(ServiceAccountTokenEndpointBa
             )
         stored = stored_token_fields(token_str)
 
-        token = ServiceAccountToken.objects.create(
-            service_account=service_account,
-            organization_id=organization.id,
-            name=data["name"],
-            scope_list=data["scopes"],
-            token_hashed=stored.token_hashed,
-            token_last_characters=stored.token_last_characters,
-            created_by_id=acting_user_id(request.user),
-            date_expires=data.get("expiresAt", timezone.now() + DEFAULT_TOKEN_LIFETIME),
-        )
+        # The token is committed before replication, so a failed flush mustn't turn the
+        # request into a 500 that hides the only copy of the plaintext token. The outbox
+        # drains later and the token reaches the cell then.
+        with outbox_context(
+            transaction.atomic(using=router.db_for_write(ServiceAccountToken)), flush=False
+        ):
+            token = ServiceAccountToken.objects.create(
+                service_account=service_account,
+                organization_id=organization.id,
+                name=data["name"],
+                scope_list=data["scopes"],
+                token_hashed=stored.token_hashed,
+                token_last_characters=stored.token_last_characters,
+                created_by_id=acting_user_id(request.user),
+                date_expires=data.get("expiresAt", timezone.now() + DEFAULT_TOKEN_LIFETIME),
+            )
 
         self.create_audit_entry(
             request,
