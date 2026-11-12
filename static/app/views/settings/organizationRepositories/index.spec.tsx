@@ -172,6 +172,18 @@ describe('OrganizationRepositories', () => {
       await waitFor(() =>
         expect(screen.queryByText('Request GitHub Installation')).not.toBeInTheDocument()
       );
+      if (hasIntegrations) {
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Request provider installation'})
+        );
+        expect(
+          screen.getByRole('menuitemradio', {name: 'GitHub (installation requested)'})
+        ).toHaveAttribute('aria-disabled', 'true');
+      } else {
+        expect(
+          screen.getByRole('button', {name: 'Installation Requested'})
+        ).toBeDisabled();
+      }
       expect(initializePipeline).not.toHaveBeenCalled();
     }
   );

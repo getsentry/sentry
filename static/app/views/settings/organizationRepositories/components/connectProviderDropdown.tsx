@@ -39,20 +39,21 @@ export function ConnectProviderDropdown({providers, onAddIntegration}: Props) {
       type: 'first_party' as const,
     };
     const requestSent = !canInstall && isSent(request);
+    const label = requestSent
+      ? t('%s (installation requested)', provider.name)
+      : provider.name;
     const isSeerCompatible = isSeerSupported({id: provider.key, name: provider.name});
     return {
       key: provider.key,
-      label: requestSent ? (
-        t('%s (Installation Requested)', provider.name)
-      ) : isSeerCompatible ? (
+      label: isSeerCompatible ? (
         <Flex align="center" gap="sm">
-          {provider.name}
+          {label}
           <Tooltip title={t('Compatible with Seer.')}>
             <Tag variant="promotion" icon={<IconSeer />} />
           </Tooltip>
         </Flex>
       ) : (
-        provider.name
+        label
       ),
       textValue: provider.name,
       leadingItems: getIntegrationIcon(provider.key, 'sm'),
