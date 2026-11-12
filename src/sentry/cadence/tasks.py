@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import reduce
 
-from django.db import router, transaction
+from django.db import connections, router, transaction
 from django.db.models import Q, QuerySet
 from django.utils import timezone
 
@@ -108,7 +108,8 @@ def _claim_batch(
     it locked) is left for a later tick.
     """
     claimed: dict[ScheduledTriggerType, list[_ClaimedFiring]] = defaultdict(list)
-    with transaction.atomic(using=router.db_for_write(ScheduledTrigger)):
+    using = router.db_for_write(ScheduledTrigger)
+    with transaction.atomic(using=using):
         query: QuerySet[ScheduledTrigger] = ScheduledTrigger.objects.select_for_update(
             skip_locked=True
         ).filter(next_fire_at__lte=now)
@@ -161,8 +162,31 @@ def _claim_batch(
                     date_updated=trigger.date_updated,
                 )
             )
-        ScheduledTrigger.objects.bulk_update(due, ["next_scheduled_for", "next_fire_at"])
+        _save_next_fire(using, due)
     return claimed, len(due), cursor
+
+
+def _save_next_fire(using: str, triggers: Sequence[ScheduledTrigger]) -> None:
+    """
+    Save the triggers' next_scheduled_for and next_fire_at in one query. This is what
+    bulk_update does, but about 3x faster: building bulk_update's CASE expressions took
+    longer than running the query.
+    """
+    with connections[using].cursor() as cursor:
+        cursor.execute(
+            """
+            UPDATE cadence_scheduledtrigger AS t
+            SET next_scheduled_for = v.next_scheduled_for, next_fire_at = v.next_fire_at
+            FROM unnest(%s::bigint[], %s::timestamptz[], %s::timestamptz[])
+                AS v(id, next_scheduled_for, next_fire_at)
+            WHERE t.id = v.id
+            """,
+            [
+                [t.id for t in triggers],
+                [t.next_scheduled_for for t in triggers],
+                [t.next_fire_at for t in triggers],
+            ],
+        )
 
 
 def _dispatch(claimed: dict[ScheduledTriggerType, list[_ClaimedFiring]]) -> None:
