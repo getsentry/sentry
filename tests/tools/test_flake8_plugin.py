@@ -22,6 +22,7 @@ from tools.flake8_plugin import (
     S027_msg,
     S028_msg,
     S030_allowlist,
+    S034_msg,
     SentryCheck,
     _s015_msg,
     get_api_violations,
@@ -2478,3 +2479,43 @@ def get(self, request, drf_request):
     ]
     assert _run(src, filename="src/sentry/auth/principal.py") == []
     assert _run(src, filename="tests/sentry/example.py") == []
+
+
+def test_S034() -> None:
+    src = """\
+Model.objects.first()  # bad
+Model.objects.filter(id=1).first()  # bad
+Model.objects.exclude(status=1).select_related("owner").first()  # bad
+Model.objects.filter(id=1).values_list("id", flat=True).first()  # bad
+project.teams.all().first()  # bad
+group.groupassignee_set.first()  # bad
+qs.filter(active=True).first()  # bad
+Model.objects.order_by().first()  # bad: no fields clears ordering
+Model.objects.order_by("name").filter(a=1).order_by().first()  # bad: last order_by wins
+x = (
+    Model.objects.filter(id=1)
+    .first()  # bad: reported on this line
+)
+Model.objects.order_by("id").first()  # ok
+Model.objects.order_by("-date").filter(a=1).select_related("owner").first()  # ok
+Model.objects.order_by().filter(a=1).order_by("id").first()  # ok
+Model.objects.order_by(*fields).first()  # ok
+Model.objects.filter_by_semver(v).first()  # ok: custom method may order
+get_queryset().filter(a=1).first()  # ok: helper may order
+qs.first()  # ok: variable may already be ordered
+detector.data_sources.first()  # ok: not visibly a queryset
+Model.objects.get_or_none(id=1)  # ok
+Model.objects.filter(id=1).first  # ok: not called
+"""
+    expected = [
+        f"t.py:{line}:{col}: {S034_msg}"
+        for line, col in [(1, 13), (2, 26), (3, 55), (4, 55), (5, 19), (6, 23), (7, 22), (8, 24)]
+    ]
+    assert _run(src, filename="src/sentry/example.py") == [
+        *expected,
+        f"t.py:9:53: {S034_msg}",
+        f"t.py:12:4: {S034_msg}",
+    ]
+    assert _run(src, filename="getsentry/example.py") == _run(src, filename="src/sentry/example.py")
+    assert _run(src, filename="tests/sentry/example.py") == []
+    assert _run(src, filename="src/sentry/testutils/example.py") == []

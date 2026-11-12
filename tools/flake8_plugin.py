@@ -200,6 +200,34 @@ S033_msg = (
     "set_request_principal(request, user, auth)."
 )
 
+S034_msg = (
+    "S034 .first() on a queryset with no .order_by(...) makes Django add ORDER BY pk, "
+    "which can pick a slow query plan; use .get_or_none(...) for a single unique row, "
+    "or add an explicit .order_by(...) to choose which row is returned"
+)
+# Calls that return a QuerySet; seeing one in the chain means `.first()` is a
+# queryset's. Only chains visible in the expression are checked: `qs.first()` on a
+# variable may already be ordered elsewhere.
+_S034_queryset_methods = frozenset(
+    (
+        "alias",
+        "all",
+        "annotate",
+        "defer",
+        "distinct",
+        "exclude",
+        "extra",
+        "filter",
+        "only",
+        "prefetch_related",
+        "select_for_update",
+        "select_related",
+        "using",
+        "values",
+        "values_list",
+    )
+)
+
 # Existing callers are pinned to their exact function and occurrence count. This is a
 # shrink-only migration baseline: remove entries as callers move to named Seer one-shots.
 S030_allowlist: dict[str, dict[tuple[str, str], int]] = {}
@@ -568,6 +596,38 @@ def _name_of(node: ast.expr) -> str:
     if isinstance(node, ast.Subscript):
         return f"{_name_of(node.value)}[{_name_of(node.slice)}]"
     return ast.unparse(node)
+
+
+def _is_unordered_queryset_first(node: ast.Call) -> bool:
+    """`<queryset>.first()` where the visible chain never orders the queryset.
+
+    Walks back from `.first()` through known QuerySet methods. The last `order_by`
+    in the chain decides: with fields it orders, with none it clears ordering. The
+    chain must start at a manager (`Model.objects`, `obj.foo_set`) or apply a known
+    QuerySet method to a name; any other call (a helper, a custom manager method)
+    may order the queryset itself, so it is not flagged.
+    """
+    if not (isinstance(node.func, ast.Attribute) and node.func.attr == "first"):
+        return False
+    if node.args or node.keywords:
+        return False
+
+    current = node.func.value
+    saw_queryset_method = False
+    while isinstance(current, ast.Call) and isinstance(current.func, ast.Attribute):
+        method = current.func.attr
+        if method == "order_by":
+            return not current.args
+        if method not in _S034_queryset_methods:
+            return False
+        saw_queryset_method = True
+        current = current.func.value
+
+    if isinstance(current, ast.Attribute) and (
+        current.attr == "objects" or current.attr.endswith("_set")
+    ):
+        return True
+    return saw_queryset_method and isinstance(current, (ast.Name, ast.Attribute))
 
 
 def _is_acting_user_id(node: ast.expr) -> bool:
@@ -1629,6 +1689,15 @@ class SentryVisitor(ast.NodeVisitor):
             for keyword in node.keywords:
                 if _is_acting_user_id(keyword.value):
                     self.errors.append((keyword.lineno, keyword.col_offset, S032_msg))
+
+        # S034: `.first()` on a queryset that the chain never orders. Tests may rely
+        # on the implicit pk ordering.
+        if not _is_tests_path(self.filename) and _is_unordered_queryset_first(node):
+            # Point at `.first` rather than the start of a multi-line chain.
+            assert node.func.end_lineno is not None and node.func.end_col_offset is not None
+            self.errors.append(
+                (node.func.end_lineno, node.func.end_col_offset - len(".first"), S034_msg)
+            )
 
         if isinstance(node.func, ast.Attribute) and node.func.attr in S019_logging_methods:
             for keyword in node.keywords:
