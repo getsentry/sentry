@@ -321,8 +321,10 @@ def trigger_autofix_feature(
             user_context=args.user_context,
             should_run_repo_checks=True,
         )
-        # The project's coding agent writes the fix, so Seer stops after the root cause.
-        hand_off = will_hand_off_to_coding_agent(group, stopping_point)
+        # The project's coding agent writes the fix, so Seer stops after the root cause. Only
+        # automated runs, which pass the project's stopping point, hand off. A manual run names
+        # none and has Seer write the fix; the user can hand off from the UI instead.
+        hand_off = will_hand_off_to_coding_agent(group, args.stopping_point)
         enable_coding = (
             stopping_point in _CODING_STOPPING_POINTS and not hand_off and _org_allows_coding(group)
         )
