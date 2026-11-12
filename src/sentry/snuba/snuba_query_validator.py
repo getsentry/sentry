@@ -287,7 +287,9 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                 raise serializers.ValidationError(
                     {"aggregate": _("Invalid Metric: Span monitors do not support equations.")}
                 )
-            validate_spans_equation_aggregate(aggregate, self.context["organization"])
+            validate_spans_equation_aggregate(
+                aggregate, self.context["organization"], [self.context["project"]]
+            )
         else:
             try:
                 if not check_aggregate_column_support(

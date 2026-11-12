@@ -8,6 +8,7 @@ from sentry.discover.arithmetic import ArithmeticError, parse_arithmetic, strip_
 from sentry.exceptions import InvalidSearchQuery
 from sentry.incidents.logic import EAP_FUNCTIONS
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig
@@ -15,7 +16,9 @@ from sentry.search.events.fields import is_function
 from sentry.search.events.types import SnubaParams
 
 
-def validate_spans_equation_aggregate(aggregate: str, organization: Organization) -> None:
+def validate_spans_equation_aggregate(
+    aggregate: str, organization: Organization, projects: list[Project]
+) -> None:
     equation = strip_equation(aggregate)
     try:
         _operation, fields, functions = parse_arithmetic(equation, definitions=SPAN_DEFINITIONS)
@@ -43,9 +46,10 @@ def validate_spans_equation_aggregate(aggregate: str, organization: Organization
 
     now = timezone.now()
     resolver = SearchResolver(
-        # Formulas such as opportunity_score run a query while resolving, which needs an organization.
+        # Formulas such as opportunity_score run a query while resolving, so scope it to the
+        # monitor's organization and projects.
         params=SnubaParams(
-            projects=[], organization=organization, start=now - timedelta(hours=1), end=now
+            projects=projects, organization=organization, start=now - timedelta(hours=1), end=now
         ),
         config=SearchResolverConfig(),
         definitions=SPAN_DEFINITIONS,
