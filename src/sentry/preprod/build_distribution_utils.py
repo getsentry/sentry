@@ -306,13 +306,13 @@ def find_current_artifact(
 
     exact_match = candidates.filter(
         mobile_app_info__extras__build_number_raw=build_number.raw
-    ).first()
+    ).first()  # noqa: S034
     if exact_match is not None:
         return exact_match
 
     return candidates.filter(
         mobile_app_info__extras__build_number_raw__isnull=True,
-    ).first()
+    ).first()  # noqa: S034
 
 
 _NUMERIC_BUILD_NUMBER_RE = r"^[0-9]+(\.[0-9]+)*$"
@@ -430,7 +430,7 @@ def find_latest_installable_artifact(
             "mobile_app_info",
         )
         .filter(id=latest_artifact_id)
-        .first()
+        .first()  # noqa: S034
     )
 
 

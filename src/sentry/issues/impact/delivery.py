@@ -35,7 +35,7 @@ def deliver_impact_assessment(
             run__organization_id=organization_id, run__uuid=run_uuid, source=IMPACT_FEATURE_ID
         )
         .select_related("run")
-        .first()
+        .first()  # noqa: S034
     )
     if agent_run is None:
         logger.warning("impact.delivery.missing_run", extra=log_extra)
@@ -57,7 +57,7 @@ def deliver_impact_assessment(
 
     group = Group.objects.filter(
         id=agent_run.group_id, project__organization_id=organization_id
-    ).first()
+    ).first()  # noqa: S034
     if group is None:
         logger.warning("impact.delivery.missing_group", extra=log_extra)
         return

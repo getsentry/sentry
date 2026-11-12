@@ -155,7 +155,7 @@ def find_or_create_release(
             organization_id=project.organization_id,
             projects=project,
             version__regex=rf"^{re.escape(base_version)}(\+\d+)?$",
-        ).first()
+        ).first()  # noqa: S034
 
         if existing_release:
             logger.info(
@@ -298,7 +298,7 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
             existing_extras = (
                 PreprodArtifactMobileAppInfo.objects.filter(preprod_artifact=head_artifact)
                 .values_list("extras", flat=True)
-                .first()
+                .first()  # noqa: S034
             ) or {}
             extras_update: PreprodArtifactMobileAppInfoExtras = {
                 "build_number_raw": data["build_number_raw"]

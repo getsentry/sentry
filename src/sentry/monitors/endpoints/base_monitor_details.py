@@ -194,7 +194,7 @@ class MonitorDetailsMixin(BaseEndpointMixin):
                             ObjectStatus.DELETION_IN_PROGRESS,
                         ]
                     )
-                    .first()
+                    .first()  # noqa: S034
                 )
                 if rule:
                     rule.update(status=ObjectStatus.PENDING_DELETION)

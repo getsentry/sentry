@@ -313,7 +313,7 @@ def get_date_params(value: str, from_field: str, to_field: str) -> dict[str, dat
 def parse_team_value(projects: Sequence[Project], value: Sequence[str]) -> Team:
     return Team.objects.filter(
         slug__iexact=value[1:], projectteam__project__in=projects
-    ).first() or Team(id=0)
+    ).first() or Team(id=0)  # noqa: S034
 
 
 def get_teams_for_users(

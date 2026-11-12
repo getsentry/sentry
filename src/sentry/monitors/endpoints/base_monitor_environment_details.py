@@ -62,7 +62,7 @@ class MonitorEnvironmentDetailsMixin(BaseEndpointMixin):
                     MonitorStatus.DELETION_IN_PROGRESS,
                 ]
             )
-            .first()
+            .first()  # noqa: S034
         )
 
         if not active_monitor_environment or not active_monitor_environment.update(

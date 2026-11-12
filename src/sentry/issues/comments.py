@@ -250,7 +250,7 @@ def save_external_comment_id(*, note_id: int, project_id: int, external_id: str)
         note = (
             Activity.objects.select_for_update()
             .filter(id=note_id, project_id=project_id, type=ActivityType.NOTE.value)
-            .first()
+            .first()  # noqa: S034
         )
         if note is None:
             return

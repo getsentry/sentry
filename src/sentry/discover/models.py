@@ -248,7 +248,7 @@ class DiscoverSavedQueryStarredManager(BaseManager["DiscoverSavedQueryStarred"])
         """
         return self.filter(
             organization=organization, user_id=user_id, discover_saved_query=query
-        ).first()
+        ).first()  # noqa: S034
 
     def insert_starred_query(
         self,

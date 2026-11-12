@@ -1078,7 +1078,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
 
                     base_metrics = PreprodSnapshotMetrics.objects.filter(
                         preprod_artifact=base_artifact
-                    ).first()
+                    ).first()  # noqa: S034
                     if base_metrics:
                         try:
                             PreprodSnapshotComparison.objects.get_or_create(

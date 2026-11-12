@@ -93,7 +93,7 @@ def record_notebook_completed(*, notebook: Notebook, seer_run_id: int) -> None:
         organization_id=notebook.organization_id,
         user_id=user_id,
         user_is_active=True,
-    ).first()
+    ).first()  # noqa: S034
     if member is None or not member.get_scopes() & NOTEBOOK_SCOPES:
         return
     NOTEBOOK_COMPLETED.record(

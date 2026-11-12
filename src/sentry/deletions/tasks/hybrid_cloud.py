@@ -103,7 +103,7 @@ def _watermark_row_lookup(prefix: str, field: HybridCloudForeignKey[Any, Any]) -
 def _read_postgres_watermark(
     prefix: str, field: HybridCloudForeignKey[Any, Any]
 ) -> tuple[int, str] | None:
-    row = _watermark_model(field).objects.filter(**_watermark_row_lookup(prefix, field)).first()
+    row = _watermark_model(field).objects.filter(**_watermark_row_lookup(prefix, field)).first()  # noqa: S034
     if row is None:
         return None
     return row.low_bound, row.transaction_id

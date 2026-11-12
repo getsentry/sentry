@@ -158,7 +158,7 @@ def _set_row(project: Project, row: _Row, lines: list[str]) -> None:
 def _get_row(project: Project, row: _Row) -> CustomInboundFilter | None:
     return CustomInboundFilter.objects.filter(
         project_id=project.id, legacy_filter=row.legacy_filter.value
-    ).first()
+    ).first()  # noqa: S034
 
 
 def _row_lines(row: CustomInboundFilter | None) -> list[str]:

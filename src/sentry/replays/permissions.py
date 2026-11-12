@@ -79,7 +79,7 @@ def granular_permissions_turned_off(organization: Organization) -> bool:
     """Check if granular replay permissions are disabled for the organization."""
     org_option = OrganizationOption.objects.filter(
         organization=organization, key="sentry:granular-replay-permissions"
-    ).first()
+    ).first()  # noqa: S034
     return not org_option or not org_option.value
 
 

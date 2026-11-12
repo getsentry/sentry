@@ -65,7 +65,7 @@ def check_metric_detector_allowed(detector: Detector, organization: Organization
             ).values(_source_int=Cast("source_id", output_field=BigIntegerField()))
         )
         .values_list("dataset", flat=True)
-        .first()
+        .first()  # noqa: S034
     )
     if dataset is None:
         return

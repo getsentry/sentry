@@ -85,7 +85,7 @@ def fetch_latest_item_id(credentials_id: int, **kwargs: object) -> None:
 def _fetch_latest_item_id_impl(credentials_id: int) -> None:
     """Implementation of fetch_latest_item_id, separated for locking."""
     credentials = (
-        TempestCredentials.objects.select_related("project").filter(id=credentials_id).first()
+        TempestCredentials.objects.select_related("project").filter(id=credentials_id).first()  # noqa: S034
     )
     if credentials is None:
         # Credentials deleted between task scheduling and execution - skip silently
@@ -277,7 +277,7 @@ def poll_tempest_crashes(credentials_id: int, **kwargs: object) -> None:
 def _poll_tempest_crashes_impl(credentials_id: int) -> None:
     """Implementation of poll_tempest_crashes, separated for locking."""
     credentials = (
-        TempestCredentials.objects.select_related("project").filter(id=credentials_id).first()
+        TempestCredentials.objects.select_related("project").filter(id=credentials_id).first()  # noqa: S034
     )
     if credentials is None:
         # Credentials deleted between task scheduling and execution - skip silently
