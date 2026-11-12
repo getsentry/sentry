@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from uuid import UUID
 
 from snuba_sdk import Column, Condition, Function, Op
@@ -172,7 +173,9 @@ class SumOfInfoIdScalar(ComputedBase):
         return does_not_contain(InfoIdScalar.visit_in(value))
 
 
-def _make_conditions_from_column_names(event_id_columns, operator, value):
+def _make_conditions_from_column_names(
+    event_id_columns: Sequence[str], operator: Op, value: UUID | list[str]
+) -> list[Condition]:
     return [
         translate_condition_to_function(Condition(Column(column_name), operator, value))
         for column_name in event_id_columns

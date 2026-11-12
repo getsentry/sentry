@@ -2,30 +2,31 @@ from __future__ import annotations
 
 import contextlib
 import subprocess
+from pathlib import Path
 
 import pytest
 
 from tools.mypy_helpers.prevent_weaklist_additions import main
 
 
-def _git(cwd, *args: str) -> None:
+def _git(cwd: Path, *args: str) -> None:
     subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True)
 
 
-def _init_repo(tmp_path) -> None:
+def _init_repo(tmp_path: Path) -> None:
     _git(tmp_path, "init", "-q", "-b", "main")
     _git(tmp_path, "config", "user.email", "test@example.com")
     _git(tmp_path, "config", "user.name", "Test")
     _git(tmp_path, "config", "commit.gpgsign", "false")
 
 
-def _commit_pyproject(tmp_path, contents: str) -> None:
+def _commit_pyproject(tmp_path: Path, contents: str) -> None:
     tmp_path.joinpath("pyproject.toml").write_text(contents)
     _git(tmp_path, "add", "pyproject.toml")
     _git(tmp_path, "commit", "-q", "-m", "initial")
 
 
-def test_no_changes_passes(tmp_path) -> None:
+def test_no_changes_passes(tmp_path: Path) -> None:
     src = """\
 [[tool.mypy.overrides]]
 module = ["a.b.c", "d.e.f"]
@@ -38,7 +39,7 @@ disallow_untyped_defs = false
         assert main(("pyproject.toml",)) == 0
 
 
-def test_removal_passes(tmp_path) -> None:
+def test_removal_passes(tmp_path: Path) -> None:
     initial = """\
 [[tool.mypy.overrides]]
 module = ["a.b.c", "d.e.f"]
@@ -57,7 +58,51 @@ disallow_untyped_defs = false
         assert main(("pyproject.toml",)) == 0
 
 
-def test_addition_fails(tmp_path, capsys) -> None:
+def test_wildcard_narrowing_passes(tmp_path: Path) -> None:
+    initial = """\
+[[tool.mypy.overrides]]
+module = ["a.b.*", "c.d"]
+disallow_untyped_defs = false
+"""
+    updated = """\
+[[tool.mypy.overrides]]
+module = ["a.b.e", "c.d"]
+disallow_untyped_defs = false
+"""
+    _init_repo(tmp_path)
+    _commit_pyproject(tmp_path, initial)
+    tmp_path.joinpath("pyproject.toml").write_text(updated)
+
+    with contextlib.chdir(tmp_path):
+        assert main(("pyproject.toml",)) == 0
+
+
+def test_wildcard_narrowing_does_not_cover_unrelated_addition(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    initial = """\
+[[tool.mypy.overrides]]
+module = ["a.b.*", "c.d"]
+disallow_untyped_defs = false
+"""
+    updated = """\
+[[tool.mypy.overrides]]
+module = ["a.b.e", "c.d", "x.y.z"]
+disallow_untyped_defs = false
+"""
+    _init_repo(tmp_path)
+    _commit_pyproject(tmp_path, initial)
+    tmp_path.joinpath("pyproject.toml").write_text(updated)
+
+    with contextlib.chdir(tmp_path):
+        assert main(("pyproject.toml",)) == 1
+
+    out = capsys.readouterr().out
+    assert "'x.y.z'" in out
+    assert "'a.b.e'" not in out
+
+
+def test_addition_fails(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     initial = """\
 [[tool.mypy.overrides]]
 module = ["a.b.c"]
@@ -82,7 +127,9 @@ disallow_untyped_defs = false
     assert capsys.readouterr().out == expected
 
 
-def test_multiple_additions_reported_sorted(tmp_path, capsys) -> None:
+def test_multiple_additions_reported_sorted(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     initial = """\
 [[tool.mypy.overrides]]
 module = ["a.b.c"]
@@ -106,7 +153,9 @@ disallow_untyped_defs = false
     assert out.index("'p.q.r'") < out.index("'x.y.z'")
 
 
-def test_addition_and_removal_same_diff_only_addition_fails(tmp_path, capsys) -> None:
+def test_addition_and_removal_same_diff_only_addition_fails(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     initial = """\
 [[tool.mypy.overrides]]
 module = ["a.b.c", "d.e.f"]
@@ -129,7 +178,7 @@ disallow_untyped_defs = false
     assert "'d.e.f'" not in out
 
 
-def test_unrelated_overrides_ignored(tmp_path) -> None:
+def test_unrelated_overrides_ignored(tmp_path: Path) -> None:
     initial = """\
 [[tool.mypy.overrides]]
 module = ["a.b.c"]
@@ -156,7 +205,7 @@ disallow_untyped_defs = false
         assert main(("pyproject.toml",)) == 0
 
 
-def test_module_ignores_addition_fails(tmp_path, capsys) -> None:
+def test_module_ignores_addition_fails(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     initial = """\
 [[tool.mypy.overrides]]
 module = ["a.b.c"]
@@ -181,7 +230,7 @@ disable_error_code = ["misc"]
     assert capsys.readouterr().out == expected
 
 
-def test_module_ignores_removal_passes(tmp_path) -> None:
+def test_module_ignores_removal_passes(tmp_path: Path) -> None:
     initial = """\
 [[tool.mypy.overrides]]
 module = ["a.b.c", "d.e.f"]
@@ -200,7 +249,9 @@ disable_error_code = ["misc"]
         assert main(("pyproject.toml",)) == 0
 
 
-def test_module_ignores_multiple_additions_reported_sorted(tmp_path, capsys) -> None:
+def test_module_ignores_multiple_additions_reported_sorted(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     initial = """\
 [[tool.mypy.overrides]]
 module = ["a.b.c"]
@@ -224,7 +275,9 @@ disable_error_code = ["misc"]
     assert out.index("'p.q.r'") < out.index("'x.y.z'")
 
 
-def test_addition_to_both_sections_reports_all(tmp_path, capsys) -> None:
+def test_addition_to_both_sections_reports_all(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     initial = """\
 [[tool.mypy.overrides]]
 module = ["a.b.c"]
@@ -257,7 +310,7 @@ disallow_untyped_defs = false
     assert "weaklist" in out
 
 
-def test_multiple_module_ignores_sections_fails_loudly(tmp_path) -> None:
+def test_multiple_module_ignores_sections_fails_loudly(tmp_path: Path) -> None:
     src = """\
 [[tool.mypy.overrides]]
 module = ["a.b.c"]
@@ -275,7 +328,7 @@ disable_error_code = ["attr-defined"]
             main(("pyproject.toml",))
 
 
-def test_new_file_passes(tmp_path) -> None:
+def test_new_file_passes(tmp_path: Path) -> None:
     src = """\
 [[tool.mypy.overrides]]
 module = ["a.b.c"]
@@ -291,7 +344,7 @@ disallow_untyped_defs = false
         assert main(("pyproject.toml",)) == 0
 
 
-def test_no_weaklist_section_treated_as_empty(tmp_path) -> None:
+def test_no_weaklist_section_treated_as_empty(tmp_path: Path) -> None:
     src = """\
 [[tool.mypy.overrides]]
 module = ["a.b.c"]
@@ -304,14 +357,14 @@ disable_error_code = ["misc"]
         assert main(("pyproject.toml",)) == 0
 
 
-def test_no_filenames_passes(tmp_path) -> None:
+def test_no_filenames_passes(tmp_path: Path) -> None:
     _init_repo(tmp_path)
 
     with contextlib.chdir(tmp_path):
         assert main(()) == 0
 
 
-def test_missing_overrides_section_treated_as_empty(tmp_path) -> None:
+def test_missing_overrides_section_treated_as_empty(tmp_path: Path) -> None:
     initial = """\
 [tool.mypy]
 strict = true
@@ -334,7 +387,7 @@ disallow_untyped_defs = false
         assert main(("pyproject.toml",)) == 1
 
 
-def test_multiple_weaklist_sections_fails_loudly(tmp_path) -> None:
+def test_multiple_weaklist_sections_fails_loudly(tmp_path: Path) -> None:
     src = """\
 [[tool.mypy.overrides]]
 module = ["a.b.c"]

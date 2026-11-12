@@ -17,6 +17,7 @@ import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {
   checkStatusPrecedent,
+  MAX_BUCKET_INTERVAL,
   statusToText,
   tickStyle,
 } from 'sentry/views/insights/uptime/timelineConfig';
@@ -42,6 +43,7 @@ export function DetailsTimeline({uptimeDetector, onStatsLoaded}: Props) {
 
   const timeWindowConfig = useTimeWindowConfig({
     timelineWidth,
+    maxBucketInterval: MAX_BUCKET_INTERVAL,
     recomputeInterval: 60_000,
     recomputeOnWindowFocus: true,
   });

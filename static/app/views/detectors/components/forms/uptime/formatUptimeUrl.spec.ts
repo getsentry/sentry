@@ -1,4 +1,4 @@
-import {formatUptimeUrl} from 'sentry/views/detectors/components/forms/uptime/formatUptimeUrl';
+import {formatUptimeUrl} from './formatUptimeUrl';
 
 describe('formatUptimeUrl', () => {
   it('returns the host when the URL has no path', () => {

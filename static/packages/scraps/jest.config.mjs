@@ -1,3 +1,5 @@
+import {runOnFirstShard} from '../../../scripts/jestSingleShard.js';
+
 const config = {
   testEnvironment: '<rootDir>/test/env/environment.mjs',
   setupFilesAfterEnv: ['<rootDir>/test/env/setup.ts'],
@@ -19,7 +21,9 @@ const config = {
       },
     ],
   },
+  // TanStack Hotkeys publishes ESM only; compile it for the CommonJS test runtime.
+  transformIgnorePatterns: ['/node_modules/.pnpm/(?!@tanstack\\+(?:react-)?hotkeys@)'],
   clearMocks: true,
 };
 
-export default config;
+export default runOnFirstShard(config);

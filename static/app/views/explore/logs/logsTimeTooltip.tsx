@@ -13,7 +13,8 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+
+import {OurLogKnownFieldKey} from './types';
 
 type Props = {
   attributes: Record<string, string | number | boolean>;

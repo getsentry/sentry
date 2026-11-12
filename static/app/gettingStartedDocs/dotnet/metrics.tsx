@@ -6,11 +6,9 @@ import {
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  getInstallSnippetCoreCli,
-  getInstallSnippetPackageManager,
-} from 'sentry/gettingStartedDocs/dotnet/utils';
 import {t, tct} from 'sentry/locale';
+
+import {getInstallSnippetCoreCli, getInstallSnippetPackageManager} from './utils';
 
 export const metricsVerify = (params: DocsParams): ContentBlock => ({
   type: 'conditional',

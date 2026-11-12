@@ -12,6 +12,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrganizationPermission
+from sentry.auth.principal import acting_user_id
 from sentry.data_secrecy.cache import effective_grant_status_cache
 from sentry.data_secrecy.logic import cache_effective_grant_status, data_access_grant_exists
 from sentry.data_secrecy.models.data_access_grant import (
@@ -98,7 +99,10 @@ class WaiveDataSecrecyEndpoint(ControlSiloOrganizationEndpoint):
         result = validator.validated_data
 
         DataAccessGrant.create_data_access_grant(
-            organization.id, request.user.id, DataAccessGrant.GrantType.MANUAL, result["access_end"]
+            organization.id,
+            acting_user_id(request.user),
+            DataAccessGrant.GrantType.MANUAL,
+            result["access_end"],
         )
 
         cache_effective_grant_status(organization_id=organization.id)
@@ -123,7 +127,9 @@ class WaiveDataSecrecyEndpoint(ControlSiloOrganizationEndpoint):
         Revoke all active data secrecy waivers for an organization.
         """
         DataAccessGrant.revoke_active_data_access_grants(
-            organization.id, request.user.id, DataAccessGrant.RevocationReason.MANUAL_REVOCATION
+            organization.id,
+            acting_user_id(request.user),
+            DataAccessGrant.RevocationReason.MANUAL_REVOCATION,
         )
 
         return Response(status=status.HTTP_204_NO_CONTENT)

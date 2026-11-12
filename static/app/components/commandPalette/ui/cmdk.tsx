@@ -5,9 +5,9 @@ import type {
   CMDKQueryOptions,
   CommandPaletteAction,
 } from 'sentry/components/commandPalette/types';
-import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 
 import {makeCollection} from './collection';
+import {CommandPaletteSlot} from './commandPaletteSlot';
 import {
   CommandPaletteStateProvider,
   useCommandPaletteState,

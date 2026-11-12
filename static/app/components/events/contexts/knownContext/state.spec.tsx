@@ -3,10 +3,8 @@ import {EventFixture} from 'sentry-fixture/event';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
-import {
-  getStateContextData,
-  type StateContext,
-} from 'sentry/components/events/contexts/knownContext/state';
+
+import {getStateContextData, type StateContext} from './state';
 
 const MOCK_STATE_CONTEXT: StateContext = {
   state: {

@@ -46,7 +46,7 @@ class CommitFileChange(Model):
         return value in COMMIT_FILE_CHANGE_TYPES
 
 
-def process_resource_change(instance, **kwargs):
+def process_resource_change(instance: CommitFileChange, **kwargs: Any) -> None:
     from sentry.integrations.bitbucket.integration import BitbucketIntegration
     from sentry.integrations.bitbucket_server.integration import BitbucketServerIntegration
     from sentry.integrations.github.integration import GitHubIntegration
@@ -54,7 +54,7 @@ def process_resource_change(instance, **kwargs):
     from sentry.integrations.vsts.integration import VstsIntegration
     from sentry.tasks.codeowners import code_owners_auto_sync
 
-    def _spawn_task():
+    def _spawn_task() -> None:
         filepaths = (
             set(GitHubIntegration.codeowners_locations)
             | set(GitlabIntegration.codeowners_locations)

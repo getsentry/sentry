@@ -1,5 +1,5 @@
 import type {Key} from 'react';
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {Item} from '@react-stately/collections';
@@ -21,10 +21,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 
 export function DebugNotificationsSearch() {
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const searchKeys = useMemo(() => {
-    return [{match: '/', callback: () => inputRef.current?.focus()}];
-  }, []);
-  useHotkeys(searchKeys);
+  useHotkeys([{hotkey: '/', callback: () => inputRef.current?.focus()}]);
   const {data: registry = {}} = useRegistry();
   const sourceData = Object.values(registry)
     .flat()

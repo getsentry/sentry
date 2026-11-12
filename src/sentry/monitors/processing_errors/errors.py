@@ -258,10 +258,10 @@ class CheckinProcessingError:
             errors=data["errors"],
         )
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.id.hex)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, CheckinProcessingError):
             return self.id.hex == other.id.hex
         return False

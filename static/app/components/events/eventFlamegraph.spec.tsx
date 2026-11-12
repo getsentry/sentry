@@ -56,19 +56,21 @@ describe('Event flamegraph', () => {
   });
 
   it('renders nothing when there is no flamegraph attachment', async () => {
-    MockApiClient.addMockResponse({
+    const list = MockApiClient.addMockResponse({
       url: listUrl,
       body: [EventAttachmentFixture()],
     });
+    const download = MockApiClient.addMockResponse({url: downloadUrl, body: diagnostic});
     const {container} = render(<EventFlamegraph event={event} project={project} />, {
       organization,
     });
-    await expect(screen.findByRole('region', {name: 'Flamegraph'})).rejects.toThrow();
+    await waitFor(() => expect(list).toHaveBeenCalled());
     expect(container).toBeEmptyDOMElement();
+    expect(download).not.toHaveBeenCalled();
   });
 
   it('renders nothing when the attachments list fails', async () => {
-    MockApiClient.addMockResponse({
+    const list = MockApiClient.addMockResponse({
       url: listUrl,
       statusCode: 500,
       body: {detail: 'Attachments unavailable.'},
@@ -76,7 +78,7 @@ describe('Event flamegraph', () => {
     const {container} = render(<EventFlamegraph event={event} project={project} />, {
       organization,
     });
-    await expect(screen.findByRole('region', {name: 'Flamegraph'})).rejects.toThrow();
+    await waitFor(() => expect(list).toHaveBeenCalled());
     expect(container).toBeEmptyDOMElement();
   });
 

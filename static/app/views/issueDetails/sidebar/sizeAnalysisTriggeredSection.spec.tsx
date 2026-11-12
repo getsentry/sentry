@@ -5,7 +5,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import type {MetricCondition} from 'sentry/types/workflowEngine/detectors';
-import {SizeAnalysisTriggeredSection} from 'sentry/views/issueDetails/sidebar/sizeAnalysisTriggeredSection';
+
+import {SizeAnalysisTriggeredSection} from './sizeAnalysisTriggeredSection';
 
 describe('SizeAnalysisTriggeredSection', () => {
   const condition: MetricCondition = {

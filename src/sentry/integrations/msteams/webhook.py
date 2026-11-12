@@ -123,7 +123,7 @@ analytics.register(MsTeamsIntegrationUnresolve)
 analytics.register(MsTeamsIntegrationUnassign)
 
 
-def verify_signature(request) -> bool:
+def verify_signature(request: Request) -> bool:
     # docs for jwt authentication here: https://docs.microsoft.com/en-us/azure/bot-service/rest-api/bot-framework-rest-connector-authentication?view=azure-bot-service-4.0#bot-to-connector
     token = request.META.get("HTTP_AUTHORIZATION", "").replace("Bearer ", "")
     if not token:
@@ -220,7 +220,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
     permission_classes = ()
     provider = IntegrationProviderSlug.MSTEAMS.value
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: object) -> None:
         super().__init__(**kwargs)
         self._event_handlers: dict[MsTeamsEvents, Callable[[Request], Response]] = {
             MsTeamsEvents.MESSAGE: self._handle_message_event,
@@ -230,7 +230,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         }
 
     @csrf_exempt
-    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponse:
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request: Request) -> Response:
@@ -368,7 +368,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
     def _verify_webhook_request(self, request: Request) -> bool:
         return verify_signature(request)
 
-    def _handle_personal_member_add(self, request: Request):
+    def _handle_personal_member_add(self, request: Request) -> Response:
         if not options.get("msteams.personal-installation-link.enabled"):
             return self.respond(status=204)
 
@@ -517,7 +517,12 @@ class MsTeamsWebhookEndpoint(Endpoint):
         "unassign": MsTeamsIntegrationUnassign,
     }
 
-    def _issue_state_change(self, group: Group, identity: RpcIdentity, data) -> Response:
+    def _issue_state_change(
+        self,
+        group: Group,
+        identity: RpcIdentity,
+        data: Mapping[str, Any],
+    ) -> Response:
         event_write_key = ApiKey(
             organization_id=group.project.organization_id, scope_list=["event:write"]
         )
@@ -756,11 +761,13 @@ class MsTeamsCommandDispatcher(MessagingIntegrationCommandDispatcher[AdaptiveCar
 
     @property
     def conversation_id(self) -> str:
-        return self.data["conversation"]["id"]
+        conversation_id = self.data["conversation"]["id"]
+        return conversation_id
 
     @property
     def teams_user_id(self) -> str:
-        return self.data["from"]["id"]
+        user_id = self.data["from"]["id"]
+        return user_id
 
     def help_handler(self, input: CommandInput) -> IntegrationResponse[AdaptiveCard]:
         return IntegrationResponse(

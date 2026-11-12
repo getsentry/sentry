@@ -4,28 +4,19 @@ import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
-import {
-  act,
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import type {OutcomeRow} from 'sentry/components/droppedData/types';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import type {PageFilters} from 'sentry/types/core';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {ChartSelectionProvider} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import * as chartVisualization from 'sentry/views/explore/components/chart/chartVisualization';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {BaseVisualize} from 'sentry/views/explore/queryParams/visualize';
-import {
-  parseVisualize,
-  Visualize,
-  VisualizeFunction,
-} from 'sentry/views/explore/queryParams/visualize';
+import {Visualize, VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {ExploreCharts} from 'sentry/views/explore/spans/charts';
 import {canShareChart} from 'sentry/views/explore/spans/sharedChartAggregates';
 import {defaultVisualizes} from 'sentry/views/explore/spans/spansQueryParams';
@@ -36,13 +27,51 @@ import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSor
 jest.mock('echarts-for-react/lib/core', () => {
   return function Chart({
     option,
+    onEvents,
   }: {
-    option: {series: Array<{data?: Array<[number, number]>}>};
+    onEvents: Record<
+      string,
+      (event: Record<string, unknown>, instance: Record<string, unknown>) => void
+    >;
+    option: {
+      series: Array<{data?: Array<{value: [number, number]}>}>;
+      brush?: unknown;
+    };
   }) {
     return (
-      <output aria-label="Chart values">
-        {JSON.stringify(option.series.map(series => series.data))}
-      </output>
+      <div>
+        <output aria-label="Chart values">
+          {JSON.stringify(
+            option.series.map(series => series.data?.map(point => point.value))
+          )}
+        </output>
+        <button
+          onClick={() => {
+            const range = [1729796430000, 1729796730000];
+            if (option.brush) {
+              onEvents.brushend?.(
+                {areas: [{coordRange: range, panelId: 'grid--0'}]},
+                {
+                  getModel: () => ({
+                    getComponent: () => ({
+                      axis: {scale: {getExtent: () => [1729796400000, 1729797000000]}},
+                    }),
+                  }),
+                  convertToPixel: () => 100,
+                  getDom: () => document.body,
+                }
+              );
+            } else {
+              onEvents.datazoom?.(
+                {batch: [{startValue: range[0], endValue: range[1]}]},
+                {}
+              );
+            }
+          }}
+        >
+          Select chart range
+        </button>
+      </div>
     );
   };
 });
@@ -58,6 +87,195 @@ function timeseriesResultFixture(overrides: Partial<SortedTimeSeries> = {}) {
 }
 
 describe('ExploreCharts', () => {
+  describe('range selection', () => {
+    const timeseriesResult = timeseriesResultFixture({
+      data: {
+        'count(span.duration)': [
+          TimeSeriesFixture({
+            yAxis: 'count(span.duration)',
+            values: [{timestamp: 1729796400000, value: 10}],
+          }),
+        ],
+      },
+    });
+
+    function SelectableChart({
+      resultForRange,
+    }: {
+      resultForRange?: (datetime: PageFilters['datetime']) => SortedTimeSeries;
+    }) {
+      const {selection} = usePageFilters();
+      return (
+        <SpansQueryParamsProvider>
+          <ChartSelectionProvider>
+            <ExploreCharts
+              extrapolate
+              query=""
+              timeseriesResult={resultForRange?.(selection.datetime) ?? timeseriesResult}
+              visualizes={defaultVisualizes()}
+              setVisualizes={() => {}}
+              rawSpanCounts={{
+                total: {count: 100, isLoading: false},
+                normal: {count: 100, isLoading: false},
+              }}
+            />
+          </ChartSelectionProvider>
+        </SpansQueryParamsProvider>
+      );
+    }
+
+    beforeEach(() => {
+      PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
+    });
+
+    afterEach(() => {
+      PageFiltersStore.reset();
+    });
+
+    it.each<Record<string, string>>([
+      {mode: 'samples'},
+      {mode: 'samples', table: 'trace'},
+      {mode: 'aggregate'},
+      {mode: 'aggregate', table: 'attribute_breakdowns'},
+    ])('zooms directly for %j', async query => {
+      const {router} = render(<SelectableChart />, {
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/explore/traces/', query},
+        },
+      });
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Select chart range'})
+      );
+
+      expect(router.location.query).toEqual(
+        expect.objectContaining({
+          start: '2024-10-24T19:00:00',
+          end: '2024-10-24T19:06:00',
+        })
+      );
+      expect(screen.queryByText('Compare Attribute Breakdowns')).not.toBeInTheDocument();
+    });
+
+    it('shows a loading state after zooming until the zoomed data arrives', async () => {
+      const pendingResult = timeseriesResultFixture({isPending: true, isLoading: true});
+      const zoomedResult = timeseriesResultFixture({
+        data: {
+          'count(span.duration)': [
+            TimeSeriesFixture({
+              yAxis: 'count(span.duration)',
+              values: [{timestamp: 1729796460000, value: 5}],
+            }),
+          ],
+        },
+      });
+      const {rerender} = render(
+        <SelectableChart
+          resultForRange={datetime => (datetime.start ? pendingResult : timeseriesResult)}
+        />,
+        {
+          initialRouterConfig: {
+            location: {pathname: '/organizations/org-slug/explore/traces/'},
+          },
+        }
+      );
+
+      const unzoomedChart = await screen.findByLabelText('Chart values');
+      await userEvent.click(screen.getByRole('button', {name: 'Select chart range'}));
+
+      expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
+      expect(unzoomedChart).not.toBeInTheDocument();
+
+      rerender(
+        <SelectableChart
+          resultForRange={datetime => (datetime.start ? zoomedResult : timeseriesResult)}
+        />
+      );
+
+      expect(await screen.findByLabelText('Chart values')).toHaveTextContent(
+        '[[[1729796460000,5]]]'
+      );
+    });
+
+    it('shows a loading state when the date selection changes', async () => {
+      PageFiltersStore.onInitializeUrlState(
+        PageFiltersFixture({
+          datetime: {
+            start: '2024-10-24T19:00:00',
+            end: '2024-10-24T19:06:00',
+            period: null,
+            utc: null,
+          },
+        })
+      );
+      const pendingResult = timeseriesResultFixture({isPending: true, isLoading: true});
+      render(
+        <SelectableChart
+          resultForRange={datetime =>
+            datetime.period === '30d' ? pendingResult : timeseriesResult
+          }
+        />,
+        {
+          initialRouterConfig: {
+            location: {pathname: '/organizations/org-slug/explore/traces/'},
+          },
+        }
+      );
+
+      const zoomedChart = await screen.findByLabelText('Chart values');
+
+      act(() => {
+        PageFiltersStore.updateDateTime({
+          period: '30d',
+          start: null,
+          end: null,
+          utc: null,
+        });
+      });
+
+      expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
+      expect(zoomedChart).not.toBeInTheDocument();
+    });
+
+    it('opens the breakdown menu and restores direct zoom when leaving the tab', async () => {
+      const {router} = render(<SelectableChart />, {
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {mode: 'samples', table: 'attribute_breakdowns'},
+          },
+        },
+      });
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Select chart range'})
+      );
+
+      expect(await screen.findByText('Compare Attribute Breakdowns')).toBeInTheDocument();
+      expect(screen.getByText('Zoom in')).toBeInTheDocument();
+      expect(router.location.query.start).toBeUndefined();
+      const breakdownChart = screen.getByLabelText('Chart values');
+
+      act(() => {
+        router.navigate(
+          '/organizations/org-slug/explore/traces/?mode=samples&table=trace'
+        );
+      });
+
+      expect(screen.queryByText('Compare Attribute Breakdowns')).not.toBeInTheDocument();
+      expect(breakdownChart).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Select chart range'}));
+
+      expect(router.location.query).toEqual(
+        expect.objectContaining({
+          start: '2024-10-24T19:00:00',
+          end: '2024-10-24T19:06:00',
+        })
+      );
+    });
+  });
+
   it('plots raw and smoothed values in their respective charts', async () => {
     const result = timeseriesResultFixture({
       data: {
@@ -220,7 +438,9 @@ describe('ExploreCharts', () => {
       const [serialized, setSerialized] = useState<BaseVisualize[]>(initialVisualizes);
       const visualizes = useMemo(
         () =>
-          serialized.flatMap(value => parseVisualize(value, {groupYAxes: canShareChart})),
+          serialized.flatMap(value =>
+            Visualize.fromJSON(value, {groupYAxes: canShareChart})
+          ),
         [serialized]
       );
       const timeseriesResult = useMemo(
@@ -279,7 +499,7 @@ describe('ExploreCharts', () => {
       const addButtons = await screen.findAllByRole('button', {
         name: 'Add Transformation',
       });
-      expect(addButtons).toHaveLength(2);
+      expect(addButtons).toHaveLength(3);
       await userEvent.click(addButtons[0]!);
       await userEvent.click(screen.getByRole('option', {name: 'Smooth'}));
 
@@ -306,11 +526,40 @@ describe('ExploreCharts', () => {
       ]);
 
       await userEvent.click(screen.getAllByRole('button', {name: 'Collapse chart'})[0]!);
-      expect(screen.getAllByRole('button', {name: 'Add Transformation'})).toHaveLength(1);
+      expect(screen.getAllByRole('button', {name: 'Add Transformation'})).toHaveLength(2);
       expect(screen.getAllByRole('group', {name: 'Transformation 1'})).toHaveLength(1);
       await userEvent.click(screen.getByRole('button', {name: 'Expand chart'}));
-      expect(screen.getAllByRole('button', {name: 'Add Transformation'})).toHaveLength(2);
+      expect(screen.getAllByRole('button', {name: 'Add Transformation'})).toHaveLength(3);
       expect(screen.getAllByRole('group', {name: 'Transformation 1'})).toHaveLength(2);
+    });
+
+    it('adds a transformation to an equation chart', async () => {
+      const onSetVisualizes = jest.fn();
+      render(
+        <ControlledExploreCharts
+          initialVisualizes={[
+            {yAxes: ['p50(span.duration)']},
+            {yAxes: ['equation|$a + $b']},
+          ]}
+          onSetVisualizes={onSetVisualizes}
+        />,
+        {
+          organization: OrganizationFixture({
+            features: ['explore-interpolation-and-smoothing'],
+          }),
+        }
+      );
+
+      const addButtons = await screen.findAllByRole('button', {
+        name: 'Add Transformation',
+      });
+      await userEvent.click(addButtons[1]!);
+      await userEvent.click(screen.getByRole('option', {name: 'Smooth'}));
+
+      expect(onSetVisualizes).toHaveBeenLastCalledWith([
+        {yAxes: ['p50(span.duration)']},
+        {yAxes: ['equation|$a + $b'], transformations: ['smooth(sma,3)']},
+      ]);
     });
 
     it('plots aggregates selected together on a single chart', async () => {
@@ -424,14 +673,18 @@ describe('ExploreCharts', () => {
 
     function renderCharts({
       acceptedEvents = [],
+      asyncDelay,
       droppedEvents = [],
       organizationFeatures = features,
       query = '',
+      timeseriesResult = timeseriesResultFixture(),
     }: {
       acceptedEvents?: OutcomeRow[];
+      asyncDelay?: Promise<void>;
       droppedEvents?: OutcomeRow[];
       organizationFeatures?: string[];
       query?: string;
+      timeseriesResult?: SortedTimeSeries;
     }) {
       const request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-dropped/',
@@ -440,6 +693,7 @@ describe('ExploreCharts', () => {
           droppedEvents,
           acceptedEvents,
         },
+        asyncDelay,
       });
 
       render(
@@ -448,7 +702,7 @@ describe('ExploreCharts', () => {
             <ExploreCharts
               extrapolate
               query={query}
-              timeseriesResult={timeseriesResultFixture()}
+              timeseriesResult={timeseriesResult}
               visualizes={defaultVisualizes()}
               setVisualizes={() => {}}
               rawSpanCounts={{
@@ -463,6 +717,39 @@ describe('ExploreCharts', () => {
 
       return request;
     }
+
+    it('waits for the dropped data before drawing the chart', async () => {
+      let resolveDroppedData!: () => void;
+      const asyncDelay = new Promise<void>(resolve => {
+        resolveDroppedData = resolve;
+      });
+      renderCharts({
+        asyncDelay,
+        droppedEvents: [OutcomeRowFixture()],
+        timeseriesResult: timeseriesResultFixture({
+          data: {
+            'count(span.duration)': [
+              TimeSeriesFixture({
+                yAxis: 'count(span.duration)',
+                values: [{timestamp: 1729796400000, value: 10}],
+              }),
+            ],
+          },
+        }),
+      });
+
+      expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Chart values')).not.toBeInTheDocument();
+
+      await act(async () => {
+        resolveDroppedData();
+        await asyncDelay;
+      });
+
+      expect(await screen.findByLabelText('Chart values')).toHaveTextContent(
+        '[[[1729796400000,10]],[[0,0]]]'
+      );
+    });
 
     it('notes that dropped spans ignore the search while the layer is on', async () => {
       renderCharts({droppedEvents: [OutcomeRowFixture()], query: 'span.op:db'});
@@ -497,24 +784,35 @@ describe('ExploreCharts', () => {
       expect(screen.queryByLabelText('Chart layers')).not.toBeInTheDocument();
     });
 
-    it('hides the Layers control when only accepted annotations are present', async () => {
-      const request = renderCharts({
+    it('disables the dropped-data layer when only accepted annotations are present', async () => {
+      renderCharts({
         acceptedEvents: [OutcomeRowFixture({outcome: 'accepted', count: 8000})],
       });
 
-      await waitFor(() => expect(request).toHaveBeenCalled());
-      await act(async () => {});
-      expect(screen.queryByLabelText('Chart layers')).not.toBeInTheDocument();
+      await userEvent.click(await screen.findByLabelText('Chart layers'));
+
+      const option = screen.getByRole('option', {name: 'Dropped Spans'});
+      expect(option).toHaveAttribute('aria-disabled', 'true');
+
+      await userEvent.hover(within(option).getByText('Dropped Spans'));
+      expect(
+        await screen.findByText('No significant dropped spans in this time range')
+      ).toBeInTheDocument();
     });
 
-    it('hides the Layers control when every drop is intentional', async () => {
-      const request = renderCharts({
+    it('disables the dropped-data layer when every drop is intentional', async () => {
+      renderCharts({
         droppedEvents: [OutcomeRowFixture({tags: ['intentional']})],
+        query: 'span.op:db',
       });
 
-      await waitFor(() => expect(request).toHaveBeenCalled());
-      await act(async () => {});
-      expect(screen.queryByLabelText('Chart layers')).not.toBeInTheDocument();
+      await userEvent.click(await screen.findByLabelText('Chart layers'));
+
+      expect(screen.getByRole('option', {name: 'Dropped Spans'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+      expect(screen.queryByText(/are not filtered by/)).not.toBeInTheDocument();
     });
 
     it('shows the Layers control when a drop ratio is below 5%', async () => {

@@ -1,3 +1,5 @@
+from collections.abc import Generator
+
 import pytest
 from cryptography.fernet import Fernet
 
@@ -5,17 +7,17 @@ from sentry.utils.security.encrypted_field_key_store import FernetKeyStore
 
 
 @pytest.fixture
-def fernet_key():
+def fernet_key() -> bytes:
     return Fernet.generate_key()
 
 
 @pytest.fixture
-def fernet_instance(fernet_key):
+def fernet_instance(fernet_key: bytes) -> Fernet:
     return Fernet(fernet_key)
 
 
 @pytest.fixture
-def fernet_keys_store(fernet_key):
+def fernet_keys_store(fernet_key: bytes) -> Generator[tuple[str, bytes]]:
     """Single key for testing. Mocks the FernetKeyStore._keys attribute."""
     key_id = "key_id_1"
     original_keys = FernetKeyStore._keys
@@ -33,7 +35,7 @@ def fernet_keys_store(fernet_key):
 
 
 @pytest.fixture
-def multi_fernet_keys_store():
+def multi_fernet_keys_store() -> Generator[dict[str, bytes]]:
     """Multiple keys for testing key rotation. Mocks the FernetKeyStore._keys attribute."""
     key1 = Fernet.generate_key()
     key2 = Fernet.generate_key()

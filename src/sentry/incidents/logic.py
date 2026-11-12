@@ -156,6 +156,8 @@ EAP_FUNCTIONS = [
     "eps",
     "apdex",
     "user_misery",
+    "performance_score",
+    "opportunity_score",
 ]
 
 
@@ -187,7 +189,8 @@ def get_column_from_aggregate(
 
     function = resolve_field(aggregate)
     if function.aggregate is not None:
-        return function.aggregate[1]
+        metric = function.aggregate[1]
+        return metric
 
     return None
 

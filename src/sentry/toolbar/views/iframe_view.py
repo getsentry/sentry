@@ -13,7 +13,7 @@ from sentry.web.frontend.base import ProjectView, cell_silo_view
 TEMPLATE = "sentry/toolbar/iframe.html"
 
 
-def _get_referrer(request) -> str | None:
+def _get_referrer(request: HttpRequest) -> str | None:
     # 1 R is because of legacy http reasons: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referer
     return request.META.get("HTTP_REFERER")
 
@@ -30,17 +30,37 @@ class IframeView(ProjectView):
     def handle_disabled_member(self, organization: Organization) -> HttpResponse:
         return self._respond_with_state("logged-out")
 
-    def handle_not_2fa_compliant(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+    def handle_not_2fa_compliant(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> HttpResponse:
         return self._respond_with_state("logged-out")
 
-    def handle_auth_required(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+    def handle_auth_required(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> HttpResponse:
         return self._respond_with_state("logged-out")
 
-    def handle_permission_required(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+    def handle_permission_required(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> HttpResponse:
         return self._respond_with_state("missing-project")
 
     def get(
-        self, request: HttpRequest, organization: Organization, project: Project, *args, **kwargs
+        self,
+        request: HttpRequest,
+        organization: Organization,
+        project: Project,
+        *args: Any,
+        **kwargs: Any,
     ) -> HttpResponse:
         referrer = _get_referrer(request) or ""
         allowed_origins: list[str] = project.get_option("sentry:toolbar_allowed_origins")
@@ -50,7 +70,7 @@ class IframeView(ProjectView):
 
         return self._respond_with_state("invalid-domain")
 
-    def _respond_with_state(self, state: str):
+    def _respond_with_state(self, state: str) -> HttpResponse:
         response = self.respond(
             TEMPLATE,
             status=200,  # always return 200 so the html will render inside the iframe

@@ -69,7 +69,7 @@ class MetricAlertPlatformDispatchTest(MetricAlertHandlerBase):
             )
         )
         self.create_models()
-        self.integration, _ = self.create_provider_integration_for(
+        self.integration, self.org_integration = self.create_provider_integration_for(
             provider=IntegrationProviderSlug.SLACK,
             organization=self.organization,
             user=self.user,
@@ -145,6 +145,7 @@ class MetricAlertPlatformDispatchTest(MetricAlertHandlerBase):
         assert thread.object_type == NotificationThreadObjectType.GROUP
         assert thread.object_id == self.event_data.group.id
         assert thread.key_data["group_id"] == self.event_data.group.id
+        assert thread.integration_id == self.integration.id
 
     @mock.patch("sentry.integrations.slack.integration.SlackSdkClient")
     def test_metric_thread_flag_off_posts_top_level(
@@ -229,6 +230,23 @@ class MetricAlertPlatformDispatchTest(MetricAlertHandlerBase):
         assert call_args[1]["extra"]["has_integration"] is True
         assert call_args[1]["extra"]["integration_status"] == 1
 
+    @mock.patch("sentry.integrations.slack.integration.SlackSdkClient")
+    @mock.patch(f"{PLATFORM_DISPATCH_PATH}.logger")
+    def test_skips_disabled_org_integration(
+        self, mock_logger: mock.MagicMock, mock_slack_client: mock.MagicMock
+    ) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.org_integration.update(status=ObjectStatus.DISABLED)
+
+        SlackMetricAlertHandler.invoke_legacy_registry(self.invocation(self.action))
+
+        mock_slack_client.return_value.chat_postMessage.assert_not_called()
+        mock_logger.warning.assert_called_once()
+        call_args = mock_logger.warning.call_args
+        assert call_args[0][0] == "notification_action.platform_dispatch.integration_inactive"
+        assert call_args[1]["extra"]["integration_status"] == ObjectStatus.ACTIVE
+        assert call_args[1]["extra"]["org_integration_status"] == ObjectStatus.DISABLED
+
 
 ISSUE_PLATFORM_OPTIONS = {
     "notifications.platform-rollout.internal-testing": {"issue": 1.0},
@@ -249,7 +267,7 @@ class IssueAlertPlatformDispatchTest(BaseWorkflowTest):
         )
         assert event.group is not None
         self.group = event.group
-        self.event = event.for_group(self.group)
+        self.group_event = event.for_group(self.group)
 
     def create_channel_action(self, action_type: str, provider: str) -> Action:
         integration, _ = self.create_provider_integration_for(
@@ -271,7 +289,7 @@ class IssueAlertPlatformDispatchTest(BaseWorkflowTest):
 
     def invocation(self, action: Action) -> ActionInvocation:
         return ActionInvocation(
-            event_data=WorkflowEventData(event=self.event, group=self.group),
+            event_data=WorkflowEventData(event=self.group_event, group=self.group),
             action=action,
             detector=self.detector,
             notification_uuid=str(uuid.uuid4()),

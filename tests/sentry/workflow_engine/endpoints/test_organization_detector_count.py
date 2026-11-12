@@ -205,7 +205,10 @@ class OrganizationDetectorCountTest(APITestCase):
                 (self.organization, self.project),
             ):
                 with self.subTest(organization=organization.slug):
-                    query = {"project": project.id, "type": MetricIssue.slug}
+                    query: Mapping[str, str | int] = {
+                        "project": project.id,
+                        "type": MetricIssue.slug,
+                    }
                     count_response = self.get_success_response(organization.slug, qs_params=query)
                     list_url = reverse(
                         "sentry-api-0-organization-detector-index", args=[organization.slug]

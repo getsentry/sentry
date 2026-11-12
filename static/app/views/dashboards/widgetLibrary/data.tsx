@@ -4,10 +4,11 @@ import type {Organization} from 'sentry/types/organization';
 import {TOP_N} from 'sentry/utils/discover/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {RAGE_AND_DEAD_CLICKS_WIDGET_TEMPLATE} from 'sentry/views/dashboards/widgetLibrary/rageAndDeadClicksWidget';
-import {SERVER_TREE_WIDGET_TEMPLATE} from 'sentry/views/dashboards/widgetLibrary/serverTreeWidget';
-import type {WidgetTemplate} from 'sentry/views/dashboards/widgetLibrary/types';
-import {SCORE_BREAKDOWN_WHEEL_WIDGET} from 'sentry/views/dashboards/widgetLibrary/webVitalsWidgets';
+
+import {RAGE_AND_DEAD_CLICKS_WIDGET_TEMPLATE} from './rageAndDeadClicksWidget';
+import {SERVER_TREE_WIDGET_TEMPLATE} from './serverTreeWidget';
+import type {WidgetTemplate} from './types';
+import {SCORE_BREAKDOWN_WHEEL_WIDGET} from './webVitalsWidgets';
 
 export const getDefaultWidgets = (organization: Organization) => {
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');

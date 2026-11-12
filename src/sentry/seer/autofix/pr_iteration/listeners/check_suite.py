@@ -18,14 +18,10 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     ResolvedGreenCheckSuite,
     confirm_green_check_suite,
     green_review_side_effects_enabled,
-    resolve_check_suite_flag_gate,
     resolve_green_check_suite,
     should_defer_pr_iteration,
 )
-from sentry.seer.autofix.pr_iteration.constants import (
-    FAILING_CHECK_SUITE_FLAGS,
-    GREEN_CHECK_SUITE_FLAGS,
-)
+from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER_SLUG
 from sentry.seer.autofix.pr_iteration.emit import bootstrap_iteration
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
@@ -135,19 +131,17 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent) -
             attributes={"sentry.op": "function"},
             parent_span=None,
         ):
+            # GitHub Enterprise delivers the same check_suite events; turn it away
+            # before queueing a task. See ``PR_ITERATION_PROVIDER``.
+            if check_suite_event.subscription_event["type"] != PR_ITERATION_PROVIDER_SLUG:
+                return None
+
             if check_suite_event.action != "completed":
                 return None
 
             conclusion = check_suite_event.check_suite["conclusion"]
             is_green = conclusion in GREEN_CONCLUSIONS
             if not is_green and conclusion not in FAILURE_CONCLUSIONS:
-                return None
-
-            # Drop suites nobody behind the installation can act on
-            gate_flags = GREEN_CHECK_SUITE_FLAGS if is_green else FAILING_CHECK_SUITE_FLAGS
-            if not resolve_check_suite_flag_gate(
-                check_suite_event, gate_flags
-            ).flagged_organization_ids:
                 return None
 
             # Lazy: the task module can't load while this listener registers in AppConfig.ready.

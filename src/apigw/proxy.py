@@ -199,7 +199,7 @@ def adapt_response(presp: punkreq.Response) -> Any:
         headers[key].append(val)
     for key, vals in headers.items():
         response.headers[key] = ",".join(vals)
-    response.cookies = {
+    response.cookies = {  # type: ignore[assignment]
         f"_proxied{idx}": ResponseCookieGlue(val) for idx, val in enumerate(cookies)
     }
     return response.stream(presp.iter_raw(CHUNK_SIZE))

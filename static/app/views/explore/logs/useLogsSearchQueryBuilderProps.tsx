@@ -11,7 +11,6 @@ import {
   useTraceItemSearchQueryBuilderProps,
   type TraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {HiddenLogSearchFields} from 'sentry/views/explore/logs/constants';
 import {
   useQueryParamsFields,
   useQueryParamsSearch,
@@ -20,6 +19,8 @@ import {
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {findSuggestedColumns} from 'sentry/views/explore/utils';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
+
+import {HiddenLogSearchFields} from './constants';
 
 export function useLogsSearchQueryBuilderProps({
   attributeQuery,

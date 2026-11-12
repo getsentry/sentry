@@ -6,10 +6,6 @@ import {getNextDirection} from 'sentry/components/tables/getNextSort';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
-  StyledSimpleTableHeader,
-  StyledSimpleTableHeaderCell,
-} from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
-import {
   DEFAULT_METRICS_SAMPLES_TABLE_SOURCE,
   isEmbeddedMetricsSamplesTableSource,
   type MetricsSamplesTableSource,
@@ -23,6 +19,11 @@ import {
   useQueryParamsSortBys,
   useSetQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
+
+import {
+  StyledSimpleTableHeader,
+  StyledSimpleTableHeaderCell,
+} from './metricInfoTabStyles';
 
 interface MetricsSamplesTableHeaderProps {
   columns: SampleTableColumnKey[];

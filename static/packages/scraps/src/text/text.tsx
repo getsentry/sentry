@@ -3,7 +3,8 @@ import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {rc, type Responsive} from '@sentry/scraps/layout';
+import type {Responsive} from '@sentry/scraps/layout';
+import {rc} from '@sentry/scraps/layout/styles';
 import type {ContentVariant, TextSize, Theme} from '@sentry/scraps/theme';
 
 import {getFontSize, getLineHeight, getTextDecoration} from './styles';

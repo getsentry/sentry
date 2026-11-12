@@ -1,5 +1,6 @@
 import re
 from datetime import timedelta
+from typing import Literal
 from urllib.parse import urlsplit
 
 from django.conf import settings
@@ -9,12 +10,18 @@ from django.core import mail
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
+from selenium.common.exceptions import StaleElementReferenceException
+from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.remote.webdriver import WebDriver
+from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.support.wait import WebDriverWait
 
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
+from sentry.testutils.pytest.selenium import WAIT_POLL_SECONDS
 from sentry.testutils.silo import no_silo_test
 from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.users.models.user import User
@@ -224,16 +231,23 @@ class ReactAuthTest(AcceptanceTestCase):
         )
 
     def submit_second_factor(self, code: str) -> None:
-        self.browser.wait_until_script_execution(
-            """
-            return Array.from(document.querySelectorAll('[aria-label="One-time password"]'))
-              .some(input => input.offsetParent !== null);
-            """
-        )
-        inputs = self.browser.elements('[aria-label="One-time password"]')
-        next(input_element for input_element in inputs if input_element.is_displayed()).send_keys(
-            code
-        )
+        # The active method fades in from opacity 0, so an input can have an
+        # offsetParent before Selenium treats it as displayed. Find and check
+        # it in one wait so a fast poll can't catch it mid-animation.
+        def displayed_input(driver: WebDriver) -> WebElement | Literal[False]:
+            for input_element in driver.find_elements(
+                By.CSS_SELECTOR, '[aria-label="One-time password"]'
+            ):
+                try:
+                    if input_element.is_displayed():
+                        return input_element
+                except StaleElementReferenceException:
+                    continue
+            return False
+
+        WebDriverWait(self.browser.driver, 10, poll_frequency=WAIT_POLL_SECONDS).until(
+            displayed_input
+        ).send_keys(code)
 
     def locate_organization_sso(self, organization_slug: str) -> None:
         self.open_login()

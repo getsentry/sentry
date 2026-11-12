@@ -1,9 +1,8 @@
 import {useCallback} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
-import omit from 'lodash/omit';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {ALL_DATE_TIME_QUERY_KEYS} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
@@ -25,14 +24,30 @@ import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/cont
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+const seerQueryParsers = {
+  cursor: parseAsString,
+  end: parseAsString,
+  page: parseAsString,
+  pageEnd: parseAsString,
+  pageStart: parseAsString,
+  pageStatsPeriod: parseAsString,
+  pageUtc: parseAsString,
+  period: parseAsString,
+  project: parseAsStringArray,
+  query: parseAsString,
+  referrer: parseAsString,
+  sort: parseAsString,
+  start: parseAsString,
+  statsPeriod: parseAsString,
+  utc: parseAsString,
+};
 
 export function IssueListSeerComboBox({className}: {className?: string}) {
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [, setQueryParams] = useQueryStates(seerQueryParsers, {history: 'replace'});
   const pageFilters = usePageFilters();
   const {setRunId} = useAiQueryContext();
   const analyticsArea = useAnalyticsArea();
@@ -107,35 +122,34 @@ export function IssueListSeerComboBox({className}: {className?: string}) {
         query: queryToUse,
       });
 
-      const queryParams = {
-        ...omit(location.query, ['page', 'cursor', ...ALL_DATE_TIME_QUERY_KEYS]),
-        ...(expandedProjectIds ? {project: expandedProjectIds.map(String)} : {}),
-        referrer: 'issue-list',
-        query: queryToUse,
-        ...(sort ? {sort} : {}),
-        ...timeParams,
-      };
-
       if (runId !== undefined) {
         setRunId(runId);
       }
 
-      navigate(
-        {
-          pathname: location.pathname,
-          query: queryParams,
-        },
-        {replace: true, preventScrollReset: true}
-      );
+      setQueryParams({
+        cursor: null,
+        page: null,
+        pageEnd: null,
+        pageStart: null,
+        pageStatsPeriod: null,
+        pageUtc: null,
+        period: null,
+        ...(expandedProjectIds ? {project: expandedProjectIds.map(String)} : {}),
+        referrer: 'issue-list',
+        query: queryToUse,
+        ...(sort ? {sort} : {}),
+        start: timeParams.start ?? null,
+        end: timeParams.end ?? null,
+        statsPeriod: timeParams.statsPeriod ?? null,
+        utc: timeParams.utc ?? null,
+      });
     },
     [
       analyticsArea,
       askSeerSuggestedQueryRef,
-      location.pathname,
-      location.query,
-      navigate,
       organization,
       pageFilters.selection.datetime,
+      setQueryParams,
       setRunId,
     ]
   );

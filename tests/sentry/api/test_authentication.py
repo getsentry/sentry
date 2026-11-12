@@ -22,6 +22,7 @@ from sentry.api.authentication import (
     ViewerContextAuthentication,
     compare_service_signature,
 )
+from sentry.auth.principal import acting_user_id
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken, is_system_auth
 from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTokenReplica
@@ -35,10 +36,14 @@ from sentry.models.orgauthtoken import OrgAuthToken, is_org_auth_token_auth
 from sentry.models.projectkey import ProjectKeyStatus
 from sentry.models.relay import Relay
 from sentry.sentry_apps.token_exchange.util import GrantTypes
+from sentry.service_accounts.auth import is_service_account_auth
+from sentry.service_accounts.principal import ServiceAccountPrincipal
+from sentry.service_accounts.tokens import generate_token as generate_service_account_token
 from sentry.silo.base import SiloMode
 from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.requests import drf_request_from_request
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, no_silo_test
@@ -73,19 +78,25 @@ class TestClientIdSecretAuthentication(TestCase):
 
         self.sentry_app = self.create_sentry_app(name="foo", organization=self.org)
 
-        self.api_app = self.sentry_app.application
+        api_app = self.sentry_app.application
+        assert api_app is not None
+        assert api_app.client_secret is not None
+        self.api_app = api_app
+        self.client_secret = api_app.client_secret
 
     def test_authenticate(self) -> None:
         request = _drf_request(
             {
                 "client_id": self.api_app.client_id,
-                "client_secret": self.api_app.client_secret,
+                "client_secret": self.client_secret,
             }
         )
 
-        user, _ = self.auth.authenticate(request)
+        auth_result = self.auth.authenticate(request)
+        assert auth_result is not None
+        user, _ = auth_result
 
-        assert user.id == self.sentry_app.proxy_user.id
+        assert user.id == self.sentry_app.proxy_user_id
 
     def test_without_json_body(self) -> None:
         request = _drf_request()
@@ -94,7 +105,7 @@ class TestClientIdSecretAuthentication(TestCase):
             self.auth.authenticate(request)
 
     def test_missing_client_id(self) -> None:
-        request = _drf_request({"client_secret": self.api_app.client_secret})
+        request = _drf_request({"client_secret": self.client_secret})
 
         with pytest.raises(AuthenticationFailed):
             self.auth.authenticate(request)
@@ -109,7 +120,7 @@ class TestClientIdSecretAuthentication(TestCase):
         request = _drf_request(
             {
                 "client_id": "notit",
-                "client_secret": self.api_app.client_secret,
+                "client_secret": self.client_secret,
             }
         )
 
@@ -139,7 +150,11 @@ class TestJWTClientSecretAuthentication(TestCase):
         self.installation = self.create_sentry_app_installation(
             organization=self.org, slug=self.sentry_app.slug, user=self.user
         )
-        self.api_app = self.sentry_app.application
+        api_app = self.sentry_app.application
+        assert api_app is not None
+        assert api_app.client_secret is not None
+        self.api_app = api_app
+        self.client_secret = api_app.client_secret
 
     def _create_jwt(self, client_id: str, exp: datetime | None = None) -> str:
         """Helper to create a JWT token"""
@@ -153,7 +168,7 @@ class TestJWTClientSecretAuthentication(TestCase):
             "exp": int(exp.timestamp()),  # Expiration
             "jti": str(uuid.uuid4()),  # JWT ID (unique identifier)
         }
-        return jwt.encode(payload, self.api_app.client_secret, algorithm="HS256")
+        return jwt.encode(payload, self.client_secret, algorithm="HS256")
 
     def test_authenticate(self) -> None:
         token = self._create_jwt(self.api_app.client_id)
@@ -161,8 +176,10 @@ class TestJWTClientSecretAuthentication(TestCase):
         request = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=path)
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
 
-        user, _ = self.auth.authenticate(request)
-        assert user.id == self.sentry_app.proxy_user.id
+        auth_result = self.auth.authenticate(request)
+        assert auth_result is not None
+        user, _ = auth_result
+        assert user.id == self.sentry_app.proxy_user_id
 
     def test_missing_installation(self) -> None:
         token = self._create_jwt(self.api_app.client_id)
@@ -201,7 +218,7 @@ class TestJWTClientSecretAuthentication(TestCase):
                 "iat": int(datetime.now(UTC).timestamp()),
                 "jti": str(uuid.uuid4()),
             },
-            self.api_app.client_secret,
+            self.client_secret,
             algorithm="HS256",
         )
         path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
@@ -281,8 +298,10 @@ class TestJWTClientSecretAuthentication(TestCase):
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
 
         # First request should succeed
-        user, _ = self.auth.authenticate(request)
-        assert user.id == self.sentry_app.proxy_user.id
+        auth_result = self.auth.authenticate(request)
+        assert auth_result is not None
+        user, _ = auth_result
+        assert user.id == self.sentry_app.proxy_user_id
 
         # Second request with the same token should fail due to cache
         request2 = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=path)
@@ -307,8 +326,10 @@ class TestJWTClientSecretAuthentication(TestCase):
         path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
         request = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=path)
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
-        user, _ = self.auth.authenticate(request)
-        assert user.id == self.sentry_app.proxy_user.id
+        auth_result = self.auth.authenticate(request)
+        assert auth_result is not None
+        user, _ = auth_result
+        assert user.id == self.sentry_app.proxy_user_id
 
         other_path = f"/api/0/sentry-app-installations/{other_installation.uuid}/authorizations/"
         request2 = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=other_path)
@@ -323,8 +344,10 @@ class TestJWTClientSecretAuthentication(TestCase):
             token = self._create_jwt(self.api_app.client_id, exp=now + timedelta(minutes=4))
             request = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=path)
             request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
-            user, _ = self.auth.authenticate(request)
-            assert user.id == self.sentry_app.proxy_user.id
+            auth_result = self.auth.authenticate(request)
+            assert auth_result is not None
+            user, _ = auth_result
+            assert user.id == self.sentry_app.proxy_user_id
 
         with freeze_time(now + timedelta(minutes=2)):
             request2 = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=path)
@@ -441,6 +464,14 @@ class TestTokenAuthentication(TestCase):
         with pytest.raises(AuthenticationFailed):
             self.auth.authenticate(request)
 
+    def test_skips_service_account_token(self) -> None:
+        token_str = generate_service_account_token("test-org", "https://test-region.sentry.io")
+        request = _drf_request()
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {token_str}"
+
+        assert not self.auth.accepts_auth([b"bearer", token_str.encode()])
+        assert self.auth.authenticate(request) is None
+
     def test_authenticate_bearer_scheme_case_insensitive(self) -> None:
         """
         Allow lowercase 'bearer' scheme for input authorization header.
@@ -550,7 +581,7 @@ class TestOrgScopedAppTokenAuthentication(TestCase):
 
 @django_db_all
 @pytest.mark.parametrize("internal", [True, False])
-def test_registered_relay(internal) -> None:
+def test_registered_relay(internal: bool) -> None:
     sk, pk = generate_key_pair()
     relay_id = str(uuid.uuid4())
 
@@ -583,7 +614,7 @@ def test_registered_relay(internal) -> None:
 
 @django_db_all
 @pytest.mark.parametrize("internal", [True, False])
-def test_statically_configured_relay(internal) -> None:
+def test_statically_configured_relay(internal: bool) -> None:
     sk, pk = generate_key_pair()
     relay_id = str(uuid.uuid4())
 
@@ -628,7 +659,9 @@ class TestRpcSignatureAuthentication(TestCase):
         signature = generate_request_signature(request.path_info, request.body)
         request.META["HTTP_AUTHORIZATION"] = f"rpcsignature {signature}"
 
-        user, token = self.auth.authenticate(request)
+        auth_result = self.auth.authenticate(request)
+        assert auth_result is not None
+        user, token = auth_result
         assert user.is_anonymous
         assert token == signature
 
@@ -642,7 +675,9 @@ class TestRpcSignatureAuthentication(TestCase):
 
         # Update settings so that we have a new key
         with override_settings(RPC_SHARED_SECRET=["a-long-secret-key", "an-old-key"]):
-            user, token = self.auth.authenticate(request)
+            auth_result = self.auth.authenticate(request)
+            assert auth_result is not None
+            user, token = auth_result
 
         assert user.is_anonymous
         assert token == signature
@@ -700,7 +735,9 @@ class TestHmacSignatureAuthentication(TestCase):
         )
         request.META["HTTP_AUTHORIZATION"] = f"rpcsignature {signature}"
 
-        user, token = self.auth.authenticate(request)
+        auth_result = self.auth.authenticate(request)
+        assert auth_result is not None
+        user, token = auth_result
         assert user.is_anonymous
         assert token == signature
 
@@ -717,7 +754,9 @@ class TestHmacSignatureAuthentication(TestCase):
         )
         request.META["HTTP_AUTHORIZATION"] = f"rpcsignature {signature}"
 
-        user, token = self.auth.authenticate(request)
+        auth_result = self.auth.authenticate(request)
+        assert auth_result is not None
+        user, token = auth_result
         assert user.is_anonymous
         assert token == signature
 
@@ -747,7 +786,9 @@ class TestHmacSignatureAuthentication(TestCase):
         request.META["HTTP_AUTHORIZATION"] = f"rpcsignature {custom_signature}"
 
         with override_settings(TEST_SERVICE_RPC_SHARED_SECRET=["test-secret-key"]):
-            user, token = auth.authenticate(request)
+            auth_result = auth.authenticate(request)
+            assert auth_result is not None
+            user, token = auth_result
             assert user.is_anonymous
             assert token == custom_signature
 
@@ -776,7 +817,9 @@ class TestHmacSignatureAuthentication(TestCase):
         )
         request.META["HTTP_AUTHORIZATION"] = f"rpcsignature {signature}"
 
-        user, token = auth.authenticate(request)
+        auth_result = auth.authenticate(request)
+        assert auth_result is not None
+        user, token = auth_result
         assert user.is_anonymous
         assert token == signature
 
@@ -1033,6 +1076,7 @@ class TestAuthTokens(TestCase):
         )
         with assume_test_silo_mode(SiloMode.CONTROL):
             at = app_install.api_token
+        assert at is not None
         with assume_test_silo_mode(SiloMode.CELL):
             atr = ApiTokenReplica.objects.get(apitoken_id=at.id)
 
@@ -1224,6 +1268,75 @@ class TestViewerContextAuthentication(TestCase):
             viewer_context=encode_viewer_context(context, key=self.SHARED_SECRET)
         )
         assert ViewerContextAuthentication().authenticate(request) is None
+
+    @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
+    @with_feature("organizations:service-accounts")
+    def test_service_account_authenticates_as_its_principal(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["project:read", "event:read"]
+        )
+        context = ViewerContext(
+            actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+            organization_id=self.organization.id,
+        )
+        request = self._make_request(
+            viewer_context=encode_viewer_context(context, key=self.SHARED_SECRET)
+        )
+
+        result = ViewerContextAuthentication().authenticate(request)
+
+        assert result is not None
+        user, auth = result
+        assert user == ServiceAccountPrincipal(
+            service_account_id=service_account.id,
+            organization_id=self.organization.id,
+            name=service_account.name,
+        )
+        assert acting_user_id(user) is None
+        assert is_service_account_auth(auth)
+        assert auth.entity_id == service_account.id
+        assert auth.organization_id == self.organization.id
+        assert auth.scopes == ["event:read", "project:read"]
+
+    @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
+    def test_service_account_without_feature_returns_none(self) -> None:
+        service_account = self.create_service_account(organization=self.organization)
+        context = ViewerContext(
+            actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+            organization_id=self.organization.id,
+        )
+        request = self._make_request(
+            viewer_context=encode_viewer_context(context, key=self.SHARED_SECRET)
+        )
+
+        assert ViewerContextAuthentication().authenticate(request) is None
+
+    @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
+    def test_service_account_in_other_org_returns_none(self) -> None:
+        service_account = self.create_service_account(organization=self.create_organization())
+        context = ViewerContext(
+            actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+            organization_id=self.organization.id,
+        )
+        request = self._make_request(
+            viewer_context=encode_viewer_context(context, key=self.SHARED_SECRET)
+        )
+
+        assert ViewerContextAuthentication().authenticate(request) is None
+
+    @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
+    def test_service_account_in_control_silo_without_feature_returns_none(self) -> None:
+        service_account = self.create_service_account(organization=self.organization)
+        context = ViewerContext(
+            actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+            organization_id=self.organization.id,
+        )
+        request = self._make_request(
+            viewer_context=encode_viewer_context(context, key=self.SHARED_SECRET)
+        )
+
+        with assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False):
+            assert ViewerContextAuthentication().authenticate(request) is None
 
     @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
     def test_agent_authenticates_delegate_not_agent_id(self) -> None:

@@ -4,7 +4,7 @@ import {Lexer as MarkedLexer, Marked, marked} from 'marked'; // eslint-disable-l
 import {markedHighlight} from 'marked-highlight';
 import Prism from 'prismjs';
 
-import {loadPrismLanguage} from '@sentry/scraps/code/prism';
+import {loadPrismLanguage} from '@sentry/scraps/codeBlock';
 
 import type {TagToken} from './extensions/tag';
 import {extensions} from './extensions';

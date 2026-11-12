@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {AnsiText} from 'sentry/components/ansiText';
+import {AnsiText} from './ansiText';
 
 function renderSegments(text: string) {
   render(<AnsiText>{text}</AnsiText>);

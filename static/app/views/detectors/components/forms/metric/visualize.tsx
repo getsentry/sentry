@@ -23,12 +23,6 @@ import {
 import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTags} from 'sentry/utils/useTags';
-import {
-  METRIC_DETECTOR_FORM_FIELDS,
-  useMetricDetectorFormField,
-} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
-import {MetricsEquationVisualize} from 'sentry/views/detectors/components/forms/metric/metricsEquationVisualize';
-import {MetricsVisualize} from 'sentry/views/detectors/components/forms/metric/metricsVisualize';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
@@ -38,6 +32,13 @@ import {DEFAULT_VISUALIZATION_FIELD} from 'sentry/views/explore/contexts/pagePar
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {canUseMetricsEquationsInAlerts} from 'sentry/views/explore/metrics/metricsFlags';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {
+  METRIC_DETECTOR_FORM_FIELDS,
+  useMetricDetectorFormField,
+} from './metricFormFields';
+import {MetricsEquationVisualize} from './metricsEquationVisualize';
+import {MetricsVisualize} from './metricsVisualize';
 
 /**
  * Render a tag badge for field types, similar to dashboard widget builder

@@ -1,20 +1,27 @@
 from django.urls import reverse
 
+from sentry import audit_log
 from sentry.constants import ObjectStatus
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.projectrepository import ProjectRepository
 from sentry.models.repository import Repository
 from sentry.seer.models.project_repository import (
     SeerProjectRepository,
     SeerProjectRepositoryBranchOverride,
 )
-from sentry.testutils.cases import APITestCase, APITestCaseMixin, BaseTestCase
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode
 
 
-class ProjectSeerRepoGetTestMixin(BaseTestCase, APITestCaseMixin):
+class ProjectSeerRepoGetBaseTest(APITestCase):
+    __test__ = False
+
     endpoint = "sentry-api-0-project-seer-repo"
 
-    def detail_url(self, repo_id):
+    def detail_url(self, repo_id: int) -> str:
         return reverse(
             self.endpoint,
             kwargs={
@@ -24,7 +31,7 @@ class ProjectSeerRepoGetTestMixin(BaseTestCase, APITestCaseMixin):
             },
         )
 
-    def reverse_url(self):
+    def reverse_url(self) -> str:
         return self.detail_url(self.repo1.id)
 
     def setUp(self) -> None:
@@ -40,7 +47,7 @@ class ProjectSeerRepoGetTestMixin(BaseTestCase, APITestCaseMixin):
             integration_id=self.integration.id,
         )
 
-    def test_get_repo(self):
+    def test_get_repo(self) -> None:
         project_repo = self.create_seer_project_repository(
             self.project, repository=self.repo1, branch_name="main", instructions="hello"
         )
@@ -61,36 +68,38 @@ class ProjectSeerRepoGetTestMixin(BaseTestCase, APITestCaseMixin):
         assert response.data["branchOverrides"][0]["tagValue"] == "production"
         assert response.data["branchOverrides"][0]["branchName"] == "release"
 
-    def test_not_connected_repo_returns_404(self):
+    def test_not_connected_repo_returns_404(self) -> None:
         self.get_error_response(status_code=404)
 
-    def test_inactive_repo_returns_404(self):
+    def test_inactive_repo_returns_404(self) -> None:
         self.create_seer_project_repository(self.project, repository=self.repo1)
         self.repo1.status = ObjectStatus.HIDDEN
         self.repo1.save()
 
         self.get_error_response(status_code=404)
 
-    def test_nonexistent_repo_returns_404(self):
+    def test_nonexistent_repo_returns_404(self) -> None:
         self.repo1.id = 99999  # reverse_url builds the URL from repo1.id; no repo has this ID.
 
         self.get_error_response(status_code=404)
 
-    def test_unsupported_provider_returns_404(self):
+    def test_unsupported_provider_returns_404(self) -> None:
         self.create_seer_project_repository(self.project, repository=self.repo1)
         self.repo1.provider = "integrations:bitbucket"
         self.repo1.save()
 
         self.get_error_response(status_code=404)
 
-    def test_other_project_repo_returns_404(self):
+    def test_other_project_repo_returns_404(self) -> None:
         other_project = self.create_project(organization=self.organization)
         self.create_seer_project_repository(other_project, repository=self.repo1)
 
         self.get_error_response(status_code=404)
 
 
-class ProjectSeerRepoGetSeatBasedBillingTest(ProjectSeerRepoGetTestMixin, APITestCase):
+class ProjectSeerRepoGetSeatBasedBillingTest(ProjectSeerRepoGetBaseTest):
+    __test__ = True
+
     def test_repo_without_seer_config_returns_404(self) -> None:
         self.create_project_repository(project=self.project, repository=self.repo1)
 
@@ -103,7 +112,9 @@ class ProjectSeerRepoGetSeatBasedBillingTest(ProjectSeerRepoGetTestMixin, APITes
         "organizations:token-billed-seer-enabled": True,
     }
 )
-class ProjectSeerRepoGetTokenBasedBillingTest(ProjectSeerRepoGetTestMixin, APITestCase):
+class ProjectSeerRepoGetTokenBasedBillingTest(ProjectSeerRepoGetBaseTest):
+    __test__ = True
+
     def test_repo_without_seer_config(self) -> None:
         project_repo = self.create_project_repository(project=self.project, repository=self.repo1)
 
@@ -122,11 +133,13 @@ class ProjectSeerRepoGetTokenBasedBillingTest(ProjectSeerRepoGetTestMixin, APITe
         self.get_error_response(status_code=404)
 
 
-class ProjectSeerRepoPutTestMixin(BaseTestCase, APITestCaseMixin):
+class ProjectSeerRepoPutBaseTest(APITestCase):
+    __test__ = False
+
     endpoint = "sentry-api-0-project-seer-repo"
     method = "put"
 
-    def reverse_url(self):
+    def reverse_url(self) -> str:
         return reverse(
             self.endpoint,
             kwargs={
@@ -149,19 +162,19 @@ class ProjectSeerRepoPutTestMixin(BaseTestCase, APITestCaseMixin):
             integration_id=self.integration.id,
         )
 
-    def test_update_branch_name(self):
+    def test_update_branch_name(self) -> None:
         self.create_seer_project_repository(self.project, repository=self.repo1, branch_name="main")
 
         response = self.get_success_response(branchName="develop")
         assert response.data["branchName"] == "develop"
 
-    def test_update_instructions(self):
+    def test_update_instructions(self) -> None:
         self.create_seer_project_repository(self.project, repository=self.repo1)
 
         response = self.get_success_response(instructions="new instructions")
         assert response.data["instructions"] == "new instructions"
 
-    def test_update_branch_overrides(self):
+    def test_update_branch_overrides(self) -> None:
         pr = self.create_seer_project_repository(self.project, repository=self.repo1)
         SeerProjectRepositoryBranchOverride.objects.create(
             seer_project_repository=pr,
@@ -187,7 +200,7 @@ class ProjectSeerRepoPutTestMixin(BaseTestCase, APITestCaseMixin):
             == 1
         )
 
-    def test_partial_update_preserves_other_fields(self):
+    def test_partial_update_preserves_other_fields(self) -> None:
         self.create_seer_project_repository(
             self.project, repository=self.repo1, branch_name="main", instructions="original"
         )
@@ -196,7 +209,7 @@ class ProjectSeerRepoPutTestMixin(BaseTestCase, APITestCaseMixin):
         assert response.data["branchName"] == "develop"
         assert response.data["instructions"] == "original"
 
-    def test_partial_update_preserves_branch_overrides(self):
+    def test_partial_update_preserves_branch_overrides(self) -> None:
         project_repo = self.create_seer_project_repository(
             self.project, repository=self.repo1, branch_name="main"
         )
@@ -213,7 +226,7 @@ class ProjectSeerRepoPutTestMixin(BaseTestCase, APITestCaseMixin):
         assert response.data["branchOverrides"][0]["tagName"] == "env"
         assert response.data["branchOverrides"][0]["branchName"] == "release"
 
-    def test_clear_branch_overrides(self):
+    def test_clear_branch_overrides(self) -> None:
         project_repo = self.create_seer_project_repository(self.project, repository=self.repo1)
         SeerProjectRepositoryBranchOverride.objects.create(
             seer_project_repository=project_repo,
@@ -231,41 +244,41 @@ class ProjectSeerRepoPutTestMixin(BaseTestCase, APITestCaseMixin):
             == 0
         )
 
-    def test_set_null_branch_name(self):
+    def test_set_null_branch_name(self) -> None:
         self.create_seer_project_repository(self.project, repository=self.repo1, branch_name="main")
 
         response = self.get_success_response(branchName=None)
         assert response.data["branchName"] is None
 
-    def test_not_connected_returns_404(self):
+    def test_not_connected_returns_404(self) -> None:
         self.get_error_response(branchName="main", status_code=404)
 
-    def test_inactive_repo_returns_404(self):
+    def test_inactive_repo_returns_404(self) -> None:
         self.create_seer_project_repository(self.project, repository=self.repo1)
         self.repo1.status = ObjectStatus.PENDING_DELETION
         self.repo1.save()
 
         self.get_error_response(branchName="develop", status_code=404)
 
-    def test_unsupported_provider_returns_404(self):
+    def test_unsupported_provider_returns_404(self) -> None:
         self.create_seer_project_repository(self.project, repository=self.repo1)
         self.repo1.provider = "integrations:bitbucket"
         self.repo1.save()
 
         self.get_error_response(branchName="develop", status_code=404)
 
-    def test_empty_body_returns_400(self):
+    def test_empty_body_returns_400(self) -> None:
         self.create_seer_project_repository(self.project, repository=self.repo1)
 
         self.get_error_response(status_code=400)
 
-    def test_other_project_repo_returns_404(self):
+    def test_other_project_repo_returns_404(self) -> None:
         other_project = self.create_project(organization=self.organization)
         self.create_seer_project_repository(other_project, repository=self.repo1)
 
         self.get_error_response(branchName="develop", status_code=404)
 
-    def test_duplicate_branch_overrides_returns_400(self):
+    def test_duplicate_branch_overrides_returns_400(self) -> None:
         self.create_seer_project_repository(self.project, repository=self.repo1)
 
         self.get_error_response(
@@ -276,7 +289,7 @@ class ProjectSeerRepoPutTestMixin(BaseTestCase, APITestCaseMixin):
             status_code=400,
         )
 
-    def test_branch_overrides_does_not_bump_date_updated(self):
+    def test_branch_overrides_does_not_bump_date_updated(self) -> None:
         project_repo = self.create_seer_project_repository(
             self.project, repository=self.repo1, branch_name="main"
         )
@@ -292,7 +305,9 @@ class ProjectSeerRepoPutTestMixin(BaseTestCase, APITestCaseMixin):
         assert project_repo.date_updated == original_date_updated
 
 
-class ProjectSeerRepoPutSeatBasedBillingTest(ProjectSeerRepoPutTestMixin, APITestCase):
+class ProjectSeerRepoPutSeatBasedBillingTest(ProjectSeerRepoPutBaseTest):
+    __test__ = True
+
     def test_repo_without_seer_config_returns_404(self) -> None:
         self.create_project_repository(project=self.project, repository=self.repo1)
 
@@ -305,7 +320,9 @@ class ProjectSeerRepoPutSeatBasedBillingTest(ProjectSeerRepoPutTestMixin, APITes
         "organizations:token-billed-seer-enabled": True,
     }
 )
-class ProjectSeerRepoPutTokenBasedBillingTest(ProjectSeerRepoPutTestMixin, APITestCase):
+class ProjectSeerRepoPutTokenBasedBillingTest(ProjectSeerRepoPutBaseTest):
+    __test__ = True
+
     def test_creates_seer_config_for_repo_without_one(self) -> None:
         project_repo = self.create_project_repository(project=self.project, repository=self.repo1)
 
@@ -337,7 +354,7 @@ class ProjectSeerRepoDeleteSeatBasedBillingTest(APITestCase):
     endpoint = "sentry-api-0-project-seer-repo"
     method = "delete"
 
-    def reverse_url(self):
+    def reverse_url(self) -> str:
         return reverse(
             self.endpoint,
             kwargs={
@@ -357,7 +374,7 @@ class ProjectSeerRepoDeleteSeatBasedBillingTest(APITestCase):
             external_id="111",
         )
 
-    def test_delete_repo(self):
+    def test_delete_repo(self) -> None:
         self.create_seer_project_repository(self.project, repository=self.repo1)
 
         self.get_success_response()
@@ -366,7 +383,7 @@ class ProjectSeerRepoDeleteSeatBasedBillingTest(APITestCase):
             project_repository__repository=self.repo1,
         ).exists()
 
-    def test_cascades_branch_overrides(self):
+    def test_cascades_branch_overrides(self) -> None:
         project_repo = self.create_seer_project_repository(self.project, repository=self.repo1)
         SeerProjectRepositoryBranchOverride.objects.create(
             seer_project_repository=project_repo,
@@ -378,24 +395,24 @@ class ProjectSeerRepoDeleteSeatBasedBillingTest(APITestCase):
         self.get_success_response()
         assert SeerProjectRepositoryBranchOverride.objects.count() == 0
 
-    def test_not_connected_repo_returns_404(self):
+    def test_not_connected_repo_returns_404(self) -> None:
         self.get_error_response(status_code=404)
 
-    def test_inactive_repo_returns_404(self):
+    def test_inactive_repo_returns_404(self) -> None:
         self.create_seer_project_repository(self.project, repository=self.repo1)
         self.repo1.status = ObjectStatus.HIDDEN
         self.repo1.save()
 
         self.get_error_response(status_code=404)
 
-    def test_unsupported_provider_returns_404(self):
+    def test_unsupported_provider_returns_404(self) -> None:
         self.create_seer_project_repository(self.project, repository=self.repo1)
         self.repo1.provider = "integrations:bitbucket"
         self.repo1.save()
 
         self.get_error_response(status_code=404)
 
-    def test_other_project_repo_returns_404(self):
+    def test_other_project_repo_returns_404(self) -> None:
         other_project = self.create_project(organization=self.organization)
         self.create_seer_project_repository(other_project, repository=self.repo1)
 
@@ -412,7 +429,7 @@ class ProjectSeerRepoDeleteTokenBasedBillingTest(APITestCase):
     endpoint = "sentry-api-0-project-seer-repo"
     method = "delete"
 
-    def reverse_url(self):
+    def reverse_url(self) -> str:
         return reverse(
             self.endpoint,
             kwargs={
@@ -446,10 +463,12 @@ class ProjectSeerRepoDeleteTokenBasedBillingTest(APITestCase):
         assert SeerProjectRepository.objects.filter(id=seer_project_repo.id).exists()
 
 
-class ProjectSeerReposGetTestMixin(BaseTestCase, APITestCaseMixin):
+class ProjectSeerReposGetBaseTest(APITestCase):
+    __test__ = False
+
     endpoint = "sentry-api-0-project-seer-repos"
 
-    def reverse_url(self):
+    def reverse_url(self) -> str:
         return reverse(
             self.endpoint,
             kwargs={
@@ -478,11 +497,11 @@ class ProjectSeerReposGetTestMixin(BaseTestCase, APITestCaseMixin):
             integration_id=self.integration.id,
         )
 
-    def test_empty(self):
+    def test_empty(self) -> None:
         response = self.get_success_response()
         assert len(response.data) == 0
 
-    def test_returns_connected_repos(self):
+    def test_returns_connected_repos(self) -> None:
         self.create_seer_project_repository(
             self.project,
             repository=self.repo1,
@@ -509,7 +528,7 @@ class ProjectSeerReposGetTestMixin(BaseTestCase, APITestCaseMixin):
         assert project_repo_relay["branchName"] is None
         assert project_repo_relay["instructions"] is None
 
-    def test_gitlab_repo_uses_display_name(self):
+    def test_gitlab_repo_uses_display_name(self) -> None:
         """The settings serializer's owner/name are display-only and must mirror
         repo.name (GitLab's name_with_namespace), the same value the repo picker
         shows. The URL-safe config['path'] is used only when building SCM links
@@ -536,7 +555,7 @@ class ProjectSeerReposGetTestMixin(BaseTestCase, APITestCaseMixin):
         assert repo_data["name"] == " My Project"
         assert f"{repo_data['owner']}/{repo_data['name']}" == gitlab_repo.name
 
-    def test_excludes_inactive_repos(self):
+    def test_excludes_inactive_repos(self) -> None:
         self.create_seer_project_repository(self.project, repository=self.repo1)
         self.repo1.status = ObjectStatus.HIDDEN
         self.repo1.save()
@@ -544,7 +563,7 @@ class ProjectSeerReposGetTestMixin(BaseTestCase, APITestCaseMixin):
         response = self.get_success_response()
         assert len(response.data) == 0
 
-    def test_returns_branch_overrides(self):
+    def test_returns_branch_overrides(self) -> None:
         project_repo = self.create_seer_project_repository(self.project, repository=self.repo1)
         SeerProjectRepositoryBranchOverride.objects.create(
             seer_project_repository=project_repo,
@@ -560,7 +579,7 @@ class ProjectSeerReposGetTestMixin(BaseTestCase, APITestCaseMixin):
         assert branch_overrides["tagValue"] == "production"
         assert branch_overrides["branchName"] == "release"
 
-    def test_search_by_name(self):
+    def test_search_by_name(self) -> None:
         self.create_seer_project_repository(self.project, repository=self.repo1)
         self.create_seer_project_repository(self.project, repository=self.repo2)
 
@@ -568,7 +587,7 @@ class ProjectSeerReposGetTestMixin(BaseTestCase, APITestCaseMixin):
         assert len(response.data) == 1
         assert response.data[0]["name"] == "relay"
 
-    def test_search_by_name_exclude(self):
+    def test_search_by_name_exclude(self) -> None:
         self.create_seer_project_repository(self.project, repository=self.repo1)
         self.create_seer_project_repository(self.project, repository=self.repo2)
 
@@ -576,7 +595,7 @@ class ProjectSeerReposGetTestMixin(BaseTestCase, APITestCaseMixin):
         assert len(response.data) == 1
         assert response.data[0]["name"] == "sentry"
 
-    def test_search_by_provider(self):
+    def test_search_by_provider(self) -> None:
         self.create_seer_project_repository(self.project, repository=self.repo1)
         self.create_seer_project_repository(self.project, repository=self.repo2)
 
@@ -586,7 +605,7 @@ class ProjectSeerReposGetTestMixin(BaseTestCase, APITestCaseMixin):
         response = self.get_success_response(qs_params={"query": "provider:integrations:github"})
         assert len(response.data) == 2
 
-    def test_sort_by_name_ascending(self):
+    def test_sort_by_name_ascending(self) -> None:
         self.create_seer_project_repository(self.project, repository=self.repo1)
         self.create_seer_project_repository(self.project, repository=self.repo2)
 
@@ -594,7 +613,7 @@ class ProjectSeerReposGetTestMixin(BaseTestCase, APITestCaseMixin):
         names = [r["name"] for r in response.data]
         assert names == ["relay", "sentry"]
 
-    def test_sort_by_name_descending(self):
+    def test_sort_by_name_descending(self) -> None:
         self.create_seer_project_repository(self.project, repository=self.repo1)
         self.create_seer_project_repository(self.project, repository=self.repo2)
 
@@ -602,7 +621,7 @@ class ProjectSeerReposGetTestMixin(BaseTestCase, APITestCaseMixin):
         names = [r["name"] for r in response.data]
         assert names == ["sentry", "relay"]
 
-    def test_sort_by_provider(self):
+    def test_sort_by_provider(self) -> None:
         gitlab_repo = self.create_repo(
             project=self.project,
             name="getsentry/other",
@@ -621,14 +640,14 @@ class ProjectSeerReposGetTestMixin(BaseTestCase, APITestCaseMixin):
         providers = [r["provider"] for r in response.data]
         assert providers == sorted(providers, reverse=True)
 
-    def test_invalid_sort_field(self):
+    def test_invalid_sort_field(self) -> None:
         response = self.get_error_response(qs_params={"sortBy": "invalid"}, status_code=400)
         assert "Invalid sortBy" in response.data["detail"]
 
-    def test_invalid_search_query(self):
+    def test_invalid_search_query(self) -> None:
         self.get_error_response(qs_params={"query": "invalid:field:value"}, status_code=400)
 
-    def test_excludes_unsupported_providers(self):
+    def test_excludes_unsupported_providers(self) -> None:
         unsupported_repo = self.create_repo(
             project=self.project,
             name="getsentry/other",
@@ -642,7 +661,7 @@ class ProjectSeerReposGetTestMixin(BaseTestCase, APITestCaseMixin):
         assert len(response.data) == 1
         assert response.data[0]["name"] == "sentry"
 
-    def test_other_project_repo_not_returned(self):
+    def test_other_project_repo_not_returned(self) -> None:
         other_project = self.create_project(organization=self.organization)
         self.create_seer_project_repository(other_project, repository=self.repo1)
 
@@ -650,7 +669,9 @@ class ProjectSeerReposGetTestMixin(BaseTestCase, APITestCaseMixin):
         assert len(response.data) == 0
 
 
-class ProjectSeerReposGetSeatBasedBillingTest(ProjectSeerReposGetTestMixin, APITestCase):
+class ProjectSeerReposGetSeatBasedBillingTest(ProjectSeerReposGetBaseTest):
+    __test__ = True
+
     def test_excludes_repos_without_seer_config(self) -> None:
         self.create_project_repository(project=self.project, repository=self.repo1)
 
@@ -664,7 +685,9 @@ class ProjectSeerReposGetSeatBasedBillingTest(ProjectSeerReposGetTestMixin, APIT
         "organizations:token-billed-seer-enabled": True,
     }
 )
-class ProjectSeerReposGetTokenBasedBillingTest(ProjectSeerReposGetTestMixin, APITestCase):
+class ProjectSeerReposGetTokenBasedBillingTest(ProjectSeerReposGetBaseTest):
+    __test__ = True
+
     def test_includes_repos_without_seer_config(self) -> None:
         project_repo = self.create_project_repository(project=self.project, repository=self.repo1)
         self.create_seer_project_repository(self.project, repository=self.repo2, branch_name="main")
@@ -688,11 +711,13 @@ class ProjectSeerReposGetTokenBasedBillingTest(ProjectSeerReposGetTestMixin, API
         assert len(response.data) == 0
 
 
-class ProjectSeerReposPostTestMixin(BaseTestCase, APITestCaseMixin):
+class ProjectSeerReposPostBaseTest(APITestCase):
+    __test__ = False
+
     endpoint = "sentry-api-0-project-seer-repos"
     method = "post"
 
-    def reverse_url(self):
+    def reverse_url(self) -> str:
         return reverse(
             self.endpoint,
             kwargs={
@@ -721,7 +746,7 @@ class ProjectSeerReposPostTestMixin(BaseTestCase, APITestCaseMixin):
             integration_id=self.integration.id,
         )
 
-    def test_add_repos(self):
+    def test_add_repos(self) -> None:
         self.get_success_response(
             repos=[
                 {
@@ -743,7 +768,7 @@ class ProjectSeerReposPostTestMixin(BaseTestCase, APITestCaseMixin):
         assert by_repo_id[self.repo1.id].instructions == "run tests"
         assert by_repo_id[self.repo2.id].branch_name is None
 
-    def test_add_repos_with_branch_overrides(self):
+    def test_add_repos_with_branch_overrides(self) -> None:
         self.get_success_response(
             repos=[
                 {
@@ -768,15 +793,15 @@ class ProjectSeerReposPostTestMixin(BaseTestCase, APITestCaseMixin):
         assert len(overrides) == 1
         assert overrides[0].branch_name == "release"
 
-    def test_empty_repos_returns_400(self):
+    def test_empty_repos_returns_400(self) -> None:
         response = self.get_error_response(repos=[], status_code=400)
         assert "repos must not be empty" in response.data["detail"]
 
-    def test_invalid_repo_id_returns_400(self):
+    def test_invalid_repo_id_returns_400(self) -> None:
         response = self.get_error_response(repos=[{"repositoryId": 99999}], status_code=400)
         assert "Invalid repository IDs" in response.data["detail"]
 
-    def test_other_org_repo_returns_400(self):
+    def test_other_org_repo_returns_400(self) -> None:
         other_org = self.create_organization(owner=self.user)
         other_repo = Repository.objects.create(
             organization_id=other_org.id, name="other/repo", provider="github", external_id="999"
@@ -784,7 +809,7 @@ class ProjectSeerReposPostTestMixin(BaseTestCase, APITestCaseMixin):
 
         self.get_error_response(repos=[{"repositoryId": other_repo.id}], status_code=400)
 
-    def test_unsupported_provider_returns_400(self):
+    def test_unsupported_provider_returns_400(self) -> None:
         unsupported_repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="getsentry/unsupported",
@@ -794,7 +819,7 @@ class ProjectSeerReposPostTestMixin(BaseTestCase, APITestCaseMixin):
 
         self.get_error_response(repos=[{"repositoryId": unsupported_repo.id}], status_code=400)
 
-    def test_upsert_existing_repo(self):
+    def test_upsert_existing_repo(self) -> None:
         self.create_seer_project_repository(
             self.project, repository=self.repo1, branch_name="old-branch"
         )
@@ -810,13 +835,13 @@ class ProjectSeerReposPostTestMixin(BaseTestCase, APITestCaseMixin):
         )
         assert project_repo.branch_name == "new-branch"
 
-    def test_inactive_repo_returns_400(self):
+    def test_inactive_repo_returns_400(self) -> None:
         self.repo1.status = ObjectStatus.HIDDEN
         self.repo1.save()
 
         self.get_error_response(repos=[{"repositoryId": self.repo1.id}], status_code=400)
 
-    def test_duplicate_branch_override_returns_400(self):
+    def test_duplicate_branch_override_returns_400(self) -> None:
         self.get_error_response(
             repos=[
                 {
@@ -838,10 +863,10 @@ class ProjectSeerReposPostTestMixin(BaseTestCase, APITestCaseMixin):
             status_code=400,
         )
 
-    def test_missing_repository_id_returns_400(self):
+    def test_missing_repository_id_returns_400(self) -> None:
         self.get_error_response(repos=[{"branchName": "main"}], status_code=400)
 
-    def test_duplicate_repository_ids_returns_400(self):
+    def test_duplicate_repository_ids_returns_400(self) -> None:
         self.get_error_response(
             repos=[
                 {"repositoryId": self.repo1.id},
@@ -851,7 +876,9 @@ class ProjectSeerReposPostTestMixin(BaseTestCase, APITestCaseMixin):
         )
 
 
-class ProjectSeerReposPostSeatBasedBillingTest(ProjectSeerReposPostTestMixin, APITestCase):
+class ProjectSeerReposPostSeatBasedBillingTest(ProjectSeerReposPostBaseTest):
+    __test__ = True
+
     def test_repo_without_integration_is_accepted(self) -> None:
         self.repo1.integration_id = None
         self.repo1.save()
@@ -865,7 +892,9 @@ class ProjectSeerReposPostSeatBasedBillingTest(ProjectSeerReposPostTestMixin, AP
         "organizations:token-billed-seer-enabled": True,
     }
 )
-class ProjectSeerReposPostTokenBasedBillingTest(ProjectSeerReposPostTestMixin, APITestCase):
+class ProjectSeerReposPostTokenBasedBillingTest(ProjectSeerReposPostBaseTest):
+    __test__ = True
+
     def test_repo_without_integration_returns_400(self) -> None:
         self.repo1.integration_id = None
         self.repo1.save()
@@ -878,7 +907,7 @@ class ProjectSeerReposPutTest(APITestCase):
     endpoint = "sentry-api-0-project-seer-repos"
     method = "put"
 
-    def reverse_url(self):
+    def reverse_url(self) -> str:
         return reverse(
             self.endpoint,
             kwargs={
@@ -903,7 +932,7 @@ class ProjectSeerReposPutTest(APITestCase):
             external_id="222",
         )
 
-    def test_replace_all_repos(self):
+    def test_replace_all_repos(self) -> None:
         self.create_seer_project_repository(self.project, repository=self.repo1)
 
         self.get_success_response(
@@ -921,20 +950,143 @@ class ProjectSeerReposPutTest(APITestCase):
         )
         assert new_repo.branch_name == "develop"
 
-    def test_replace_with_empty_clears_all(self):
+    def test_put_creates_audit_log_entry(self) -> None:
+        repos = [
+            {
+                "repositoryId": self.repo1.id,
+                "branchName": "main",
+                "instructions": "run tests",
+                "branchOverrides": [
+                    {"tagName": "environment", "tagValue": "production", "branchName": "release"}
+                ],
+            }
+        ]
+
+        with outbox_runner():
+            self.get_success_response(repos=repos, status_code=204)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            entry = AuditLogEntry.objects.get(
+                organization_id=self.organization.id,
+                event=audit_log.get_event_id("SEER_PROJECT_REPOSITORIES_REPLACE"),
+            )
+            assert entry.actor_id == self.user.id
+            assert entry.target_object == self.project.id
+            assert entry.data == {
+                "project_id": self.project.id,
+                "project_slug": self.project.slug,
+                "repos": [
+                    {
+                        "repository_id": self.repo1.id,
+                        "branch_name": "main",
+                        "instructions": "run tests",
+                        "branch_overrides": [
+                            {
+                                "tag_name": "environment",
+                                "tag_value": "production",
+                                "branch_name": "release",
+                            }
+                        ],
+                    }
+                ],
+            }
+            assert audit_log.get(entry.event).render(entry) == (
+                f"replaced active Seer repository configurations for project {self.project.slug}"
+            )
+
+    def test_invalid_put_does_not_create_audit_log_entry(self) -> None:
+        with outbox_runner():
+            self.get_error_response(repos=[{"repositoryId": 99999}], status_code=400)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert not AuditLogEntry.objects.filter(
+                organization_id=self.organization.id,
+                event=audit_log.get_event_id("SEER_PROJECT_REPOSITORIES_REPLACE"),
+            ).exists()
+
+    def test_replace_with_empty_clears_all(self) -> None:
         self.create_seer_project_repository(self.project, repository=self.repo1)
         self.create_seer_project_repository(self.project, repository=self.repo2)
 
-        self.get_success_response(repos=[], status_code=204)
+        with outbox_runner():
+            self.get_success_response(repos=[], status_code=204)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            entry = AuditLogEntry.objects.get(
+                organization_id=self.organization.id,
+                event=audit_log.get_event_id("SEER_PROJECT_REPOSITORIES_REPLACE"),
+            )
+            assert entry.data["repos"] == []
+
         assert (
             SeerProjectRepository.objects.filter(project_repository__project=self.project).count()
             == 0
         )
 
-    def test_replace_invalid_repo_returns_400(self):
+    @with_feature(
+        {
+            "organizations:seer-token-based-billing-onboarding": True,
+            "organizations:token-billed-seer-enabled": True,
+        }
+    )
+    def test_token_based_billing_keeps_config_of_repos_left_out(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+        Repository.objects.filter(id__in=[self.repo1.id, self.repo2.id]).update(
+            integration_id=integration.id
+        )
+        self.create_seer_project_repository(
+            self.project, repository=self.repo1, branch_name="release"
+        )
+
+        with outbox_runner():
+            self.get_success_response(
+                repos=[{"repositoryId": self.repo2.id, "branchName": "develop"}],
+                status_code=204,
+            )
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert AuditLogEntry.objects.filter(
+                organization_id=self.organization.id,
+                event=audit_log.get_event_id("SEER_PROJECT_REPOSITORIES_UPDATE"),
+            ).exists()
+            assert not AuditLogEntry.objects.filter(
+                organization_id=self.organization.id,
+                event=audit_log.get_event_id("SEER_PROJECT_REPOSITORIES_REPLACE"),
+            ).exists()
+
+        kept_repo = SeerProjectRepository.objects.get(
+            project_repository__project=self.project,
+            project_repository__repository=self.repo1,
+        )
+        assert kept_repo.branch_name == "release"
+        new_repo = SeerProjectRepository.objects.get(
+            project_repository__project=self.project,
+            project_repository__repository=self.repo2,
+        )
+        assert new_repo.branch_name == "develop"
+
+    @with_feature(
+        {
+            "organizations:seer-token-based-billing-onboarding": True,
+            "organizations:token-billed-seer-enabled": True,
+        }
+    )
+    def test_token_based_billing_empty_list_keeps_config(self) -> None:
+        self.create_seer_project_repository(self.project, repository=self.repo1)
+
+        self.get_success_response(repos=[], status_code=204)
+
+        assert SeerProjectRepository.objects.filter(
+            project_repository__project=self.project,
+            project_repository__repository=self.repo1,
+        ).exists()
+
+    def test_replace_invalid_repo_returns_400(self) -> None:
         self.get_error_response(repos=[{"repositoryId": 99999}], status_code=400)
 
-    def test_replace_with_branch_overrides(self):
+    def test_replace_with_branch_overrides(self) -> None:
         self.get_success_response(
             repos=[
                 {
@@ -957,7 +1109,7 @@ class ProjectSeerReposPutTest(APITestCase):
         )
         assert project_repo.branch_overrides.count() == 1
 
-    def test_replace_unsupported_provider_returns_400(self):
+    def test_replace_unsupported_provider_returns_400(self) -> None:
         unsupported_repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="getsentry/unsupported",
@@ -967,7 +1119,7 @@ class ProjectSeerReposPutTest(APITestCase):
 
         self.get_error_response(repos=[{"repositoryId": unsupported_repo.id}], status_code=400)
 
-    def test_other_org_repo_returns_400(self):
+    def test_other_org_repo_returns_400(self) -> None:
         other_org = self.create_organization(owner=self.user)
         other_repo = Repository.objects.create(
             organization_id=other_org.id, name="other/repo", provider="github", external_id="999"

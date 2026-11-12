@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any
-
-from rest_framework.response import Response
 
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity
@@ -42,7 +40,7 @@ def create_link(
     integration: RpcIntegration,
     installation: IntegrationInstallation,
     event: GroupEvent,
-    response: Response,
+    response: Mapping[str, Any],
 ) -> None:
     """
     After creating the event on a third-party service, create a link to the

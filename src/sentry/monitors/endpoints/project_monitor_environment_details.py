@@ -15,6 +15,8 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
+from sentry.models.project import Project
+from sentry.monitors.models import Monitor, MonitorEnvironment
 from sentry.monitors.serializers import MonitorSerializer
 
 from .base import ProjectMonitorEnvironmentEndpoint
@@ -48,7 +50,13 @@ class ProjectMonitorEnvironmentDetailsEndpoint(
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def put(self, request: Request, project, monitor, monitor_environment) -> Response:
+    def put(
+        self,
+        request: Request,
+        project: Project,
+        monitor: Monitor,
+        monitor_environment: MonitorEnvironment,
+    ) -> Response:
         """
         Update a monitor environment.
         """
@@ -69,5 +77,11 @@ class ProjectMonitorEnvironmentDetailsEndpoint(
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, project, monitor, monitor_environment) -> Response:
+    def delete(
+        self,
+        request: Request,
+        project: Project,
+        monitor: Monitor,
+        monitor_environment: MonitorEnvironment,
+    ) -> Response:
         return self.delete_monitor_environment(request, project, monitor, monitor_environment)

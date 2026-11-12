@@ -24,13 +24,13 @@ import {
   issueAndEventToMarkdown,
   useActiveThreadId,
 } from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
-import {
-  PullRequestButtons,
-  useIssuePreviewPullRequests,
-} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewPullRequests';
 import {useInvalidateInboxQueries} from 'sentry/views/issueList/pages/inbox/useInvalidateInboxQueries';
 
 import {getCodingAgentLinks, type LocalCodingAgent} from './codingAgentLinks';
+import {
+  PullRequestButtons,
+  useIssuePreviewPullRequests,
+} from './issuePreviewPullRequests';
 import {getIssueSummaryText, type IssueSummary} from './issuePreviewSummary';
 
 interface CopyAsMarkdownDropdownProps {
@@ -205,7 +205,6 @@ export function IssuePreviewActions({
       <GroupActions
         group={group}
         project={project}
-        disabled={disabled}
         event={null}
         onUpdateSuccess={invalidateInboxQueries}
         resolveVariant="secondary"

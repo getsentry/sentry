@@ -19,19 +19,6 @@ import {capitalize} from 'sentry/utils/string/capitalize';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {SpanDetailCard} from 'sentry/views/explore/conversations/components/conversationLayout';
-import {EvaluationTab} from 'sentry/views/explore/conversations/components/evaluationSpanTab';
-import {ExtractionTab} from 'sentry/views/explore/conversations/components/extractionSpanTab';
-import {
-  MemoryInputTab,
-  MemoryOutputTab,
-} from 'sentry/views/explore/conversations/components/memorySpanTabs';
-import {
-  EmptySpanTab,
-  SPAN_TAB_JSON_AUTO_COLLAPSE_LIMIT,
-  SPAN_TAB_JSON_MAX_DEFAULT_DEPTH,
-  SpanTabContent,
-} from 'sentry/views/explore/conversations/components/spanTabContent';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getNodeTimeBounds} from 'sentry/views/insights/pages/agents/components/aiSpanList';
@@ -74,6 +61,17 @@ import {AttributesContent} from 'sentry/views/performance/traceDetails/traceDraw
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
 import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
 import {traceGridCssVariables} from 'sentry/views/performance/traceDetails/traceWaterfallStyles';
+
+import {SpanDetailCard} from './conversationLayout';
+import {EvaluationTab} from './evaluationSpanTab';
+import {ExtractionTab} from './extractionSpanTab';
+import {MemoryInputTab, MemoryOutputTab} from './memorySpanTabs';
+import {
+  EmptySpanTab,
+  SPAN_TAB_JSON_AUTO_COLLAPSE_LIMIT,
+  SPAN_TAB_JSON_MAX_DEFAULT_DEPTH,
+  SpanTabContent,
+} from './spanTabContent';
 
 const AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH = 100;
 

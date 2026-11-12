@@ -23,7 +23,8 @@ import {defined} from 'sentry/utils/defined';
 import {useMembers} from 'sentry/utils/members/useMembers';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useUser} from 'sentry/utils/useUser';
-import {OwnershipOwnerFilter} from 'sentry/views/settings/project/projectOwnership/ownershipOwnerFilter';
+
+import {OwnershipOwnerFilter} from './ownershipOwnerFilter';
 
 const OWNERSHIP_COLUMNS: TableColumnConfig[] = [
   {key: 'type', width: 'min-content'},

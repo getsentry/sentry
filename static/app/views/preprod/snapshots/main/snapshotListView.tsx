@@ -11,13 +11,13 @@ import {
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {matchesHotkey} from '@sentry/scraps/hotkey';
+import {matchesKeyboardEvent} from '@sentry/scraps/hotkey';
 import {Container, Flex} from '@sentry/scraps/layout';
+import {isModalOpen} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
 
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {t} from 'sentry/locale';
-import {ModalStore} from 'sentry/stores/modalStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -745,7 +745,7 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
       ) {
         return;
       }
-      if (typeof ModalStore.getState().renderer === 'function') {
+      if (isModalOpen()) {
         return;
       }
       const tag = (e.target as HTMLElement)?.tagName;
@@ -874,7 +874,7 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
   } as React.CSSProperties;
 
   const handleListKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.repeat || !matchesHotkey(TOGGLE_VIEWED_HOTKEY, e.nativeEvent)) {
+    if (e.repeat || !matchesKeyboardEvent(e.nativeEvent, TOGGLE_VIEWED_HOTKEY)) {
       return;
     }
     const rowIdx = selectedSnapshotKey

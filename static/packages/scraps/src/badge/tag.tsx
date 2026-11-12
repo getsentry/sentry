@@ -7,7 +7,6 @@ import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
 import {Button} from '@sentry/scraps/button';
 import type {TagVariant} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
-import {unreachable} from '@sentry/scraps/unreachable';
 
 export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
   variant: TagVariant;
@@ -109,7 +108,7 @@ function makeTagPillTheme(type: TagVariant, theme: Theme): React.CSSProperties {
         background: theme.tokens.background.transparent.success.muted,
       };
     default:
-      unreachable(type);
+      (type) satisfies never;
       throw new TypeError(`Unsupported badge type: ${type}`);
   }
 }

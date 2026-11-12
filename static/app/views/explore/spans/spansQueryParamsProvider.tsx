@@ -1,14 +1,13 @@
 import {useCallback, type ReactNode} from 'react';
-import type {Location} from 'history';
 
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {ExploreLocationQueryParamsProvider} from 'sentry/views/explore/exploreLocationQueryParamsProvider';
-import {hasMultiAggregateCharts} from 'sentry/views/explore/spans/sharedChartAggregates';
+import {ExploreQueryParamsProvider} from 'sentry/views/explore/exploreQueryParamsProvider';
+
 import {
-  getReadableQueryParamsFromLocation,
-  getTargetWithReadableQueryParams,
-  isDefaultFields,
-} from 'sentry/views/explore/spans/spansQueryParams';
+  getReadableSpansQueryParams,
+  getSpansQueryParamsUpdates,
+  isDefaultSpansFields,
+  SPANS_QUERY_PARSERS,
+} from './spansQueryParams';
 
 interface SpansQueryParamsProviderProps {
   children: ReactNode;
@@ -19,23 +18,20 @@ export function SpansQueryParamsProvider({
   children,
   fields,
 }: SpansQueryParamsProviderProps) {
-  const organization = useOrganization({allowNull: true});
-  const multiAggregateCharts = organization
-    ? hasMultiAggregateCharts(organization)
-    : false;
-  const getQueryParams = useCallback(
-    (location: Location) =>
-      getReadableQueryParamsFromLocation(location, fields, {multiAggregateCharts}),
-    [fields, multiAggregateCharts]
+  const getReadableQueryParams = useCallback(
+    (values: Parameters<typeof getReadableSpansQueryParams>[0]) =>
+      getReadableSpansQueryParams(values, fields),
+    [fields]
   );
 
   return (
-    <ExploreLocationQueryParamsProvider
-      getReadableQueryParamsFromLocation={getQueryParams}
-      getTargetWithReadableQueryParams={getTargetWithReadableQueryParams}
-      isDefaultFields={isDefaultFields}
+    <ExploreQueryParamsProvider
+      getQueryParamsUpdates={getSpansQueryParamsUpdates}
+      getReadableQueryParams={getReadableQueryParams}
+      isDefaultFields={isDefaultSpansFields}
+      parsers={SPANS_QUERY_PARSERS}
     >
       {children}
-    </ExploreLocationQueryParamsProvider>
+    </ExploreQueryParamsProvider>
   );
 }

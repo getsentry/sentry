@@ -23,13 +23,14 @@ import {
   type RawFeedback,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {AvatarUser, User} from 'sentry/types/user';
 import {defined} from 'sentry/utils/defined';
 import {userDisplayName} from 'sentry/utils/formatters';
+
+import {ArtifactDetails} from './artifactDetails';
 
 const AVATAR_SIZE = 24;
 const SOURCE_BADGE_SIZE = 14;
@@ -177,16 +178,17 @@ function parseFeedback(raw: string): ParsedFeedback[] {
  * PR iterations are folded into the section's blocks. Each drove one iteration;
  * the cumulative diff is already merged into the section's code-change artifact
  * by `getOrderedAutofixSections`, so here we only surface the feedback text.
- * Feedback on a block at/after the current step marker drives the iteration
- * still running (when the section is processing). Only the latest iteration can
- * use the run's current push error; earlier feedback keeps its processed state.
+ * The iteration at the current step marker is the one still running (when the
+ * section is processing). Only that iteration can use the run's current push
+ * error; earlier feedback keeps its processed state. A retry runs another turn
+ * of the same iteration and carries its feedback again, so each iteration's
+ * feedback is shown once.
  * Feedback submitted mid-run that hasn't been folded into a block yet is
  * appended as `queued`. The list is returned newest-first.
  */
 export function usePrIterationFeedback(
   section: AutofixSection,
-  autofix: ReturnType<typeof useExplorerAutofix>,
-  enabled: boolean
+  autofix: ReturnType<typeof useExplorerAutofix>
 ): {feedback: IterationFeedback[]; latestIterationIndex: number | null} {
   const currentStepStart = useMemo(
     () => section.blocks.findLastIndex(block => defined(block.message.metadata?.step)),
@@ -194,10 +196,6 @@ export function usePrIterationFeedback(
   );
 
   const blockFeedback = useMemo<IterationFeedback[]>(() => {
-    if (!enabled) {
-      return [];
-    }
-
     const repoStates = Object.values(autofix.runState?.repo_pr_states ?? {});
     const pushErrors = repoStates.filter(repo => repo.pr_creation_status === 'error');
     const errorCode = pushErrors.find(
@@ -209,7 +207,14 @@ export function usePrIterationFeedback(
       autofix.runState?.status === 'awaiting_user_input' ||
       repoStates.some(repo => repo.pr_creation_status === 'creating');
 
-    return section.blocks.flatMap((block, blockIndex) => {
+    const currentStep = section.blocks[currentStepStart];
+    const currentIterationIndex =
+      currentStep && isPrIterationBlock(currentStep)
+        ? currentStep.message.metadata?.iteration_index
+        : undefined;
+    const seenIterations = new Set<number>();
+
+    return section.blocks.flatMap(block => {
       if (!isPrIterationBlock(block)) {
         return [];
       }
@@ -222,8 +227,16 @@ export function usePrIterationFeedback(
         return [];
       }
 
+      if (seenIterations.has(Number(iterationIndex))) {
+        return [];
+      }
+      seenIterations.add(Number(iterationIndex));
+
       let status: FeedbackStatus = 'processed';
-      if (blockIndex >= currentStepStart) {
+      if (
+        currentIterationIndex !== undefined &&
+        Number(iterationIndex) === Number(currentIterationIndex)
+      ) {
         if (inProgress) {
           status = 'in_progress';
         } else if (section.status === 'error' || pushErrors.length > 0) {
@@ -238,7 +251,7 @@ export function usePrIterationFeedback(
         errorCode: status === 'error' ? errorCode : undefined,
       }));
     });
-  }, [section.blocks, section.status, autofix.runState, currentStepStart, enabled]);
+  }, [section.blocks, section.status, autofix.runState, currentStepStart]);
 
   const latestIterationIndex = useMemo(
     () =>
@@ -251,10 +264,6 @@ export function usePrIterationFeedback(
   );
 
   const queuedFeedback = useMemo<IterationFeedback[]>(() => {
-    if (!enabled) {
-      return [];
-    }
-
     return (autofix.runState?.queued_feedback ?? []).flatMap(raw => {
       const parsed = parseFeedbackItem(raw);
       if (!parsed) {
@@ -269,7 +278,7 @@ export function usePrIterationFeedback(
         },
       ];
     });
-  }, [autofix.runState?.queued_feedback, latestIterationIndex, enabled]);
+  }, [autofix.runState?.queued_feedback, latestIterationIndex]);
 
   const feedback = useMemo(
     () => [...blockFeedback, ...queuedFeedback].reverse(),

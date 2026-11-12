@@ -8,7 +8,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EventView} from 'sentry/utils/discover/eventView';
-import {SampledEventsTable} from 'sentry/views/performance/transactionSummary/transactionEvents/eapSampledEventsTable';
+
+import {SampledEventsTable} from './eapSampledEventsTable';
 
 describe('EAP SampledEventsTable', () => {
   const project = ProjectFixture({id: '1', platform: 'javascript'});

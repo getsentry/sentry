@@ -8,6 +8,7 @@ import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -18,9 +19,8 @@ import {
 } from '@sentry/scraps/markdown';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {Duration} from 'sentry/components/duration';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {ChartContent} from 'sentry/components/seer/markdown/embeds/components/chart';
@@ -37,7 +37,6 @@ import {
   useResumeInvestigationExecutionMutation,
   useStopInvestigationExecutionMutation,
 } from 'sentry/views/investigations/api';
-import {InvestigationBlockPlaceholder} from 'sentry/views/investigations/detail/blockPlaceholder';
 import {
   getBlockLLMContext,
   getInvestigationReference,
@@ -60,6 +59,8 @@ import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import type {Block} from 'sentry/views/seerExplorer/types';
+
+import {InvestigationBlockPlaceholder} from './blockPlaceholder';
 
 type InvestigationNotebookBlockProps = {
   block: InvestigationBlock;
@@ -98,7 +99,7 @@ function InvestigationNotebookBlockInner({
   const blockLLMContext = getBlockLLMContext(block);
   useLLMContext(blockLLMContext);
   const askSeer = useInvestigationAskSeer();
-  const progressState = getBlockProgressState(block, investigation.blocks ?? []);
+  const progressState = getBlockProgressState(block);
   const executionId = block.currentExecution?.id;
   const streamedTextQuery = useQuery({
     ...investigationExecutionDetailQueryOptions({
@@ -119,7 +120,7 @@ function InvestigationNotebookBlockInner({
   const deleteMutation = useDeleteInvestigationBlockMutation(
     organizationSlug,
     investigation.id,
-    {onError: () => addErrorMessage(t('Unable to delete this block.'))}
+    {onError: () => toast.error(t('Unable to delete this block.'))}
   );
 
   useEffect(() => {
@@ -165,12 +166,6 @@ function InvestigationNotebookBlockInner({
     : undefined;
 
   const actionItems: MenuItemProps[] = [
-    {
-      key: 'comment',
-      label: t('Comment'),
-      hidden: !onComment,
-      onAction: () => onComment?.(block.id),
-    },
     {
       key: 'ask-seer',
       label: t('Ask Seer'),
@@ -531,14 +526,7 @@ function QueryResult({
   );
 }
 
-type BlockProgressState =
-  | 'running'
-  | 'waiting'
-  | 'failed'
-  | 'cancelled'
-  | 'blockedByFailure'
-  | 'blockedByCancellation'
-  | null;
+type BlockProgressState = 'running' | 'failed' | 'cancelled' | null;
 
 function hasExecutionAlert(block: InvestigationBlock): boolean {
   const status = block.currentExecution?.status;
@@ -565,33 +553,21 @@ function BlockProgress({state}: {state: BlockProgressState}) {
   if (!state) {
     return <Text variant="muted">{t('This block has no output yet.')}</Text>;
   }
-  let message = t('Cancelled because a previous block failed.');
+  let message = t('This block run was cancelled.');
   if (state === 'running') {
     message = t('Seer is working on this block…');
-  } else if (state === 'waiting') {
-    message = t('Waiting for previous blocks…');
   } else if (state === 'failed') {
     message = t('This block failed to run.');
-  } else if (state === 'cancelled') {
-    message = t('This block run was cancelled.');
-  } else if (state === 'blockedByCancellation') {
-    message = t('Waiting because a previous block was cancelled.');
   }
   return (
     <Flex align="center" gap="xs" data-test-id={`block-progress-${state}`}>
-      <IconSeer
-        size="xs"
-        animation={['running', 'waiting'].includes(state) ? 'idle' : undefined}
-      />
+      <IconSeer size="xs" animation={state === 'running' ? 'idle' : undefined} />
       <Text variant="muted">{message}</Text>
     </Flex>
   );
 }
 
-function getBlockProgressState(
-  block: InvestigationBlock,
-  blocks: InvestigationBlock[]
-): BlockProgressState {
+function getBlockProgressState(block: InvestigationBlock): BlockProgressState {
   if (isExecutionActive(block.currentExecution?.status)) {
     return 'running';
   }
@@ -601,20 +577,7 @@ function getBlockProgressState(
   if (block.currentExecution?.status === 'cancelled') {
     return 'cancelled';
   }
-  if (
-    block.currentExecution ||
-    block.config.autoRun !== true ||
-    block.dependencies.length === 0
-  ) {
-    return null;
-  }
-  if (hasFailedDependency(block, blocks)) {
-    return 'blockedByFailure';
-  }
-  if (hasCancelledDependency(block, blocks)) {
-    return 'blockedByCancellation';
-  }
-  return 'waiting';
+  return null;
 }
 
 export function shouldDisplayInvestigationBlock(block: InvestigationBlock) {
@@ -638,70 +601,9 @@ export function shouldDisplayInvestigationBlock(block: InvestigationBlock) {
 }
 
 export function shouldPollInvestigationBlocks(blocks: InvestigationBlock[]) {
-  return blocks.some(
-    block =>
-      isExecutionActive(block.outputStatus) ||
-      getBlockProgressState(block, blocks) === 'waiting'
-  );
+  return blocks.some(block => isExecutionActive(block.outputStatus));
 }
 
-function isInvestigationFailureExecution(
-  execution: InvestigationBlock['currentExecution']
-) {
-  return (
-    execution?.status === 'failed' ||
-    (execution?.status === 'cancelled' &&
-      execution.error?.code === 'investigation_execution_failed')
-  );
-}
-
-function hasFailedDependency(
-  block: InvestigationBlock,
-  blocks: InvestigationBlock[],
-  visited = new Set<string>()
-): boolean {
-  for (const dependencyId of block.dependencies) {
-    if (visited.has(dependencyId)) {
-      continue;
-    }
-    visited.add(dependencyId);
-    const dependency = blocks.find(candidate => candidate.id === dependencyId);
-    if (!dependency) {
-      continue;
-    }
-    if (isInvestigationFailureExecution(dependency.currentExecution)) {
-      return true;
-    }
-    if (hasFailedDependency(dependency, blocks, visited)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-function hasCancelledDependency(
-  block: InvestigationBlock,
-  blocks: InvestigationBlock[],
-  visited = new Set<string>()
-): boolean {
-  for (const dependencyId of block.dependencies) {
-    if (visited.has(dependencyId)) {
-      continue;
-    }
-    visited.add(dependencyId);
-    const dependency = blocks.find(candidate => candidate.id === dependencyId);
-    if (!dependency) {
-      continue;
-    }
-    if (dependency.currentExecution?.status === 'cancelled') {
-      return true;
-    }
-    if (hasCancelledDependency(dependency, blocks, visited)) {
-      return true;
-    }
-  }
-  return false;
-}
 /**
  * A query's results arrive as a Markdown table but render through
  * `SimpleTable`, the same table the query embeds use, so the two can't drift
@@ -776,13 +678,13 @@ function AgentActivityPanel({
     organizationSlug,
     investigation.id,
     {
-      onError: () => addErrorMessage(t('Unable to stop this Seer run.')),
+      onError: () => toast.error(t('Unable to stop this Seer run.')),
     }
   );
   const resumeMutation = useResumeInvestigationExecutionMutation(
     organizationSlug,
     investigation.id,
-    {onError: () => addErrorMessage(t('Unable to resume this Seer run.'))}
+    {onError: () => toast.error(t('Unable to resume this Seer run.'))}
   );
   const executionQuery = useQuery({
     ...investigationExecutionDetailQueryOptions({
@@ -1176,7 +1078,7 @@ function hasRenderableContent(block: InvestigationBlock) {
  * question, or stopping. These are the four the server itself treats as live.
  *
  * `notRun` is the one unfinished state left out: nothing has been dispatched
- * for the block, and an auto-run block whose dependency failed never will be.
+ * for the block.
  */
 export function isBlockWorking(block: InvestigationBlock) {
   return (

@@ -11,15 +11,18 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry.investigations.models import (
-    InvestigationActionRequest,
-    InvestigationActionRequestState,
     InvestigationOrchestrationCommand,
     InvestigationOrchestrationCommandStatus,
     InvestigationOrchestrationRerun,
-    InvestigationStatus,
 )
 from sentry.investigations.services.action_kinds.connect_telemetry import telemetry_available
-from sentry.investigations.services.action_requests import upsert_action_request
+from sentry.notebooks.contracts import ActionRequestItem
+from sentry.notebooks.models import (
+    NotebookActionRequest,
+    NotebookActionRequestState,
+    NotebookStatus,
+)
+from sentry.notebooks.services.action_requests import upsert_action_request
 from sentry.seer.models.run import SeerRunMirrorStatus, SeerRunType
 from sentry.signals import integration_added
 from sentry.tasks.seer.investigation import (
@@ -138,7 +141,7 @@ class ConnectTelemetryApplyTest(APITestCase, TelemetryFixtures):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
-        self.investigation = self.create_investigation(
+        self.investigation = self.create_notebook(
             organization=self.organization, created_by=self.user
         )
         self.orchestration_run = self.create_investigation_orchestration_run(
@@ -151,17 +154,17 @@ class ConnectTelemetryApplyTest(APITestCase, TelemetryFixtures):
 
     def suggest(self) -> None:
         # Suggest after connecting, so the install hook has nothing to apply.
-        self.action_request = self.create_investigation_action_request(
-            investigation=self.investigation,
+        self.action_request = self.create_notebook_action_request(
+            notebook=self.investigation,
             key="connect-telemetry-datadog-r1",
-            report_revision=1,
+            producer_revision=1,
             action_kind="connect_telemetry",
             action_payload=CONNECT,
         )
 
     def apply(self, **data: Any) -> Any:
         url = reverse(
-            "sentry-api-0-organization-investigation-action-request-apply",
+            "sentry-api-0-organization-notebook-action-request-apply",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": self.investigation.id,
@@ -170,13 +173,13 @@ class ConnectTelemetryApplyTest(APITestCase, TelemetryFixtures):
         )
         return self.client.post(url, data=data, format="json")
 
-    def reloaded(self) -> InvestigationActionRequest:
+    def reloaded(self) -> NotebookActionRequest:
         self.action_request.refresh_from_db()
         return self.action_request
 
     def retry_follow_up(self, **data: Any) -> Any:
         url = reverse(
-            "sentry-api-0-organization-investigation-action-request-retry-follow-up",
+            "sentry-api-0-organization-notebook-action-request-retry-follow-up",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": self.investigation.id,
@@ -201,12 +204,12 @@ class ConnectTelemetryApplyTest(APITestCase, TelemetryFixtures):
         self.suggest()
 
         assert self.apply(dryRun=True).status_code == 200
-        assert self.reloaded().state == InvestigationActionRequestState.SUGGESTED
+        assert self.reloaded().state == NotebookActionRequestState.SUGGESTED
         response = self.apply()
 
         assert response.status_code == 200, response.data
         action_request = self.reloaded()
-        assert action_request.state == InvestigationActionRequestState.APPLIED
+        assert action_request.state == NotebookActionRequestState.APPLIED
         assert action_request.applied_by_id == self.user.id
         assert action_request.applied_details == {"provider": "datadog"}
         outcome, rerun = InvestigationOrchestrationCommand.objects.filter(
@@ -408,7 +411,7 @@ class ConnectTelemetryApplyTest(APITestCase, TelemetryFixtures):
             "code": "validation_failed",
             "messages": ["This provider isn't connected yet."],
         }
-        assert self.reloaded().state == InvestigationActionRequestState.SUGGESTED
+        assert self.reloaded().state == NotebookActionRequestState.SUGGESTED
 
     def test_members_who_cannot_install_get_permission_denied_before_the_connection_check(
         self,
@@ -439,7 +442,7 @@ class ConnectionHookTest(TelemetryFixtures):
     def setUp(self) -> None:
         super().setUp()
         self.create_datadog()
-        self.investigation = self.create_investigation(
+        self.investigation = self.create_notebook(
             organization=self.organization, created_by=self.user
         )
         self.orchestration_run = self.create_investigation_orchestration_run(
@@ -450,12 +453,12 @@ class ConnectionHookTest(TelemetryFixtures):
             projection={"workflowVersion": 4, "report": {"revision": 1, "status": "completed"}},
         )
 
-    def connect_request(self, **values: Any) -> InvestigationActionRequest:
+    def connect_request(self, **values: Any) -> NotebookActionRequest:
         values.setdefault("key", "connect-telemetry-datadog-r1")
         values.setdefault("action_payload", CONNECT)
-        return self.create_investigation_action_request(
-            investigation=values.pop("investigation", self.investigation),
-            report_revision=1,
+        return self.create_notebook_action_request(
+            notebook=values.pop("investigation", self.investigation),
+            producer_revision=1,
             action_kind="connect_telemetry",
             **values,
         )
@@ -476,7 +479,7 @@ class ConnectionHookTest(TelemetryFixtures):
         self.connected(self.user.id)
 
         request.refresh_from_db()
-        assert request.state == InvestigationActionRequestState.APPLIED
+        assert request.state == NotebookActionRequestState.APPLIED
         assert request.applied_by_id == self.user.id
         assert request.applied_details == {"provider": "datadog"}
         outcome, rerun = self.commands()
@@ -490,6 +493,18 @@ class ConnectionHookTest(TelemetryFixtures):
         }
         assert {"type": rerun.type, **rerun.payload} == fixture("command_rerun_after_connection")
         assert request.followup_request_id == rerun.request_id
+
+    @mock.patch("sentry.notebooks.telemetry.metrics.incr")
+    def test_a_connection_counts_the_applied_request(self, incr: mock.MagicMock) -> None:
+        self.connect_request()
+
+        self.connected(self.user.id)
+
+        incr.assert_any_call(
+            "investigations.action_request.applied",
+            tags={"kind": "connect_telemetry", "provider": "datadog"},
+            sample_rate=1.0,
+        )
 
     def test_requests_for_the_same_provider_share_one_re_run(self) -> None:
         first = self.connect_request()
@@ -516,9 +531,9 @@ class ConnectionHookTest(TelemetryFixtures):
             key="connect-telemetry-gcp-r1", action_payload={**CONNECT, "provider": "gcp"}
         )
         withdrawn = self.connect_request(
-            key="old-connect", state=InvestigationActionRequestState.WITHDRAWN
+            key="old-connect", state=NotebookActionRequestState.WITHDRAWN
         )
-        other_org = self.create_investigation(
+        other_org = self.create_notebook(
             organization=self.create_organization(), created_by=self.user
         )
         self.create_investigation_orchestration_run(investigation=other_org)
@@ -565,39 +580,39 @@ class ConnectionHookTest(TelemetryFixtures):
 
         old.refresh_from_db()
         recent.refresh_from_db()
-        assert old.state == InvestigationActionRequestState.SUGGESTED
-        assert recent.state == InvestigationActionRequestState.APPLIED
+        assert old.state == NotebookActionRequestState.SUGGESTED
+        assert recent.state == NotebookActionRequestState.APPLIED
 
     def test_archived_investigations_are_left_alone(self) -> None:
         request = self.connect_request()
-        self.investigation.update(status=InvestigationStatus.ARCHIVED)
+        self.investigation.update(status=NotebookStatus.ARCHIVED)
 
         self.connected(self.user.id)
 
         request.refresh_from_db()
-        assert request.state == InvestigationActionRequestState.SUGGESTED
+        assert request.state == NotebookActionRequestState.SUGGESTED
 
 
 @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
 class MarkInvestigationTelemetryConnectedTaskTest(TelemetryFixtures):
     def setUp(self) -> None:
         super().setUp()
-        self.investigation = self.create_investigation(
+        self.investigation = self.create_notebook(
             organization=self.organization, created_by=self.user
         )
         self.orchestration_run = self.create_investigation_orchestration_run(
             investigation=self.investigation,
             projection={"workflowVersion": 1, "report": {"revision": 0, "status": "completed"}},
         )
-        self.create_investigation_action_request(
-            investigation=self.investigation,
+        self.create_notebook_action_request(
+            notebook=self.investigation,
             key="connect-telemetry-datadog-r0",
             action_kind="connect_telemetry",
             action_payload=CONNECT,
         )
 
     def connect_request_state(self) -> str:
-        return InvestigationActionRequest.objects.get(investigation=self.investigation).state
+        return NotebookActionRequest.objects.get(notebook=self.investigation).state
 
     @with_feature(FEATURE)
     def test_applies_requests_once_connected(self) -> None:
@@ -605,7 +620,7 @@ class MarkInvestigationTelemetryConnectedTaskTest(TelemetryFixtures):
 
         mark_investigation_telemetry_connected(self.organization.id, "datadog", self.user.id)
 
-        assert self.connect_request_state() == InvestigationActionRequestState.APPLIED
+        assert self.connect_request_state() == NotebookActionRequestState.APPLIED
 
     @with_feature(FEATURE)
     def test_retries_until_the_settings_are_saved(self) -> None:
@@ -618,7 +633,7 @@ class MarkInvestigationTelemetryConnectedTaskTest(TelemetryFixtures):
         ):
             mark_investigation_telemetry_connected(self.organization.id, "datadog", None)
 
-        assert self.connect_request_state() == InvestigationActionRequestState.SUGGESTED
+        assert self.connect_request_state() == NotebookActionRequestState.SUGGESTED
 
     @with_feature(FEATURE)
     def test_skips_organizations_with_nothing_to_connect(self) -> None:
@@ -630,7 +645,7 @@ class MarkInvestigationTelemetryConnectedTaskTest(TelemetryFixtures):
 
         mark_investigation_telemetry_connected(self.organization.id, "datadog", self.user.id)
 
-        assert self.connect_request_state() == InvestigationActionRequestState.SUGGESTED
+        assert self.connect_request_state() == NotebookActionRequestState.SUGGESTED
 
     @mock.patch("sentry.receivers.seer.mark_investigation_telemetry_connected.delay")
     def test_an_installed_integration_triggers_the_check(self, delay: mock.MagicMock) -> None:
@@ -658,7 +673,7 @@ class MarkInvestigationTelemetryConnectedTaskTest(TelemetryFixtures):
     def test_a_new_connect_request_schedules_one_check(self, delay: mock.MagicMock) -> None:
         with self.capture_on_commit_callbacks(execute=True):
             upsert_action_request(
-                self.orchestration_run,
+                self.investigation,
                 {
                     "key": "connect-telemetry-gcp-r0",
                     "reportRevision": 0,
@@ -674,3 +689,37 @@ class MarkInvestigationTelemetryConnectedTaskTest(TelemetryFixtures):
         delay.assert_called_once_with(
             organization_id=self.organization.id, provider="gcp", user_id=None, retry=False
         )
+
+    @mock.patch("sentry.tasks.seer.investigation.mark_investigation_telemetry_connected.delay")
+    @mock.patch("sentry.notebooks.telemetry.metrics.incr")
+    def test_a_connect_request_is_counted_once_when_suggested(
+        self, incr: mock.MagicMock, delay: mock.MagicMock
+    ) -> None:
+        item: ActionRequestItem = {
+            "key": "connect-telemetry-gcp-r0",
+            "reportRevision": 0,
+            "title": "Connect Google Cloud",
+            "rationale": "Logs live there.",
+            "impact": None,
+            "primary": False,
+            "anchor": None,
+            "action": {"kind": "connect_telemetry", "provider": "gcp"},
+        }
+
+        upsert_action_request(self.orchestration_run.investigation, item)
+        upsert_action_request(
+            self.orchestration_run.investigation, {**item, "title": "Connect GCP"}
+        )
+
+        suggested = [
+            call
+            for call in incr.call_args_list
+            if call.args[0] == "investigations.action_request.suggested"
+        ]
+        assert suggested == [
+            mock.call(
+                "investigations.action_request.suggested",
+                tags={"kind": "connect_telemetry", "provider": "gcp"},
+                sample_rate=1.0,
+            )
+        ]

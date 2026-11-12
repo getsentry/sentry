@@ -42,8 +42,8 @@ from sentry.workflow_engine.typings.notification_action import ActionTarget
 pytestmark = [requires_snuba]
 
 
-def make_event(**kwargs):
-    result = {
+def make_event(**kwargs: object) -> dict[str, object]:
+    result: dict[str, object] = {
         "event_id": uuid.uuid1().hex,
         "level": logging.ERROR,
         "logger": "default",
@@ -53,7 +53,7 @@ def make_event(**kwargs):
     return result
 
 
-def get_attachment():
+def get_attachment() -> tuple[dict[str, object], str]:
     assert len(responses.calls) >= 1
     data = parse_qs(responses.calls[0].request.body)
     assert "text" in data
@@ -64,7 +64,7 @@ def get_attachment():
     return attachments[0], data["text"][0]
 
 
-def get_notification_uuid(url: str):
+def get_notification_uuid(url: str) -> str:
     query_params = parse_qs(urlparse(url).query)
     notification_uuid = query_params["notification_uuid"][0].split("|")[0]
     assert len(notification_uuid) > 1
@@ -589,7 +589,9 @@ class ActivityNotificationTest(APITestCase):
             assert "enhanced privacy" in html_content
 
             assert self.group.title not in msg.subject
-            assert self.group.qualified_short_id in msg.subject
+            qualified_short_id = self.group.qualified_short_id
+            assert qualified_short_id is not None
+            assert qualified_short_id in msg.subject
 
     @patch("sentry.analytics.record")
     def test_sends_resolved_in_release_notification(

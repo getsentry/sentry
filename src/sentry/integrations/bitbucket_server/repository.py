@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import logging
 import secrets
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeAlias
 
 from django.core.cache import cache
 
@@ -12,8 +12,11 @@ from sentry.integrations.bitbucket_server.webhook_config import build_webhook_da
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.services.repository.service import repository_service
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers.integration_repository import (
+    CommitData,
+    CommitPatchFile,
     IntegrationRepositoryProvider,
     RepositoryConfig,
 )
@@ -21,9 +24,13 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.hashlib import md5_text
 
 if TYPE_CHECKING:
+    from sentry.integrations.bitbucket_server.client import BitbucketServerClient
     from sentry.integrations.bitbucket_server.integration import BitbucketServerIntegration  # NOQA
 
 logger = logging.getLogger(__name__)
+
+JsonMapping: TypeAlias = Mapping[str, Any]
+JsonMutableMapping: TypeAlias = MutableMapping[str, Any]
 
 
 class BitbucketServerRepositoryProvider(
@@ -32,7 +39,9 @@ class BitbucketServerRepositoryProvider(
     name = "Bitbucket Server"
     repo_provider = IntegrationProviderSlug.BITBUCKET_SERVER.value
 
-    def get_repository_data(self, organization, config):
+    def get_repository_data(
+        self, organization: RpcOrganization, config: JsonMutableMapping
+    ) -> JsonMutableMapping:
         installation = self.get_installation(config.get("installation"), organization.id)
         client = installation.get_client()
         try:
@@ -48,7 +57,7 @@ class BitbucketServerRepositoryProvider(
         return config
 
     def build_repository_config(
-        self, organization: RpcOrganization, data: Mapping[str, Any]
+        self, organization: RpcOrganization, data: JsonMapping
     ) -> RepositoryConfig:
         installation = self.get_installation(data.get("installation"), organization.id)
         return {
@@ -120,7 +129,7 @@ class BitbucketServerRepositoryProvider(
                     },
                 )
 
-    def on_delete_repository(self, repo):
+    def on_delete_repository(self, repo: Repository) -> None:
         webhook_id = repo.config.get("webhook_id")
         if not webhook_id:
             return
@@ -134,7 +143,12 @@ class BitbucketServerRepositoryProvider(
                 return
             raise
 
-    def _format_commits(self, client, repo, commit_list):
+    def _format_commits(
+        self,
+        client: BitbucketServerClient,
+        repo: Repository,
+        commit_list: Sequence[JsonMapping],
+    ) -> list[CommitData]:
         return [
             {
                 "id": c["id"],
@@ -150,7 +164,9 @@ class BitbucketServerRepositoryProvider(
             for c in commit_list
         ]
 
-    def compare_commits(self, repo, start_sha, end_sha):
+    def compare_commits(
+        self, repo: Repository, start_sha: str | None, end_sha: str
+    ) -> Sequence[JsonMapping]:
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
 
@@ -165,10 +181,12 @@ class BitbucketServerRepositoryProvider(
         except Exception as e:
             installation.raise_error(e)
 
-    def repository_external_slug(self, repo):
+    def repository_external_slug(self, repo: Repository) -> str:
         return repo.name
 
-    def _get_patchset(self, client, project, repo, sha):
+    def _get_patchset(
+        self, client: BitbucketServerClient, project: str, repo: str, sha: str
+    ) -> list[CommitPatchFile]:
         """
         Get the modified files for a commit
         """
@@ -181,12 +199,12 @@ class BitbucketServerRepositoryProvider(
 
         return self._transform_patchset(commit_files)
 
-    def _transform_patchset(self, values):
+    def _transform_patchset(self, values: Sequence[JsonMapping]) -> list[CommitPatchFile]:
         """Convert the patch data from Bitbucket into our internal format
 
         See sentry.models.Release.set_commits
         """
-        changes = []
+        changes: list[CommitPatchFile] = []
         for change in values:
             if change["type"] == "MODIFY":
                 changes.append({"path": change["path"]["toString"], "type": "M"})

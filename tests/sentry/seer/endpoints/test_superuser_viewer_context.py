@@ -98,7 +98,9 @@ class SuperuserViewerContextTest(APITestCase):
     def test_read_write_browser_elevation_cannot_write(self) -> None:
         self._assert_read_only_elevation(["superuser.write"], 200)
 
-    def _assert_read_only_elevation(self, permissions, browser_write_status) -> None:
+    def _assert_read_only_elevation(
+        self, permissions: list[str], browser_write_status: int
+    ) -> None:
         for permission in permissions:
             self.add_user_permission(self.employee, permission)
         with self.options({"superuser.read-write.ga-rollout": True}):

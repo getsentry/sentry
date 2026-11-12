@@ -1,15 +1,26 @@
+from typing import Protocol, cast
+
+from django.test import Client
 from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.wait import WebDriverWait
 
+from sentry.models.group import Group
+from sentry.testutils.pytest.selenium import Browser
 from sentry.utils import json
 
 from .base import BasePage
 from .global_selection import GlobalSelectionPage
 
 
+class _ApiResponse(Protocol):
+    status_code: int
+    data: dict[str, object]
+
+
 class IssueDetailsPage(BasePage):
-    def __init__(self, browser, client):
+    def __init__(self, browser: Browser, client: Client) -> None:
         super().__init__(browser)
         self.client = client
         self.global_selection = GlobalSelectionPage(browser)
@@ -20,11 +31,11 @@ class IssueDetailsPage(BasePage):
             data=json.dumps({"guide": "tour.issue_details", "status": "viewed", "useful": True}),
         )
 
-    def visit_issue(self, org, groupid):
+    def visit_issue(self, org: str, groupid: int | str) -> None:
         self.browser.get(f"/organizations/{org}/issues/{groupid}/")
         self.wait_until_loaded()
 
-    def visit_performance_issue(self, org, groupid):
+    def visit_performance_issue(self, org: str, groupid: int | str) -> None:
         """
         Wait for the span evidence and the rest of the page to finish loading so
         no requests are still hitting the database when the test tears down.
@@ -34,54 +45,57 @@ class IssueDetailsPage(BasePage):
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
 
-    def visit_issue_activity(self, org, groupid):
+    def visit_issue_activity(self, org: str, groupid: int | str) -> None:
         self.browser.get(f"/organizations/{org}/issues/{groupid}/activity/")
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
-    def visit_issue_in_environment(self, org, groupid, environment):
+    def visit_issue_in_environment(self, org: str, groupid: int | str, environment: str) -> None:
         self.browser.get(f"/organizations/{org}/issues/{groupid}/?environment={environment}")
         self.browser.wait_until('[data-test-id="group-event-details"]')
 
-    def visit_tag_values(self, org, groupid, tag):
+    def visit_tag_values(self, org: str, groupid: int | str, tag: str) -> None:
         self.browser.get(f"/organizations/{org}/issues/{groupid}/distributions/{tag}/")
         self.browser.wait_until('[data-test-id="group-tag-value"]')
 
-    def get_environment(self):
+    def get_environment(self) -> str:
         return self.browser.find_element(
             by=By.CSS_SELECTOR, value='[data-test-id="env-label"'
         ).text.lower()
 
-    def go_back_to_issues(self):
+    def go_back_to_issues(self) -> None:
         self.global_selection.go_back_to_issues()
 
-    def api_issue_get(self, group):
-        return self.client.get(f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/")
+    def api_issue_get(self, group: Group) -> _ApiResponse:
+        return cast(
+            "_ApiResponse",
+            self.client.get(f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"),
+        )
 
-    def go_to_subtab(self, key):
+    def go_to_subtab(self, key: str) -> None:
         tabs = self.browser.find_element(by=By.CSS_SELECTOR, value='[role="tablist"]')
         tabs.find_element(by=By.CSS_SELECTOR, value=f'[role="tab"][data-key="{key}"]').click()
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
-    def open_issue_errors(self):
+    def open_issue_errors(self) -> None:
         self.browser.click(".errors-toggle")
         self.browser.wait_until(".entries > .errors ul")
 
-    def open_curl(self):
+    def open_curl(self) -> None:
         self.browser.find_element(by=By.XPATH, value="//a//code[contains(text(), 'curl')]").click()
 
-    def resolve_issue(self):
+    def resolve_issue(self) -> None:
         self.browser.click('[aria-label="Resolve"]')
         # Resolve should become unresolve
         self.browser.wait_until('[aria-label="Unresolve"]')
         self.browser.wait_until(xpath="//*[@role='status'][contains(., 'Issue resolved')]")
 
-    def archive_issue(self):
+    def archive_issue(self) -> None:
         self.browser.click('[aria-label="Archive"]')
         # Archive should become unarchive
         self.browser.wait_until('[aria-label="Unarchive"]')
         self.browser.wait_until(xpath="//*[@role='status'][contains(., 'Issue archived')]")
 
-    def bookmark_issue(self):
+    def bookmark_issue(self) -> None:
         self.browser.click('button[aria-label="More Actions"]')
         self.browser.wait_until('[data-test-id="bookmark"]')
         button = self.browser.element('[data-test-id="bookmark"]')
@@ -90,7 +104,7 @@ class IssueDetailsPage(BasePage):
         self.browser.click('button[aria-label="More Actions"]')
         self.browser.wait_until('[data-test-id="unbookmark"]')
 
-    def assign_to(self, user):
+    def assign_to(self, user: str) -> None:
         # Open the assignee picker
         self.browser.find_element(
             by=By.CSS_SELECTOR, value='[aria-label="Modify issue assignee"]'
@@ -115,23 +129,23 @@ class IssueDetailsPage(BasePage):
 
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
-    def find_comment_editor(self):
+    def find_comment_editor(self) -> WebElement:
         selector = '[role="combobox"][aria-label="Add a comment"]'
         self.browser.wait_until(selector)
         return self.browser.find_element(by=By.CSS_SELECTOR, value=selector)
 
-    def has_comment(self, text):
+    def has_comment(self, text: str) -> bool:
         element = self.browser.element('[data-test-id="activity-note-body"]')
         return text in element.text
 
-    def wait_until_loaded(self):
+    def wait_until_loaded(self) -> None:
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_not('[data-test-id="event-errors-loading"]')
         self.browser.wait_until_test_id("linked-issues")
         self.browser.wait_until_test_id("loaded-device-name")
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
 
-    def mark_reviewed(self):
+    def mark_reviewed(self) -> None:
         self.browser.click('[aria-label="More Actions"]')
         self.browser.wait_until('[data-test-id="mark-review"]')
         self.browser.click('[data-test-id="mark-review"]')

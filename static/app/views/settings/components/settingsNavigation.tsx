@@ -11,8 +11,8 @@ import {Text} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
-import {unreachable} from 'sentry/utils/unreachable';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -22,14 +22,13 @@ import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-import {SettingsNavigationGroup} from 'sentry/views/settings/components/settingsNavigationGroup';
+import {getSettingsScopeTitle} from 'sentry/views/settings/settingsScope';
 import type {NavigationProps, NavigationSection} from 'sentry/views/settings/types';
 import {useSettingsProjectSwitchTemplate} from 'sentry/views/settings/useSettingsProjectSwitchTemplate';
-import {
-  useSettingsScope,
-  type SettingsScope,
-} from 'sentry/views/settings/useSettingsScope';
+import {useSettingsScope} from 'sentry/views/settings/useSettingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
+
+import {SettingsNavigationGroup} from './settingsNavigationGroup';
 
 type Props = NavigationProps & {
   /**
@@ -45,19 +44,6 @@ type Props = NavigationProps & {
    */
   navigationObjects: NavigationSection[];
 };
-
-function getSettingsScopeTitle(scope: SettingsScope): string {
-  switch (scope) {
-    case 'account':
-      return t('Account Settings');
-    case 'project':
-      return t('Project Settings');
-    case 'org':
-      return t('Org Settings');
-    default:
-      return unreachable(scope);
-  }
-}
 
 export function SettingsNavigation({
   navigationObjects,
@@ -113,7 +99,8 @@ function SettingsProjectSelector() {
           {...containerProps}
           size="sm"
           position="bottom-start"
-          menuWidth="100%"
+          // Same max width as the environment page filter menu
+          menuWidth="24em"
           preventOverflowOptions={{boundary: 'clippingAncestors'}}
           value={projectId}
           trigger={triggerProps => (
@@ -121,6 +108,7 @@ function SettingsProjectSelector() {
               {buttonProps => (
                 <OverlayTrigger.Button
                   {...mergeProps(buttonProps, triggerProps)}
+                  variant="transparent"
                   aria-label={t('Select a project')}
                   icon={
                     selectedProject ? (
@@ -157,7 +145,8 @@ function SettingsProjectSelector() {
             label: project.slug,
             leadingItems: <ProjectAvatar project={project} size={16} />,
           }))}
-          onChange={selection =>
+          onChange={selection => {
+            trackAnalytics('settings.project_selector.changed', {organization});
             navigate(
               normalizeUrl(
                 switchTo
@@ -168,8 +157,8 @@ function SettingsProjectSelector() {
                     })
                   : `/settings/${organization.slug}/projects/${selection.value}/${subpage ? `${subpage}/` : ''}`
               )
-            )
-          }
+            );
+          }}
         />
       )}
     </Container>

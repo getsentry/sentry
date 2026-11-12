@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="90" height="40" viewBox="0 0 90 40">
+<style>
+  .pill { fill: #FFFFFF; stroke: #E0DCE5; }
+  .label { fill: #2B2233; font: 600 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+  @media (prefers-color-scheme: dark) {
+    .pill { fill: #181225; stroke: #3E3446; }
+    .label { fill: #EBE6EF; }
+  }
+</style>
+<rect class="pill" x="0.5" y="0.5" width="89" height="39" rx="9.5" />
+<defs><clipPath id="r"><rect x="8" y="8" width="24" height="24" rx="6" /></clipPath></defs>
+<g clip-path="url(#r)"><svg x="8" y="8" width="24" height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+  <rect width="100%" height="100%"/>
+  <path fill="#fff" d="m10.62 5.02 2.5 1.42c.1.05.1.19 0 .24l-2.97 1.68a.28.28 0 0 1-.28 0L6.89 6.68c-.1-.05-.1-.2 0-.24l2.5-1.42V2.25L3 5.87v7.23l2.45-1.39V8.88c0-.1.12-.18.21-.12l2.98 1.68c.09.05.14.15.14.24v3.37c0 .1-.12.17-.21.12l-2.5-1.42-2.46 1.38 6.4 3.62 6.39-3.62-2.45-1.38-2.5 1.42c-.1.05-.22-.02-.22-.12v-3.37c0-.1.06-.2.14-.24l2.98-1.68c.09-.05.21.01.2.12v2.83l2.46 1.39V5.87l-6.4-3.62v2.77Z"/>
+</svg></g>
+<text class="label" x="40" y="24.5">Unity</text>
+</svg>

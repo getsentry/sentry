@@ -1,7 +1,7 @@
 import {createContext, useContext, type RefObject} from 'react';
 
-import type {OpenSeerExplorerDrawerOptions} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
-import type {SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer/types';
+import type {OpenSeerExplorerDrawerOptions} from './components/drawer/useSeerExplorerDrawer';
+import type {SeerExplorerSidebarPosition} from './types';
 
 type SeerExplorerSessionState = 'inactive' | 'thinking' | 'done-thinking';
 

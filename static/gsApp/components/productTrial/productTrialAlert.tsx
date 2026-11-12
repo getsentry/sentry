@@ -15,7 +15,7 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
-import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
+import {AddEventsCTA, type EventType} from 'getsentry/components/addEventsCTA';
 import {ProductTrialTag} from 'getsentry/components/productTrial/productTrialTag';
 import {StartTrialButton} from 'getsentry/components/startTrialButton';
 import type {ProductTrial, Subscription} from 'getsentry/types';

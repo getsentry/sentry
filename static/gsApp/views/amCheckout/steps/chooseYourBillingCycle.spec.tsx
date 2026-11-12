@@ -14,7 +14,6 @@ import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import AMCheckout from 'getsentry/views/amCheckout/';
 
 describe('ChooseYourBillingCycle', () => {
-  const api = new MockApiClient();
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({
     organization,
@@ -23,7 +22,6 @@ describe('ChooseYourBillingCycle', () => {
   });
 
   beforeEach(() => {
-    api.clear();
     setMockDate(new Date('2025-08-13'));
     MockApiClient.clearMockResponses();
     SubscriptionStore.set(organization.slug, subscription);
@@ -98,9 +96,7 @@ describe('ChooseYourBillingCycle', () => {
   }: {
     location: ComponentProps<typeof AMCheckout>['location'];
   }) {
-    return (
-      <AMCheckout {...routeProps} api={api} location={location} navigate={jest.fn()} />
-    );
+    return <AMCheckout {...routeProps} location={location} navigate={jest.fn()} />;
   }
 
   it('renders for upgrade from developer', async () => {

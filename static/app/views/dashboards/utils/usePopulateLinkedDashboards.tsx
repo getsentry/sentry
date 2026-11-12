@@ -10,14 +10,18 @@ import {
   type DashboardDetails,
   type Widget,
 } from 'sentry/views/dashboards/types';
+
 import {
-  PREBUILT_DASHBOARDS,
+  getPrebuiltDashboardConfig,
   PrebuiltDashboardId,
   type PrebuiltDashboard,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+} from './prebuiltConfigs';
 
 export const useGetPrebuiltDashboard = (prebuiltId?: PrebuiltDashboardId) => {
-  const prebuiltDashboard = prebuiltId ? PREBUILT_DASHBOARDS[prebuiltId] : undefined;
+  const organization = useOrganization();
+  const prebuiltDashboard = prebuiltId
+    ? getPrebuiltDashboardConfig(prebuiltId, organization)
+    : undefined;
   return usePopulatePrebuiltIdsWithActualIds(prebuiltDashboard, prebuiltId);
 };
 

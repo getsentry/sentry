@@ -1,5 +1,6 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {getBodySearchTerms} from 'sentry/views/explore/bodySearchTerms';
+
+import {getBodySearchTerms} from './bodySearchTerms';
 
 describe('getBodySearchTerms', () => {
   it('returns each free-text token', () => {

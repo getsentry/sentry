@@ -2,7 +2,7 @@ import psycopg2
 from django.db.utils import DatabaseError, InterfaceError
 
 
-def can_reconnect(exc):
+def can_reconnect(exc: BaseException) -> bool:
     if isinstance(exc, (psycopg2.InterfaceError, InterfaceError)):
         return True
     # elif isinstance(exc, psycopg2.OperationalError):

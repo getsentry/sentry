@@ -1,9 +1,6 @@
-import type {
-  DroppedDataBucket,
-  OutcomeRow,
-  OutcomeVolume,
-} from 'sentry/components/droppedData/types';
 import {defined} from 'sentry/utils/defined';
+
+import type {DroppedDataBucket, OutcomeRow, OutcomeVolume} from './types';
 
 const MIN_HIGHLIGHT_RATIO = 0.001;
 

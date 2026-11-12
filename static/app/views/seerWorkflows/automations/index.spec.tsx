@@ -1,12 +1,17 @@
+import {Outlet} from 'react-router';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {SeerWorkflowConfigFixture} from 'sentry-fixture/seerWorkflowConfig';
+import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import AutomationsList, {getNextUpdate} from 'sentry/views/seerWorkflows/automations';
 import type {SeerWorkflowConfigResponse} from 'sentry/views/seerWorkflows/types';
+
+import AutomationRuns from './detail/runs';
+import AutomationDetail from './detail';
 
 function getCard(title: string) {
   return within(screen.getByRole('heading', {name: title}).closest('li')!);
@@ -41,7 +46,7 @@ describe('AutomationsList', () => {
     expect(request).not.toHaveBeenCalled();
   });
 
-  it('renders a card per config after the placeholders', async () => {
+  it('renders a card for each automation returned by the API', async () => {
     mockConfigs([
       SeerWorkflowConfigFixture({id: '1', strategy: 'agentic_triage'}),
       SeerWorkflowConfigFixture({id: '2', strategy: 'custom_strategy'}),
@@ -52,13 +57,77 @@ describe('AutomationsList', () => {
     expect(
       await screen.findByRole('heading', {name: 'custom_strategy'})
     ).toBeInTheDocument();
-    expect(screen.getAllByRole('listitem')).toHaveLength(4);
-    // The agentic_triage placeholder and the agentic_triage config
-    expect(screen.getAllByRole('heading', {name: 'Agentic triage'})).toHaveLength(2);
+    expect(screen.getAllByRole('listitem')).toHaveLength(2);
+    expect(screen.getByRole('heading', {name: 'Agentic triage'})).toBeInTheDocument();
     expect(
-      screen.getAllByText('Automatically triage and fix the most fixable Issues.')
-    ).toHaveLength(2);
+      screen.getByText('Automatically triage and fix the most fixable Issues.')
+    ).toBeInTheDocument();
     expect(getCard('custom_strategy').getByText('No description')).toBeInTheDocument();
+  });
+
+  it('opens the selected automation and loads its run history', async () => {
+    mockConfigs([
+      SeerWorkflowConfigFixture({id: '42', strategy: 'breached_metric_investigation'}),
+    ]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/workflows/runs/`,
+      match: [MockApiClient.matchQuery({config: '42', per_page: 20})],
+      body: {
+        runs: [
+          {
+            id: '17',
+            configId: '42',
+            strategy: 'breached_metric_investigation',
+            dateAdded: '2025-04-20T00:00:00Z',
+            dateUpdated: '2025-04-20T00:01:00Z',
+            dateCompleted: '2025-04-20T00:01:00Z',
+            executions: [],
+            status: 'complete',
+          },
+        ],
+      },
+    });
+    const {router} = render(<Outlet />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/seer/automations/'},
+        route: '/organizations/:orgId/seer/automations/',
+        children: [
+          {index: true, element: <AutomationsList />},
+          {
+            path: ':automationId/',
+            element: <AutomationDetail />,
+            children: [{path: 'runs/', element: <AutomationRuns />}],
+          },
+        ],
+      },
+    });
+
+    await userEvent.click(await screen.findByRole('link', {name: /Breached metrics/}));
+    await userEvent.click(await screen.findByRole('tab', {name: 'Runs'}));
+
+    expect(router.location.pathname).toBe(
+      '/organizations/org-slug/seer/automations/42/runs/'
+    );
+    expect(await screen.findByRole('img', {name: 'Succeeded'})).toBeInTheDocument();
+  });
+
+  it('shows an empty state when there are no automations', async () => {
+    mockConfigs([]);
+
+    render(<AutomationsList />, {organization});
+
+    expect(await screen.findByText('No automations yet.')).toBeInTheDocument();
+    expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
+  });
+
+  it('shows a retry when configs fail to load', async () => {
+    MockApiClient.addMockResponse({url: configsUrl, statusCode: 500});
+
+    render(<AutomationsList />, {organization});
+
+    expect(await screen.findByRole('button', {name: 'Retry'})).toBeInTheDocument();
+    expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
   });
 
   it('shows which projects each config covers', async () => {
@@ -112,6 +181,32 @@ describe('AutomationsList', () => {
     await screen.findByRole('heading', {name: 'paused_strategy'});
     expect(getCard('paused_strategy').getByText('Paused')).toBeInTheDocument();
     expect(getCard('paused_strategy').queryByText(/Next run/)).not.toBeInTheDocument();
+  });
+  it('shows the creator avatar with a tooltip', async () => {
+    mockConfigs([SeerWorkflowConfigFixture({id: '1', createdBy: '7'})]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/7/`,
+      body: UserFixture({id: '7', name: 'Jane Doe', email: 'jane@example.com'}),
+    });
+
+    render(<AutomationsList />, {organization});
+
+    const avatar = await screen.findByTestId('letter_avatar-avatar');
+    await userEvent.hover(avatar);
+    expect(
+      await screen.findByText('Created by Jane Doe (jane@example.com)')
+    ).toBeInTheDocument();
+  });
+
+  it('shows the Sentry icon with a tooltip when there is no creator', async () => {
+    mockConfigs([SeerWorkflowConfigFixture({id: '1'})]);
+
+    render(<AutomationsList />, {organization});
+
+    const heading = await screen.findByRole('heading', {name: 'Agentic triage'});
+    expect(screen.queryByTestId('letter_avatar-avatar')).not.toBeInTheDocument();
+    await userEvent.hover(heading.nextElementSibling!);
+    expect(await screen.findByText('Built and maintained by Sentry')).toBeInTheDocument();
   });
 });
 

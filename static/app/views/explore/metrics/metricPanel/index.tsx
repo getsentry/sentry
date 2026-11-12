@@ -130,9 +130,7 @@ export function MetricPanel({
 
   const isHeatmap = visualize.chartType === ChartType.HEATMAP;
   const showTransformationControls =
-    isVisualizeFunction(visualize) &&
-    !isHeatmap &&
-    organization.features.includes('explore-interpolation-and-smoothing');
+    !isHeatmap && organization.features.includes('explore-interpolation-and-smoothing');
 
   const [interval, setInterval, intervalOptions] = useChartInterval({
     unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
@@ -303,9 +301,7 @@ export function MetricPanel({
   );
 
   function handleTransformationsChange(transformations: readonly string[]) {
-    setVisualizes(
-      visualizes.map(v => (isVisualizeFunction(v) ? v.replace({transformations}) : v))
-    );
+    setVisualizes(visualizes.map(v => v.replace({transformations})));
   }
 
   return (

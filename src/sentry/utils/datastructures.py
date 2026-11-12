@@ -1,9 +1,14 @@
-from collections.abc import Hashable, MutableMapping
+from collections.abc import Hashable, Iterator, MutableMapping
+from typing import TypeVar, overload
 
 __unset__ = object()
 
+KT = TypeVar("KT", bound=Hashable)
+VT = TypeVar("VT", bound=Hashable)
+DT = TypeVar("DT")
 
-class BidirectionalMapping(MutableMapping):
+
+class BidirectionalMapping(MutableMapping[KT, VT]):
     """\
     An associative data structure in which the ``(key, value)`` pairs form a
     one-to-one correspondence in both directions.
@@ -13,16 +18,16 @@ class BidirectionalMapping(MutableMapping):
     provided to ``get_key``.
     """
 
-    def __init__(self, data):
+    def __init__(self, data: MutableMapping[KT, VT]) -> None:
         self.__data = data
-        self.__inverse = {v: k for k, v in self.__data.items()}
+        self.__inverse: dict[object, KT] = {v: k for k, v in self.__data.items()}
         if len(self.__data) != len(self.__inverse):
             raise ValueError("duplicate value provided")
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: KT) -> VT:
         return self.__data[key]
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: KT, value: VT) -> None:
         if not isinstance(key, Hashable):
             raise TypeError("key must be hashable")
 
@@ -39,16 +44,22 @@ class BidirectionalMapping(MutableMapping):
         self.__data[key] = value
         self.__inverse[value] = key
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: KT) -> None:
         del self.__inverse[self.__data.pop(key)]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[KT]:
         return iter(self.__data)
 
     def __len__(self) -> int:
         return len(self.__data)
 
-    def get_key(self, value, default=__unset__):
+    @overload
+    def get_key(self, value: object) -> KT: ...
+
+    @overload
+    def get_key(self, value: object, default: DT) -> KT | DT: ...
+
+    def get_key(self, value: object, default: object = __unset__) -> object:
         try:
             return self.__inverse[value]
         except KeyError:
@@ -57,5 +68,5 @@ class BidirectionalMapping(MutableMapping):
             else:
                 return default
 
-    def inverse(self):
+    def inverse(self) -> dict[object, KT]:
         return self.__inverse.copy()

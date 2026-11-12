@@ -1,14 +1,21 @@
 import logging
 import re
+from collections.abc import Iterator
 from gzip import BadGzipFile, GzipFile
 from io import BytesIO
+from tempfile import SpooledTemporaryFile
+from typing import Annotated, Protocol, TypedDict, cast
 
 import zstandard
 from django.conf import settings
+from django.core.files import File
+from django.core.files.uploadedfile import UploadedFile
 from django.urls import reverse
-from rest_framework import status
+from drf_spectacular.utils import extend_schema
+from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from sentry import options
 from sentry.api.api_owners import ApiOwner
@@ -16,9 +23,23 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
 from sentry.api.utils import generate_locality_url
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_SUCCESS,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.utils import MAX_FILE_SIZE
 from sentry.models.organization import Organization
+from sentry.organizations.services.organization.model import (
+    RpcOrganization,
+    RpcUserOrganizationContext,
+)
 from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.utils.http import absolute_uri
@@ -26,6 +47,7 @@ from sentry.utils.http import absolute_uri
 MAX_CHUNKS_PER_REQUEST = 64
 MAX_REQUEST_SIZE = 32 * 1024 * 1024
 MAX_CONCURRENCY = settings.DEBUG and 1 or 8
+DECOMPRESS_READ_SIZE = 256 * 1024
 HASH_ALGORITHM = "sha1"
 SENTRYCLI_SEMVER_RE = re.compile(r"^sentry-cli\/(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)")
 API_PREFIX = "/api/0"
@@ -56,7 +78,11 @@ class ChunkTooLarge(OSError):
     """Raised when a (possibly decompressed) chunk exceeds the per-chunk size limit."""
 
 
-def _read_bounded(reader, limit):
+class _ChunkReader(Protocol):
+    def read(self, size: int) -> bytes: ...
+
+
+def _read_bounded(reader: _ChunkReader, limit: int) -> bytes:
     """Read up to ``limit`` bytes from ``reader``; raise :class:`ChunkTooLarge` if more.
 
     Loops until the reader signals EOF or we exceed ``limit``. The loop matters
@@ -75,27 +101,62 @@ def _read_bounded(reader, limit):
             raise ChunkTooLarge("Chunk size too large")
 
 
-class GzipChunk(BytesIO):
-    def __init__(self, file):
-        reader = GzipFile(fileobj=file, mode="rb")
-        data = _read_bounded(reader, settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE)
-        self.size = len(data)
-        self.name = file.name
-        super().__init__(data)
+def _spool_bounded(
+    reader: _ChunkReader, limit: int, name: str | None, max_memory_size: int
+) -> "File[bytes]":
+    """Decompress ``reader`` into a temporary file; raise :class:`ChunkTooLarge` past ``limit``.
+
+    A request holds every chunk until all of them are stored, so decompressed
+    chunks kept in memory would hold up to ``MAX_REQUEST_SIZE`` per request in
+    the worker. A spooled file keeps at most ``max_memory_size`` of each chunk
+    in memory, the same as uncompressed chunks, which Django already writes to
+    temporary files.
+    """
+    spool = SpooledTemporaryFile(max_size=max_memory_size)
+    size = 0
+    try:
+        while True:
+            data = reader.read(min(DECOMPRESS_READ_SIZE, limit + 1 - size))
+            if not data:
+                break
+            size += len(data)
+            if size > limit:
+                raise ChunkTooLarge("Chunk size too large")
+            spool.write(data)
+    except BaseException:
+        spool.close()
+        raise
+    spool.seek(0)
+    chunk = File(spool, name=name)
+    chunk.size = size
+    return chunk
 
 
-class ZstdChunk(BytesIO):
-    def __init__(self, file):
-        # `read_across_frames=True` mirrors the behaviour of `GzipFile.read()`
-        # (which reads across concatenated gzip members) and matches the
-        # convention in `src/sentry/models/eventattachment.py`. Without it a
-        # multi-frame zstd payload would silently decode only the first frame
-        # and produce a misleading checksum-mismatch error.
-        reader = zstandard.ZstdDecompressor().stream_reader(file, read_across_frames=True)
-        data = _read_bounded(reader, settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE)
-        self.size = len(data)
-        self.name = file.name
-        super().__init__(data)
+def _decompress_bounded(
+    reader: _ChunkReader, name: str | None, spool_max_memory_size: int | None
+) -> "File[bytes]":
+    limit = settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE
+    if spool_max_memory_size is not None:
+        return _spool_bounded(reader, limit, name, spool_max_memory_size)
+    data = _read_bounded(reader, limit)
+    chunk = File(BytesIO(data), name=name)
+    chunk.size = len(data)
+    return chunk
+
+
+def gzip_chunk(file: UploadedFile, spool_max_memory_size: int | None) -> "File[bytes]":
+    reader = GzipFile(fileobj=file, mode="rb")
+    return _decompress_bounded(reader, file.name, spool_max_memory_size)
+
+
+def zstd_chunk(file: UploadedFile, spool_max_memory_size: int | None) -> "File[bytes]":
+    # `read_across_frames=True` mirrors the behaviour of `GzipFile.read()`
+    # (which reads across concatenated gzip members) and matches the
+    # convention in `src/sentry/models/eventattachment.py`. Without it a
+    # multi-frame zstd payload would silently decode only the first frame
+    # and produce a misleading checksum-mismatch error.
+    reader = zstandard.ZstdDecompressor().stream_reader(file, read_across_frames=True)
+    return _decompress_bounded(reader, file.name, spool_max_memory_size)
 
 
 class ChunkUploadPermission(OrganizationReleasePermission):
@@ -109,7 +170,7 @@ class ChunkUploadPermission(OrganizationReleasePermission):
             getattr(request, "successful_authenticator", None), LaunchpadRpcSignatureAuthentication
         )
 
-    def has_permission(self, request: Request, view) -> bool:
+    def has_permission(self, request: Request, view: APIView) -> bool:
         # Allow access for Launchpad service authentication
         if self._is_launchpad_authenticated(request):
             return True
@@ -117,7 +178,12 @@ class ChunkUploadPermission(OrganizationReleasePermission):
         # Fall back to standard organization permission check
         return super().has_permission(request, view)
 
-    def has_object_permission(self, request: Request, view, organization) -> bool:
+    def has_object_permission(
+        self,
+        request: Request,
+        view: APIView,
+        organization: Organization | RpcOrganization | RpcUserOrganizationContext,
+    ) -> bool:
         # Allow access for Launchpad service authentication
         if self._is_launchpad_authenticated(request):
             return True
@@ -126,11 +192,54 @@ class ChunkUploadPermission(OrganizationReleasePermission):
         return super().has_object_permission(request, view, organization)
 
 
+class ChunkUploadOptionsResponse(TypedDict):
+    url: Annotated[str, ApiDescription("URL to upload chunks to")]
+    chunkSize: Annotated[int, ApiDescription("Size of each chunk in bytes")]
+    chunksPerRequest: Annotated[
+        int, ApiDescription("Maximum number of chunks in one upload request")
+    ]
+    maxFileSize: Annotated[int, ApiDescription("Maximum size of an assembled file in bytes")]
+    maxRequestSize: Annotated[int, ApiDescription("Maximum size of one upload request in bytes")]
+    concurrency: Annotated[
+        int, ApiDescription("Maximum number of upload requests to run at the same time")
+    ]
+    hashAlgorithm: Annotated[str, ApiDescription("Algorithm used to checksum chunks, always sha1")]
+    compression: Annotated[
+        list[str],
+        ApiDescription(
+            "Compression formats the server accepts for chunks, such as gzip and zstd. Empty when compression is off"
+        ),
+    ]
+    accept: Annotated[
+        list[str],
+        ApiDescription(
+            "Kinds of files the server can assemble from chunks, such as debug_files or artifact_bundles"
+        ),
+    ]
+
+
+# Only describes the multipart body in the OpenAPI schema; the endpoint reads
+# ``request.FILES`` directly.
+class ChunkUploadSerializer(serializers.Serializer):
+    file = serializers.ListField(
+        child=serializers.FileField(),
+        help_text=(
+            "The chunks to upload. Name each part after the SHA-1 checksum of its uncompressed "
+            "content. Repeat the field for each chunk, up to `chunksPerRequest` per request."
+        ),
+    )
+
+
+class _ChunkUploadErrorResponse(TypedDict):
+    error: str
+
+
+@extend_schema(tags=["Organizations"])
 @cell_silo_endpoint
 class ChunkUploadEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
+        "POST": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
     # Blobs are unique per checksum, so resending a chunk leaves the same single blob.
     idempotent_methods = frozenset({"POST"})
@@ -143,11 +252,25 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
     permission_classes = (ChunkUploadPermission,)
     rate_limits = RateLimitConfig(group="CLI")
 
-    def get(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="getOrganizationChunkUploadOptions",
+        summary="Retrieve Chunk Upload Options",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ChunkUploadOptionsResponse", ChunkUploadOptionsResponse
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[ChunkUploadOptionsResponse]:
         """
-        Return chunk upload parameters
-        ``````````````````````````````
-        :auth: required
+        Return the URL and limits to use when uploading file chunks, such as the chunk size,
+        the number of chunks per request, and the supported compression.
         """
         endpoint = options.get("system.upload-url-prefix")
         relative_url = reverse("sentry-api-0-chunk-upload", args=[organization.slug])
@@ -193,7 +316,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             if organization.id in options.get("chunk-upload.no-compression")
             else list(CHUNK_UPLOAD_COMPRESSION)
         )
-        accept = CHUNK_UPLOAD_ACCEPT
+        accept = list(CHUNK_UPLOAD_ACCEPT)
 
         # Sentry CLI versions ≤2.39.1 require "chunkSize" to be a power of two, and will error otherwise,
         # with no way for the user to work around the error. This restriction has been removed from
@@ -214,23 +337,30 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             }
         )
 
-    def post(self, request: Request, organization) -> Response:
+    @extend_schema(
+        operation_id="uploadOrganizationChunks",
+        summary="Upload File Chunks",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        request={"multipart/form-data": ChunkUploadSerializer},
+        responses={
+            200: RESPONSE_SUCCESS,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def post(
+        self, request: Request, organization: Organization
+    ) -> Response[None] | Response[_ChunkUploadErrorResponse]:
         """
-        Upload chunks and store them as FileBlobs
-        `````````````````````````````````````````
-        Requests to this endpoint should use the region-specific domain
-        eg. `us.sentry.io` or `de.sentry.io`
+        Upload file chunks so they can be assembled into debug information files or artifact
+        bundles. Send requests to the URL from the chunk upload options, which uses the
+        region-specific domain (for example `us.sentry.io` or `de.sentry.io`).
 
-        Chunks may be compressed with ``gzip`` or ``zstd``. Codec is selected
-        via the ``Content-Encoding`` request header; the legacy ``file_gzip``
-        multipart field is still accepted but cannot be combined with the
-        header.
-
-        :pparam file file: The filename should be sha1 hash of the content.
-                            Also not you can add up to MAX_CHUNKS_PER_REQUEST files
-                            in this request.
-
-        :auth: required
+        Chunks may be compressed with one of the codecs listed in the options. Select it with
+        the `Content-Encoding` request header. Resending a chunk is safe: chunks are stored
+        by checksum, so an identical upload changes nothing.
         """
         # Create a unique instance so our logger can be decoupled from the request
         # and used in threads.
@@ -254,10 +384,6 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        files = []
-        checksums = []
-        total_size = 0
-
         # Validate if chunks exceed the maximum chunk limit before attempting to decompress them.
         num_files = len(files_plain) + len(files_gzip_legacy)
 
@@ -270,23 +396,51 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             logger.info("chunkupload.end", extra={"status": status.HTTP_200_OK})
             return Response(status=status.HTTP_200_OK)
 
+        files: list[File[bytes]] = []
         try:
-            for chunk, name in get_files(request, encoding):
-                if chunk.size > settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE:
+            return self._store_chunks(request, organization, encoding, files, logger)
+        finally:
+            # Decompressed chunks may be spooled to temporary files. Close them as
+            # soon as the request is done instead of waiting for garbage collection.
+            for file in files:
+                file.close()
+
+    def _store_chunks(
+        self,
+        request: Request,
+        organization: Organization,
+        encoding: str,
+        files: "list[File[bytes]]",
+        logger: logging.Logger,
+    ) -> Response[None] | Response[_ChunkUploadErrorResponse]:
+        checksums = []
+        total_size = 0
+        spool_max_memory_size = (
+            options.get("chunk-upload.spool-max-memory-size")
+            if options.get("chunk-upload.spool-decompressed-chunks")
+            else None
+        )
+
+        try:
+            for chunk, name in get_files(request, encoding, spool_max_memory_size):
+                # Track the chunk before validating it, so the caller closes it
+                # even when it is rejected.
+                files.append(chunk)
+                checksums.append(name)
+
+                chunk_size = chunk.size
+                if chunk_size > settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE:
                     logger.warning("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
                     return Response(
                         {"error": "Chunk size too large"}, status=status.HTTP_400_BAD_REQUEST
                     )
 
-                total_size += chunk.size
+                total_size += chunk_size
                 if total_size > MAX_REQUEST_SIZE:
                     logger.warning("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
                     return Response(
                         {"error": "Request too large"}, status=status.HTTP_400_BAD_REQUEST
                     )
-
-                files.append(chunk)
-                checksums.append(name)
         except ChunkTooLarge:
             logger.warning("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
             return Response({"error": "Chunk size too large"}, status=status.HTTP_400_BAD_REQUEST)
@@ -309,16 +463,18 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         return Response(status=status.HTTP_200_OK)
 
 
-def get_files(request: Request, encoding: str):
+def get_files(
+    request: Request, encoding: str, spool_max_memory_size: int | None
+) -> "Iterator[tuple[File[bytes], str]]":
     for chunk in request.FILES.getlist("file"):
         if encoding == "gzip":
-            yield GzipChunk(chunk), chunk.name
+            yield gzip_chunk(chunk, spool_max_memory_size), cast(str, chunk.name)
         elif encoding == "zstd":
-            yield ZstdChunk(chunk), chunk.name
+            yield zstd_chunk(chunk, spool_max_memory_size), cast(str, chunk.name)
         else:
-            yield chunk, chunk.name
+            yield chunk, cast(str, chunk.name)
 
     # Legacy: older clients send gzipped chunks under `file_gzip` with no
     # Content-Encoding header. Prefer `Content-Encoding: gzip` on `file`.
     for chunk in request.FILES.getlist("file_gzip"):
-        yield GzipChunk(chunk), chunk.name
+        yield gzip_chunk(chunk, spool_max_memory_size), cast(str, chunk.name)

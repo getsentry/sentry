@@ -1,8 +1,9 @@
 import {queryOptions} from '@tanstack/react-query';
 
-import type {ReplayBulkDeleteAuditLog} from 'sentry/components/replays/bulkDelete/types';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+
+import type {ReplayBulkDeleteAuditLog} from './types';
 
 type Query = {
   referrer: string;

@@ -1,39 +1,43 @@
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {
   type DashboardDetails,
   type Widget,
   type WidgetLayout,
 } from 'sentry/views/dashboards/types';
-import {AI_AGENTS_MODELS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/aiAgentsModels';
-import {AI_AGENTS_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/aiAgentsOverview';
-import {AI_AGENTS_TOOLS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/aiAgentsTools';
-import {MCP_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/mcpOverview';
-import {MCP_PROMPTS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/mcpPrompts';
-import {MCP_RESOURCES_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/mcpResources';
-import {MCP_TOOLS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/mcpTools';
-import {BACKEND_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/backendOverview/backendOverview';
-import {CACHES_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/caches/caches';
-import {FRONTEND_ASSETS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendAssets/frontendAssets';
-import {FRONTEND_ASSETS_DETAILS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendAssets/frontendAssetsDetails';
-import {FRONTEND_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendOverview/frontendOverview';
-import {HTTP_DOMAIN_SUMMARY_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/http/domainSummary';
-import {HTTP_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/http/http';
-import {LARAVEL_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/laravelOverview/laravelOverview';
-import {MOBILE_SESSION_HEALTH_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileSessionHealth';
-import {MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/appStarts';
-import {MOBILE_VITALS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/mobileVitals';
-import {MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/screenLoads';
-import {MOBILE_VITALS_SCREEN_RENDERING_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/screenRendering';
-import {NEXTJS_FRONTEND_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/nextJsOverview/nextJsOverview';
-import {NODE_RUNTIME_METRICS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/nodeRuntimeMetrics/nodeRuntimeMetrics';
-import {QUERIES_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/queries';
-import {QUERIES_DETAILS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/queryDetails';
-import {QUEUE_DETAILS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/queueDetails';
-import {QUEUES_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/queues';
-import {SESSION_HEALTH_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/sessionHealth';
-import {WEB_VITALS_DETAILS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/pageDetails';
-import {WEB_VITALS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
 import type {ModulesWithOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
+
+import {AI_AGENTS_MODELS_PREBUILT_CONFIG} from './prebuiltConfigs/ai/aiAgentsModels';
+import {AI_AGENTS_OVERVIEW_PREBUILT_CONFIG} from './prebuiltConfigs/ai/aiAgentsOverview';
+import {AI_AGENTS_TOOLS_PREBUILT_CONFIG} from './prebuiltConfigs/ai/aiAgentsTools';
+import {MCP_OVERVIEW_PREBUILT_CONFIG} from './prebuiltConfigs/ai/mcpOverview';
+import {MCP_PROMPTS_PREBUILT_CONFIG} from './prebuiltConfigs/ai/mcpPrompts';
+import {MCP_RESOURCES_PREBUILT_CONFIG} from './prebuiltConfigs/ai/mcpResources';
+import {MCP_TOOLS_PREBUILT_CONFIG} from './prebuiltConfigs/ai/mcpTools';
+import {BACKEND_OVERVIEW_PREBUILT_CONFIG} from './prebuiltConfigs/backendOverview/backendOverview';
+import {CACHES_PREBUILT_CONFIG} from './prebuiltConfigs/caches/caches';
+import {FRONTEND_ASSETS_PREBUILT_CONFIG} from './prebuiltConfigs/frontendAssets/frontendAssets';
+import {FRONTEND_ASSETS_DETAILS_PREBUILT_CONFIG} from './prebuiltConfigs/frontendAssets/frontendAssetsDetails';
+import {FRONTEND_OVERVIEW_PREBUILT_CONFIG} from './prebuiltConfigs/frontendOverview/frontendOverview';
+import {HTTP_DOMAIN_SUMMARY_PREBUILT_CONFIG} from './prebuiltConfigs/http/domainSummary';
+import {HTTP_PREBUILT_CONFIG} from './prebuiltConfigs/http/http';
+import {LARAVEL_OVERVIEW_PREBUILT_CONFIG} from './prebuiltConfigs/laravelOverview/laravelOverview';
+import {MOBILE_SESSION_HEALTH_PREBUILT_CONFIG} from './prebuiltConfigs/mobileSessionHealth';
+import {MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG} from './prebuiltConfigs/mobileVitals/appStarts';
+import {MOBILE_VITALS_PREBUILT_CONFIG} from './prebuiltConfigs/mobileVitals/mobileVitals';
+import {MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG} from './prebuiltConfigs/mobileVitals/screenLoads';
+import {MOBILE_VITALS_SCREEN_RENDERING_PREBUILT_CONFIG} from './prebuiltConfigs/mobileVitals/screenRendering';
+import {NEXTJS_FRONTEND_OVERVIEW_PREBUILT_CONFIG} from './prebuiltConfigs/nextJsOverview/nextJsOverview';
+import {NODE_RUNTIME_METRICS_PREBUILT_CONFIG} from './prebuiltConfigs/nodeRuntimeMetrics/nodeRuntimeMetrics';
+import {QUERIES_PREBUILT_CONFIG} from './prebuiltConfigs/queries/queries';
+import {QUERIES_DETAILS_PREBUILT_CONFIG} from './prebuiltConfigs/queries/queryDetails';
+import {QUEUE_DETAILS_PREBUILT_CONFIG} from './prebuiltConfigs/queues/queueDetails';
+import {QUEUES_PREBUILT_CONFIG} from './prebuiltConfigs/queues/queues';
+import {SESSION_HEALTH_PREBUILT_CONFIG} from './prebuiltConfigs/sessionHealth';
+import {WEB_VITALS_DETAILS_PREBUILT_CONFIG} from './prebuiltConfigs/webVitals/pageDetails';
+import {WEB_VITALS_DETAILS_TRACE_METRICS_PREBUILT_CONFIG} from './prebuiltConfigs/webVitals/traceMetrics/pageDetails';
+import {WEB_VITALS_TRACE_METRICS_PREBUILT_CONFIG} from './prebuiltConfigs/webVitals/traceMetrics/webVitals';
+import {WEB_VITALS_PREBUILT_CONFIG} from './prebuiltConfigs/webVitals/webVitals';
 
 export enum PrebuiltDashboardId {
   FRONTEND_SESSION_HEALTH = 1,
@@ -151,3 +155,40 @@ export const PREBUILT_DASHBOARDS: Record<PrebuiltDashboardId, PrebuiltDashboard>
   [PrebuiltDashboardId.BACKEND_CACHES]: CACHES_PREBUILT_CONFIG,
   [PrebuiltDashboardId.NODE_RUNTIME_METRICS]: NODE_RUNTIME_METRICS_PREBUILT_CONFIG,
 };
+
+type PrebuiltDashboardVariant = {
+  config: PrebuiltDashboard;
+  /** Organization feature that selects this config over the default one. */
+  feature: string;
+};
+
+/**
+ * Alternate configs served in place of the defaults above while flagged
+ */
+export const PREBUILT_DASHBOARD_VARIANTS: Partial<
+  Record<PrebuiltDashboardId, PrebuiltDashboardVariant>
+> = {
+  [PrebuiltDashboardId.WEB_VITALS]: {
+    feature: 'dashboards-web-vitals-trace-metrics',
+    config: WEB_VITALS_TRACE_METRICS_PREBUILT_CONFIG,
+  },
+  [PrebuiltDashboardId.WEB_VITALS_SUMMARY]: {
+    feature: 'dashboards-web-vitals-trace-metrics',
+    config: WEB_VITALS_DETAILS_TRACE_METRICS_PREBUILT_CONFIG,
+  },
+};
+
+/**
+ * Resolves the config for a prebuilt dashboard.
+ */
+export function getPrebuiltDashboardConfig(
+  prebuiltId: PrebuiltDashboardId,
+  organization: Organization,
+  variants: typeof PREBUILT_DASHBOARD_VARIANTS = PREBUILT_DASHBOARD_VARIANTS
+): PrebuiltDashboard {
+  const variant = variants[prebuiltId];
+  if (variant && organization.features.includes(variant.feature)) {
+    return variant.config;
+  }
+  return PREBUILT_DASHBOARDS[prebuiltId];
+}

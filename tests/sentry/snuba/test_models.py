@@ -159,9 +159,15 @@ class QuerySubscriptionDataSourceHandlerTest(TestCase):
             snuba_query=self.snuba_query,
             status=QuerySubscription.Status.DISABLED.value,
         )
+        QuerySubscription.objects.create(
+            project=new_project,
+            type="broken_sub",
+            snuba_query=self.snuba_query,
+            status=QuerySubscription.Status.BROKEN.value,
+        )
 
-        # Should count active, creating, and updating subscriptions
-        assert QuerySubscriptionDataSourceHandler.get_current_instance_count(new_org) == 3
+        # Should count active, creating, updating, and broken subscriptions
+        assert QuerySubscriptionDataSourceHandler.get_current_instance_count(new_org) == 4
 
         # Create a subscription for a different org
         other_org = self.create_organization()
@@ -173,5 +179,5 @@ class QuerySubscriptionDataSourceHandlerTest(TestCase):
             status=QuerySubscription.Status.ACTIVE.value,
         )
 
-        # Count should still be 3 as it only counts for the given org
-        assert QuerySubscriptionDataSourceHandler.get_current_instance_count(new_org) == 3
+        # Count should still be 4 as it only counts for the given org
+        assert QuerySubscriptionDataSourceHandler.get_current_instance_count(new_org) == 4

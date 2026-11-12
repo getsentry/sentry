@@ -148,7 +148,7 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
             "as a glob pattern. `equals`, `starts_with`, `contains` and `ends_with` match the "
             "field against each value case-insensitively, with every character read "
             "literally; `does_not_start_with`, `does_not_contain` and `does_not_end_with` "
-            "match when no value does. `cidr` matches `ip_address` against each value as an "
+            "match when the field is set and no value does. `cidr` matches `ip_address` against each value as an "
             "address or a CIDR range, and `not_cidr` matches when no value does. `gt`, `gte`, "
             "`lt` and `lte` compare one value as a version and only apply to `release`."
         ),
@@ -447,6 +447,7 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
         "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
         "POST": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
+    idempotent_methods = frozenset()
 
     @extend_schema(
         operation_id="List a Project's Custom Inbound Filters",
@@ -547,6 +548,7 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
         "PUT": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
         "DELETE": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
+    idempotent_methods = frozenset({"PUT"})
 
     @extend_schema(
         operation_id="Retrieve a Custom Inbound Filter",

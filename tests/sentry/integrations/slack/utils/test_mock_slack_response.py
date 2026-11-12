@@ -1,4 +1,6 @@
-from unittest.mock import patch
+from __future__ import annotations
+
+from unittest.mock import MagicMock, _patch, patch
 
 from slack_sdk.web.slack_response import SlackResponse
 
@@ -11,7 +13,7 @@ def mock_slack_response(
     api_url: str | None = None,
     req_args: dict[str, object] | None = None,
     headers: dict[str, object] | None = None,
-):
+) -> _patch[MagicMock]:
     if api_url is None:
         api_url = f"https://slack.com/api/{method_name}"
 

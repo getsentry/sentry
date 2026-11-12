@@ -1,10 +1,12 @@
 import type {Organization} from 'sentry/types/organization';
-import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
+
+import {orgHasNewSeerPlan} from './orgHasNewSeerPlan';
+import {showNewSeer} from './showNewSeer';
 
 export function orgNeedsSeerTrial(organization: Organization) {
   return (
     showNewSeer(organization) &&
-    !organization.features.includes('seat-based-seer-enabled') &&
+    !orgHasNewSeerPlan(organization) &&
     !organization.hideAiFeatures
   );
 }

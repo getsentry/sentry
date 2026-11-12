@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {useDrawerPlacement} from '@sentry/scraps/drawer';
+import {useDrawer, useDrawerPlacement} from '@sentry/scraps/drawer';
 import {Stack} from '@sentry/scraps/layout';
 import {SplitPanel, type SplitPanelHandle} from '@sentry/scraps/splitPanel';
 
@@ -10,7 +10,6 @@ import {useIsSeerExplorerSidebarEnabled} from 'sentry/utils/seer/isSeerExplorerE
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SeerExplorerPanel} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerPanel';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {
   getSeerExplorerAnalyticsBrowserSize,
@@ -18,6 +17,8 @@ import {
   SEER_EXPLORER_SIDEBAR_SEER_SIZE_KEY,
   useSeerExplorerSidebarOrientation,
 } from 'sentry/views/seerExplorer/utils';
+
+import {SeerExplorerPanel} from './seerExplorerPanel';
 
 // Minimum widths/heights so neither the app content nor Seer collapses to nothing.
 const MIN_CONTENT_WIDTH = 480;
@@ -76,6 +77,7 @@ function SeerExplorerSidebarLayoutInSidebarMode({
 }) {
   const organization = useOrganization({allowNull: true});
   const {isOpen, sidebarPosition, sidebarContainerRef} = useSeerExplorerContext();
+  const {isAnyDrawerOpen} = useDrawer();
   const {width, height} = useDimensions({elementRef: sidebarContainerRef});
   const orientation = useSeerExplorerSidebarOrientation(
     sidebarPosition,
@@ -151,7 +153,7 @@ function SeerExplorerSidebarLayoutInSidebarMode({
   // space instead of letting the tall page content grow it — giving Seer's pane
   // a viewport-bounded height.
   return (
-    <SplitContainer
+    <Stack
       ref={sidebarContainerRef}
       flex="1"
       minWidth="0"
@@ -168,18 +170,16 @@ function SeerExplorerSidebarLayoutInSidebarMode({
         minSize={minContent}
         fillMinSize={minSeer}
         onResizeEnd={({endSize}) => persistSeerSize(endSize)}
+        // An open drawer covers Seer docked right, but the divider's hit area
+        // extends past the drawer's left edge, where it would resize the covered
+        // pane instead of the drawer.
+        resizable={!(isRight && isAnyDrawerOpen)}
         sized={contentPane}
         fill={isOpen ? <SeerExplorerPanel /> : undefined}
       />
-    </SplitContainer>
+    </Stack>
   );
 }
-
-// Keep the divider's drag target in this layout's stacking context so global
-// drawers paint above it, including throughout their enter/exit animations.
-const SplitContainer = styled(Stack)`
-  isolation: isolate;
-`;
 
 // Match `html`'s scrollbar (the `*` default uses a transparent track) so the
 // content pane's scrollbar looks identical to the document scrollbar.

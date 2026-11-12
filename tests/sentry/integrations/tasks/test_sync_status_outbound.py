@@ -12,15 +12,15 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode_of, cell_silo_test
 
 
-def raise_exception(_external_issue, _is_resolved, _group_proj_id):
+def raise_exception(_external_issue: object, _is_resolved: object, _group_proj_id: object) -> None:
     raise Exception("Something went wrong")
 
 
-def raise_integration_form_error(*args, **kwargs):
+def raise_integration_form_error(*args: object, **kwargs: object) -> None:
     raise IntegrationFormError(field_errors={"foo": "Invalid foo provided"})
 
 
-def raise_api_unauthorized_error(*args, **kwargs):
+def raise_api_unauthorized_error(*args: object, **kwargs: object) -> None:
     raise ApiUnauthorized(text="auth failed")
 
 

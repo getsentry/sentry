@@ -30,9 +30,12 @@ from sentry.workflow_engine.models import DataPacket, DetectorState
 from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
+    DetectorAPIOperation,
     DetectorGroupKey,
     DetectorPriorityLevel,
     DetectorSettings,
+    DetectorType,
+    FeatureGate,
 )
 
 logger = logging.getLogger(__name__)
@@ -269,8 +272,16 @@ class SourcemapConfigurationType(GroupType):
     in_default_search = False
 
 
-@detector_settings_registry.register(SourcemapConfigurationType.slug)
+@detector_settings_registry.register(DetectorType.SOURCEMAP_CONFIGURATION)
 class SourcemapConfigurationDetectorSettings(DetectorSettings):
+    api_availability = {
+        **DetectorSettings.DEFAULT_API_AVAILABILITY,
+        DetectorAPIOperation.DISCOVER: (
+            True
+            if SourcemapConfigurationType.released
+            else FeatureGate(SourcemapConfigurationType.build_visible_feature_name()[0])
+        ),
+    }
     handler = SourcemapDetectorHandler
 
 

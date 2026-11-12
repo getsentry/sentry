@@ -8,8 +8,9 @@ import {
   decodeList,
   decodeScalar,
 } from 'sentry/utils/queryString';
-import type {IssueViewParams} from 'sentry/views/issueList/issueViews/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
+
+import type {IssueViewParams} from './utils';
 
 export function createIssueViewFromUrl({query}: {query: Query}): IssueViewParams {
   const normalizedTimeFilters = normalizeDateTimeParams(query);

@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from typing import Any, cast
 
 import orjson
 import sentry_sdk
@@ -14,6 +15,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.utils import default_start_end_dates, handle_query_errors
+from sentry.auth.principal import acting_user_id
 from sentry.models.project import Project
 from sentry.replays.endpoints.project_replay_endpoint import ProjectReplayEndpoint
 from sentry.replays.lib.seer_api import (
@@ -56,7 +58,7 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
     }
     permission_classes = (ReplaySummaryPermission,)
 
-    def __init__(self, **kw) -> None:
+    def __init__(self, **kw: object) -> None:
         storage.initialize_client()
         # Trace sample rates for each method. Uses the default when not set (=0).
         self.sample_rate_post = options.get(
@@ -197,7 +199,7 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
             # Both the frontend and summary generation are gated by the same permissions.
 
             viewer_context = SeerViewerContext(
-                organization_id=project.organization_id, user_id=request.user.id
+                organization_id=project.organization_id, user_id=acting_user_id(request.user)
             )
 
             # Request Seer for the state of the summary task.
@@ -283,7 +285,10 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
                 )
 
             # Extract start and end times from the replay (pass None if missing or invalid).
-            replay = process_raw_response(snuba_response, fields=[])[0]
+            replay = process_raw_response(
+                cast("list[dict[str, Any]]", snuba_response),
+                fields=[],
+            )[0]
 
             def validate_iso_timestamp(timestamp: str | None) -> str | None:
                 """Validate that timestamp is a valid ISO format string, return None if invalid."""
@@ -321,7 +326,7 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
                 start_request["temperature"] = temperature
 
             viewer_context = SeerViewerContext(
-                organization_id=project.organization_id, user_id=request.user.id
+                organization_id=project.organization_id, user_id=acting_user_id(request.user)
             )
 
             return self._make_seer_start_request(start_request, viewer_context=viewer_context)

@@ -17,6 +17,7 @@ from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.models.project import Project
 from sentry.replays.endpoints.project_replay_endpoint import ProjectReplayEndpoint
 from sentry.replays.lib.http import (
     MalformedRangeHeader,
@@ -55,7 +56,7 @@ class ProjectReplayVideoDetailsEndpoint(ProjectReplayEndpoint):
         examples=ReplayExamples.GET_REPLAY_VIDEO,
     )
     def get(
-        self, request: Request, project, replay_id, segment_id
+        self, request: Request, project: Project, replay_id: str, segment_id: str
     ) -> Response[DetailResponse] | HttpResponseBase:
         """Return a replay video."""
         self.check_replay_access(request, project)

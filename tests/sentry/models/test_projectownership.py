@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema, resolve_actors
@@ -23,7 +25,7 @@ from sentry.utils.cache import cache
 pytestmark = requires_snuba
 
 
-def actor_key(actor):
+def actor_key(actor: Actor) -> int:
     return actor.id
 
 
@@ -46,7 +48,7 @@ class ProjectOwnershipTestCase(TestCase):
             organization=self.organization, teams=[self.team, self.team2]
         )
 
-    def python_event_data(self):
+    def python_event_data(self) -> dict[str, object]:
         return {
             "message": "Kaboom!",
             "platform": "python",
@@ -74,11 +76,15 @@ class ProjectOwnershipTestCase(TestCase):
             "tags": {"sentry:release": self.release.version},
         }
 
-    def assert_ownership_equals(self, o1, o2):
+    def assert_ownership_equals(
+        self,
+        o1: tuple[list[Actor], Sequence[Rule] | None],
+        o2: tuple[list[Actor], Sequence[Rule] | None],
+    ) -> None:
         # Ensure actors match
         assert sorted(o1[0], key=actor_key) == sorted(o2[0], key=actor_key)
         # Ensure rules match
-        assert sorted(o1[1]) == sorted(o2[1])
+        assert sorted(cast("Sequence[Rule]", o1[1])) == sorted(cast("Sequence[Rule]", o2[1]))
 
     def test_get_owners_default(self) -> None:
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -666,7 +672,7 @@ class ProjectOwnershipTestCase(TestCase):
 
     def test_handle_auto_assignment_when_suspect_committer_and_codeowners_and_issueowners_exists(
         self,
-    ):
+    ) -> None:
         self.repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="example",

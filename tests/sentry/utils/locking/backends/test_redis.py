@@ -1,29 +1,32 @@
 from __future__ import annotations
 
 from functools import cached_property
-from unittest import TestCase
+from unittest import TestCase, mock
+from uuid import uuid4
 
 import pytest
+from redis.client import StrictRedis
+from redis.exceptions import ConnectionError as RedisConnectionError
+from redis.exceptions import ResponseError
+from sentry_redis_tools.clients import RedisCluster
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.testutils.helpers.options import override_options
-from sentry.utils.locking.backends.redis import (
-    BaseRedisLockBackend,
-    RedisClusterLockBackend,
-    RedisLockBackend,
-)
-from sentry.utils.redis import clusters, redis_clusters
+from sentry.utils.locking import LockNotOwned
+from sentry.utils.locking.backends.redis import BaseRedisLockBackend, RedisClusterLockBackend
+from sentry.utils.locking.lock import Lock
+from sentry.utils.redis import redis_clusters
 
 
 class RedisBackendTestCaseBase:
     backend_class: type[BaseRedisLockBackend]
 
     @property
-    def cluster(self):
+    def cluster(self) -> RedisCluster[str] | StrictRedis[str]:
         raise NotImplementedError
 
     @property
-    def backend(self):
+    def backend(self) -> BaseRedisLockBackend:
         return self.backend_class(self.cluster, uuid="09cd7348c93f4198995177a57216e620")
 
     def test_success(self) -> None:
@@ -55,8 +58,10 @@ class RedisBackendTestCaseBase:
             self.backend.acquire(key, duration)
 
     def test_release_fail_on_missing(self) -> None:
-        with pytest.raises(Exception):
-            self.backend.release("missing-key")
+        with pytest.raises(LockNotOwned, match="^NOLOCK") as excinfo:
+            self.backend.release(f"missing-{uuid4().hex}")
+        # Callers that catch RedisError recognize this only while it stays a ResponseError.
+        assert isinstance(excinfo.value, ResponseError)
 
     def test_release_fail_on_conflict(self) -> None:
         key = "lock"
@@ -65,6 +70,67 @@ class RedisBackendTestCaseBase:
 
         with pytest.raises(Exception):
             self.backend.acquire(key, duration)
+
+    def test_release_wrong_token_raises_lock_not_owned(self) -> None:
+        key = f"lock-{uuid4().hex}"
+        self.backend.acquire(key, 60, token="holder")
+        with pytest.raises(LockNotOwned, match="^LOCKHELD"):
+            self.backend.release(key, token="other")
+        assert self.backend.locked(key)
+        self.backend.release(key, token="holder")
+        assert not self.backend.locked(key)
+
+    def test_lock_stale_release_does_not_delete_newer_hold(self) -> None:
+        # Delete stands in for lease expiry. The script only sees that the key is gone.
+        key = f"lock-{uuid4().hex}"
+        client = self.backend.get_client(key)
+        full_key = self.backend.prefix_key(key)
+
+        first = Lock(self.backend, key, 60)
+        first.acquire()
+        client.delete(full_key)
+
+        second = Lock(self.backend, key, 60)
+        second.acquire()
+        assert first.token != second.token
+
+        first.release()
+        assert self.backend.locked(key)
+
+        second.release()
+        assert not self.backend.locked(key)
+
+    def test_other_process_stale_release_leaves_the_newer_hold(self) -> None:
+        # A second backend has its own uuid, which is what another process has.
+        key = f"lock-{uuid4().hex}"
+        first_backend = self.backend_class(self.cluster)
+        second_backend = self.backend_class(self.cluster)
+        assert first_backend.uuid != second_backend.uuid
+        client = first_backend.get_client(key)
+
+        first = Lock(first_backend, key, 60)
+        first.acquire()
+        client.delete(first_backend.prefix_key(key))
+
+        second = Lock(second_backend, key, 60)
+        second.acquire()
+        first.release()
+        assert second_backend.locked(key)
+        second.release()
+
+    def test_release_connection_error_is_not_lock_not_owned(self) -> None:
+        key = f"lock-{uuid4().hex}"
+        self.backend.acquire(key, 60, token="holder")
+        with (
+            mock.patch(
+                "sentry.utils.locking.backends.redis.delete_lock",
+                side_effect=RedisConnectionError("down"),
+            ),
+            pytest.raises(RedisConnectionError),
+        ):
+            self.backend.release(key, token="holder")
+        assert self.backend.locked(key)
+        self.backend.release(key, token="holder")
 
     def test_locked(self) -> None:
         key = "lock:testkey"
@@ -79,50 +145,12 @@ class RedisBackendTestCaseBase:
         assert self.backend_class(cluster="default").cluster == self.cluster
 
 
-class RedisLockBackendTestCase(RedisBackendTestCaseBase, TestCase):
-    backend_class = RedisLockBackend
-
-    @cached_property
-    def cluster(self):
-        return clusters.get("default")
-
-
 class RedisClusterLockBackendTestCase(RedisBackendTestCaseBase, TestCase):
     backend_class = RedisClusterLockBackend
 
     @cached_property
-    def cluster(self):
+    def cluster(self) -> RedisCluster[str] | StrictRedis[str]:
         return redis_clusters.get("default")
-
-
-class SingleHostBackendCompatibilityTestCase(TestCase):
-    # On a single host cluster, both backends must see the same locks, so that
-    # a change from one backend to the other needs no migration backend.
-    def test_blaster_lock_is_visible_to_cluster_backend(self) -> None:
-        key = "compat:blaster-to-cluster"
-        blaster_backend = RedisLockBackend("default")
-        cluster_backend = RedisClusterLockBackend("default")
-
-        blaster_backend.acquire(key, 60)
-        assert cluster_backend.locked(key)
-        with pytest.raises(Exception):
-            cluster_backend.acquire(key, 60)
-
-        blaster_backend.release(key)
-        assert not cluster_backend.locked(key)
-
-    def test_cluster_lock_is_visible_to_blaster_backend(self) -> None:
-        key = "compat:cluster-to-blaster"
-        blaster_backend = RedisLockBackend("default")
-        cluster_backend = RedisClusterLockBackend("default")
-
-        cluster_backend.acquire(key, 60)
-        assert blaster_backend.locked(key)
-        with pytest.raises(Exception):
-            blaster_backend.acquire(key, 60)
-
-        cluster_backend.release(key)
-        assert not blaster_backend.locked(key)
 
 
 class RedisClusterLockBackendConfigurationTestCase(TestCase):

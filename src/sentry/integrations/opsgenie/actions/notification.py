@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Generator, Sequence
-from typing import cast
+from typing import Any, cast
 
 import sentry_sdk
 
@@ -32,7 +32,7 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
     provider = IntegrationProviderSlug.OPSGENIE.value
     integration_key = "account"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.form_fields = {
             "account": {

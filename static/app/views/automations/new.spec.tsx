@@ -19,7 +19,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Action} from 'sentry/types/workflowEngine/actions';
@@ -30,7 +31,8 @@ import {
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import AutomationNewSettings from 'sentry/views/automations/new';
+
+import AutomationNewSettings from './new';
 
 jest.mock('sentry/utils/analytics');
 
@@ -540,7 +542,7 @@ describe('AutomationNewSettings', () => {
   }, 30000);
 
   it('sends test notification with project slug from connected monitor', async () => {
-    jest.spyOn(indicators, 'addSuccessMessage');
+    jest.spyOn(toast, 'success');
 
     const project = ProjectFixture({id: '1', slug: 'my-project'});
     ProjectsStore.loadInitialData([project]);
@@ -597,7 +599,7 @@ describe('AutomationNewSettings', () => {
     });
 
     await waitFor(() => {
-      expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Notification fired!');
+      expect(toast.success).toHaveBeenCalledWith('Notification fired!');
     });
   });
 
@@ -641,6 +643,29 @@ describe('AutomationNewSettings', () => {
 
     // The project selector should show the pre-selected project
     expect(await screen.findByText('my-project')).toBeInTheDocument();
+  });
+
+  it('pre-selects the project from the project query param over page filters', async () => {
+    const queryProject = ProjectFixture({id: '2', slug: 'query-project', isMember: true});
+    const filterProject = ProjectFixture({
+      id: '3',
+      slug: 'filter-project',
+      isMember: true,
+    });
+    ProjectsStore.loadInitialData([queryProject, filterProject]);
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({projects: [Number(filterProject.id)]})
+    );
+
+    render(<AutomationNewSettings />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/', query: {project: queryProject.id}},
+      },
+    });
+
+    expect(await screen.findByText('query-project')).toBeInTheDocument();
+    expect(screen.queryByText('filter-project')).not.toBeInTheDocument();
   });
 
   it('pre-selects the first member project when "my projects" is selected', async () => {
@@ -690,7 +715,7 @@ describe('AutomationNewSettings', () => {
   });
 
   it('surfaces API error message when automation creation fails', async () => {
-    jest.spyOn(indicators, 'addErrorMessage');
+    jest.spyOn(toast, 'error');
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/workflows/`,
@@ -713,7 +738,7 @@ describe('AutomationNewSettings', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
 
     await waitFor(() => {
-      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+      expect(toast.error).toHaveBeenCalledWith(
         'You may not exceed 1000 workflows per organization.',
         {duration: 10000}
       );
@@ -721,7 +746,7 @@ describe('AutomationNewSettings', () => {
   });
 
   it('shows one error toast when creation fails validation', async () => {
-    jest.spyOn(indicators, 'addErrorMessage');
+    jest.spyOn(toast, 'error');
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/workflows/`,
@@ -745,19 +770,17 @@ describe('AutomationNewSettings', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
 
     await waitFor(() => {
-      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+      expect(toast.error).toHaveBeenCalledWith(
         'Organization does not allow this action type: slack',
         {duration: 10000}
       );
     });
-    expect(indicators.addErrorMessage).toHaveBeenCalledTimes(1);
-    expect(indicators.addErrorMessage).not.toHaveBeenCalledWith(
-      'Unknown error while saving'
-    );
+    expect(toast.error).toHaveBeenCalledTimes(1);
+    expect(toast.error).not.toHaveBeenCalledWith('Unknown error while saving');
   });
 
   it('surfaces error details when test notification fails', async () => {
-    jest.spyOn(indicators, 'addErrorMessage');
+    jest.spyOn(toast, 'error');
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/test-fire-actions/`,
@@ -775,7 +798,7 @@ describe('AutomationNewSettings', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Send Test Notification'}));
 
     await waitFor(() => {
-      expect(indicators.addErrorMessage).toHaveBeenCalledWith('Repository is required');
+      expect(toast.error).toHaveBeenCalledWith('Repository is required');
     });
   });
 

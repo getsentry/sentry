@@ -19,7 +19,7 @@ from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 pytestmark = [requires_kafka]
 
 
-def create_trusted_relay_signature(secret_key: SecretKey) -> str | bytes:
+def create_trusted_relay_signature(secret_key: SecretKey) -> str:
     """
     Mimics how the trusted relay signature is built so we can test communication.
     """
@@ -208,7 +208,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
     # cases, which *did* have their silo mode changed.
     def test_project_config_compression(self) -> None:
         # Populate redis cache with compressed config:
-        invalidate_project_config(public_key=self.projectkey, trigger="test")
+        invalidate_project_config(public_key=self.projectkey.public_key, trigger="test")
 
         # Disable project config endpoint, to make sure Relay gets its data
         # from redis:

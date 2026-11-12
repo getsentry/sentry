@@ -6,34 +6,29 @@ import {IconMenu} from '@sentry/icons/menu';
 import {Button} from '@sentry/scraps/button';
 import {Flex, type FlexProps, Stack} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
+import {useOnClickOutside} from '@sentry/scraps/useOnClickOutside';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
-import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  NAVIGATION_MOBILE_TOPBAR_HEIGHT,
-  PRIMARY_HEADER_HEIGHT,
-} from 'sentry/views/navigation/constants';
+
+import {PrimaryNavigation} from './primary/components';
+import {PrimaryNavigationHelpMenu, useWhatsNewHelpMenuItem} from './primary/helpMenu';
+import {OrganizationDropdown} from './primary/organizationDropdown';
+import {SecondaryNavigation} from './secondary/components';
+import {SecondaryNavigationContent} from './secondary/content';
+import {NAVIGATION_MOBILE_TOPBAR_HEIGHT, PRIMARY_HEADER_HEIGHT} from './constants';
 import {
   PrimaryNavigationFooterItems,
   PrimaryNavigationFooterItemsUserDropdown,
   PrimaryNavigationItems,
   SettingsNavigationBackButton,
   SettingsPrimaryNavigationItems,
-} from 'sentry/views/navigation/navigation';
-import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
-import {
-  PrimaryNavigationHelpMenu,
-  useWhatsNewHelpMenuItem,
-} from 'sentry/views/navigation/primary/helpMenu';
-import {OrganizationDropdown} from 'sentry/views/navigation/primary/organizationDropdown';
-import {SearchButton} from 'sentry/views/navigation/searchButton';
-import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
-import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/content';
-import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
-import {useSettingsNavigation} from 'sentry/views/navigation/useSettingsNavigation';
+} from './navigation';
+import {SearchButton} from './searchButton';
+import {useSecondaryNavigation} from './secondaryNavigationContext';
+import {useSettingsNavigation} from './useSettingsNavigation';
 
 function MobileNavigationHeader(props: FlexProps<'header'>) {
   const theme = useTheme();
@@ -107,7 +102,10 @@ export function MobileNavigation() {
   const navPanelRef = useRef<HTMLDivElement>(null);
   const toggleButtonRef = useRef<HTMLButtonElement>(null);
   const {view, setView} = useSecondaryNavigation();
-  const scrollLock = useScrollLock(document.getElementById('main') ?? document.body);
+  // Lock the document, not #main. `overflow: hidden` on #main drops its flex
+  // min-height to 0, so inside the Seer Explorer content pane it collapses to
+  // the pane height and squeezes the TopBar.
+  const scrollLock = useScrollLock(document.body);
 
   useEffect(() => {
     const main = document.getElementById('main');

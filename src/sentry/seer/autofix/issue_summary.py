@@ -34,6 +34,7 @@ from sentry.seer.autofix.exceptions import (
     IssueSummaryHidden,
     IssueSummarySelfHosted,
     NoSeerQuotaException,
+    SeerOutOfCreditsException,
 )
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import (
@@ -143,7 +144,7 @@ def _trigger_autofix_task(
     auto_run_source: str,
     referrer: AutofixReferrer | str = AutofixReferrer.UNKNOWN,
     stopping_point: AutofixStoppingPoint | str | None = None,
-):
+) -> None:
     """
     Asynchronous task to trigger Autofix.
     Task queue serializes enum parameters to strings, so we need to convert them back.
@@ -204,13 +205,13 @@ def _trigger_autofix_task(
                     data={"referrer": referrer.value},
                     send_notification=False,
                 )
-        except NoSeerQuotaException:
+        except (NoSeerQuotaException, SeerOutOfCreditsException):
             pass
 
         if run and SeerAutofixOperator.has_access(organization=group.project.organization):
-            SeerOperatorAutofixCache.migrate(
-                from_group_id=group_id, to_run_id=run.seer_run_state_id
-            )
+            run_state_id = run.seer_run_state_id
+            if run_state_id is not None:
+                SeerOperatorAutofixCache.migrate(from_group_id=group_id, to_run_id=run_state_id)
 
 
 def _get_event(
@@ -250,7 +251,7 @@ def _call_seer(
     serialized_event: dict[str, Any],
     trace_tree: dict[str, Any] | None,
     experiment_variant: str | None = None,
-):
+) -> SummarizeIssueResponse:
     body = SummarizeIssueRequest(
         group_id=group.id,
         issue={

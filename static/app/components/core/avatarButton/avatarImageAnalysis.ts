@@ -191,6 +191,9 @@ function sampleAvatarColor(
 function loadImageElement(src: string): Promise<HTMLImageElement | null> {
   return new Promise(resolve => {
     const img = new Image();
+    // Allow canvas pixel reads without going through fetch instrumentation,
+    // which can add tracing headers and trigger a cross-origin preflight.
+    img.crossOrigin = 'anonymous';
     img.onload = () => resolve(img);
     img.onerror = () => resolve(null);
     img.src = src;
@@ -219,27 +222,11 @@ export function toPageOriginIfSameHost(url: string): string {
 async function fetchAvatarColor(
   url: string
 ): Promise<ReturnType<typeof sampleAvatarColor> | null> {
-  let objectUrl: string | undefined;
   try {
-    const response = await fetch(toPageOriginIfSameHost(url), {
-      mode: 'cors',
-      credentials: 'omit',
-    });
-    if (!response.ok) {
-      return null;
-    }
-
-    const blob = await response.blob();
-    objectUrl = URL.createObjectURL(blob);
-
-    const img = await loadImageElement(objectUrl);
+    const img = await loadImageElement(toPageOriginIfSameHost(url));
     return img ? sampleAvatarColor(img) : null;
   } catch {
     return null;
-  } finally {
-    if (objectUrl) {
-      URL.revokeObjectURL(objectUrl);
-    }
   }
 }
 
@@ -271,7 +258,7 @@ export function darkenUntilContrasts(hex: string, theme: Theme['type']): string 
 export async function resolveImageAvatarColors(
   url: string,
   theme: Theme['type']
-): Promise<{chonk: string | undefined; style: 'fill' | 'padded'} | null> {
+): Promise<{chonk: string; dominant: string; style: 'fill' | 'padded'} | null> {
   const sampled = await fetchAvatarColor(url);
   if (!sampled?.chonk) {
     return null;
@@ -285,5 +272,5 @@ export async function resolveImageAvatarColors(
       ? sampled.chonk
       : darkenUntilContrasts(sampled.chonk, theme);
 
-  return {chonk, style: sampled.style};
+  return {chonk, dominant: sampled.chonk, style: sampled.style};
 }

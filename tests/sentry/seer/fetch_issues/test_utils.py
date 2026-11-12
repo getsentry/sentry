@@ -262,6 +262,7 @@ class TestGetLatestIssueEvent(TestCase):
         group = event.group
 
         assert group is not None
+        assert group.qualified_short_id is not None
         result = get_latest_issue_event(group.qualified_short_id, self.organization.id)
 
         assert isinstance(result, IssueDetails)

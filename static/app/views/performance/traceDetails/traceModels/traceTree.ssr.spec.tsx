@@ -1,11 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {
-  makeEAPSpan,
-  makeEAPTrace,
-} from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
-
 import {TraceTree} from './traceTree';
+import {makeEAPSpan, makeEAPTrace} from './traceTreeTestUtils';
 
 const organization = OrganizationFixture();
 const start = new Date('2024-02-29T00:00:00Z').getTime() / 1e3;

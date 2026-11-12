@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import logging
 import math
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import Protocol
+from typing import Any, Protocol, cast
 
+from django.http import QueryDict
 from snuba_sdk import BooleanCondition, Column, Condition, Function
 
 from sentry.api.utils import get_date_range_from_params
@@ -90,12 +92,18 @@ Is then "exploded" into something like:
 
 
 class _Field(Protocol):
-    def extract_from_row(self, row, group) -> float | None: ...
-    def get_snuba_columns(self, raw_groupby) -> list[str]: ...
+    def extract_from_row(
+        self, row: Mapping[str, Any] | None, group: Mapping[str, str]
+    ) -> float | None: ...
+    def get_snuba_columns(self, raw_groupby: Sequence[str]) -> list[str]: ...
+
+
+def _number(row: Mapping[str, object], key: str) -> float:
+    return cast(float, row[key])
 
 
 class SessionsField:
-    def get_snuba_columns(self, raw_groupby):
+    def get_snuba_columns(self, raw_groupby: Sequence[str]) -> list[str]:
         if "session.status" in raw_groupby:
             return [
                 "sessions",
@@ -106,75 +114,89 @@ class SessionsField:
             ]
         return ["sessions"]
 
-    def extract_from_row(self, row, group):
+    def extract_from_row(
+        self, row: Mapping[str, Any] | None, group: Mapping[str, str]
+    ) -> float | None:
         if row is None:
             return 0
         status = group.get("session.status")
         if status is None:
-            return row["sessions"]
+            return _number(row, "sessions")
         if status == "healthy":
-            healthy_sessions = row["sessions"] - row["sessions_errored"] - row["sessions_unhandled"]
+            healthy_sessions = (
+                _number(row, "sessions")
+                - _number(row, "sessions_errored")
+                - _number(row, "sessions_unhandled")
+            )
             return max(healthy_sessions, 0)
         if status == "abnormal":
-            return row["sessions_abnormal"]
+            return _number(row, "sessions_abnormal")
         if status == "unhandled":
-            return row["sessions_unhandled"]
+            return _number(row, "sessions_unhandled")
         if status == "crashed":
-            return row["sessions_crashed"]
+            return _number(row, "sessions_crashed")
         if status == "errored":
             errored_sessions = (
-                row["sessions_errored"]
-                - row["sessions_unhandled"]
-                - row["sessions_crashed"]
-                - row["sessions_abnormal"]
+                _number(row, "sessions_errored")
+                - _number(row, "sessions_unhandled")
+                - _number(row, "sessions_crashed")
+                - _number(row, "sessions_abnormal")
             )
             return max(errored_sessions, 0)
         return 0
 
 
 class UsersField:
-    def get_snuba_columns(self, raw_groupby):
+    def get_snuba_columns(self, raw_groupby: Sequence[str]) -> list[str]:
         if "session.status" in raw_groupby:
             return ["users", "users_abnormal", "users_crashed", "users_errored", "users_unhandled"]
         return ["users"]
 
-    def extract_from_row(self, row, group):
+    def extract_from_row(
+        self, row: Mapping[str, Any] | None, group: Mapping[str, str]
+    ) -> float | None:
         if row is None:
             return 0
         status = group.get("session.status")
         if status is None:
-            return row["users"]
+            return _number(row, "users")
         if status == "healthy":
-            healthy_users = row["users"] - row["users_errored"] - row["users_unhandled"]
+            healthy_users = (
+                _number(row, "users")
+                - _number(row, "users_errored")
+                - _number(row, "users_unhandled")
+            )
             return max(healthy_users, 0)
         if status == "abnormal":
-            return row["users_abnormal"]
+            return _number(row, "users_abnormal")
         if status == "unhandled":
-            return row["users_unhandled"]
+            return _number(row, "users_unhandled")
         if status == "crashed":
-            return row["users_crashed"]
+            return _number(row, "users_crashed")
         if status == "errored":
             errored_users = (
-                row["users_errored"]
-                - row["users_crashed"]
-                - row["users_abnormal"]
-                - row["users_unhandled"]
+                _number(row, "users_errored")
+                - _number(row, "users_crashed")
+                - _number(row, "users_abnormal")
+                - _number(row, "users_unhandled")
             )
             return max(errored_users, 0)
         return 0
 
 
-def finite_or_none(val):
+def finite_or_none(val: float | None) -> float | None:
     if isinstance(val, (int, float)) and not math.isfinite(val):
         return None
     return val
 
 
 class DurationAverageField:
-    def get_snuba_columns(self, raw_groupby):
+    def get_snuba_columns(self, raw_groupby: Sequence[str]) -> list[str]:
         return ["duration_avg"]
 
-    def extract_from_row(self, row, group):
+    def extract_from_row(
+        self, row: Mapping[str, Any] | None, group: Mapping[str, str]
+    ) -> float | None:
         if row is None:
             return None
         status = group.get("session.status")
@@ -184,13 +206,15 @@ class DurationAverageField:
 
 
 class DurationQuantileField:
-    def __init__(self, quantile_index):
+    def __init__(self, quantile_index: int) -> None:
         self.quantile_index = quantile_index
 
-    def get_snuba_columns(self, raw_groupby):
+    def get_snuba_columns(self, raw_groupby: Sequence[str]) -> list[str]:
         return ["duration_quantiles"]
 
-    def extract_from_row(self, row, group):
+    def extract_from_row(
+        self, row: Mapping[str, Any] | None, group: Mapping[str, str]
+    ) -> float | None:
         if row is None:
             return None
         status = group.get("session.status")
@@ -215,7 +239,7 @@ COLUMN_MAP: dict[str, _Field] = {
 class _GroupBy(Protocol):
     def get_snuba_columns(self) -> list[str]: ...
     def get_snuba_groupby(self) -> list[str]: ...
-    def get_keys_for_row(self, row) -> list[tuple[str, str]]: ...
+    def get_keys_for_row(self, row: Mapping[str, Any]) -> list[tuple[str, str]]: ...
 
 
 class SimpleGroupBy:
@@ -229,18 +253,18 @@ class SimpleGroupBy:
     def get_snuba_groupby(self) -> list[str]:
         return [self.row_name]
 
-    def get_keys_for_row(self, row) -> list[tuple[str, str]]:
-        return [(self.name, row[self.row_name])]
+    def get_keys_for_row(self, row: Mapping[str, Any]) -> list[tuple[str, str]]:
+        return [(self.name, cast("str", row[self.row_name]))]
 
 
 class SessionStatusGroupBy:
-    def get_snuba_columns(self):
+    def get_snuba_columns(self) -> list[str]:
         return []
 
-    def get_snuba_groupby(self):
+    def get_snuba_groupby(self) -> list[str]:
         return []
 
-    def get_keys_for_row(self, row):
+    def get_keys_for_row(self, row: Mapping[str, Any]) -> list[tuple[str, str]]:
         return [
             ("session.status", key)
             for key in ["healthy", "abnormal", "crashed", "errored", "unhandled"]
@@ -274,11 +298,11 @@ class QueryDefinition:
 
     def __init__(
         self,
-        query,
-        params,
+        query: QueryDict,
+        params: Mapping[str, Any],
         limit: int | None = 0,
         offset: int | None = 0,
-    ):
+    ) -> None:
         self.query = query.get("query", "")
         self.raw_fields = raw_fields = query.getlist("field", [])
         self.raw_groupby = raw_groupby = query.getlist("groupBy", [])
@@ -289,7 +313,7 @@ class QueryDefinition:
         if len(raw_fields) == 0:
             raise InvalidField('Request is missing a "field"')
 
-        self.fields = {}
+        self.fields: dict[str, _Field] = {}
         for key in raw_fields:
             if key not in COLUMN_MAP:
                 from sentry.release_health.metrics_sessions_v2 import FIELD_MAP
@@ -306,7 +330,7 @@ class QueryDefinition:
 
             self.fields[key] = COLUMN_MAP[key]
 
-        self.groupby = []
+        self.groupby: list[_GroupBy] = []
         for key in raw_groupby:
             if key not in GROUPBY_MAP:
                 raise InvalidField(f'Invalid groupBy: "{key}"')
@@ -339,7 +363,7 @@ class QueryDefinition:
             query_groupby.update(groupby.get_snuba_groupby())
         self.query_groupby = list(query_groupby)
 
-    def to_query_builder_dict(self, orderby=None):
+    def to_query_builder_dict(self, orderby: list[str] | None = None) -> dict[str, Any]:
         num_intervals = len(get_timestamps(self))
         if num_intervals == 0:
             raise ZeroIntervalsException
@@ -364,7 +388,7 @@ class QueryDefinition:
         }
         return query_builder_dict
 
-    def get_filter_conditions(self):
+    def get_filter_conditions(self) -> list[Any]:
         """
         Returns filter conditions for the query to be used for metrics queries, and hence excluding timestamp and
         organization id condition that are later added by the metrics layer.
@@ -387,7 +411,7 @@ class QueryDefinition:
         return filter_conditions
 
     @classmethod
-    def _check_supported_condition(cls, condition):
+    def _check_supported_condition(cls, condition: Any) -> None:
         if isinstance(condition, BooleanCondition):
             for nested_condition in condition.conditions:
                 cls._check_supported_condition(nested_condition)
@@ -419,15 +443,15 @@ ONE_MINUTE = timedelta(minutes=1).total_seconds()
 SNUBA_LIMIT = 5000
 
 
-def get_now():
+def get_now() -> datetime:
     """Wrapper function to make it mockable in unit tests"""
     return datetime.now(tz=timezone.utc)
 
 
 def get_constrained_date_range(
-    params,
+    params: Mapping[str, Any],
     allowed_resolution: AllowedResolution = AllowedResolution.one_hour,
-    max_points=MAX_POINTS,
+    max_points: int = MAX_POINTS,
 ) -> tuple[datetime, datetime, int]:
     interval_td = parse_stats_period(params.get("interval", "1h"))
     interval = int(3600 if interval_td is None else interval_td.total_seconds())
@@ -463,11 +487,11 @@ def get_constrained_date_range(
     return adjusted_start, adjusted_end, interval
 
 
-def isoformat_z(date):
+def isoformat_z(date: datetime) -> str:
     return datetime.fromtimestamp(int(date.timestamp())).isoformat() + "Z"
 
 
-def get_timestamps(query):
+def get_timestamps(query: QueryDefinition) -> list[str]:
     """
     Generates a list of timestamps according to `query`.
     The timestamps are returned as ISO strings for now.

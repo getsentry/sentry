@@ -3,8 +3,9 @@ import {useMemo} from 'react';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
-import type {TraceMetaQueryResults} from 'sentry/views/performance/traceDetails/traceApi/useTraceMeta';
-import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+
+import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
+import type {TraceTree} from './traceModels/traceTree';
 
 function hasCount(count: number | undefined, fallback: boolean): boolean {
   return count === undefined ? fallback : count > 0;

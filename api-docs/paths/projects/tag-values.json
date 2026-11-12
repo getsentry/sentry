@@ -47,7 +47,8 @@
                 "required": ["name"],
                 "properties": {
                   "name": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "The display label of the tag value. For the `sentry:user` tag, the `id:`, `email:`, `username:` or `ip:` prefix is removed."
                   }
                 }
               }

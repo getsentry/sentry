@@ -12,12 +12,13 @@ import * as analytics from 'sentry/utils/analytics';
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 import * as useDimensionsModule from 'sentry/utils/useDimensions';
 import type {OpenSeerExplorerDrawerOptions} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
-import {SeerExplorerSidebarLayout} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerSidebarLayout';
 import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/seerExplorerContextProvider';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+
+import {SeerExplorerSidebarLayout} from './seerExplorerSidebarLayout';
 
 const POSITION_KEY = 'seer-explorer-sidebar-position';
 
@@ -25,6 +26,7 @@ const seerFeatures = ['seer-explorer'];
 
 const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer> = {
   sessionData: null,
+  featureId: null,
   isPolling: false,
   isError: false,
   hasSessionLoadError: false,
@@ -536,6 +538,37 @@ describe('SeerExplorerSidebarLayout', () => {
     expect(splitOrientation()).toBeUndefined();
   });
 
+  it('keeps the sidebar open across a reload', async () => {
+    mockWideScreen(true);
+    const {unmount} = renderSidebar(orgWithSidebar);
+    await userEvent.click(screen.getByText('open-seer'));
+    expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
+    unmount();
+
+    renderSidebar(orgWithSidebar);
+
+    expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
+    expect(splitOrientation()).toBe('horizontal');
+  });
+
+  it('keeps the sidebar closed across a reload after closing it', async () => {
+    mockWideScreen(true);
+    const {unmount} = renderSidebar(orgWithSidebar);
+    await userEvent.click(screen.getByText('open-seer'));
+    expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Close Seer'}));
+    await waitFor(() =>
+      expect(screen.queryByTestId('seer-explorer-input')).not.toBeInTheDocument()
+    );
+    unmount();
+
+    renderSidebar(orgWithSidebar);
+
+    expect(await screen.findByText('main app content')).toBeInTheDocument();
+    expect(screen.queryByTestId('seer-explorer-input')).not.toBeInTheDocument();
+    expect(splitOrientation()).toBeUndefined();
+  });
+
   it('has drawers cover Seer while it is docked right', async () => {
     mockWideScreen(true);
     const drawerPlacement = jest.spyOn(drawerModule, 'useDrawerPlacement');
@@ -546,11 +579,14 @@ describe('SeerExplorerSidebarLayout', () => {
     expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
     // The default 420px Seer width, measured from the container's right edge.
     expect(drawerPlacement).toHaveBeenLastCalledWith({minWidth: 420, topOffset: 0});
+    expect(screen.getByRole('separator')).not.toHaveAttribute('inert');
 
     await userEvent.click(screen.getByText('open-drawer'));
     expect(
       await screen.findByRole('complementary', {name: 'Test drawer'})
     ).toBeInTheDocument();
+    // The divider's hit area extends past the drawer's edge, so it stops resizing.
+    expect(screen.getByRole('separator', {hidden: true})).toHaveAttribute('inert');
 
     await userEvent.click(screen.getByRole('button', {name: 'Close Seer'}));
     await waitFor(() =>
@@ -571,6 +607,7 @@ describe('SeerExplorerSidebarLayout', () => {
     expect(
       await screen.findByRole('complementary', {name: 'Test drawer'})
     ).toBeInTheDocument();
+    expect(screen.getByRole('separator')).not.toHaveAttribute('inert');
   });
 
   describe('explorerRunId param', () => {

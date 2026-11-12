@@ -12,7 +12,7 @@ class CursorApiKeyMetadata(BaseModel):
 
 class CursorAgentLaunchRequestPrompt(BaseModel):
     text: str
-    images: list[dict] = []
+    images: list[dict[str, object]] = []
 
 
 class CursorAgentSource(BaseModel):

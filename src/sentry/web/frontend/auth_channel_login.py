@@ -1,4 +1,7 @@
+from collections.abc import Mapping
+
 from django.contrib.auth import REDIRECT_FIELD_NAME
+from django.http import HttpRequest, HttpResponseBase
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
@@ -15,11 +18,13 @@ from sentry.web.frontend.base import control_silo_view
 @control_silo_view
 class AuthChannelLoginView(AuthOrganizationLoginView):
     @method_decorator(never_cache)
-    def handle(self, request, channel, resource_id):  # type: ignore[override]  # intentional signature change
+    def handle(  # type: ignore[override]  # intentional signature change
+        self, request: HttpRequest, channel: str, resource_id: str
+    ) -> HttpResponseBase:
         if request.subdomain is not None:
             return self.redirect(reverse("sentry-auth-organization", args=[request.subdomain]))
 
-        config_data = request.GET.get("config_data", "")
+        config_data: str | Mapping[str, object] = request.GET.get("config_data", "")
 
         if not config_data:
             # NOTE: This provider_config may differ per provider

@@ -1,9 +1,10 @@
-import type {Repository} from 'sentry/types/integrations';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
+import {useQuery} from '@tanstack/react-query';
 
-function getReleaseRepositoriesQueryKey({
+import type {Repository} from 'sentry/types/integrations';
+
+import {apiOptions} from './api/apiOptions';
+
+function getReleaseRepositoriesApiOptions({
   orgSlug,
   projectSlug,
   release,
@@ -11,26 +12,25 @@ function getReleaseRepositoriesQueryKey({
   orgSlug: string;
   projectSlug: string;
   release: string;
-}): ApiQueryKey {
-  return [
-    getApiUrl(
-      '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/$version/repositories/',
-      {
-        path: {
-          organizationIdOrSlug: orgSlug,
-          projectIdOrSlug: projectSlug,
-          version: release,
-        },
-      }
-    ),
-  ];
+}) {
+  return apiOptions.as<Repository[]>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/$version/repositories/',
+    {
+      path: {
+        organizationIdOrSlug: orgSlug,
+        projectIdOrSlug: projectSlug,
+        version: release,
+      },
+      staleTime: Infinity,
+    }
+  );
 }
 
 interface UseReleaseReposProps {
   orgSlug: string;
   projectSlug: string;
   release: string;
-  options?: Partial<UseApiQueryOptions<Repository[]>>;
+  options?: {enabled?: boolean};
 }
 
 export function useReleaseRepositories({
@@ -39,15 +39,12 @@ export function useReleaseRepositories({
   release,
   options,
 }: UseReleaseReposProps) {
-  return useApiQuery<Repository[]>(
-    getReleaseRepositoriesQueryKey({
+  return useQuery({
+    ...getReleaseRepositoriesApiOptions({
       orgSlug,
       projectSlug,
       release,
     }),
-    {
-      staleTime: Infinity,
-      ...options,
-    }
-  );
+    ...options,
+  });
 }

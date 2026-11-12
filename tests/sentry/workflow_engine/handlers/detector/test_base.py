@@ -31,17 +31,36 @@ from sentry.workflow_engine.processors import (
 from sentry.workflow_engine.registry import data_source_type_registry, detector_settings_registry
 from sentry.workflow_engine.types import (
     ConditionError,
-    DataConditionResult,
     DataSourceTypeHandler,
     DetectorGroupKey,
     DetectorPriorityLevel,
     DetectorSettings,
+    DetectorType,
 )
+from sentry.workflow_engine.utils.fingerprinting import build_detector_issue_fingerprint
 from tests.sentry.issues.test_grouptype import BaseGroupTypeTest
 
 MOCK_DATA_SOURCE_TYPE = "detector_handler_test_source"
 
 EVENT_ID = "0123456789abcdef0123456789abcdef"
+
+
+@pytest.mark.parametrize(
+    "detector_id,issue_type_id,problem_key",
+    [(2, 100, "problem"), (1, 200, "problem"), (1, 100, "another-problem")],
+)
+def test_detector_issue_fingerprint_separates_distinct_issues(
+    detector_id: int, issue_type_id: int, problem_key: str
+) -> None:
+    original = build_detector_issue_fingerprint(1, 100, "problem")
+    assert len(original) == 1
+    assert original != build_detector_issue_fingerprint(detector_id, issue_type_id, problem_key)
+
+
+def test_detector_issue_fingerprint_keeps_the_problem_key_in_one_entry() -> None:
+    assert build_detector_issue_fingerprint(1, 100, "resource:part/雪") == [
+        "detector:1:type:100:problem:resource:part/雪"
+    ]
 
 
 class MockDataSourceTypeHandler(DataSourceTypeHandler[None]):
@@ -120,19 +139,23 @@ class MockDetectorStateHandler(StatefulDetectorHandler[dict[str, Any], int | Non
     """
 
     def extract_dedupe_value(self, data_packet: DataPacket[dict[str, Any]]) -> int:
-        return data_packet.packet.get("dedupe", 0)
+        value = data_packet.packet.get("dedupe", 0)
+        return value if isinstance(value, int) else 0
 
     def extract_value(
         self, data_packet: DataPacket[dict[str, Any]]
     ) -> int | None | DetectorGroupValues[int | None]:
         if data_packet.packet.get("value"):
-            return data_packet.packet["value"]
+            value = data_packet.packet["value"]
+            assert isinstance(value, int)
+            return value
 
         group_vals = data_packet.packet.get("group_vals", 0)
 
         if isinstance(group_vals, dict):
             return DetectorGroupValues(group_vals)
 
+        assert isinstance(group_vals, int) or group_vals is None
         return group_vals
 
     def create_occurrence(
@@ -147,7 +170,8 @@ class MockTriggeredDetectorHandler(DetectorHandler[dict[str, Any], int]):
     """Triggers at HIGH for every packet, without evaluating its conditions."""
 
     def extract_value(self, data_packet: DataPacket[dict[str, Any]]) -> int:
-        return data_packet.packet.get("value", 0)
+        value: int = data_packet.packet.get("value", 0)
+        return value
 
     def evaluate(
         self,
@@ -218,7 +242,9 @@ class MockUnconditionedDetectorHandler(BaseDetectorHandler[dict[str, Any], int])
     threshold = 5
 
     def extract_value(self, data_packet: DataPacket[dict[str, Any]]) -> int:
-        return data_packet.packet["value"]
+        value = data_packet.packet["value"]
+        assert isinstance(value, int)
+        return value
 
     def evaluate(
         self,
@@ -274,21 +300,24 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
 
         class NoHandlerGroupType(GroupType):
             type_id = 1
-            slug = "no_handler"
+            slug = DetectorType.MONITOR_CHECK_IN_FAILURE
             description = "no handler"
             category = GroupCategory.METRIC.value
 
         class HandlerGroupType(GroupType):
             type_id = 2
-            slug = "handler"
+            slug = DetectorType.PERFORMANCE_SLOW_DB_QUERY
             description = "handler"
             category = GroupCategory.METRIC.value
 
         class HandlerStateGroupType(GroupType):
             type_id = 3
-            slug = "handler_with_state"
+            slug = DetectorType.PERFORMANCE_LARGE_HTTP_PAYLOAD
             description = "handler with state"
             category = GroupCategory.METRIC.value
+
+        detector_settings_registry.registrations.pop(HandlerGroupType.slug)
+        detector_settings_registry.registrations.pop(HandlerStateGroupType.slug)
 
         @detector_settings_registry.register(HandlerGroupType.slug)
         class HandlerDetectorSettings(DetectorSettings):
@@ -341,9 +370,11 @@ class ConditionDetectorHandlerTest(BaseGroupTypeTest):
 
         class ConditionGroupType(GroupType):
             type_id = 5
-            slug = "condition_handler"
+            slug = DetectorType.PERFORMANCE_SLOW_DB_QUERY
             description = "condition handler"
             category = GroupCategory.METRIC.value
+
+        detector_settings_registry.registrations.pop(ConditionGroupType.slug)
 
         @detector_settings_registry.register(ConditionGroupType.slug)
         class ConditionDetectorSettings(DetectorSettings):
@@ -354,7 +385,7 @@ class ConditionDetectorHandlerTest(BaseGroupTypeTest):
         self.handler = MockDefaultDetectorHandler(self.detector)
 
     def create_condition_detector(
-        self, condition_result: DataConditionResult = DetectorPriorityLevel.HIGH
+        self, condition_result: int | None = DetectorPriorityLevel.HIGH
     ) -> Detector:
         detector = self.create_detector(
             project=self.project,
@@ -715,9 +746,11 @@ class TestBaseDetectorHandlerWithoutConditionGroup(BaseGroupTypeTest):
 
         class UnconditionedGroupType(GroupType):
             type_id = 8
-            slug = "unconditioned_handler"
+            slug = DetectorType.PERFORMANCE_SLOW_DB_QUERY
             description = "unconditioned handler"
             category = GroupCategory.METRIC.value
+
+        detector_settings_registry.registrations.pop(UnconditionedGroupType.slug)
 
         @detector_settings_registry.register(UnconditionedGroupType.slug)
         class UnconditionedDetectorSettings(DetectorSettings):

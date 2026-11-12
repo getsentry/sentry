@@ -49,7 +49,9 @@ class GroupEventDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
             project_id=project.id,
         )
 
-        self.group = Group.objects.first()
+        group = Group.objects.first()
+        assert group is not None
+        self.group = group
 
     def test_snuba_no_environment_latest(self) -> None:
         url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/events/latest/"

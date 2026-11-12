@@ -57,6 +57,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             project_id=self.project.id,
             default_event_type=EventType.DEFAULT,
         )
+        assert self.event.group is not None
         self.group = self.event.group
 
     def assert_metric_recorded(

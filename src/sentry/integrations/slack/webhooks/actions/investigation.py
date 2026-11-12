@@ -12,15 +12,12 @@ from rest_framework.response import Response
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.requests.action import SlackActionRequest
-from sentry.investigations.access import INVESTIGATION_SCOPES
-from sentry.investigations.endpoints.base import organization_project_ids
-from sentry.investigations.services import (
-    InvestigationSourceNotFound,
-    InvestigationValidationError,
-    resolve_investigation_source,
-)
+from sentry.investigations.services.breached_metrics import resolve_investigation_source
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.notebooks.access import NOTEBOOK_SCOPES
+from sentry.notebooks.endpoints.base import organization_project_ids
+from sentry.notebooks.services import NotebookSourceNotFound, NotebookValidationError
 from sentry.seer.entrypoints.operator import SeerInvestigationOperator
 from sentry.seer.entrypoints.slack.entrypoint import (
     SlackInvestigationEntrypoint,
@@ -179,8 +176,8 @@ def handle_seer_investigation_start(
         return _respond_ephemeral(
             INVESTIGATION_NOT_MEMBER_MESSAGE.format(org_name=organization.name)
         )
-    # Matches InvestigationPermission, so a role like billing can't start a run it can't open.
-    if not member.get_scopes() & INVESTIGATION_SCOPES:
+    # Matches NotebookPermission, so a role like billing can't start a run it can't open.
+    if not member.get_scopes() & NOTEBOOK_SCOPES:
         log_unavailable(InvestigationUnavailableReason.MISSING_SCOPE)
         return _respond_ephemeral(INVESTIGATION_UNAVAILABLE_MESSAGE)
 
@@ -198,10 +195,10 @@ def handle_seer_investigation_start(
             source=source,
             accessible_project_ids=organization_project_ids(organization),
         )
-    except InvestigationSourceNotFound:
+    except NotebookSourceNotFound:
         log_unavailable(InvestigationUnavailableReason.SOURCE_NOT_FOUND)
         return _respond_ephemeral(INVESTIGATION_UNAVAILABLE_MESSAGE)
-    except InvestigationValidationError as e:
+    except NotebookValidationError as e:
         log_unavailable(InvestigationUnavailableReason.INVALID_SOURCE, {"error": str(e)})
         return _respond_ephemeral(INVESTIGATION_UNAVAILABLE_MESSAGE)
 

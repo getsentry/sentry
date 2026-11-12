@@ -10,7 +10,7 @@ class KeySpec(NamedTuple):
     movable: bool
 
 
-# Key positions of each Redis command that takes keys, as the COMMAND reply of Redis 7.0.10 (the
+# Key positions of each Redis command that takes keys, as the COMMAND reply of Valkey 8.0.12 (the
 # redis-cluster version in devservices) gives them. Commands without keys are not in the table.
 COMMAND_KEY_SPECS: dict[str, KeySpec] = {
     "append": KeySpec(1, 1, 1, False),

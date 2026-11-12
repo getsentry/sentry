@@ -1,28 +1,23 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 import {parseAsString, useQueryStates} from 'nuqs';
 
 import {useFeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {coaleseIssueStatsPeriodQuery} from 'sentry/utils/feedback/coaleseIssueStatsPeriodQuery';
-import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
-import {decodeScalar} from 'sentry/utils/queryString';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
-import {useLocation} from 'sentry/utils/useLocation';
 
 interface Props {
   organization: Organization;
 }
 
 const mailboxCountsParsers = {
-  end: parseAsString.withDefault(''),
-  environment: parseAsStringArray,
+  ...pageFilterParsers,
   field: parseAsStringArray,
-  project: parseAsStringArray,
-  start: parseAsString.withDefault(''),
-  statsPeriod: parseAsString.withDefault(''),
-  utc: parseAsString.withDefault(''),
+  query: parseAsString.withDefault(''),
 };
 
 // The keys here are the different search terms that we're using:
@@ -30,16 +25,14 @@ type ApiReturnType = Record<string, number>;
 
 // This is what the hook consumer gets:
 type HookReturnType = {
-  ignored: number;
-  resolved: number;
-  unresolved: number;
+  ignored: number | undefined;
+  resolved: number | undefined;
+  unresolved: number | undefined;
 };
 
-export function useMailboxCounts({
-  organization,
-}: Props): UseApiQueryResult<HookReturnType, RequestError> {
-  const location = useLocation();
-  const locationQuery = decodeScalar(location.query.query, '');
+export function useMailboxCounts({organization}: Props) {
+  const [locationFields] = useQueryStates(mailboxCountsParsers);
+  const locationQuery = locationFields.query;
   const {listHeadTime} = useFeedbackApiOptions();
 
   // We should fetch the counts while taking the query into account
@@ -53,8 +46,6 @@ export function useMailboxCounts({
   );
 
   const mailboxQuery = useMemo(() => Object.values(MAILBOX), [MAILBOX]);
-
-  const [locationFields] = useQueryStates(mailboxCountsParsers);
 
   // The request is keyed off this object, so it has to stay referentially stable
   // across renders that don't change the filters.
@@ -76,33 +67,26 @@ export function useMailboxCounts({
     [listHeadTime, queryView]
   );
 
-  const result = useApiQuery<ApiReturnType>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/issues-count/', {
+  const select = useCallback(
+    ({json}: ApiResponse<ApiReturnType>): HookReturnType => ({
+      unresolved: json[MAILBOX.unresolved],
+      resolved: json[MAILBOX.resolved],
+      ignored: json[MAILBOX.ignored],
+    }),
+    [MAILBOX.ignored, MAILBOX.resolved, MAILBOX.unresolved]
+  );
+  return useQuery({
+    ...apiOptions.as<ApiReturnType>()(
+      '/organizations/$organizationIdOrSlug/issues-count/',
+      {
         path: {
           organizationIdOrSlug: organization.slug,
         },
-      }),
-      {query: queryViewWithStatsPeriod},
-    ],
-    {
-      staleTime: 1_000,
-      refetchInterval: 30_000,
-    }
-  );
-
-  return useMemo(
-    () =>
-      ({
-        ...result,
-        data: result.data
-          ? {
-              unresolved: result.data[MAILBOX.unresolved],
-              resolved: result.data[MAILBOX.resolved],
-              ignored: result.data[MAILBOX.ignored],
-            }
-          : undefined,
-      }) as UseApiQueryResult<HookReturnType, RequestError>,
-    [result, MAILBOX.ignored, MAILBOX.resolved, MAILBOX.unresolved]
-  );
+        query: queryViewWithStatsPeriod,
+        staleTime: 1_000,
+      }
+    ),
+    refetchInterval: 30_000,
+    select,
+  });
 }

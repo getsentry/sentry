@@ -1,4 +1,13 @@
-import {Fragment, useCallback, useEffect, useId, useMemo, useRef, useState} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -31,13 +40,6 @@ import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
-import {MetricDetailPanel} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricDetailPanel';
-import {MetricListBoxOption} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricListBoxOption';
-import {
-  isMetricSelectorOption,
-  type MetricSelectorItem,
-  type MetricSelectorOption,
-} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/types';
 import {
   isTraceMetricTypeValue,
   TraceMetricKnownFieldKey,
@@ -47,6 +49,14 @@ import {
   hasDisplayMetricUnit,
   makeMetricSelectValue,
 } from 'sentry/views/explore/metrics/utils';
+
+import {MetricDetailPanel} from './metricDetailPanel';
+import {MetricListBoxOption} from './metricListBoxOption';
+import {
+  isMetricSelectorOption,
+  type MetricSelectorItem,
+  type MetricSelectorOption,
+} from './types';
 
 const METRIC_SELECTOR_OPTION_HEIGHT = 42;
 const METRIC_SELECTOR_DROPDOWN_MAX_HEIGHT = 400;
@@ -535,49 +545,37 @@ export function MetricSelector({
     ? collectionItems.findIndex(item => item.key === focusedKey)
     : -1;
 
-  const updateSidePanelAnchorOffset = useCallback(
-    (activeOptionElement?: HTMLElement | null) => {
-      if (!isOpen || (!activeOptionElement && activeOptionIndex < 0)) {
-        setSidePanelAnchorOffset(null);
-        return;
-      }
+  const updateSidePanelAnchorOffset = useCallback(() => {
+    const optionElement = listElementRef.current?.querySelector<HTMLElement>(
+      `[data-index="${activeOptionIndex}"]`
+    );
+    const popoverElement = popoverRef.current;
 
-      const optionElement =
-        activeOptionElement ??
-        listElementRef.current?.querySelector<HTMLElement>(
-          `[data-index="${activeOptionIndex}"]`
-        );
-      const popoverElement = popoverRef.current;
+    if (!isOpen || !optionElement || !popoverElement) {
+      setSidePanelAnchorOffset(null);
+      return;
+    }
 
-      if (!optionElement || !popoverElement) {
-        setSidePanelAnchorOffset(null);
-        return;
-      }
+    const optionRect = optionElement.getBoundingClientRect();
+    const popoverRect = popoverElement.getBoundingClientRect();
+    const sidePanelRect = sidePanelRef.current?.getBoundingClientRect();
+    const optionCenter = optionRect.top + optionRect.height / 2;
+    const sidePanelHeight = sidePanelRect?.height ?? 0;
+    const offset = isOverlayAboveTrigger
+      ? popoverRect.bottom - optionCenter - sidePanelHeight / 2
+      : optionCenter - popoverRect.top - sidePanelHeight / 2;
+    const maxOffset = Math.max(0, popoverRect.height - sidePanelHeight);
 
-      const optionRect = optionElement.getBoundingClientRect();
-      const popoverRect = popoverElement.getBoundingClientRect();
-      const sidePanelRect = sidePanelRef.current?.getBoundingClientRect();
-      const optionCenter = optionRect.top + optionRect.height / 2;
-      const sidePanelHeight = sidePanelRect?.height ?? 0;
-      const offset = isOverlayAboveTrigger
-        ? popoverRect.bottom - optionCenter - sidePanelHeight / 2
-        : optionCenter - popoverRect.top - sidePanelHeight / 2;
-      const maxOffset = Math.max(0, popoverRect.height - sidePanelHeight);
+    setSidePanelAnchorOffset(Math.min(Math.max(0, offset), maxOffset));
+  }, [activeOptionIndex, isOpen, isOverlayAboveTrigger]);
 
-      setSidePanelAnchorOffset(Math.min(Math.max(0, offset), maxOffset));
-    },
-    [activeOptionIndex, isOpen, isOverlayAboveTrigger]
-  );
-
-  const setSidePanelRef = useCallback(
-    (element: HTMLDivElement | null) => {
-      sidePanelRef.current = element;
-      if (element) {
-        updateSidePanelAnchorOffset();
-      }
-    },
-    [updateSidePanelAnchorOffset]
-  );
+  // Measure after commits that change the focused option, the open state, or the
+  // placement. That also covers the panel mounting, since it only needs an offset
+  // while an option is focused. The offset isn't an input here, so applying it
+  // can't trigger another measurement.
+  useLayoutEffect(() => {
+    updateSidePanelAnchorOffset();
+  }, [updateSidePanelAnchorOffset]);
 
   // Fall back to rendering all items when the virtualizer can't measure
   // the scroll container (e.g. in tests where the DOM has no layout).
@@ -690,7 +688,7 @@ export function MetricSelector({
                       flex="1"
                       minHeight="0"
                       padding="xs 0"
-                      onScroll={() => updateSidePanelAnchorOffset()}
+                      onScroll={updateSidePanelAnchorOffset}
                     >
                       {/* Hidden element that reserves width based on the longest option label */}
                       {longestOption ? (
@@ -758,9 +756,6 @@ export function MetricSelector({
                                     size="md"
                                     dataIndex={virtualRow.index}
                                     measureRef={virtualizer.measureElement}
-                                    updateSidePanelAnchorOffset={
-                                      updateSidePanelAnchorOffset
-                                    }
                                   />
                                 );
                               })}
@@ -772,7 +767,7 @@ export function MetricSelector({
                   </Stack>
                   {hasSelectedMetric ? (
                     <SidePanel
-                      ref={setSidePanelRef}
+                      ref={sidePanelRef}
                       top={
                         isOverlayAboveTrigger
                           ? undefined

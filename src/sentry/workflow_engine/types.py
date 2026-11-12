@@ -65,6 +65,21 @@ class DetectorException(Exception):
     pass
 
 
+class DetectorType(StrEnum):
+    """Detector implementation identities. Values are persisted and used by the API."""
+
+    ERROR = "error"
+    ISSUE_STREAM = "issue_stream"
+    METRIC_ISSUE = "metric_issue"
+    MONITOR_CHECK_IN_FAILURE = "monitor_check_in_failure"
+    UPTIME_DOMAIN_FAILURE = "uptime_domain_failure"
+    PREPROD_SIZE_ANALYSIS = "preprod_size_analysis"
+    SOURCEMAP_CONFIGURATION = "sourcemap_configuration"
+    PERFORMANCE_SLOW_DB_QUERY = "performance_slow_db_query"
+    PERFORMANCE_LARGE_HTTP_PAYLOAD = "performance_large_http_payload"
+    QUERY_INJECTION_VULNERABILITY = "query_injection_vulnerability"
+
+
 class DetectorPriorityLevel(IntEnum):
     OK = 0
     LOW = PriorityLevel.LOW
@@ -110,6 +125,7 @@ class WorkflowEventData:
     # True when an issue transitions to the ESCALATING substatus for any reason.
     has_escalated: bool | None = None
     workflow_env: Environment | None = None
+    organization: Organization | None = field(default=None, kw_only=True)
 
     # The cache field is used to deduplicate repeated work within the context
     # of a single event. This field violates the "frozen" requirement of the
@@ -118,6 +134,29 @@ class WorkflowEventData:
     _cache: _WorkflowEventLocalCache = field(
         default_factory=lambda: _WorkflowEventLocalCache(), repr=False, compare=False, hash=False
     )
+
+    def get_organization(self) -> Organization:
+        if self.organization is not None:
+            if self.organization.id != self.event.project.organization_id:
+                raise ValueError(
+                    "Workflow event and organization must belong to the same organization"
+                )
+            return self.organization
+        return self.event.project.organization
+
+    @property
+    def event_id(self) -> str:
+        from sentry.services.eventstore.models import GroupEvent
+
+        return str(self.event.event_id if isinstance(self.event, GroupEvent) else self.event.id)
+
+    @property
+    def project_id(self) -> int:
+        return self.event.project_id
+
+    @property
+    def group_id(self) -> int:
+        return self.group.id
 
 
 @dataclass(frozen=True)
@@ -140,6 +179,8 @@ class ConfigTransformer(ABC):
     """
     A ConfigTransformer is used to transform the config between API and internal representations.
     """
+
+    api_schema: dict[str, Any]
 
     @abstractmethod
     def from_api(self, config: dict[str, Any]) -> dict[str, Any]:
@@ -325,6 +366,7 @@ class SnubaQueryDataSourceType(TypedDict, total=False):
 
 class DetectorAPIOperation(StrEnum):
     LIST = "list"
+    DISCOVER = "discover"
     GET = "GET"
     POST = "POST"
     PUT = "PUT"
@@ -347,7 +389,8 @@ class DetectorSettings:
     api_availability: ClassVar[Mapping[DetectorAPIOperation, APIGate]] = DEFAULT_API_AVAILABILITY
     handler: ClassVar[type[BaseDetectorHandler[Any, Any]] | None] = None
     validator: ClassVar[type[BaseDetectorTypeValidator] | None] = None
-    config_schema: ClassVar[dict[str, Any]] = {}
+    # None preserves legacy detectors whose configuration is validated outside this model.
+    config_schema: ClassVar[dict[str, Any] | None] = {}
     filter: ClassVar[Q | None] = None
 
 

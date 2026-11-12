@@ -1,0 +1,201 @@
+---
+title: Hotkey
+description: Components for displaying keyboard shortcuts with automatic platform-aware modifier rendering.
+category: typography
+source: '@sentry/scraps/hotkey'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/packages/scraps/src/hotkey/index.tsx
+  a11y:
+    WCAG 1.3.1: https://www.w3.org/TR/WCAG22/#info-and-relationships
+---
+
+import {Hotkey, Kbd} from '@sentry/scraps/hotkey';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {InlineCode} from '@sentry/scraps/code';
+import {IconCommand} from '@sentry/icons/command';
+import {IconControl} from '@sentry/icons/control';
+import {IconShift} from '@sentry/icons/shift';
+import {IconOption} from '@sentry/icons/option';
+import {IconReturn} from '@sentry/icons/return';
+
+import * as Storybook from 'sentry/stories';
+
+export const documentation = import('!!type-loader!@sentry/scraps/hotkey');
+
+The `<Hotkey>` component displays keyboard shortcuts using semantic `<kbd>` elements and TanStack's native, type-safe shortcut syntax. The `Mod` token resolves to <InlineCode><IconCommand size="xs" /></InlineCode> on macOS and `Ctrl` on Windows/Linux. The `<Kbd>` component renders a single styled key cap.
+
+## Hotkey
+
+`<Hotkey>` accepts the same key string format as the `useHotkeys` hook, making it easy to display the shortcuts you've already registered.
+
+**Prefer `Mod`** for the platform-primary modifier. It renders the correct glyph automatically.
+
+<Storybook.Demo>
+  <Flex gap="xl" align="center">
+    <Flex gap="sm" align="center">
+      <Text>Save:</Text>
+      <Hotkey value="Mod+S" />
+    </Flex>
+    <Flex gap="sm" align="center">
+      <Text>Search:</Text>
+      <Hotkey value="Mod+K" />
+    </Flex>
+    <Flex gap="sm" align="center">
+      <Text>Copy:</Text>
+      <Hotkey value="Mod+C" />
+    </Flex>
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<Hotkey value="Mod+S" />
+<Hotkey value="Mod+K" />
+<Hotkey value="Mod+C" />
+```
+
+### Platform Mapping
+
+Modifiers are automatically mapped per platform. No fallback arrays needed for standard modifier differences.
+
+| Key name  | Mac                                                | Other platforms                                   |
+| --------- | -------------------------------------------------- | ------------------------------------------------- |
+| `Mod`     | <InlineCode><IconCommand size="xs" /></InlineCode> | `Ctrl`                                            |
+| `Control` | <InlineCode><IconControl size="xs" /></InlineCode> | `Ctrl`                                            |
+| `Alt`     | <InlineCode><IconOption size="xs" /></InlineCode>  | `Alt`                                             |
+| `Shift`   | <InlineCode><IconShift size="xs" /></InlineCode>   | <InlineCode><IconShift size="xs" /></InlineCode>  |
+| `Enter`   | <InlineCode><IconReturn size="xs" /></InlineCode>  | <InlineCode><IconReturn size="xs" /></InlineCode> |
+
+Use `Meta` or `Control` when a shortcut must bind to a specific modifier on every platform.
+
+Keys without an explicit glyph mapping (e.g. `Home`, `End`, `PageUp`) render as title-cased text.
+
+### Complex Shortcuts
+
+<Storybook.Demo>
+  <Flex gap="xl" align="center">
+    <Flex gap="sm" align="center">
+      <Text>Undo:</Text>
+      <Hotkey value="Mod+Z" />
+    </Flex>
+    <Flex gap="sm" align="center">
+      <Text>Redo:</Text>
+      <Hotkey value="Mod+Shift+Z" />
+    </Flex>
+    <Flex gap="sm" align="center">
+      <Text>Navigate:</Text>
+      <Hotkey value="Shift+ArrowRight" />
+    </Flex>
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<Hotkey value="Mod+Z" />
+<Hotkey value="Mod+Shift+Z" />
+<Hotkey value="Shift+ArrowRight" />
+```
+
+### Array Form
+
+Pass an array of alternatives to display the first combo. Use `Mod` for standard modifier differences.
+
+```jsx
+<Hotkey value={['Mod+Backspace', 'Delete']} />
+```
+
+## Variants
+
+Both `<Hotkey>` and `<Kbd>` accept a `variant` prop. The default `embossed` variant renders a raised key cap; `debossed` renders a sunken, muted key cap suited for use on filled or dark backgrounds.
+
+<Storybook.Demo>
+  <Flex gap="xl" align="center">
+    <Flex gap="sm" align="center">
+      <Text>Embossed (default):</Text>
+      <Hotkey value="Mod+K" variant="embossed" />
+    </Flex>
+    <Flex gap="sm" align="center">
+      <Text>Debossed:</Text>
+      <Hotkey value="Mod+K" variant="debossed" />
+    </Flex>
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<Hotkey value="Mod+K" />
+<Hotkey value="Mod+K" variant="debossed" />
+
+<Kbd>Esc</Kbd>
+<Kbd variant="debossed">Esc</Kbd>
+```
+
+## Kbd
+
+`<Kbd>` renders a single styled key cap. Use it for standalone key references in prose or documentation.
+
+<Storybook.Demo>
+  <Flex gap="lg" align="center">
+    <Text>
+      Press <Kbd>Esc</Kbd> to close
+    </Text>
+    <Text>
+      Use <Kbd>Tab</Kbd> to navigate
+    </Text>
+    <Text>
+      Hit <Kbd>Enter</Kbd> to confirm
+    </Text>
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<Text>
+  Press <Kbd>Esc</Kbd> to close
+</Text>
+<Text>
+  Use <Kbd>Tab</Kbd> to navigate
+</Text>
+```
+
+## useHotkeys Hook
+
+The `useHotkeys` hook registers keyboard shortcuts. It uses the same key string format as `<Hotkey>`, so you can display exactly what you register.
+
+```jsx
+import {Hotkey, useHotkeys} from '@sentry/scraps/hotkey';
+
+function MyComponent() {
+  useHotkeys([
+    {hotkey: 'Mod+K', callback: () => openSearch()},
+    {hotkey: 'Mod+/', callback: () => openHelp()},
+  ]);
+
+  return (
+    <Text>
+      Search: <Hotkey value="Mod+K" />
+    </Text>
+  );
+}
+```
+
+TanStack handles key matching and keyboard layouts. The Sentry wrapper keeps shortcuts out of inputs by default and allows events to reach other listeners. Use native options such as `ignoreInputs: false` and `preventDefault: false` when a shortcut needs different behavior.
+
+Register alternatives as separate definitions. A TanStack `hotkey` array represents a sequence of key presses, such as `['G', 'H']`, rather than alternatives.
+
+See the [TanStack Hotkeys guide](https://tanstack.com/hotkeys/latest/docs/framework/react/guides/hotkeys) for supported syntax and options.
+
+### Conditional hotkeys
+
+Use `enabled` to gate a hotkey on state without rebuilding the array. While `enabled` is `false` the callback never fires and `preventDefault` is never called, so the key reaches other listeners unchanged.
+
+```jsx
+useHotkeys([
+  {
+    hotkey: 'Escape',
+    options: {enabled: isPanelOpen},
+    callback: closePanel,
+  },
+]);
+```
+
+## Accessibility
+
+Both `<Hotkey>` and `<Kbd>` render semantic `<kbd>` HTML elements. `<Hotkey>` uses nested `<kbd>` elements (an outer `<kbd>` wrapping inner `<kbd>` elements for each key), which is the correct HTML semantics for a key combination.

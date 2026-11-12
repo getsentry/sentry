@@ -1,11 +1,15 @@
+from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
+import responses
 from cryptography.fernet import Fernet
 from django.test import override_settings
+from django.utils import timezone
 
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc.service import RpcException
+from sentry.integrations.linear.client import LINEAR_TOKEN_URL
 from sentry.models.organization import Organization
 from sentry.seer.agent.monitoring_providers import get_monitoring_provider_connections
 from sentry.testutils.cases import TestCase
@@ -609,3 +613,179 @@ class TestGetMonitoringProviderConnections(TestCase):
         assert len(result) == 1
         assert result[0]["identity_id"] is None
         assert result[0]["auth_method"] == "api_key"
+
+    def _create_org_grafana_integration(
+        self,
+        metadata: dict[str, str] | None = None,
+        url: str = "https://example-stack.grafana.net",
+        org_integration_status: int = ObjectStatus.ACTIVE,
+        **kwargs: object,
+    ) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="grafana",
+            external_id=str(self.organization.id),
+            name="Grafana (example-stack.grafana.net)",
+            metadata=metadata if metadata is not None else {"token": "glsa_org_token"},
+            oi_params={"status": org_integration_status, "config": {"url": url}},
+            **kwargs,
+        )
+
+    def test_org_grafana_connection(self) -> None:
+        self._create_org_grafana_integration()
+
+        result = get_monitoring_provider_connections(self.organization, None)
+
+        assert len(result) == 1
+        conn = result[0]
+        assert conn["type"] == "header_auth"
+        assert conn["provider_key"] == "grafana"
+        assert conn["url"] == "https://example-stack.grafana.net"
+        assert conn["identity_id"] is None
+        assert conn["auth_method"] == "service_account_token"
+        assert conn["refreshable"] is False
+
+        fernet = Fernet(TEST_FERNET_KEY.encode("utf-8"))
+        authorization = conn["encrypted_auth_headers"]["Authorization"]
+        assert fernet.decrypt(authorization.encode()).decode() == "Bearer glsa_org_token"
+
+    def test_org_grafana_connection_ignores_non_active_integration(self) -> None:
+        self._create_org_grafana_integration(status=ObjectStatus.DISABLED)
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    def test_org_grafana_connection_ignores_uninstalled_org_integration(self) -> None:
+        # The token stays in Integration.metadata after uninstall until async deletion runs.
+        self._create_org_grafana_integration(org_integration_status=ObjectStatus.PENDING_DELETION)
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    def test_org_grafana_connection_skips_missing_url(self) -> None:
+        self._create_org_grafana_integration(url="")
+
+        with self.assertLogs("sentry.integrations.grafana.integration", level="ERROR") as logs:
+            result = get_monitoring_provider_connections(self.organization, None)
+
+        assert result == []
+        assert any("grafana_integration_invalid" in line for line in logs.output)
+
+    def test_org_grafana_connection_skips_missing_token(self) -> None:
+        self._create_org_grafana_integration(metadata={})
+
+        with self.assertLogs("sentry.integrations.grafana.integration", level="ERROR") as logs:
+            result = get_monitoring_provider_connections(self.organization, None)
+
+        assert result == []
+        assert any("grafana_integration_invalid" in line for line in logs.output)
+
+    @with_feature({"organizations:seer-infra-telemetry": False})
+    def test_org_grafana_connection_requires_infra_telemetry_flag(self) -> None:
+        self._create_org_grafana_integration()
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    def _create_org_linear_integration(
+        self,
+        metadata: dict[str, str] | None = None,
+        org_integration_status: int = ObjectStatus.ACTIVE,
+        **kwargs: object,
+    ) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="linear",
+            external_id="linear-workspace-id",
+            name="Linear (Example)",
+            metadata=metadata
+            if metadata is not None
+            else {
+                "refresh_token": "linear-refresh-token",
+                "access_token": "linear-app-token",
+                "expires_at": (timezone.now() + timedelta(hours=1)).isoformat(),
+            },
+            oi_params={"status": org_integration_status},
+            **kwargs,
+        )
+
+    def test_org_linear_connection(self) -> None:
+        self._create_org_linear_integration()
+
+        result = get_monitoring_provider_connections(self.organization, None)
+
+        assert len(result) == 1
+        conn = result[0]
+        assert conn["type"] == "header_auth"
+        assert conn["provider_key"] == "linear"
+        assert conn["url"] == "https://mcp.linear.app/mcp/readonly"
+        assert conn["identity_id"] is None
+        assert conn["integration_id"] is not None
+        assert conn["auth_method"] == "oauth"
+        assert conn["refreshable"] is True
+
+        fernet = Fernet(TEST_FERNET_KEY.encode("utf-8"))
+        authorization = conn["encrypted_auth_headers"]["Authorization"]
+        assert fernet.decrypt(authorization.encode()).decode() == "Bearer linear-app-token"
+        assert "linear-refresh-token" not in str(conn)
+
+    def test_org_linear_and_grafana_together(self) -> None:
+        self._create_org_linear_integration()
+        self._create_org_grafana_integration()
+
+        result = get_monitoring_provider_connections(self.organization, self.user.id)
+
+        assert sorted(c["provider_key"] for c in result) == ["grafana", "linear"]
+
+    def test_org_linear_connection_ignores_non_active_integration(self) -> None:
+        self._create_org_linear_integration(status=ObjectStatus.DISABLED)
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    def test_org_linear_connection_ignores_uninstalled_org_integration(self) -> None:
+        # Credentials stay in Integration.metadata until async deletion runs.
+        self._create_org_linear_integration(org_integration_status=ObjectStatus.PENDING_DELETION)
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    def test_org_linear_connection_skips_missing_credentials(self) -> None:
+        self._create_org_linear_integration(metadata={})
+
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    @responses.activate
+    @override_settings(LINEAR_CLIENT_ID="sentry-app-id", LINEAR_CLIENT_SECRET="sentry-app-secret")
+    def test_org_linear_connection_skips_token_refresh_failure(self) -> None:
+        self._create_org_linear_integration(metadata={"refresh_token": "linear-refresh-token"})
+        responses.add(responses.POST, LINEAR_TOKEN_URL, status=503)
+
+        assert get_monitoring_provider_connections(self.organization, None) == []
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    @override_settings(LINEAR_CLIENT_ID="sentry-app-id", LINEAR_CLIENT_SECRET="sentry-app-secret")
+    def test_org_linear_refreshes_expired_token_without_user(self) -> None:
+        self._create_org_linear_integration(metadata={"refresh_token": "linear-refresh-token"})
+        responses.add(
+            responses.POST,
+            LINEAR_TOKEN_URL,
+            json={
+                "access_token": "renewed-app-token",
+                "refresh_token": "renewed-refresh-token",
+                "expires_in": 86400,
+                "token_type": "Bearer",
+                "scope": "read write",
+            },
+        )
+
+        result = get_monitoring_provider_connections(self.organization, None)
+
+        assert len(result) == 1
+        assert result[0]["identity_id"] is None
+        authorization = result[0]["encrypted_auth_headers"]["Authorization"]
+        assert Fernet(TEST_FERNET_KEY.encode()).decrypt(authorization.encode()).decode() == (
+            "Bearer renewed-app-token"
+        )
+        assert "renewed-refresh-token" not in str(result)
+
+    @override_settings(SEER_GHE_ENCRYPT_KEY=None)
+    def test_org_linear_connection_skipped_when_encryption_fails(self) -> None:
+        self._create_org_linear_integration()
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    @with_feature({"organizations:seer-infra-telemetry": False})
+    def test_org_linear_connection_requires_infra_telemetry_flag(self) -> None:
+        self._create_org_linear_integration()
+        assert get_monitoring_provider_connections(self.organization, None) == []

@@ -4,11 +4,22 @@ from typing import Any
 from unittest import mock
 
 import orjson
+import pytest
+from django.test import override_settings
 
-from sentry.integrations.discord.requests.base import DiscordRequest
+from sentry.integrations.discord.requests.base import DiscordRequest, DiscordRequestError
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.taskworker.adapters import ViewerContextHook
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.services.user.serial import serialize_rpc_user
+from sentry.viewer_context import (
+    Actor,
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+    viewer_context_scope,
+)
 
 
 @control_silo_test
@@ -125,3 +136,55 @@ class DiscordRequestTest(TestCase):
         user = discord_request.get_identity_user()
         assert user is not None
         assert user.id == self.user.id
+
+    def test_linked_user_preserves_scope(self) -> None:
+        self.assert_validated_request_actor(True, True)
+
+    def test_linked_user_without_scope(self) -> None:
+        self.assert_validated_request_actor(True, False)
+
+    def test_unlinked_user_preserves_scope(self) -> None:
+        self.assert_validated_request_actor(False, True)
+
+    def test_unlinked_user_without_scope(self) -> None:
+        self.assert_validated_request_actor(False, False)
+
+    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
+    def assert_validated_request_actor(self, linked: bool, scoped: bool) -> None:
+        discord_request = self.mock_request()
+        current = ViewerContext(
+            actor=Actor(type=ActorType.USER, actor_id=self.user.id),
+            organization_id=self.organization.id if scoped else None,
+            project_id=self.project.id if scoped else None,
+        )
+        with (
+            viewer_context_scope(current),
+            mock.patch.object(discord_request, "authorize"),
+            mock.patch.object(
+                discord_request,
+                "get_identity_user",
+                return_value=serialize_rpc_user(self.user) if linked else None,
+            ),
+        ):
+            discord_request.validate()
+            headers: dict[str, str] = {}
+            ViewerContextHook().on_dispatch(headers)
+            ctx = ViewerContext.deserialize(orjson.loads(headers["sentry-viewer-context"]))
+            assert ctx.actor.type == (ActorType.USER if linked else ActorType.INTEGRATION)
+            assert ctx.actor.user_id == (self.user.id if linked else None)
+            assert ctx.organization_id == current.organization_id
+            assert ctx.project_id == current.project_id
+
+    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
+    def test_invalid_signature_does_not_set_actor(self) -> None:
+        discord_request = self.mock_request()
+        current = ViewerContext(actor=Actor(type=ActorType.UNKNOWN))
+        with (
+            viewer_context_scope(current),
+            mock.patch.object(discord_request, "authorize", side_effect=DiscordRequestError(401)),
+            mock.patch.object(discord_request, "_set_viewer_context_actor") as set_actor,
+        ):
+            with pytest.raises(DiscordRequestError):
+                discord_request.validate()
+            set_actor.assert_not_called()
+            assert get_viewer_context() is current

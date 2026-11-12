@@ -30,6 +30,7 @@ const tableComponentFiles = [
 // but suppress pre-existing violations on `master`
 export const incubator = defineConfig({
   rules: {
+    '@sentry/prefer-nuqs': 'error',
     '@sentry/scraps/no-dom-coupling': 'error',
     '@sentry/scraps/no-manual-table': 'error',
     '@sentry/scraps/prefer-primitives': 'error',
@@ -54,7 +55,10 @@ export const incubator = defineConfig({
     },
     {
       files: testFiles,
-      rules: fakeTimerRules,
+      rules: {
+        ...fakeTimerRules,
+        '@sentry/scraps/prefer-primitives': 'off',
+      },
     },
   ],
 });
@@ -336,6 +340,7 @@ const config = defineConfig({
         paths: restrictedImportPaths,
       },
     ],
+    '@sentry/prefer-relative-child-imports': 'error',
     '@sentry/no-relative-import-paths': [
       'error',
       {
@@ -727,6 +732,14 @@ const config = defineConfig({
         'static/packages/icons/*.config.mjs',
       ],
       rules: {'boundaries/no-unknown-files': 'off'},
+    },
+    {
+      files: ['static/packages/*/jest.config.mjs'],
+      // Package test configs can import the shared root CI helper.
+      rules: {
+        'import/no-relative-parent-imports': 'off',
+        'import-js/no-relative-packages': 'off',
+      },
     },
     {
       files: ['static/packages/*/oxlint.config.ts'],

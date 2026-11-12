@@ -1,17 +1,18 @@
 import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {
-  InvestigationBlock,
-  InvestigationDetail,
-  InvestigationHypothesis,
-  InvestigationOrchestration,
-} from 'sentry/views/investigations/types';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {
   useSeerExplorerContext,
   type SeerExplorerContextValue,
 } from 'sentry/views/seerExplorer/useSeerExplorerContext';
+
+import type {
+  InvestigationBlock,
+  InvestigationDetail,
+  InvestigationHypothesis,
+  InvestigationOrchestration,
+} from './types';
 
 type InvestigationChatPrompt = Parameters<SeerExplorerContextValue['openChatPrompt']>[0];
 

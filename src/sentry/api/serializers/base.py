@@ -2,13 +2,16 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
-from typing import Any, Generic, TypeVar, overload
+from typing import TYPE_CHECKING, Any, Generic, TypeAlias, TypeVar, overload
 
 from django.contrib.auth.models import AnonymousUser
 from sentry_sdk import traces
 
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+
+if TYPE_CHECKING:
+    from sentry.auth.principal import RequestPrincipal
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +24,7 @@ K = TypeVar("K")
 # is migrated.
 T = TypeVar("T", default=Any)
 
-_User = User | RpcUser | AnonymousUser | None
+_User: TypeAlias = "RequestPrincipal | None"
 
 registry: MutableMapping[Any, Any] = {}
 

@@ -1,5 +1,6 @@
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
-import {isPerformanceScoreBreakdownChart} from 'sentry/views/dashboards/widgetBuilder/utils/isPerformanceScoreBreakdownChart';
+
+import {isPerformanceScoreBreakdownChart} from './isPerformanceScoreBreakdownChart';
 
 describe('isPerformanceScoreBreakdownChart', () => {
   const baseWidgetQuery: WidgetQuery = {
