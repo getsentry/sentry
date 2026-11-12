@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from typing import NamedTuple, TypedDict
 
 from rest_framework.exceptions import APIException, ParseError, PermissionDenied, Throttled
@@ -110,7 +111,10 @@ def _record_head_sha_read(provider: str, outcome: str, attempts: int, provider_c
 
 
 def _read_files_at_one_head(
-    scm: GetPullRequestFilesProtocol, pull_request_key: str, provider: str
+    scm: GetPullRequestFilesProtocol,
+    pull_request_key: str,
+    provider: str,
+    log_extra: Mapping[str, object],
 ) -> _PullRequestFiles:
     """
     The files, with the PR's head commit read before and after them. If a push moves the head
@@ -130,6 +134,17 @@ def _read_files_at_one_head(
         if head_sha_after == head_sha:
             _record_head_sha_read(provider, "matched", attempt, provider_calls)
             return _PullRequestFiles(files, head_sha)
+        logger.info(
+            "organization_pull_request_files.head_sha.moved",
+            extra={
+                **log_extra,
+                "provider": provider,
+                "attempt": attempt,
+                "will_retry": attempt < _HEAD_SHA_ATTEMPTS,
+                "head_sha_before": head_sha,
+                "head_sha_after": head_sha_after,
+            },
+        )
         head_sha = head_sha_after
     _record_head_sha_read(provider, "gave_up", _HEAD_SHA_ATTEMPTS, provider_calls)
     return _PullRequestFiles(files, None)
@@ -158,9 +173,14 @@ def _fetch_files(
     if not isinstance(scm, GetPullRequestFilesProtocol):
         return _PullRequestFiles([], None)
 
+    log_extra = {
+        "organization_id": organization_id,
+        "repository_id": repository_id,
+        "pull_request_key": pull_request_key,
+    }
     try:
         if head_sha_provider is not None:
-            return _read_files_at_one_head(scm, pull_request_key, head_sha_provider)
+            return _read_files_at_one_head(scm, pull_request_key, head_sha_provider, log_extra)
         files, _ = _read_files(scm, pull_request_key)
         return _PullRequestFiles(files, None)
     except ResourceNotFound:
@@ -170,13 +190,7 @@ def _fetch_files(
         raise Throttled
     except SCMError:
         logger.warning(
-            "organization_pull_request_files.fetch_failed",
-            exc_info=True,
-            extra={
-                "organization_id": organization_id,
-                "repository_id": repository_id,
-                "pull_request_key": pull_request_key,
-            },
+            "organization_pull_request_files.fetch_failed", exc_info=True, extra=log_extra
         )
         raise PullRequestFilesUnavailable
 
