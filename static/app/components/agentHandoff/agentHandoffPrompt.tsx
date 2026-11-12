@@ -101,17 +101,17 @@ export function AgentHandoffPrompt<Flow extends AgentHandoffFlow>({
             onPointerDown={handlePointerDown}
           >
             {tct(
-              'Follow the instructions verbatim at [guideUrl]. Your secret token is [token].',
+              'Follow the instructions verbatim at [guideUrl]. Your handoff code is [token].',
               {
                 guideUrl,
                 token: (
-                  <MaskedToken
+                  <MaskedCode
                     monospace
                     variant="warning"
-                    title={t('The secret token authenticates the CLI via this prompt')}
+                    title={t('The secret code authorizes your agent on your behalf')}
                   >
                     sntryh_****
-                  </MaskedToken>
+                  </MaskedCode>
                 ),
               }
             )}
@@ -150,7 +150,7 @@ export function AgentHandoffPrompt<Flow extends AgentHandoffFlow>({
                 key: 'ip-pinning',
                 label: t('Use IP pinning'),
                 details: t(
-                  'Only allows this prompt to be claimed from your IP address. Disable this when your agent runs on a different network than your local machine.'
+                  'Restricts the handoff code to your current IP address. Turn this off when your agent runs on a different network.'
                 ),
                 textValue: t('Use IP pinning'),
                 disabled: copyDisabled,
@@ -183,7 +183,7 @@ export function AgentHandoffPrompt<Flow extends AgentHandoffFlow>({
       {!useIpPinning && (
         <Alert variant="warning">
           {t(
-            'Without IP pinning, anyone with this prompt can use it from any IP address to authenticate the Sentry CLI to your account. Avoid pasting your prompt when streaming or screen sharing.'
+            'Without IP pinning, anyone with this prompt can use its handoff code from any IP address to authorize an agent on your behalf. Avoid pasting your prompt when streaming or screen sharing.'
           )}
         </Alert>
       )}
@@ -192,7 +192,7 @@ export function AgentHandoffPrompt<Flow extends AgentHandoffFlow>({
   );
 }
 
-const MaskedToken = styled(InfoText)`
+const MaskedCode = styled(InfoText)`
   background: ${p => p.theme.tokens.background.transparent.warning.muted};
   border-radius: ${p => p.theme.radius.sm};
   padding: 0 ${p => p.theme.space['2xs']};
