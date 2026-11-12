@@ -1192,7 +1192,7 @@ def _payload_use_is_recorded(
     `name` the use of the parameter
     `parents` the function's {child: parent} map
     `aliases` local name -> parameter name, the parameters themselves included
-    Returns False for anything else (returned, yielded, stored, iterated, put in a container, etc
+    Returns False for anything else (returned, yielded, stored, iterated, put in a container, etc.)
     """
     node: ast.AST = name
     parent = parents.get(node)
@@ -1812,7 +1812,7 @@ class SentryVisitor(ast.NodeVisitor):
             for target in node.targets:
                 if isinstance(target, ast.Name):
                     self._s029_seer_pool_names.add(target.id)
-        # names reassigned to something that isn't request input. The names are orgotten after the value is
+        # names reassigned to something that isn't request input. The names are forgotten after the value is
         # visited, so a read in the value itself (`data = data.get("field")`) still counts
         to_forget: list[str] = []
         if self._input_stack:
@@ -2440,7 +2440,7 @@ class SentryVisitor(ast.NodeVisitor):
                 return ctx
             if bound > 1:
                 return _UNRESOLVED
-            # past this class the depth-first order may not be the real method order so we need to check if it's an ambigious class
+            # past this class the depth-first order may not be the real method order so we need to check if it's an ambiguous class
             if self._is_ambiguous_class(cls):
                 return _UNRESOLVED
 
