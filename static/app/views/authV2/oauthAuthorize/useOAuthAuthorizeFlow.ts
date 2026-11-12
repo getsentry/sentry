@@ -135,6 +135,8 @@ export function useOAuthAuthorizeFlow() {
 
     retry: () => {
       decision.reset();
+      // A failed prompt=login sign-out must not resurface before the next attempt.
+      session.switchAccount.reset();
       session.refresh();
       void contextQuery.refetch();
     },

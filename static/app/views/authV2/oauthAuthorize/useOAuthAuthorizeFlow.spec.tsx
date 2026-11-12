@@ -303,6 +303,32 @@ describe('useOAuthAuthorizeFlow', () => {
         switchError: null,
       })
     );
+
+    const consentDelay = Promise.withResolvers<void>();
+    MockApiClient.addMockResponse({
+      url: '/auth/oauth/authorize/',
+      body: {stage: 'reauthenticate'},
+      asyncDelay: consentDelay.promise,
+    });
+    const logout = MockApiClient.addMockResponse({
+      url: '/auth/',
+      method: 'DELETE',
+      body: {},
+    });
+    MockApiClient.addMockResponse({url: '/auth-v2/csrf/', body: {}});
+    MockApiClient.addMockResponse({url: '/auth/config/', body: loginConfig});
+
+    act(() => result.current.actions.retry());
+
+    expect(result.current.state).toMatchObject({status: 'loading', switchError: null});
+
+    await act(() => {
+      consentDelay.resolve();
+      return consentDelay.promise;
+    });
+
+    await waitFor(() => expect(result.current.state.status).toBe('authentication'));
+    expect(logout).toHaveBeenCalledTimes(1);
   });
 
   it('blocks decisions for the previous account while switching and after logout', async () => {
