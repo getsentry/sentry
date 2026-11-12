@@ -1,4 +1,3 @@
-import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 import {AnimatePresence, motion} from 'framer-motion';
 
@@ -7,6 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {AgentHandoffFlow} from 'sentry/components/agentHandoff/useAgentHandoff';
 import {ScmCollapsibleReveal} from 'sentry/components/onboarding/scm/scmCollapsibleReveal';
 import {t, tct} from 'sentry/locale';
 
@@ -31,7 +31,9 @@ interface AgenticSetupProps {
   /** The host supplies the action for continuing with browser setup. */
   onSetupInBrowser: () => void;
   run: AgenticProgressRun | undefined;
-  appearance?: 'default' | 'layered';
+  handoffFlow?: AgentHandoffFlow;
+  /** Tilts the setup card and adds the stacked brand border and shadows. */
+  layered?: boolean;
   onboardingCode?: string;
 }
 
@@ -48,7 +50,8 @@ export function AgenticSetup({
   hasProgressFailed,
   onRefresh,
   run,
-  appearance = 'default',
+  handoffFlow = AgentHandoffFlow.ONBOARDING,
+  layered = false,
 }: AgenticSetupProps) {
   const hasRunFailed = run?.runStatus === 'failed' || run?.runStatus === 'cancelled';
   const showsProgress =
@@ -119,9 +122,10 @@ export function AgenticSetup({
               exit={{opacity: 0}}
               transition={CARD_MORPH_TRANSITION}
             >
-              <SetupCardFrame layered={appearance === 'layered'}>
+              <SetupCardFrame layered={layered}>
                 <AgentSetupCard
                   feedbackSource={feedbackSource}
+                  flow={handoffFlow}
                   onCopyCommand={onCopyCommand}
                   onSelectSnippet={onSelectSnippet}
                   run={run}
@@ -148,9 +152,9 @@ export function AgenticSetup({
               data-test-id="onboarding-setup-in-browser"
             >
               <Flex as="span" align="center" gap="sm">
-                <Text variant="secondary" bold={false}>
-                  {tct('Prefer to do it yourself? [manual:Set up manually]', {
-                    manual: <AccentText />,
+                <Text variant="secondary">
+                  {tct('Prefer to do it yourself? [manual]', {
+                    manual: <Text variant="accent">{t('Set up manually')}</Text>,
                   })}
                 </Text>
                 <IconChevron direction="right" size="sm" variant="accent" />
@@ -162,7 +166,3 @@ export function AgenticSetup({
     </Stack>
   );
 }
-
-const AccentText = styled('span')`
-  color: ${p => p.theme.tokens.content.accent};
-`;

@@ -163,7 +163,7 @@ class OrganizationAgentHandoffEndpoint(ControlSiloOrganizationEndpoint):
         data: AgentHandoffResponse = {
             "prompt": (
                 f"Follow the instructions verbatim at {guide_url}. "
-                f"Your secret token is `{issued.code}`."
+                f"Your handoff code is `{issued.code}`."
             ),
             "guideUrl": guide_url,
             "expiresAt": issued.expires_at.isoformat(),

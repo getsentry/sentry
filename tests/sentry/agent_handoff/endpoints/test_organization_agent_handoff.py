@@ -5,7 +5,7 @@ from django.conf import settings
 from django.test import override_settings
 from rest_framework.test import APIClient
 
-from sentry.agent_handoff.codes import HandoffFlow, OnboardingHandoffContext, consume_handoff
+from sentry.agent_handoff.codes import HandoffFlow, ProjectSetupContext, consume_handoff
 from sentry.agent_handoff.endpoints.organization_agent_handoff import HANDOFF_SCOPES
 from sentry.models.apiapplication import ApiApplicationStatus
 from sentry.models.apisetupcode import ApiSetupCode
@@ -47,7 +47,7 @@ class OrganizationAgentHandoffTest(APITestCase):
         code = response.data["prompt"].split("`")[1]
         assert response.data["prompt"] == (
             f"Follow the instructions verbatim at {response.data['guideUrl']}. "
-            f"Your secret token is `{code}`."
+            f"Your handoff code is `{code}`."
         )
         record = consume_handoff(code, ip_address="127.0.0.1")
         assert record is not None
@@ -87,7 +87,23 @@ class OrganizationAgentHandoffTest(APITestCase):
         handoff = consume_handoff(response.data["prompt"].split("`")[1], ip_address="127.0.0.1")
         assert handoff is not None
         assert handoff.flow is HandoffFlow.ONBOARDING
-        assert handoff.context == OnboardingHandoffContext(run_id="a" * 32)
+        assert handoff.context == ProjectSetupContext(run_id="a" * 32)
+
+    def test_select_create_project_flow(self) -> None:
+        with patch(
+            "sentry.agent_handoff.flows.common.organization_service.has_active_onboarding_run",
+            return_value=True,
+        ):
+            response = self.get_success_response(
+                self.organization.slug,
+                flow="create_project",
+                context={"runId": "a" * 32},
+                status_code=201,
+            )
+        handoff = consume_handoff(response.data["prompt"].split("`")[1], ip_address="127.0.0.1")
+        assert handoff is not None
+        assert handoff.flow is HandoffFlow.CREATE_PROJECT
+        assert handoff.context == ProjectSetupContext(run_id="a" * 32)
 
     def test_onboarding_requires_run_context(self) -> None:
         response = self.get_error_response(

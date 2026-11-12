@@ -1373,7 +1373,7 @@ describe('ScmCreateProject', () => {
             data: {
               context: {runId: run.runId},
               disableIpPinning: false,
-              flow: 'onboarding',
+              flow: 'create_project',
             },
           })
         )

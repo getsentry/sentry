@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {Fragment, type ReactNode} from 'react';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -14,6 +14,7 @@ import type {AgenticProgressRun} from './types';
 export type AgentSetupCopySource = 'prompt';
 
 interface AgentSetupCardProps {
+  flow: AgentHandoffFlow;
   onCopyCommand: (source: AgentSetupCopySource) => void;
   onSelectSnippet: (source: AgentSetupCopySource) => void;
   run: AgenticProgressRun | undefined;
@@ -22,12 +23,13 @@ interface AgentSetupCardProps {
 
 export function AgentSetupCard({
   feedbackSource = 'onboarding-agent-setup',
+  flow,
   onCopyCommand,
   onSelectSnippet,
   run,
 }: AgentSetupCardProps) {
   return (
-    <Stack gap="0">
+    <Fragment>
       <Stack gap="2xs">
         <Flex align="center" justify="between" gap="md" wrap="wrap">
           <Heading as="h3" size="lg">
@@ -46,16 +48,14 @@ export function AgentSetupCard({
         <Benefit>{t('Sends a test error to confirm it works')}</Benefit>
       </Stack>
 
-      <Stack>
-        <AgentHandoffPrompt
-          context={run ? {runId: run.runId} : null}
-          feedbackSource={feedbackSource}
-          flow={AgentHandoffFlow.ONBOARDING}
-          onCopySuccess={() => onCopyCommand('prompt')}
-          onSelect={() => onSelectSnippet('prompt')}
-        />
-      </Stack>
-    </Stack>
+      <AgentHandoffPrompt
+        context={run ? {runId: run.runId} : null}
+        feedbackSource={feedbackSource}
+        flow={flow}
+        onCopySuccess={() => onCopyCommand('prompt')}
+        onSelect={() => onSelectSnippet('prompt')}
+      />
+    </Fragment>
   );
 }
 

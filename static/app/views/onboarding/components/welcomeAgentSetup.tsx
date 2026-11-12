@@ -19,7 +19,7 @@ export function WelcomeAgentSetup({onSetupInBrowser, ...props}: WelcomeAgentSetu
   return (
     <AgenticSetup
       {...props}
-      appearance="layered"
+      layered
       feedbackSource="onboarding-agent-setup"
       issueLinkReferrer="onboarding-agentic-first-issue"
       onSetupInBrowser={onSetupInBrowser}
