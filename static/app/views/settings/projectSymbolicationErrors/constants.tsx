@@ -178,7 +178,6 @@ export interface SymbolicationErrorInfo {
   docsUrl: string;
   guide: GuideKey;
   label: string;
-  /** The fix the user applies in the project settings, if there is one. */
   fix?: FixKey;
 }
 
