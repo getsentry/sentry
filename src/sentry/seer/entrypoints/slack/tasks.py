@@ -167,8 +167,7 @@ def process_mention_for_slack(
             )
             return
 
-        # Check credits before fetching context or starting a run, so an org that can't pay
-        # gets an answer right away instead of a run that fails partway through.
+        # Check credits up front so an org without them gets an answer right away.
         if not can_run_seer_operation(
             organization, SeerFeature.EXPLORER, SeerOperation.AGENT_CHAT_MESSAGE
         ):

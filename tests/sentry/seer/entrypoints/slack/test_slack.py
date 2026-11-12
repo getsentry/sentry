@@ -1546,8 +1546,7 @@ class SlackAgentEntrypointTest(TestCase):
         sent = [type(call.kwargs["data"]) for call in mock_send.call_args_list]
         assert sent == [SeerAgentResponse]
 
-        # The turn after retries the PR and runs out again. The PR never landed, so only the
-        # push's idempotency key tells this failure from the first.
+        # The turn after retries the PR and runs out again; only the push's key is new.
         mock_send.reset_mock()
         state.blocks += [
             MemoryBlock(

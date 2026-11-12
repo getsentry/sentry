@@ -777,8 +777,7 @@ class SlackAgentEntrypoint(
                 )
 
         replies = SlackSeerAgentReplyCache.get(run_id=run_id)
-        # Keyed by push, not by PR: a failed push leaves the PR's number and commit as they were,
-        # so they can't tell a retry in a later turn from the failure already in the state.
+        # Keyed by push: a failed retry leaves the PR's number and commit unchanged.
         pr_keys = [
             key
             for pr in _get_repo_pr_states(state)
@@ -786,8 +785,7 @@ class SlackAgentEntrypoint(
             and (key := f"pr_out_of_credits:{pr.repo_name}:{pr.idempotency_key}") not in replies
         ]
         if pr_keys:
-            # The notice is about the org, not a repo, so a turn gets one however many PRs failed,
-            # and none if it already has one because the run itself ran out of credits.
+            # A turn gets one notice in total, shared by its failed PRs and the run itself.
             turn_key = _out_of_credits_key(state)
             notice = replies.get(turn_key)
             message_ts = (
@@ -940,8 +938,7 @@ def _next_agent_reply(
         )
         repo_pr_states: list[RepoPRState] = []
     elif state.failure_reason == OUT_OF_CREDITS:
-        # Seer ends the turn with its own plain-text notice; reply with the agent out-of-credits
-        # notification instead.
+        # Replace Seer's plain-text notice with the out-of-credits notification.
         key = _out_of_credits_key(state)
         if key in replies:
             return None
