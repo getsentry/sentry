@@ -4,6 +4,7 @@ from django.utils import timezone
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.slack.views import SALT
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import control_silo_test
@@ -53,6 +54,17 @@ class SlackLinkTeamContextTest(APITestCase):
         response = self.get_success_response(self.sign_params())
 
         assert response.data["organizations"] == []
+
+    def test_omits_organizations_in_unknown_cells(self) -> None:
+        other_org = self.create_organization(name="Another Org", owner=self.user)
+        self.integration.add_organization(other_org)
+        OrganizationMapping.objects.filter(organization_id=other_org.id).update(
+            cell_name="unknown-cell"
+        )
+
+        response = self.get_success_response(self.sign_params())
+
+        assert [org["slug"] for org in response.data["organizations"]] == [self.organization.slug]
 
     def test_rejects_a_tampered_link(self) -> None:
         response = self.get_error_response(self.sign_params() + "x", status_code=400)

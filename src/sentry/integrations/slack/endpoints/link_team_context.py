@@ -28,6 +28,7 @@ from sentry.integrations.slack.team_linking import (
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.types.cell import find_all_cell_names
 
 
 class SlackLinkTeamContextResponse(TypedDict):
@@ -66,8 +67,12 @@ class SlackLinkTeamContextEndpoint(Endpoint):
         member_org_ids = OrganizationMemberMapping.objects.filter(
             user_id=require_user(request).id, organization_id__in=installed_org_ids
         ).values("organization_id")
+        # Serializing an org in a cell this deploy doesn't know about raises,
+        # so skip those instead of failing the whole page.
         organizations = OrganizationMapping.objects.filter(
-            organization_id__in=member_org_ids, status=OrganizationStatus.ACTIVE
+            organization_id__in=member_org_ids,
+            status=OrganizationStatus.ACTIVE,
+            cell_name__in=list(find_all_cell_names()),
         ).order_by("name")
 
         response: SlackLinkTeamContextResponse = {
