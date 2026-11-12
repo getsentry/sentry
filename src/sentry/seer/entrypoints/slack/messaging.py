@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable, Sequence
 from copy import deepcopy
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, assert_never
 
 from pydantic import ValidationError
@@ -60,6 +61,12 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class InvestigationAlertData:
+    investigation_url: str
+    notification: NotificationData | None = None
 
 
 def _render_tracked(
@@ -442,16 +449,16 @@ def update_investigation_alert_message(
     install: SlackIntegration,
     channel_id: str,
     message_ts: str,
-    investigation_url: str,
-    data: NotificationData | None = None,
+    data: InvestigationAlertData,
 ) -> None:
+    notification = data.notification
     link_decorator = (
-        NotificationLinkDecorator(data=data, provider=NotificationProviderKey.SLACK)
-        if data is not None
+        NotificationLinkDecorator(data=notification, provider=NotificationProviderKey.SLACK)
+        if notification is not None
         else None
     )
     link_button = SeerSlackRenderer.render_investigation_link_button(
-        investigation_url=investigation_url, link_decorator=link_decorator
+        investigation_url=data.investigation_url, link_decorator=link_decorator
     )
 
     with SlackEntrypointEventLifecycleMetric(
@@ -486,14 +493,14 @@ def update_investigation_alert_message(
             lifecycle.record_halt(halt_reason=e)
             return
 
-        if data is not None and link_decorator is not None:
+        if notification is not None and link_decorator is not None:
             record_sent(
                 NotificationTrackingContext(
-                    source=data.source,
+                    source=notification.source,
                     provider=NotificationProviderKey.SLACK,
-                    category=template_registry.get(data.source).category,
-                    notification_uuid=data.notification_uuid,
-                    organization_id=data.organization_id,
+                    category=template_registry.get(notification.source).category,
+                    notification_uuid=notification.notification_uuid,
+                    organization_id=notification.organization_id,
                 ),
                 links=link_decorator.links,
             )

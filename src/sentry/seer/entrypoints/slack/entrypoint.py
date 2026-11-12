@@ -73,6 +73,7 @@ from sentry.seer.entrypoints.slack.investigation_status import (
     build_investigation_status,
 )
 from sentry.seer.entrypoints.slack.messaging import (
+    InvestigationAlertData,
     edit_thread_message,
     schedule_all_thread_updates,
     send_thread_update,
@@ -987,8 +988,9 @@ class SlackInvestigationEntrypoint(
             install=self.install,
             channel_id=self.channel_id,
             message_ts=self.message_ts,
-            investigation_url=data.investigation_url,
-            data=data,
+            data=InvestigationAlertData(
+                investigation_url=data.investigation_url, notification=data
+            ),
         )
         self._send_thread_update(data)
 
@@ -997,9 +999,9 @@ class SlackInvestigationEntrypoint(
         from sentry.integrations.slack.message_builder.routing import decode_action_id
 
         tracking = decode_action_id(self.slack_request.data["actions"][0]["action_id"]).tracking
-        data = None
+        notification = None
         if tracking is not None and tracking.source == NotificationSource.METRIC_ALERT:
-            data = NotificationData(
+            notification = NotificationData(
                 source=NotificationSource.METRIC_ALERT,
                 organization_id=self.organization.id,
                 notification_uuid=tracking.notification_uuid,
@@ -1010,8 +1012,9 @@ class SlackInvestigationEntrypoint(
                 install=self.install,
                 channel_id=self.channel_id,
                 message_ts=self.message_ts,
-                investigation_url=investigation.get_absolute_url(),
-                data=data,
+                data=InvestigationAlertData(
+                    investigation_url=investigation.get_absolute_url(), notification=notification
+                ),
             )
         except TimeoutError:
             # The updater records the failure; the private reply is independent of this edit.
