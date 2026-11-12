@@ -308,11 +308,17 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
 
     @classmethod
     def render_investigation_link_button(
-        cls, investigation_url: str, link_decorator: NotificationLinkDecorator
+        cls,
+        investigation_url: str,
+        link_decorator: NotificationLinkDecorator | None = None,
     ) -> ButtonElement:
         return ButtonElement(
             text="Open investigation",
-            url=link_decorator.decorate_url(investigation_url),
+            url=(
+                link_decorator.decorate_url(investigation_url)
+                if link_decorator is not None
+                else investigation_url
+            ),
             value="link_clicked",
         )
 

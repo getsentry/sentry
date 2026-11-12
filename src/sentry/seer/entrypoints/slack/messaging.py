@@ -26,7 +26,6 @@ from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
 from sentry.notifications.platform.templates.seer import (
     SeerAgentWriteApproval,
     SeerAutofixUpdate,
-    SeerInvestigationStarted,
 )
 from sentry.notifications.platform.tracking import (
     NotificationLinkDecorator,
@@ -443,25 +442,31 @@ def update_investigation_alert_message(
     install: SlackIntegration,
     channel_id: str,
     message_ts: str,
-    data: SeerInvestigationStarted,
+    investigation_url: str,
+    data: NotificationData | None = None,
 ) -> None:
-    link_decorator = NotificationLinkDecorator(data=data, provider=NotificationProviderKey.SLACK)
+    link_decorator = (
+        NotificationLinkDecorator(data=data, provider=NotificationProviderKey.SLACK)
+        if data is not None
+        else None
+    )
     link_button = SeerSlackRenderer.render_investigation_link_button(
-        investigation_url=data.investigation_url, link_decorator=link_decorator
+        investigation_url=investigation_url, link_decorator=link_decorator
     )
 
     with SlackEntrypointEventLifecycleMetric(
         interaction_type=SlackEntrypointInteractionType.UPDATE_EXISTING_MESSAGE,
         integration_id=install.model.id,
-        organization_id=data.organization_id,
+        organization_id=install.organization_id,
     ).capture() as lifecycle:
         lifecycle.add_extras({"channel_id": channel_id, "message_ts": message_ts})
         try:
             original_message = request.data["message"]
+            parsed_blocks = [Block.parse(block) for block in original_message.get("blocks", [])]
             message = SlackRenderable(
-                blocks=[],
+                blocks=[block for block in parsed_blocks if block is not None],
                 text=original_message["text"],
-                attachments=original_message["attachments"],
+                attachments=original_message.get("attachments", []),
             )
         except (KeyError, TypeError) as e:
             lifecycle.record_failure(failure_reason=e)
@@ -481,16 +486,17 @@ def update_investigation_alert_message(
             lifecycle.record_halt(halt_reason=e)
             return
 
-        record_sent(
-            NotificationTrackingContext(
-                source=data.source,
-                provider=NotificationProviderKey.SLACK,
-                category=template_registry.get(data.source).category,
-                notification_uuid=data.notification_uuid,
-                organization_id=data.organization_id,
-            ),
-            links=link_decorator.links,
-        )
+        if data is not None and link_decorator is not None:
+            record_sent(
+                NotificationTrackingContext(
+                    source=data.source,
+                    provider=NotificationProviderKey.SLACK,
+                    category=template_registry.get(data.source).category,
+                    notification_uuid=data.notification_uuid,
+                    organization_id=data.organization_id,
+                ),
+                links=link_decorator.links,
+            )
 
 
 @all_silo_function

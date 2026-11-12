@@ -19,6 +19,7 @@ from sentry.models.project import Project
 from sentry.notebooks.models import Notebook
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.service import NotificationService
+from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
     SeerAgentError,
     SeerAgentResponse,
@@ -36,7 +37,11 @@ from sentry.notifications.platform.tracking import (
     NotificationTrackingContext,
     record_sent,
 )
-from sentry.notifications.platform.types import NotificationData, NotificationProviderKey
+from sentry.notifications.platform.types import (
+    NotificationData,
+    NotificationProviderKey,
+    NotificationSource,
+)
 from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.agent.client_models import (
@@ -946,6 +951,31 @@ class SlackInvestigationEntrypoint(
             ephemeral_user_id=self.slack_user_id,
         )
 
+    def send_existing_investigation_reply(self, *, text: str) -> None:
+        with SlackEntrypointEventLifecycleMetric(
+            interaction_type=SlackEntrypointInteractionType.SEND_THREAD_UPDATE,
+            integration_id=self.install.model.id,
+            organization_id=self.organization.id,
+        ).capture() as lifecycle:
+            lifecycle.add_extras(
+                {
+                    "channel_id": self.channel_id,
+                    "thread_ts": self.thread_ts,
+                    "ephemeral_user_id": self.slack_user_id,
+                }
+            )
+            try:
+                self.install.send_threaded_ephemeral_message(
+                    channel_id=self.channel_id,
+                    thread_ts=self.thread_ts,
+                    slack_user_id=self.slack_user_id,
+                    renderable=SlackRenderable(blocks=[], text=text),
+                )
+            except IntegrationConfigurationError as e:
+                lifecycle.record_halt(halt_reason=e)
+            except (IntegrationError, TimeoutError) as e:
+                lifecycle.record_failure(failure_reason=e)
+
     def on_trigger_investigation_success(self, *, investigation: Notebook) -> None:
         data = SeerInvestigationStarted(
             organization_id=self.organization.id,
@@ -957,9 +987,35 @@ class SlackInvestigationEntrypoint(
             install=self.install,
             channel_id=self.channel_id,
             message_ts=self.message_ts,
+            investigation_url=data.investigation_url,
             data=data,
         )
         self._send_thread_update(data)
+
+    def update_existing_investigation_alert(self, *, investigation: Notebook) -> None:
+        # Slack integration initialization imports this entrypoint.
+        from sentry.integrations.slack.message_builder.routing import decode_action_id
+
+        tracking = decode_action_id(self.slack_request.data["actions"][0]["action_id"]).tracking
+        data = None
+        if tracking is not None and tracking.source == NotificationSource.METRIC_ALERT:
+            data = NotificationData(
+                source=NotificationSource.METRIC_ALERT,
+                organization_id=self.organization.id,
+                notification_uuid=tracking.notification_uuid,
+            )
+        try:
+            update_investigation_alert_message(
+                request=self.slack_request,
+                install=self.install,
+                channel_id=self.channel_id,
+                message_ts=self.message_ts,
+                investigation_url=investigation.get_absolute_url(),
+                data=data,
+            )
+        except TimeoutError:
+            # The updater records the failure; the private reply is independent of this edit.
+            pass
 
     def create_investigation_cache_payload(self) -> SlackInvestigationCachePayload:
         return SlackInvestigationCachePayload(
