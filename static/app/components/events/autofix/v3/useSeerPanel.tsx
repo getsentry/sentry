@@ -7,15 +7,15 @@ import {
   getOrderedAutofixSections,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 import {useSeerExplorerDrawer} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
+
+import {artifactToMarkdown} from './utils';
 
 /**
  * Everything an Autofix surface needs apart from its own chrome, so the drawer
@@ -24,13 +24,10 @@ import {useSeerExplorerDrawer} from 'sentry/views/seerExplorer/components/drawer
  * scrolls with the page.
  */
 export function useSeerPanel({group, project}: {group: Group; project: Project}) {
-  const organization = useOrganization();
   const aiConfig = useAiConfig(group, project);
   const aiAutofix = useExplorerAutofix(group, {
-    // Automated CI iteration pushes commits with no user action, so poll for both.
-    pollPR:
-      organization.features.includes('autofix-pr-iteration') ||
-      organization.features.includes('autofix-pr-iteration-manual'),
+    // Automated CI iteration can push commits without any user action.
+    pollPR: true,
   });
 
   const handleCopyMarkdown = useHandleCopyMarkdown({aiAutofix});

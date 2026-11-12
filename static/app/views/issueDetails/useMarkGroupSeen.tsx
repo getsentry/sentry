@@ -6,7 +6,8 @@ import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
+
+import {groupQueryKey} from './useGroup';
 
 export function useMarkGroupSeen() {
   const organization = useOrganization();

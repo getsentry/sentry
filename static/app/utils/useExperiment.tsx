@@ -1,5 +1,6 @@
 import {getOverride} from 'sentry/overrideRegistry';
-import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {useOrganization} from './useOrganization';
 
 export interface UseExperimentResult {
   /**

@@ -1,14 +1,15 @@
 import {Stack} from '@sentry/scraps/layout';
 
-import {SeerDrawerBody} from 'sentry/components/events/autofix/v3/body';
-import {SeerDrawerContent} from 'sentry/components/events/autofix/v3/content';
-import {SeerDrawerHeader} from 'sentry/components/events/autofix/v3/header';
-import {useSeerPanel} from 'sentry/components/events/autofix/v3/useSeerPanel';
-import {AutofixWarnings} from 'sentry/components/events/autofix/v3/warnings';
 import {Placeholder} from 'sentry/components/placeholder';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {useAutoScroll} from 'sentry/utils/useAutoScroll';
+
+import {SeerDrawerBody} from './body';
+import {SeerDrawerContent} from './content';
+import {SeerDrawerHeader} from './header';
+import {useSeerPanel} from './useSeerPanel';
+import {AutofixWarnings} from './warnings';
 
 interface SeerDrawerProps {
   group: Group;

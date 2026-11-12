@@ -43,7 +43,12 @@ from sentry.workflow_engine.endpoints.validators.base.data_condition import (
 )
 from sentry.workflow_engine.models import DataCondition, DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import DetectorPriorityLevel, SnubaQueryDataSourceType
+from sentry.workflow_engine.registry import detector_settings_registry
+from sentry.workflow_engine.types import (
+    DetectorPriorityLevel,
+    DetectorType,
+    SnubaQueryDataSourceType,
+)
 
 
 def fetch_snuba_query(detector: Detector) -> SnubaQuery | None:
@@ -151,9 +156,9 @@ class MetricIssueConditionGroupValidator(BaseDataConditionGroupValidator):
     conditions = serializers.ListField(required=True)
 
     def validate_conditions(self, value: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        MetricIssueComparisonConditionValidator(data=value, many=True).is_valid(
-            raise_exception=True
-        )
+        MetricIssueComparisonConditionValidator(
+            data=value, many=True, context=self.context
+        ).is_valid(raise_exception=True)
         condition_types = {condition["type"] for condition in value}
         has_anomaly_detection = Condition.ANOMALY_DETECTION in condition_types
         if has_anomaly_detection and condition_types != {Condition.ANOMALY_DETECTION}:
@@ -240,6 +245,9 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             self.validate_eap_rule(attrs)
             self._validate_metric_subscription_allowed(attrs)
 
+        if "config" in attrs:
+            self._validate_config(attrs["config"])
+
         return attrs
 
     def _validate_metric_subscription_allowed(self, attrs: dict[str, Any]) -> None:
@@ -273,6 +281,53 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             raise serializers.ValidationError(
                 f"{extrapolation_mode.name.lower()} extrapolation mode is not supported for new detectors. Allowed modes are: client_and_server_weighted, unknown."
             )
+
+    def _validate_config(self, config: Any) -> None:
+        if not isinstance(config, dict):
+            raise serializers.ValidationError({"config": ["`config` must be an object."]})
+
+        # Ensure that all percent-type detectors have a lookback (`comparison_delta`) value and that
+        # no other detector types do
+        detection_type = config.get("detection_type")
+        has_comparison_delta = config.get("comparison_delta") is not None
+        if detection_type == AlertRuleDetectionType.PERCENT and not has_comparison_delta:
+            raise serializers.ValidationError(
+                {"config": ["`comparisonDelta` is required when `detectionType` is 'percent'."]}
+            )
+        elif has_comparison_delta and detection_type != AlertRuleDetectionType.PERCENT:
+            raise serializers.ValidationError(
+                {
+                    "config": [
+                        "`comparisonDelta` can only be set when `detectionType` is 'percent',"
+                        + f" not '{detection_type}'."
+                    ]
+                }
+            )
+
+    def _clean_config(self, config: dict[str, Any]) -> None:
+        """
+        Remove any `config` entries whose keys aren't in the metric detector config schema, and drop
+        null `comparison_delta` entries. Though both are harmless, there's no reason to store data
+        we'll never use.
+
+        Modifies the given `config` dict in place. Designed to be called before schema validation
+        runs, to prevent us from breaking customer tooling originally written when the schema
+        allowed extra keys.
+        """
+        # To prevent a circular import, look the schema up in the registry rather than importing it
+        # directly
+        schema = detector_settings_registry.get(DetectorType.METRIC_ISSUE).config_schema
+
+        # The schema will always be defined in prod, but technically `config_schema` is typed as
+        # optional, so we need this check to keep mypy happy.
+        if schema:
+            known_keys = set(schema["properties"].keys())
+            for key in list(config.keys()):
+                if key not in known_keys:
+                    config.pop(key)
+
+        if "comparison_delta" in config and config["comparison_delta"] is None:
+            config.pop("comparison_delta")
 
     def _get_resolution_for_window(
         self,
@@ -464,6 +519,9 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         return seer_updated
 
     def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:
+        if "config" in validated_data:
+            self._clean_config(validated_data["config"])
+
         # Handle anomaly detection changes first in case we need to exit before saving so that the instance values do not get updated
         seer_updated = self.update_anomaly_detection(instance, validated_data)
 
@@ -499,6 +557,9 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         return instance
 
     def create(self, validated_data: dict[str, Any]) -> Detector:
+        if "config" in validated_data:
+            self._clean_config(validated_data["config"])
+
         if "data_sources" in validated_data:
             config = validated_data.get("config", {})
             detection_type = config.get("detection_type")

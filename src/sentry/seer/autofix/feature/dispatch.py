@@ -10,10 +10,10 @@ from django.db.models import Q, QuerySet
 from sentry import features, quotas
 from sentry.constants import (
     ENABLE_SEER_CODING_DEFAULT,
-    SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     DataCategory,
 )
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_utils import (
     AgentRunOptions,
@@ -22,13 +22,14 @@ from sentry.seer.agent.client_utils import (
 )
 from sentry.seer.agent.on_completion_hook import extract_hook_definition
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.exceptions import NoSeerQuotaException
+from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
 from sentry.seer.autofix.feature.models import (
     FEATURE_ID,
     LEGACY_FEATURE_ID,
     SINGLE_RUN_FEATURE_ID,
     AutofixFeaturePayload,
     AutofixSingleRunFeaturePayload,
+    AutofixSingleRunPrInternalSettings,
     CodeChangesStepArgs,
     PrIterationStepArgs,
     RCAStepArgs,
@@ -40,6 +41,7 @@ from sentry.seer.autofix.utils import (
     get_automation_handoff,
     is_free_cohort_org,
 )
+from sentry.seer.credits import SeerFeature, SeerOperation, has_enough_seer_credits
 from sentry.seer.models.run import SeerAgentRun, SeerRun
 from sentry.seer.models.seer_api_models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPermissionError
 from sentry.users.models.user import User
@@ -103,22 +105,135 @@ def require_autofix_run_for_group(group: Group, run_id: int) -> SeerAgentRun:
     return agent_run
 
 
-def is_single_run_start(group: Group, args: AutofixFeatureArgs) -> bool:
+def should_use_single_run(
+    group: Group,
+    step: str,
+    *,
+    existing_run_id: int | None = None,
+    single_run_requested: bool = False,
+) -> bool:
     # Only fresh root-cause starts qualify: later steps and retries continue step-by-step runs,
     # and coding-agent handoff only exists in that flow (AIML-3808).
-    if args.step != AutofixStep.ROOT_CAUSE or args.existing_run_id is not None:
+    if step != AutofixStep.ROOT_CAUSE or existing_run_id is not None:
         return False
     if get_automation_handoff(group.project.get_option) is not None:
         return False
-    return args.single_run or features.has("organizations:autofix-single-run", group.organization)
+    return single_run_requested or features.has(
+        "organizations:autofix-single-run", group.organization
+    )
 
 
-def _single_run_stopping_point(group: Group, args: AutofixFeatureArgs) -> AutofixStoppingPoint:
-    if args.stopping_point is not None:
-        return args.stopping_point
-    return AutofixStoppingPoint(
-        group.project.get_option("sentry:seer_automated_run_stopping_point")
-        or SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+def _single_run_pr_internal_settings(
+    group: Group, referrer: AutofixReferrer
+) -> AutofixSingleRunPrInternalSettings:
+    from sentry.seer.autofix.autofix_agent import (
+        build_pr_description_suffix,
+        should_open_autofix_pr_as_draft,
+    )
+
+    return AutofixSingleRunPrInternalSettings(
+        description_suffix=build_pr_description_suffix(group, referrer),
+        ready_for_review=not should_open_autofix_pr_as_draft(group.organization),
+    )
+
+
+def _org_allows_coding(group: Group) -> bool:
+    return bool(
+        group.organization.get_option(
+            "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
+        )
+    )
+
+
+def check_autofix_billing(
+    organization: Organization,
+    operation: SeerOperation,
+    *,
+    is_new_run: bool,
+    skip_quota_for_free_cohort: bool = False,
+) -> bool:
+    """
+    Raise if the organization can't pay for the operation. Token-billed orgs are
+    checked for credits, and everyone else is checked for quota once per run.
+    Returns whether the operation uses quota.
+    """
+    # Check credits for token-billed orgs.
+    if features.has("organizations:token-billed-seer-enabled", organization):
+        if features.has(
+            "organizations:seer-credit-checks", organization
+        ) and not has_enough_seer_credits(organization, SeerFeature.AUTOFIX, operation):
+            raise SeerOutOfCreditsException()
+        return False
+
+    # Check quota for non-token-billed orgs once per run.
+    # Free cohort orgs skip quota when the caller passes skip_quota_for_free_cohort=True.
+    # Only agentic triage does, and it is not exposed via API.
+    skips_quota = skip_quota_for_free_cohort and is_free_cohort_org(organization)
+    uses_quota = is_new_run and not skips_quota
+    if uses_quota and not quotas.backend.check_seer_quota(
+        org_id=organization.id,
+        data_category=DataCategory.SEER_AUTOFIX,
+    ):
+        raise NoSeerQuotaException()
+    return uses_quota
+
+
+def continue_single_run(
+    agent_run: SeerAgentRun,
+    group: Group,
+    reply: str,
+    *,
+    user: User | RpcUser,
+    can_publish: bool,
+    referrer: AutofixReferrer,
+) -> SeerRun:
+    from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
+
+    check_autofix_billing(
+        group.organization,
+        SeerOperation.AUTOFIX_SINGLE_RUN_REPLY,
+        is_new_run=False,
+    )
+
+    enable_coding = _org_allows_coding(group)
+    open_pr = enable_coding and can_publish
+    payload = AutofixSingleRunFeaturePayload(
+        group_id=group.id,
+        project_id=group.project_id,
+        short_id=group.qualified_short_id or str(group.id),
+        title=group.title or "Unknown error",
+        culprit=group.culprit or "unknown",
+        on_completion_hook=extract_hook_definition(AutofixOnCompletionHook, call_on_failure=True),
+        should_run_repo_checks=True,
+        existing_run_id=agent_run.run.seer_run_state_id,
+        reply=reply,
+        pr_internal_settings=(
+            _single_run_pr_internal_settings(group, referrer) if open_pr else None
+        ),
+    )
+    agent_run_options = AgentRunOptions(
+        is_context_engine_enabled=False,
+        enable_frontend_code_search=False,
+        enable_coding=enable_coding,
+        enable_pr_context_tools=False,
+        enable_write_pull_request=open_pr,
+    )
+
+    client = SeerAgentClient(
+        organization=group.organization,
+        project=group.project,
+        group=group,
+        user=user,
+        enable_coding=enable_coding,
+        enable_bash_mode=True,
+    )
+    return client.continue_feature_run(
+        existing_agent_run=agent_run,
+        payload=payload.dict(),
+        referrer=referrer.value,
+        user_org_context=collect_user_org_context(user, group.organization),
+        proxy_headers=get_proxy_headers(),
+        agent_run_options=agent_run_options,
     )
 
 
@@ -130,27 +245,48 @@ def trigger_autofix_feature(
     from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 
     is_new_run = args.existing_run_id is None
-    # Free cohort orgs bypass quota only when called from agentic triage
-    # (allow_free_cohort=True). Not exposed via the API.
-    skip_quota = is_new_run and args.allow_free_cohort and is_free_cohort_org(group.organization)
-    if is_new_run and not skip_quota:
-        has_budget: bool = quotas.backend.check_seer_quota(
-            org_id=group.organization.id,
-            data_category=DataCategory.SEER_AUTOFIX,
+    try:
+        uses_quota = check_autofix_billing(
+            group.organization,
+            args.step.seer_operation,
+            is_new_run=is_new_run,
+            # Free cohort orgs bypass quota only when called from agentic triage
+            # (allow_free_cohort=True). Not exposed via the API.
+            skip_quota_for_free_cohort=args.allow_free_cohort,
         )
-        if not has_budget:
-            logger.warning(
-                "autofix_feature.dispatch.quota_denied",
-                extra={
-                    "group_id": group.id,
-                    "organization_id": group.organization.id,
-                    "referrer": args.referrer.value,
-                },
-            )
-            raise NoSeerQuotaException()
+    except NoSeerQuotaException:
+        logger.warning(
+            "autofix_feature.dispatch.quota_denied",
+            extra={
+                "group_id": group.id,
+                "organization_id": group.organization.id,
+                "referrer": args.referrer.value,
+            },
+        )
+        raise
+    except SeerOutOfCreditsException:
+        logger.info(
+            "autofix_feature.dispatch.out_of_credits",
+            extra={
+                "group_id": group.id,
+                "organization_id": group.organization.id,
+                "operation": args.step.seer_operation.value,
+                "referrer": args.referrer.value,
+            },
+        )
+        raise
 
-    single_run = is_single_run_start(group, args)
-    stopping_point = _single_run_stopping_point(group, args) if single_run else args.stopping_point
+    single_run = should_use_single_run(
+        group,
+        args.step,
+        existing_run_id=args.existing_run_id,
+        single_run_requested=args.single_run,
+    )
+    stopping_point = (
+        (args.stopping_point or AutofixStoppingPoint.CODE_CHANGES)
+        if single_run
+        else args.stopping_point
+    )
     on_completion_hook = extract_hook_definition(AutofixOnCompletionHook, call_on_failure=True)
     short_id = group.qualified_short_id or str(group.id)
     title = group.title or "Unknown error"
@@ -176,11 +312,10 @@ def trigger_autofix_feature(
         enable_coding = stopping_point in (
             AutofixStoppingPoint.CODE_CHANGES,
             AutofixStoppingPoint.OPEN_PR,
-        ) and bool(
-            group.organization.get_option(
-                "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
-            )
-        )
+        ) and _org_allows_coding(group)
+        open_pr = enable_coding and stopping_point == AutofixStoppingPoint.OPEN_PR
+        if open_pr:
+            payload.pr_internal_settings = _single_run_pr_internal_settings(group, args.referrer)
     else:
         payload = AutofixFeaturePayload(
             group_id=group.id,
@@ -197,6 +332,7 @@ def trigger_autofix_feature(
             step_args=args.step_args,
         )
         enable_coding = args.step in (AutofixStep.CODE_CHANGES, AutofixStep.PR_ITERATION)
+        open_pr = False
 
     client = SeerAgentClient(
         organization=group.organization,
@@ -217,6 +353,8 @@ def trigger_autofix_feature(
         "organizations:autofix-pr-iteration-pin-to-pr-head", group.organization
     ):
         agent_run_options["pin_to_pr_head"] = True
+    if open_pr:
+        agent_run_options["enable_write_pull_request"] = True
 
     extras: dict[str, Any] = {
         "referrer": args.referrer.value,
@@ -252,7 +390,7 @@ def trigger_autofix_feature(
     else:
         raise Exception("Unhandled run_id branch, this should never happen")
 
-    if is_new_run and not skip_quota:
+    if uses_quota:
         quotas.backend.record_seer_run(
             group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
         )

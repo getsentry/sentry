@@ -12,19 +12,17 @@ import type {
   TimeSeriesItem,
 } from 'sentry/views/dashboards/widgets/common/types';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
-import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
-import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
-import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
-import {
-  getLogRowTimestampMillis,
-  getLogTimestampBucketIndex,
-} from 'sentry/views/explore/logs/utils';
 import {
   useQueryParamsGroupBys,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+
+import {AlwaysPresentLogFields} from './constants';
+import {isLogsEnabled} from './isLogsEnabled';
+import type {OurLogsResponseItem} from './types';
+import type {UseInfiniteLogsQueryResult} from './useLogsQuery';
+import {getLogRowTimestampMillis, getLogTimestampBucketIndex} from './utils';
 
 type BufferEntry = {
   bucketIndex: number;

@@ -15,16 +15,19 @@ from django.views.generic.base import View
 from rest_framework.request import Request
 
 from sentry import options
+from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError, outbox_context
 from sentry.locks import locks
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apidevicecode import DEFAULT_INTERVAL, ApiDeviceCode, DeviceCodeStatus
 from sentry.models.apigrant import ApiGrant, ExpiredGrantError, InvalidGrantError
+from sentry.models.apisetupcode import ApiSetupCode, hash_setup_code
 from sentry.models.apitoken import ApiToken, TokenRefreshError
 from sentry.ratelimits import backend as ratelimiter
 from sentry.sentry_apps.token_exchange.util import GrantTypes
 from sentry.silo.safety import unguarded_write
 from sentry.utils import json, metrics
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.web.decorators import ai_machine_readable
 from sentry.web.frontend.base import control_silo_view
 from sentry.web.frontend.openidtoken import OpenIDToken
 
@@ -62,6 +65,7 @@ class _TokenGrantResult(TypedDict, total=False):
 
 
 @control_silo_view
+@ai_machine_readable
 class OAuthTokenView(View):
     # Token responses must not be cached per RFC 6749 §5.1/§5.2. We apply
     # never_cache at dispatch so every response from this endpoint is marked
@@ -113,12 +117,16 @@ class OAuthTokenView(View):
           is not supported here and returns `invalid_request`.
         - `urn:ietf:params:oauth:grant-type:device_code` (RFC 8628 §3.4): requires
           `device_code`. Used by headless clients to poll for authorization.
+        - `urn:sentry:params:oauth:grant-type:setup_code`: requires `setup_code`, a
+          single-use code minted for a user and this application. Only
+          available to applications listed in `oauth.setup-code.allowed-client-ids`.
 
         Client authentication
         - Either Authorization header (Basic) or form fields `client_id`/`client_secret`
           (RFC 6749 §2.3.1). Only one method may be used per request.
-        - For device_code grant: supports public clients per RFC 8628 §5.6, which only
-          require `client_id`. If `client_secret` is provided, it will be validated.
+        - For device_code and setup_code grants: supports public clients per RFC 8628
+          §5.6, which only require `client_id`. If `client_secret` is provided, it will
+          be validated.
 
         Request format
         - Requests are `application/x-www-form-urlencoded` as defined in RFC 6749 §3.2.
@@ -142,6 +150,7 @@ class OAuthTokenView(View):
             GrantTypes.AUTHORIZATION,
             GrantTypes.REFRESH,
             GrantTypes.DEVICE_CODE,
+            GrantTypes.SETUP_CODE,
         ]:
             return self.error(request=request, name="unsupported_grant_type")
 
@@ -218,6 +227,7 @@ class OAuthTokenView(View):
         if is_public_client and grant_type not in [
             GrantTypes.AUTHORIZATION,
             GrantTypes.DEVICE_CODE,
+            GrantTypes.SETUP_CODE,
             GrantTypes.REFRESH,
         ]:
             return self.error(
@@ -252,6 +262,12 @@ class OAuthTokenView(View):
                     ApiDeviceCode.objects.filter(
                         application=application, device_code=device_code_value
                     ).delete()
+            elif grant_type == GrantTypes.SETUP_CODE:
+                setup_code_value = request.POST.get("setup_code")
+                if setup_code_value:
+                    ApiSetupCode.objects.filter(
+                        application=application, hashed_code=hash_setup_code(setup_code_value)
+                    ).delete()
             # Use invalid_grant per RFC 6749 §5.2: grants/tokens are effectively "revoked"
             # when the application is deactivated. invalid_client would be incorrect here
             # since client authentication succeeded (we verified the credentials).
@@ -284,6 +300,8 @@ class OAuthTokenView(View):
             token_data = self.get_access_tokens(request=request, application=application)
         elif grant_type == GrantTypes.DEVICE_CODE:
             return self.handle_device_code_grant(request=request, application=application)
+        elif grant_type == GrantTypes.SETUP_CODE:
+            return self.handle_setup_code_grant(request=request, application=application)
         elif grant_type == GrantTypes.REFRESH:
             token_data = self.get_refresh_token(request=request, application=application)
         else:
@@ -596,20 +614,35 @@ class OAuthTokenView(View):
                         reason="device code in invalid state",
                     )
 
-                # Use a transaction to ensure token creation and device code deletion
-                # are atomic. This prevents duplicate tokens if delete fails after
-                # token creation succeeds.
-                with transaction.atomic(router.db_for_write(ApiToken)):
-                    # Create the access token for the device flow
-                    token = ApiToken.objects.create(
-                        application=application,
-                        user_id=device_code.user.id,
-                        scope_list=device_code.scope_list,
-                        scoping_organization_id=device_code.organization_id,
-                    )
+                token: ApiToken | None = None
+                try:
+                    # Use a transaction to ensure token creation and device code deletion
+                    # are atomic. This prevents duplicate tokens if delete fails after
+                    # token creation succeeds. The outbox_context is just to flag
+                    # that this is an outbox-producing operation.
+                    with outbox_context(transaction.atomic(router.db_for_write(ApiToken))):
+                        # Create the access token for the device flow
+                        token = ApiToken.objects.create(
+                            application=application,
+                            user_id=device_code.user.id,
+                            scope_list=device_code.scope_list,
+                            scoping_organization_id=device_code.organization_id,
+                        )
 
-                    # Delete the device code (one-time use)
-                    device_code.delete()
+                        # Delete the device code (one-time use)
+                        device_code.delete()
+                except (OutboxDatabaseError, OutboxFlushError):
+                    if token is None:
+                        raise
+
+                    # Guard against replication fanout failures. The token has been
+                    # minted, and its outbox has been committed alongside it,
+                    # guaranteeing that it will eventually be valid in all regions.
+                    logger.warning(
+                        "oauth.device-code-exchanged.outbox-flush-failure",
+                        extra={"token_id": token.id, "device_code_id": device_code.id},
+                        exc_info=True,
+                    )
 
                 metrics.incr("oauth_device.token_exchange", sample_rate=1.0)
                 logger.info(
@@ -638,6 +671,61 @@ class OAuthTokenView(View):
             name="invalid_grant",
             reason="device code in invalid state",
         )
+
+    def handle_setup_code_grant(
+        self, request: Request, application: ApiApplication
+    ) -> HttpResponse:
+        """Exchange a single-use setup code for tokens."""
+        setup_code_value = request.POST.get("setup_code")
+        if not setup_code_value:
+            return self.error(request=request, name="invalid_request", reason="missing setup_code")
+
+        if application.client_id not in options.get("oauth.setup-code.allowed-client-ids"):
+            return self.error(
+                request=request,
+                name="unauthorized_client",
+                reason="setup codes are not enabled for this application",
+            )
+
+        with transaction.atomic(router.db_for_write(ApiToken)):
+            # Lock the row so concurrent requests with the same code can't both
+            # issue tokens; the loser finds the row deleted.
+            try:
+                setup_code = ApiSetupCode.objects.select_for_update().get(
+                    hashed_code=hash_setup_code(setup_code_value),
+                    application=application,
+                )
+            except ApiSetupCode.DoesNotExist:
+                return self.error(
+                    request=request, name="invalid_grant", reason="invalid setup_code"
+                )
+
+            # The code is consumed by any redemption attempt, including an expired one.
+            setup_code_id = setup_code.id
+            setup_code.delete()
+            if setup_code.is_expired():
+                return self.error(
+                    request=request, name="invalid_grant", reason="setup code expired"
+                )
+
+            token = ApiToken.objects.create(
+                application=application,
+                user_id=setup_code.user_id,
+                scope_list=setup_code.scope_list,
+                scoping_organization_id=setup_code.organization_id,
+            )
+
+        metrics.incr("oauth_setup_code.token_exchange", sample_rate=1.0)
+        logger.info(
+            "oauth.setup-code-exchanged",
+            extra={
+                "setup_code_id": setup_code_id,
+                "application_id": application.id,
+                "user_id": setup_code.user_id,
+                "token_id": token.id,
+            },
+        )
+        return self.process_token_details(token=token)
 
     def process_token_details(self, token: ApiToken, id_token: str | None = None) -> HttpResponse:
         token_information: _TokenInformation = {

@@ -3,8 +3,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/context';
-
+import {SectionKey, useIssueDetails} from './context';
 import {EventTitle} from './eventTitle';
 
 jest.mock('sentry/views/issueDetails/context');

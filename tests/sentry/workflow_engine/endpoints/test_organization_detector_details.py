@@ -42,6 +42,7 @@ from sentry.workflow_engine.models import (
     DataSource,
     DataSourceDetector,
     Detector,
+    Workflow,
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
@@ -564,7 +565,10 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
 
     def test_update_comparison_delta_invalid(self) -> None:
         data = {**self.valid_data}
-        data["config"]["comparisonDelta"] = 0
+        data["config"] = {
+            "detectionType": AlertRuleDetectionType.PERCENT.value,
+            "comparisonDelta": 0,
+        }
 
         response = self.get_error_response(
             self.organization.slug,
@@ -573,7 +577,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
             status_code=400,
         )
         assert response.data["config"][0] == ErrorDetail(
-            string="Invalid config: 0 is not one of [300, 900, 3600, 86400, 604800, 2592000, None]",
+            string="Invalid config: 0 is not one of [300, 900, 3600, 86400, 604800, 2592000]",
             code="invalid",
         )
 
@@ -586,7 +590,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
             status_code=400,
         )
         assert response.data["config"][0] == ErrorDetail(
-            string="Invalid config: 2592001 is not one of [300, 900, 3600, 86400, 604800, 2592000, None]",
+            string="Invalid config: 2592001 is not one of [300, 900, 3600, 86400, 604800, 2592000]",
             code="invalid",
         )
 
@@ -599,6 +603,28 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
                 status_code=200,
             )
         assert response.data["config"]["comparisonDelta"] == 300
+
+    def test_update_comparison_delta_with_non_percent_detection_type(self) -> None:
+        data = {
+            **self.valid_data,
+            "config": {
+                "detectionType": AlertRuleDetectionType.STATIC.value,
+                "comparisonDelta": 3600,
+            },
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.detector.id,
+            **data,
+            status_code=400,
+        )
+        assert response.data["config"] == [
+            ErrorDetail(
+                string="`comparisonDelta` can only be set when `detectionType` is 'percent', not 'static'.",
+                code="invalid",
+            )
+        ]
 
     def test_update_add_data_condition(self) -> None:
         """
@@ -945,6 +971,49 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
                 == 1
             )
 
+    def test_update_workflows_cannot_attach_hidden_workflow(self) -> None:
+        hidden_workflow = self.create_workflow(
+            organization_id=self.organization.id, type=Workflow.Type.INBOX
+        )
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.detector.id,
+            **{**self.valid_data, "workflowIds": [hidden_workflow.id]},
+            status_code=400,
+        )
+
+        assert "Some workflows do not exist" in str(response.data)
+
+        assert not DetectorWorkflow.objects.filter(detector=self.detector).exists()
+
+    def test_update_workflows_keeps_hidden_workflow_connection(self) -> None:
+        alert_workflow = self.create_workflow(organization_id=self.organization.id)
+
+        hidden_workflow = self.create_workflow(
+            organization_id=self.organization.id, type=Workflow.Type.INBOX
+        )
+
+        self.create_detector_workflow(detector=self.detector, workflow=hidden_workflow)
+
+        with outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                workflowIds=[alert_workflow.id],
+                status_code=200,
+            )
+
+        assert response.data["workflowIds"] == [str(alert_workflow.id)]
+
+        connected_workflow_ids = set(
+            DetectorWorkflow.objects.filter(detector=self.detector).values_list(
+                "workflow_id", flat=True
+            )
+        )
+
+        assert connected_workflow_ids == {alert_workflow.id, hidden_workflow.id}
+
     def test_update_workflows_invalid_workflow_ids(self) -> None:
         """Test validation failure with non-existent workflow IDs"""
         data = {
@@ -1094,7 +1163,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
     def test_update_config_valid(self) -> None:
         """Test updating detector config with valid schema data"""
         # Initial config
-        initial_config = {"detection_type": "static", "comparison_delta": None}
+        initial_config = {"detection_type": "static"}
         self.detector.config = initial_config
         self.detector.save()
 
@@ -1124,7 +1193,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
     def test_update_config_invalid_schema(self) -> None:
         """Test updating detector config with invalid schema data fails validation"""
         # Config missing required field 'detection_type'
-        invalid_config = {"comparison_delta": 3600}
+        invalid_config: dict[str, Any] = {}
         data = {
             "config": invalid_config,
         }

@@ -9,9 +9,11 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
-import {SeerProjectTable} from 'sentry/components/seer/projectTable/seerProjectTable';
+import {toast} from '@sentry/scraps/toast';
+
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+
+import {SeerProjectTable} from './seerProjectTable';
 
 // jsdom has no layout, so the virtualizer would render zero rows. Force it to
 // render a row per item so the table body is present.
@@ -103,7 +105,7 @@ describe('SeerProjectTable', () => {
       url: `/projects/${organization.slug}/${project.slug}/seer/settings/`,
       method: 'PUT',
     });
-    const errorSpy = jest.spyOn(indicators, 'addErrorMessage');
+    const errorSpy = jest.spyOn(toast, 'error');
 
     render(<SeerProjectTable />, {organization});
 
@@ -147,7 +149,7 @@ describe('SeerProjectTable', () => {
       url: `/projects/${organization.slug}/${project.slug}/seer/settings/`,
       method: 'PUT',
     });
-    const errorSpy = jest.spyOn(indicators, 'addErrorMessage');
+    const errorSpy = jest.spyOn(toast, 'error');
 
     render(<SeerProjectTable />, {organization});
 
@@ -172,7 +174,7 @@ describe('SeerProjectTable', () => {
       url: `/projects/${organization.slug}/${project.slug}/seer/settings/`,
       method: 'PUT',
     });
-    const errorSpy = jest.spyOn(indicators, 'addErrorMessage');
+    const errorSpy = jest.spyOn(toast, 'error');
 
     render(<SeerProjectTable />, {organization});
 
@@ -558,5 +560,40 @@ describe('SeerProjectTable', () => {
     });
 
     expect(await screen.findByRole('button', {name: 'Add Project'})).toBeDisabled();
+  });
+
+  describe('empty state', () => {
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/projects/`,
+        body: [],
+      });
+    });
+
+    it('asks token-billed orgs to link a repository', async () => {
+      render(<SeerProjectTable />, {
+        organization: OrganizationFixture({
+          slug: organization.slug,
+          access: ['org:write'],
+          features: ['seer-token-based-billing-onboarding', 'token-billed-seer-enabled'],
+        }),
+      });
+
+      expect(
+        await screen.findByText(
+          'Link a repository to a project so Seer can read your code.'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('asks other orgs to add projects for Autofix', async () => {
+      render(<SeerProjectTable />, {organization});
+
+      expect(
+        await screen.findByText(
+          'Add projects here in order to enable Autofix. Each project must be associated with a repository in order for Autofix to work.'
+        )
+      ).toBeInTheDocument();
+    });
   });
 });

@@ -2,8 +2,9 @@ import {Fragment} from 'react';
 
 import {Flex, Grid} from '@sentry/scraps/layout';
 
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import * as Storybook from 'sentry/stories';
+
+import {QuestionTooltip} from './questionTooltip';
 
 export default Storybook.story('QuestionTooltip', story => {
   story('Basics', () => {
@@ -11,8 +12,8 @@ export default Storybook.story('QuestionTooltip', story => {
       <Fragment>
         <p>
           The <Storybook.JSXNode name="QuestionTooltip" /> component is a small{' '}
-          <Storybook.JSXNode name="IconQuestion" /> where you can specify a tooltip to go
-          with it. It is useful for placing after headers and titles to include additional
+          <Storybook.JSXNode name="IconInfo" /> where you can specify a tooltip to go with
+          it. It is useful for placing after headers and titles to include additional
           information. Prefer <Storybook.JSXNode name="InfoTip" /> for new usages.
         </p>
         <p>

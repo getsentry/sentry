@@ -103,7 +103,6 @@ const ConnectedDetectors = styled('div')`
 const HovercardRow = styled('div')`
   position: relative;
   display: flex;
-  justify-content: center;
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   min-height: 64px;
 

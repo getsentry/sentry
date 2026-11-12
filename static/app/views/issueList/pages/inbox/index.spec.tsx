@@ -28,9 +28,9 @@ import {DiffFileType} from 'sentry/components/events/autofix/types';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import {ProgressState} from 'sentry/types/group';
-import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/pages/inbox/utils';
 
 import InboxPage from './index';
+import {INBOX_AUTOFIX_CATEGORY_FILTER} from './utils';
 
 function InboxPageInContainer() {
   return (
@@ -342,7 +342,6 @@ describe('InboxPage', () => {
       body: {
         hasSupportedScmIntegration: true,
         isAutofixEnabled: false,
-        isCodeReviewEnabled: false,
         isSeerConfigured: false,
       },
     });
@@ -1514,7 +1513,7 @@ describe('InboxPage', () => {
     );
   });
 
-  it('does not render without the progress UI feature', () => {
+  it('does not render without the issue-inbox feature', () => {
     render(<InboxPage />, {
       organization: OrganizationFixture({features: []}),
       initialRouterConfig,

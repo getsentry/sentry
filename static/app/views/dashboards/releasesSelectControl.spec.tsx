@@ -7,8 +7,9 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {ReleasesSortOption} from 'sentry/constants/releases';
-import {ReleasesSelectControl} from 'sentry/views/dashboards/releasesSelectControl';
-import type {DashboardFilters} from 'sentry/views/dashboards/types';
+
+import {ReleasesSelectControl} from './releasesSelectControl';
+import type {DashboardFilters} from './types';
 
 jest.unmock('@tanstack/react-pacer');
 

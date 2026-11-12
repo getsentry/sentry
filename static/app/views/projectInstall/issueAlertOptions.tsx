@@ -12,8 +12,9 @@ import {
   INTERVAL_CHOICES,
   Interval,
 } from 'sentry/views/automations/components/actionFilters/constants';
-import {IssueAlertNotificationOptions} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
-import {type IssueAlertNotificationProps} from 'sentry/views/projectInstall/messagingIntegrationTypes';
+
+import {IssueAlertNotificationOptions} from './issueAlertNotificationOptions';
+import {type IssueAlertNotificationProps} from './messagingIntegrationTypes';
 
 enum MetricValues {
   ERRORS = 0,

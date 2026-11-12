@@ -11,9 +11,10 @@ import {defined} from 'sentry/utils/defined';
 import {ListItemCheckbox} from 'sentry/utils/list/listItemSelectCheckbox';
 import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
 import {DetectorListConnectedAutomations} from 'sentry/views/detectors/components/detectorListConnectedAutomations';
-import {DetectorAssigneeCell} from 'sentry/views/detectors/components/detectorListTable/detectorAssigneeCell';
-import {DetectorTypeCell} from 'sentry/views/detectors/components/detectorListTable/detectorTypeCell';
 import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
+
+import {DetectorAssigneeCell} from './detectorAssigneeCell';
+import {DetectorTypeCell} from './detectorTypeCell';
 
 interface DetectorListRowProps {
   detector: Detector;

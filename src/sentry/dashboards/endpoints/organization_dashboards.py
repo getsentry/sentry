@@ -457,9 +457,6 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
 
-        if not features.has("organizations:dashboards-basic", organization, actor=request.user):
-            return Response(status=404)
-
         has_dashboards_starred = features.has(
             "organizations:dashboards-starred", organization, actor=request.user
         )
@@ -721,9 +718,6 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
-
-        if not features.has("organizations:dashboards-edit", organization, actor=request.user):
-            return Response(status=404)
 
         projects = self.get_projects(request, organization)
         serializer = DashboardSerializer(

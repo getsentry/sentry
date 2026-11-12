@@ -1,8 +1,8 @@
 import {skipToken} from '@tanstack/react-query';
 import type {SkipToken} from '@tanstack/react-query';
 
-import type {KnownGetsentryApiUrls} from 'sentry/utils/api/knownGetsentryApiUrls';
-import type {KnownSentryApiUrls} from 'sentry/utils/api/knownSentryApiUrls.generated';
+import type {KnownGetsentryApiUrls} from './knownGetsentryApiUrls';
+import type {KnownSentryApiUrls} from './knownSentryApiUrls.generated';
 
 type KnownApiUrls = KnownGetsentryApiUrls | KnownSentryApiUrls;
 

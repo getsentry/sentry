@@ -5,8 +5,9 @@ import {Badge} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 
 import * as Stories from 'sentry/stories';
-import {isMDXStory} from 'sentry/stories/view/useStoriesLoader';
-import {useStory} from 'sentry/stories/view/useStory';
+
+import {isMDXStory} from './useStoriesLoader';
+import {useStory} from './useStory';
 
 export function StoryResources() {
   const {story} = useStory();

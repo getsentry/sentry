@@ -1,7 +1,7 @@
-import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
-import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
-import {Rect} from 'sentry/utils/profiling/speedscope';
+import {EventedProfile} from './profile/eventedProfile';
+import {createFrameIndex} from './profile/utils';
+import {Flamegraph} from './flamegraph';
+import {Rect} from './speedscope';
 
 const makeEmptyEventedTrace = (type?: 'flamegraph' | 'flamechart'): EventedProfile => {
   return EventedProfile.FromProfile(

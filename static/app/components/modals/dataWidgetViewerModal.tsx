@@ -12,13 +12,14 @@ import moment from 'moment-timezone';
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Select} from '@sentry/scraps/select';
 import type {SelectValue} from '@sentry/scraps/select';
 import type {Theme} from '@sentry/scraps/theme';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {t, tct} from 'sentry/locale';
@@ -42,6 +43,7 @@ import {
   parseFunction,
   prettifyParsedFunction,
 } from 'sentry/utils/discover/fields';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {
   decodeInteger,
@@ -49,18 +51,18 @@ import {
   decodeScalar,
   decodeSorts,
 } from 'sentry/utils/queryString';
-import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import {withPageFilters} from 'sentry/utils/withPageFilters';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import {SavedDashboardQueryPriorityProvider} from 'sentry/views/dashboards/hooks/useDashboardQueryPriority';
 import type {
   DashboardFilters,
   DashboardPermissions,
+  DashboardQueryPriority,
   Widget,
 } from 'sentry/views/dashboards/types';
 import {
@@ -122,13 +124,11 @@ export interface DataWidgetViewerModalOptions {
   dashboardPermissions?: DashboardPermissions;
   isPrebuiltDashboard?: boolean;
   onEdit?: () => void;
+  queryPriority?: DashboardQueryPriority;
   widgetInterval?: string;
 }
 
-interface Props extends ModalRenderProps, DataWidgetViewerModalOptions {
-  organization: Organization;
-  selection: PageFilters;
-}
+type Props = ModalRenderProps & DataWidgetViewerModalOptions;
 
 const FULL_TABLE_ITEM_LIMIT = 20;
 const HALF_TABLE_ITEM_LIMIT = 10;
@@ -260,7 +260,6 @@ function DataWidgetViewerModal(props: Props) {
   const {
     organization,
     widget,
-    selection,
     Footer,
     Body,
     Header,
@@ -271,8 +270,10 @@ function DataWidgetViewerModal(props: Props) {
     dashboardPermissions,
     dashboardCreator,
     isPrebuiltDashboard,
+    queryPriority,
     widgetInterval,
   } = props;
+  const {selection} = usePageFilters();
   const theme = useTheme();
   const location = useLocation();
   const {projects} = useProjects();
@@ -300,6 +301,15 @@ function DataWidgetViewerModal(props: Props) {
       // performance.measure throws if the start mark doesn't exist (e.g. direct URL navigation)
     }
   }, []);
+
+  // Opening the dropped-data drawer closes the fullscreen widget, since the
+  // flyout can't layer over it. The route-based fullscreen is closed in
+  // dashboards/detail; this covers the modal path (new/unsaved dashboards).
+  useEffect(() => {
+    if (defined(location.query.droppedData)) {
+      closeModal();
+    }
+  }, [location.query.droppedData, closeModal]);
   // Get widget zoom from location
   // We use the start and end query params for just the initial state
   const start = decodeScalar(location.query[WidgetViewerQueryField.START]);
@@ -364,7 +374,6 @@ function DataWidgetViewerModal(props: Props) {
   const primaryWidget = defined(resolvedWidget.limit)
     ? {...resolvedWidget, queries: sortedQueries}
     : resolvedWidget;
-  const api = useApi();
 
   // Create Table widget
   const tableWidget = {
@@ -636,7 +645,6 @@ function DataWidgetViewerModal(props: Props) {
             />
           ) : (
             <MemoizedWidgetCardChartContainer
-              api={api}
               selection={modalSelection}
               dashboardFilters={dashboardFilters}
               // Top N charts rely on the orderby of the table
@@ -734,7 +742,7 @@ function DataWidgetViewerModal(props: Props) {
   );
 
   return (
-    <Fragment>
+    <SavedDashboardQueryPriorityProvider priority={queryPriority}>
       <Header closeButton>
         <Stack gap="md">
           <Flex align="center" gap="sm">
@@ -798,7 +806,7 @@ function DataWidgetViewerModal(props: Props) {
           </Grid>
         </Flex>
       </Footer>
-    </Fragment>
+    </SavedDashboardQueryPriorityProvider>
   );
 }
 
@@ -1103,8 +1111,8 @@ function ViewerTableV2({
       ) &&
         (links?.previous?.results || links?.next?.results) && (
           <Pagination
-            pageLinks={pageLinks}
-            onCursor={(nextCursor, _path, _query, delta) => {
+            {...getPaginationProps(pageLinks)}
+            onCursor={(nextCursor, delta) => {
               let nextPage = isNaN(page) ? delta : page + delta;
               let newCursor = nextCursor;
               // unset cursor and page when we navigate back to the first page
@@ -1167,4 +1175,4 @@ const EmptyQueryContainer = styled('span')`
   color: ${p => p.theme.tokens.content.disabled};
 `;
 
-export default withPageFilters(DataWidgetViewerModal);
+export default DataWidgetViewerModal;

@@ -2,8 +2,6 @@ import {type RefObject, useMemo, useState} from 'react';
 
 import {defined} from 'sentry/utils/defined';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
-import {MetricQueryRows} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/metricQueryRows';
-import {prepareQueriesForEquationMode} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/utils';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/useWidgetBuilderContext';
 import type {EquationModeSnapshot} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
 import {getTraceMetricAggregates} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
@@ -12,6 +10,9 @@ import {assignSequentialLabels} from 'sentry/views/explore/metrics/hooks/useStab
 import {defaultMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
 import {LocalMultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {parseAggregateExpression} from 'sentry/views/explore/metrics/parseAggregateExpression';
+
+import {MetricQueryRows} from './metricQueryRows';
+import {prepareQueriesForEquationMode} from './utils';
 
 interface MetricsEquationVisualizeProps {
   /**

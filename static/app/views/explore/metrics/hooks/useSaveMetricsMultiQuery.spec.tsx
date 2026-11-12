@@ -18,10 +18,11 @@ import {
   useGetSavedQuery,
   type ReadableSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {MockMetricQueryParamsContext} from 'sentry/views/explore/metrics/hooks/testUtils';
-import {useSaveMetricsMultiQuery} from 'sentry/views/explore/metrics/hooks/useSaveMetricsMultiQuery';
 import {ExploreSavedQueryNavigationItems} from 'sentry/views/navigation/secondary/sections/explore/exploreSavedQueryNavigationItems';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
+
+import {MockMetricQueryParamsContext} from './testUtils';
+import {useSaveMetricsMultiQuery} from './useSaveMetricsMultiQuery';
 
 const organization = OrganizationFixture();
 
@@ -134,7 +135,7 @@ describe('useSaveMetricsMultiQuery', () => {
   });
 
   it.each(['save', 'update'])(
-    'preserves each transformation pipeline on %s',
+    'preserves each set of transformations on %s',
     async action => {
       const request = MockApiClient.addMockResponse({
         url:

@@ -1,8 +1,8 @@
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -53,7 +53,7 @@ export function DirectEnableButton({
         ],
       });
     },
-    onError: () => addErrorMessage(t('Failed to enable integration.')),
+    onError: () => toast.error(t('Failed to enable integration.')),
   });
 
   return (

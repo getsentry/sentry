@@ -5,9 +5,10 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/traceDetails/traceApi/useTraceRootEvent';
-import {Title} from 'sentry/views/performance/traceDetails/traceHeader/title';
 import {ErrorNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/errorNode';
 import {makeTraceError} from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
+
+import {Title} from './title';
 
 const rootEventResults = {
   data: undefined,

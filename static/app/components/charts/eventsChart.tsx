@@ -13,19 +13,6 @@ import type {Location, Query} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import type {Client} from 'sentry/api';
-import type {AreaChartProps} from 'sentry/components/charts/areaChart';
-import {AreaChart} from 'sentry/components/charts/areaChart';
-import type {BarChartProps} from 'sentry/components/charts/barChart';
-import {BarChart} from 'sentry/components/charts/barChart';
-import type {ZoomRenderProps} from 'sentry/components/charts/chartZoom';
-import ChartZoom from 'sentry/components/charts/chartZoom';
-import {ErrorPanel} from 'sentry/components/charts/errorPanel';
-import type {LineChartProps} from 'sentry/components/charts/lineChart';
-import {LineChart} from 'sentry/components/charts/lineChart';
-import {useReleaseSeries} from 'sentry/components/charts/releaseSeries';
-import {TransitionChart} from 'sentry/components/charts/transitionChart';
-import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
-import {getInterval, RELEASE_LINES_THRESHOLD} from 'sentry/components/charts/utils';
 import {mergeDroppedDataBand} from 'sentry/components/droppedData/band/mergeDroppedDataBand';
 import {useDroppedDataBand} from 'sentry/components/droppedData/band/useDroppedDataBand';
 import type {DroppedDataProps} from 'sentry/components/droppedData/types';
@@ -50,7 +37,20 @@ import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 
+import type {AreaChartProps} from './areaChart';
+import {AreaChart} from './areaChart';
+import type {BarChartProps} from './barChart';
+import {BarChart} from './barChart';
+import type {ZoomRenderProps} from './chartZoom';
+import ChartZoom from './chartZoom';
+import {ErrorPanel} from './errorPanel';
 import {EventsRequest} from './eventsRequest';
+import type {LineChartProps} from './lineChart';
+import {LineChart} from './lineChart';
+import {useReleaseSeries} from './releaseSeries';
+import {TransitionChart} from './transitionChart';
+import {TransparentLoadingMask} from './transparentLoadingMask';
+import {getInterval, RELEASE_LINES_THRESHOLD} from './utils';
 
 type ChartComponent =
   | React.ComponentType<BarChartProps>
@@ -585,7 +585,7 @@ export function EventsChart(props: EventsChartProps) {
 
               return (
                 <TransitionChart
-                  loading={loading}
+                  loading={loading || !!loadingAdditionalSeries}
                   reloading={reloading || !!reloadingAdditionalSeries}
                   height={height ? `${height}px` : undefined}
                 >

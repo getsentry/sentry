@@ -15,6 +15,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {GlobalModal} from '@sentry/scraps/modal';
+import * as modalActions from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
 import {
@@ -26,7 +27,6 @@ import type {CollectionTreeNode} from 'sentry/components/commandPalette/ui/colle
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {mockTour} from 'sentry/components/tours/testUtils';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {ModalStore} from 'sentry/stores/modalStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {GroupStatus, IssueCategory, PriorityLevel, type Group} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
@@ -195,6 +195,62 @@ describe('GroupActions', () => {
     });
   });
 
+  describe('impact assessment', () => {
+    const organizationWithImpactAssessment = OrganizationFixture({
+      ...organization,
+      features: ['seer-impact-assessment'],
+    });
+
+    it('is hidden without the feature', async () => {
+      render(<GroupActions group={group} project={project} event={null} />, {
+        organization,
+      });
+
+      await userEvent.click(screen.getByLabelText('More Actions'));
+
+      expect(
+        screen.queryByRole('menuitemradio', {name: /Assess impact/})
+      ).not.toBeInTheDocument();
+    });
+
+    it('starts an impact assessment and shows the internal feature badge', async () => {
+      const request = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/impact/assess/`,
+        method: 'POST',
+        body: {runId: '8a8551a0-2ace-4b70-ae23-1cc670df5abc'},
+      });
+      render(<GroupActions group={group} project={project} event={null} />, {
+        organization: organizationWithImpactAssessment,
+      });
+
+      await userEvent.click(screen.getByLabelText('More Actions'));
+      expect(screen.getByLabelText('alpha')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('menuitemradio', {name: /Assess impact/}));
+
+      await waitFor(() => expect(request).toHaveBeenCalled());
+      expect(await screen.findByText('Impact assessment started')).toBeInTheDocument();
+    });
+
+    it('shows an error when the impact assessment cannot be started', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/impact/assess/`,
+        method: 'POST',
+        statusCode: 500,
+        body: {detail: 'Internal error'},
+      });
+      render(<GroupActions group={group} project={project} event={null} />, {
+        organization: organizationWithImpactAssessment,
+      });
+
+      await userEvent.click(screen.getByLabelText('More Actions'));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: /Assess impact/}));
+
+      expect(
+        await screen.findByText('Unable to start impact assessment')
+      ).toBeInTheDocument();
+    });
+  });
+
   describe('reprocessing', () => {
     it('renders ReprocessAction component if org has native exception event', async () => {
       const event = EventStacktraceExceptionFixture({
@@ -220,7 +276,7 @@ describe('GroupActions', () => {
         organization,
       });
 
-      const onReprocessEventFunc = jest.spyOn(ModalStore, 'openModal');
+      const onReprocessEventFunc = jest.spyOn(modalActions, 'openModal');
 
       await userEvent.click(screen.getByLabelText('More Actions'));
 

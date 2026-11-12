@@ -1,6 +1,6 @@
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
+import {useTableCursor} from './useTableCursor';
 
 describe('useTableCursor', () => {
   it('should return undefined cursor when query param is not present', () => {
@@ -42,7 +42,7 @@ describe('useTableCursor', () => {
     expect(result.current.cursor).toBeUndefined();
 
     act(() => {
-      result.current.setCursor('newCursor', '/', {}, -1);
+      result.current.setCursor('newCursor', -1);
     });
 
     await waitFor(() => {
@@ -65,7 +65,7 @@ describe('useTableCursor', () => {
     expect(result.current.cursor).toBe('oldCursor');
 
     act(() => {
-      result.current.setCursor('newCursor', '/', {}, -1);
+      result.current.setCursor('newCursor', -1);
     });
 
     await waitFor(() => {
@@ -111,7 +111,7 @@ describe('useTableCursor', () => {
     expect(result.current.cursor).toBe('someCursor');
 
     act(() => {
-      result.current.setCursor(undefined, '/', {}, -1);
+      result.current.setCursor(undefined, -1);
     });
 
     await waitFor(() => {

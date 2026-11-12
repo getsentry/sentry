@@ -17,10 +17,6 @@ import {FormContext} from 'sentry/components/forms/formContext';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {usePrevious} from 'sentry/utils/usePrevious';
-import {
-  METRIC_DETECTOR_FORM_FIELDS,
-  useMetricDetectorFormField,
-} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {NONE_UNIT, OPTIONS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
@@ -36,6 +32,11 @@ import {
   makeMetricSelectValue,
   makeMetricsAggregate,
 } from 'sentry/views/explore/metrics/utils';
+
+import {
+  METRIC_DETECTOR_FORM_FIELDS,
+  useMetricDetectorFormField,
+} from './metricFormFields';
 
 interface MetricSelectOption extends SelectOption<string> {
   metricName: string;

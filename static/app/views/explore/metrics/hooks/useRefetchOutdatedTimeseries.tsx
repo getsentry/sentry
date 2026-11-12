@@ -7,7 +7,8 @@ import {makeEventsTimeSeriesQueryKeyPrefix} from 'sentry/utils/timeSeries/useFet
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {METRIC_TIMESERIES_REFERRER} from 'sentry/views/explore/metrics/hooks/useMetricTimeseries';
+
+import {METRIC_TIMESERIES_REFERRER} from './useMetricTimeseries';
 
 export function useRefetchOutdatedTimeseries() {
   const organization = useOrganization();

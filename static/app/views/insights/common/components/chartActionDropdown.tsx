@@ -1,4 +1,3 @@
-import styled from '@emotion/styled';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 import type {LocationDescriptor} from 'history';
 
@@ -6,7 +5,6 @@ import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import Feature from 'sentry/components/acl/feature';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -16,7 +14,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
-import type {ChartType} from 'sentry/views/insights/common/components/chart';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 import {
   useAddToSpanDashboard,
@@ -24,6 +21,8 @@ import {
 } from 'sentry/views/insights/common/utils/useAddToSpanDashboard';
 import {useAlertsProject} from 'sentry/views/insights/common/utils/useAlertsProject';
 import type {SpanFields} from 'sentry/views/insights/types';
+
+import type {ChartType} from './chart';
 
 type Props = {
   chartType: ChartType;
@@ -121,7 +120,6 @@ export function BaseChartActionDropdown({
   addToDashboardOptions,
 }: BaseProps) {
   const organization = useOrganization();
-  const hasDashboardEdit = organization.features.includes('dashboards-edit');
   const hasExploreView = organization.features.includes('visibility-explore-view');
   const {addToSpanDashboard} = useAddToSpanDashboard();
 
@@ -144,17 +142,8 @@ export function BaseChartActionDropdown({
   if (addToDashboardOptions) {
     const menuOption: MenuItemProps = {
       key: 'add-to-dashboard',
-      label: (
-        <Feature
-          overrideName="feature-disabled:dashboards-edit"
-          features="organizations:dashboards-edit"
-          renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
-        >
-          {t('Add to Dashboard')}
-        </Feature>
-      ),
+      label: t('Add to Dashboard'),
       textValue: t('Add to Dashboard'),
-      disabled: !hasDashboardEdit,
     };
     if (Array.isArray(addToDashboardOptions)) {
       menuOption.submenu = true;
@@ -210,7 +199,3 @@ export function BaseChartActionDropdown({
     />
   );
 }
-
-const DisabledText = styled('span')`
-  color: ${p => p.theme.tokens.content.disabled};
-`;

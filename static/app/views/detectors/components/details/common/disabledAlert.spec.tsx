@@ -4,7 +4,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 import {DisabledAlert} from './disabledAlert';
@@ -82,7 +83,7 @@ describe('DisabledAlert', () => {
       enabled: false,
       projectId: project.id,
     });
-    const mockAddErrorMessage = jest.spyOn(indicators, 'addErrorMessage');
+    const mockAddErrorMessage = jest.spyOn(toast, 'error');
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/123/',

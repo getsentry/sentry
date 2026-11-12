@@ -2,7 +2,7 @@ import {
   formatConditionalFilterClause,
   getConditionalFilterEditContext,
   replaceConditionalFilterClause,
-} from 'sentry/components/arithmeticBuilder/conditionalFilter/conditionalFilter';
+} from './conditionalFilter';
 
 describe('getConditionalFilterEditContext', () => {
   it('treats the full string as one clause when there are no boolean operators', () => {

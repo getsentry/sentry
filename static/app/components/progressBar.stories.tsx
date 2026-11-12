@@ -1,5 +1,6 @@
-import {ProgressBar} from 'sentry/components/progressBar';
 import * as Storybook from 'sentry/stories';
+
+import {ProgressBar} from './progressBar';
 
 export default Storybook.story('ProgressBar', story => {
   story('Default', () => (

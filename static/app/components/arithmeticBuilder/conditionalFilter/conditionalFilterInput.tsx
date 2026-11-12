@@ -4,13 +4,6 @@ import {Item, Section} from '@react-stately/collections';
 
 import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
 
-import {
-  ensureSearchFilterArgument,
-  isFilterKeySuggestion,
-  replaceConditionalFilterClause,
-  unwrapSearchFilterArgument,
-} from 'sentry/components/arithmeticBuilder/conditionalFilter/conditionalFilter';
-import {useConditionalFilterAutocomplete} from 'sentry/components/arithmeticBuilder/conditionalFilter/conditionalFilterAutocomplete';
 import {useArithmeticBuilder} from 'sentry/components/arithmeticBuilder/context';
 import {
   ArgumentGridCell,
@@ -21,6 +14,14 @@ import {
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {ComboBox} from 'sentry/components/tokenizedInput/token/comboBox';
 import {t} from 'sentry/locale';
+
+import {
+  ensureSearchFilterArgument,
+  isFilterKeySuggestion,
+  replaceConditionalFilterClause,
+  unwrapSearchFilterArgument,
+} from './conditionalFilter';
+import {useConditionalFilterAutocomplete} from './conditionalFilterAutocomplete';
 
 export function ConditionalFilterArgumentInput(props: FunctionArgumentInputProps) {
   const {argument, argumentIndex, onArgumentsChange} = props;

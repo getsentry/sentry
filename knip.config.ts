@@ -18,6 +18,10 @@ const productionEntryPoints = [
   'chartcuterie/**/*.{js,ts,tsx}',
   // TODO: Remove when the autofixRef embed consumes it (#122099)
   'components/seer/autofixChatContext.tsx',
+  // TODO: Remove when the Seer credit gates consume it (#129563, #129565)
+  'utils/seer/useSeerCreditCheck.tsx',
+  // TODO: Remove when the Seer credit gates render it (#129563, #129565)
+  'components/seer/outOfCredits/seerOutOfCreditsCta.tsx',
   'components/brandPageLayout/**/*.{ts,tsx}',
   // React authentication routes are discovered dynamically by the frontend route registry
   'views/authV2/authLogin/**/*.{ts,tsx}',
@@ -114,6 +118,9 @@ const config: KnipConfig = {
         ...frontendWorkspace.entry,
         '**/*.snapshots.tsx',
         '**/__mocks__/**/*.{js,ts,tsx}',
+        '**/*.stories.{js,ts,tsx}',
+        // The story manifest loads MDX stories from gsApp too.
+        '**/*.mdx',
       ],
     },
     'static/gsAdmin': {
@@ -139,6 +146,10 @@ const config: KnipConfig = {
     },
     'static/packages/scraps': {
       oxlint: scopedOxlint,
+      // Component docs are rendered by the app's story viewer, so their demos
+      // can use app dependencies that the package does not ship with.
+      entry: ['src/**/*.mdx'],
+      ignoreDependencies: ['nuqs'],
       project: [
         '**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx,mdx}!',
         // Test helpers and package verification scripts are not production code.

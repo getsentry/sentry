@@ -1,6 +1,5 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import {Navigate, Outlet} from 'react-router';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
@@ -59,39 +58,40 @@ import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
-import {hasAutofixPage, makeSeerLocation} from 'sentry/views/issueDetails/autofix/utils';
-import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
-import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
-import {GroupDetailsLayout} from 'sentry/views/issueDetails/groupDetailsLayout';
-import {useGroupDistributionsDrawer} from 'sentry/views/issueDetails/groupDistributions/useGroupDistributionsDrawer';
-import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
-import {GroupIdProvider, useGroupId} from 'sentry/views/issueDetails/groupIdContext';
-import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
-import {useIssueActivityDrawer} from 'sentry/views/issueDetails/hooks/useIssueActivityDrawer';
-import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/hooks/useMergedIssuesDrawer';
-import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/hooks/useSimilarIssuesDrawer';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+
+import {hasAutofixPage, makeSeerLocation} from './autofix/utils';
+import {useGroupDistributionsDrawer} from './groupDistributions/useGroupDistributionsDrawer';
+import GroupEventDetails from './groupEventDetails/groupEventDetails';
+import {useAiConfig} from './hooks/useAiConfig';
+import {useIssueActivityDrawer} from './hooks/useIssueActivityDrawer';
+import {useMergedIssuesDrawer} from './hooks/useMergedIssuesDrawer';
+import {useSimilarIssuesDrawer} from './hooks/useSimilarIssuesDrawer';
+import {useOpenSeerDrawer} from './sidebar/seerDrawer';
+import {ERROR_TYPES} from './constants';
+import {GroupDataContextProvider} from './groupDataContext';
+import {GroupDetailsLayout} from './groupDetailsLayout';
+import {GroupIdProvider, useGroupId} from './groupIdContext';
 import {
   ISSUE_DETAILS_TOUR_GUIDE_KEY,
   IssueDetailsTourModal,
   IssueDetailsTourContext,
   ORDERED_ISSUE_DETAILS_TOUR,
   type IssueDetailsTour,
-} from 'sentry/views/issueDetails/issueDetailsTour';
-import {useOpenSeerDrawer} from 'sentry/views/issueDetails/sidebar/seerDrawer';
-import {Tab} from 'sentry/views/issueDetails/types';
-import {useEngagedViewTracking} from 'sentry/views/issueDetails/useEngagedViewTracking';
-import {groupApiOptions, useGroup} from 'sentry/views/issueDetails/useGroup';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-import {RESERVED_EVENT_IDS, useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
+} from './issueDetailsTour';
+import {Tab} from './types';
+import {useEngagedViewTracking} from './useEngagedViewTracking';
+import {groupApiOptions, useGroup} from './useGroup';
+import {useGroupDetailsRoute} from './useGroupDetailsRoute';
+import {RESERVED_EVENT_IDS, useGroupEvent} from './useGroupEvent';
 import {
   getGroupReprocessingStatus,
   markEventSeen,
   ReprocessingStatus,
   useDefaultIssueEvent,
   useEnvironmentsFromUrl,
-} from 'sentry/views/issueDetails/utils';
-import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
-import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+} from './utils';
 
 type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
 
@@ -236,7 +236,7 @@ function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
 
   // It's possible the overview page is still unloading the store
   useEffect(() => {
-    return GroupStore.listen(() => {
+    return GroupStore.subscribe(() => {
       const [storeGroup] = GroupStore.getState();
       if (
         defined(storeGroup) &&
@@ -255,7 +255,7 @@ function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
           prev => (prev ? {...prev, json: storeGroup as Group} : prev)
         );
       }
-    }, undefined) as () => void;
+    });
   }, [groupId, incomingEnvs, organization, queryClient]);
 }
 
@@ -292,8 +292,8 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
   } = useGroup({groupId});
 
   /**
-   * Allows the GroupEventHeader to display the previous event while the new event is loading.
-   * This is not closer to the GroupEventHeader because it is unmounted
+   * Allows issue details to keep displaying the previous event while the new event is loading.
+   * This lives here because the event components are unmounted
    * between route changes like latest event => eventId
    */
   const previousEvent = useMemoWithPrevious<{event: Event; groupId: string} | null>(
@@ -531,26 +531,26 @@ function useTrackView({
   useRouteAnalyticsParams({
     // Will be updated by StacktraceLink if there is a stacktrace link
     stacktrace_link_viewed: false,
-    // Will be updated by IssueQuickTrace if there is a trace
+    // Only updated by the replay trace view
     trace_status: 'none',
-    // Will be updated in GroupDetailsHeader if there are replays
+    // Will be updated in ReplayBadge if there are replays
     group_has_replay: false,
-    // Will be updated in ReplayPreview if there is a replay
+    // Will be updated by useLogEventReplayStatus if there is a replay
     event_replay_status: 'none',
     // Will be updated in SuspectCommits if there are suspect commits
     num_suspect_commits: 0,
     suspect_commit_calculation: 'no suspect commit',
-    // Will be updated in Autofix if enabled
+    // Not updated by any component
     autofix_status: 'none',
-    // Will be updated in GroupSummary if AI summary is available
+    // Not updated by any component
     has_summary: null,
-    // Will be updated in GroupSummaryWithAutofix if autofix root cause is available
+    // Will be updated in AutofixPreviews if autofix root cause is available
     has_root_cause: null,
-    // Will be updated in GroupSummaryWithAutofix if autofix solution is available
+    // Will be updated in AutofixPreviews if autofix solution is available
     has_solution: null,
-    // Will be updated in GroupSummaryWithAutofix if autofix code changes are available
+    // Will be updated in AutofixPreviews if autofix code changes are available
     has_coded_solution: null,
-    // Will be updated in GroupSummaryWithAutofix if autofix PR is available
+    // Will be updated in AutofixPreviews if autofix PR is available
     has_pr: null,
   });
   useDisableRouteAnalytics(!group || !event || !project);
@@ -572,9 +572,7 @@ function GroupDetailsContentError({
   switch (errorType) {
     case ERROR_TYPES.GROUP_NOT_FOUND:
       return (
-        <StyledLoadingError
-          message={t('The issue you were looking for was not found.')}
-        />
+        <GroupLoadingError message={t('The issue you were looking for was not found.')} />
       );
 
     case ERROR_TYPES.MISSING_MEMBERSHIP:
@@ -584,7 +582,7 @@ function GroupDetailsContentError({
         </Container>
       );
     default:
-      return <StyledLoadingError onRetry={onRetry} />;
+      return <GroupLoadingError onRetry={onRetry} />;
   }
 }
 
@@ -643,7 +641,7 @@ function GroupDetailsContentInner({
   });
   const {openSimilarIssuesDrawer} = useSimilarIssuesDrawer({group, project});
   const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
-  const {openIssueActivityDrawer} = useIssueActivityDrawer({group, project});
+  const {openIssueActivityDrawer} = useIssueActivityDrawer({group});
   const {openSeerDrawer} = useOpenSeerDrawer({group, project});
   const {isAnyDrawerOpen} = useDrawer();
 
@@ -843,12 +841,12 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
   }
 
   if (errorFetchingProjects) {
-    return <StyledLoadingError message={t('Error loading the specified project')} />;
+    return <GroupLoadingError message={t('Error loading the specified project')} />;
   }
 
   if (projectSlug && !errorFetchingProjects && projectsLoaded && !projectWithFallback) {
     return (
-      <StyledLoadingError message={t('The project %s does not exist', projectSlug)} />
+      <GroupLoadingError message={t('The project %s does not exist', projectSlug)} />
     );
   }
 
@@ -930,6 +928,10 @@ function GroupDetailsContainer() {
 
 export default Sentry.withProfiler(GroupDetailsContainer);
 
-const StyledLoadingError = styled(LoadingError)`
-  margin: ${p => p.theme.space.xl};
-`;
+function GroupLoadingError(props: React.ComponentProps<typeof LoadingError>) {
+  return (
+    <Container padding="xl">
+      <LoadingError {...props} />
+    </Container>
+  );
+}

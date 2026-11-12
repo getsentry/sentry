@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import TypedDict
 
-from rest_framework.exceptions import APIException, ParseError, Throttled
+from rest_framework.exceptions import APIException, ParseError, PermissionDenied, Throttled
 from rest_framework.request import Request
 from rest_framework.response import Response
 from scm import actions as scm_actions
@@ -13,11 +13,9 @@ from scm.types import FileStatus, GetPullRequestFilesProtocol, PullRequestFile
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases.organization import (
-    OrganizationEndpoint,
-    OrganizationIntegrationsLoosePermission,
-)
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.utils import to_valid_int_id
 from sentry.constants import ObjectStatus
@@ -25,6 +23,7 @@ from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.scm.factory import new as make_scm
+from sentry.utils.auth import is_user_from_viewer_context
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +49,15 @@ class RepositoryPullRequestFileResponse(PullRequestFileResponse):
 
 class RepositoryPullRequestFilesResponse(TypedDict):
     files: list[RepositoryPullRequestFileResponse]
+
+
+def _require_user_session(request: Request) -> None:
+    # Seer calls Sentry as a user by sending X-Viewer-Context. The auth middleware signs
+    # that user in before SessionNoAuthTokenAuthentication runs, so the call looks like a
+    # browser session. Refuse it here so Seer agents can't read source diffs, even if
+    # Seer's generated SDK starts including these endpoints.
+    if is_user_from_viewer_context(request):
+        raise PermissionDenied("Pull request files can only be read from a user session.")
 
 
 def _serialize_file(raw_file: PullRequestFile) -> PullRequestFileResponse:
@@ -104,11 +112,14 @@ class OrganizationPullRequestFilesEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    permission_classes = (OrganizationIntegrationsLoosePermission,)
+    # Browser sessions only: no API token of any kind may read source diffs.
+    authentication_classes = (SessionNoAuthTokenAuthentication,)
+    permission_classes = (OrganizationPermission,)
 
     def get(
         self, request: Request, organization: Organization, pull_request_id: str
     ) -> Response[PullRequestFilesResponse]:
+        _require_user_session(request)
         try:
             pull_request = PullRequest.objects.get(
                 id=to_valid_int_id("pull_request_id", pull_request_id, raise_404=True),
@@ -134,11 +145,14 @@ class OrganizationRepositoryPullRequestFilesEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    permission_classes = (OrganizationIntegrationsLoosePermission,)
+    # Browser sessions only: no API token of any kind may read source diffs.
+    authentication_classes = (SessionNoAuthTokenAuthentication,)
+    permission_classes = (OrganizationPermission,)
 
     def get(
         self, request: Request, organization: Organization
     ) -> Response[RepositoryPullRequestFilesResponse]:
+        _require_user_session(request)
         repo_name = request.GET.get("repo")
         number = request.GET.get("number", "")
         if not repo_name or not number.isdigit():

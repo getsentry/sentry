@@ -9,14 +9,15 @@ import {
   MultiMetricsQueryParamsProvider,
   useMultiMetricsQueryParams,
 } from 'sentry/views/explore/metrics/multiMetricsQueryParams';
+import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
+
 import {
   useQueryParamsHasTransformations,
   useQueryParamsVisualizes,
   useSetQueryParamsVisualizes,
-} from 'sentry/views/explore/queryParams/context';
-import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
-import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
+} from './context';
+import {VisualizeFunction} from './visualize';
 
 const transformedField = {
   yAxes: ['avg(span.duration)'],

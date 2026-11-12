@@ -1,27 +1,25 @@
 import {useCallback} from 'react';
 import {Outlet, useOutletContext} from 'react-router';
 import {useMutation, useQuery} from '@tanstack/react-query';
+import {useStore} from 'zustand';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Authenticator} from 'sentry/types/auth';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import type {UserEmail} from 'sentry/types/user';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useParams} from 'sentry/utils/useParams';
 
-const ENDPOINT = getApiUrl('/users/$userId/authenticators/', {path: {userId: 'me'}});
-
 export default function AccountSecurityWrapper() {
-  const api = useApi();
   const {authId} = useParams<{authId?: string}>();
-  const {links} = useLegacyStore(ConfigStore);
+  const links = useStore(ConfigStore, state => state.links);
 
   const orgRequest = useQuery(
     apiOptions.as<OrganizationSummary[]>()('/organizations/', {
@@ -58,13 +56,18 @@ export default function AccountSecurityWrapper() {
         return;
       }
 
-      await api.requestPromise(`${ENDPOINT}${auth.authId}/`, {method: 'DELETE'});
+      await fetchMutation({
+        url: getApiUrl('/users/$userId/authenticators/$authId/', {
+          path: {userId: 'me', authId: auth.authId},
+        }),
+        method: 'DELETE',
+      });
     },
     onSuccess: () => {
       handleRefresh();
     },
     onError: (_, auth) => {
-      addErrorMessage(t('Error disabling %s', auth.name));
+      toast.error(t('Error disabling %s', auth.name));
     },
   });
 
@@ -74,7 +77,10 @@ export default function AccountSecurityWrapper() {
         return;
       }
 
-      await api.requestPromise(`${ENDPOINT}${authId}/`, {
+      await fetchMutation({
+        url: getApiUrl('/users/$userId/authenticators/$authId/', {
+          path: {userId: 'me', authId},
+        }),
         method: 'PUT',
       });
     },
@@ -82,7 +88,7 @@ export default function AccountSecurityWrapper() {
       handleRefresh();
     },
     onError: () => {
-      addErrorMessage(t('Error regenerating backup codes'));
+      toast.error(t('Error regenerating backup codes'));
     },
   });
 

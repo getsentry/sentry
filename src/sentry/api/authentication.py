@@ -49,6 +49,7 @@ from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.token_exchange.util import GrantTypes
 from sentry.service_accounts.auth import authenticate_service_account
+from sentry.service_accounts.tokens import SERVICE_ACCOUNT_TOKEN_PREFIX
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.types.superuser import from_viewer_context_superuser
 from sentry.users.models.user import User
@@ -562,7 +563,7 @@ class UserAuthTokenAuthentication(StandardAuthentication):
             return True
 
         token_str = force_str(auth[1])
-        if token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX):
+        if token_str.startswith((SENTRY_ORG_AUTH_TOKEN_PREFIX, SERVICE_ACCOUNT_TOKEN_PREFIX)):
             return False
 
         return not agent_token.is_agent_token_string(token_str)

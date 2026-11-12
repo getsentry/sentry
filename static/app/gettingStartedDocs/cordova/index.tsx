@@ -1,6 +1,7 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {crashReport} from 'sentry/gettingStartedDocs/cordova/crashReport';
-import {onboarding} from 'sentry/gettingStartedDocs/cordova/onboarding';
+
+import {crashReport} from './crashReport';
+import {onboarding} from './onboarding';
 
 export const docs: Docs = {
   onboarding,

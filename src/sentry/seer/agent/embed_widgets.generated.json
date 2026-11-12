@@ -535,7 +535,11 @@
         }
       }
     ],
-    "featureFlag": ["organizations:seat-based-seer-enabled", "organizations:seer-added"]
+    "featureFlag": [
+      "organizations:seat-based-seer-enabled",
+      "organizations:seer-added",
+      "organizations:token-billed-seer-enabled"
+    ]
   },
   {
     "name": "alert",
@@ -1609,6 +1613,10 @@
         }
       }
     ],
-    "featureFlag": ["organizations:seat-based-seer-enabled", "organizations:seer-added"]
+    "featureFlag": [
+      "organizations:seat-based-seer-enabled",
+      "organizations:seer-added",
+      "organizations:token-billed-seer-enabled"
+    ]
   }
 ]

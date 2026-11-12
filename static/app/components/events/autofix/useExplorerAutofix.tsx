@@ -2,27 +2,10 @@ import {useCallback, useMemo, useRef, useState} from 'react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {useModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
-import {AutofixCursorGithubAccessModal} from 'sentry/components/events/autofix/autofixCursorGithubAccessModal';
-import {CodingAgentHandoffPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
-import {AutofixGithubCopilotPurchaseModal} from 'sentry/components/events/autofix/autofixGithubCopilotPurchaseModal';
-import {
-  continueRunData,
-  getAutofixRunId,
-} from 'sentry/components/events/autofix/autofixRunId';
-import {CodingAgentStatus} from 'sentry/components/events/autofix/types';
-import {
-  needsGitHubAuth,
-  type CodingAgentIntegration,
-} from 'sentry/components/events/autofix/useAutofix';
 import {useServiceWorker} from 'sentry/serviceWorker/client/serviceWorkerContext';
 import type {Group} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {isArrayOf, isString} from 'sentry/types/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -48,6 +31,13 @@ import {
 } from 'sentry/views/seerExplorer/types';
 import {collectArtifacts} from 'sentry/views/seerExplorer/utils';
 
+import {AutofixCursorGithubAccessModal} from './autofixCursorGithubAccessModal';
+import {CodingAgentHandoffPermissionsModal} from './autofixGithubAppPermissionsModal';
+import {AutofixGithubCopilotPurchaseModal} from './autofixGithubCopilotPurchaseModal';
+import {continueRunData, getAutofixRunId} from './autofixRunId';
+import {CodingAgentStatus} from './types';
+import {needsGitHubAuth, type CodingAgentIntegration} from './useAutofix';
+
 /**
  * Available autofix steps that can be triggered via the Explorer.
  */
@@ -68,6 +58,7 @@ export type AutofixExplorerStep =
 export interface RootCauseArtifact {
   five_whys: string[];
   one_line_description: string;
+  cause?: string;
   reproduction_steps?: string[];
 }
 
@@ -86,6 +77,24 @@ export function isRootCauseArtifact(
     isArrayOf(data.five_whys, isString) &&
     (!defined(data.reproduction_steps) || isArrayOf(data.reproduction_steps, isString))
   );
+}
+
+export interface SingleRunStop {
+  reason: string;
+  suggestion: string;
+}
+
+function isSingleRunStopArtifact(value: unknown): value is Artifact<SingleRunStop> {
+  return (
+    isArtifact(value) &&
+    value.key === SINGLE_RUN_STOP_KEY &&
+    isString(value.data?.reason) &&
+    isString(value.data?.suggestion)
+  );
+}
+
+export function getSingleRunStop(section: AutofixSection): SingleRunStop | null {
+  return section.artifacts.findLast(isSingleRunStopArtifact)?.data ?? null;
 }
 
 export interface SolutionStep {
@@ -207,6 +216,7 @@ export interface ExplorerAutofixState {
   status: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
   updated_at: string;
   coding_agents?: Record<string, ExplorerCodingAgentState>;
+  feature_id?: string | null;
   pending_user_input?: {
     data: Record<string, unknown>;
     id: string;
@@ -480,12 +490,89 @@ function buildSection(
  * attaching the relevant artifacts (file patches, PR states). At most one
  * section exists per step.
  */
-export function getOrderedAutofixSections(runState: ExplorerAutofixState | null) {
-  const blocks = runState?.blocks ?? [];
-  if (!blocks.length) {
-    return [];
-  }
+export const SINGLE_RUN_FEATURE_ID = 'autofix_single_run';
+const SINGLE_RUN_ROOT_CAUSE_KEY = 'single_run_root_cause';
+const SINGLE_RUN_STOP_KEY = 'stop';
 
+export function isSingleRunAutofix(runState: ExplorerAutofixState | null): boolean {
+  return runState?.feature_id === SINGLE_RUN_FEATURE_ID;
+}
+
+function getSingleRunSections(
+  blocks: Block[],
+  runState: ExplorerAutofixState
+): AutofixSection[] {
+  const rootCauses: Array<Artifact<RootCauseArtifact>> = collectArtifacts(blocks).flatMap(
+    artifact => {
+      if (artifact.key !== 'root_cause' && artifact.key !== SINGLE_RUN_ROOT_CAUSE_KEY) {
+        return [];
+      }
+      const headline = artifact.data?.headline;
+      const cause = artifact.data?.cause;
+      if (!isString(headline) || !isString(cause)) {
+        return [];
+      }
+      return [
+        {
+          ...artifact,
+          key: 'root_cause',
+          data: {one_line_description: headline, cause, five_whys: []},
+        },
+      ];
+    }
+  );
+
+  const patches = mergeFilePatches(blocks);
+  const stops = patches.length
+    ? []
+    : collectArtifacts(blocks).filter(isSingleRunStopArtifact);
+
+  const sections: AutofixSection[] = [
+    {
+      index: 0,
+      step: 'root_cause',
+      blocks,
+      artifacts: [...rootCauses, ...stops],
+      status: rootCauses.length
+        ? 'completed'
+        : runState.status === 'error'
+          ? 'error'
+          : runState.status === 'processing' || runState.status === 'awaiting_user_input'
+            ? 'processing'
+            : 'completed',
+    },
+  ];
+
+  const failed = runState.status === 'error';
+  if (patches.length) {
+    sections.push({
+      index: 0,
+      step: 'code_changes',
+      blocks,
+      artifacts: [patches],
+      status: failed
+        ? 'error'
+        : runState.status === 'processing' &&
+            !Object.keys(runState.repo_pr_states ?? {}).length
+          ? 'processing'
+          : 'completed',
+    });
+  } else if (failed && rootCauses.length) {
+    sections.push({
+      index: 0,
+      step: 'code_changes',
+      blocks: [],
+      artifacts: [],
+      status: 'error',
+    });
+  }
+  return sections;
+}
+
+function getStepSections(
+  blocks: Block[],
+  runState: ExplorerAutofixState | null
+): AutofixSection[] {
   // Bucket blocks by section step, preserving first-seen order. Each bucket
   // also records the index of its first block, used as the reset/restart point.
   const buckets = new Map<string, {blocks: Block[]; index: number}>();
@@ -511,10 +598,21 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
     }
   }
 
-  const sections: AutofixSection[] = Array.from(buckets.entries()).map(
-    ([step, {blocks: sectionBlocks, index}]) =>
-      buildSection(step, index === lastStepIndex, index, sectionBlocks, runState)
+  return Array.from(buckets.entries()).map(([step, {blocks: sectionBlocks, index}]) =>
+    buildSection(step, index === lastStepIndex, index, sectionBlocks, runState)
   );
+}
+
+export function getOrderedAutofixSections(runState: ExplorerAutofixState | null) {
+  const blocks = runState?.blocks ?? [];
+  if (!blocks.length) {
+    return [];
+  }
+
+  const sections =
+    runState && isSingleRunAutofix(runState)
+      ? getSingleRunSections(blocks, runState)
+      : getStepSections(blocks, runState);
 
   // If there are any PR states, append a synthetic "pull_request" section.
   const pullRequests = Object.values(runState?.repo_pr_states ?? {});
@@ -572,10 +670,6 @@ export function isPullRequestsSection(section: AutofixSection): boolean {
 
 export function isCodingAgentsSection(section: AutofixSection): boolean {
   return section.step === 'coding_agents';
-}
-
-export function isRunValidForPrIteration(organization: Organization): boolean {
-  return organization.features.includes('autofix-pr-iteration-manual');
 }
 
 export function isPrIterationPaused(runState: ExplorerAutofixState | null): boolean {
@@ -879,11 +973,14 @@ export function useExplorerAutofix(
               },
             })
             .catch(error => {
-              addErrorMessage(error instanceof Error ? error.message : String(error));
+              toast.error(error instanceof Error ? error.message : String(error));
             });
         }
 
-        return getAutofixRunId(response)!;
+        return {
+          runId: getAutofixRunId(response)!,
+          isSingleRun: response?.feature_id === SINGLE_RUN_FEATURE_ID,
+        };
       } catch (e: any) {
         setWaitingForResponse(false);
         const queryKey = explorerAutofixApiOptions(orgSlug, groupId).queryKey;
@@ -898,7 +995,7 @@ export function useExplorerAutofix(
           queryClient.invalidateQueries({
             queryKey: groupQueryKey({organizationSlug: orgSlug, groupId}),
           });
-          return getAutofixRunId(e.responseJSON)!;
+          return {runId: getAutofixRunId(e.responseJSON)!, isSingleRun: false};
         }
 
         // The kickoff was refused because Seer setup is incomplete. There is no
@@ -908,7 +1005,7 @@ export function useExplorerAutofix(
         // sidebar renders the setup UI in AutofixContent; this covers the
         // surfaces that don't (drawer, previews, command palette).
         if (isAutofixSetupRequiredError(e)) {
-          addErrorMessage(
+          toast.error(
             getApiErrorMessage(
               e,
               'Seer Autofix requires additional setup before starting a run'
@@ -920,7 +1017,7 @@ export function useExplorerAutofix(
         const errorMessage = getApiErrorMessage(e);
         // Replacing the cached run would wipe out the blocks of a run that already exists.
         if (defined(queryClient.getQueryData(queryKey)?.json?.autofix)) {
-          addErrorMessage(errorMessage);
+          toast.error(errorMessage);
         } else {
           queryClient.setQueryData(queryKey, prev => ({
             headers: prev?.headers ?? {},
@@ -966,7 +1063,7 @@ export function useExplorerAutofix(
           queryKey: explorerAutofixApiOptions(orgSlug, groupId).queryKey,
         });
       } catch (e: any) {
-        addErrorMessage(getApiErrorMessage(e, 'Failed to create PR'));
+        toast.error(getApiErrorMessage(e, 'Failed to create PR'));
         throw e;
       }
     },
@@ -1000,7 +1097,7 @@ export function useExplorerAutofix(
         user_id: user.id,
       });
 
-      addLoadingMessage('Launching coding agent...');
+      toast.loading('Launching coding agent...');
 
       const data: Record<string, string | number> = {
         step: 'coding_agent_handoff',
@@ -1091,7 +1188,7 @@ export function useExplorerAutofix(
         throw e;
         // oxlint-disable-next-line react/todo
       } finally {
-        clearIndicators();
+        toast.dismiss();
         setWaitingForCodingAgent(false);
       }
     },

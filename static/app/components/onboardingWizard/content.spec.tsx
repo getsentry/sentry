@@ -8,10 +8,11 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {OnboardingSidebarContent} from 'sentry/components/onboardingWizard/content';
 import {OnboardingTaskKey} from 'sentry/types/onboarding';
 import {NavigationTourProvider} from 'sentry/views/navigation/navigationTour';
 import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
+
+import {OnboardingSidebarContent} from './content';
 
 const DEFAULT_GETTING_STARTED_TASKS = [
   {task: OnboardingTaskKey.FIRST_PROJECT, title: 'Create your first project'},

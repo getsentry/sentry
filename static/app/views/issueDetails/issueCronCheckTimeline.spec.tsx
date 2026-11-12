@@ -12,9 +12,10 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import {CheckInStatus} from 'sentry/views/insights/crons/types';
 import {statusToText} from 'sentry/views/insights/crons/utils';
-import {IssueDetailsContext} from 'sentry/views/issueDetails/context';
-import {IssueCronCheckTimeline} from 'sentry/views/issueDetails/issueCronCheckTimeline';
-import {useIssueTimeWindowConfig} from 'sentry/views/issueDetails/useIssueTimeWindowConfig';
+
+import {IssueDetailsContext} from './context';
+import {IssueCronCheckTimeline} from './issueCronCheckTimeline';
+import {useIssueTimeWindowConfig} from './useIssueTimeWindowConfig';
 
 const startTime = new Date('2025-01-01T11:00:00Z');
 

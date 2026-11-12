@@ -3,9 +3,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {parseFunction} from 'sentry/utils/discover/fields';
-import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
-import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {useSpanItemAttributes} from './useTraceItemAttributes';
+import {useVisualizeFields} from './useVisualizeFields';
 
 function useWrapper(yAxis: string) {
   const {attributes: stringTags} = useSpanItemAttributes({}, 'string');

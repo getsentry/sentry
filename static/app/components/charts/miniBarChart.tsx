@@ -6,11 +6,11 @@ import {useTheme} from '@emotion/react';
 import type {GridComponentOption} from 'echarts';
 import set from 'lodash/set';
 
-import type {BaseChartProps} from 'sentry/components/charts/baseChart';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
 import {BarChart, type BarChartProps, type BarChartSeries} from './barChart';
+import type {BaseChartProps} from './baseChart';
 
 function makeBaseChartOptions({
   animateBars,

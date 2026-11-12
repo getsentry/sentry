@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 import {IconSettings} from '@sentry/icons/settings';
 import {IconTelescope} from '@sentry/icons/telescope';
+import {useMutation} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {InfoTip} from '@sentry/scraps/info';
@@ -8,8 +9,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DiscoverButton} from 'sentry/components/discoverButton';
 import {DocumentationHint} from 'sentry/components/documentationHint';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -19,10 +20,11 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import type {ProjectSummaryWithOptions} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {
@@ -68,18 +70,24 @@ function EnableSpikeProtectionButton({
   onEnableSpikeProtection: () => void;
   project: ProjectSummaryWithOptions;
 }) {
-  const api = useApi();
   const organization = useOrganization();
   const subscription = useSubscription();
-  const endpoint = `/organizations/${organization.slug}/spike-protections/`;
+
+  const {mutateAsync: createSpikeProtection} = useMutation({
+    mutationFn: () =>
+      fetchMutation({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/spike-protections/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+        method: 'POST',
+        data: {projects: [project.slug]},
+      }),
+  });
 
   async function enableSpikeProtection() {
     try {
-      await api.requestPromise(endpoint, {
-        method: 'POST',
-        data: {projects: [project.slug]},
-      });
-      addSuccessMessage(
+      await createSpikeProtection();
+      toast.success(
         tct('[action] spike protection for [project]', {
           action: t('Enabled'),
           project: project.slug,
@@ -94,7 +102,7 @@ function EnableSpikeProtectionButton({
       });
       onEnableSpikeProtection();
     } catch {
-      addErrorMessage(SPIKE_PROTECTION_ERROR_MESSAGE);
+      toast.error(SPIKE_PROTECTION_ERROR_MESSAGE);
     }
   }
 

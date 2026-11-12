@@ -1,6 +1,7 @@
 import cloneDeep from 'lodash/cloneDeep';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {downloadObjectAsJson} from 'sentry/utils/downloadObjectAsJson';
 
 import type {DashboardDetails} from './types';
@@ -24,7 +25,7 @@ export async function exportDashboard() {
 
     downloadObjectAsJson(normalized, cleanTitle(normalized.title));
   } catch (error) {
-    addErrorMessage(
+    toast.error(
       'Could not export dashboard. Please wait or try again with a different dashboard'
     );
   }

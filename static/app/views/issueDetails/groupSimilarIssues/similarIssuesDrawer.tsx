@@ -1,42 +1,26 @@
-import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {DrawerHeader} from '@sentry/scraps/drawer';
 
 import {
-  CrumbContainer,
+  DrawerBreadcrumbs,
   EventDrawerBody,
   EventDrawerContainer,
-  EventDrawerHeader,
-  EventNavigator,
-  Header,
-  NavigationCrumbs,
-  ShortId,
 } from 'sentry/components/events/eventDrawer';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
-import {GroupSimilarIssues} from 'sentry/views/issueDetails/groupSimilarIssues/similarIssues';
 
-export function SimilarIssuesDrawer({group, project}: {group: Group; project: Project}) {
+import {GroupSimilarIssues} from './similarIssues';
+
+export function SimilarIssuesDrawer({group}: {group: Group}) {
   return (
     <EventDrawerContainer>
-      <EventDrawerHeader>
-        <NavigationCrumbs
-          crumbs={[
-            {
-              label: (
-                <CrumbContainer>
-                  <ProjectAvatar project={project} />
-                  <ShortId>{group.shortId}</ShortId>
-                </CrumbContainer>
-              ),
-            },
-            {label: t('Similar Issues')},
-          ]}
+      <DrawerHeader>
+        <DrawerBreadcrumbs
+          current={{
+            label: t('Similar Issues'),
+          }}
         />
-      </EventDrawerHeader>
-      <EventNavigator>
-        <Header>{t('Similar Issues')}</Header>
-      </EventNavigator>
+      </DrawerHeader>
       <EventDrawerBody>
         <GroupIdProvider groupId={group.id}>
           <GroupSimilarIssues />

@@ -18,6 +18,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {getAggregateArg, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {
@@ -30,8 +31,10 @@ import {
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
+import {usePrevious} from 'sentry/utils/usePrevious';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
-import {ChartFooter} from 'sentry/views/discover/results/chartFooter';
+
+import {ChartFooter} from './chartFooter';
 
 type ResultsChartProps = {
   api: Client;
@@ -43,6 +46,8 @@ type ResultsChartProps = {
   yAxisValue: string[];
   customMeasurements?: CustomMeasurementCollection | undefined;
   droppedData?: DroppedDataProps;
+  loadingDroppedData?: boolean;
+  reloadingDroppedData?: boolean;
 };
 
 function isDailyDisplay(display: string) {
@@ -84,6 +89,8 @@ const ResultsChart = memo(
     yAxisValue,
     customMeasurements,
     droppedData,
+    loadingDroppedData,
+    reloadingDroppedData,
   }: ResultsChartProps) {
     const globalSelection = eventView.getPageFilters();
     const {start, end} = getChartDateRange(eventView);
@@ -150,6 +157,8 @@ const ResultsChart = memo(
               fromDiscover
               disableableSeries={disableableSeries}
               droppedData={droppedData}
+              loadingAdditionalSeries={loadingDroppedData}
+              reloadingAdditionalSeries={reloadingDroppedData}
             />
           ),
           fixed: <Placeholder height="200px" testId="skeleton-ui" />,
@@ -204,6 +213,8 @@ export const ResultsChartContainer = memo(
       {dataset: DiscoverDatasets.ERRORS, interval: chartInterval},
       {enabled: isErrorsDataset}
     );
+    const isDroppedDataLoaded = defined(droppedData.layerControl);
+    const hasLoadedDroppedData = usePrevious(isDroppedDataLoaded, !isDroppedDataLoaded);
 
     const yAxisOptions = useMemo(() => eventView.getYAxisOptions(), [eventView]);
 
@@ -252,6 +263,8 @@ export const ResultsChartContainer = memo(
             yAxisValue={yAxis}
             customMeasurements={customMeasurements}
             droppedData={droppedData.band}
+            loadingDroppedData={droppedData.isLoading && !hasLoadedDroppedData}
+            reloadingDroppedData={droppedData.isLoading && hasLoadedDroppedData}
           />
         )) || <NoChartContainer>{t('No Y-Axis selected.')}</NoChartContainer>}
         <ChartFooter

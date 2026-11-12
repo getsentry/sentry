@@ -1,4 +1,3 @@
-import time
 from typing import Any, TypedDict
 
 from django.db import IntegrityError, router, transaction
@@ -30,7 +29,7 @@ from sentry.apidocs.response_types import (
     as_validation_errors,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.auth.principal import is_owned_by_acting_user
+from sentry.auth.principal import is_owned_by_acting_user, require_user
 from sentry.constants import PROJECT_SLUG_MAX_LENGTH, RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.issue_detection.detectors.disable_detectors import set_default_disabled_detectors
 from sentry.models.organization import Organization
@@ -39,10 +38,10 @@ from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.roles import team_roles
 from sentry.seer.similarity.utils import (
-    project_is_seer_eligible,
     set_default_project_autofix_automation_tuning,
     set_default_project_seer_preferences,
     set_default_project_seer_scanner_automation,
+    set_default_project_similarity_grouping,
 )
 from sentry.signals import project_created
 from sentry.utils.platform_categories import CONSOLES
@@ -65,9 +64,7 @@ def apply_default_project_settings(organization: Organization, project: Project)
 
     set_default_symbol_sources(project, organization)
 
-    # Create project option to turn on ML similarity feature for new EA projects
-    if project_is_seer_eligible(project):
-        project.update_option("sentry:similarity_backfill_completed", int(time.time()))
+    set_default_project_similarity_grouping(project)
 
     set_default_project_autofix_automation_tuning(organization, project)
     set_default_project_seer_scanner_automation(organization, project)
@@ -137,6 +134,12 @@ class TeamProjectPermission(TeamPermission):
         "PUT": ["project:write", "project:admin"],
         "DELETE": ["project:admin"],
     }
+
+    def has_permission(self, request: Request, view: APIView) -> bool:
+        # Service accounts can't create projects for now, whatever their team access.
+        if request.method == "POST" and request.user.is_authenticated:
+            require_user(request)
+        return super().has_permission(request, view)
 
     def has_object_permission(self, request: Request, view: APIView, team: Any) -> bool:
         if super().has_object_permission(request, view, team):

@@ -4,7 +4,7 @@ import {
   getStatusLabel,
   getStatusVariant,
   type GcpProjectResult,
-} from 'sentry/utils/seer/gcpConnection';
+} from './gcpConnection';
 
 function project(overrides: Partial<GcpProjectResult> = {}): GcpProjectResult {
   return {

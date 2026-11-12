@@ -1,6 +1,8 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {parseAsInteger, useQueryState} from 'nuqs';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import agentTracingEmptyStateImg from 'sentry-images/spot/agent-tracing-empty-state.svg';
 
@@ -37,20 +39,11 @@ import {agentMonitoringPlatforms} from 'sentry/data/platformCategories';
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {LLM_ONBOARDING_COPY_MARKDOWN} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
-import {
-  AI_AGENTS_GETTING_STARTED_DOCS_LINK,
-  AI_INSTRUMENTATION_DOCS_LINKS,
-} from 'sentry/views/insights/pages/agents/utils/docsLinks';
-import {getHasAiSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
-import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
-import {useAgentOnboardingOptions} from 'sentry/views/insights/pages/agents/utils/useAgentOnboardingOptions';
 import {
   BulletList,
   HeaderText,
@@ -60,6 +53,15 @@ import {
   useOnboardingProject,
   useSpanWaiter,
 } from 'sentry/views/insights/pages/onboardingUtils';
+
+import {
+  AI_AGENTS_GETTING_STARTED_DOCS_LINK,
+  AI_INSTRUMENTATION_DOCS_LINKS,
+} from './utils/docsLinks';
+import {getHasAiSpansFilter} from './utils/query';
+import {Referrer} from './utils/referrers';
+import {useAgentOnboardingOptions} from './utils/useAgentOnboardingOptions';
+import {LLM_ONBOARDING_COPY_MARKDOWN} from './llmOnboardingInstructions';
 
 function WaitingIndicator({project}: {project: Project}) {
   const spanRequest = useSpanWaiter({
@@ -199,7 +201,10 @@ function OnboardingPanel({
 
 export function Onboarding() {
   const api = useApi();
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const {isSelfHosted, urlPrefix} = useStore(
+    ConfigStore,
+    useShallow(state => ({isSelfHosted: state.isSelfHosted, urlPrefix: state.urlPrefix}))
+  );
   const project = useOnboardingProject();
   const organization = useOrganization();
   const [guidedStep, setGuidedStep] = useQueryState('guidedStep', parseAsInteger);

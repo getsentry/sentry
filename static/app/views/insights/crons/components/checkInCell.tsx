@@ -483,7 +483,7 @@ function ProcessingLatencyIndicator({checkIn}: ProcessingLatencyProps) {
         'This check-in was incorrectly marked as timed-out. The check-in was processed late due to abnormal system latency in Sentry.'
       );
 
-  return <QuestionTooltip icon="info" size="sm" title={tooltipMessage} />;
+  return <QuestionTooltip size="sm" title={tooltipMessage} />;
 }
 
 const TimestampContainer = styled('div')`

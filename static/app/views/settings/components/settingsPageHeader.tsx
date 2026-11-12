@@ -7,7 +7,7 @@ import type {
 } from '@sentry/scraps/breadcrumbList';
 import {Flex} from '@sentry/scraps/layout';
 
-import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
+import {BreadcrumbTitle} from './settingsBreadcrumb/breadcrumbTitle';
 
 type Props = {
   title: string | BreadcrumbTitleItem;

@@ -3,11 +3,11 @@ import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {IconStack} from '@sentry/icons/stack';
 import {useQueryClient} from '@tanstack/react-query';
 
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {Stack} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -20,10 +20,6 @@ import {
   useDeleteInvestigationMutation,
   useDuplicateInvestigationMutation,
 } from 'sentry/views/investigations/api';
-import {InvestigationAccess} from 'sentry/views/investigations/detail/investigationAccess';
-import {InvestigationPageContent} from 'sentry/views/investigations/detail/investigationPageContent';
-import {useInvestigationDetail} from 'sentry/views/investigations/detail/useInvestigationDetail';
-import {useInvestigationTitle} from 'sentry/views/investigations/detail/useInvestigationTitle';
 import {useInvestigationAskSeer} from 'sentry/views/investigations/investigationLLMContext';
 import type {InvestigationDetail} from 'sentry/views/investigations/types';
 import {
@@ -34,6 +30,11 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 import {RouteError} from 'sentry/views/routeError';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+
+import {InvestigationAccess} from './investigationAccess';
+import {InvestigationPageContent} from './investigationPageContent';
+import {useInvestigationDetail} from './useInvestigationDetail';
+import {useInvestigationTitle} from './useInvestigationTitle';
 
 function InvestigationDetailPageInner({
   investigation,
@@ -49,10 +50,10 @@ function InvestigationDetailPageInner({
   const askSeer = useInvestigationAskSeer();
   const duplicateMutation = useDuplicateInvestigationMutation(organization.slug, {
     onSuccess: duplicate => {
-      addSuccessMessage(t('Investigation duplicated.'));
+      toast.success(t('Investigation duplicated.'));
       navigate(getInvestigationPath(organization.slug, duplicate.id));
     },
-    onError: () => addErrorMessage(t('Unable to duplicate investigation.')),
+    onError: () => toast.error(t('Unable to duplicate investigation.')),
   });
   const deleteMutation = useDeleteInvestigationMutation(organization.slug, {
     onMutate: () => title.cancelPendingRename(),
@@ -62,10 +63,10 @@ function InvestigationDetailPageInner({
           .queryKey,
         exact: true,
       });
-      addSuccessMessage(t('Investigation deleted.'));
+      toast.success(t('Investigation deleted.'));
       navigate(getInvestigationsPath(organization.slug));
     },
-    onError: () => addErrorMessage(t('Unable to delete investigation.')),
+    onError: () => toast.error(t('Unable to delete investigation.')),
   });
 
   return (
