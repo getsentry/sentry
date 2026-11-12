@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from typing import Any
 from unittest import mock
 
@@ -5,6 +6,8 @@ from django.urls import reverse
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
+from sentry.api.endpoints.organization_trace_item_stats import get_attribute_keys_cache_key
+from sentry.search.events.types import SnubaParams
 from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.cases import (
     APITransactionTestCase,
@@ -13,8 +16,11 @@ from sentry.testutils.cases import (
     SpanTestCase,
 )
 from sentry.testutils.helpers import parse_link_header
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
+
+KEY_CACHE_FEATURE = "organizations:explore-trace-item-stats-key-cache"
 
 
 class OrganizationTraceItemStatsEndpointTest(
@@ -462,6 +468,10 @@ class OrganizationTraceItemStatsEndpointTest(
         assert "user.geo.city" not in attribute_distribution
 
     def _count_key_discovery_queries(self) -> tuple[mock.MagicMock, mock.MagicMock]:
+        # Frozen time keeps every request in a test inside one quantized cache window.
+        traveller = freeze_time()
+        traveller.start()
+        self.addCleanup(traveller.stop)
         table_query = mock.patch.object(
             Spans, "run_table_query", wraps=Spans.run_table_query
         ).start()
@@ -475,6 +485,7 @@ class OrganizationTraceItemStatsEndpointTest(
     def _preflight_calls(stats_query: mock.MagicMock) -> int:
         return sum(1 for call in stats_query.call_args_list if call.kwargs.get("max_buckets") == 1)
 
+    @with_feature(KEY_CACHE_FEATURE)
     def test_pagination_reuses_cached_attribute_keys(self) -> None:
         stored_names = ["cacheattra", "cacheattrb", "cacheattrc", "cacheattrd"]
         for name in stored_names:
@@ -508,6 +519,7 @@ class OrganizationTraceItemStatsEndpointTest(
         assert table_query.call_count == 1
         assert self._preflight_calls(stats_query) == 1
 
+    @with_feature(KEY_CACHE_FEATURE)
     def test_substring_match_reuses_cached_attribute_keys(self) -> None:
         self._store_span(sentry_tags={"browser.name": "chrome", "device": "desktop"})
         table_query, stats_query = self._count_key_discovery_queries()
@@ -527,6 +539,7 @@ class OrganizationTraceItemStatsEndpointTest(
         assert table_query.call_count == 1
         assert self._preflight_calls(stats_query) == 1
 
+    @with_feature(KEY_CACHE_FEATURE)
     def test_attribute_key_cache_not_shared_across_queries(self) -> None:
         self._store_span(sentry_tags={"cachefast": "value"}, duration=100)
         self._store_span(sentry_tags={"cacheslow": "value"}, duration=500)
@@ -547,6 +560,7 @@ class OrganizationTraceItemStatsEndpointTest(
         assert table_query.call_count == 2
         assert self._preflight_calls(stats_query) == 2
 
+    @with_feature(KEY_CACHE_FEATURE)
     def test_attribute_key_cache_not_shared_across_case_sensitivity(self) -> None:
         self._store_span(sentry_tags={"browser": "Chrome"})
         table_query, _ = self._count_key_discovery_queries()
@@ -564,6 +578,7 @@ class OrganizationTraceItemStatsEndpointTest(
 
         assert table_query.call_count == 2
 
+    @with_feature(KEY_CACHE_FEATURE)
     def test_attribute_key_cache_not_shared_across_visibility(self) -> None:
         self._store_span(sentry_tags={"dsc.environment": "production"})
         query = {"statsType": ["attributeDistributions"], "itemType": "spans"}
@@ -592,3 +607,49 @@ class OrganizationTraceItemStatsEndpointTest(
         assert "sentry.dsc.environment" not in attribute_distribution
 
         assert table_query.call_count == 2
+
+    def _assert_key_cache_unused(self, query: dict[str, Any]) -> None:
+        self._store_span(sentry_tags={"browser": "chrome"})
+        table_query, _ = self._count_key_discovery_queries()
+
+        with mock.patch(
+            "sentry.api.endpoints.organization_trace_item_stats.default_cache"
+        ) as default_cache:
+            for _ in range(2):
+                response = self.do_request(query=dict(query))
+                assert response.status_code == 200, response.data
+                assert response.data["data"]
+
+        default_cache.get.assert_not_called()
+        default_cache.set.assert_not_called()
+        assert table_query.call_count == 2
+
+    def test_attribute_key_cache_unused_without_flag(self) -> None:
+        self._assert_key_cache_unused({"statsType": ["attributeDistributions"]})
+
+    @with_feature(KEY_CACHE_FEATURE)
+    def test_skip_cache_bypasses_attribute_key_cache(self) -> None:
+        self._assert_key_cache_unused({"statsType": ["attributeDistributions"], "skipCache": "1"})
+
+    def test_attribute_keys_cache_key_quantizes_end(self) -> None:
+        def cache_key(end: datetime, duration: timedelta = timedelta(hours=1)) -> str:
+            params = SnubaParams(
+                start=end - duration,
+                end=end,
+                projects=[self.project],
+                organization=self.organization,
+            )
+            return get_attribute_keys_cache_key(
+                params,
+                {"statsType": ["attributeDistributions"]},
+                include_internal=False,
+                include_internal_convention_attributes=False,
+            )
+
+        window_start = datetime.fromisoformat(cache_key(before_now(hours=1)).split("@")[1])
+        key = cache_key(window_start + timedelta(seconds=10))
+
+        # A relative range that moves within the 5-minute window keeps its key.
+        assert cache_key(window_start + timedelta(minutes=4)) == key
+        assert cache_key(window_start + timedelta(minutes=5, seconds=10)) != key
+        assert cache_key(window_start + timedelta(seconds=10), timedelta(hours=2)) != key

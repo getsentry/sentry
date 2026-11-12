@@ -11,8 +11,9 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
+from sentry_sdk import traces
 
-from sentry import options
+from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -51,6 +52,7 @@ from sentry.snuba import rpc_dataset_common
 from sentry.snuba.occurrences_rpc import Occurrences
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
+from sentry.utils import metrics, snuba
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.hashlib import hash_values
@@ -63,19 +65,6 @@ MAX_THREADS = 4
 # Paging through attributes re-requests the same key list for every page. A few minutes
 # covers a paging session, and the list is already a sample of the most recent items.
 ATTRIBUTE_KEYS_CACHE_TTL = int(timedelta(minutes=5).total_seconds())
-# Raw date params rather than the resolved start/end: relative ranges resolve against
-# the current time, so their start/end change on every request.
-DATE_RANGE_PARAMS = (
-    "statsPeriod",
-    "statsPeriodStart",
-    "statsPeriodEnd",
-    "timeframe",
-    "timeframeStart",
-    "timeframeEnd",
-    "range",
-    "start",
-    "end",
-)
 
 SupportedItemType = Literal["spans", "occurrences"]
 SUPPORTED_ITEM_TYPES: tuple[SupportedItemType, ...] = get_args(SupportedItemType)
@@ -115,7 +104,6 @@ def get_trace_item_stats_config(item_type: SupportedItemType) -> TraceItemStatsC
 
 
 def get_attribute_keys_cache_key(
-    request: Request,
     snuba_params: SnubaParams,
     serialized: dict[str, Any],
     include_internal: bool,
@@ -126,12 +114,11 @@ def get_attribute_keys_cache_key(
     this key, including the visibility flags, so users with different visibility
     never share an entry.
     """
-    return "trace-item-stats:keys:" + hash_values(
+    filters_hash = hash_values(
         [
             snuba_params.organization_id,
             sorted(snuba_params.project_ids),
             sorted(snuba_params.environment_names),
-            [request.GET.get(param) for param in DATE_RANGE_PARAMS],
             snuba_params.sampling_mode,
             snuba_params.case_insensitive,
             # Queries can resolve per-user values, such as is_starred_transaction.
@@ -144,6 +131,44 @@ def get_attribute_keys_cache_key(
             include_internal_convention_attributes,
         ]
     )
+    # Relative ranges move with every request, so key on the duration plus an end
+    # quantized to a 5-minute window, as tagstore does for tag keys. The jitter comes
+    # from the md5 rather than hash(), which is salted per process, so every worker
+    # picks the same window.
+    duration = (snuba_params.end_date - snuba_params.start_date).total_seconds()
+    quantized_end = snuba.quantize_time(snuba_params.end_date, int(filters_hash, 16))
+    return f"trace-item-stats:keys:{filters_hash}:{duration}@{quantized_end.isoformat()}"
+
+
+def get_cached_attribute_keys(cache_key: str, item_type: str) -> list[list[str]] | None:
+    with traces.start_span(
+        name="sentry.api.trace_item_stats.cache.attribute_keys",
+        attributes={"sentry.op": "cache.get"},
+    ) as span:
+        result = cast("list[list[str]] | None", default_cache.get(cache_key))
+        span.set_attribute("cache.key", [cache_key])
+        if result is not None:
+            span.set_attribute("cache.hit", True)
+            span.set_attribute("cache.item_size", len(str(result)))
+            metrics.incr(
+                "api.trace_item_stats.attribute_keys_cache.hit", tags={"item_type": item_type}
+            )
+        else:
+            span.set_attribute("cache.hit", False)
+            metrics.incr(
+                "api.trace_item_stats.attribute_keys_cache.miss", tags={"item_type": item_type}
+            )
+        return result
+
+
+def set_cached_attribute_keys(cache_key: str, attribute_keys: list[list[str]]) -> None:
+    with traces.start_span(
+        name="sentry.api.trace_item_stats.cache.attribute_keys",
+        attributes={"sentry.op": "cache.put"},
+    ) as span:
+        default_cache.set(cache_key, attribute_keys, ATTRIBUTE_KEYS_CACHE_TTL)
+        span.set_attribute("cache.key", [cache_key])
+        span.set_attribute("cache.item_size", len(str(attribute_keys)))
 
 
 class TraceItemStatsPaginator:
@@ -364,23 +389,34 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
 
             return discovered_keys
 
-        attribute_keys_cache_key = get_attribute_keys_cache_key(
-            request,
-            snuba_params,
-            serialized,
-            include_internal,
-            include_internal_convention_attributes,
+        use_key_cache = (
+            features.has(
+                "organizations:explore-trace-item-stats-key-cache",
+                organization,
+                actor=request.user,
+            )
+            and request.GET.get("skipCache") != "1"
         )
 
-        def data_fn(offset: int, limit: int) -> tuple[dict[str, Any], int]:
-            discovered_keys = cast(
-                "list[list[str]] | None", default_cache.get(attribute_keys_cache_key)
+        def get_attribute_keys() -> list[list[str]]:
+            if not use_key_cache:
+                return discover_attribute_keys()
+
+            item_type = serialized.get("itemType", "spans")
+            cache_key = get_attribute_keys_cache_key(
+                snuba_params,
+                serialized,
+                include_internal,
+                include_internal_convention_attributes,
             )
+            discovered_keys = get_cached_attribute_keys(cache_key, item_type)
             if discovered_keys is None:
                 discovered_keys = discover_attribute_keys()
-                default_cache.set(
-                    attribute_keys_cache_key, discovered_keys, ATTRIBUTE_KEYS_CACHE_TTL
-                )
+                set_cached_attribute_keys(cache_key, discovered_keys)
+            return discovered_keys
+
+        def data_fn(offset: int, limit: int) -> tuple[dict[str, Any], int]:
+            discovered_keys = get_attribute_keys()
 
             sanitized_keys = [
                 internal_name
