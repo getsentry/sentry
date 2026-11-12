@@ -49,11 +49,11 @@ interface InputSectionProps {
   fileApprovalActions?: FileApprovalActions;
   interruptState?: 'can-interrupt' | 'requested' | 'completed' | 'disabled';
   isSingleRun?: boolean;
+  leadingToolbarItems?: React.ReactNode;
   /** Shown right above the composer, for example to say why sending is blocked. */
   notice?: React.ReactNode;
   questionActions?: QuestionActions;
   runId?: SeerExplorerRunId | null;
-  slashCommandMenu?: React.ReactNode;
   /**
    * Shown in the toolbar under the editor, before the send or interrupt button.
    * The chat puts the organization's credit usage here.
@@ -80,7 +80,7 @@ export function InputSection({
   runId,
   isSingleRun,
   toolbarItems,
-  slashCommandMenu,
+  leadingToolbarItems,
 }: InputSectionProps) {
   const organization = useOrganization({allowNull: true});
   // Autofix single runs and ask-seer-create-pr runs open PRs, so show links to them.
@@ -312,7 +312,7 @@ export function InputSection({
               }
             }}
           >
-            {slashCommandMenu}
+            {leadingToolbarItems}
             <Container flex="1" pointerEvents="none" />
             {toolbarItems}
             {interruptState === 'can-interrupt' || interruptState === 'requested' ? (

@@ -87,6 +87,7 @@ import {
   PendingUserInputDock,
   PendingUserInputPicker,
 } from './pendingUserInputDock';
+import {SeerExplorerDebugMenu} from './seerExplorerDebugMenu';
 import {SeerExplorerHeader} from './seerExplorerHeader';
 import {UpdateSlackAlert} from './updateSlackAlert';
 
@@ -851,11 +852,6 @@ export function SeerExplorerContent({
       onChangeSession={switchToRun}
       onCopySessionClick={copySessionEnabled ? copySessionToClipboard : undefined}
       onCopyLinkClick={runId === null ? undefined : handleCopyLink}
-      overrideBashModeEnabled={overrideBashModeEnabled}
-      onOverrideBashModeToggle={() => setOverrideBashModeEnabled(v => !v)}
-      showThinking={showThinking}
-      onShowThinkingToggle={() => setShowThinking(v => !v)}
-      conversationsUrl={conversationsUrl}
       isPipSupported={isPipSupported}
       isPoppedOut={isPoppedOut}
       onTogglePictureInPicture={handleTogglePictureInPicture}
@@ -972,7 +968,18 @@ export function SeerExplorerContent({
             ) : undefined
           }
           toolbarItems={<SeerCreditUsageMeter hasEnoughCredits={hasEnoughCredits} />}
-          slashCommandMenu={toolbarMenu}
+          leadingToolbarItems={
+            <Fragment>
+              {toolbarMenu}
+              <SeerExplorerDebugMenu
+                overrideBashModeEnabled={overrideBashModeEnabled}
+                onOverrideBashModeToggle={() => setOverrideBashModeEnabled(v => !v)}
+                showThinking={showThinking}
+                onShowThinkingToggle={() => setShowThinking(v => !v)}
+                conversationsUrl={conversationsUrl}
+              />
+            </Fragment>
+          }
           interruptState={interruptState}
           onInputChange={handleInputChange}
           onInputClick={handleInputClick}

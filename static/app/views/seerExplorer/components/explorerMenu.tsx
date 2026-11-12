@@ -1,5 +1,6 @@
 import {Activity, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
 import {IconSlashForward} from '@sentry/icons/slashForward';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
@@ -227,21 +228,29 @@ export function useExplorerMenu({
     menu,
     toolbarMenu: (
       <DropdownMenu
-        items={allSlashCommands.map(item => ({
-          key: item.key,
-          label: item.title,
-          details: item.description,
-          onAction: () => onSelect(item),
-        }))}
+        items={[
+          {
+            key: 'commands',
+            label: t('Commands'),
+            leadingItems: <IconSlashForward />,
+            submenu: true,
+            children: allSlashCommands.map(item => ({
+              key: item.key,
+              label: item.title,
+              details: item.description,
+              onAction: () => onSelect(item),
+            })),
+          },
+        ]}
         position="top-start"
         onOpenChange={setIsToolbarMenuOpen}
         size="sm"
         trigger={triggerProps => (
           <OverlayTrigger.IconButton
             {...triggerProps}
-            icon={<IconSlashForward />}
-            aria-label={t('Slash commands')}
-            tooltipProps={{title: t('Slash commands')}}
+            icon={<IconAdd />}
+            aria-label={t('Add to conversation')}
+            tooltipProps={{title: t('Add to conversation')}}
             variant="transparent"
           />
         )}

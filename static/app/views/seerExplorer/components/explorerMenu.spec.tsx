@@ -49,19 +49,25 @@ describe('Explorer toolbar menu', () => {
     const input = screen.getByRole('textbox', {name: 'Ask Seer a question'});
     await userEvent.type(input, 'Keep my draft');
 
-    await userEvent.click(screen.getByRole('button', {name: 'Slash commands'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add to conversation'}));
+    expect(screen.queryByRole('menuitemradio', {name: /\/new/})).not.toBeInTheDocument();
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Commands'}));
 
     expect(await screen.findByRole('menuitemradio', {name: /\/new/})).toBeVisible();
     expect(input).toHaveValue('Keep my draft');
-    await userEvent.keyboard('{Escape}');
+    await userEvent.keyboard('{Escape}{Escape}');
     expect(screen.queryByRole('menuitemradio', {name: /\/new/})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Commands'})
+    ).not.toBeInTheDocument();
     expect(input).toHaveValue('Keep my draft');
   });
 
   it('runs the selected command and focuses the input', async () => {
     const onNew = jest.fn();
     render(<ExplorerMenuInput onNew={onNew} onKeyDown={jest.fn()} />);
-    await userEvent.click(screen.getByRole('button', {name: 'Slash commands'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add to conversation'}));
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Commands'}));
     await userEvent.click(await screen.findByRole('menuitemradio', {name: /\/new/}));
 
     expect(onNew).toHaveBeenCalledTimes(1);
@@ -71,7 +77,8 @@ describe('Explorer toolbar menu', () => {
   it('completes investigate without running a command', async () => {
     const onNew = jest.fn();
     render(<ExplorerMenuInput onNew={onNew} onKeyDown={jest.fn()} canInvestigate />);
-    await userEvent.click(screen.getByRole('button', {name: 'Slash commands'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add to conversation'}));
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Commands'}));
     await userEvent.click(
       await screen.findByRole('menuitemradio', {name: /\/investigate/})
     );
@@ -88,10 +95,10 @@ describe('Explorer toolbar menu', () => {
     render(<ExplorerMenuInput onNew={onNew} onKeyDown={jest.fn()} canInvestigate />);
     const input = screen.getByRole('textbox', {name: 'Ask Seer a question'});
     await userEvent.type(input, '/n');
-    await userEvent.click(screen.getByRole('button', {name: 'Slash commands'}));
-    await screen.findByRole('menuitemradio', {name: /\/new/});
+    await userEvent.click(screen.getByRole('button', {name: 'Add to conversation'}));
+    await screen.findByRole('menuitemradio', {name: 'Commands'});
 
-    await userEvent.keyboard('{ArrowDown}{Enter}');
+    await userEvent.keyboard('{ArrowRight}{ArrowDown}{Enter}');
 
     expect(input).toHaveValue('/investigate ');
     expect(onNew).not.toHaveBeenCalled();
