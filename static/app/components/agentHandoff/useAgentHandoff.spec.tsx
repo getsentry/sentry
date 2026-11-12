@@ -7,7 +7,7 @@ import {AgentHandoffFlow, useAgentHandoff} from './useAgentHandoff';
 describe('useAgentHandoff', () => {
   const organization = OrganizationFixture();
   const url = `/organizations/${organization.slug}/agent-handoff/prompts/`;
-  const prompt = 'Fetch the guide. Your secret token is `sntryh_example`.';
+  const prompt = 'Open the instructions. Your handoff code is `sntryh_example`.';
   const write = jest.fn();
   const options = {disableIpPinning: false};
   const context = {runId: 'a'.repeat(32)};
@@ -84,7 +84,7 @@ describe('useAgentHandoff', () => {
     );
     await act(async () => {
       await expect(result.current.copyPrompt(options)).rejects.toThrow(
-        'Unable to create your agent prompt. Please try again.'
+        'Unable to create your agent prompt. Try again.'
       );
     });
     expect(write).toHaveBeenCalledTimes(1);
@@ -92,7 +92,7 @@ describe('useAgentHandoff', () => {
       data: Record<string, Promise<Blob>>;
     };
     await expect(item.data['text/plain']).rejects.toThrow(
-      'Unable to create your agent prompt. Please try again.'
+      'Unable to create your agent prompt. Try again.'
     );
   });
 

@@ -142,7 +142,7 @@ from sentry.seer.sentry_data_models import (
     SpanAttributesResponse,
 )
 from sentry.seer.utils import encrypt_access_token_for_seer
-from sentry.sentry_apps.event_types import SentryAppEventType
+from sentry.sentry_apps.event_types import INTERNAL_SEER_EVENT_TYPES, SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
@@ -657,7 +657,7 @@ def send_seer_webhook(
         return SendSeerWebhookErrorResponse(error=f"Invalid event type: {event_type}")
     # Internal only: Sentry raises it itself from the autofix completion hook, and it must not
     # reach Sentry Apps until its payload is settled.
-    if sentry_app_event_type == SentryAppEventType.SEER_ERRORED:
+    if sentry_app_event_type in INTERNAL_SEER_EVENT_TYPES:
         logger.warning("seer.webhook_internal_event_type", extra={"event_type": event_type})
         return SendSeerWebhookErrorResponse(error=f"Invalid event type: {event_type}")
 

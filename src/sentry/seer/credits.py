@@ -5,6 +5,7 @@ from enum import StrEnum
 
 from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_seer_credits_pb2 import (
     CheckSeerCreditsRequest,
+    CheckSeerCreditsResponse,
 )
 
 from sentry import features, seer_credit
@@ -45,14 +46,10 @@ SEER_OPERATION_ESTIMATES: dict[SeerOperation, Callable[[], int]] = {
 }
 
 
-def has_enough_seer_credits(
+def _check_seer_credits(
     organization: Organization, feature: SeerFeature, operation: SeerOperation
-) -> bool:
-    """
-    Checks whether the organization has enough Seer credits to run the operation,
-    for callers that already checked the credit check and token-billed flags.
-    """
-    response = seer_credit.backend.check_seer_credits(
+) -> CheckSeerCreditsResponse:
+    return seer_credit.backend.check_seer_credits(
         CheckSeerCreditsRequest(
             organization_id=organization.id,
             feature_id=feature.value,
@@ -60,15 +57,30 @@ def has_enough_seer_credits(
             take_lease=False,
         )
     )
-    return response.has_enough_credits
+
+
+def has_enough_seer_credits(
+    organization: Organization, feature: SeerFeature, operation: SeerOperation
+) -> bool:
+    """
+    Checks whether the organization has enough Seer credits to run the operation,
+    for callers that already checked the credit check and token-billed flags.
+    """
+    return _check_seer_credits(organization, feature, operation).has_enough_credits
+
+
+def check_seer_operation(
+    organization: Organization, feature: SeerFeature, operation: SeerOperation
+) -> CheckSeerCreditsResponse:
+    """Checks whether the organization is token-billed and has enough Seer credits to run the operation."""
+    if not features.has("organizations:seer-credit-checks", organization) or not features.has(
+        "organizations:token-billed-seer-enabled", organization
+    ):
+        return CheckSeerCreditsResponse(has_enough_credits=True)
+    return _check_seer_credits(organization, feature, operation)
 
 
 def can_run_seer_operation(
     organization: Organization, feature: SeerFeature, operation: SeerOperation
 ) -> bool:
-    """Checks whether the organization is token-billed and has enough Seer credits to run the operation."""
-    if not features.has("organizations:seer-credit-checks", organization) or not features.has(
-        "organizations:token-billed-seer-enabled", organization
-    ):
-        return True
-    return has_enough_seer_credits(organization, feature, operation)
+    return check_seer_operation(organization, feature, operation).has_enough_credits

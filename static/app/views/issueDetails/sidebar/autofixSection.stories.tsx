@@ -52,7 +52,6 @@ class SimulatedSidebarQueryClient extends QueryClient {
       return {
         hasSupportedScmIntegration: true,
         isAutofixEnabled: true,
-        isCodeReviewEnabled: true,
         isSeerConfigured: true,
       };
     }

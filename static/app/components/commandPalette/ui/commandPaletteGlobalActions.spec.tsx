@@ -591,7 +591,7 @@ describe('GlobalCommandPaletteActions - settings-v3', () => {
       await screen.findByRole('option', {name: /Account Settings.*Personal Tokens/})
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('option', {name: /Org Settings.*Personal Tokens/})
+      screen.queryByRole('option', {name: /Organization Settings.*Personal Tokens/})
     ).not.toBeInTheDocument();
   });
 
@@ -602,7 +602,7 @@ describe('GlobalCommandPaletteActions - settings-v3', () => {
     await userEvent.type(input, 'General');
 
     expect(
-      await screen.findByRole('option', {name: /Org Settings.*General/})
+      await screen.findByRole('option', {name: /Organization Settings.*General/})
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('option', {name: /General Settings/})
