@@ -35,10 +35,15 @@ from sentry.seer.workflows.schedule import sync_schedule
 from sentry.service_accounts.models import (
     MAX_NAME_LENGTH,
     InvalidScopeError,
+    ServiceAccountProjectReplica,
     ServiceAccountReplica,
     validate_grantable_scopes,
 )
-from sentry.service_accounts.outbox import ServiceAccountOwnerKind, service_account_create_outbox
+from sentry.service_accounts.outbox import (
+    ServiceAccountOwnerKind,
+    service_account_create_outbox,
+    service_account_grant_update_outbox,
+)
 from sentry.service_accounts.services.service_account import (
     RpcServiceAccount,
     service_account_service,
@@ -51,7 +56,7 @@ SEER_DEFAULT_WORKFLOW_STRATEGIES = (SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,)
 
 
 class WorkflowUpdateError(ValueError):
-    """A rejected workflow update whose message is safe to show users."""
+    """A workflow create or update rejected for its input or the workflow's state."""
 
 
 @dataclass(frozen=True)
@@ -74,6 +79,15 @@ class SeerServiceAccountGrant:
     scopes: Sequence[str]
     project_ids: Sequence[int] = ()
     all_projects: bool = False
+
+    def __post_init__(self) -> None:
+        # Sorted and deduplicated so grants with the same access compare equal.
+        object.__setattr__(self, "scopes", tuple(sorted(set(self.scopes))))
+        object.__setattr__(
+            self,
+            "project_ids",
+            () if self.all_projects else tuple(sorted(set(self.project_ids))),
+        )
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -142,12 +156,7 @@ class SeerWorkflow:
         The outbox drains when the transaction commits. If that fails, the config is kept
         without an account and the outbox retries in the background.
         """
-        if not service_account_grant.all_projects:
-            _validate_project_ids(organization_id, set(service_account_grant.project_ids))
-        try:
-            validate_grantable_scopes(service_account_grant.scopes)
-        except InvalidScopeError as e:
-            raise WorkflowUpdateError(" ".join(e.messages)) from e
+        _validate_service_account_grant(organization_id, service_account_grant)
 
         extras = extras or SeerWorkflowConfigExtras()
         try:
@@ -404,16 +413,22 @@ class SeerWorkflow:
         and the config's schedule is synced to match.
         Do not early return on error cases - propagate an exception so the transaction can roll back.
         """
-        with transaction.atomic(router.db_for_write(SeerWorkflowConfig)):
-            update = self._new_config_update(self._config_queryset().select_for_update().get())
-            yield update
-            if update.changed:
-                update.config.version += 1
-                update.config.save(
-                    update_fields=[*sorted(update.dirty_fields), "version", "date_updated"]
-                )
-            # Even when unchanged, so a schedule that drifted from the config is repaired.
-            sync_schedule(update.config)
+        try:
+            with outbox_context(transaction.atomic(router.db_for_write(SeerWorkflowConfig))):
+                update = self._new_config_update(self._config_queryset().select_for_update().get())
+                yield update
+                if update.changed:
+                    update.config.version += 1
+                    update.config.save(
+                        update_fields=[*sorted(update.dirty_fields), "version", "date_updated"]
+                    )
+                # Even when unchanged, so a schedule that drifted from the config is repaired.
+                sync_schedule(update.config)
+        except (OutboxFlushError, OutboxDatabaseError):
+            logger.exception(
+                "seer.workflow.update.flush_failed",
+                extra={"organization_id": self.organization_id, "config_id": self.config_id},
+            )
 
     @classmethod
     def _new_config_update(cls, config: SeerWorkflowConfig) -> ConfigUpdate:
@@ -501,6 +516,61 @@ class ConfigUpdate:
         self.config.extras = new_extras
         self.mark("extras")
 
+    def current_service_account_grant(self) -> SeerServiceAccountGrant:
+        """The grant of the automation's service account, as last replicated to the cell."""
+        replica = self._service_account_replica()
+        return SeerServiceAccountGrant(
+            scopes=replica.scope_list,
+            project_ids=list(
+                ServiceAccountProjectReplica.objects.filter(service_account=replica).values_list(
+                    "project_id", flat=True
+                )
+            ),
+            all_projects=replica.all_projects,
+        )
+
+    def set_service_account_grant(self, grant: SeerServiceAccountGrant) -> bool:
+        """Replace the scopes and projects of the automation's service account.
+
+        Returns whether the grant differs from the replicated one. Callers must authorize
+        the grant and audit a change.
+        """
+        _validate_service_account_grant(self.config.organization_id, grant)
+        replica = self._service_account_replica()
+        # Sent even when the replica already matches: it can lag control, and applying the
+        # same grant twice changes nothing.
+        service_account_grant_update_outbox(
+            organization_id=self.config.organization_id,
+            service_account_id=replica.service_account_id,
+            scope_list=grant.scopes,
+            project_ids=grant.project_ids,
+            all_projects=grant.all_projects,
+        ).save()
+        if grant == self.current_service_account_grant():
+            return False
+        self.mark_related_changed()
+        return True
+
+    def _service_account_replica(self) -> ServiceAccountReplica:
+        if self.config.service_account_id is None:
+            raise WorkflowUpdateError("The automation doesn't have a service account")
+        replica = ServiceAccountReplica.objects.filter(
+            service_account_id=self.config.service_account_id,
+            organization_id=self.config.organization_id,
+            is_active=True,
+        ).first()
+        if replica is None:
+            logger.warning(
+                "seer.workflow.service_account_missing",
+                extra={
+                    "organization_id": self.config.organization_id,
+                    "config_id": self.config.id,
+                    "service_account_id": self.config.service_account_id,
+                },
+            )
+            raise WorkflowUpdateError("The automation's service account can't be found")
+        return replica
+
     def set_project_selection(self, selection: ProjectSelection) -> None:
         """Replace the selected projects, bumping the version only when the selection changes.
 
@@ -556,6 +626,15 @@ def _validate_project_ids(organization_id: int, project_ids: set[int]) -> None:
     )
     if project_ids != valid_project_ids:
         raise WorkflowUpdateError("Selected projects must exist in the workflow's organization")
+
+
+def _validate_service_account_grant(organization_id: int, grant: SeerServiceAccountGrant) -> None:
+    if not grant.all_projects:
+        _validate_project_ids(organization_id, set(grant.project_ids))
+    try:
+        validate_grantable_scopes(grant.scopes)
+    except InvalidScopeError as e:
+        raise WorkflowUpdateError(" ".join(e.messages)) from e
 
 
 def _service_account_name(config_id: int, automation_name: str | None) -> str:
