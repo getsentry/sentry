@@ -408,6 +408,28 @@ describe('desktop navigation', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('keeps the settings sidebar expanded when the app sidebar is collapsed', () => {
+      localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
+
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({
+          organization: settingsV3,
+          initialRouterConfig: {location: {pathname: '/settings/org-slug/'}},
+        })
+      );
+
+      expect(screen.queryByTestId('collapsed-secondary-sidebar')).not.toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'Organization Tokens'})).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Collapse'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Expand'})).not.toBeInTheDocument();
+      expect(localStorage.getItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY)).toBe(
+        'true'
+      );
+    });
+
     it('shows account settings under the account scope', async () => {
       const {router} = render(
         <PrimaryNavigationContextProvider>
