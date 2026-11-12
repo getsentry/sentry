@@ -314,6 +314,33 @@ describe('ArtifactCard', () => {
       expect(screen.getByText('Null pointer in user handler')).toBeInTheDocument();
     });
 
+    it('shows the agent trace in a thinking block while running', () => {
+      render(
+        <RootCauseCard
+          autofix={mockAutofix}
+          groupId="1"
+          section={makeSection(
+            'root_cause',
+            'processing',
+            [],
+            [
+              {
+                ...makeAssistantBlock('Files are under python/. Let me read them.'),
+                id: 'block-1',
+              },
+              {...makeAssistantBlock('Thinking...'), id: 'block-2', loading: true},
+            ]
+          )}
+        />
+      );
+
+      expect(screen.getByRole('button', {name: /Thinking/})).toBeInTheDocument();
+      expect(
+        screen.getByText('Files are under python/. Let me read them.')
+      ).toBeInTheDocument();
+      expect(screen.queryByText('Thinking...')).not.toBeInTheDocument();
+    });
+
     it('starts a new single run from Re-run', async () => {
       const startStepMock = jest.fn().mockResolvedValue({runId: 777, isSingleRun: true});
       render(
@@ -856,35 +883,12 @@ describe('ArtifactCard', () => {
         />
       );
 
-      expect(screen.getByText('Implementing changes…')).toBeInTheDocument();
+      expect(screen.getByText('Implementing changes')).toBeInTheDocument();
       expect(
         screen.queryByText(
           'Seer failed to generate a code change. This one is on us. Try running it again.'
         )
       ).not.toBeInTheDocument();
-    });
-
-    it('hides an unclosed embed tag in a block that is still loading', () => {
-      render(
-        <CodeChangesCard
-          groupId="1"
-          autofix={mockAutofix}
-          section={makeSection(
-            'code_changes',
-            'processing',
-            [],
-            [
-              {
-                ...makeAssistantBlock('Looking at {% issue %}{"id":"1"'),
-                loading: true,
-              },
-            ]
-          )}
-        />
-      );
-
-      expect(screen.getByText(/Looking at/)).toBeInTheDocument();
-      expect(screen.queryByText(/\{%/)).not.toBeInTheDocument();
     });
 
     it('does not render file diff viewers in error state', () => {
@@ -1376,8 +1380,8 @@ describe('ArtifactCard', () => {
       );
 
       expect(screen.getByText('1 file changed in 1 repo')).toBeInTheDocument();
-      expect(screen.queryByText('Iterating on PR…')).not.toBeInTheDocument();
-      expect(screen.queryByText('Implementing changes…')).not.toBeInTheDocument();
+      expect(screen.queryByText('Iterating on PR')).not.toBeInTheDocument();
+      expect(screen.queryByText('Implementing changes')).not.toBeInTheDocument();
     });
 
     it('renders queued feedback as a feedback item', () => {
@@ -1882,8 +1886,8 @@ describe('ArtifactCard', () => {
       );
 
       expect(screen.getByText('1 file changed in 1 repo')).toBeInTheDocument();
-      expect(screen.queryByText('Implementing changes…')).not.toBeInTheDocument();
-      expect(screen.queryByText('Iterating on PR…')).not.toBeInTheDocument();
+      expect(screen.queryByText('Implementing changes')).not.toBeInTheDocument();
+      expect(screen.queryByText('Iterating on PR')).not.toBeInTheDocument();
     });
 
     it('renders a one-based version tag for the latest iteration', () => {
@@ -1935,8 +1939,8 @@ describe('ArtifactCard', () => {
         />
       );
 
-      expect(screen.getByText('Iterating on PR…')).toBeInTheDocument();
-      expect(screen.queryByText('Implementing changes…')).not.toBeInTheDocument();
+      expect(screen.getByText('Iterating on PR')).toBeInTheDocument();
+      expect(screen.queryByText('Implementing changes')).not.toBeInTheDocument();
     });
 
     it('marks block feedback as processed when the section is not processing', () => {

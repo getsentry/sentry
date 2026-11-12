@@ -104,7 +104,7 @@ class CustomInboundFilterValidateTest(APITestCase):
         assert response.data["suggestedName"] is None
         assert str(response.data["errors"]["conditions"][0]) == (
             "A filter on span data cannot use the error_message condition. "
-            "It accepts release, ip_address."
+            "It accepts release, environment, ip_address."
         )
         mock_request.assert_not_called()
 
