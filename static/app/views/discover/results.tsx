@@ -662,12 +662,9 @@ class ResultsContent extends Component<Props, State> {
       <SentryDocumentTitle title={title} orgSlug={organization.slug}>
         <Stack flex={1}>
           <ResultsHeader
-            setSavedQuery={setSavedQuery}
-            errorCode={errorCode}
             organization={organization}
             location={location}
             eventView={eventView}
-            yAxis={yAxisArray}
             isHomepage={isHomepage}
           />
           <Layout.Body>

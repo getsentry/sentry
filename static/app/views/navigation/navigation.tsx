@@ -32,7 +32,6 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {getReturnPath} from 'sentry/utils/useReturnPath';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {getClassifiersPath, useClassifiersEnabled} from 'sentry/views/classifiers/utils';
-import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {
   getInvestigationsPath,
   useInvestigationsEnabled,

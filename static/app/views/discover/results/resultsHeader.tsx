@@ -12,12 +12,9 @@ import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 type Props = {
-  errorCode: number;
   eventView: EventView;
   location: Location;
   organization: Organization;
-  setSavedQuery: (savedQuery?: SavedQuery) => void;
-  yAxis: string[];
   isHomepage?: boolean;
 };
 
