@@ -133,7 +133,10 @@ export function getEventAgentRun(
   const errorTimestamp = eventNode ? getErrorTimestamp(eventNode, eventId) : 0;
   const runNode = runs.toSorted(
     (a, b) => getDistance(a, errorTimestamp) - getDistance(b, errorTimestamp)
-  )[0]!;
+  )[0];
+  if (!runNode) {
+    return NO_AGENT_RUN;
+  }
   const nodes = agentNodes.length
     ? getRunNodes(runNode)
     : aiNodes.toSorted((a, b) => a.space[0] - b.space[0]);
