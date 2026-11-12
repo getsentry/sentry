@@ -6,7 +6,7 @@ from django.http import HttpResponse
 
 from sentry.agent_handoff.codes import (
     HandoffFlow,
-    OnboardingHandoffContext,
+    ProjectSetupContext,
     _get_redis_client,
     _handoff_key,
     consume_handoff,
@@ -31,7 +31,7 @@ class AgentHandoffViewTest(TestCase):
         run, _ = get_onboarding_progress_service().create_or_resume(
             user_id=self.user.id, organization_id=self.organization.id, client_run_id="browser"
         )
-        self.onboarding_context = OnboardingHandoffContext(run_id=run.run_id)
+        self.onboarding_context = ProjectSetupContext(run_id=run.run_id)
         self.enterContext(
             self.options(
                 {
@@ -43,7 +43,7 @@ class AgentHandoffViewTest(TestCase):
 
     def issue(
         self,
-        context: OnboardingHandoffContext | None = None,
+        context: ProjectSetupContext | None = None,
         *,
         ip_address: str = "127.0.0.1",
         disable_ip_pinning: bool = False,
@@ -99,7 +99,7 @@ class AgentHandoffViewTest(TestCase):
         run, _ = progress.create_or_resume(
             user_id=self.user.id, organization_id=self.organization.id, client_run_id="browser"
         )
-        context = OnboardingHandoffContext(run_id=run.run_id)
+        context = ProjectSetupContext(run_id=run.run_id)
         response = self.claim(self.issue(context))
         assert response.status_code == 200
         match = re.search(r"onboarding run code is `([A-Za-z0-9]{10})`", response.content.decode())
@@ -123,7 +123,7 @@ class AgentHandoffViewTest(TestCase):
             organization_id=self.organization.id,
             client_run_id="browser",
         )
-        response = self.claim(self.issue(OnboardingHandoffContext(run_id=run.run_id)))
+        response = self.claim(self.issue(ProjectSetupContext(run_id=run.run_id)))
         assert response.status_code == 410
         assert not ApiSetupCode.objects.exists()
         assert not ApiAuthorization.objects.exists()
