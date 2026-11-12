@@ -703,10 +703,11 @@ jobs:
           cache-dependency-path: uv.lock
           install-cmd: uv sync --frozen --active
 
+      - name: install sentry
+        run: uv pip install --no-deps -e .
+
       - name: setup sentry (lite)
-        run: |
-          python3 -m tools.fast_editable --path .
-          sentry init
+        run: sentry init
 
       - run: PYTHONWARNINGS=error::RuntimeWarning mypy
         id: run

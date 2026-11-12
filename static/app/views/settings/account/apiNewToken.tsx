@@ -34,6 +34,7 @@ import {
   permissionStateToList,
 } from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
 
+import {apiTokensOptions} from './apiTokensOptions';
 import {
   GranularPermissionSelection,
   granularPermissionsToScopes,
@@ -109,7 +110,7 @@ export default function ApiNewToken() {
       }),
     onSuccess: token => {
       toast.success(t('Created personal token.'));
-      queryClient.invalidateQueries({queryKey: [getApiUrl('/api-tokens/')]});
+      queryClient.invalidateQueries({queryKey: apiTokensOptions.queryKey});
       displayNewToken(token.token, handleGoBack);
     },
     onError: (error: RequestError) => {

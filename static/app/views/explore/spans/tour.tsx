@@ -45,9 +45,7 @@ export function useExploreSpansTourModal() {
 
   const hasOpenedTourModal = useRef(false);
   const {isRegistered, startTour, endTour} = useExploreSpansTour();
-  const {data: assistantData} = useAssistant({
-    notifyOnChangeProps: ['data'],
-  });
+  const {data: assistantData} = useAssistant();
   const {mutate: mutateAssistant} = useMutateAssistant();
 
   const shouldShowTourModal =

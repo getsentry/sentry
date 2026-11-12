@@ -552,6 +552,56 @@ describe('Core StackTrace', () => {
     ).toBeInTheDocument();
   });
 
+  it('skips the source map debug request when no frame can show the unminify action', async () => {
+    const {event, stacktrace} = makeStackTraceData();
+    const javascriptEvent = EventFixture({
+      ...event,
+      sdk: {name: 'sentry.javascript.react', version: '10.0.0'},
+    });
+    const organization = OrganizationFixture({slug: 'org-slug'});
+    const project = DetailedProjectFixture({
+      id: javascriptEvent.projectID,
+      slug: 'project-slug',
+      platform: 'javascript',
+    });
+    const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
+    ProjectsStore.loadInitialData([project]);
+    const sourceMapDebugRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/events/${javascriptEvent.id}/source-map-debug/`,
+      body: {},
+    });
+
+    render(
+      <TestStackTraceProvider
+        event={javascriptEvent}
+        stacktrace={{
+          ...stacktrace,
+          frames: [
+            {
+              ...frame,
+              filename: 'runner.js',
+              absPath: '/home/ubuntu/runner.js',
+              context: [[1, 'const x = 1;']],
+              inApp: true,
+            },
+          ],
+        }}
+        exceptionIndex={0}
+      >
+        <DisplayOptions />
+        <StackTraceFrames
+          frameContextComponent={FrameContent}
+          frameActionsComponent={IssueFrameActions}
+        />
+      </TestStackTraceProvider>,
+      {organization}
+    );
+
+    expect(await screen.findByText('runner.js')).toBeInTheDocument();
+    expect(sourceMapDebugRequest).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', {name: 'Unminify Code'})).not.toBeInTheDocument();
+  });
+
   it('renders sentry app frame links with line context', async () => {
     const {event, stacktrace} = makeStackTraceData();
     MockApiClient.addMockResponse({

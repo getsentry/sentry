@@ -185,7 +185,40 @@ describe('MetricPanel', () => {
     expect(screen.queryByRole('button', {name: 'Table right'})).not.toBeInTheDocument();
   });
 
-  it('counts each top-N group once across transformation pipelines', async () => {
+  it('does not filter raw counts by unit when the y-axis has a dash unit', async () => {
+    const noneUnitTraceMetric: TraceMetric = {
+      name: 'bar',
+      type: 'distribution',
+      unit: 'none',
+    };
+    const rawCountRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {data: [{'count(value)': 11}]},
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.explore.tracemetrics.raw-count.normal',
+          query: '( metric.name:bar metric.type:distribution )',
+        }),
+      ],
+    });
+
+    render(
+      <MetricPanel traceMetric={noneUnitTraceMetric} queryIndex={0} queryLabel="A" />,
+      {
+        organization,
+        additionalWrapper: createWrapper({
+          traceMetric: noneUnitTraceMetric,
+          queryParams: queryParams.replace({
+            aggregateFields: [new VisualizeFunction('p50(value,bar,distribution,-)')],
+          }),
+        }),
+      }
+    );
+
+    await waitFor(() => expect(rawCountRequest).toHaveBeenCalled());
+  });
+
+  it('counts each top-N group once across transformed series', async () => {
     setupEventsMock(
       createTraceMetricFixtures(organization, project, new Date()).detailedFixtures,
       [MockApiClient.matchQuery({referrer: 'api.explore.metric-options'})]

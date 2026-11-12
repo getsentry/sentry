@@ -19,7 +19,7 @@ from django.utils import timezone
 
 from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
+from sentry.api.serializers.models.userreport_with_group import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
 from sentry.issues.grouptype import (
@@ -80,6 +80,7 @@ from sentry.types.rules import RuleFuture as LegacyRuleFuture
 from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
 from sentry.utils.email import MessageBuilder, get_email_addresses
+from sentry.utils.email.sanitize import WORD_JOINER
 from tests.sentry.mail import make_event_data, mock_notify
 
 pytestmark = requires_snuba
@@ -358,6 +359,35 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert "my rule" in msg.alternatives[0][0]
         assert f"&environment={environment.name}" in msg.body
         assert "notification_uuid" in msg.body
+
+    def test_notification_tag_keys_are_not_auto_linked(self) -> None:
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error", "tags": {"os.name": "Debian"}},
+            project_id=self.project.id,
+        )
+
+        rule = self.create_project_rule(name="my rule")
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+
+        notification = Notification(
+            event=event, rule=create_workflow_notification_origin_for_rule(rule)
+        )
+
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+            self.adapter.notify(
+                notification,
+                ActionTargetType.ISSUE_OWNERS,
+                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+            )
+
+        msg = mail.outbox[0]
+        assert isinstance(msg, EmailMultiAlternatives)
+        assert f"* os{WORD_JOINER}.name = Debian" in msg.body
+        html = msg.alternatives[0][0]
+        assert isinstance(html, str)
+        assert ">os&#8288;.name</strong>" in html
+        # The search link keeps the real tag key.
+        assert "query=os.name%3A%22Debian%22" in html
 
     def test_simple_notification_generic(self) -> None:
         """Test that an issue that is neither error nor performance type renders a generic email template"""

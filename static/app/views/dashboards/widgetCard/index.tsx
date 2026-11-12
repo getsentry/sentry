@@ -33,6 +33,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/constants';
+import {useDashboardQueryPriority} from 'sentry/views/dashboards/hooks/useDashboardQueryPriority';
 import type {DashboardFilters, Widget as TWidget} from 'sentry/views/dashboards/types';
 import {
   DashboardFilterKeys,
@@ -58,6 +59,7 @@ import {
   getMenuOptions,
   useDroppedColumnsWarning,
   useTransactionsDeprecationWarning,
+  withMenuActionCallback,
 } from './widgetCardContextMenu';
 import {WidgetFrame} from './widgetFrame';
 import {readableConditions} from './widgetLLMContext';
@@ -99,6 +101,10 @@ type Props = {
   isPreview?: boolean;
   legendOptions?: LegendComponentOption;
   minTableColumnWidth?: number;
+  /**
+   * Called with the item key whenever a context menu item is selected.
+   */
+  onContextMenuAction?: (key: string) => void;
   onDataFetched?: (results: OnDataFetchedParams) => void;
   onDelete?: () => void;
   onDuplicate?: () => void;
@@ -140,6 +146,7 @@ function WidgetCard(props: Props) {
     history: 'replace',
   });
   const {dashboardId: currentDashboardId} = useParams<{dashboardId: string}>();
+  const {priority: dashboardQueryPriority} = useDashboardQueryPriority();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Resolve TOP_N → AREA before capturing context (the render body mutates
@@ -314,6 +321,7 @@ function WidgetCard(props: Props) {
         widget,
         widgetLegendState,
         dashboardFilters,
+        queryPriority: dashboardQueryPriority,
         widgetInterval,
         onClose: () => {
           // Filter out Widget Viewer Modal query params when exiting the Modal
@@ -336,7 +344,7 @@ function WidgetCard(props: Props) {
     ? t('This is a preview only. To edit, you must add this dashboard.')
     : undefined;
 
-  const actions = props.showContextMenu
+  const menuOptions = props.showContextMenu
     ? getMenuOptions(
         dashboardFilters,
         organization,
@@ -353,6 +361,9 @@ function WidgetCard(props: Props) {
         canAskSeer ? askSeer : undefined
       )
     : [];
+  const actions = props.onContextMenuAction
+    ? withMenuActionCallback(menuOptions, props.onContextMenuAction)
+    : menuOptions;
 
   const errorBoundaryHandler = () => {
     return (

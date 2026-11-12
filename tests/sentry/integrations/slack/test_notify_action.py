@@ -17,7 +17,7 @@ from sentry.integrations.slack.analytics import SlackIntegrationNotificationSent
 from sentry.integrations.slack.utils.constants import SLACK_RATE_LIMITED_MESSAGE
 from sentry.integrations.slack.utils.errors import TypedSlackApiError
 from sentry.integrations.types import ExternalProviders
-from sentry.notifications.additional_attachment_manager import manager
+from sentry.notifications.additional_attachment_manager import slack_attachment_manager
 from sentry.notifications.types import NotificationActionContext, NotificationOrigin
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
@@ -423,7 +423,7 @@ class SlackNotifyActionTest(RuleTestCase):
         self, mock_api_call: MagicMock, mock_post: MagicMock, mock_record: MagicMock
     ) -> None:
         with mock.patch.dict(
-            manager.attachment_generators,
+            slack_attachment_manager.attachment_generators,
             {ExternalProviders.SLACK: additional_attachment_generator_block_kit},
         ):
             event = self.get_group_event()

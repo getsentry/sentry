@@ -172,7 +172,7 @@ urlpatterns += [
         JavaScriptSdkLoader.as_view(),
         name="sentry-js-sdk-loader",
     ),
-    re_path(r"^agents/$", AgentHandoffView.as_view(), name="sentry-agent-handoff"),
+    re_path(r"^agent-handoff/$", AgentHandoffView.as_view(), name="sentry-agent-handoff"),
     # docs reference this for acquiring the sentry cli
     re_path(r"^get-cli/$", get_cli, name="get_cli_script"),
     re_path(

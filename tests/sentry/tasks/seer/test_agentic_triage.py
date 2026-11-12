@@ -312,6 +312,35 @@ class TestScheduleAgenticTriage(TestCase):
             with override_settings(SENTRY_SELF_HOSTED=True):
                 assert _get_eligible_orgs_from_batch([org]) == []
 
+    def test_eligible_orgs_by_billing(self) -> None:
+        seat_based = self.create_organization()
+        token_billed = self.create_organization()
+        free_cohort = self.create_organization()
+        free_cohort.update_option("agentic-triage-free-cohort", True)
+        onboarding_only = self.create_organization()
+        no_seer = self.create_organization()
+        all_orgs = [seat_based, token_billed, free_cohort, onboarding_only, no_seer]
+
+        with (
+            self.options({"seer.night_shift.enable_for_legacy_orgs": False}),
+            self.feature(
+                {
+                    "organizations:seer-night-shift": [org.slug for org in all_orgs],
+                    "organizations:seat-based-seer-enabled": [seat_based.slug],
+                    "organizations:seer-token-based-billing-onboarding": [
+                        token_billed.slug,
+                        onboarding_only.slug,
+                    ],
+                    "organizations:token-billed-seer-enabled": [token_billed.slug],
+                }
+            ),
+        ):
+            assert _get_eligible_orgs_from_batch(all_orgs) == [
+                seat_based,
+                token_billed,
+                free_cohort,
+            ]
+
     def test_disabled_by_option(self) -> None:
         with (
             self.options({"seer.night_shift.enable": False}),
@@ -424,6 +453,31 @@ class TestScheduleAgenticTriage(TestCase):
         ):
             schedule_agentic_triage()
             mock_worker.apply_async.assert_not_called()
+
+    def test_dispatches_token_billed_orgs(self) -> None:
+        org = self.create_org_with_seer()
+
+        with (
+            self.options(
+                {
+                    "seer.night_shift.enable": True,
+                    "seer.night_shift.enable_for_legacy_orgs": False,
+                }
+            ),
+            self.feature(
+                {
+                    "organizations:seer-night-shift": [org.slug],
+                    "organizations:seer-token-based-billing-onboarding": [org.slug],
+                    "organizations:token-billed-seer-enabled": [org.slug],
+                }
+            ),
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_for_org"
+            ) as mock_worker,
+        ):
+            schedule_agentic_triage()
+            mock_worker.apply_async.assert_called_once()
+            assert mock_worker.apply_async.call_args.kwargs["args"] == [org.id]
 
     def test_dispatches_legacy_orgs_when_enabled(self) -> None:
         org = self.create_org_with_seer()

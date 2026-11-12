@@ -4,7 +4,7 @@ from collections.abc import Iterator
 from gzip import BadGzipFile, GzipFile
 from io import BytesIO
 from tempfile import SpooledTemporaryFile
-from typing import Protocol, TypedDict, cast
+from typing import Annotated, Protocol, TypedDict, cast
 
 import zstandard
 from django.conf import settings
@@ -30,6 +30,7 @@ from sentry.apidocs.constants import (
     RESPONSE_SUCCESS,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.files.fileblob import FileBlob
@@ -192,15 +193,29 @@ class ChunkUploadPermission(OrganizationReleasePermission):
 
 
 class ChunkUploadOptionsResponse(TypedDict):
-    url: str
-    chunkSize: int
-    chunksPerRequest: int
-    maxFileSize: int
-    maxRequestSize: int
-    concurrency: int
-    hashAlgorithm: str
-    compression: list[str]
-    accept: list[str]
+    url: Annotated[str, ApiDescription("URL to upload chunks to")]
+    chunkSize: Annotated[int, ApiDescription("Size of each chunk in bytes")]
+    chunksPerRequest: Annotated[
+        int, ApiDescription("Maximum number of chunks in one upload request")
+    ]
+    maxFileSize: Annotated[int, ApiDescription("Maximum size of an assembled file in bytes")]
+    maxRequestSize: Annotated[int, ApiDescription("Maximum size of one upload request in bytes")]
+    concurrency: Annotated[
+        int, ApiDescription("Maximum number of upload requests to run at the same time")
+    ]
+    hashAlgorithm: Annotated[str, ApiDescription("Algorithm used to checksum chunks, always sha1")]
+    compression: Annotated[
+        list[str],
+        ApiDescription(
+            "Compression formats the server accepts for chunks, such as gzip and zstd. Empty when compression is off"
+        ),
+    ]
+    accept: Annotated[
+        list[str],
+        ApiDescription(
+            "Kinds of files the server can assemble from chunks, such as debug_files or artifact_bundles"
+        ),
+    ]
 
 
 # Only describes the multipart body in the OpenAPI schema; the endpoint reads

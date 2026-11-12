@@ -1,16 +1,18 @@
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
-from typing import Annotated, Any, NotRequired, TypedDict
+from typing import Annotated, Any, NotRequired, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.formats import Uuid, uuid_str
 from sentry.app import env
+from sentry.auth.principal import acting_user_id
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
-from sentry.constants import SentryAppStatus
+from sentry.constants import SentryAppStatus, SentryAppStatusName
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.integrations.models.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.models.apiapplication import ApiApplication
@@ -79,10 +81,8 @@ class SentryAppSerializerResponse(TypedDict):
     ]
     scopes: Annotated[list[str], ApiDescription("Permission scopes for API access")]
     slug: Annotated[str, ApiDescription("Slug of the custom integration")]
-    status: Annotated[
-        str, ApiDescription("Status of the integration, such as unpublished, published or internal")
-    ]
-    uuid: Annotated[str, ApiDescription("UUID of the custom integration")]
+    status: Annotated[SentryAppStatusName, ApiDescription("Status of the integration")]
+    uuid: Annotated[Uuid, ApiDescription("UUID of the custom integration")]
     verifyInstall: Annotated[
         bool, ApiDescription("Whether installations of the integration must be verified")
     ]
@@ -160,7 +160,8 @@ class SentryAppSerializer(Serializer):
             for app in ApiApplication.objects.filter(id__in=[i.application_id for i in item_list])
         }
 
-        user_orgs = user_service.get_organizations(user_id=user.id)
+        user_id = acting_user_id(user)
+        user_orgs = user_service.get_organizations(user_id=user_id) if user_id is not None else []
         user_org_ids = {uo.id for uo in user_orgs}
 
         # Fetch organization contexts for unique owner_ids where user is a member.
@@ -171,7 +172,7 @@ class SentryAppSerializer(Serializer):
         unique_owner_ids = {i.owner_id for i in item_list if i.owner_id in user_org_ids}
         for owner_id in unique_owner_ids:
             owner_context = organization_service.get_access_context(
-                organization_id=owner_id, user_id=user.id
+                organization_id=owner_id, user_id=user_id
             )
             if owner_context:
                 owner_contexts[owner_id] = owner_context
@@ -220,8 +221,8 @@ class SentryAppSerializer(Serializer):
             schema=obj.schema,
             scopes=obj.get_scopes(),
             slug=obj.slug,
-            status=obj.get_status_display(),
-            uuid=obj.uuid,
+            status=cast(SentryAppStatusName, obj.get_status_display()),
+            uuid=uuid_str(obj.uuid),
             verifyInstall=obj.verify_install,
             webhookUrl=obj.webhook_url,
             # Header values are write-only after save; masked values can still be

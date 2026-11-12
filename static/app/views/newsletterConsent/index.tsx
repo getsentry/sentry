@@ -65,31 +65,30 @@ function NewsletterConsent({onSubmitSuccess}: Props) {
           <Stack gap="xl">
             <form.AppField name="subscribed">
               {field => (
-                <field.Radio.Group
-                  value={field.state.value}
-                  onChange={value => field.handleChange(consentChoiceSchema.parse(value))}
-                >
-                  <field.Layout.Stack
-                    label={t('Email Updates')}
-                    hintText={tct(
-                      `We'd love to keep you updated via email with product and feature
+                <field.RadioGroup value={field.state.value} onChange={field.handleChange}>
+                  {({Item}) => (
+                    <field.Layout.Stack
+                      label={t('Email Updates')}
+                      hintText={tct(
+                        `We'd love to keep you updated via email with product and feature
                     announcements, promotions, educational materials, and events. Our updates
                     focus on relevant information, and we'll never sell your data to third
                     parties. See our [link:Privacy Policy] for more details.`,
-                      {link: <ExternalLink href="https://sentry.io/privacy/" />}
-                    )}
-                    required
-                  >
-                    <Stack gap="sm">
-                      <field.Radio.Item value="true">
-                        {t('Yes, I would like to receive updates via email')}
-                      </field.Radio.Item>
-                      <field.Radio.Item value="false">
-                        {t("No, I'd prefer not to receive these updates")}
-                      </field.Radio.Item>
-                    </Stack>
-                  </field.Layout.Stack>
-                </field.Radio.Group>
+                        {link: <ExternalLink href="https://sentry.io/privacy/" />}
+                      )}
+                      required
+                    >
+                      <Stack gap="sm">
+                        <Item value="true">
+                          {t('Yes, I would like to receive updates via email')}
+                        </Item>
+                        <Item value="false">
+                          {t("No, I'd prefer not to receive these updates")}
+                        </Item>
+                      </Stack>
+                    </field.Layout.Stack>
+                  )}
+                </field.RadioGroup>
               )}
             </form.AppField>
             <Flex justify="end" borderTop="secondary" paddingTop="xl" paddingBottom="xl">

@@ -20,8 +20,6 @@ from sentry.investigations.models import (
     InvestigationOrchestrationRun,
     InvestigationOrchestrationStatus,
 )
-from sentry.investigations.services.action_kinds import ACTION_KINDS
-from sentry.investigations.services.action_requests import STALE
 from sentry.investigations.services.orchestration import (
     accept_orchestration_command,
     archive_investigation_with_orchestration,
@@ -37,7 +35,8 @@ from sentry.investigations.services.orchestration_events import (
     reconcile_orchestration_projection,
     synchronize_orchestration_projection,
 )
-from sentry.notebooks.endpoints.serializers import InvestigationBlockSerializer
+from sentry.models.organizationmember import OrganizationMember
+from sentry.notebooks.endpoints.serializers import NotebookBlockSerializer
 from sentry.notebooks.endpoints.validators.block import BlockUpdateValidator
 from sentry.notebooks.models import (
     NotebookActionRequest,
@@ -48,11 +47,16 @@ from sentry.notebooks.models import (
     NotebookBlockExecutor,
     NotebookStatus,
 )
+from sentry.notebooks.services.action_kinds import ACTION_KINDS
+from sentry.notebooks.services.action_requests import STALE
 from sentry.notebooks.services.notebooks import (
-    InvestigationConflictError,
-    archive_investigation,
-    update_investigation,
+    NotebookConflictError,
+    archive_notebook_row,
+    update_block,
+    update_notebook_row,
 )
+from sentry.notifications.models.inboxitem import InboxItem
+from sentry.notifications.models.inboxitemevent import InboxActorType, InboxItemEvent
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -204,7 +208,7 @@ class InvestigationOrchestrationEventTransportTest(SeerRunMirrorMixin, TestCase)
         assert not investigation.orchestration_run.events.exists()
 
 
-class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
+class InvestigationOrchestrationEventTestBase(SeerRunMirrorMixin, TestCase):
     seer_run_id = 4815
 
     def setUp(self) -> None:
@@ -295,6 +299,8 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             **values,
         }
 
+
+class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBase):
     def test_execution_timestamps_survive_completion_and_snapshot_replay(self) -> None:
         started_at = timezone.now() - timedelta(minutes=5)
         completed_at = started_at + timedelta(minutes=2)
@@ -351,8 +357,8 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         block = NotebookBlock.objects.get(notebook=self.investigation, producer_key="summary")
         self.investigation.refresh_from_db()
         self.orchestration_run.refresh_from_db()
-        archived = archive_investigation(
-            investigation=self.investigation, expected_version=self.investigation.version
+        archived = archive_notebook_row(
+            notebook=self.investigation, expected_version=self.investigation.version
         )
         version = archived.version
         notebook_revision = self.orchestration_run.notebook_revision
@@ -409,8 +415,8 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
 
     def test_scope_fallback_keeps_output_permissions_after_project_selection_changes(self) -> None:
         other_project = self.create_project(organization=self.organization)
-        update_investigation(
-            investigation=self.investigation,
+        update_notebook_row(
+            notebook=self.investigation,
             expected_version=self.investigation.version,
             fields={},
             project_ids=[self.project.id, other_project.id],
@@ -425,8 +431,8 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         payload = self.report_block(projectIds=[], useInvestigationProjectScope=True)
         self.deliver(self.make_event(1, "report_block_started", payload))
         self.investigation.refresh_from_db()
-        update_investigation(
-            investigation=self.investigation,
+        update_notebook_row(
+            notebook=self.investigation,
             expected_version=self.investigation.version,
             fields={},
             project_ids=[other_project.id],
@@ -533,15 +539,15 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
                 serialize(
                     block,
                     self.user,
-                    InvestigationBlockSerializer(),
+                    NotebookBlockSerializer(),
                 )["content"]
                 == "Original report"
             )
 
     def test_identical_replacement_result_keeps_the_started_project_scope(self) -> None:
         replacement_project = self.create_project(organization=self.organization)
-        update_investigation(
-            investigation=self.investigation,
+        update_notebook_row(
+            notebook=self.investigation,
             expected_version=self.investigation.version,
             fields={},
             project_ids=[self.project.id],
@@ -552,8 +558,8 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         payload = self.report_block(projectIds=[], useInvestigationProjectScope=True)
         self.deliver(self.make_event(1, "report_block_upserted", payload))
         self.investigation.refresh_from_db()
-        update_investigation(
-            investigation=self.investigation,
+        update_notebook_row(
+            notebook=self.investigation,
             expected_version=self.investigation.version,
             fields={},
             project_ids=[replacement_project.id],
@@ -578,7 +584,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             serialize(
                 block,
                 self.user,
-                InvestigationBlockSerializer(),
+                NotebookBlockSerializer(),
             )["content"]
             == payload["content"]
         )
@@ -740,8 +746,8 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
 
     def test_failed_kind_replacement_snapshot_restores_original_output(self) -> None:
         replacement_project = self.create_project(organization=self.organization)
-        update_investigation(
-            investigation=self.investigation,
+        update_notebook_row(
+            notebook=self.investigation,
             expected_version=self.investigation.version,
             fields={},
             project_ids=[self.project.id],
@@ -755,8 +761,8 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         original_execution = block.current_execution
         assert original_execution is not None
         self.investigation.refresh_from_db()
-        update_investigation(
-            investigation=self.investigation,
+        update_notebook_row(
+            notebook=self.investigation,
             expected_version=self.investigation.version,
             fields={},
             project_ids=[replacement_project.id],
@@ -823,7 +829,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             serialize(
                 block,
                 self.user,
-                InvestigationBlockSerializer(),
+                NotebookBlockSerializer(),
             )["content"]
             == "Original report"
         )
@@ -1116,6 +1122,12 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             producer_revision=1,
             producer_key="stale-summary",
         )
+        execution = self.create_notebook_block_execution(
+            block=block,
+            block_version=block.version,
+            status=NotebookBlockExecutionStatus.COMPLETED,
+        )
+        block.update(current_execution=execution, content_execution=execution)
 
         reconcile_orchestration_projection(
             orchestration_run_id=self.orchestration_run.id,
@@ -1144,7 +1156,11 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert self.orchestration_run.phase == "planning"
         assert self.orchestration_run.last_event_sequence == 0
         assert self.orchestration_run.notebook_revision == 1
-        assert block.deleted_at is not None
+        assert block.deleted_at is None
+        assert block.stale_at is None
+        assert self.orchestration_run.projection["_sentryControl"]["reportReplacedBlockIds"] == [
+            block.id
+        ]
 
     def test_manual_title_override_survives_generated_title_events(self) -> None:
         self.investigation.title = "My incident title"
@@ -1196,7 +1212,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             actor_id=self.user.id,
         )
 
-        with pytest.raises(InvestigationConflictError):
+        with pytest.raises(NotebookConflictError):
             update_investigation_with_orchestration(
                 investigation=self.investigation,
                 expected_version=original_version,
@@ -1369,7 +1385,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         shared = serialize(
             block,
             viewer,
-            InvestigationBlockSerializer(),
+            NotebookBlockSerializer(),
         )
         assert shared["content"] == "fresh"
         assert shared["generatedContent"] == "fresh"
@@ -1408,7 +1424,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             serialize(
                 in_flight,
                 self.user,
-                InvestigationBlockSerializer(),
+                NotebookBlockSerializer(),
             )["outputStatus"]
             == NotebookBlockExecutionStatus.RUNNING
         )
@@ -1796,6 +1812,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
                         phase="completed",
                         status="completed",
                         report_revision=2,
+                        report_status="completed",
                     ),
                     "reportRevision": 2,
                     "blocks": [
@@ -2017,7 +2034,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert first.producer_revision == 2
         assert first.content == "revised body"
         assert first.deleted_at is None
-        assert second.producer_revision == 2
+        assert second.producer_revision == 1
         assert second.deleted_at is not None
 
         self.deliver(
@@ -2043,6 +2060,10 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert first.producer_revision == 2
         assert first.deleted_at is None
         self.deliver(self.make_event(10, "report_clear", {"reportRevision": 3}))
+        first.refresh_from_db()
+        assert first.deleted_at is None
+        assert first.stale_at is None
+        self.deliver(self.make_event(11, "report_completed", {"reportRevision": 3}))
         first.refresh_from_db()
         assert first.deleted_at is not None
 
@@ -2100,7 +2121,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
 
         completed = NotebookBlock.objects.get(producer_key="completed")
         partial = NotebookBlock.objects.get(producer_key="partial")
-        assert completed.producer_revision == 2
+        assert completed.producer_revision == 1
         assert completed.deleted_at is None
         assert partial.producer_revision == 1
         assert partial.deleted_at is not None
@@ -2110,6 +2131,355 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             "code": "investigation_report_restarted",
             "message": "The investigation report was restarted.",
         }
+
+    def text_block_upserted(
+        self, sequence: int, key: str, revision: int, content: str
+    ) -> dict[str, Any]:
+        return self.make_event(
+            sequence,
+            "report_block_upserted",
+            self.report_block(key, reportRevision=revision, title=key, content=content),
+        )
+
+    def test_report_clear_keeps_blocks_until_the_new_report_completes(self) -> None:
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.text_block_upserted(2, "kept", 1, "kept body"))
+        self.deliver(self.text_block_upserted(3, "dropped", 1, "dropped body"))
+        kept = NotebookBlock.objects.get(producer_key="kept")
+        dropped = NotebookBlock.objects.get(producer_key="dropped")
+        comment = self.create_notebook_comment(notebook=self.investigation, block=kept)
+        self.deliver_request(
+            4, self.action_request("under", anchor={"type": "block", "id": "dropped"})
+        )
+
+        self.deliver(self.make_event(5, "report_clear", {"reportRevision": 2}))
+
+        for block in (kept, dropped):
+            block.refresh_from_db()
+            assert block.deleted_at is None
+            assert block.stale_at is None
+        assert dropped.content == "dropped body"
+
+        self.deliver(
+            self.make_event(
+                6,
+                "report_block_started",
+                {
+                    "reportRevision": 2,
+                    "stableAgentKey": "kept",
+                    "position": 0,
+                    "kind": "text",
+                    "title": "kept",
+                    "projectIds": [self.project.id],
+                },
+            )
+        )
+        kept.refresh_from_db()
+        assert kept.producer_revision == 2
+        assert kept.content == "kept body"
+
+        self.deliver(self.text_block_upserted(7, "kept", 2, "rewritten"))
+        self.deliver_request(
+            8,
+            self.action_request(
+                "fresh", reportRevision=2, anchor={"type": "block", "id": "dropped"}
+            ),
+        )
+        self.deliver(self.make_event(9, "report_completed", {"reportRevision": 2}))
+
+        rewritten = NotebookBlock.objects.get(producer_key="kept", deleted_at__isnull=True)
+        assert rewritten.id == kept.id
+        assert rewritten.producer_revision == 2
+        assert rewritten.content == "rewritten"
+        assert rewritten.stale_at is None
+        comment.refresh_from_db()
+        assert comment.block_id == kept.id
+        dropped.refresh_from_db()
+        assert dropped.deleted_at is not None
+        assert self.request_states() == {
+            "under": NotebookActionRequestState.SUPERSEDED,
+            "fresh": NotebookActionRequestState.SUPERSEDED,
+        }
+
+    def test_failed_report_keeps_replaced_blocks_until_a_report_completes(self) -> None:
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.text_block_upserted(2, "old", 1, "old body"))
+        self.deliver(self.make_event(3, "report_clear", {"reportRevision": 2}))
+        self.deliver(
+            self.make_event(
+                4,
+                "report_failed",
+                {"reportRevision": 2, "error": {"code": "failed", "message": "Report failed"}},
+            )
+        )
+
+        old = NotebookBlock.objects.get(producer_key="old")
+        assert old.deleted_at is None
+
+        self.deliver(self.make_event(5, "report_clear", {"reportRevision": 3}))
+        self.deliver(self.make_event(6, "report_completed", {"reportRevision": 3}))
+
+        old.refresh_from_db()
+        assert old.deleted_at is not None
+
+    def test_cancelled_report_keeps_replaced_blocks(self) -> None:
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.text_block_upserted(2, "old", 1, "old body"))
+        self.deliver(self.make_event(3, "report_clear", {"reportRevision": 2}))
+        self.deliver(
+            self.make_event(
+                4,
+                "workflow_updated",
+                {
+                    "projection": self.projection(
+                        workflow_version=2,
+                        phase="cancelled",
+                        status="cancelled",
+                        report_revision=2,
+                    )
+                },
+            )
+        )
+
+        old = NotebookBlock.objects.get(producer_key="old")
+        assert old.deleted_at is None
+        assert old.content == "old body"
+
+    def test_report_clear_removes_blocks_without_completed_output(self) -> None:
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.text_block_upserted(2, "done", 1, "done body"))
+        self.deliver(self.text_block_upserted(3, "rewriting", 1, "first body"))
+        self.deliver(
+            self.make_event(
+                4,
+                "report_block_started",
+                {
+                    "reportRevision": 1,
+                    "stableAgentKey": "streaming",
+                    "position": 2,
+                    "kind": "text",
+                    "title": "streaming",
+                    "projectIds": [self.project.id],
+                },
+            )
+        )
+        self.deliver(
+            self.make_event(
+                5,
+                "report_text_delta",
+                {"reportRevision": 1, "stableAgentKey": "streaming", "delta": "partial"},
+            )
+        )
+        self.deliver(self.make_event(6, "report_clear", {"reportRevision": 2}))
+        self.deliver(
+            self.make_event(
+                7,
+                "report_block_started",
+                {
+                    "reportRevision": 2,
+                    "stableAgentKey": "rewriting",
+                    "position": 1,
+                    "kind": "text",
+                    "title": "rewriting",
+                    "projectIds": [self.project.id],
+                },
+            )
+        )
+        streaming = NotebookBlock.objects.get(producer_key="streaming")
+        assert streaming.deleted_at is not None
+
+        self.deliver(self.make_event(8, "report_clear", {"reportRevision": 3}))
+
+        done = NotebookBlock.objects.get(producer_key="done")
+        rewriting = NotebookBlock.objects.get(producer_key="rewriting")
+        assert done.deleted_at is None
+        assert rewriting.deleted_at is None
+        assert rewriting.content == "first body"
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.projection["_sentryControl"][
+            "reportReplacedBlockIds"
+        ] == sorted([done.id, rewriting.id])
+
+    def test_snapshot_drops_unlisted_blocks_of_its_revision(self) -> None:
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.text_block_upserted(2, "old", 1, "old body"))
+        self.deliver(self.make_event(3, "report_clear", {"reportRevision": 2}))
+        self.deliver(self.text_block_upserted(4, "dropped", 2, "dropped body"))
+
+        self.deliver(
+            self.make_event(
+                5,
+                "state_snapshot",
+                {
+                    "projection": self.projection(
+                        workflow_version=2, phase="reporting", report_revision=2
+                    ),
+                    "reportRevision": 2,
+                    "blocks": [self.report_block("new", title="New", content="new body")],
+                },
+            )
+        )
+
+        old = NotebookBlock.objects.get(producer_key="old")
+        dropped = NotebookBlock.objects.get(producer_key="dropped")
+        new = NotebookBlock.objects.get(producer_key="new")
+        assert old.deleted_at is None
+        assert dropped.deleted_at is not None
+        assert new.deleted_at is None
+
+        self.deliver(self.make_event(6, "report_completed", {"reportRevision": 2}))
+
+        old.refresh_from_db()
+        assert old.deleted_at is not None
+
+    def test_adopted_blocks_survive_report_completion(self) -> None:
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.text_block_upserted(2, "first", 1, "first body"))
+        self.deliver(
+            self.make_event(
+                3,
+                "workflow_updated",
+                {
+                    "projection": self.projection(
+                        workflow_version=2, phase="reporting", report_revision=2
+                    )
+                },
+            )
+        )
+        self.deliver(self.make_event(4, "report_completed", {"reportRevision": 2}))
+
+        first = NotebookBlock.objects.get(producer_key="first")
+        assert first.deleted_at is None
+        assert first.stale_at is None
+        assert first.producer_revision == 1
+        assert first.content == "first body"
+
+    def test_text_after_a_clear_leaves_the_replaced_block_alone(self) -> None:
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.text_block_upserted(2, "summary", 1, "old body"))
+        self.deliver(self.make_event(3, "report_clear", {"reportRevision": 2}))
+
+        self.deliver(
+            self.make_event(
+                4,
+                "report_text_delta",
+                {"reportRevision": 2, "stableAgentKey": "summary", "delta": " more"},
+            )
+        )
+
+        block = NotebookBlock.objects.get(producer_key="summary")
+        assert block.producer_revision == 1
+        assert block.content == "old body"
+
+    def test_adoption_keeps_only_blocks_the_current_report_rewrote(self) -> None:
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.text_block_upserted(2, "kept", 1, "kept body"))
+        self.deliver(self.text_block_upserted(3, "rewritten", 1, "first body"))
+        self.deliver(self.make_event(4, "report_clear", {"reportRevision": 2}))
+        self.deliver(self.text_block_upserted(5, "rewritten", 2, "second body"))
+        self.deliver(
+            self.make_event(
+                6,
+                "workflow_updated",
+                {
+                    "projection": self.projection(
+                        workflow_version=2, phase="reporting", report_revision=3
+                    )
+                },
+            )
+        )
+        kept = NotebookBlock.objects.get(producer_key="kept")
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.projection["_sentryControl"]["reportReplacedBlockIds"] == [
+            kept.id
+        ]
+
+        self.deliver(self.make_event(7, "report_completed", {"reportRevision": 3}))
+
+        kept.refresh_from_db()
+        rewritten = NotebookBlock.objects.get(producer_key="rewritten")
+        assert kept.deleted_at is not None
+        assert rewritten.deleted_at is None
+        assert rewritten.producer_revision == 2
+        assert rewritten.content == "second body"
+
+    def test_adoption_keeps_a_block_with_a_rewrite_in_progress(self) -> None:
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.text_block_upserted(2, "rewriting", 1, "first body"))
+        self.deliver(self.make_event(3, "report_clear", {"reportRevision": 2}))
+        self.deliver(
+            self.make_event(
+                4,
+                "report_block_started",
+                {
+                    "reportRevision": 2,
+                    "stableAgentKey": "rewriting",
+                    "position": 0,
+                    "kind": "text",
+                    "title": "rewriting",
+                    "projectIds": [self.project.id],
+                },
+            )
+        )
+        self.deliver(
+            self.make_event(
+                5,
+                "workflow_updated",
+                {
+                    "projection": self.projection(
+                        workflow_version=2, phase="reporting", report_revision=3
+                    )
+                },
+            )
+        )
+        self.deliver(self.make_event(6, "report_completed", {"reportRevision": 3}))
+
+        block = NotebookBlock.objects.get(producer_key="rewriting")
+        assert block.deleted_at is None
+        assert block.content == "first body"
+        assert block.current_execution is not None
+        assert block.current_execution.status == NotebookBlockExecutionStatus.CANCELLED
+
+    def test_report_completion_removes_only_blocks_a_clear_replaced(self) -> None:
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.text_block_upserted(2, "edited", 1, "first body"))
+        self.deliver(
+            self.make_event(
+                3,
+                "workflow_updated",
+                {
+                    "projection": self.projection(
+                        workflow_version=2, phase="reporting", report_revision=2
+                    )
+                },
+            )
+        )
+        edited = NotebookBlock.objects.get(producer_key="edited")
+        self.investigation.refresh_from_db()
+        edited = update_block(
+            block=edited,
+            expected_notebook_version=self.investigation.version,
+            expected_block_version=edited.version,
+            user_id=self.user.id,
+            values={"content": "my notes"},
+        )
+        assert edited.stale_at is not None
+
+        self.deliver(self.make_event(4, "report_completed", {"reportRevision": 2}))
+
+        edited.refresh_from_db()
+        assert edited.deleted_at is None
+        assert edited.producer_revision == 1
+
+        self.deliver(self.make_event(5, "report_clear", {"reportRevision": 3}))
+        self.deliver(self.text_block_upserted(6, "new", 3, "new body"))
+        self.deliver(self.make_event(7, "report_completed", {"reportRevision": 3}))
+
+        assert NotebookBlock.objects.get(id=edited.id).deleted_at is not None
+        new = NotebookBlock.objects.get(producer_key="new")
+        assert new.deleted_at is None
+        self.orchestration_run.refresh_from_db()
+        assert "reportReplacedBlockIds" not in self.orchestration_run.projection["_sentryControl"]
 
     def test_report_failure_finishes_partial_text_and_query_executions(self) -> None:
         events = [
@@ -2723,7 +3093,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             state=NotebookActionRequestState.APPLIED,
         )
 
-        with patch("sentry.investigations.services.action_requests.logger") as logger:
+        with patch("sentry.notebooks.services.action_requests.logger") as logger:
             self.deliver_request(3, self.action_request("applied", primary=True))
 
         logger.warning.assert_called_once()
@@ -2940,6 +3310,36 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert self.request_states() == {
             "under": NotebookActionRequestState.SUPERSEDED,
             "other": NotebookActionRequestState.SUGGESTED,
+        }
+
+    def test_snapshot_supersedes_the_requests_under_unlisted_blocks(self) -> None:
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.text_block_upserted(2, "dropped", 1, "dropped body"))
+        self.deliver_request(
+            3, self.action_request("under", anchor={"type": "block", "id": "dropped"})
+        )
+        self.deliver_request(4, self.action_request("unanchored"))
+
+        self.deliver(
+            self.make_event(
+                5,
+                "state_snapshot",
+                {
+                    "projection": self.projection(
+                        workflow_version=2, phase="reporting", report_revision=1
+                    ),
+                    "reportRevision": 1,
+                    "blocks": [
+                        self.report_block("new", reportRevision=1, title="New", content="new")
+                    ],
+                },
+            )
+        )
+
+        assert NotebookBlock.objects.get(producer_key="dropped").deleted_at is not None
+        assert self.request_states() == {
+            "under": NotebookActionRequestState.SUPERSEDED,
+            "unanchored": NotebookActionRequestState.SUGGESTED,
         }
 
     def test_an_older_snapshot_with_blocks_leaves_current_requests_alone(self) -> None:
@@ -3221,6 +3621,337 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
 
         assert self.stale_keys() == set()
         assert set(self.request_states().values()) == {NotebookActionRequestState.SUPERSEDED}
+
+
+@with_feature(
+    {
+        "organizations:investigations": True,
+        "organizations:universal-inbox-recording": True,
+        "organizations:universal-inbox": False,
+    }
+)
+class InvestigationCompletedInboxTest(InvestigationOrchestrationEventTestBase):
+    def complete(self, *, sequence: int = 1, generation: int = 1) -> OrchestrationEventReceipt:
+        return self.deliver(
+            self.make_event(
+                sequence,
+                "workflow_updated",
+                {
+                    "projection": self.projection(
+                        workflow_version=sequence + 1,
+                        generation=generation,
+                        phase="completed",
+                        status="completed",
+                    )
+                },
+                generation=generation,
+            )
+        )
+
+    def test_records_system_event_for_creator_with_ui_disabled(self) -> None:
+        self.complete()
+
+        item = InboxItem.objects.get()
+        event = InboxItemEvent.objects.get(inbox_item=item)
+        assert item.organization_id == self.organization.id
+        assert item.user_id == self.user.id
+        assert item.subject_type == "notebook"
+        assert item.subject_id == str(self.investigation.id)
+        assert event.type == "notebook.completed"
+        assert event.actor_type == InboxActorType.SYSTEM
+        assert event.actor_id is None
+        assert event.data == {
+            "summary": "Investigation completed",
+            "seer_run_id": self.seer_run_id,
+        }
+
+    def test_replay_and_reconciliation_do_not_duplicate_pruned_events(self) -> None:
+        event = self.make_event(
+            1,
+            "workflow_updated",
+            {
+                "projection": self.projection(
+                    workflow_version=2, phase="completed", status="completed"
+                )
+            },
+        )
+        self.deliver(event)
+        InboxItemEvent.objects.get().delete()
+
+        self.deliver(event)
+        self.complete(sequence=2)
+        synchronize_orchestration_projection(
+            orchestration_run_id=self.orchestration_run.id,
+            seer_run_id=self.seer_run_id,
+            projection=self.projection(workflow_version=4, phase="completed", status="completed"),
+        )
+        reconcile_orchestration_projection(
+            orchestration_run_id=self.orchestration_run.id,
+            seer_run_id=self.seer_run_id,
+            projection=self.projection(workflow_version=5, phase="completed", status="completed"),
+            expected_last_event_sequence=2,
+            expected_workflow_version=4,
+        )
+
+        assert not InboxItemEvent.objects.exists()
+
+    def test_new_generation_records_another_completion(self) -> None:
+        self.complete()
+        synchronize_orchestration_projection(
+            orchestration_run_id=self.orchestration_run.id,
+            seer_run_id=self.seer_run_id,
+            projection=self.projection(workflow_version=3, generation=2),
+        )
+        synchronize_orchestration_projection(
+            orchestration_run_id=self.orchestration_run.id,
+            seer_run_id=self.seer_run_id,
+            projection=self.projection(
+                workflow_version=4, generation=2, phase="completed", status="completed"
+            ),
+        )
+        self.complete(sequence=2)
+
+        assert InboxItem.objects.count() == 1
+        assert InboxItemEvent.objects.filter(type="notebook.completed").count() == 2
+
+    def test_terminal_snapshot_fast_forward_records_completion(self) -> None:
+        self.deliver(
+            self.make_event(
+                5,
+                "state_snapshot",
+                {
+                    "full": True,
+                    "terminal": True,
+                    "projection": self.projection(
+                        workflow_version=2, phase="completed", status="completed"
+                    ),
+                    "blocks": [],
+                    "reportRevision": 0,
+                },
+            )
+        )
+
+        assert InboxItemEvent.objects.get().type == "notebook.completed"
+
+    def test_reconciliation_records_first_completion(self) -> None:
+        reconcile_orchestration_projection(
+            orchestration_run_id=self.orchestration_run.id,
+            seer_run_id=self.seer_run_id,
+            projection=self.projection(workflow_version=2, phase="completed", status="completed"),
+            expected_last_event_sequence=0,
+            expected_workflow_version=1,
+        )
+
+        assert InboxItemEvent.objects.get().type == "notebook.completed"
+
+    def test_rollback_removes_event_and_completion_marker(self) -> None:
+        with (
+            pytest.raises(RuntimeError),
+            transaction.atomic(using=router.db_for_write(InvestigationOrchestrationRun)),
+        ):
+            self.complete()
+            assert InboxItemEvent.objects.count() == 1
+            raise RuntimeError("Roll back completion")
+
+        assert not InboxItem.objects.exists()
+        self.complete()
+        assert InboxItemEvent.objects.count() == 1
+
+    def test_recording_disabled_does_not_backfill_on_replay(self) -> None:
+        with self.feature({"organizations:universal-inbox-recording": False}):
+            self.complete()
+        self.complete(sequence=2)
+
+        assert not InboxItem.objects.exists()
+
+    def test_non_successful_states_do_not_record_completion(self) -> None:
+        for version, status in enumerate(
+            ("processing", "awaiting_input", "failed", "cancelled"), 2
+        ):
+            synchronize_orchestration_projection(
+                orchestration_run_id=self.orchestration_run.id,
+                seer_run_id=self.seer_run_id,
+                projection=self.projection(workflow_version=version, status=status),
+            )
+
+        assert not InboxItem.objects.exists()
+
+    def test_failure_event_carrying_completed_projection_does_not_notify(self) -> None:
+        self.deliver(
+            self.make_event(
+                1,
+                "workflow_failed",
+                {
+                    "projection": self.projection(
+                        workflow_version=2, phase="completed", status="completed"
+                    ),
+                    "error": {"code": "investigation_failed", "message": "Investigation failed"},
+                },
+            )
+        )
+
+        assert not InboxItem.objects.exists()
+
+    def test_archived_investigation_does_not_notify(self) -> None:
+        self.investigation.update(status=NotebookStatus.ARCHIVED)
+        self.complete()
+
+        assert not InboxItem.objects.exists()
+
+    def test_removed_creator_does_not_notify(self) -> None:
+        self.create_member(organization=self.create_organization(), user=self.user)
+        OrganizationMember.objects.get(
+            organization=self.organization, user_id=self.user.id
+        ).delete()
+        self.complete()
+
+        assert not InboxItem.objects.exists()
+
+    def test_inactive_creator_does_not_notify(self) -> None:
+        OrganizationMember.objects.get(organization=self.organization, user_id=self.user.id).update(
+            user_is_active=False
+        )
+        self.complete()
+
+        assert not InboxItem.objects.exists()
+
+    @patch(
+        "sentry.models.organizationmember.OrganizationMember.get_scopes",
+        return_value=frozenset({"org:billing"}),
+    )
+    def test_creator_without_investigation_scope_does_not_notify(
+        self, mock_get_scopes: Mock
+    ) -> None:
+        self.complete()
+
+        assert not InboxItem.objects.exists()
+        mock_get_scopes.assert_called_once()
+
+    def test_closed_membership_does_not_notify(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        self.complete()
+
+        assert not InboxItem.objects.exists()
+
+    def test_investigations_disabled_does_not_notify(self) -> None:
+        with self.feature({"organizations:investigations": False}):
+            self.complete()
+
+        assert not InboxItem.objects.exists()
+
+    def test_missing_creator_does_not_notify(self) -> None:
+        self.investigation.update(created_by_id=None)
+        self.complete()
+
+        assert not InboxItem.objects.exists()
+
+
+@with_feature(
+    {
+        "organizations:investigations": True,
+        "organizations:investigations-issue-links": True,
+    }
+)
+@patch("sentry.tasks.seer.investigation.publish_investigation_issue_links.delay")
+class InvestigationIssueLinksScheduleTest(InvestigationOrchestrationEventTestBase):
+    LINKED_ISSUES = [
+        {
+            "groupId": 1,
+            "hypothesisId": "h-1",
+            "hypothesisStatement": "Payment retries exhaust the pool",
+        }
+    ]
+
+    def completed(
+        self, *, workflow_version: int, generation: int = 1, linked: bool = True
+    ) -> dict[str, Any]:
+        projection = self.projection(
+            workflow_version=workflow_version,
+            generation=generation,
+            phase="completed",
+            status="completed",
+        )
+        if linked:
+            projection["linkedIssues"] = self.LINKED_ISSUES
+        return projection
+
+    def complete(self, *, sequence: int = 1, generation: int = 1) -> None:
+        self.deliver(
+            self.make_event(
+                sequence,
+                "workflow_updated",
+                {
+                    "projection": self.completed(
+                        workflow_version=sequence + 1, generation=generation
+                    )
+                },
+                generation=generation,
+            )
+        )
+
+    def test_completion_schedules_links_once_per_generation(self, mock_delay: Mock) -> None:
+        self.complete()
+        self.complete(sequence=2)
+        reconcile_orchestration_projection(
+            orchestration_run_id=self.orchestration_run.id,
+            seer_run_id=self.seer_run_id,
+            projection=self.completed(workflow_version=4),
+            expected_last_event_sequence=2,
+            expected_workflow_version=3,
+        )
+
+        mock_delay.assert_called_once_with(
+            investigation_id=self.investigation.id, linked_issues=self.LINKED_ISSUES
+        )
+
+    def test_new_generation_schedules_again(self, mock_delay: Mock) -> None:
+        self.complete()
+        synchronize_orchestration_projection(
+            orchestration_run_id=self.orchestration_run.id,
+            seer_run_id=self.seer_run_id,
+            projection=self.projection(workflow_version=3, generation=2),
+        )
+        self.complete(sequence=2, generation=2)
+
+        assert mock_delay.call_count == 2
+
+    def test_bad_linked_issues_are_dropped_without_failing_the_run(self, mock_delay: Mock) -> None:
+        projection = self.completed(workflow_version=2)
+        projection["linkedIssues"] = [*self.LINKED_ISSUES, {"groupId": "not-an-id"}]
+
+        self.deliver(self.make_event(1, "workflow_updated", {"projection": projection}))
+
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.status == "completed"
+        mock_delay.assert_called_once_with(
+            investigation_id=self.investigation.id, linked_issues=self.LINKED_ISSUES
+        )
+
+    def test_unfinished_run_schedules_nothing(self, mock_delay: Mock) -> None:
+        projection = self.projection(workflow_version=2)
+        projection["linkedIssues"] = self.LINKED_ISSUES
+        self.deliver(self.make_event(1, "workflow_updated", {"projection": projection}))
+
+        mock_delay.assert_not_called()
+
+    def test_completion_without_links_schedules_nothing(self, mock_delay: Mock) -> None:
+        self.deliver(
+            self.make_event(
+                1,
+                "workflow_updated",
+                {"projection": self.completed(workflow_version=2, linked=False)},
+            )
+        )
+
+        mock_delay.assert_not_called()
+
+    def test_flag_off_does_not_backfill_on_replay(self, mock_delay: Mock) -> None:
+        with self.feature({"organizations:investigations-issue-links": False}):
+            self.complete()
+        self.complete(sequence=2)
+
+        mock_delay.assert_not_called()
 
 
 @with_feature("organizations:investigations")

@@ -23,12 +23,16 @@ from django.contrib.auth.models import AnonymousUser
 from django.db.models import Min, prefetch_related_objects
 from sentry_sdk import traces
 
-from sentry import tagstore
+from sentry import features, tagstore
 from sentry.api.event_search import SearchFilter
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models.activity_response_schemas import group_activity_schema
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
-from sentry.apidocs.descriptions import ApiDescription
-from sentry.apidocs.formats import Url, absolute_url
+from sentry.api.serializers.models.event import SharedEventSerializerResponse
+from sentry.api.serializers.models.event_metadata import EventMetadataResponse
+from sentry.api.serializers.models.project import SharedProjectSerializerResponse
+from sentry.apidocs.descriptions import ApiDescription, ApiSchema
+from sentry.apidocs.formats import NumericId, Slug, Url, absolute_url, numeric_id, slug
 from sentry.auth.principal import has_user
 from sentry.constants import LOG_LEVELS
 from sentry.eventtypes import EventTypeStr
@@ -73,7 +77,7 @@ from sentry.search.events.filter import (
 from sentry.services.eventstore.reprocessing.base import ReprocessingInfo
 from sentry.snuba.dataset import Dataset
 from sentry.tagstore.snuba.backend import fix_tag_value_data
-from sentry.tagstore.types import GroupTagValue
+from sentry.tagstore.types import GroupTagValue, TagKeySerializerResponse
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.types.group import SUBSTATUS_TO_STR, GroupPriorityStr, GroupSubStatusStr, PriorityLevel
 from sentry.users.api.serializers.user import UserSerializerResponse
@@ -86,6 +90,8 @@ from sentry.utils.safe import safe_execute
 from sentry.utils.snuba import aliased_query, get_snuba_column_name, raw_query
 
 if TYPE_CHECKING:
+    from sentry.api.serializers.types import ReleaseSerializerResponse
+    from sentry.integrations.api.serializers.models.external_issue import ExternalIssueResponse
     from sentry.models.groupinbox import InboxDetails
     from sentry.models.groupowner import OwnersSerialized
     from sentry.sentry_apps.api.serializers.platform_external_issue import (
@@ -113,21 +119,24 @@ class GroupAnnotation(TypedDict):
 
 class GroupStatusDetailsResponseOptional(TypedDict, total=False):
     ignoreCount: Annotated[
-        int, ApiDescription("Number of additional events after which the issue stops being ignored")
+        int | None,
+        ApiDescription("Number of additional events after which the issue stops being ignored"),
     ]
     ignoreUntil: Annotated[
-        datetime, ApiDescription("When the issue stops being ignored (ISO 8601)")
+        datetime | None, ApiDescription("When the issue stops being ignored (ISO 8601)")
     ]
     ignoreUserCount: Annotated[
-        int,
+        int | None,
         ApiDescription(
             "Number of additional affected users after which the issue stops being ignored"
         ),
     ]
-    ignoreUserWindow: Annotated[int, ApiDescription("Time window in minutes for ignoreUserCount")]
-    ignoreWindow: Annotated[int, ApiDescription("Time window in minutes for ignoreCount")]
+    ignoreUserWindow: Annotated[
+        int | None, ApiDescription("Time window in minutes for ignoreUserCount")
+    ]
+    ignoreWindow: Annotated[int | None, ApiDescription("Time window in minutes for ignoreCount")]
     actor: Annotated[
-        UserSerializerResponse, ApiDescription("User who ignored or resolved the issue")
+        UserSerializerResponse | None, ApiDescription("User who ignored or resolved the issue")
     ]
     inNextRelease: Annotated[
         bool, ApiDescription("Whether the issue is resolved in the next release")
@@ -141,9 +150,9 @@ class GroupStatusDetailsResponseOptional(TypedDict, total=False):
 
 
 class GroupProjectResponse(TypedDict):
-    id: Annotated[str, ApiDescription("ID of the project")]
+    id: Annotated[NumericId, ApiDescription("ID of the project")]
     name: Annotated[str, ApiDescription("Name of the project")]
-    slug: Annotated[str, ApiDescription("Slug of the project")]
+    slug: Annotated[Slug, ApiDescription("Slug of the project")]
     platform: Annotated[str | None, ApiDescription("Platform of the project")]
 
 
@@ -164,7 +173,7 @@ class BaseGroupResponseOptional(TypedDict, total=False):
 
 
 class BaseGroupSerializerResponse(BaseGroupResponseOptional):
-    id: Annotated[str, ApiDescription("ID of the issue")]
+    id: Annotated[NumericId, ApiDescription("ID of the issue")]
     shareId: Annotated[
         str | None,
         ApiDescription("ID used in the issue's public share URL. Null when the issue isn't shared"),
@@ -218,7 +227,7 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
         str, ApiDescription("Issue type, such as error or performance_n_plus_one_db_queries")
     ]
     issueCategory: Annotated[str, ApiDescription("Issue category, such as error or performance")]
-    metadata: Annotated[dict[str, Any], ApiDescription("Issue metadata")]
+    metadata: Annotated[EventMetadataResponse, ApiDescription("Issue metadata")]
     numComments: Annotated[int, ApiDescription("Number of comments on the issue")]
     assignedTo: Annotated[
         ActorSerializerResponse | None, ApiDescription("User or team the issue is assigned to")
@@ -242,18 +251,43 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     ]
 
 
+class GroupReleaseVersionResponse(TypedDict):
+    version: Annotated[str, ApiDescription("Version of the release")]
+
+
+class GroupForecastResponse(TypedDict):
+    data: Annotated[
+        list[int],
+        ApiDescription(
+            "Forecast daily event counts, starting on the day the forecast was generated"
+        ),
+    ]
+    date_added: Annotated[
+        float, ApiDescription("When the forecast was generated, as a Unix timestamp")
+    ]
+
+
+class GroupSeenByResponse(UserSerializerResponse):
+    lastSeen: Annotated[datetime, ApiDescription("When the user last saw the issue (ISO 8601)")]
+
+
+class GroupParticipantResponse(UserSerializerResponse):
+    type: Annotated[Literal["user"], ApiDescription("Kind of participant. Always user")]
+
+
 class GroupDetailsResponseOptional(TypedDict, total=False):
     # Included by default; removable via `?collapse=release|tags|stats`
+    # A release that no longer exists serializes to just its version.
     firstRelease: Annotated[
-        dict[str, Any] | None,
+        ReleaseSerializerResponse | GroupReleaseVersionResponse | None,
         ApiDescription("First release the issue was seen in. Omitted when release is collapsed"),
     ]
     lastRelease: Annotated[
-        dict[str, Any] | None,
+        ReleaseSerializerResponse | GroupReleaseVersionResponse | None,
         ApiDescription("Latest release the issue was seen in. Omitted when release is collapsed"),
     ]
     tags: Annotated[
-        list[dict[str, Any]],
+        list[TagKeySerializerResponse],
         ApiDescription(
             "Tag keys seen on the issue's events, with their top values. Omitted when tags is collapsed"
         ),
@@ -274,13 +308,13 @@ class GroupDetailsResponseOptional(TypedDict, total=False):
         ApiDescription("Suggested owners of the issue. Only included when requested with expand"),
     ]
     forecast: Annotated[
-        dict[str, Any],
+        GroupForecastResponse,
         ApiDescription(
             "Escalation forecast for the issue. Only included when requested with expand"
         ),
     ]
     integrationIssues: Annotated[
-        list[dict[str, Any]],
+        list[ExternalIssueResponse],
         ApiDescription(
             "External issues linked through integrations. Only included when requested with expand"
         ),
@@ -301,15 +335,16 @@ class GroupDetailsResponseOptional(TypedDict, total=False):
 
 class GroupDetailsResponse(BaseGroupSerializerResponse, GroupDetailsResponseOptional):
     activity: Annotated[
-        list[dict[str, Any]], ApiDescription("Recent activity on the issue, newest first")
+        list[Annotated[dict[str, Any], ApiSchema(group_activity_schema)]],
+        ApiDescription("Recent activity on the issue, newest first"),
     ]
     seenBy: Annotated[
-        list[dict[str, Any]],
+        list[GroupSeenByResponse],
         ApiDescription("Users who have seen the issue, with when they last saw it"),
     ]
     userReportCount: Annotated[int, ApiDescription("Number of user reports for the issue")]
     participants: Annotated[
-        list[dict[str, Any]], ApiDescription("Users participating in the issue")
+        list[GroupParticipantResponse], ApiDescription("Users participating in the issue")
     ]
 
 
@@ -340,9 +375,9 @@ def is_seen_stats(o: object) -> TypeGuard[SeenStats]:
 
 def _make_group_project_response(project: Project) -> GroupProjectResponse:
     return {
-        "id": str(project.id),
+        "id": numeric_id(project.id),
         "name": project.name,
-        "slug": project.slug,
+        "slug": slug(project.slug),
         "platform": project.platform,
     }
 
@@ -515,6 +550,11 @@ class GroupSerializerBase(Serializer, ABC):
             if self._expand("derivedData")
             else {}
         )
+        if not features.has(
+            "organizations:seer-impact-assessment", organization=item_list[0].organization
+        ):
+            for derived_data in derived_data_by_group_id.values():
+                derived_data.pop("impact", None)
 
         result = {}
         for item in item_list:
@@ -577,7 +617,7 @@ class GroupSerializerBase(Serializer, ABC):
         qualified_short_id = obj.qualified_short_id
 
         group_dict: BaseGroupSerializerResponse = {
-            "id": str(obj.id),
+            "id": numeric_id(obj.id),
             "shareId": share_id,
             "shortId": qualified_short_id,
             "title": obj.title,
@@ -592,7 +632,7 @@ class GroupSerializerBase(Serializer, ABC):
             "platform": obj.platform,
             "project": _make_group_project_response(obj.project),
             "type": obj.get_event_type(),
-            "metadata": obj.get_event_metadata(),
+            "metadata": cast(EventMetadataResponse, obj.get_event_metadata()),
             "numComments": obj.num_comments,
             "assignedTo": serialize(attrs["assigned_to"], user, ActorSerializer()),
             "isBookmarked": attrs["is_bookmarked"],
@@ -1098,15 +1138,24 @@ class GroupSerializer(GroupSerializerBase):
 
 
 class SharedGroupSerializerResponse(TypedDict):
-    culprit: str | None
-    id: str
-    isUnhandled: bool | None
-    issueCategory: str
-    permalink: str
-    shortId: str | None
-    title: str
-    latestEvent: dict[str, Any]
-    project: dict[str, Any]
+    culprit: Annotated[str | None, ApiDescription("Function or module where the issue occurs")]
+    id: Annotated[str, ApiDescription("ID of the issue")]
+    isUnhandled: Annotated[
+        bool | None,
+        ApiDescription("Whether the issue includes unhandled events. Null when it isn't known"),
+    ]
+    issueCategory: Annotated[str, ApiDescription("Issue category, such as error or performance")]
+    permalink: Annotated[Url, ApiDescription("URL of the issue in Sentry")]
+    shortId: Annotated[str | None, ApiDescription("Short ID of the issue, such as PROJECT-1A")]
+    title: Annotated[str, ApiDescription("Title of the issue")]
+    latestEvent: Annotated[
+        SharedEventSerializerResponse | None,
+        ApiDescription(
+            "Latest event of the issue, without its user, tags, contexts, SDK, extra data, "
+            "processing errors or breadcrumbs. Null when the issue has no stored event"
+        ),
+    ]
+    project: Annotated[SharedProjectSerializerResponse, ApiDescription("Project of the issue")]
 
 
 class SharedGroupSerializer(GroupSerializer):
@@ -1408,22 +1457,31 @@ class GroupSerializerSnuba(GroupSerializerBase):
 
 
 class SimpleGroupSerializerResponse(TypedDict):
-    id: str
-    title: str
-    culprit: str | None
-    shortId: str | None
-    level: GroupLevelStr
-    status: GroupStatusStr
-    substatus: GroupSubStatusStr | None
-    platform: str | None
-    project: GroupProjectResponse
-    type: EventTypeStr
-    issueType: str
-    issueCategory: str
-    metadata: dict[str, Any]
-    numComments: int
-    firstSeen: datetime | None
-    lastSeen: datetime | None
+    id: Annotated[NumericId, ApiDescription("ID of the issue")]
+    title: Annotated[str, ApiDescription("Title of the issue")]
+    culprit: Annotated[str | None, ApiDescription("Function or module where the issue occurs")]
+    shortId: Annotated[str | None, ApiDescription("Short ID of the issue, such as PROJECT-1A")]
+    level: Annotated[GroupLevelStr, ApiDescription("Severity level of the issue")]
+    status: Annotated[GroupStatusStr, ApiDescription("Issue status")]
+    substatus: Annotated[
+        GroupSubStatusStr | None,
+        ApiDescription("Substatus of the issue, such as ongoing, regressed or escalating"),
+    ]
+    platform: Annotated[str | None, ApiDescription("Platform of the issue's events")]
+    project: Annotated[GroupProjectResponse, ApiDescription("Project the issue belongs to")]
+    type: Annotated[
+        EventTypeStr, ApiDescription("Event type of the issue, such as error or default")
+    ]
+    issueType: Annotated[
+        str, ApiDescription("Issue type, such as error or performance_n_plus_one_db_queries")
+    ]
+    issueCategory: Annotated[str, ApiDescription("Issue category, such as error or performance")]
+    metadata: Annotated[EventMetadataResponse, ApiDescription("Issue metadata")]
+    numComments: Annotated[int, ApiDescription("Number of comments on the issue")]
+    firstSeen: Annotated[
+        datetime | None, ApiDescription("When the issue was first seen (ISO 8601)")
+    ]
+    lastSeen: Annotated[datetime | None, ApiDescription("When the issue was last seen (ISO 8601)")]
 
 
 class SimpleGroupSerializer(Serializer[SimpleGroupSerializerResponse]):
@@ -1443,7 +1501,7 @@ class SimpleGroupSerializer(Serializer[SimpleGroupSerializerResponse]):
         qualified_short_id = obj.qualified_short_id
 
         return SimpleGroupSerializerResponse(
-            id=str(obj.id),
+            id=numeric_id(obj.id),
             title=obj.title,
             culprit=obj.culprit,
             shortId=qualified_short_id,
@@ -1455,7 +1513,7 @@ class SimpleGroupSerializer(Serializer[SimpleGroupSerializerResponse]):
             type=obj.get_event_type(),
             issueType=obj.issue_type.slug,
             issueCategory=issue_category,
-            metadata=obj.get_event_metadata(),
+            metadata=cast(EventMetadataResponse, obj.get_event_metadata()),
             numComments=obj.num_comments,
             firstSeen=obj.first_seen,
             lastSeen=obj.last_seen,

@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
+import {parseAsString, useQueryStates} from 'nuqs';
 import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
@@ -31,17 +32,16 @@ import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDisabledGamingPlatform} from 'sentry/utils/platform';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {slugify} from 'sentry/utils/slugify';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
@@ -135,18 +135,22 @@ function getSubmitTooltipText({
   return t('Please select a team');
 }
 
+const autoFillParsers = {
+  referrer: parseAsString,
+  project: parseAsScalar,
+};
+
 export function CreateProject() {
   const {openModal, visible: isModalVisible} = useModal();
   const navigate = useNavigate();
   const organization = useOrganization();
-  const location = useLocation();
   const canUserCreateProject = useCanCreateProject();
   const createProjectAndRules = useCreateProjectAndRules();
 
   const {teams} = useTeams();
   const accessTeams = teams.filter((team: Team) => team.access.includes('team:admin'));
-  const referrer = decodeScalar(location.query.referrer);
-  const projectId = decodeScalar(location.query.project);
+  const [{referrer, project: projectParam}] = useQueryStates(autoFillParsers);
+  const projectId = projectParam ?? undefined;
   const [createdProject, setCreatedProject] = useLocalStorageState<CreatedProject | null>(
     'created-project-context',
     null

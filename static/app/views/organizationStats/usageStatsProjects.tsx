@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {useQuery} from '@tanstack/react-query';
 import type {LocationDescriptorObject} from 'history';
 
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -20,9 +21,9 @@ import {t} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import {DataCategoryExact, Outcome} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -116,19 +117,13 @@ export function UsageStatsProjects({
     isError,
     error,
     isPending: loading,
-  } = useApiQuery<UsageSeries>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/stats_v2/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        // We do not need more granularity in the data so interval is '1d'
-        query: endpointQuery,
-      },
-    ],
-    {
+  } = useQuery(
+    apiOptions.as<UsageSeries>()('/organizations/$organizationIdOrSlug/stats_v2/', {
+      path: {organizationIdOrSlug: organization.slug},
+      // We do not need more granularity in the data so interval is '1d'
+      query: endpointQuery,
       staleTime: Infinity,
-    }
+    })
   );
 
   const tableSort: {
@@ -502,7 +497,7 @@ export function UsageStatsProjects({
           usageStats={tableStats}
           showStoredOutcome={showStoredOutcome}
         />
-        <Pagination pageLinks={pageLink} />
+        <Pagination {...getPaginationProps(pageLink)} />
       </Container>
     </Fragment>
   );

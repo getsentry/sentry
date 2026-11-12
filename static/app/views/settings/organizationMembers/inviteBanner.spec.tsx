@@ -3,8 +3,9 @@ import {MemberFixture} from 'sentry-fixture/member';
 import {MissingMembersFixture} from 'sentry-fixture/missingMembers';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import * as modal from 'sentry/actionCreators/modal';
 import {DEFAULT_SNOOZE_PROMPT_DAYS} from 'sentry/utils/promptIsDismissed';
 
 import {InviteBanner} from './inviteBanner';
@@ -43,6 +44,10 @@ describe('inviteBanner', () => {
         snoozed_ts: undefined,
       },
     });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('render banners', async () => {
@@ -231,5 +236,69 @@ describe('inviteBanner', () => {
     await userEvent.click(inviteButton);
     expect(screen.queryAllByTestId('invite-missing-member')).toHaveLength(4);
     expect(screen.getByText('See all 4 missing members')).toBeInTheDocument();
+  });
+
+  it('opens the invite modal when inviteMissingMembers is in the URL', async () => {
+    const openModal = jest
+      .spyOn(modal, 'openInviteMissingMembersModal')
+      .mockResolvedValue(undefined);
+
+    render(
+      <InviteBanner onSendInvite={() => {}} allowedRoles={[]} onModalClose={() => {}} />,
+      {
+        organization: OrganizationFixture(),
+        initialRouterConfig: {
+          location: {
+            pathname: '/settings/org-slug/members/',
+            query: {inviteMissingMembers: 'true'},
+          },
+        },
+      }
+    );
+
+    await waitFor(() =>
+      expect(openModal).toHaveBeenLastCalledWith(
+        expect.objectContaining({missingMembers: missingMembers.users})
+      )
+    );
+  });
+
+  it('does not reopen the invite modal when an unrelated query param changes', async () => {
+    const openModal = jest
+      .spyOn(modal, 'openInviteMissingMembersModal')
+      .mockResolvedValue(undefined);
+    const onModalClose = jest.fn();
+    const onSendInvite = jest.fn();
+    const allowedRoles: never[] = [];
+
+    const {router} = render(
+      <InviteBanner
+        onSendInvite={onSendInvite}
+        allowedRoles={allowedRoles}
+        onModalClose={onModalClose}
+      />,
+      {
+        organization: OrganizationFixture(),
+        initialRouterConfig: {
+          location: {
+            pathname: '/settings/org-slug/members/',
+            query: {inviteMissingMembers: 'true'},
+          },
+        },
+      }
+    );
+    await waitFor(() =>
+      expect(openModal).toHaveBeenLastCalledWith(
+        expect.objectContaining({missingMembers: missingMembers.users})
+      )
+    );
+    const callCount = openModal.mock.calls.length;
+
+    act(() =>
+      router.navigate('/settings/org-slug/members/?inviteMissingMembers=true&query=foo')
+    );
+
+    await waitFor(() => expect(router.location.query.query).toBe('foo'));
+    expect(openModal).toHaveBeenCalledTimes(callCount);
   });
 });
