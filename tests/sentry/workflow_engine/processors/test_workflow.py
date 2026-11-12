@@ -1491,6 +1491,24 @@ class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
             EAPEmitter().send(self.organization, result)
         produce.assert_not_called()
 
+    def test_evaluates_without_detector(self) -> None:
+        result, action_groups, delayed_items = _evaluate_workflows(
+            {self.workflow}, self.event_data, FROZEN_TIME
+        )
+
+        assert result.outcome == WorkflowEvaluationOutcome.COMPLETED
+        assert result.detector_id is None
+        assert result.detector_type is None
+        assert action_groups == {self.action_group}
+        assert delayed_items == {}
+        artifact = result.evaluation_artifacts()[0]
+        assert artifact.detector_id is None
+        assert artifact.detector_type is None
+        assert artifact.group_id is None
+        assert artifact.project_id is None
+        assert artifact.event_id == self.source.event_id.hex
+        assert artifact.error is None
+
     def test_excludes_other_organizations_and_unknown_environments(self) -> None:
         foreign = self.create_workflow(organization=self.create_organization())
         environment_workflow = self.create_workflow(environment=self.create_environment())

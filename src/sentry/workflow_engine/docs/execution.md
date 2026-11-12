@@ -18,7 +18,7 @@ workflow pipeline.
 ## Evaluation without an issue
 
 `_evaluate_workflows()` evaluates selected workflows using `WorkflowEventData` with
-organization context, a required detector, and an optional issue group. It returns
+organization context, an optional detector, and an optional issue group. It returns
 passing action groups, delayed items, and evaluation artifacts. Workflow selection and
 action dispatch remain the caller's responsibility; `process_workflows()` handles these
 for issue events.

@@ -112,8 +112,8 @@ class WorkflowEvaluation(
     - `triggered`: bool - Whether the workflow's trigger (WHEN) conditions passed.
     """
 
-    detector_id: int
-    detector_type: str
+    detector_id: int | None
+    detector_type: str | None
     workflow_id: WorkflowId
 
     @property
