@@ -30,6 +30,9 @@ TICK_BATCH_SIZE = 500
 # A tick stops claiming after this, well short of its 60s processing deadline, and leaves
 # the rest to later ticks.
 TICK_CLAIM_SECONDS = 40
+# The tick only claims triggers due within this long before now; the sweep claims the rest.
+# Bounding the tick's scan keeps it clear of the stale index entries left by older claims.
+TICK_WINDOW = timedelta(minutes=30)
 # Triggers whose schedule was set more recently than this aren't checked for missing targets,
 # so a trigger set alongside its target isn't deleted before the target is visible.
 MISSING_TARGET_CHECK_SETTLE_WINDOW = timedelta(hours=1)
@@ -64,57 +67,110 @@ class _Cursor:
 )
 def cadence_tick() -> None:
     """
-    Claim every trigger that is due and dispatch its firing, in batches. Each batch is
-    claimed and committed before its firings are dispatched. Each trigger type's firings in
-    the batch may be checked for missing targets, opportunistically, and those found are
-    dropped and their triggers deleted. The rest are dispatched in one call.
+    Claim every trigger that came due within TICK_WINDOW and dispatch its firing, in batches.
+    Each batch is claimed and committed before its firings are dispatched. Each trigger type's
+    firings in the batch may be checked for missing targets, opportunistically, and those found
+    are dropped and their triggers deleted. The rest are dispatched in one call. Triggers due
+    before the window are left to the sweep.
 
     Delivery is best-effort, not guaranteed: claimed firings are lost if their dispatch fails,
     and a firing may occasionally be dispatched twice. Firings missed while the tick is
     behind or disabled are skipped, not caught up.
     """
+    now = timezone.now()
+    # Includes triggers due exactly at the window's start: every id is above 0.
+    _claim_and_dispatch(now, _Cursor(fire_at=now - TICK_WINDOW, id=0), now, "tick")
+
+
+@instrumented_task(
+    name="sentry.cadence.tasks.cadence_sweep",
+    namespace=issues_tasks,
+    processing_deadline_duration=60,
+    silo_mode=SiloMode.CELL,
+)
+def cadence_sweep() -> None:
+    """
+    A lower-frequency check for triggers that were missed and are outside the tick's window.
+    """
     if not options.get("cadence.tick.enabled"):
         return
+    workers = options.get("cadence.sweep.workers")
+    if workers == 1:
+        cadence_sweep_worker()
+        return
+    for _ in range(workers):
+        cadence_sweep_worker.delay()
+
+
+@instrumented_task(
+    name="sentry.cadence.tasks.cadence_sweep_worker",
+    namespace=issues_tasks,
+    processing_deadline_duration=60,
+    silo_mode=SiloMode.CELL,
+)
+def cadence_sweep_worker() -> None:
+    """
+    Claim and dispatch triggers that came due before the tick's window, like the tick does.
+    These are rare stragglers normally, and a backlog after Cadence has been behind or
+    disabled. Like the tick's, their firings are dispatched once, late, and missed ones skipped.
+    """
     now = timezone.now()
+    # Timestamps have microsecond resolution, so this is the latest time before the tick's
+    # window: together they cover every due trigger, once.
+    _claim_and_dispatch(now, None, now - TICK_WINDOW - timedelta(microseconds=1), "sweep")
+
+
+def _claim_and_dispatch(
+    now: datetime, after: _Cursor | None, due_by: datetime, source: str
+) -> None:
+    """
+    Claim and dispatch triggers due by `due_by` after `after`, in batches, until none are left
+    or TICK_CLAIM_SECONDS have passed. `source` tags metrics with the task claiming.
+    """
+    if not options.get("cadence.tick.enabled"):
+        return
+    tags = {"source": source}
     start = time.monotonic()
     claimed_count = 0
-    after: _Cursor | None = None
     try:
         while True:
-            with metrics.timer("cadence.tick.claim_batch_duration", sample_rate=1.0):
-                claimed, selected, after = _claim_batch(now, after)
+            with metrics.timer("cadence.tick.claim_batch_duration", tags=tags, sample_rate=1.0):
+                claimed, selected, after = _claim_batch(now, after, due_by)
             claimed_count += sum(len(firings) for firings in claimed.values())
-            _dispatch(claimed)
+            _dispatch(claimed, source)
             if selected < TICK_BATCH_SIZE:
                 return
             if time.monotonic() - start >= TICK_CLAIM_SECONDS:
-                metrics.incr("cadence.tick.time_limit_reached", sample_rate=1.0)
-                logger.warning("cadence.tick.time_limit_reached", extra={"claimed": claimed_count})
+                metrics.incr("cadence.tick.time_limit_reached", tags=tags, sample_rate=1.0)
+                logger.warning(
+                    "cadence.tick.time_limit_reached",
+                    extra={"claimed": claimed_count, "source": source},
+                )
                 return
     finally:
-        metrics.distribution("cadence.tick.claimed", claimed_count, sample_rate=1.0)
+        metrics.distribution("cadence.tick.claimed", claimed_count, tags=tags, sample_rate=1.0)
 
 
 def _claim_batch(
-    now: datetime, after: _Cursor | None
+    now: datetime, after: _Cursor | None, due_by: datetime
 ) -> tuple[dict[ScheduledTriggerType, list[_ClaimedFiring]], int, _Cursor | None]:
     """
-    Advance up to TICK_BATCH_SIZE due triggers after `after` to their next firing, returning
-    the claimed firings grouped by trigger type, how many triggers were selected, and the
-    cursor to claim the next batch from. Rows locked by a concurrent tick are skipped, so
-    overlapping ticks split the work.
+    Advance up to TICK_BATCH_SIZE triggers due by `due_by` after `after` to their next firing
+    after `now`, returning the claimed firings grouped by trigger type, how many triggers were
+    selected, and the cursor to claim the next batch from. Rows locked by a concurrent claim
+    are skipped, so overlapping ticks and sweeps split the work.
 
     Claiming moves a trigger's next_fire_at past `now`, but its old index entry stays until
     vacuum removes it. Starting each batch after the previous one means a tick doesn't rescan
-    the entries it just made stale. A row the cursor passed over (because another tick had
-    it locked) is left for a later tick.
+    the entries it just made stale. A row the cursor passed over (because another claim had
+    it locked) is left for a later one.
     """
     claimed: dict[ScheduledTriggerType, list[_ClaimedFiring]] = defaultdict(list)
     using = router.db_for_write(ScheduledTrigger)
     with transaction.atomic(using=using):
         query: QuerySet[ScheduledTrigger] = ScheduledTrigger.objects.select_for_update(
             skip_locked=True
-        ).filter(next_fire_at__lte=now)
+        ).filter(next_fire_at__lte=due_by)
         if after is not None:
             query = query.extra(
                 where=['ROW("next_fire_at", "id") > ROW(%s, %s)'],
@@ -197,14 +253,14 @@ def _save_next_fire(using: str, triggers: Sequence[ScheduledTrigger]) -> None:
         )
 
 
-def _dispatch(claimed: dict[ScheduledTriggerType, list[_ClaimedFiring]]) -> None:
+def _dispatch(claimed: dict[ScheduledTriggerType, list[_ClaimedFiring]], source: str) -> None:
     """
     Dispatch each trigger type's firings, after dropping those whose targets no longer exist.
     One type's failure doesn't affect others.
     """
     for trigger_type, claimed_firings in claimed.items():
         dispatched_at = timezone.now()
-        tags = {"trigger_type": trigger_type.value}
+        tags = {"trigger_type": trigger_type.value, "source": source}
         claimed_firings = _drop_missing_targets(trigger_type, claimed_firings, dispatched_at, tags)
         if not claimed_firings:
             continue

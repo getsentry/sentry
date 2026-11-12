@@ -14,8 +14,11 @@ from sentry.cadence.registry import (
 from sentry.cadence.spread import fire_offset, offset_of
 from sentry.cadence.tasks import (
     MISSING_TARGET_CHECK_SETTLE_WINDOW,
+    TICK_WINDOW,
     _claim_batch,
     _Cursor,
+    cadence_sweep,
+    cadence_sweep_worker,
     cadence_tick,
 )
 from sentry.models.organization import Organization
@@ -120,30 +123,6 @@ class CadenceTickTest(CadenceTickTestCase):
 
     @freeze_time(NOW)
     @patch("sentry.cadence.tasks.metrics.incr")
-    def test_dispatches_missed_runs_once(self, mock_incr: MagicMock) -> None:
-        trigger = self.create_trigger(NOW - timedelta(hours=3, minutes=10))
-
-        cadence_tick()
-        cadence_tick()
-
-        assert self.dispatched() == [
-            self.firing(trigger, NOW - timedelta(hours=3, minutes=10), NOW + timedelta(minutes=50))
-        ]
-        trigger.refresh_from_db()
-        assert trigger.next_fire_at == NOW + timedelta(minutes=50)
-        assert cadence_metric_calls(mock_incr) == [
-            (
-                ("cadence.trigger.missed",),
-                {"amount": 3, "tags": {"trigger_type": "seer_workflow"}, "sample_rate": 1.0},
-            ),
-            (
-                ("cadence.trigger.dispatched",),
-                {"amount": 1, "tags": {"trigger_type": "seer_workflow"}, "sample_rate": 1.0},
-            ),
-        ]
-
-    @freeze_time(NOW)
-    @patch("sentry.cadence.tasks.metrics.incr")
     def test_counts_missed_cron_firings(self, mock_incr: MagicMock) -> None:
         trigger = self.create_trigger(
             NOW - timedelta(hours=3),
@@ -152,7 +131,7 @@ class CadenceTickTest(CadenceTickTestCase):
             cron_expression="0 * * * *",
         )
 
-        cadence_tick()
+        cadence_sweep_worker()
         cadence_tick()
 
         assert self.dispatched() == [
@@ -161,11 +140,19 @@ class CadenceTickTest(CadenceTickTestCase):
         assert cadence_metric_calls(mock_incr) == [
             (
                 ("cadence.trigger.missed",),
-                {"amount": 3, "tags": {"trigger_type": "seer_workflow"}, "sample_rate": 1.0},
+                {
+                    "amount": 3,
+                    "tags": {"trigger_type": "seer_workflow", "source": "sweep"},
+                    "sample_rate": 1.0,
+                },
             ),
             (
                 ("cadence.trigger.dispatched",),
-                {"amount": 1, "tags": {"trigger_type": "seer_workflow"}, "sample_rate": 1.0},
+                {
+                    "amount": 1,
+                    "tags": {"trigger_type": "seer_workflow", "source": "sweep"},
+                    "sample_rate": 1.0,
+                },
             ),
         ]
 
@@ -187,7 +174,7 @@ class CadenceTickTest(CadenceTickTestCase):
             patch("sentry.cadence.tasks.metrics.incr") as mock_incr,
             patch("sentry.cadence.tasks.logger") as mock_logger,
         ):
-            cadence_tick()
+            cadence_sweep_worker()
 
         assert self.dispatched() == [
             self.firing(trigger, NOW - timedelta(hours=10), NOW + timedelta(hours=1))
@@ -196,11 +183,19 @@ class CadenceTickTest(CadenceTickTestCase):
         assert cadence_metric_calls(mock_incr) == [
             (
                 ("cadence.trigger.missed",),
-                {"amount": 6, "tags": {"trigger_type": "seer_workflow"}, "sample_rate": 1.0},
+                {
+                    "amount": 6,
+                    "tags": {"trigger_type": "seer_workflow", "source": "sweep"},
+                    "sample_rate": 1.0,
+                },
             ),
             (
                 ("cadence.trigger.dispatched",),
-                {"amount": 2, "tags": {"trigger_type": "seer_workflow"}, "sample_rate": 1.0},
+                {
+                    "amount": 2,
+                    "tags": {"trigger_type": "seer_workflow", "source": "sweep"},
+                    "sample_rate": 1.0,
+                },
             ),
         ]
         mock_logger.warning.assert_called_once_with(
@@ -254,7 +249,7 @@ class CadenceTickTest(CadenceTickTestCase):
         later = self.create_trigger(NOW)
 
         claimed, selected, cursor = _claim_batch(
-            NOW, _Cursor(fire_at=NOW - timedelta(minutes=1), id=tied_before.id)
+            NOW, _Cursor(fire_at=NOW - timedelta(minutes=1), id=tied_before.id), NOW
         )
 
         assert selected == 2
@@ -273,7 +268,7 @@ class CadenceTickTest(CadenceTickTestCase):
         self.create_trigger(NOW + timedelta(minutes=1))
         after = _Cursor(fire_at=NOW - timedelta(minutes=1), id=1)
 
-        claimed, selected, cursor = _claim_batch(NOW, after)
+        claimed, selected, cursor = _claim_batch(NOW, after, NOW)
 
         assert claimed == {}
         assert selected == 0
@@ -293,9 +288,16 @@ class CadenceTickTest(CadenceTickTestCase):
         assert cadence_metric_calls(mock_incr) == [
             (
                 ("cadence.trigger.dispatched",),
-                {"amount": 2, "tags": {"trigger_type": "seer_workflow"}, "sample_rate": 1.0},
+                {
+                    "amount": 2,
+                    "tags": {"trigger_type": "seer_workflow", "source": "tick"},
+                    "sample_rate": 1.0,
+                },
             ),
-            (("cadence.tick.time_limit_reached",), {"sample_rate": 1.0}),
+            (
+                ("cadence.tick.time_limit_reached",),
+                {"tags": {"source": "tick"}, "sample_rate": 1.0},
+            ),
         ]
         assert self.action.call_count == 1
         assert [ctx.target_id for ctx in self.dispatched()] == [
@@ -345,7 +347,7 @@ class CadenceTickTest(CadenceTickTestCase):
             "select_for_update",
             wraps=ScheduledTrigger.objects.select_for_update,
         ) as select_for_update:
-            _claim_batch(NOW, None)
+            _claim_batch(NOW, None, NOW)
 
         select_for_update.assert_called_once_with(skip_locked=True)
         trigger.refresh_from_db()
@@ -367,7 +369,9 @@ class CadenceTickTest(CadenceTickTestCase):
             extra={"trigger_type": "seer_workflow", "firing_count": 1},
         )
         mock_incr.assert_called_once_with(
-            "cadence.trigger.dispatch_failed", amount=1, tags={"trigger_type": "seer_workflow"}
+            "cadence.trigger.dispatch_failed",
+            amount=1,
+            tags={"trigger_type": "seer_workflow", "source": "tick"},
         )
         # The firing is lost, not retried: the trigger has moved on to its next firing.
         trigger.refresh_from_db()
@@ -405,24 +409,32 @@ class CadenceTickTest(CadenceTickTestCase):
         assert cadence_metric_calls(mock_distribution) == [
             (
                 ("cadence.trigger.dispatch_lag", 12.0),
-                {"tags": {"trigger_type": "seer_workflow"}, "unit": "second"},
+                {"tags": {"trigger_type": "seer_workflow", "source": "tick"}, "unit": "second"},
             ),
             (
                 ("cadence.trigger.dispatch_lag", 5.0),
-                {"tags": {"trigger_type": "seer_workflow"}, "unit": "second"},
+                {"tags": {"trigger_type": "seer_workflow", "source": "tick"}, "unit": "second"},
             ),
-            (("cadence.tick.claimed", 2), {"sample_rate": 1.0}),
+            (("cadence.tick.claimed", 2), {"tags": {"source": "tick"}, "sample_rate": 1.0}),
         ]
         ((timing_args, _),) = [
             c
             for c in cadence_metric_calls(mock_timing)
             if c[0][0] == "cadence.trigger.dispatch_duration"
         ]
-        assert timing_args[3] == {"trigger_type": "seer_workflow", "result": "success"}
+        assert timing_args[3] == {
+            "trigger_type": "seer_workflow",
+            "source": "tick",
+            "result": "success",
+        }
         assert cadence_metric_calls(mock_incr) == [
             (
                 ("cadence.trigger.dispatched",),
-                {"amount": 2, "tags": {"trigger_type": "seer_workflow"}, "sample_rate": 1.0},
+                {
+                    "amount": 2,
+                    "tags": {"trigger_type": "seer_workflow", "source": "tick"},
+                    "sample_rate": 1.0,
+                },
             ),
         ]
 
@@ -440,13 +452,13 @@ class CadenceTickTest(CadenceTickTestCase):
         assert cadence_metric_calls(distribution) == [
             (
                 ("cadence.trigger.dispatch_lag", 0.0),
-                {"tags": {"trigger_type": "seer_workflow"}, "unit": "second"},
+                {"tags": {"trigger_type": "seer_workflow", "source": "tick"}, "unit": "second"},
             ),
             (
                 ("cadence.trigger.dispatch_lag", 7.0),
-                {"tags": {"trigger_type": "log"}, "unit": "second"},
+                {"tags": {"trigger_type": "log", "source": "tick"}, "unit": "second"},
             ),
-            (("cadence.tick.claimed", 2), {"sample_rate": 1.0}),
+            (("cadence.tick.claimed", 2), {"tags": {"source": "tick"}, "sample_rate": 1.0}),
         ]
 
     @freeze_time(NOW)
@@ -459,6 +471,130 @@ class CadenceTickTest(CadenceTickTestCase):
         self.action.assert_not_called()
         trigger.refresh_from_db()
         assert trigger.next_fire_at == NOW - timedelta(minutes=1)
+
+
+class CadenceSweepTest(CadenceTickTestCase):
+    @freeze_time(NOW)
+    def test_tick_ignores_triggers_due_before_its_window(self) -> None:
+        old = self.create_trigger(NOW - TICK_WINDOW - timedelta(seconds=1))
+
+        cadence_tick()
+
+        self.action.assert_not_called()
+        old.refresh_from_db()
+        assert old.next_fire_at == NOW - TICK_WINDOW - timedelta(seconds=1)
+
+    @freeze_time(NOW)
+    @patch("sentry.cadence.tasks.metrics.incr")
+    def test_sweep_dispatches_missed_runs_once_and_tick_does_not_refire(
+        self, mock_incr: MagicMock
+    ) -> None:
+        trigger = self.create_trigger(NOW - timedelta(hours=12, minutes=10))
+
+        cadence_sweep_worker()
+        cadence_tick()
+
+        assert self.dispatched() == [
+            self.firing(trigger, NOW - timedelta(hours=12, minutes=10), NOW + timedelta(minutes=50))
+        ]
+        trigger.refresh_from_db()
+        assert trigger.next_fire_at == NOW + timedelta(minutes=50)
+        assert cadence_metric_calls(mock_incr) == [
+            (
+                ("cadence.trigger.missed",),
+                {
+                    "amount": 12,
+                    "tags": {"trigger_type": "seer_workflow", "source": "sweep"},
+                    "sample_rate": 1.0,
+                },
+            ),
+            (
+                ("cadence.trigger.dispatched",),
+                {
+                    "amount": 1,
+                    "tags": {"trigger_type": "seer_workflow", "source": "sweep"},
+                    "sample_rate": 1.0,
+                },
+            ),
+        ]
+
+    @freeze_time(NOW)
+    def test_sweep_ignores_triggers_inside_the_tick_window(self) -> None:
+        self.create_trigger(NOW - TICK_WINDOW)
+        self.create_trigger(NOW)
+
+        cadence_sweep_worker()
+
+        self.action.assert_not_called()
+
+    @freeze_time(NOW)
+    def test_boundary_is_claimed_by_exactly_one(self) -> None:
+        on_boundary = self.create_trigger(NOW - TICK_WINDOW)
+        just_before = self.create_trigger(NOW - TICK_WINDOW - timedelta(microseconds=1))
+
+        cadence_tick()
+        assert self.dispatched() == [self.firing(on_boundary, NOW - TICK_WINDOW, NOW + TICK_WINDOW)]
+
+        self.action.reset_mock()
+        cadence_sweep_worker()
+        assert self.dispatched() == [
+            self.firing(
+                just_before,
+                NOW - TICK_WINDOW - timedelta(microseconds=1),
+                NOW + TICK_WINDOW - timedelta(microseconds=1),
+            )
+        ]
+
+    @freeze_time(NOW)
+    @patch("sentry.cadence.tasks.metrics.distribution")
+    def test_sweep_metrics_are_tagged_by_source(self, mock_distribution: MagicMock) -> None:
+        self.create_trigger(NOW - timedelta(hours=1))
+
+        cadence_sweep_worker()
+
+        assert cadence_metric_calls(mock_distribution) == [
+            (
+                ("cadence.trigger.dispatch_lag", 3600.0),
+                {"tags": {"trigger_type": "seer_workflow", "source": "sweep"}, "unit": "second"},
+            ),
+            (("cadence.tick.claimed", 1), {"tags": {"source": "sweep"}, "sample_rate": 1.0}),
+        ]
+
+    @patch("sentry.cadence.tasks.cadence_sweep_worker.delay")
+    def test_sweep_enqueues_configured_workers(self, delay: MagicMock) -> None:
+        with override_options({"cadence.sweep.workers": 3}):
+            cadence_sweep()
+
+        assert delay.call_count == 3
+
+    @freeze_time(NOW)
+    @patch("sentry.cadence.tasks.cadence_sweep_worker.delay")
+    def test_sweep_runs_a_single_worker_inline(self, delay: MagicMock) -> None:
+        trigger = self.create_trigger(NOW - timedelta(hours=1))
+
+        with override_options({"cadence.sweep.workers": 1}):
+            cadence_sweep()
+
+        delay.assert_not_called()
+        assert self.dispatched() == [
+            self.firing(trigger, NOW - timedelta(hours=1), NOW + timedelta(hours=1))
+        ]
+
+    @patch("sentry.cadence.tasks.cadence_sweep_worker.delay")
+    def test_sweep_kill_switch(self, delay: MagicMock) -> None:
+        with override_options({"cadence.tick.enabled": False}):
+            cadence_sweep()
+
+        delay.assert_not_called()
+
+    @freeze_time(NOW)
+    def test_sweep_worker_kill_switch(self) -> None:
+        self.create_trigger(NOW - timedelta(hours=1))
+
+        with override_options({"cadence.tick.enabled": False}):
+            cadence_sweep_worker()
+
+        self.action.assert_not_called()
 
 
 class CadenceTickMissingTargetTest(CadenceTickTestCase):
@@ -479,7 +615,7 @@ class CadenceTickMissingTargetTest(CadenceTickTestCase):
         self.handler.find_missing.return_value = [self.target(missing)]
 
         with patch("sentry.cadence.tasks.metrics.incr") as mock_incr:
-            cadence_tick()
+            cadence_sweep_worker()
 
         assert self.dispatched() == [
             self.firing(healthy, NOW - timedelta(hours=1), NOW + timedelta(hours=1))
@@ -491,7 +627,11 @@ class CadenceTickMissingTargetTest(CadenceTickTestCase):
         assert missed_calls == [
             (
                 ("cadence.trigger.missed",),
-                {"amount": 1, "tags": {"trigger_type": "seer_workflow"}, "sample_rate": 1.0},
+                {
+                    "amount": 1,
+                    "tags": {"trigger_type": "seer_workflow", "source": "sweep"},
+                    "sample_rate": 1.0,
+                },
             )
         ]
 
@@ -513,7 +653,7 @@ class CadenceTickMissingTargetTest(CadenceTickTestCase):
         mock_incr.assert_any_call(
             "cadence.trigger.missing_target_deleted",
             amount=1,
-            tags={"trigger_type": "seer_workflow"},
+            tags={"trigger_type": "seer_workflow", "source": "tick"},
         )
 
     @freeze_time(NOW)
@@ -700,7 +840,7 @@ class CadenceTickSpreadTest(CadenceTickTestCase):
 
         # Past the next scheduled time (13:00), but not its offset firing.
         with freeze_time(NOW + timedelta(hours=1, minutes=1)):
-            cadence_tick()
+            cadence_sweep_worker()
 
         assert self.dispatched() == [self.firing(trigger, NOW, NOW + timedelta(hours=1))]
         trigger.refresh_from_db()
@@ -709,7 +849,11 @@ class CadenceTickSpreadTest(CadenceTickTestCase):
         assert cadence_metric_calls(mock_incr) == [
             (
                 ("cadence.trigger.dispatched",),
-                {"amount": 1, "tags": {"trigger_type": "seer_workflow"}, "sample_rate": 1.0},
+                {
+                    "amount": 1,
+                    "tags": {"trigger_type": "seer_workflow", "source": "sweep"},
+                    "sample_rate": 1.0,
+                },
             )
         ]
 
@@ -718,7 +862,7 @@ class CadenceTickSpreadTest(CadenceTickTestCase):
         trigger, offset = self.create_offset_trigger()
 
         with freeze_time(NOW + offset + timedelta(hours=2, seconds=3)):
-            cadence_tick()
+            cadence_sweep_worker()
 
         assert self.dispatched() == [self.firing(trigger, NOW, NOW + timedelta(hours=3))]
         trigger.refresh_from_db()
@@ -726,11 +870,19 @@ class CadenceTickSpreadTest(CadenceTickTestCase):
         assert cadence_metric_calls(mock_incr) == [
             (
                 ("cadence.trigger.missed",),
-                {"amount": 2, "tags": {"trigger_type": "seer_workflow"}, "sample_rate": 1.0},
+                {
+                    "amount": 2,
+                    "tags": {"trigger_type": "seer_workflow", "source": "sweep"},
+                    "sample_rate": 1.0,
+                },
             ),
             (
                 ("cadence.trigger.dispatched",),
-                {"amount": 1, "tags": {"trigger_type": "seer_workflow"}, "sample_rate": 1.0},
+                {
+                    "amount": 1,
+                    "tags": {"trigger_type": "seer_workflow", "source": "sweep"},
+                    "sample_rate": 1.0,
+                },
             ),
         ]
 
@@ -755,7 +907,7 @@ class CadenceTickSpreadTest(CadenceTickTestCase):
 
         assert cadence_metric_calls(mock_distribution)[0] == (
             ("cadence.trigger.dispatch_lag", 3.0),
-            {"tags": {"trigger_type": "seer_workflow"}, "unit": "second"},
+            {"tags": {"trigger_type": "seer_workflow", "source": "tick"}, "unit": "second"},
         )
 
     def test_frequent_trigger_spreads_over_half_its_gap(self) -> None:

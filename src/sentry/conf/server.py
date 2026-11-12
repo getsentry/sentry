@@ -1068,6 +1068,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "issues:sentry.cadence.tasks.cadence_tick",
         "schedule": timedelta(seconds=10),
     },
+    "cadence-sweep": {
+        "task": "issues:sentry.cadence.tasks.cadence_sweep",
+        "schedule": crontab("*/1", "*", "*", "*", "*"),
+    },
     "flush-buffers": {
         "task": "buffer:sentry.tasks.process_buffer.process_pending",
         "schedule": timedelta(seconds=10),
