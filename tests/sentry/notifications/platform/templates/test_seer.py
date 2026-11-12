@@ -5,8 +5,12 @@ import pytest
 from fixtures.seer.webhooks import MOCK_GROUP_ID, MOCK_RUN_ID
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.notifications.platform.templates.seer import (
-    AGENT_OUT_OF_CREDITS_MESSAGE,
-    AUTOFIX_OUT_OF_CREDITS_MESSAGE,
+    AGENT_OUT_OF_CREDITS_BILLING_MESSAGE,
+    AGENT_OUT_OF_CREDITS_MEMBER_MESSAGE,
+    AGENT_OUT_OF_CREDITS_NO_RELOADS_MESSAGE,
+    AUTOFIX_OUT_OF_CREDITS_BILLING_MESSAGE,
+    AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE,
+    AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE,
     SeerAgentError,
     SeerAgentOutOfCredits,
     SeerAgentOutOfCreditsTemplate,
@@ -148,26 +152,57 @@ class SeerAgentErrorTemplateTest(TestCase):
         assert rendered.body[0].blocks[0].text == "Timeout."
 
 
-class SeerAutofixOutOfCreditsTemplateTest(TestCase):
-    def test_render(self) -> None:
-        rendered = SeerAutofixOutOfCreditsTemplate().render(
-            SeerAutofixOutOfCredits(organization_id=1)
+@pytest.mark.parametrize(
+    ("has_billing_access", "auto_reload_enabled", "message"),
+    [
+        (False, False, AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE),
+        # Members can't change auto-reload, so its state doesn't change their copy.
+        (False, True, AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE),
+        (True, False, AUTOFIX_OUT_OF_CREDITS_BILLING_MESSAGE),
+        (True, True, AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE),
+    ],
+)
+def test_autofix_out_of_credits_template(
+    has_billing_access: bool, auto_reload_enabled: bool, message: str
+) -> None:
+    rendered = SeerAutofixOutOfCreditsTemplate().render(
+        SeerAutofixOutOfCredits(
+            organization_id=1,
+            has_billing_access=has_billing_access,
+            auto_reload_enabled=auto_reload_enabled,
         )
+    )
 
-        assert rendered.subject == AUTOFIX_OUT_OF_CREDITS_MESSAGE
-        assert len(rendered.body) == 1
-        assert isinstance(rendered.body[0], ParagraphSection)
-        assert rendered.body[0].blocks[0].text == AUTOFIX_OUT_OF_CREDITS_MESSAGE
+    assert rendered.subject == message
+    assert len(rendered.body) == 1
+    assert isinstance(rendered.body[0], ParagraphSection)
+    assert rendered.body[0].blocks[0].text == message
 
 
-class SeerAgentOutOfCreditsTemplateTest(TestCase):
-    def test_render(self) -> None:
-        rendered = SeerAgentOutOfCreditsTemplate().render(SeerAgentOutOfCredits(organization_id=1))
+@pytest.mark.parametrize(
+    ("has_billing_access", "auto_reload_enabled", "message"),
+    [
+        (False, False, AGENT_OUT_OF_CREDITS_MEMBER_MESSAGE),
+        (False, True, AGENT_OUT_OF_CREDITS_MEMBER_MESSAGE),
+        (True, False, AGENT_OUT_OF_CREDITS_BILLING_MESSAGE),
+        (True, True, AGENT_OUT_OF_CREDITS_NO_RELOADS_MESSAGE),
+    ],
+)
+def test_agent_out_of_credits_template(
+    has_billing_access: bool, auto_reload_enabled: bool, message: str
+) -> None:
+    rendered = SeerAgentOutOfCreditsTemplate().render(
+        SeerAgentOutOfCredits(
+            organization_id=1,
+            has_billing_access=has_billing_access,
+            auto_reload_enabled=auto_reload_enabled,
+        )
+    )
 
-        assert rendered.subject == AGENT_OUT_OF_CREDITS_MESSAGE
-        assert len(rendered.body) == 1
-        assert isinstance(rendered.body[0], ParagraphSection)
-        assert rendered.body[0].blocks[0].text == AGENT_OUT_OF_CREDITS_MESSAGE
+    assert rendered.subject == message
+    assert len(rendered.body) == 1
+    assert isinstance(rendered.body[0], ParagraphSection)
+    assert rendered.body[0].blocks[0].text == message
 
 
 class SeerInvestigationStartedTemplateTest(TestCase):

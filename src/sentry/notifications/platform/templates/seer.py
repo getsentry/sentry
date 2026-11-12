@@ -82,11 +82,27 @@ class SeerAutofixStoppedTemplate(NotificationTemplate[SeerAutofixStopped]):
         )
 
 
-AUTOFIX_OUT_OF_CREDITS_MESSAGE = "Your organization does not have enough credits to continue your Autofix run. Set up auto-reload to keep your flow uninterrupted."
+# Out-of-credits copy depends on what the reader can do about it. Members can only ask an
+# admin. Billing members can configure auto-reload, and if it is already on, the organization
+# has used up the reloads it allows.
+AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE = "Your organization does not have enough credits to continue your Autofix run. Ask your admin to increase your daily token limit or set up auto-reload."
+AUTOFIX_OUT_OF_CREDITS_BILLING_MESSAGE = "Your organization does not have enough credits to continue your Autofix run. Set up auto-reload to keep your flow uninterrupted."
+AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE = "Your organization does not have enough credits to continue your Autofix run, and you have no auto-reloads remaining. Adjust your spend and turn on auto-reload."
 
 
 class SeerAutofixOutOfCredits(NotificationData):
     source: NotificationSource = NotificationSource.SEER_AUTOFIX_OUT_OF_CREDITS
+    has_billing_access: bool = False
+    """The reader can configure auto-reload. Leave False when the reader is unknown."""
+    auto_reload_enabled: bool = False
+
+    @property
+    def message(self) -> str:
+        if not self.has_billing_access:
+            return AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE
+        if self.auto_reload_enabled:
+            return AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE
+        return AUTOFIX_OUT_OF_CREDITS_BILLING_MESSAGE
 
 
 @template_registry.register(NotificationSource.SEER_AUTOFIX_OUT_OF_CREDITS)
@@ -100,8 +116,8 @@ class SeerAutofixOutOfCreditsTemplate(NotificationTemplate[SeerAutofixOutOfCredi
 
     def render(self, data: SeerAutofixOutOfCredits) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
-            subject=AUTOFIX_OUT_OF_CREDITS_MESSAGE,
-            body=[ParagraphSection(blocks=[PlainTextBlock(text=AUTOFIX_OUT_OF_CREDITS_MESSAGE)])],
+            subject=data.message,
+            body=[ParagraphSection(blocks=[PlainTextBlock(text=data.message)])],
         )
 
 
@@ -239,11 +255,24 @@ class SeerAgentErrorTemplate(NotificationTemplate[SeerAgentError]):
         )
 
 
-AGENT_OUT_OF_CREDITS_MESSAGE = "Your organization does not have enough credits left for you to message Seer, and you have no auto-reloads remaining. Adjust your spend and turn on auto-reload."
+AGENT_OUT_OF_CREDITS_MEMBER_MESSAGE = "Your organization does not have enough credits left for you to message Seer. Ask your admin to set up auto-reload."
+AGENT_OUT_OF_CREDITS_BILLING_MESSAGE = "Your organization does not have enough credits left for you to message Seer. Adjust your spend and turn on auto-reload."
+AGENT_OUT_OF_CREDITS_NO_RELOADS_MESSAGE = "Your organization does not have enough credits left for you to message Seer, and you have no auto-reloads remaining. Adjust your spend and turn on auto-reload."
 
 
 class SeerAgentOutOfCredits(NotificationData):
     source: NotificationSource = NotificationSource.SEER_AGENT_OUT_OF_CREDITS
+    has_billing_access: bool = False
+    """The reader can configure auto-reload. Leave False when the reader is unknown."""
+    auto_reload_enabled: bool = False
+
+    @property
+    def message(self) -> str:
+        if not self.has_billing_access:
+            return AGENT_OUT_OF_CREDITS_MEMBER_MESSAGE
+        if self.auto_reload_enabled:
+            return AGENT_OUT_OF_CREDITS_NO_RELOADS_MESSAGE
+        return AGENT_OUT_OF_CREDITS_BILLING_MESSAGE
 
 
 @template_registry.register(NotificationSource.SEER_AGENT_OUT_OF_CREDITS)
@@ -254,8 +283,8 @@ class SeerAgentOutOfCreditsTemplate(NotificationTemplate[SeerAgentOutOfCredits])
 
     def render(self, data: SeerAgentOutOfCredits) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
-            subject=AGENT_OUT_OF_CREDITS_MESSAGE,
-            body=[ParagraphSection(blocks=[PlainTextBlock(text=AGENT_OUT_OF_CREDITS_MESSAGE)])],
+            subject=data.message,
+            body=[ParagraphSection(blocks=[PlainTextBlock(text=data.message)])],
         )
 
 

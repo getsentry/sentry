@@ -28,8 +28,6 @@ from sentry.notifications.platform.registry import renderer_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
-    AGENT_OUT_OF_CREDITS_MESSAGE,
-    AUTOFIX_OUT_OF_CREDITS_MESSAGE,
     SeerAgentError,
     SeerAgentOutOfCredits,
     SeerAgentResponse,
@@ -149,22 +147,12 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             )
         elif isinstance(data, SeerAutofixUpdate):
             return cls._render_autofix_update(data, link_decorator)
-        elif isinstance(data, SeerAutofixOutOfCredits):
-            return cls._render_out_of_credits(
-                message=AUTOFIX_OUT_OF_CREDITS_MESSAGE,
-                organization_id=data.organization_id,
-                link_decorator=link_decorator,
-            )
+        elif isinstance(data, (SeerAutofixOutOfCredits, SeerAgentOutOfCredits)):
+            return cls._render_out_of_credits(data, link_decorator)
         elif isinstance(data, SeerAgentError):
             return cls._render_agent_error(data)
         elif isinstance(data, SeerAgentResponse):
             return cls._render_agent_response(data, link_decorator)
-        elif isinstance(data, SeerAgentOutOfCredits):
-            return cls._render_out_of_credits(
-                message=AGENT_OUT_OF_CREDITS_MESSAGE,
-                organization_id=data.organization_id,
-                link_decorator=link_decorator,
-            )
         elif isinstance(data, SeerInvestigationStarted):
             return cls._render_investigation_started(data)
         elif isinstance(data, SeerInvestigationError):
@@ -222,22 +210,24 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
     @classmethod
     def _render_out_of_credits(
         cls,
-        *,
-        message: str,
-        organization_id: int,
+        data: SeerAutofixOutOfCredits | SeerAgentOutOfCredits,
         link_decorator: NotificationLinkDecorator,
     ) -> SlackRenderable:
         from sentry.integrations.slack.message_builder.routing import encode_action_id
         from sentry.integrations.slack.message_builder.types import SlackAction
         from sentry.models.organization import Organization
 
+        message = data.message
         blocks: list[Block] = [SectionBlock(text=message)]
+        # TODO(alexsohn): give members a button that asks their admins for credits.
+        if not data.has_billing_access:
+            return SlackRenderable(blocks=blocks, text=message)
+
         try:
-            organization = Organization.objects.get_from_cache(id=organization_id)
+            organization = Organization.objects.get_from_cache(id=data.organization_id)
         except Organization.DoesNotExist:
             organization = None
         if organization is not None:
-            # TODO(alexsohn): change this to top-up or request credits link
             billing_url = organization.absolute_url(
                 f"/settings/{organization.slug}/billing/overview/"
             )
@@ -250,7 +240,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                             url=link_decorator.decorate_url(billing_url),
                             action_id=encode_action_id(
                                 action=SlackAction.SEER_VIEW_BILLING.value,
-                                organization_id=organization_id,
+                                organization_id=data.organization_id,
                                 project_id=None,
                             ),
                         )
