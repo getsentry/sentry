@@ -305,6 +305,22 @@ class OrganizationTraceItemStatsEndpointTest(
             item["label"] == "mobile" or item["label"] == "tablet" for item in device_data
         )
 
+    def test_aggregate_filter_returns_400(self) -> None:
+        self._store_span()
+
+        for query in ["count(span.duration):466", "browser:chrome count():>1"]:
+            response = self.do_request(
+                query={
+                    "query": query,
+                    "statsType": ["attributeDistributions"],
+                }
+            )
+            assert response.status_code == 400, response.data
+            assert (
+                response.data["detail"]
+                == "Aggregate filters are not supported for trace item stats."
+            )
+
     def test_pagination_traverses_all_pages(self) -> None:
         # Four custom attributes sharing a prefix so substringMatch yields a
         # deterministic total, independent of the default span attributes.

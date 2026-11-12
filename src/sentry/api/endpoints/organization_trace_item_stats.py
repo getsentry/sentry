@@ -28,6 +28,7 @@ from sentry.apidocs.response_types import ValidationErrorResponse, as_validation
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.search.eap.columns import ColumnDefinitions
 from sentry.search.eap.constants import SUPPORTED_STATS_TYPES
@@ -217,6 +218,15 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
         resolver = SearchResolver(
             params=snuba_params, config=resolver_config, definitions=stats_config.definitions
         )
+
+        # Stats are computed over individual trace items, so an aggregate filter has no
+        # group to apply to and Snuba rejects the query.
+        with handle_query_errors():
+            _, having, _ = resolver.resolve_query(serialized.get("query", ""))
+            if having is not None:
+                raise InvalidSearchQuery(
+                    "Aggregate filters are not supported for trace item stats."
+                )
 
         substring_match = serialized.get("substringMatch", "")
         value_substring_match = translate_escape_sequences(substring_match)
