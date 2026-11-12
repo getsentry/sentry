@@ -6,6 +6,7 @@ from typing import Any
 
 from django.conf import settings
 from django.db import OperationalError
+from pydantic import BaseModel, StrictStr, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -14,13 +15,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc.service import RpcRemoteException
-from sentry.integrations.jira.forge.invocation_token import (
-    ForgeInvocationTokenError,
-    ForgeSigningKeysUnavailableError,
-    jira_cloud_id,
-    jira_cloud_id_from_claims,
-    verify_forge_request,
-)
+from sentry.integrations.jira.forge.invocation_token import jira_cloud_id_from_claims
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.scope import bind_org_context_from_integration
@@ -32,7 +27,6 @@ from sentry.shared_integrations.exceptions import (
     ApiRateLimitedError,
     ApiTimeoutError,
 )
-from sentry.silo.base import SiloMode
 from sentry.silo.util import WEBHOOK_DELIVERY_SIGNATURE_HEADER, verify_webhook_delivery_signature
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import jwt
@@ -49,6 +43,17 @@ FORGE_ISSUE_UPDATED_MODULE_KEY = "issue-updated"
 
 class _TemporaryFailure(Exception):
     pass
+
+
+class _ForgeIssue(BaseModel):
+    id: StrictStr
+    key: StrictStr
+    fields: dict[str, Any]
+
+
+class _ForgeIssueEvent(BaseModel):
+    issue: _ForgeIssue
+    changelog: dict[str, Any]
 
 
 @cell_silo_endpoint
@@ -70,38 +75,31 @@ class JiraForgeIssueUpdatedWebhook(JiraWebhookBase):
     Applies Forge `avi:jira:updated:issue` events. Control verifies each event's Forge
     invocation token on arrival, signs the event and queues it in WebhookPayload. The
     token expires long before a retry, so this trusts control's signature instead of
-    checking the token again.
+    checking the token again. Without a control silo (monolith), nothing signs events
+    and they're rejected.
     """
 
     def post(self, request: Request, *args: object, **kwargs: object) -> Response:
-        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-            # No control silo queued this, so the Forge token is checked here instead.
-            try:
-                invocation = verify_forge_request(request)
-            except ForgeSigningKeysUnavailableError:
-                return self.respond(status=503)
-            except ForgeInvocationTokenError:
-                return self.respond({"detail": "Invalid Forge invocation token"}, status=401)
-            if invocation.module_key != FORGE_ISSUE_UPDATED_MODULE_KEY:
-                return self.respond({"detail": "Not the issue-updated trigger"}, status=403)
-            cloud_id = jira_cloud_id(invocation)
-            installation_id: str | None = invocation.installation_id
-        else:
-            authorization = request.headers.get("Authorization")
-            if not verify_webhook_delivery_signature(
-                request.get_full_path(),
-                authorization,
-                request.body,
-                request.headers.get(WEBHOOK_DELIVERY_SIGNATURE_HEADER),
-            ):
-                return self.respond({"detail": "Invalid delivery signature"}, status=401)
-            _, _, token = (authorization or "").partition(" ")
-            claims = jwt.peek_claims(token)
-            cloud_id = jira_cloud_id_from_claims(claims)
-            installation_id = (claims.get("app") or {}).get("installationId")
+        authorization = request.headers.get("Authorization")
+        if not verify_webhook_delivery_signature(
+            request.get_full_path(),
+            authorization,
+            request.body,
+            request.headers.get(WEBHOOK_DELIVERY_SIGNATURE_HEADER),
+        ):
+            return self.respond({"detail": "Invalid delivery signature"}, status=401)
+        _, _, token = (authorization or "").partition(" ")
+        claims = jwt.peek_claims(token)
+        cloud_id = jira_cloud_id_from_claims(claims)
+        installation_id = (claims.get("app") or {}).get("installationId")
 
         event = request.data
-        if cloud_id is None or not _is_issue_change(event):
+        try:
+            # The handlers read these fields without checking them.
+            _ForgeIssueEvent.parse_obj(event)
+        except ValidationError:
+            return self.respond(status=202)
+        if cloud_id is None:
             return self.respond(status=202)
 
         integration = integration_service.get_integration(
@@ -133,18 +131,6 @@ class JiraForgeIssueUpdatedWebhook(JiraWebhookBase):
             # issue's last sync are dropped.
             return self.respond(status=503)
         return self.respond(status=202)
-
-
-def _is_issue_change(event: Any) -> bool:
-    """Whether the event has the fields the handlers read without checking."""
-    if not isinstance(event, dict) or not isinstance(event.get("changelog"), dict):
-        return False
-    issue = event.get("issue")
-    return (
-        isinstance(issue, dict)
-        and isinstance(issue.get("id"), str)
-        and isinstance(issue.get("key"), str)
-    )
 
 
 def _apply_change(
