@@ -2610,6 +2610,33 @@ describe('Investigation detail', () => {
     );
   });
 
+  it('gives a single-column table the full width', async () => {
+    const investigation = investigationWithQueryResult();
+    investigation.blocks = [
+      {
+        ...investigation.blocks[1]!,
+        title: 'Database latency',
+        output: {
+          schemaVersion: 1,
+          preferredView: 'table',
+          tableMarkdown: '| p95 |\n| --- |\n| 820ms |',
+          chart: null,
+          chartUnavailableReason: null,
+          isEmpty: false,
+          queryLinks: [],
+        },
+      },
+    ];
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+
+    renderView();
+
+    expect(await screen.findByText('820ms')).toBeInTheDocument();
+    expect(within(screen.getByTestId('query-block')).getByRole('table')).toHaveStyle({
+      gridTemplateColumns: 'minmax(0, 1fr)',
+    });
+  });
+
   it('shows generated query evidence expanded when ready', async () => {
     const investigation = investigationWithQueryResult();
     investigation.blocks = [

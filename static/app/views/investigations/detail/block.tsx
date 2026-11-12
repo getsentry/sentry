@@ -625,11 +625,12 @@ function QueryResultTable({
       // The leading column usually names the row with a short label, like an
       // issue short ID, so a fixed share of the width leaves it mostly empty
       // while its neighbors truncate. It fits its content instead, capped so
-      // a long label can't crowd out the values beside it.
+      // a long label can't crowd out the values beside it. A lone column has
+      // no neighbors to make room for, so it takes the full width.
       columns={columns.map((_, index) => ({
         key: String(index),
         resizable: true,
-        width: index === 0 ? 'fit-content(40%)' : 'minmax(0, 1fr)',
+        width: index === 0 && columns.length > 1 ? 'fit-content(40%)' : 'minmax(0, 1fr)',
       }))}
       header={
         <QueryResultHeaderRow>
