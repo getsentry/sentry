@@ -24,7 +24,6 @@ from sentry.seer.models.workflow import (
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
-TERMINAL_STATUSES = {"complete", "partial", "failed"}
 
 
 class InvalidWorkflowTransition(ValueError):

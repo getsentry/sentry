@@ -1,7 +1,6 @@
 from unittest.mock import patch
 
 import pytest
-from django.test import override_settings
 from pydantic import BaseModel
 
 from sentry.seer.models.workflow import (
@@ -29,7 +28,6 @@ class RunInputs(BaseModel):
     issue_limit: int
 
 
-@override_settings(SENTRY_SELF_HOSTED=False)
 def admit(workflow: SeerWorkflow, *, trigger_key: str, inputs: BaseModel) -> AdmittedRun:
     with lock_config(workflow.organization_id, workflow.config_id) as config:
         return get_definition(config.strategy).admit_run(
