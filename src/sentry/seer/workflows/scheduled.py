@@ -9,7 +9,7 @@ No run history is created while the execution flag is off.
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
@@ -20,8 +20,11 @@ from sentry import features
 from sentry.cadence.api import (
     ScheduledTriggerType,
     TriggerFiring,
+    TriggerHandler,
+    TriggerTarget,
     clear_schedule,
-    register_trigger_action,
+    missing_targets,
+    register_trigger_type,
 )
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
@@ -53,18 +56,24 @@ def trigger_key_for(scheduled_for: datetime) -> str:
     return f"cron:{scheduled_for.astimezone(UTC):%Y-%m-%dT%H:%M}"
 
 
-# Matches the legacy night shift's spread of org runs over the hour after its scheduled time.
-@register_trigger_action(ScheduledTriggerType.SEER_WORKFLOW, spread_window=timedelta(hours=1))
-def enqueue_scheduled_automation_runs(firings: Sequence[TriggerFiring]) -> None:
-    for firing in firings:
-        record_scheduled_automation_run.apply_async(
-            kwargs={
-                "organization_id": firing.organization_id,
-                "config_id": firing.target_id,
-                "scheduled_for": firing.scheduled_for.isoformat(),
-            },
-            headers={"sentry-propagate-traces": False},
-        )
+@register_trigger_type(ScheduledTriggerType.SEER_WORKFLOW)
+class SeerWorkflowTriggerHandler(TriggerHandler):
+    # Matches the legacy night shift's spread of org runs over the hour after its scheduled time.
+    spread_window = timedelta(hours=1)
+
+    def dispatch(self, firings: Sequence[TriggerFiring]) -> None:
+        for firing in firings:
+            record_scheduled_automation_run.apply_async(
+                kwargs={
+                    "organization_id": firing.organization_id,
+                    "config_id": firing.target_id,
+                    "scheduled_for": firing.scheduled_for.isoformat(),
+                },
+                headers={"sentry-propagate-traces": False},
+            )
+
+    def find_missing(self, targets: Sequence[TriggerTarget]) -> Collection[TriggerTarget]:
+        return missing_targets(SeerWorkflowConfig, targets)
 
 
 @dataclass(frozen=True)

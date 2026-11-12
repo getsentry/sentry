@@ -6,6 +6,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {Access} from 'sentry/components/acl/access';
+import {AgentHandoffFlow} from 'sentry/components/agentHandoff/useAgentHandoff';
 import {AgenticSetup} from 'sentry/components/onboarding/agenticProgress/agenticSetup';
 import type {AgentSetupCopySource} from 'sentry/components/onboarding/agenticProgress/agentSetupCard';
 import type {AgenticRunSession} from 'sentry/components/onboarding/agenticProgress/types';
@@ -115,6 +116,7 @@ export function AgenticCreateProject({
                 </Text>
               </Stack>
               <AgenticSetup
+                handoffFlow={AgentHandoffFlow.CREATE_PROJECT}
                 run={run}
                 onboardingCode={onboardingCode}
                 isAgentConnected={isAgentConnected}

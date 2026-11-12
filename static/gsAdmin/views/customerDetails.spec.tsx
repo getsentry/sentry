@@ -2390,6 +2390,50 @@ describe('Customer Details', () => {
       );
     });
 
+    it('can remove sponsorship', async () => {
+      const sponsoredSubscription = SubscriptionFixture({
+        organization,
+        isSponsored: true,
+        sponsoredType: 'open_source',
+      });
+      setUpMocks(organization, sponsoredSubscription);
+
+      const apiMock = MockApiClient.addMockResponse({
+        url: `/customers/${organization.slug}/`,
+        method: 'PUT',
+        body: OrganizationFixture(),
+      });
+
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${organization.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization,
+      });
+
+      await openCustomerActions();
+
+      await userEvent.click(screen.getByText('Change Sponsorship'));
+
+      renderGlobalModal();
+
+      await userEvent.click(await screen.findByRole('textbox', {name: 'Sponsored Type'}));
+      await userEvent.click(screen.getByTestId('remove'));
+
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+
+      await waitFor(() =>
+        expect(apiMock).toHaveBeenCalledWith(
+          `/customers/${organization.slug}/`,
+          expect.objectContaining({
+            method: 'PUT',
+            data: {sponsoredType: null},
+          })
+        )
+      );
+    });
+
     it('cannot convert partner-type subscription to sponsored', async () => {
       const partnerSubscription = SubscriptionFixture({
         organization,

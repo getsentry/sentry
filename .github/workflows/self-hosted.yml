@@ -81,9 +81,9 @@ jobs:
         if: steps.nodemodulescache.outputs.cache-hit != 'true'
         run: pnpm install --frozen-lockfile --production
 
-      - run: |
-          python3 -m tools.fast_editable --path .
-          python3 -m sentry.build.main
+      - run: uv pip install --no-deps -e .
+
+      - run: python3 -m sentry.build.main
 
       - uses: getsentry/action-build-and-push-images@3714f354c0bc912a95221f193c9643cdba966e34
         if: github.event_name == 'push' || github.event_name == 'pull_request'

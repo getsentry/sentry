@@ -33,3 +33,12 @@ def single_run_root_cause_payload(state: SeerRunState) -> dict[str, Any] | None:
         "five_whys": [],
         "reproduction_steps": [],
     }
+
+
+def rename_single_run_root_cause(artifacts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        {**artifact, "key": "root_cause"}
+        if artifact["key"] == SINGLE_RUN_ROOT_CAUSE_KEY
+        else artifact
+        for artifact in artifacts
+    ]
