@@ -53,9 +53,9 @@ class InboxItemType[SubjectT](ABC):
     def get_url(self, *, organization: Organization, subject_id: str) -> str:
         """Subject URL, independent of inbox items or events."""
 
+    @abstractmethod
     def filter_recipients(self, *, subject: SubjectT, user_ids: Sequence[int]) -> list[int]:
         """The given users who are allowed to see the subject."""
-        return list(user_ids)
 
 
 class InboxEventSummary(StrEnum):

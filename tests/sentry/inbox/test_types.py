@@ -60,6 +60,9 @@ class StubItemType[SubjectT](InboxItemType[SubjectT]):
     def get_url(self, *, organization: Organization, subject_id: str) -> str:
         raise NotImplementedError
 
+    def filter_recipients(self, *, subject: SubjectT, user_ids: Sequence[int]) -> list[int]:
+        return list(user_ids)
+
 
 @dataclass(frozen=True, kw_only=True)
 class SubjectReference:
