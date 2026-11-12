@@ -18,6 +18,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.notifications.platform.strategies.issue_owners import IssueOwnersActivityAlertStrategy
+from sentry.notifications.types import NotificationSettingEnum
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
@@ -62,19 +63,34 @@ ISSUE = IssueItemType()
 inbox_item_type_registry.register(ISSUE.subject_type)(ISSUE)
 
 ISSUE_USER_ASSIGNED = InboxEventType(
-    event_type="issue.user_assigned", item_type=ISSUE, data_class=IssueAssignedData
+    event_type="issue.user_assigned",
+    item_type=ISSUE,
+    data_class=IssueAssignedData,
+    notification_setting=NotificationSettingEnum.INBOX_ASSIGNMENTS,
 )
 ISSUE_TEAM_ASSIGNED = InboxEventType(
-    event_type="issue.team_assigned", item_type=ISSUE, data_class=IssueAssignedData
+    event_type="issue.team_assigned",
+    item_type=ISSUE,
+    data_class=IssueAssignedData,
+    notification_setting=NotificationSettingEnum.INBOX_ASSIGNMENTS,
 )
 ISSUE_USER_MENTIONED = InboxEventType(
-    event_type="issue.user_mentioned", item_type=ISSUE, data_class=IssueMentionedData
+    event_type="issue.user_mentioned",
+    item_type=ISSUE,
+    data_class=IssueMentionedData,
+    notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
 )
 ISSUE_TEAM_MENTIONED = InboxEventType(
-    event_type="issue.team_mentioned", item_type=ISSUE, data_class=IssueMentionedData
+    event_type="issue.team_mentioned",
+    item_type=ISSUE,
+    data_class=IssueMentionedData,
+    notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
 )
 ISSUE_PR_READY_FOR_REVIEW = InboxEventType(
-    event_type="issue.pr_ready_for_review", item_type=ISSUE, data_class=IssuePRReadyForReviewData
+    event_type="issue.pr_ready_for_review",
+    item_type=ISSUE,
+    data_class=IssuePRReadyForReviewData,
+    notification_setting=NotificationSettingEnum.INBOX_PULL_REQUESTS_READY,
 )
 
 inbox_item_event_type_registry.register(ISSUE_USER_ASSIGNED.event_type)(ISSUE_USER_ASSIGNED)
