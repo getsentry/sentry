@@ -3,6 +3,7 @@ from collections import defaultdict
 from collections.abc import Callable, Sequence
 from concurrent.futures import as_completed
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Any, Literal, cast, get_args
 
 from drf_spectacular.utils import extend_schema
@@ -28,6 +29,7 @@ from sentry.apidocs.response_types import ValidationErrorResponse, as_validation
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
+from sentry.cache import default_cache
 from sentry.models.organization import Organization
 from sentry.search.eap.columns import ColumnDefinitions
 from sentry.search.eap.constants import SUPPORTED_STATS_TYPES
@@ -44,17 +46,36 @@ from sentry.search.eap.spans.attributes import (
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import can_expose_attribute_to_api
+from sentry.search.events.types import SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.snuba.occurrences_rpc import Occurrences
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.cursors import Cursor, CursorResult
+from sentry.utils.hashlib import hash_values
 
 logger = logging.getLogger(__name__)
 
 
 MAX_THREADS = 4
+
+# Paging through attributes re-requests the same key list for every page. A few minutes
+# covers a paging session, and the list is already a sample of the most recent items.
+ATTRIBUTE_KEYS_CACHE_TTL = int(timedelta(minutes=5).total_seconds())
+# Raw date params rather than the resolved start/end: relative ranges resolve against
+# the current time, so their start/end change on every request.
+DATE_RANGE_PARAMS = (
+    "statsPeriod",
+    "statsPeriodStart",
+    "statsPeriodEnd",
+    "timeframe",
+    "timeframeStart",
+    "timeframeEnd",
+    "range",
+    "start",
+    "end",
+)
 
 SupportedItemType = Literal["spans", "occurrences"]
 SUPPORTED_ITEM_TYPES: tuple[SupportedItemType, ...] = get_args(SupportedItemType)
@@ -90,6 +111,35 @@ def get_trace_item_stats_config(item_type: SupportedItemType) -> TraceItemStatsC
         referrer=Referrer.API_SPANS_FREQUENCY_STATS_RPC,
         id_column="span_id",
         visibility_item_type=SupportedTraceItemType.SPANS,
+    )
+
+
+def get_attribute_keys_cache_key(
+    request: Request,
+    snuba_params: SnubaParams,
+    serialized: dict[str, Any],
+    include_internal: bool,
+    include_internal_convention_attributes: bool,
+) -> str:
+    """
+    Every input that changes which attribute keys are discovered must be part of
+    this key, including the visibility flags, so users with different visibility
+    never share an entry.
+    """
+    return "trace-item-stats:keys:" + hash_values(
+        [
+            snuba_params.organization_id,
+            sorted(snuba_params.project_ids),
+            sorted(snuba_params.environment_names),
+            [request.GET.get(param) for param in DATE_RANGE_PARAMS],
+            snuba_params.sampling_mode,
+            serialized.get("itemType", "spans"),
+            serialized.get("query", ""),
+            sorted(serialized.get("statsType", [])),
+            serialized.get("traceItemsLimit", 1000),
+            include_internal,
+            include_internal_convention_attributes,
+        ]
     )
 
 
@@ -268,10 +318,11 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
                     attributes=attributes,
                 )
 
-        def data_fn(offset: int, limit: int) -> tuple[dict[str, Any], int]:
+        def discover_attribute_keys() -> list[list[str]]:
+            """Returns [internal name, public alias] pairs, before substringMatch filtering."""
             table_results = get_table_results()
             if not table_results["data"]:
-                return {"data": []}, 0
+                return []
 
             item_ids = [row[stats_config.id_column] for row in table_results["data"]]
             item_id_list = ",".join(item_ids)
@@ -282,9 +333,9 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
                     preflight_stats[0]["attributeDistributions"]["data"].keys()
                 )
             except (IndexError, KeyError):
-                return {"data": []}, 0
+                return []
 
-            sanitized_keys = []
+            discovered_keys: list[list[str]] = []
             visited_public_keys = []
             for internal_name in internal_alias_attr_keys:
                 public_alias = stats_config.alias_mappings.get("string", {}).get(
@@ -305,14 +356,34 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
                 ):
                     continue
 
-                if value_substring_match:
-                    if value_substring_match in public_alias:
-                        visited_public_keys.append(public_alias)
-                        sanitized_keys.append(internal_name)
-                    continue
-
                 visited_public_keys.append(public_alias)
-                sanitized_keys.append(internal_name)
+                discovered_keys.append([internal_name, public_alias])
+
+            return discovered_keys
+
+        attribute_keys_cache_key = get_attribute_keys_cache_key(
+            request,
+            snuba_params,
+            serialized,
+            include_internal,
+            include_internal_convention_attributes,
+        )
+
+        def data_fn(offset: int, limit: int) -> tuple[dict[str, Any], int]:
+            discovered_keys = cast(
+                "list[list[str]] | None", default_cache.get(attribute_keys_cache_key)
+            )
+            if discovered_keys is None:
+                discovered_keys = discover_attribute_keys()
+                default_cache.set(
+                    attribute_keys_cache_key, discovered_keys, ATTRIBUTE_KEYS_CACHE_TTL
+                )
+
+            sanitized_keys = [
+                internal_name
+                for internal_name, public_alias in discovered_keys
+                if value_substring_match in public_alias
+            ]
 
             # The number of attributes available across all pages drives pagination
             # (see TraceItemStatsPaginator), so capture the total before slicing.

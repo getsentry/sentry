@@ -5,6 +5,7 @@ from django.urls import reverse
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
+from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.cases import (
     APITransactionTestCase,
     OccurrenceTestCase,
@@ -459,3 +460,118 @@ class OrganizationTraceItemStatsEndpointTest(
 
         assert "user.geo.subregion" not in attribute_distribution
         assert "user.geo.city" not in attribute_distribution
+
+    def _count_key_discovery_queries(self) -> tuple[mock.MagicMock, mock.MagicMock]:
+        table_query = mock.patch.object(
+            Spans, "run_table_query", wraps=Spans.run_table_query
+        ).start()
+        stats_query = mock.patch.object(
+            Spans, "run_stats_query", wraps=Spans.run_stats_query
+        ).start()
+        self.addCleanup(mock.patch.stopall)
+        return table_query, stats_query
+
+    @staticmethod
+    def _preflight_calls(stats_query: mock.MagicMock) -> int:
+        return sum(1 for call in stats_query.call_args_list if call.kwargs.get("max_buckets") == 1)
+
+    def test_pagination_reuses_cached_attribute_keys(self) -> None:
+        stored_names = ["cacheattra", "cacheattrb", "cacheattrc", "cacheattrd"]
+        for name in stored_names:
+            self._store_span(sentry_tags={name: "value"})
+        table_query, stats_query = self._count_key_discovery_queries()
+
+        response = self.do_request(
+            query={
+                "statsType": ["attributeDistributions"],
+                "substringMatch": "cacheattr",
+                "statsPeriod": "1h",
+                "limit": 2,
+            }
+        )
+        assert response.status_code == 200, response.data
+        first_page = response.data["data"][0]["attributeDistributions"]["data"]
+        assert len(first_page) == 2
+        assert self._parse_links(response)["next"]["results"] == "true"
+
+        next_href = self._parse_links(response)["next"]["href"]
+        assert next_href is not None
+        next_response = self.client.get(next_href, format="json")
+        assert next_response.status_code == 200, next_response.content
+        second_page = next_response.data["data"][0]["attributeDistributions"]["data"]
+        assert len(second_page) == 2
+        next_links = self._parse_links(next_response)
+        assert next_links["previous"]["results"] == "true"
+        assert next_links["next"]["results"] == "false"
+
+        assert set(first_page) | set(second_page) == {f"sentry.{name}" for name in stored_names}
+        assert table_query.call_count == 1
+        assert self._preflight_calls(stats_query) == 1
+
+    def test_substring_match_reuses_cached_attribute_keys(self) -> None:
+        self._store_span(sentry_tags={"browser.name": "chrome", "device": "desktop"})
+        table_query, stats_query = self._count_key_discovery_queries()
+
+        for substring, expected, unexpected in (
+            ("browser", "browser.name", "sentry.device"),
+            ("device", "sentry.device", "browser.name"),
+        ):
+            response = self.do_request(
+                query={"statsType": ["attributeDistributions"], "substringMatch": substring}
+            )
+            assert response.status_code == 200, response.data
+            attribute_distribution = response.data["data"][0]["attributeDistributions"]["data"]
+            assert expected in attribute_distribution
+            assert unexpected not in attribute_distribution
+
+        assert table_query.call_count == 1
+        assert self._preflight_calls(stats_query) == 1
+
+    def test_attribute_key_cache_not_shared_across_queries(self) -> None:
+        self._store_span(sentry_tags={"cachefast": "value"}, duration=100)
+        self._store_span(sentry_tags={"cacheslow": "value"}, duration=500)
+        table_query, stats_query = self._count_key_discovery_queries()
+
+        for query, expected, unexpected in (
+            ("span.duration:<=100", "sentry.cachefast", "sentry.cacheslow"),
+            ("span.duration:>100", "sentry.cacheslow", "sentry.cachefast"),
+        ):
+            response = self.do_request(
+                query={"query": query, "statsType": ["attributeDistributions"]}
+            )
+            assert response.status_code == 200, response.data
+            attribute_distribution = response.data["data"][0]["attributeDistributions"]["data"]
+            assert expected in attribute_distribution
+            assert unexpected not in attribute_distribution
+
+        assert table_query.call_count == 2
+        assert self._preflight_calls(stats_query) == 2
+
+    def test_attribute_key_cache_not_shared_across_visibility(self) -> None:
+        self._store_span(sentry_tags={"dsc.environment": "production"})
+        query = {"statsType": ["attributeDistributions"], "itemType": "spans"}
+        table_query, _ = self._count_key_discovery_queries()
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, teams=[self.team])
+        self.login_as(user=member)
+
+        response = self.do_request(query=dict(query))
+        assert response.status_code == 200, response.data
+        attribute_distribution = response.data["data"][0]["attributeDistributions"]["data"]
+        assert "sentry.dsc.environment" not in attribute_distribution
+
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(user=staff_user, organization=self.organization, teams=[self.team])
+        self.login_as(user=staff_user)
+        response = self.do_request(query=dict(query))
+        assert response.status_code == 200, response.data
+        attribute_distribution = response.data["data"][0]["attributeDistributions"]["data"]
+        assert "sentry.dsc.environment" in attribute_distribution
+
+        self.login_as(user=member)
+        response = self.do_request(query=dict(query))
+        assert response.status_code == 200, response.data
+        attribute_distribution = response.data["data"][0]["attributeDistributions"]["data"]
+        assert "sentry.dsc.environment" not in attribute_distribution
+
+        assert table_query.call_count == 2
