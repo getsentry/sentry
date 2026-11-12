@@ -3043,6 +3043,205 @@ class E(Endpoint):
     assert _summary(_api_violations(src)) == [("S026", 8, "E._a", "query:again")]
 
 
+# Note: when a call could mean more than one function, the helper isn't followed and the call keeps its S028,
+# so following helpers never reports LESS than reading each method on its own
+
+
+def test_call_to_a_nested_def_with_a_helpers_name_keeps_the_s028() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        def helper(p):
+            return send(p)
+
+        return helper(request.GET)
+
+
+def helper(q):
+    return None
+"""
+    assert _summary(_api_violations(src)) == [("S028", 8, "E.get", "query:helper")]
+
+
+def test_call_to_a_local_import_with_a_helpers_name_keeps_the_s028() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        from elsewhere import helper
+
+        return helper(request.GET)
+
+
+def helper(q):
+    return q.get("x")
+"""
+    assert _summary(_api_violations(src)) == [("S028", 7, "E.get", "query:helper")]
+
+
+def test_call_to_a_parameter_with_a_helpers_name_keeps_the_s028() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request, helper=None) -> Response[X]:
+        return helper(request.GET)
+
+
+def helper(q):
+    return q.get("x")
+"""
+    assert _summary(_api_violations(src)) == [("S028", 5, "E.get", "query:helper")]
+
+
+def test_shadowed_name_is_checked_in_the_helper_making_the_call() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return self._h(request.GET)
+
+    def _h(self, q):
+        from elsewhere import helper
+
+        return helper(q)
+
+
+def helper(q):
+    return q.get("x")
+"""
+    assert _summary(_api_violations(src)) == [("S028", 10, "E._h", "query:helper")]
+
+
+def test_helper_defined_twice_keeps_the_s028() -> None:
+    src = """\
+if FLAG:
+    def helper(q):
+        return send(q)
+else:
+    def helper(q):
+        return None
+
+
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return helper(request.GET)
+"""
+    assert _summary(_api_violations(src)) == [("S028", 13, "E.get", "query:helper")]
+
+
+def test_helper_rebound_at_module_level_keeps_the_s028() -> None:
+    src = """\
+def helper(q):
+    return None
+
+
+helper = make_sender()
+
+
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return helper(request.GET)
+"""
+    assert _summary(_api_violations(src)) == [("S028", 12, "E.get", "query:helper")]
+
+
+def test_method_rebound_in_the_class_body_keeps_the_s028() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return self.h(request.GET)
+
+    def h(self, q):
+        return None
+
+    h = external_h
+"""
+    assert _summary(_api_violations(src)) == [("S028", 5, "E.get", "query:h")]
+
+
+def test_diamond_class_tree_keeps_the_s028() -> None:
+    # Python's order is E, B, C, A, so C.h runs; a depth-first walk would pick A.h
+    src = """\
+class A:
+    def h(self, q):
+        return None
+
+
+class B(A):
+    pass
+
+
+class C(A):
+    def h(self, q):
+        return send(q)
+
+
+class E(B, C):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return self.h(request.GET)
+"""
+    assert _summary(_api_violations(src)) == [("S028", 19, "E.get", "query:h")]
+
+
+def test_diamond_higher_up_the_class_tree_keeps_the_s028() -> None:
+    src = """\
+class A:
+    def h(self, q):
+        return None
+
+
+class B(A):
+    pass
+
+
+class C(A):
+    def h(self, q):
+        return send(q)
+
+
+class D(B, C):
+    pass
+
+
+class E(D):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return self.h(request.GET)
+"""
+    assert _summary(_api_violations(src)) == [("S028", 23, "E.get", "query:h")]
+
+
+def test_helper_that_reassigns_its_parameter_keeps_the_s028() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return self._h(request.GET)
+
+    def _h(self, q):
+        q = {"a": 1}
+        return q.get("a")
+"""
+    # only the kept S028 is checked: the S026 this also reports is wrong (q no longer holds the query
+    # string) and belongs to the reassigned-variable follow-up
+    assert ("S028", 5, "E.get", "query:_h") in _summary(_api_violations(src))
+
+
 def test_helper_mixing_a_real_source_and_a_parameter_keeps_both_s028s() -> None:
     src = """\
 class E(Endpoint):

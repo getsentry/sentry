@@ -1063,10 +1063,13 @@ class _InputCtx:
         # this function's def, kept so leaking_params can be worked out only for helpers that need it
         self.node: ast.FunctionDef | ast.AsyncFunctionDef | None = None
         # parameters whose value can leave this function in a way that isn't recorded as a read or
-        # hand-off. A call that passes a payload into one of them keeps its S028, since followin
+        # hand-off. A call that passes a payload into one of them keeps its S028, since following
         # the helper would not show where the payload goes. None until the first call that
         # passes a payload into this function asks for it
         self.leaking_params: set[str] | None = None
+        # every name this function binds (parameters, assignments, imports, nested defs...), so a plain
+        # `helper()` call that could mean a local name isn't followed. None until first needed
+        self.bound_names: set[str] | None = None
 
     def _is(self, node: ast.expr, attrs: frozenset[str], locals_: set[str]) -> bool:
         node = _unwrap_copy(node)
@@ -1258,17 +1261,100 @@ def _payload_leaking_params(
 
     parents = _parent_map(node)
     leaking: set[str] = set()
+    # how many times each alias is assigned; the assignment that made it is the first
+    alias_stores: dict[str, int] = {}
     for statement in node.body:
         for child in ast.walk(statement):
-            if not (
-                isinstance(child, ast.Name)
-                and isinstance(child.ctx, ast.Load)
-                and child.id in aliases
-            ):
+            if not (isinstance(child, ast.Name) and child.id in aliases):
                 continue
-            if not _payload_use_is_recorded(child, parents, aliases):
-                leaking.add(aliases[child.id])
+            if isinstance(child.ctx, ast.Store):
+                # `q = { xyz }` after `def _h(self, q)` means later uses of q may not be the payload,
+                # so following the helper can't show where the payload went
+                if aliases[child.id] == child.id:
+                    leaking.add(child.id)
+                else:
+                    alias_stores[child.id] = alias_stores.get(child.id, 0) + 1
+                    if alias_stores[child.id] > 1:
+                        leaking.add(aliases[child.id])
+            elif isinstance(child.ctx, ast.Load):
+                if not _payload_use_is_recorded(child, parents, aliases):
+                    leaking.add(aliases[child.id])
     return leaking
+
+
+def _scope_binding_counts(statements: list[ast.stmt]) -> dict[str, int]:
+    """How many times each name is bound directly in a module or class body.
+    `statements` the module's or class's body
+    Returns {name: count}, counting defs, classes, assignments, imports and every other binding,
+    including ones under if/try/for, but not the ones inside function or class bodies
+    """
+    counts: dict[str, int] = {}
+
+    def add(name: str) -> None:
+        counts[name] = counts.get(name, 0) + 1
+
+    def walk(node: ast.AST) -> None:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            add(node.name)
+            return
+        if isinstance(node, ast.Lambda):
+            return
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            for alias in node.names:
+                if alias.name != "*":
+                    add(alias.asname or alias.name.split(".")[0])
+            return
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
+            add(node.id)
+        if isinstance(node, ast.ExceptHandler) and node.name:
+            add(node.name)
+        for child in ast.iter_child_nodes(node):
+            walk(child)
+
+    for statement in statements:
+        walk(statement)
+    return counts
+
+
+def _function_bound_names(node: ast.FunctionDef | ast.AsyncFunctionDef) -> set[str]:
+    """Every name a function binds anywhere inside it, nested functions included.
+    `node` the function's def
+    Returns the names of its parameters, assignment / for / with / except,
+    imports, nested defs and classes, and global / nonlocal declarations
+    """
+    names: set[str] = set()
+    for child in ast.walk(node):
+        if child is node:
+            continue
+        if isinstance(child, ast.arg):
+            names.add(child.arg)
+        elif isinstance(child, ast.Name) and isinstance(child.ctx, ast.Store):
+            names.add(child.id)
+        elif isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            names.add(child.name)
+        elif isinstance(child, (ast.Import, ast.ImportFrom)):
+            for alias in child.names:
+                names.add(alias.asname or alias.name.split(".")[0])
+        elif isinstance(child, ast.ExceptHandler) and child.name:
+            names.add(child.name)
+        elif isinstance(child, (ast.Global, ast.Nonlocal)):
+            for name in child.names:
+                names.add(name)
+    return names
+
+
+def _binds_name(ctx: _InputCtx, name: str) -> bool:
+    """Whether a function binds `name` itself, so a plain `name()` call in it may not be the
+    module-level function.
+    `ctx` the function making the call
+    `name` the called name
+    Returns True when the function has a parameter, local, import or nested def by that name
+    """
+    if ctx.bound_names is None:
+        # check if every stored ctx has its def
+        assert ctx.node is not None
+        ctx.bound_names = _function_bound_names(ctx.node)
+    return name in ctx.bound_names
 
 
 def _leaks_a_payload(helper_ctx: _InputCtx, bindings: dict[str, str]) -> bool:
@@ -1319,6 +1405,10 @@ class SentryVisitor(ast.NodeVisitor):
         # Module-level classes, indexed as encountered. A base is always defined
         # before its subclass at module level, so in-order indexing suffices.
         self._module_classes: dict[str, ast.ClassDef] = {}
+        # {name : count of how many times `name` is bound at the module level} filled before the walk
+        self._module_bindings: dict[str, int] = {}
+        # { class name : its body's binding counts} filled when a lookup first needs them
+        self._class_bindings: dict[str, dict[str, int]] = {}
         # publish_status of the enclosing module-level class, for S022.
         self._publish_status: dict[str, str] | None = None
         # Input rules: per-method accumulation, innermost last.
@@ -1481,6 +1571,7 @@ class SentryVisitor(ast.NodeVisitor):
     def visit_Module(self, node: ast.Module) -> None:
         """Visitor for tracking top level constant variables that hold request fields to iterate over."""
         self._literal_var_constants = _collect_literal_var_constants(tree=node)
+        self._module_bindings = _scope_binding_counts(node.body)
         self.generic_visit(node)
         self._report_public_inputs()
 
@@ -2155,29 +2246,61 @@ class SentryVisitor(ast.NodeVisitor):
         Returns None if the name isn't defined in this file, and _UNRESOLVED if the lookup reaches a class from another file before finding the method.
         """
         if helper_call.kind == Kind.NORMAL_FUNCTION:
+            # a name bound more than once (two defs, or a def then `helper = xyz`) could be either
+            if self._module_bindings.get(helper_call.name, 0) != 1:
+                return None
             return self._functions.get(helper_call.name)
 
+        order = self._handle_inheritance_method_lookup(public_class=endpoint_class)
         if helper_call.kind == Kind.PARENT_CLASS_METHOD:
-            after = helper_defined_class
-        else:
-            after = None
+            if helper_defined_class not in order:
+                return None
+            start = order.index(helper_defined_class)
+            # which class super() continues with depends on the whole tree below it
+            for cls in order[: start + 1]:
+                if self._is_ambiguous_class(cls):
+                    return _UNRESOLVED
+            order = order[start + 1 :]
 
-        for cls in self._handle_inheritance_method_lookup(public_class=endpoint_class, after=after):
-            if cls not in self._module_classes:
+        for cls in order:
+            if cls not in self._module_classes or self._module_bindings.get(cls, 0) != 1:
                 return _UNRESOLVED
-            ctx = self._functions.get(f"{cls}.{helper_call.name}")
-            if ctx is not None:
+            bound = self._class_binding_count(cls, helper_call.name)
+            if bound == 1:
+                ctx = self._functions.get(f"{cls}.{helper_call.name}")
+                # bound once, but not by a def (i.e, `h = external_h`)
+                if ctx is None:
+                    return _UNRESOLVED
                 return ctx
+            if bound > 1:
+                return _UNRESOLVED
+            # past this class the depth-first order may not be the real method order so we need to check if it's an ambigious class
+            if self._is_ambiguous_class(cls):
+                return _UNRESOLVED
 
         return None
 
-    def _handle_inheritance_method_lookup(
-        self, public_class: str, after: str | None = None
-    ) -> list[str]:
+    def _class_binding_count(self, cls: str, name: str) -> int:
+        """How many times `name` is bound directly in the body of the module-level class `cls`."""
+        if cls not in self._class_bindings:
+            self._class_bindings[cls] = _scope_binding_counts(self._module_classes[cls].body)
+        return self._class_bindings[cls].get(name, 0)
+
+    def _is_ambiguous_class(self, cls: str) -> bool:
+        """Whether `cls` has more than one base from this file, so the classes after it in the
+        depth-first walk may not be in Python's real method order (a diamond, for example)."""
+        class_node = self._module_classes.get(cls)
+        if class_node is None:
+            return False
+        same_file = 0
+        for base in class_node.bases:
+            if _name_of(base) in self._module_classes:
+                same_file += 1
+        return same_file > 1
+
+    def _handle_inheritance_method_lookup(self, public_class: str) -> list[str]:
         """Returns class names in depth-first method lookup order starting from `public_class` all the way up to its parents to deal with inheritance.
-        When `after` is set, skip everything until the class associated with `after` has been passed.
         `public_class` the starting endpoint class name whose inheritance chain is being searched
-        `after` is the class name that called `super()`; when set, all classes up to and including `after` are skipped
 
         Class Grandfather()
 
@@ -2186,18 +2309,11 @@ class SentryVisitor(ast.NodeVisitor):
         Class Child(Father)
 
         _handle_inheritance_method_lookup("Child") -> ["Child", "Father", "Grandfather"]
-        _handle_inheritance_method_lookup(public_class="Child", after="Father") -> ["Grandfather"]
+
+        A super() call starts after the class that made it, which _helper_call_ctx_lookup handles.
         """
         order: list[str] = []
         self._walk_class_bases(name=public_class, visited=set(), order=order)
-
-        if after is not None:
-            if after not in order:
-                return []
-
-            # returns the classes that only come after `after`
-            return order[order.index(after) + 1 :]
-
         return order
 
     def _walk_class_bases(self, name: str, visited: set[str], order: list[str]) -> None:
@@ -2304,6 +2420,10 @@ class SentryVisitor(ast.NodeVisitor):
         # loop over all the helper calls this function makes
         for call in ctx.calls:
             if call.starred:
+                continue
+            # `helper()` in a function with its own `helper` (a parameter, import, nested def, etc) but it may
+            # not be the module-level one
+            if call.kind == Kind.NORMAL_FUNCTION and _binds_name(ctx, call.name):
                 continue
 
             # gets the ctx of the helper
