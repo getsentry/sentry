@@ -3,7 +3,13 @@ from dataclasses import dataclass
 
 from sentry import features
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
-from sentry.inbox.types import SYSTEM_ACTOR, InboxEventData, InboxEventType, InboxItemType
+from sentry.inbox.types import (
+    SYSTEM_ACTOR,
+    InboxEventData,
+    InboxEventSummary,
+    InboxEventType,
+    InboxItemType,
+)
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.notebooks.access import NOTEBOOK_SCOPES, has_notebooks_access
@@ -92,7 +98,9 @@ def record_notebook_completed(*, notebook: Notebook, seer_run_id: int) -> None:
         return
     NOTEBOOK_COMPLETED.record(
         subject=notebook,
-        data=NotebookCompletedData(summary="Investigation completed", seer_run_id=seer_run_id),
+        data=NotebookCompletedData(
+            summary=InboxEventSummary.NOTEBOOK_COMPLETED, seer_run_id=seer_run_id
+        ),
         recipient_user_ids=[user_id],
         actor=SYSTEM_ACTOR,
     )
