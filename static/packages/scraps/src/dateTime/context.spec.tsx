@@ -1,3 +1,4 @@
+import {renderToStaticMarkup} from 'react-dom/server';
 import {act, render, screen} from '@testing-library/react';
 
 import {
@@ -63,6 +64,9 @@ it('updates components and plain formatting from the same application snapshot',
   const date = '2017-10-17T02:41:20.000Z';
 
   try {
+    expect(renderToStaticMarkup(<DateTime date={date} mode="time" />)).toBe(
+      '<time>7:41 PM</time>'
+    );
     render(
       <DateTimeProvider value={{timezone: 'America/Toronto'}}>
         <DateTime date={date} mode="time" />

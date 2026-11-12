@@ -9,8 +9,6 @@ export interface DurationOptions {
   style?: 'long' | 'short' | 'narrow';
 }
 
-// Resolve translations when formatting, so changing the locale does not leave
-// previously cached labels in another language.
 const units = [
   {
     unit: 'year',

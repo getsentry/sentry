@@ -1,13 +1,8 @@
 import type * as React from 'react';
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useSyncExternalStore,
-} from 'react';
+import {createContext, useCallback, useContext, useMemo} from 'react';
+import {useStore} from 'zustand';
 
-import {getSnapshot, subscribe, type DateTimePreferences} from './config';
+import {formattingStore, type DateTimePreferences} from './config';
 import {
   formatDateTimeWithSnapshot,
   type DateTimeInput,
@@ -37,7 +32,7 @@ export function DateTimeProvider({
 
 export function useFormattingSnapshot() {
   const overrides = useContext(DateTimeContext);
-  const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  const snapshot = useStore(formattingStore);
   return useMemo(
     () => ({
       ...snapshot,

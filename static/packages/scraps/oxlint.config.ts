@@ -61,7 +61,6 @@ export default createPackageConfig(import.meta.dirname, {
     },
     {
       files: ['src/{dateTime,duration,relativeTime,translation}/**/*.{ts,tsx}'],
-      // Relative imports keep shared formatting internals outside the public export map.
       rules: {'import/no-relative-parent-imports': 'off'},
     },
   ],
