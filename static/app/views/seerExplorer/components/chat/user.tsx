@@ -34,6 +34,7 @@ function PrFeedbackNotice({block}: UserBlockProps) {
     ? parseFeedback(metadata.feedback).map(item => ({
         ...item,
         iterationIndex,
+        timestamp: undefined,
       }))
     : [];
   return (

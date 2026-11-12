@@ -59,6 +59,7 @@ describe('UserBlock', () => {
               feedback: JSON.stringify([
                 {
                   text: 'rename it',
+                  timestamp: '2026-11-12T10:00:00Z',
                   source: {
                     type: 'github-pr-comment',
                     comment: {
@@ -80,5 +81,6 @@ describe('UserBlock', () => {
     expect(screen.getByTestId('pr-feedback-notice')).toHaveTextContent('rename it');
     expect(screen.getAllByText('rename it')).toHaveLength(1);
     expect(screen.queryByTestId('feedback-processed')).not.toBeInTheDocument();
+    expect(screen.queryByRole('time')).not.toBeInTheDocument();
   });
 });
