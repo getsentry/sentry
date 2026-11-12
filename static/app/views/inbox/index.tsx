@@ -247,7 +247,7 @@ function InboxContent() {
         </Container>
       </Stack>
       {/* Keyed so that selecting another item starts the preview scrolled to the top */}
-      <Container
+      <Stack
         key={
           selectedSubject
             ? `${selectedSubject.subjectType}:${selectedSubject.subjectId}`
@@ -257,7 +257,7 @@ function InboxContent() {
         minHeight={0}
       >
         <InboxItemPreview subject={selectedSubject} />
-      </Container>
+      </Stack>
     </Grid>
   );
 }
