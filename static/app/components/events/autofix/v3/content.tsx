@@ -38,7 +38,7 @@ import {PullRequestsCard} from './pullRequestsCard';
 import {RootCauseCard} from './rootCauseCard';
 import {SeerEnableNotifications} from './seerEnableNotifications';
 import {SolutionCard} from './solutionCard';
-import {useIsSingleRunChatOpen, useToggleSingleRunChat} from './useToggleSingleRunChat';
+import {useIsSingleRunChatOpen, useOpenSingleRunChat} from './useToggleSingleRunChat';
 
 interface SeerDrawerContentProps {
   aiConfig: ReturnType<typeof useAiConfig>;
@@ -64,7 +64,7 @@ export function SeerDrawerContent({
   );
   const singleRun = isSingleRunAutofix(autofix.runState) ? autofix.runState : null;
   const singleRunId = getAutofixRunId(singleRun);
-  const toggleSingleRunChat = useToggleSingleRunChat(singleRunId);
+  const openSingleRunChat = useOpenSingleRunChat();
   const isSingleRunChatOpen = useIsSingleRunChatOpen(singleRunId);
 
   const isLoadingRun =
@@ -112,7 +112,7 @@ export function SeerDrawerContent({
           <Button
             variant="primary"
             icon={<IconSeer />}
-            onClick={toggleSingleRunChat}
+            onClick={() => singleRunId !== undefined && openSingleRunChat(singleRunId)}
             disabled={isSingleRunChatOpen}
             tooltipProps={{title: isSingleRunChatOpen ? t('Chat is open') : undefined}}
           >
