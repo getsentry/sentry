@@ -108,7 +108,6 @@ class NotificationSettingEnum(ValueEqualityEnum):
     MISSING_MEMBERS = "missingMembers"
     REPORTS = "reports"
     BROKEN_MONITORS = "brokenMonitors"
-    # Holds the Inbox delivery methods (email, Slack); each category below is a separate on/off type.
     INBOX = "inbox"
     INBOX_ASSIGNMENTS = "inboxAssignments"
     INBOX_MENTIONS = "inboxMentions"
@@ -116,7 +115,6 @@ class NotificationSettingEnum(ValueEqualityEnum):
     INBOX_COMPLETION_STATUS = "inboxCompletionStatus"
 
 
-# Inbox settings apply across all of a user's organizations, so they only accept user scope.
 INBOX_NOTIFICATION_SETTINGS = frozenset(
     {
         NotificationSettingEnum.INBOX,

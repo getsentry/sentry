@@ -49,6 +49,7 @@ class UserNotificationSettingsOptionsDetailsSerializer(
             raise serializers.ValidationError("Invalid scope type")
 
     def validate(self, data: UserNotificationSettingData) -> UserNotificationSettingData:
+        # Inbox settings apply across all of a user's organizations, so they only accept user scope.
         if (
             NotificationSettingEnum(data["type"]) in INBOX_NOTIFICATION_SETTINGS
             and data["scope_type"] != NotificationScopeEnum.USER.value
