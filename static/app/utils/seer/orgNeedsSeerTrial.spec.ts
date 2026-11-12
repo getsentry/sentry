@@ -28,6 +28,14 @@ describe('orgNeedsSeerTrial', () => {
     expect(orgNeedsSeerTrial(organization)).toBe(false);
   });
 
+  it('returns false when token-billed-seer-enabled is present', () => {
+    const organization = OrganizationFixture({
+      features: ['seer-user-billing-launch', 'token-billed-seer-enabled'],
+    });
+
+    expect(orgNeedsSeerTrial(organization)).toBe(false);
+  });
+
   it('returns false when no relevant features are present', () => {
     const organization = OrganizationFixture({
       features: [],

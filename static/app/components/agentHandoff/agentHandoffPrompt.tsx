@@ -104,7 +104,7 @@ export function AgentHandoffPrompt<Flow extends AgentHandoffFlow>({
                 onPointerDown={handlePointerDown}
               >
                 {tct(
-                  'Fetch and follow the instructions at [guideUrl]. Your secret token is [token].',
+                  'Follow the instructions verbatim at [guideUrl]. Your secret token is [token].',
                   {
                     guideUrl,
                     token: (

@@ -198,6 +198,8 @@ export function updateInboxItemsMutationOptions({
         options: {query: getTargetQuery(target)},
         data: update,
       }),
+    // Keep automatic and explicit read-state updates in the order they were requested.
+    scope: {id: `inbox-updates:${organization.id}`},
     onMutate: async ({update, ...target}) => {
       const {isRead} = update;
       if (isRead === undefined) {

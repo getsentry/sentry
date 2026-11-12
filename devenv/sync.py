@@ -9,17 +9,18 @@ import tempfile
 import urllib.request
 import zipfile
 
-from devenv.lib import brew, colima, config, fs, limactl, proc
+from devenv.lib import brew, config, fs, proc
 
 from devenv import constants
+
+Proc = tuple[str, tuple[str, ...], dict[str, str]]
 
 
 # TODO: need to replace this with a nicer process executor in devenv.lib
 def run_procs(
-    repo: str,
     reporoot: str,
     venv_path: str,
-    _procs: tuple[tuple[str, tuple[str, ...], dict[str, str]], ...],
+    _procs: tuple[Proc, ...],
     verbose: bool = False,
 ) -> bool:
     procs: list[tuple[str, tuple[str, ...], subprocess.Popen[bytes]]] = []
@@ -93,20 +94,19 @@ def sync_chromedriver(reporoot: str) -> int:
         return 1
 
     major = chrome_ver.split(".")[0]
-    with urllib.request.urlopen(
-        "https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json"
-    ) as r:
-        versions = json.load(r)["versions"]
+    # ChromeDriver only has to match Chrome's major version, so skip the network when it does.
+    try:
+        installed = subprocess.check_output([install, "--version"], text=True).split()[1]
+        if installed.split(".")[0] == major:
+            return 0
+    except (OSError, subprocess.CalledProcessError, IndexError):
+        pass
 
-    entry = next(
-        (
-            v
-            for v in reversed(versions)
-            if v["version"].split(".")[0] == major and "chromedriver" in v["downloads"]
-        ),
-        None,
-    )
-    if not entry:
+    with urllib.request.urlopen(
+        "https://googlechromelabs.github.io/chrome-for-testing/latest-versions-per-milestone-with-downloads.json"
+    ) as r:
+        entry = json.load(r)["milestones"].get(major)
+    if not entry or "chromedriver" not in entry["downloads"]:
         print(f"no ChromeDriver release found for Chrome {major}.x")
         return 1
 
@@ -116,15 +116,6 @@ def sync_chromedriver(reporoot: str) -> int:
     if not url:
         print(f"no mac-arm64 ChromeDriver download available for {entry['version']}")
         return 1
-
-    try:
-        if (
-            subprocess.check_output([install, "--version"], text=True).split()[1]
-            == entry["version"]
-        ):
-            return 0
-    except (FileNotFoundError, subprocess.CalledProcessError, IndexError):
-        pass
 
     print(f"⏳ chromedriver {entry['version']}")
     tmpdir = tempfile.mkdtemp()
@@ -178,7 +169,6 @@ exec {binroot}/node-env/bin/pnpm "$@"
 
 
 def main(context: dict[str, str]) -> int:
-    repo = context["repo"]
     reporoot = context["reporoot"]
     cfg = config.get_repo(reporoot)
 
@@ -196,17 +186,6 @@ def main(context: dict[str, str]) -> int:
             (f"{constants.homebrew_bin}/brew", "bundle"),
             cwd=reporoot,
         )
-
-    if constants.DARWIN and os.path.exists(f"{constants.root}/bin/colima"):
-        binroot = f"{reporoot}/.devenv/bin"
-        colima.uninstall(binroot)
-        limactl.uninstall(binroot)
-
-    if os.path.exists(f"{reporoot}/.devenv/bin/uv"):
-        os.remove(f"{reporoot}/.devenv/bin/uv")
-
-    if os.path.exists(f"{reporoot}/.devenv/bin/uvx"):
-        os.remove(f"{reporoot}/.devenv/bin/uvx")
 
     if not shutil.which("uv"):
         print("\n\n\ndevenv is no longer managing uv; please run `brew install uv`.\n\n\n")
@@ -241,14 +220,10 @@ def main(context: dict[str, str]) -> int:
 
     venv_dir = f"{reporoot}/.venv"
 
-    if not SKIP_FRONTEND and not run_procs(
-        repo,
-        reporoot,
-        venv_dir,
-        (
+    dependency_procs: list[Proc] = []
+    if not SKIP_FRONTEND:
+        dependency_procs.append(
             (
-                # Spreading out the network load by installing js,
-                # then py in the next batch.
                 "javascript dependencies",
                 (
                     "pnpm",
@@ -263,45 +238,38 @@ def main(context: dict[str, str]) -> int:
                     # node_modules if configuration or node version changes
                     "CI": "true",
                 },
-            ),
-        ),
-        verbose,
-    ):
-        return 1
-
-    if not run_procs(
-        repo,
-        reporoot,
-        venv_dir,
+            )
+        )
+    # could opt out of syncing python if FRONTEND_ONLY but only if repo-local devenv
+    # and prek were moved to inside devenv and not the sentry venv
+    dependency_procs.append(
         (
-            # could opt out of syncing python if FRONTEND_ONLY but only if repo-local devenv
-            # and prek were moved to inside devenv and not the sentry venv
+            "python dependencies",
             (
-                "python dependencies",
-                (
-                    "uv",
-                    "sync",
-                    "--frozen",
-                    # don't uninstall sentry/getsentry fast_editable shims
-                    "--inexact",
-                    "--quiet",
-                    "--active",
-                ),
-                {},
+                "uv",
+                "sync",
+                "--frozen",
+                # don't uninstall getsentry, which getsentry's sync installs into this venv
+                "--inexact",
+                "--quiet",
+                "--active",
             ),
-        ),
-        verbose,
-    ):
+            {},
+        )
+    )
+    # pnpm and uv don't depend on each other, so install both at once.
+    if not run_procs(reporoot, venv_dir, tuple(dependency_procs), verbose):
         return 1
+    # Left behind by tools/fast_editable.py. Removed only after uv sync, so uv still
+    # sees and uninstalls the old egg-link install.
+    shutil.rmtree(f"{reporoot}/src/sentry.egg-info", ignore_errors=True)
 
-    if not run_procs(
-        repo,
+    # Worktrees share the main checkout's `.git/hooks` (`.git` is a file), so installing
+    # from a worktree would point the hooks at that worktree's venv.
+    if not IN_GIT_WORKTREE and not run_procs(
         reporoot,
         venv_dir,
-        (
-            ("prek dependencies", ("prek", "install", "--prepare-hooks", "-f"), {}),
-            ("fast editable", ("python3", "-m", "tools.fast_editable", "--path", "."), {}),
-        ),
+        (("prek dependencies", ("prek", "install", "--prepare-hooks", "-f"), {}),),
         verbose,
     ):
         return 1
@@ -311,7 +279,6 @@ def main(context: dict[str, str]) -> int:
         "pnpm", path=f"{reporoot}/.devenv/bin"
     ):
         if not run_procs(
-            repo,
             reporoot,
             venv_dir,
             (("agent skills", ("pnpm", "dlx", "@sentry/dotagents", "--project", "install"), {}),),
@@ -333,7 +300,6 @@ def main(context: dict[str, str]) -> int:
         proc.run((f"{venv_dir}/bin/sentry", "init", "--dev"))
 
     if not run_procs(
-        repo,
         reporoot,
         venv_dir,
         (("prod feature flags", ("bin/sync-prod-flags",), {}),),
@@ -354,7 +320,6 @@ def main(context: dict[str, str]) -> int:
     )
 
     if not run_procs(
-        repo,
         reporoot,
         venv_dir,
         (

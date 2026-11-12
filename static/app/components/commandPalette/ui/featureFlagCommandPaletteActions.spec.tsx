@@ -68,7 +68,7 @@ function ExampleFeatureFlagActions() {
 
 async function openCommandPalette() {
   await userEvent.keyboard('{Control>}k{/Control}');
-  return screen.findByRole('textbox', {name: 'Search commands'});
+  return screen.findByRole('searchbox', {name: 'Search commands'});
 }
 
 describe('FeatureFlagCommandPaletteActions', () => {
@@ -96,7 +96,7 @@ describe('FeatureFlagCommandPaletteActions', () => {
 
     await openCommandPalette();
     await userEvent.type(
-      screen.getByRole('textbox', {name: 'Search commands'}),
+      screen.getByRole('searchbox', {name: 'Search commands'}),
       'Toggle Org Feature Flag'
     );
     await userEvent.click(
@@ -118,7 +118,7 @@ describe('FeatureFlagCommandPaletteActions', () => {
 
     await openCommandPalette();
     await userEvent.type(
-      screen.getByRole('textbox', {name: 'Search commands'}),
+      screen.getByRole('searchbox', {name: 'Search commands'}),
       'Toggle Org Feature Flag'
     );
     await userEvent.click(
@@ -128,13 +128,13 @@ describe('FeatureFlagCommandPaletteActions', () => {
 
     await waitFor(() =>
       expect(
-        screen.queryByRole('textbox', {name: 'Search commands'})
+        screen.queryByRole('searchbox', {name: 'Search commands'})
       ).not.toBeInTheDocument()
     );
 
     await openCommandPalette();
     await userEvent.type(
-      screen.getByRole('textbox', {name: 'Search commands'}),
+      screen.getByRole('searchbox', {name: 'Search commands'}),
       'Toggle Org Feature Flag'
     );
     await userEvent.click(
@@ -153,7 +153,7 @@ describe('FeatureFlagCommandPaletteActions', () => {
 
     await openCommandPalette();
     await userEvent.type(
-      screen.getByRole('textbox', {name: 'Search commands'}),
+      screen.getByRole('searchbox', {name: 'Search commands'}),
       'Add Feature Flag'
     );
     await userEvent.click(await screen.findByRole('option', {name: /Add Feature Flag/}));
@@ -174,7 +174,7 @@ describe('FeatureFlagCommandPaletteActions', () => {
 
     await openCommandPalette();
     await userEvent.type(
-      screen.getByRole('textbox', {name: 'Search commands'}),
+      screen.getByRole('searchbox', {name: 'Search commands'}),
       'Clear Local Feature Flag Overrides'
     );
 
@@ -192,7 +192,7 @@ describe('FeatureFlagCommandPaletteActions', () => {
 
     await openCommandPalette();
     await userEvent.type(
-      screen.getByRole('textbox', {name: 'Search commands'}),
+      screen.getByRole('searchbox', {name: 'Search commands'}),
       'Clear Local Feature Flag Overrides'
     );
     await userEvent.click(

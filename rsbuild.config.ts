@@ -411,7 +411,13 @@ const appConfig: Configuration = {
         ],
       },
       {
-        test: /\.(?:woff2?|ttf|eot|svg|png|gif|ico|jpe?g|avif|webp|mp4)$/,
+        // Always emit fonts as files. Inlining them as data URLs puts every
+        // unicode-range subset in sentry.css, even ones the page never needs.
+        test: /\.woff2$/,
+        type: 'asset/resource',
+      },
+      {
+        test: /\.(?:svg|png|gif|ico|jpe?g|avif|webp|mp4)$/,
         type: 'asset',
       },
     ],

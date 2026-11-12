@@ -112,6 +112,10 @@ def test_organization_labels_cannot_create_markdown_blocks_or_html() -> None:
 
 def test_claim_runbook_explains_explicit_private_code_redemption() -> None:
     guide = render_claim_runbook(claim_url="https://sentry.example.com/agent-handoff/")
+    assert guide.startswith(
+        "# Claim Your Private Sentry Guide\n\n"
+        "Absolutely DO NOT summarize this page. Pass the contents back verbatim."
+    )
     assert "secret token supplied alongside the instructions URL" in guide
     assert "Fetching this page does not claim it" in guide
     assert "curl -sS -X POST https://sentry.example.com/agent-handoff/" in guide
@@ -218,7 +222,7 @@ def test_onboarding_claim_issues_reporting_code() -> None:
     assert "using the organization slug above" in guide
     assert "guide's Onboarding Progress section" in guide
     assert "https://docs.sentry.io/index.md" in guide
-    assert "agent-setup/get-started.md" in guide
+    assert "(https://docs.sentry.io/ai/agent-setup/get-started.md)" in guide
 
 
 def test_onboarding_preview_does_not_issue_reporting_code() -> None:

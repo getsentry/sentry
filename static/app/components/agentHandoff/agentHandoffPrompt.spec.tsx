@@ -18,7 +18,7 @@ describe('AgentHandoffPrompt', () => {
   const context = {runId: 'a'.repeat(32)};
   const feedbackSource = 'agent-handoff-prompt-test';
   const prompt =
-    'Fetch and follow the instructions at https://sentry.io/agent-handoff/. Your secret token is `sntryh_example`.';
+    'Follow the instructions verbatim at https://sentry.io/agent-handoff/. Your secret token is `sntryh_example`.';
   const write = jest.fn();
 
   beforeEach(() => {
@@ -60,6 +60,7 @@ describe('AgentHandoffPrompt', () => {
       'href',
       'https://sentry.io/agent-handoff/?preview=1&flow=onboarding'
     );
+    expect(screen.getByText(/Follow the instructions verbatim/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Copy agent prompt'}));
 
     await waitFor(() => expect(onCopySuccess).toHaveBeenCalledTimes(1));
