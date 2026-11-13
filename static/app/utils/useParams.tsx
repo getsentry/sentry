@@ -63,6 +63,7 @@ type ParamKeys =
   | 'scrubbingId'
   | 'searchId'
   | 'sentryAppSlug'
+  | 'serviceAccountId'
   | 'shareId'
   | 'snapshotId'
   | 'spanSlug'
