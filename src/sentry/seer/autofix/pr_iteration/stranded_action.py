@@ -15,7 +15,7 @@ from sentry.seer.autofix.pr_iteration.run_markers import get_run_extra, record_r
 from sentry.seer.models.run import SeerRun
 
 # Run-level SeerRun.extras key. No key means that nothing is owed.
-STRANDED_EXTRA = "pr_iteration_stranded"
+STRANDED_ACTION_EXTRA = "pr_iteration_stranded_action"
 
 
 class StrandedAction(StrEnum):
@@ -39,7 +39,7 @@ def record_stranded_action(
 
     try:
         with record_run_extras(seer_run) as extras:
-            extras[STRANDED_EXTRA] = {"action": stranded_action.value}
+            extras[STRANDED_ACTION_EXTRA] = {"action": stranded_action.value}
     except SeerRun.DoesNotExist:
         return False
     return True
@@ -48,12 +48,12 @@ def record_stranded_action(
 def take_stranded_action(*, run_id: int, organization_id: int) -> StrandedAction | None:
     """Pop the work a credits refusal left undone, so only one drain redoes it."""
     seer_run = _get_seer_run(run_id, organization_id)
-    if seer_run is None or get_run_extra(seer_run, STRANDED_EXTRA) is None:
+    if seer_run is None or get_run_extra(seer_run, STRANDED_ACTION_EXTRA) is None:
         return None
 
     try:
         with record_run_extras(seer_run) as extras:
-            marker = extras.pop(STRANDED_EXTRA, None)
+            marker = extras.pop(STRANDED_ACTION_EXTRA, None)
     except SeerRun.DoesNotExist:
         return None
     try:

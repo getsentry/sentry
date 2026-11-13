@@ -67,7 +67,7 @@ from sentry.seer.autofix.pr_iteration.pause import (
     get_pause_reason,
     is_pr_iteration_paused,
 )
-from sentry.seer.autofix.pr_iteration.stranded import StrandedAction, take_stranded_action
+from sentry.seer.autofix.pr_iteration.stranded_action import StrandedAction, take_stranded_action
 from sentry.seer.autofix.single_run import is_single_run, single_run_root_cause_payload
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint
@@ -1366,7 +1366,7 @@ class TestPrIterationCompletionHook(TestCase):
     @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
     @patch(f"{COMPLETION_PATH}.consume_queued_feedback")
     @patch(f"{COMPLETION_PATH}.trigger_push_changes", side_effect=SeerOutOfCreditsException())
-    def test_a_push_refused_for_credits_strands_the_push(
+    def test_a_push_refused_for_credits_records_a_stranded_action(
         self, mock_push: MagicMock, mock_consume: MagicMock, mock_complete: MagicMock
     ) -> None:
         self.create_seer_run(organization=self.organization, seer_run_state_id=123)
@@ -1384,7 +1384,9 @@ class TestPrIterationCompletionHook(TestCase):
         mock_consume.assert_not_called()
 
     @patch(f"{COMPLETION_PATH}.trigger_push_changes", side_effect=SeerOutOfCreditsException())
-    def test_a_redone_push_refused_for_credits_stays_stranded(self, mock_push: MagicMock) -> None:
+    def test_a_redone_push_refused_for_credits_records_the_stranded_action_again(
+        self, mock_push: MagicMock
+    ) -> None:
         self.create_seer_run(organization=self.organization, seer_run_state_id=123)
         state = self._unsynced()
 
@@ -1405,7 +1407,7 @@ class TestPrIterationCompletionHook(TestCase):
     @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
     @patch(f"{COMPLETION_PATH}.consume_queued_feedback")
     @patch(f"{COMPLETION_PATH}.trigger_push_changes")
-    def test_a_seer_push_out_of_credits_strands_the_push(
+    def test_a_seer_push_out_of_credits_records_a_stranded_action(
         self, mock_push: MagicMock, mock_consume: MagicMock, mock_complete: MagicMock
     ) -> None:
         self.create_seer_run(organization=self.organization, seer_run_state_id=123)
@@ -1432,7 +1434,7 @@ class TestPrIterationCompletionHook(TestCase):
 
     @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
     @patch(f"{COMPLETION_PATH}.trigger_push_changes")
-    def test_a_single_run_push_out_of_credits_strands_nothing(
+    def test_a_single_run_push_out_of_credits_records_no_stranded_action(
         self, mock_push: MagicMock, mock_complete: MagicMock
     ) -> None:
         # The agent pushes a single run's PR itself, so Sentry has no push to redo.
@@ -1454,7 +1456,7 @@ class TestPrIterationCompletionHook(TestCase):
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=False),
     )
-    def test_a_branch_moved_retry_refused_for_credits_strands_the_retry(
+    def test_a_branch_moved_retry_refused_for_credits_records_a_stranded_action(
         self, mock_check_seer_credits: MagicMock
     ) -> None:
         with self.feature(

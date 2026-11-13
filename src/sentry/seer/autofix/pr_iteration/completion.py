@@ -39,7 +39,7 @@ from sentry.seer.autofix.pr_iteration.pr_state import (
     record_pr_closed,
 )
 from sentry.seer.autofix.pr_iteration.queue import count_queued_autofix_feedback
-from sentry.seer.autofix.pr_iteration.stranded import StrandedAction, record_stranded_action
+from sentry.seer.autofix.pr_iteration.stranded_action import StrandedAction, record_stranded_action
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.autofix.pr_ready_for_review import format_pull_requests_payload
 from sentry.seer.autofix.single_run import is_single_run
@@ -296,7 +296,7 @@ def continue_pr_iteration(
         and outcome == PrIterationOutcome.PR_CREATION_ERRORED
         and "out_of_credits" in errored_codes
     ):
-        # Seer's push ran out of credits. The next drain pushes again.
+        # Record the failed push, so the next drain can try it again.
         record_stranded_action(
             run_id=run_id, organization_id=organization.id, stranded_action=StrandedAction.PUSH
         )
@@ -546,7 +546,7 @@ def _push_iteration_changes(
         )
     except SeerOutOfCreditsException:
         log_ctx.info("autofix.pr_iteration.push", outcome="failed", reason="out_of_credits")
-        # The next drain pushes again, before it takes new feedback.
+        # Record the failed push, so the next drain can try it again.
         record_stranded_action(
             run_id=run_id,
             organization_id=group.organization.id,
@@ -666,7 +666,7 @@ def _retry_push_on_moved_branch(
         )
     except SeerOutOfCreditsException:
         log_ctx.info("autofix.pr_iteration.push", outcome="not_pushed", reason="out_of_credits")
-        # Not a branch-moved failure: the next drain runs this turn again.
+        # Record the failed retry so the next drain can try it again.
         record_stranded_action(
             run_id=run_id,
             organization_id=group.organization.id,

@@ -1,5 +1,5 @@
-from sentry.seer.autofix.pr_iteration.stranded import (
-    STRANDED_EXTRA,
+from sentry.seer.autofix.pr_iteration.stranded_action import (
+    STRANDED_ACTION_EXTRA,
     StrandedAction,
     record_stranded_action,
     take_stranded_action,
@@ -36,7 +36,7 @@ class StrandedActionTest(TestCase):
         assert self._take() is None
 
     def test_returns_none_for_an_unknown_action(self) -> None:
-        self.seer_run.update(extras={STRANDED_EXTRA: {"action": "something_new"}})
+        self.seer_run.update(extras={STRANDED_ACTION_EXTRA: {"action": "something_new"}})
 
         assert self._take() is None
 

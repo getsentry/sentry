@@ -63,7 +63,7 @@ from sentry.seer.autofix.pr_iteration.queue import (
     peek_queued_autofix_feedback,
 )
 from sentry.seer.autofix.pr_iteration.run_markers import record_run_extras
-from sentry.seer.autofix.pr_iteration.stranded import (
+from sentry.seer.autofix.pr_iteration.stranded_action import (
     StrandedAction,
     record_stranded_action,
     take_stranded_action,
@@ -1251,7 +1251,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
     @patch(f"{TASK_PATH}.fetch_run_status")
-    def test_redoes_stranded_push_instead_of_draining(
+    def test_redoes_the_stranded_action_instead_of_draining(
         self,
         mock_fetch: MagicMock,
         mock_pop: MagicMock,
@@ -1273,7 +1273,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
     @patch(f"{TASK_PATH}.fetch_run_status")
-    def test_drains_when_stranded_changes_were_already_pushed(
+    def test_drains_when_the_stranded_action_is_no_longer_needed(
         self,
         mock_fetch: MagicMock,
         mock_pop: MagicMock,

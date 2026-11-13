@@ -124,7 +124,7 @@ from sentry.seer.autofix.pr_iteration.queue import (
     enqueue_autofix_feedback,
     pop_queued_autofix_feedback,
 )
-from sentry.seer.autofix.pr_iteration.stranded import take_stranded_action
+from sentry.seer.autofix.pr_iteration.stranded_action import take_stranded_action
 from sentry.seer.autofix.pr_iteration.sweep import sweep_stale_pr_iterations
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.autofix.single_run import is_single_run
@@ -682,14 +682,14 @@ def _drain_queued_autofix_feedback(
         redo_stranded_action(log_ctx, group, run_id, state, stranded_action)
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.drain",
-            outcome="skipped",
-            reason="redo_stranded",
-            stranded_action=stranded_action.value,
+            outcome="redo_stranded_action",
+            reason=stranded_action.value,
+            run_status=state.status,
             trigger_id=trigger_id,
             trigger_source=trigger_source,
             left_queued_count=count_queued_autofix_feedback(run_id),
         )
-        _record_drain_outcome("redo_stranded", trigger_source)
+        _record_drain_outcome("redo_stranded_action", trigger_source)
         # Leave the queued feedback for now: once the redo's push lands, its completion hook
         # drains the queue and runs it.
         return
