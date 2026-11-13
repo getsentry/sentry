@@ -491,7 +491,7 @@ export function SeerExplorerContent({
     }
     lastAutoSubmittedQueryRef.current = query;
     if (isOutOfCredits) {
-      // Keep the question for after a top-up, unless the user has a draft there already.
+      // Keep the question for after an auto-reload, unless the user has a draft there already.
       setInputValue(current =>
         (typeof current === 'string' ? current : current.text).trim()
           ? current

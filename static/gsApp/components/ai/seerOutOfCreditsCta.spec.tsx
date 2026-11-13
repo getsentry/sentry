@@ -60,13 +60,13 @@ describe('SeerOutOfCreditsCta', () => {
     ).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Turn on auto-reload'}));
     expect(
-      await screen.findByRole('heading', {name: 'Auto-load credits'})
+      await screen.findByRole('heading', {name: 'Auto-reload credits'})
     ).toBeInTheDocument();
     expect(screen.getByRole('radiogroup', {name: 'Credit amount'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Contact Admin'})).not.toBeInTheDocument();
   });
 
-  it('tells billing members when auto-reload has no top-ups left', async () => {
+  it('tells billing members when auto-reload has no auto-reloads left', async () => {
     const organization = OrganizationFixture({access: ['org:read', 'org:billing']});
     act(() =>
       SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}))
@@ -79,7 +79,7 @@ describe('SeerOutOfCreditsCta', () => {
     expect(screen.queryByTestId('seer-out-of-credits')).not.toBeInTheDocument();
     expect(
       await screen.findByText(
-        'Your organization does not have enough credits left for you to message Seer, and you have no auto top-ups remaining. Adjust your spend and turn on auto top-up.'
+        'Your organization does not have enough credits left for you to message Seer, and you have no auto-reloads remaining. Adjust your spend and turn on auto-reload.'
       )
     ).toBeInTheDocument();
     expect(
@@ -90,11 +90,11 @@ describe('SeerOutOfCreditsCta', () => {
   it.each([
     [
       'autofix-start',
-      'You do not have enough credits to start an Autofix run. Set up auto top up to keep your flow uninterrupted.',
+      'You do not have enough credits to start an Autofix run. Set up auto-reload to keep your flow uninterrupted.',
     ],
     [
       'autofix-continue',
-      'Your org does not have enough credits to continue your Autofix run. Set up auto top up to keep your flow uninterrupted.',
+      'Your organization does not have enough credits to continue your Autofix run. Set up auto-reload to keep your flow uninterrupted.',
     ],
   ] as const)('uses the %s copy', async (reason, copy) => {
     const organization = OrganizationFixture({access: ['org:read', 'org:billing']});
@@ -165,11 +165,11 @@ describe('SeerOutOfCreditsCta', () => {
   it.each([
     [
       'autofix-start',
-      'Your organization does not have enough credits to start an Autofix run. Ask your admin to increase your daily token limit or set up auto top-up.',
+      'Your organization does not have enough credits to start an Autofix run. Ask your admin to increase your daily usage limit or set up auto-reload.',
     ],
     [
       'autofix-continue',
-      'Your organization does not have enough credits to continue your Autofix run. Ask your admin to increase your daily token limit or set up auto top-up.',
+      'Your organization does not have enough credits to continue your Autofix run. Ask your admin to increase your daily usage limit or set up auto-reload.',
     ],
   ] as const)('uses the member %s copy', async (reason, copy) => {
     const organization = OrganizationFixture({access: ['org:read']});

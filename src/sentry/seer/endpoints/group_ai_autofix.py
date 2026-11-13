@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 from collections.abc import Collection
-from typing import Any
+from typing import Annotated, Any, Final, Literal, NotRequired, TypedDict
 
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers, status
@@ -24,6 +24,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.autofix_examples import AutofixExamples
 from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.apidocs.response_types import (
@@ -61,7 +62,6 @@ from sentry.seer.autofix.coding_agent import (
 from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.constants import PUBLISH_SCOPES, AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
-from sentry.seer.autofix.feature.dispatch import project_stopping_point, should_use_single_run
 from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
 from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.on_completion_hook import get_run_stopping_point
@@ -93,6 +93,7 @@ from sentry.seer.endpoints.utils import (
     SEER_OUT_OF_CREDITS_CODE,
     SEER_OUT_OF_QUOTA_CODE,
     SEER_PERMISSION_DENIED,
+    SeerPaymentRequiredCode,
     get_seer_run,
     resolve_seer_run,
 )
@@ -110,9 +111,13 @@ USER_CONTEXT_MAX_LENGTH = 10000
 
 # Marks the one 409 from this endpoint that a caller can recover from on its own:
 # the run named in the body is alive, so polling it is the whole remedy.
-RUN_IN_FLIGHT_CODE = "run_in_flight"
+RunInFlightCode = Literal["run_in_flight"]
+RUN_IN_FLIGHT_CODE: Final[RunInFlightCode] = "run_in_flight"
 
-AUTOFIX_SETUP_REQUIRED_DETAIL = {
+# The API schema documents these codes as an enum, so a new code has to be added here.
+AutofixSetupCode = Literal["scm_integration_required", "repos_not_linked"]
+
+AUTOFIX_SETUP_REQUIRED_DETAIL: dict[AutofixSetupCode, str] = {
     "scm_integration_required": (
         "Seer Autofix requires a supported SCM integration (GitHub or GitLab) "
         "to be installed for your organization before a new run can be started."
@@ -122,6 +127,43 @@ AUTOFIX_SETUP_REQUIRED_DETAIL = {
         "before a new run can be started."
     ),
 }
+
+
+class AutofixConflictResponse(TypedDict):
+    detail: Annotated[str, ApiDescription("Why the step can't run")]
+    code: NotRequired[
+        Annotated[
+            Literal[AutofixSetupCode, RunInFlightCode],
+            ApiDescription(
+                "Set when a client can act on the conflict. `scm_integration_required` and "
+                "`repos_not_linked` mean the organization or project must finish Seer setup "
+                "before a new run can start. `run_in_flight` means a step is already running "
+                "for the run in `run_id`, so poll it instead of retrying"
+            ),
+        ]
+    ]
+    run_id: NotRequired[
+        Annotated[int, ApiDescription("ID of the run in Seer. Set with `run_in_flight`")]
+    ]
+    sentry_run_id: NotRequired[
+        Annotated[
+            str | None,
+            ApiDescription(
+                "ID of the run in Sentry. Set with `run_in_flight`, null for legacy runs"
+            ),
+        ]
+    ]
+
+
+class AutofixPaymentRequiredResponse(TypedDict):
+    detail: Annotated[str, ApiDescription("Why the organization can't run Seer")]
+    code: Annotated[
+        SeerPaymentRequiredCode,
+        ApiDescription(
+            "`seer_out_of_credits` when the organization has no Seer credits left, "
+            "`seer_out_of_quota` when it has no Seer budget"
+        ),
+    ]
 
 
 class GroupAutofixPermission(GroupAiPermission):
@@ -201,7 +243,7 @@ def _record_user_context_length(request_data: Any) -> None:
     )
 
 
-def _check_autofix_setup(organization: Organization, project: Project) -> str | None:
+def _check_autofix_setup(organization: Organization, project: Project) -> AutofixSetupCode | None:
     """Return the setup code blocking a new autofix run, or None if it can start.
 
     Mirrors the frontend gate in AutofixContent: legacy usage-based Seer plans
@@ -331,8 +373,14 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
             202: inline_sentry_response_serializer("AutofixPostResponse", AutofixPostResponse),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
+            402: inline_sentry_response_serializer(
+                "AutofixPaymentRequiredResponse", AutofixPaymentRequiredResponse
+            ),
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
+            409: inline_sentry_response_serializer(
+                "AutofixConflictResponse", AutofixConflictResponse
+            ),
         },
         examples=AutofixExamples.AUTOFIX_POST_RESPONSE,
     )
@@ -343,6 +391,8 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         | Response[AutofixHandoffResponse]
         | Response[None]
         | Response[DetailResponse]
+        | Response[AutofixConflictResponse]
+        | Response[AutofixPaymentRequiredResponse]
         | Response[ValidationErrorResponse]
         | Response[str]
     ):
@@ -365,16 +415,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         data = serializer.validated_data
         step = data.get("step", "root_cause")
         stopping_point = data.get("stopping_point")
-        stopping_points = {stopping_point}
-        is_new_run = data.get("sentry_run_id") is None and data.get("run_id") is None
-        if (
-            stopping_point is None
-            and is_new_run
-            and should_use_single_run(group, step)
-            and project_stopping_point(group.project) == AutofixStoppingPoint.OPEN_PR
-        ):
-            stopping_points.add(AutofixStoppingPoint.OPEN_PR.value)
-        _require_publish_scope(request, group, step, stopping_points)
+        _require_publish_scope(request, group, step, {stopping_point})
 
         # Prefer sentry_run_id (a uuid.UUID) over numeric run_id; None = new run.
         sentry_run_id_param: uuid.UUID | None = data.get("sentry_run_id")

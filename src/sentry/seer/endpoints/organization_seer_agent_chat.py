@@ -493,6 +493,11 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 enable_code_mode_tools=enable_code_mode_tools,
                 enable_investigation_tools=True,
                 enable_inbox_tools=True,
+                # Only users who can install integrations are asked to fix repo access.
+                enable_scm_connect_prompt=features.has(
+                    "organizations:ask-seer-scm-connect-prompt", organization, actor=request.user
+                )
+                and request.access.has_scope("org:integrations"),
                 reasoning_effort="medium",
             )
             if resolved is not None:

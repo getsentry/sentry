@@ -1,18 +1,22 @@
+import type {Location} from 'history';
+
 import {getInterval} from 'sentry/components/charts/utils';
 import type {PageFilters} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
-import type {NewQuery, SavedQuery} from 'sentry/types/organization';
+import type {
+  MultiSeriesEventsStats,
+  NewQuery,
+  Organization,
+  SavedQuery,
+} from 'sentry/types/organization';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {EventView} from 'sentry/utils/discover/eventView';
-import {
-  useGenericDiscoverQuery,
-  type DiscoverQueryProps,
-} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useGroupDefaultStatsPeriod} from 'sentry/views/issueDetails/useGroupDefaultStatsPeriod';
+import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 import {useEventQuery} from './useEventQuery';
 
@@ -30,6 +34,7 @@ export function useIssueDetailsEventView({
   const searchQuery = useEventQuery();
 
   const location = useLocation();
+  const environments = useEnvironmentsFromUrl();
   const hasSetStatsPeriod =
     location.query.statsPeriod || location.query.start || location.query.end;
   const defaultStatsPeriod = useGroupDefaultStatsPeriod(group, group.project);
@@ -56,14 +61,14 @@ export function useIssueDetailsEventView({
 
   // Group each filter so OR branches cannot escape the issue or other filters.
   const query = [
-    `issue:${group.shortId}`,
+    `issue.id:${group.id}`,
     ...[searchQuery, queryProps?.query].filter(s => s && s.length > 0).map(s => `(${s})`),
   ].join(' ');
 
   const discoverQuery: NewQuery = {
     ...periodQuery,
     interval,
-    environment: location.query.environment as NewQuery['environment'],
+    environment: environments,
     dataset: config.usesIssuePlatform
       ? DiscoverDatasets.ISSUE_PLATFORM
       : DiscoverDatasets.ERRORS,
@@ -79,34 +84,59 @@ export function useIssueDetailsEventView({
   return EventView.fromSavedQuery(discoverQuery);
 }
 
-export function useIssueDetailsDiscoverQuery<T>({
-  params: {eventView, route, referrer},
-  options,
-}: {
-  params: {
-    eventView: EventView;
-    referrer: string;
-    route: string;
-  };
-  options?: DiscoverQueryProps['options'];
-}) {
-  const organization = useOrganization();
-  const location = useLocation();
-  return useGenericDiscoverQuery<T, DiscoverQueryProps>({
-    route,
-    eventView,
-    location,
-    orgSlug: organization.slug,
-    getRequestPayload: () => ({
-      ...eventView.getEventsAPIPayload(location),
-      query: eventView.query,
-      interval: eventView.interval,
-      yAxis: eventView.yAxis,
-      partial: 1,
-      // Cursor on issue details can be used for other pagination
-      cursor: undefined,
-    }),
-    options,
+interface IssueDetailsEventsQueryParams {
+  eventView: EventView;
+  group: Group;
+  location: Location;
+  organization: Organization;
+  referrer: string;
+}
+
+function getIssueDetailsEventsQuery({
+  eventView,
+  group,
+  location,
+  referrer,
+}: IssueDetailsEventsQueryParams) {
+  return {
+    ...eventView.getEventsAPIPayload(location),
+    project: [group.project.id],
+    query: eventView.query,
+    interval: eventView.interval,
+    yAxis: eventView.yAxis,
+    partial: 1,
+    // Cursor on issue details can be used for other pagination
+    cursor: undefined,
     referrer,
+  };
+}
+
+export function issueDetailsEventsStatsApiOptions(params: IssueDetailsEventsQueryParams) {
+  return apiOptions.as<MultiSeriesEventsStats>()(
+    '/organizations/$organizationIdOrSlug/events-stats/',
+    {
+      path: {organizationIdOrSlug: params.organization.slug},
+      query: getIssueDetailsEventsQuery(params),
+      staleTime: 60_000,
+    }
+  );
+}
+
+export function issueDetailsEventsApiOptions<T>({
+  field,
+  ...params
+}: IssueDetailsEventsQueryParams & {
+  /**
+   * Overrides the event view's fields.
+   */
+  field?: string[];
+}) {
+  return apiOptions.as<T>()('/organizations/$organizationIdOrSlug/events/', {
+    path: {organizationIdOrSlug: params.organization.slug},
+    query: {
+      ...getIssueDetailsEventsQuery(params),
+      ...(field ? {field} : {}),
+    },
+    staleTime: 60_000,
   });
 }

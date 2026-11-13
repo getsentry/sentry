@@ -122,9 +122,9 @@ class OrganizationTelemetryClassifierDetailsEndpoint(OrganizationEndpoint):
         self, request: Request, organization: Organization, classifier: TelemetryClassifier
     ) -> Response[TelemetryClassifierResponse]:
         """
-        Enable or disable a telemetry classifier on a project the caller can write to.
+        Enable or disable a telemetry classifier on a project the caller can access.
         """
-        if not request.access.has_project_scope(classifier.project, "project:write"):
+        if not request.access.has_project_scope(classifier.project, "project:read"):
             raise PermissionDenied
 
         serializer = TelemetryClassifierUpdateRequestSerializer(

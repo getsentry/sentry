@@ -1,8 +1,10 @@
+import dataclasses
 import logging
 from collections import defaultdict
 from collections.abc import Callable, Sequence
 from concurrent.futures import as_completed
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from typing import Any, Literal, cast, get_args
 
 from drf_spectacular.utils import extend_schema
@@ -17,10 +19,20 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_trace_item_stats_types import TraceItemStatsResponse
-from sentry.api.event_search import translate_escape_sequences
+from sentry.api.event_search import (
+    AggregateFilter,
+    ParenExpression,
+    QueryToken,
+    translate_escape_sequences,
+)
 from sentry.api.serializers.base import serialize
 from sentry.api.utils import handle_query_errors
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
 from sentry.apidocs.examples.trace_item_stats_examples import TraceItemStatsExamples
 from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
@@ -28,6 +40,7 @@ from sentry.apidocs.response_types import ValidationErrorResponse, as_validation
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.search.eap.columns import ColumnDefinitions
 from sentry.search.eap.constants import SUPPORTED_STATS_TYPES
@@ -44,6 +57,7 @@ from sentry.search.eap.spans.attributes import (
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import can_expose_attribute_to_api
+from sentry.search.events.types import SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.snuba.occurrences_rpc import Occurrences
 from sentry.snuba.referrer import Referrer
@@ -91,6 +105,16 @@ def get_trace_item_stats_config(item_type: SupportedItemType) -> TraceItemStatsC
         id_column="span_id",
         visibility_item_type=SupportedTraceItemType.SPANS,
     )
+
+
+def _find_aggregate_filters(terms: Sequence[QueryToken]) -> list[AggregateFilter]:
+    found: list[AggregateFilter] = []
+    for term in terms:
+        if isinstance(term, AggregateFilter):
+            found.append(term)
+        elif isinstance(term, ParenExpression):
+            found.extend(_find_aggregate_filters(term.children))
+    return found
 
 
 class TraceItemStatsPaginator:
@@ -187,6 +211,7 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
             200: inline_sentry_response_serializer(
                 "TraceItemStatsResponse", TraceItemStatsResponse
             ),
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -218,6 +243,19 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
             params=snuba_params, config=resolver_config, definitions=stats_config.definitions
         )
 
+        # Stats are computed over individual trace items, so an aggregate filter has no
+        # group to apply to and Snuba rejects the query. Only parse here: a full resolve
+        # is expensive and the RPCs below resolve the query again.
+        with handle_query_errors():
+            aggregate_filters = _find_aggregate_filters(
+                resolver.parse_search_query(serialized.get("query", ""))
+            )
+            if aggregate_filters:
+                names = ", ".join(f.key.name for f in aggregate_filters)
+                raise InvalidSearchQuery(
+                    f"Aggregate filters are not supported for trace item stats: {names}"
+                )
+
         substring_match = serialized.get("substringMatch", "")
         value_substring_match = translate_escape_sequences(substring_match)
 
@@ -239,17 +277,35 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
                     selected_columns=[stats_config.id_column, "timestamp"],
                 )
 
+        def get_preflight_params(rows: list[dict[str, Any]]) -> SnubaParams:
+            # Filtering on item ids alone can't prune granules, so bound the
+            # preflight to the time span of the sampled items. Snuba compares
+            # whole seconds with an exclusive end, hence the floor and +1s.
+            timestamps = [datetime.fromisoformat(row["timestamp"]) for row in rows]
+            start = min(timestamps).replace(microsecond=0)
+            end = max(timestamps).replace(microsecond=0) + timedelta(seconds=1)
+            return dataclasses.replace(
+                snuba_params,
+                start=max(start, snuba_params.start_date),
+                end=min(end, snuba_params.end_date),
+            )
+
         def run_stats_query_with_item_ids(
             item_id_filter: str,
+            params: SnubaParams,
         ) -> list[dict[str, Any]]:
             with handle_query_errors():
                 return stats_config.rpc_class.run_stats_query(
-                    params=snuba_params,
+                    params=params,
                     stats_types=serialized.get("statsType"),
                     query_string=item_id_filter,
                     referrer=stats_config.referrer.value,
                     config=resolver_config,
-                    search_resolver=resolver,
+                    search_resolver=SearchResolver(
+                        params=params,
+                        config=resolver_config,
+                        definitions=stats_config.definitions,
+                    ),
                     max_buckets=1,
                     skip_translate_internal_to_public_alias=True,
                 )
@@ -276,7 +332,9 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
             item_ids = [row[stats_config.id_column] for row in table_results["data"]]
             item_id_list = ",".join(item_ids)
 
-            preflight_stats = run_stats_query_with_item_ids(f"id:[{item_id_list}]")
+            preflight_stats = run_stats_query_with_item_ids(
+                f"id:[{item_id_list}]", get_preflight_params(table_results["data"])
+            )
             try:
                 internal_alias_attr_keys = list(
                     preflight_stats[0]["attributeDistributions"]["data"].keys()

@@ -486,6 +486,12 @@ register(
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "cleanup.inbox-events.sample-rate",
+    default=0.0,
+    type=Float,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Notification Platform thread retention, run by `sentry cleanup`. Dry-run is on by
 # default so deletion volume can be measured before anything is removed.
 register(
@@ -1670,6 +1676,14 @@ register(
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Most entities one telemetry classifier selection enqueues, and its page size.
+register(
+    "telemetry-classifiers.select-limit",
+    type=Int,
+    default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Conversation classifiers PoC.
@@ -4880,13 +4894,6 @@ register(
 
 register(
     "integrations.client.disable_retries",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "buffer.split-pending-set",
     default=False,
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
