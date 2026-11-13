@@ -182,6 +182,16 @@ Without a spread window, that is just `scheduled_for`.
   meantime are skipped, not caught up. If a very late firing should be handled differently,
   compare `scheduled_for` with the current time, allowing for the spread window.
 
+Each `TriggerFiring` also carries `next_scheduled_for`: the next nominal scheduled time,
+excluding spreading, calculated when the firing was claimed. Consumers can use it to see
+how close the next firing is. It is informational and can change after schedule edits or
+between duplicate deliveries; use the original `scheduled_for` to deduplicate.
+
+`cadence.trigger.missed`, tagged by `trigger_type`, counts the intervening firings skipped
+when a trigger catches up. Interval counts are exact. Cron counts are capped at 1,000 per
+claimed firing to bound counting work after a long outage; a
+`cadence.trigger.missed_count_capped` warning indicates that the metric is a lower bound.
+
 These cover only when `dispatch` is called. When the dispatched work happens,
 such as when a scheduled task is picked up, depends on the consumer and isn't covered.
 

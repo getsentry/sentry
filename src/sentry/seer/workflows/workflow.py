@@ -29,19 +29,21 @@ from sentry.seer.workflows.base import (
     LockedConfig,
     ProjectSelection,
     ScopeSelection,
+    SeerServiceAccountGrant,
     SelectedMonitors,
     WorkflowUpdateError,
     lock_config,
-    validate_project_ids,
+    validate_service_account_grant,
 )
 from sentry.seer.workflows.definitions import get_definition
 from sentry.service_accounts.models import (
     MAX_NAME_LENGTH,
-    InvalidScopeError,
     ServiceAccountReplica,
-    validate_grantable_scopes,
 )
-from sentry.service_accounts.outbox import ServiceAccountOwnerKind, service_account_create_outbox
+from sentry.service_accounts.outbox import (
+    ServiceAccountOwnerKind,
+    service_account_create_outbox,
+)
 from sentry.service_accounts.services.service_account import (
     RpcServiceAccount,
     service_account_service,
@@ -50,15 +52,6 @@ from sentry.service_accounts.services.service_account import (
 logger = logging.getLogger(__name__)
 
 SEER_DEFAULT_WORKFLOW_STRATEGIES = (SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,)
-
-
-@dataclass(frozen=True)
-class SeerServiceAccountGrant:
-    """The scopes and projects an automation's investigations run with."""
-
-    scopes: Sequence[str]
-    project_ids: Sequence[int] = ()
-    all_projects: bool = False
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -167,12 +160,7 @@ class SeerWorkflow:
         extras = extras or SeerWorkflowConfigExtras()
         definition = get_definition(strategy)
         definition.validate_settings(extras)
-        if not service_account_grant.all_projects:
-            validate_project_ids(organization_id, set(service_account_grant.project_ids))
-        try:
-            validate_grantable_scopes(service_account_grant.scopes)
-        except InvalidScopeError as e:
-            raise WorkflowUpdateError(" ".join(e.messages)) from e
+        validate_service_account_grant(organization_id, service_account_grant)
 
         database = router.db_for_write(SeerWorkflowConfig)
         try:
@@ -327,15 +315,26 @@ class SeerWorkflow:
         and the trigger is synced to match.
         Do not early return on error cases - propagate an exception so the transaction can roll back.
         """
-        with lock_config(self.organization_id, self.config_id) as config:
-            definition = get_definition(config.strategy)
-            update = ConfigUpdate(config, definition)
-            yield update
-            if update.changed:
-                config.version += 1
-                config.save(update_fields=[*sorted(update.dirty_fields), "version", "date_updated"])
-            # Even when unchanged, so a schedule that drifted from the config is repaired.
-            definition.trigger.sync(config)
+        try:
+            with (
+                outbox_context(transaction.atomic(router.db_for_write(SeerWorkflowConfig))),
+                lock_config(self.organization_id, self.config_id) as config,
+            ):
+                definition = get_definition(config.strategy)
+                update = ConfigUpdate(config, definition)
+                yield update
+                if update.changed:
+                    config.version += 1
+                    config.save(
+                        update_fields=[*sorted(update.dirty_fields), "version", "date_updated"]
+                    )
+                # Even when unchanged, so a schedule that drifted from the config is repaired.
+                definition.trigger.sync(config)
+        except (OutboxFlushError, OutboxDatabaseError):
+            logger.exception(
+                "seer.workflow.update.flush_failed",
+                extra={"organization_id": self.organization_id, "config_id": self.config_id},
+            )
 
     def _config_queryset(self) -> QuerySet[SeerWorkflowConfig]:
         return SeerWorkflowConfig.objects.using(router.db_for_write(SeerWorkflowConfig)).filter(
