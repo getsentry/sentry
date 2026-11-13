@@ -112,7 +112,6 @@ describe('ConversationsOverviewPage', () => {
 
   afterEach(() => {
     localStorage.clear();
-    ProjectsStore.reset();
     MockApiClient.clearMockResponses();
   });
 

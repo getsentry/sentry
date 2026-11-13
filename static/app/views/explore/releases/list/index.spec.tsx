@@ -109,7 +109,6 @@ describe('ReleasesList', () => {
   });
 
   afterEach(() => {
-    act(() => ProjectsStore.reset());
     MockApiClient.clearMockResponses();
   });
 

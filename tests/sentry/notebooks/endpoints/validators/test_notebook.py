@@ -8,6 +8,12 @@ from sentry.notebooks.endpoints.validators import (
     NotebookCreateValidator,
     NotebookUpdateValidator,
 )
+from sentry.notebooks.services.producer_sources import ProducerSource, ResolvedProducerSource
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.notebook_producer_sources import (
+    EXAMPLE_SOURCE_TYPE,
+    register_example_source_type,
+)
 
 
 def assert_valid(validator: serializers.Serializer[Any]) -> dict[str, Any]:
@@ -45,6 +51,51 @@ class TestNotebookCreateValidator:
         assert not validator.is_valid()
         assert "projectIds" in validator.errors
         assert "project_ids" not in validator.errors
+
+
+class NotebookCreateValidatorSourceTest(TestCase):
+    def validator(self, data: dict[str, Any]) -> NotebookCreateValidator:
+        return NotebookCreateValidator(
+            data=data, context={"organization": self.organization, "creator": None}
+        )
+
+    def test_resolves_a_registered_source(self) -> None:
+        register_example_source_type(self)
+        data = assert_valid(
+            self.validator(
+                {
+                    "title": "T",
+                    "source": {"type": "example_issue", "issueId": 7, "projectId": 3},
+                }
+            )
+        )
+
+        assert data["source"] == ProducerSource(
+            source_type=EXAMPLE_SOURCE_TYPE,
+            resolved=ResolvedProducerSource(
+                key="7", source={"ref": {"issueId": 7}}, project_ids=[3]
+            ),
+        )
+
+    def test_rejects_unregistered_types(self) -> None:
+        for source in ({"type": "example_issue"}, {"type": "manual"}, {}, "example_issue"):
+            validator = self.validator({"title": "T", "source": source})
+
+            assert not validator.is_valid()
+            assert "source" in validator.errors
+
+    def test_rejects_project_ids_with_a_source(self) -> None:
+        register_example_source_type(self)
+        validator = self.validator(
+            {
+                "title": "T",
+                "projectIds": [3],
+                "source": {"type": "example_issue", "issueId": 7, "projectId": 3},
+            }
+        )
+
+        assert not validator.is_valid()
+        assert "projectIds" in validator.errors
 
 
 class TestNotebookUpdateValidator:

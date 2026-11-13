@@ -16,7 +16,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
     OrganizationNotebookBlockEndpoint,
-    require_authenticated_user,
+    require_notebook_writer,
     service_error,
 )
 from sentry.notebooks.endpoints.serializers import (
@@ -70,10 +70,10 @@ class OrganizationNotebookBlockDetailsEndpoint(OrganizationNotebookBlockEndpoint
         """
         Update at least one of title, content, generationPrompt, config, or display. Send both
         notebook and block versions. The block kind cannot change. Returns the updated block.
-        Requires an authenticated user. Requires the organizations:investigations feature and
-        open organization membership.
+        Requires a user or service account. Requires the organizations:investigations feature
+        and open organization membership.
         """
-        actor_id = require_authenticated_user(request)
+        actor_id = require_notebook_writer(request, notebook)
         if block.deleted_at is not None:
             raise ResourceDoesNotExist
 
@@ -141,10 +141,10 @@ class OrganizationNotebookBlockDetailsEndpoint(OrganizationNotebookBlockEndpoint
     ) -> Response:
         """
         Soft-delete an active block using notebook and block versions. Active executions and
-        other state conflicts return 409. Returns no body. Requires an authenticated user.
+        other state conflicts return 409. Returns no body. Requires a user or service account.
         Requires the organizations:investigations feature and open organization membership.
         """
-        require_authenticated_user(request)
+        require_notebook_writer(request, notebook)
         if block.deleted_at is not None:
             raise ResourceDoesNotExist
 

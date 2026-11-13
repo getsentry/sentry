@@ -57,7 +57,6 @@ describe('ConversationOnboarding', () => {
   }
 
   afterEach(() => {
-    ProjectsStore.reset();
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
   });

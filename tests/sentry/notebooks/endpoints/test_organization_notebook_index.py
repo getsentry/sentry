@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from typing import Any
 from unittest import mock
 
 import orjson
@@ -14,14 +15,26 @@ import sentry.apidocs.extensions  # noqa: F401
 from sentry.apidocs.hooks import CustomGenerator
 from sentry.investigations.apidocs import PRIVATE_SCHEMA_SETTINGS
 from sentry.investigations.models import InvestigationOrchestrationStatus
+from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.notebooks.models import Notebook, NotebookStatus
+from sentry.notebooks.services.notebooks import NotebookSourceNotFound, NotebookValidationError
 from sentry.notebooks.services.producer import PRODUCERS
+from sentry.notebooks.services.producer_sources import (
+    PRODUCER_SOURCE_TYPES,
+    ProducerSourceType,
+    ResolvedProducerSource,
+    register_producer_source_type,
+)
 from sentry.seer.models.workflow import SeerWorkflowStrategy
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.notebook_producer_sources import (
+    ExampleSourceValidator,
+    register_example_source_type,
+)
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
@@ -92,6 +105,140 @@ class OrganizationNotebookIndexTest(APITestCase):
         assert response.status_code == 400
         assert "source" in response.data
         assert not Notebook.objects.filter(title="With source").exists()
+
+    def test_create_rejects_engine_source_types(self) -> None:
+        register_example_source_type(self)
+        for source_type in ("manual", "metric_open_period"):
+            response = self.client.post(
+                self.collection_url,
+                data={"title": "With source", "source": {"type": source_type}},
+                format="json",
+            )
+
+            assert response.status_code == 400
+            assert response.data["source"] == {"type": "Unknown source type."}
+        assert not Notebook.objects.filter(title="With source").exists()
+
+    @mock.patch("sentry.notebooks.telemetry.sentry_sdk.metrics.count")
+    def test_create_for_a_producer_source(self, metrics_count: mock.MagicMock) -> None:
+        register_example_source_type(self)
+        data = {
+            "title": "Issue notebook",
+            "source": {"type": "example_issue", "issueId": 7, "projectId": self.project.id},
+        }
+
+        created = self.client.post(self.collection_url, data=data, format="json")
+
+        assert created.status_code == 201, created.data
+        assert created.data["projectIds"] == [self.project.id]
+        assert created.data["source"] == {
+            "type": "example_issue",
+            "ref": {"issueId": 7},
+            "revision": 1,
+        }
+        notebook = Notebook.objects.get(id=created.data["id"])
+        assert notebook.source_type == "example_issue"
+        assert notebook.source_key == "example_issue:7"
+        assert notebook.created_by_id == self.user.id
+        assert metrics_count.call_count == 1
+
+        again = self.client.post(self.collection_url, data=data, format="json")
+
+        assert again.status_code == 200, again.data
+        assert again.data["id"] == created.data["id"]
+        assert metrics_count.call_count == 1
+
+        notebook.update(status=NotebookStatus.ARCHIVED)
+        revised = self.client.post(self.collection_url, data=data, format="json")
+
+        assert revised.status_code == 201, revised.data
+        assert revised.data["id"] != created.data["id"]
+        assert revised.data["source"]["revision"] == 2
+
+    def test_create_derives_source_fields_on_the_server(self) -> None:
+        register_example_source_type(self)
+        source = {"type": "example_issue", "issueId": 7, "projectId": self.project.id}
+        for extra in (
+            {"sourceType": "manual"},
+            {"sourceKey": "example_issue:8"},
+            {"sourceRevision": 3},
+            {"projectIds": [self.project.id]},
+        ):
+            response = self.client.post(
+                self.collection_url,
+                data={"title": "Issue notebook", "source": source, **extra},
+                format="json",
+            )
+
+            assert response.status_code == 400, extra
+        assert not Notebook.objects.filter(title="Issue notebook").exists()
+
+    def test_create_validates_the_source_with_its_type(self) -> None:
+        register_example_source_type(self)
+        response = self.client.post(
+            self.collection_url,
+            data={"title": "Issue notebook", "source": {"type": "example_issue", "issueId": 0}},
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert set(response.data["source"]) == {"issueId", "projectId"}
+
+    def test_create_rejects_a_source_project_from_another_organization(self) -> None:
+        register_example_source_type(self)
+        other_project = self.create_project(organization=self.create_organization())
+        response = self.client.post(
+            self.collection_url,
+            data={
+                "title": "Issue notebook",
+                "source": {"type": "example_issue", "issueId": 7, "projectId": other_project.id},
+            },
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert response.data == {
+            "source": ["One or more of the source's projects are inaccessible."]
+        }
+        assert not Notebook.objects.filter(title="Issue notebook").exists()
+
+    def test_create_reports_source_resolution_errors_on_the_source(self) -> None:
+        def resolve(organization: Organization, values: dict[str, Any]) -> ResolvedProducerSource:
+            if values["issue_id"] == 1:
+                raise NotebookSourceNotFound
+            raise NotebookValidationError({"issueId": "The issue is resolved."})
+
+        register_producer_source_type(
+            ProducerSourceType(
+                name="failing_issue",
+                producer="example",
+                validator=ExampleSourceValidator,
+                resolve=resolve,
+            )
+        )
+        self.addCleanup(PRODUCER_SOURCE_TYPES.pop, "failing_issue")
+
+        def post(issue_id: int) -> Response:
+            return self.client.post(
+                self.collection_url,
+                data={
+                    "title": "Issue notebook",
+                    "source": {
+                        "type": "failing_issue",
+                        "issueId": issue_id,
+                        "projectId": self.project.id,
+                    },
+                },
+                format="json",
+            )
+
+        missing = post(1)
+        assert missing.status_code == 400
+        assert missing.data == {"source": ["Source not found."]}
+        invalid = post(2)
+        assert invalid.status_code == 400
+        assert invalid.data == {"source": {"issueId": "The issue is resolved."}}
+        assert not Notebook.objects.filter(title="Issue notebook").exists()
 
     def test_list_includes_summary_when_projects_are_accessible(self) -> None:
         notebook = self.create_notebook(

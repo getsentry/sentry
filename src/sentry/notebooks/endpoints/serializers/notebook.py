@@ -10,6 +10,7 @@ from django.db.models import Count, Q
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.auth.access import Access
+from sentry.auth.principal import acting_user_id
 from sentry.notebooks.endpoints.serializers.action_request import (
     NotebookActionRequestSerializer,
     NotebookActionRequestSerializerResponse,
@@ -125,7 +126,7 @@ class NotebookSerializer(Serializer):
         )
 
         favorited_ids: set[int] = set()
-        user_id = getattr(user, "id", None)
+        user_id = acting_user_id(user)
         if user_id is not None:
             favorited_ids = set(
                 NotebookFavoriteUser.objects.filter(
