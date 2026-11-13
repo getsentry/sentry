@@ -20,14 +20,14 @@ type BaseCheckoutData = {
 };
 
 /**
- * Seer auto-load settings picked in checkout. They aren't part of the
+ * Seer auto-reload settings picked in checkout. They aren't part of the
  * subscription, so checkout saves them to the Seer wallet once the plan change
  * goes through.
  */
-export type SeerAutoLoad = {
+export type SeerAutoReload = {
   dailyLimitCents: number;
   enabled: boolean;
-  loadAmountCents: number;
+  reloadAmountCents: number;
 };
 
 export type CheckoutFormData = BaseCheckoutData & {
@@ -35,7 +35,7 @@ export type CheckoutFormData = BaseCheckoutData & {
   /**
    * Only set for organizations billed for Seer on credits.
    */
-  seerAutoLoad?: SeerAutoLoad;
+  seerAutoReload?: SeerAutoReload;
 };
 
 export type CheckoutAPIData = Omit<BaseCheckoutData, 'addOns'> & {

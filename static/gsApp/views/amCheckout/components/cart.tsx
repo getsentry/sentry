@@ -44,12 +44,12 @@ import {getPlanCategoryName, getSingularCategoryName} from 'getsentry/utils/data
 import type {State as CheckoutState} from 'getsentry/views/amCheckout/';
 import {CartDiff} from 'getsentry/views/amCheckout/components/cartDiff';
 import {
-  getSeerAutoLoadError,
+  getSeerAutoReloadError,
   SEER_INCLUDED_CREDITS_CENTS,
   seerCreditsFromCents,
-  useSeerAutoLoad,
+  useSeerAutoReload,
 } from 'getsentry/views/amCheckout/seerCredits';
-import type {CheckoutFormData, SeerAutoLoad} from 'getsentry/views/amCheckout/types';
+import type {CheckoutFormData, SeerAutoReload} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 
 const PRICE_PLACEHOLDER_WIDTH = '70px';
@@ -135,7 +135,7 @@ interface TotalSummaryProps extends BaseSummaryProps {
   previewData: PreviewData | null;
   previewDataLoading: boolean;
   renewalDate: Date | null;
-  seerAutoLoad: SeerAutoLoad | null;
+  seerAutoReload: SeerAutoReload | null;
   subscription: Subscription;
 }
 
@@ -489,7 +489,7 @@ function SubtotalSummary({
   );
 }
 
-function SeerSummary({seerAutoLoad}: {seerAutoLoad: SeerAutoLoad}) {
+function SeerSummary({seerAutoReload}: {seerAutoReload: SeerAutoReload | null}) {
   // Included credits renew monthly, even on annual plans.
   const shortInterval = utils.getShortInterval(MONTHLY);
   const includedCredits = `${displayPrice({cents: SEER_INCLUDED_CREDITS_CENTS})}/${shortInterval}`;
@@ -504,7 +504,7 @@ function SeerSummary({seerAutoLoad}: {seerAutoLoad: SeerAutoLoad}) {
       data-test-id="summary-item-seer"
     >
       <Text bold>{t('Seer')}</Text>
-      {seerAutoLoad.enabled ? (
+      {seerAutoReload?.enabled ? (
         <Fragment>
           <ItemWithPrice
             item={tct('[includedCredits] credit', {includedCredits})}
@@ -512,13 +512,13 @@ function SeerSummary({seerAutoLoad}: {seerAutoLoad: SeerAutoLoad}) {
             shouldBoldItem={false}
           />
           <ItemWithPrice
-            data-test-id="summary-item-seer-auto-load"
+            data-test-id="summary-item-seer-auto-reload"
             item={tct('[credits] credits', {
               credits: seerCreditsFromCents(
-                seerAutoLoad.loadAmountCents
+                seerAutoReload.reloadAmountCents
               ).toLocaleString(),
             })}
-            price={displayPrice({cents: seerAutoLoad.loadAmountCents})}
+            price={displayPrice({cents: seerAutoReload.reloadAmountCents})}
             shouldBoldItem={false}
           />
         </Fragment>
@@ -547,7 +547,7 @@ function TotalSummary({
   activePlan,
   formData,
   organization,
-  seerAutoLoad,
+  seerAutoReload,
   subscription,
 }: TotalSummaryProps) {
   const isMigratingPartner = hasPartnerMigrationFeature(organization);
@@ -767,9 +767,9 @@ function TotalSummary({
             </Flex>
           )}
         </Flex>
-        {seerAutoLoad?.enabled && (
+        {seerAutoReload?.enabled && (
           <Text size="sm" variant="muted">
-            {tct('[planName] plan and Seer auto-load are billed separately', {
+            {tct('[planName] plan and Seer auto-reload are billed separately', {
               planName: activePlan.name,
             })}
           </Text>
@@ -833,8 +833,11 @@ export function Cart({
     () => utils.hasBillingInfo(billingDetails, subscription, true),
     [billingDetails, subscription]
   );
-  const {seerAutoLoad, seerAutoLoadToSave} = useSeerAutoLoad({formData, organization});
-  const seerAutoLoadError = getSeerAutoLoadError(seerAutoLoad);
+  const {isTokenBilled, seerAutoReload, seerAutoReloadToSave} = useSeerAutoReload({
+    formData,
+    organization,
+  });
+  const seerAutoReloadError = getSeerAutoReloadError(seerAutoReload);
   const shouldDisableCheckout = useMemo(
     () => !hasCompleteBillingInfo || subscription.isSuspended,
     [hasCompleteBillingInfo, subscription.isSuspended]
@@ -921,7 +924,7 @@ export function Cart({
             referrer,
             paymentIntent: intentDetails.paymentIntent,
           }),
-          seerAutoLoad: seerAutoLoadToSave,
+          seerAutoReload: seerAutoReloadToSave,
         }),
       stripeErrorMessage => {
         setErrorMessage(stripeErrorMessage ?? null);
@@ -963,7 +966,7 @@ export function Cart({
         previewToken: previewState.previewData?.previewToken,
         referrer,
       }),
-      seerAutoLoad: seerAutoLoadToSave,
+      seerAutoReload: seerAutoReloadToSave,
     });
   };
 
@@ -1014,16 +1017,16 @@ export function Cart({
             renewalDate={previewState.renewalDate}
             subscription={subscription}
           />
-          {seerAutoLoad && <SeerSummary seerAutoLoad={seerAutoLoad} />}
+          {isTokenBilled && <SeerSummary seerAutoReload={seerAutoReload} />}
         </Stack>
       </Stack>
       <TotalSummary
         activePlan={activePlan}
         billedTotal={previewState.billedTotal}
-        buttonDisabled={shouldDisableCheckout || !!seerAutoLoadError}
+        buttonDisabled={shouldDisableCheckout || !!seerAutoReloadError}
         buttonDisabledText={
-          !shouldDisableCheckout && seerAutoLoadError
-            ? seerAutoLoadError
+          !shouldDisableCheckout && seerAutoReloadError
+            ? seerAutoReloadError
             : subscription.isSuspended
               ? tct(
                   'Your account has been suspended. Please contact [mailto:support@sentry.io] if you have any questions or need assistance.',
@@ -1044,7 +1047,7 @@ export function Cart({
         effectiveDate={previewState.effectiveDate}
         onSubmit={handleConfirmAndPay}
         organization={organization}
-        seerAutoLoad={seerAutoLoad}
+        seerAutoReload={seerAutoReload}
         subscription={subscription}
       />
     </Stack>

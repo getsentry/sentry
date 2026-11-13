@@ -307,7 +307,7 @@ function AMCheckout(props: Props) {
         onDemandBudget: newOnDemandBudget,
         reserved: nextReserved,
         addOns,
-        seerAutoLoad: data.seerAutoLoad,
+        seerAutoReload: data.seerAutoReload,
       };
     },
     [organization, subscription]
@@ -410,7 +410,7 @@ function AMCheckout(props: Props) {
       onDemandBudget: undefined,
       onDemandMaxSpend: undefined,
       // Saved separately from the subscription, so it doesn't change the preview.
-      seerAutoLoad: undefined,
+      seerAutoReload: undefined,
     };
   }, []);
 

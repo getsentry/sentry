@@ -11,7 +11,7 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {seerCreditChecksQueryKey} from 'sentry/utils/seer/useSeerCreditCheck';
 
 import {displayPrice} from 'getsentry/utils/billing';
-import type {CheckoutFormData, SeerAutoLoad} from 'getsentry/views/amCheckout/types';
+import type {CheckoutFormData, SeerAutoReload} from 'getsentry/views/amCheckout/types';
 import {
   seerWalletAutoTopUpOptions,
   seerWalletBalanceOptions,
@@ -31,22 +31,22 @@ export const SEER_INCLUDED_CREDITS_CENTS = 500;
  */
 export const SEER_CREDIT_PRICE_CENTS = 1;
 
-const DEFAULT_LOAD_AMOUNT_CENTS = 2500;
+const DEFAULT_RELOAD_AMOUNT_CENTS = 2500;
 const DEFAULT_DAILY_LIMIT_CENTS = 10000;
 
 // The auto top-up endpoint rejects anything lower.
-const MIN_LOAD_AMOUNT_CENTS = 1500;
+const MIN_RELOAD_AMOUNT_CENTS = 1500;
 const MIN_DAILY_LIMIT_CENTS = 100;
 
-const DEFAULT_SEER_AUTO_LOAD: SeerAutoLoad = {
+const DEFAULT_SEER_AUTO_RELOAD: SeerAutoReload = {
   enabled: false,
-  loadAmountCents: DEFAULT_LOAD_AMOUNT_CENTS,
+  reloadAmountCents: DEFAULT_RELOAD_AMOUNT_CENTS,
   dailyLimitCents: DEFAULT_DAILY_LIMIT_CENTS,
 };
 
 /**
  * Whether the organization pays for Seer with credits, the only Seer billing
- * that has auto-load.
+ * that has auto-reload.
  */
 export function hasTokenBilledSeer(organization: Organization) {
   return organization.features.includes('token-billed-seer-enabled');
@@ -56,19 +56,21 @@ export function seerCreditsFromCents(cents: number) {
   return Math.floor(cents / SEER_CREDIT_PRICE_CENTS);
 }
 
-function getSavedSeerAutoLoad(autoTopUp: SeerWalletAutoTopUp | undefined): SeerAutoLoad {
+function getSavedSeerAutoReload(
+  autoTopUp: SeerWalletAutoTopUp | undefined
+): SeerAutoReload {
   // Turning on starts from the defaults rather than amounts the customer never
   // picked.
   if (!autoTopUp?.enabled) {
-    return DEFAULT_SEER_AUTO_LOAD;
+    return DEFAULT_SEER_AUTO_RELOAD;
   }
   return {
     enabled: true,
     // Both can be null on a config that was never saved.
-    loadAmountCents:
+    reloadAmountCents:
       autoTopUp.topUpCredits > 0
         ? autoTopUp.topUpCredits * SEER_CREDIT_PRICE_CENTS
-        : DEFAULT_LOAD_AMOUNT_CENTS,
+        : DEFAULT_RELOAD_AMOUNT_CENTS,
     dailyLimitCents:
       autoTopUp.dailySpendCapCents > 0
         ? autoTopUp.dailySpendCapCents
@@ -77,10 +79,10 @@ function getSavedSeerAutoLoad(autoTopUp: SeerWalletAutoTopUp | undefined): SeerA
 }
 
 /**
- * The auto-load settings checkout shows: the customer's edits if they made
+ * The auto-reload settings checkout shows: the customer's edits if they made
  * any, otherwise what's saved on their Seer wallet.
  */
-export function useSeerAutoLoad({
+export function useSeerAutoReload({
   formData,
   organization,
 }: {
@@ -93,40 +95,54 @@ export function useSeerAutoLoad({
     enabled: isTokenBilled,
   });
 
-  if (!isTokenBilled) {
-    return {isPending: false, seerAutoLoad: null, seerAutoLoadToSave: undefined};
+  if (!isTokenBilled || autoTopUpQuery.isError) {
+    // Without the saved settings, checkout can't tell what it would overwrite,
+    // so it offers no auto-reload.
+    return {
+      isTokenBilled,
+      isPending: false,
+      isError: autoTopUpQuery.isError,
+      refetch: autoTopUpQuery.refetch,
+      seerAutoReload: null,
+      seerAutoReloadToSave: undefined,
+    };
   }
 
-  // Without saved settings, checkout can still turn auto-load on.
-  const savedSeerAutoLoad = getSavedSeerAutoLoad(autoTopUpQuery.data);
-  const pickedSeerAutoLoad = formData.seerAutoLoad;
+  const savedSeerAutoReload = getSavedSeerAutoReload(autoTopUpQuery.data);
+  const pickedSeerAutoReload = formData.seerAutoReload;
   const hasChanges =
-    pickedSeerAutoLoad !== undefined &&
-    // Amounts edited while auto-load is off aren't worth saving.
-    (pickedSeerAutoLoad.enabled || savedSeerAutoLoad.enabled) &&
-    !isEqual(pickedSeerAutoLoad, savedSeerAutoLoad);
+    pickedSeerAutoReload !== undefined &&
+    // Amounts edited while auto-reload is off aren't worth saving.
+    (pickedSeerAutoReload.enabled || savedSeerAutoReload.enabled) &&
+    !isEqual(pickedSeerAutoReload, savedSeerAutoReload);
 
   return {
+    isTokenBilled,
     isPending: autoTopUpQuery.isPending,
-    seerAutoLoad: pickedSeerAutoLoad ?? savedSeerAutoLoad,
+    isError: false,
+    refetch: autoTopUpQuery.refetch,
+    seerAutoReload: pickedSeerAutoReload ?? savedSeerAutoReload,
     /**
      * What checkout should save to the Seer wallet, if anything changed.
      */
-    seerAutoLoadToSave: hasChanges ? pickedSeerAutoLoad : undefined,
+    seerAutoReloadToSave: hasChanges ? pickedSeerAutoReload : undefined,
   };
 }
 
-export function getSeerLoadAmountError(seerAutoLoad: SeerAutoLoad) {
-  if (seerAutoLoad.enabled && seerAutoLoad.loadAmountCents < MIN_LOAD_AMOUNT_CENTS) {
+export function getSeerReloadAmountError(seerAutoReload: SeerAutoReload) {
+  if (
+    seerAutoReload.enabled &&
+    seerAutoReload.reloadAmountCents < MIN_RELOAD_AMOUNT_CENTS
+  ) {
     return tct('Must be at least [amount].', {
-      amount: displayPrice({cents: MIN_LOAD_AMOUNT_CENTS}),
+      amount: displayPrice({cents: MIN_RELOAD_AMOUNT_CENTS}),
     });
   }
   return null;
 }
 
-export function getSeerDailyLimitError(seerAutoLoad: SeerAutoLoad) {
-  if (seerAutoLoad.enabled && seerAutoLoad.dailyLimitCents < MIN_DAILY_LIMIT_CENTS) {
+export function getSeerDailyLimitError(seerAutoReload: SeerAutoReload) {
+  if (seerAutoReload.enabled && seerAutoReload.dailyLimitCents < MIN_DAILY_LIMIT_CENTS) {
     return tct('Must be at least [amount].', {
       amount: displayPrice({cents: MIN_DAILY_LIMIT_CENTS}),
     });
@@ -134,28 +150,28 @@ export function getSeerDailyLimitError(seerAutoLoad: SeerAutoLoad) {
   return null;
 }
 
-export function getSeerAutoLoadError(seerAutoLoad: SeerAutoLoad | null) {
-  if (!seerAutoLoad) {
+export function getSeerAutoReloadError(seerAutoReload: SeerAutoReload | null) {
+  if (!seerAutoReload) {
     return null;
   }
   const error =
-    getSeerLoadAmountError(seerAutoLoad) ?? getSeerDailyLimitError(seerAutoLoad);
-  return error ? t('Fix your Seer auto-load settings to continue.') : null;
+    getSeerReloadAmountError(seerAutoReload) ?? getSeerDailyLimitError(seerAutoReload);
+  return error ? t('Fix your Seer auto-reload settings to continue.') : null;
 }
 
 /**
- * Saves the auto-load settings picked in checkout to the Seer wallet. The plan
+ * Saves the auto-reload settings picked in checkout to the Seer wallet. The plan
  * change has already gone through by then, so a failure doesn't undo it; the
  * customer can retry from the billing page.
  */
-export async function saveSeerAutoLoad({
+export async function saveSeerAutoReload({
   organization,
   queryClient,
-  seerAutoLoad,
+  seerAutoReload,
 }: {
   organization: Organization;
   queryClient: QueryClient;
-  seerAutoLoad: SeerAutoLoad;
+  seerAutoReload: SeerAutoReload;
 }) {
   try {
     await fetchMutation<SeerWalletAutoTopUp>({
@@ -164,24 +180,24 @@ export async function saveSeerAutoLoad({
       }),
       method: 'PUT',
       data: {
-        enabled: seerAutoLoad.enabled,
-        topUpCredits: seerCreditsFromCents(seerAutoLoad.loadAmountCents),
-        dailySpendCapCents: seerAutoLoad.dailyLimitCents,
+        enabled: seerAutoReload.enabled,
+        topUpCredits: seerCreditsFromCents(seerAutoReload.reloadAmountCents),
+        dailySpendCapCents: seerAutoReload.dailyLimitCents,
       },
     });
   } catch (error) {
-    // A 402 means the settings were saved, but the first load, billed when the
+    // A 402 means the settings were saved, but the first reload, billed when the
     // balance is already low, couldn't be charged.
     if (error instanceof RequestError && error.status === 402) {
       toast.error(
         t(
-          "Seer auto-load is on, but we couldn't charge your payment method for its first load. Check your payment method on the billing page."
+          "Seer auto-reload is on, but we couldn't charge your payment method for its first reload. Check your payment method on the billing page."
         )
       );
     } else {
       toast.error(
         t(
-          'Your plan was updated, but Seer auto-load was not saved. Try again from your billing page.'
+          'Your plan was updated, but Seer auto-reload was not saved. Try again from your billing page.'
         )
       );
     }

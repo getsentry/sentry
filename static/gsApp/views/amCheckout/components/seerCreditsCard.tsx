@@ -5,6 +5,7 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -12,12 +13,12 @@ import type {Organization} from 'sentry/types/organization';
 import {displayPrice} from 'getsentry/utils/billing';
 import {
   getSeerDailyLimitError,
-  getSeerLoadAmountError,
+  getSeerReloadAmountError,
   SEER_CREDIT_PRICE_CENTS,
   SEER_INCLUDED_CREDITS_CENTS,
-  useSeerAutoLoad,
+  useSeerAutoReload,
 } from 'getsentry/views/amCheckout/seerCredits';
-import type {CheckoutFormData, SeerAutoLoad} from 'getsentry/views/amCheckout/types';
+import type {CheckoutFormData, SeerAutoReload} from 'getsentry/views/amCheckout/types';
 import {DollarInput} from 'getsentry/views/subscriptionPage/seerWallet/dollarInput';
 
 const FEATURES = [
@@ -35,18 +36,21 @@ interface SeerCreditsCardProps {
 
 /**
  * Seer for plans billed on credits: every plan includes credits each month,
- * and auto-load buys more when they run low.
+ * and auto-reload buys more when they run low.
  */
 export function SeerCreditsCard({
   formData,
   onUpdate,
   organization,
 }: SeerCreditsCardProps) {
-  const {isPending, seerAutoLoad} = useSeerAutoLoad({formData, organization});
+  const {isPending, isError, refetch, seerAutoReload} = useSeerAutoReload({
+    formData,
+    organization,
+  });
 
-  const updateAutoLoad = (data: Partial<SeerAutoLoad>) => {
-    if (seerAutoLoad) {
-      onUpdate({seerAutoLoad: {...seerAutoLoad, ...data}});
+  const updateAutoReload = (data: Partial<SeerAutoReload>) => {
+    if (seerAutoReload) {
+      onUpdate({seerAutoReload: {...seerAutoReload, ...data}});
     }
   };
 
@@ -87,15 +91,15 @@ export function SeerCreditsCard({
         </Grid>
         <Text variant="muted">
           {t(
-            'All features use credits. Additional usage can be purchased with auto-load enabled.'
+            'All features use credits. Additional usage can be purchased with auto-reload enabled.'
           )}
         </Text>
       </Stack>
       <Stack gap="lg" padding="xl" borderTop="primary">
         <Flex justify="between" align="start" gap="xl">
           <Stack gap="xs">
-            <Text as="label" htmlFor="seer-auto-load" bold>
-              {t('Auto-load')}
+            <Text as="label" htmlFor="seer-auto-reload" bold>
+              {t('Auto-reload')}
             </Text>
             <Text variant="muted">
               {t(
@@ -103,34 +107,40 @@ export function SeerCreditsCard({
               )}
             </Text>
           </Stack>
-          {isPending || !seerAutoLoad ? (
+          {isError ? null : isPending || !seerAutoReload ? (
             <Placeholder width="40px" height="24px" />
           ) : (
             <Switch
-              id="seer-auto-load"
+              id="seer-auto-reload"
               size="lg"
-              checked={seerAutoLoad.enabled}
-              onChange={() => updateAutoLoad({enabled: !seerAutoLoad.enabled})}
+              checked={seerAutoReload.enabled}
+              onChange={() => updateAutoReload({enabled: !seerAutoReload.enabled})}
             />
           )}
         </Flex>
-        {seerAutoLoad?.enabled && !isPending && (
+        {isError && (
+          <LoadingError
+            message={t("We couldn't load your auto-reload settings.")}
+            onRetry={() => refetch()}
+          />
+        )}
+        {seerAutoReload?.enabled && !isPending && (
           <Stack gap="lg">
             <Container border="primary" radius="md" background="secondary">
-              <AutoLoadRow
-                id="seer-auto-load-amount"
-                label={t('Load amount')}
-                error={getSeerLoadAmountError(seerAutoLoad)}
-                cents={seerAutoLoad.loadAmountCents}
-                onChange={loadAmountCents => updateAutoLoad({loadAmountCents})}
+              <AutoReloadRow
+                id="seer-auto-reload-amount"
+                label={t('Reload amount')}
+                error={getSeerReloadAmountError(seerAutoReload)}
+                cents={seerAutoReload.reloadAmountCents}
+                onChange={reloadAmountCents => updateAutoReload({reloadAmountCents})}
               />
               <Container borderTop="primary">
-                <AutoLoadRow
-                  id="seer-auto-load-daily-limit"
+                <AutoReloadRow
+                  id="seer-auto-reload-daily-limit"
                   label={t('Daily usage limit')}
-                  error={getSeerDailyLimitError(seerAutoLoad)}
-                  cents={seerAutoLoad.dailyLimitCents}
-                  onChange={dailyLimitCents => updateAutoLoad({dailyLimitCents})}
+                  error={getSeerDailyLimitError(seerAutoReload)}
+                  cents={seerAutoReload.dailyLimitCents}
+                  onChange={dailyLimitCents => updateAutoReload({dailyLimitCents})}
                 />
               </Container>
             </Container>
@@ -146,7 +156,7 @@ export function SeerCreditsCard({
   );
 }
 
-function AutoLoadRow({
+function AutoReloadRow({
   id,
   label,
   error,

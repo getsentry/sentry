@@ -98,8 +98,8 @@ describe('SeerCreditsCard', () => {
     const card = await screen.findByTestId('seer-credits');
     expect(card).toHaveTextContent('$5 in credits');
     expect(card).toHaveTextContent('Included every month');
-    expect(await screen.findByRole('checkbox', {name: 'Auto-load'})).not.toBeChecked();
-    expect(screen.queryByLabelText('Load amount')).not.toBeInTheDocument();
+    expect(await screen.findByRole('checkbox', {name: 'Auto-reload'})).not.toBeChecked();
+    expect(screen.queryByLabelText('Reload amount')).not.toBeInTheDocument();
 
     expect(
       screen.queryByTestId(`product-option-${AddOnCategory.SEER}`)
@@ -116,14 +116,14 @@ describe('SeerCreditsCard', () => {
     ).not.toHaveTextContent('billed separately');
   });
 
-  it('shows the auto-load amounts and their cost once turned on', async () => {
+  it('shows the auto-reload amounts and their cost once turned on', async () => {
     mockAutoTopUp();
     renderCheckout();
 
-    await userEvent.click(await screen.findByRole('checkbox', {name: 'Auto-load'}));
+    await userEvent.click(await screen.findByRole('checkbox', {name: 'Auto-reload'}));
 
     const card = screen.getByTestId('seer-credits');
-    expect(within(card).getByLabelText('Load amount')).toHaveValue('25');
+    expect(within(card).getByLabelText('Reload amount')).toHaveValue('25');
     expect(within(card).getByText('2,500 credits')).toBeInTheDocument();
     expect(within(card).getByLabelText('Daily usage limit')).toHaveValue('100');
     expect(within(card).getByText('10,000 credits')).toBeInTheDocument();
@@ -132,36 +132,49 @@ describe('SeerCreditsCard', () => {
     expect(seerSummary).toHaveTextContent('$5/mo creditFree');
     expect(seerSummary).toHaveTextContent('2,500 credits$25');
     expect(screen.getByTestId('summary-item-due-today').parentElement).toHaveTextContent(
-      'Business plan and Seer auto-load are billed separately'
+      'Business plan and Seer auto-reload are billed separately'
     );
   });
 
-  it('starts from the saved auto-load settings', async () => {
+  it('starts from the saved auto-reload settings', async () => {
     mockAutoTopUp({enabled: true, topUpCredits: 5000, dailySpendCapCents: 20_00});
     renderCheckout();
 
-    expect(await screen.findByRole('checkbox', {name: 'Auto-load'})).toBeChecked();
-    expect(screen.getByLabelText('Load amount')).toHaveValue('50');
+    expect(await screen.findByRole('checkbox', {name: 'Auto-reload'})).toBeChecked();
+    expect(screen.getByLabelText('Reload amount')).toHaveValue('50');
     expect(screen.getByLabelText('Daily usage limit')).toHaveValue('20');
   });
 
-  it('blocks checkout until the auto-load amounts are valid', async () => {
+  it('does not offer auto-reload when its saved settings fail to load', async () => {
+    MockApiClient.addMockResponse({url: autoTopUpUrl, method: 'GET', statusCode: 500});
+    renderCheckout();
+
+    expect(
+      await screen.findByText("We couldn't load your auto-reload settings.")
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', {name: 'Auto-reload'})).not.toBeInTheDocument();
+    expect(screen.getByTestId('summary-item-seer')).toHaveTextContent(
+      'Included credits$5/mo'
+    );
+  });
+
+  it('blocks checkout until the auto-reload amounts are valid', async () => {
     mockAutoTopUp();
     renderCheckout();
 
-    await userEvent.click(await screen.findByRole('checkbox', {name: 'Auto-load'}));
-    const loadAmount = screen.getByLabelText('Load amount');
-    await userEvent.clear(loadAmount);
-    await userEvent.type(loadAmount, '10');
+    await userEvent.click(await screen.findByRole('checkbox', {name: 'Auto-reload'}));
+    const reloadAmount = screen.getByLabelText('Reload amount');
+    await userEvent.clear(reloadAmount);
+    await userEvent.type(reloadAmount, '10');
 
     expect(screen.getByText('Must be at least $15.')).toBeInTheDocument();
-    expect(loadAmount).toHaveAttribute('aria-invalid', 'true');
+    expect(reloadAmount).toHaveAttribute('aria-invalid', 'true');
     expect(await screen.findByRole('button', {name: 'Confirm and pay'})).toHaveAttribute(
       'aria-disabled',
       'true'
     );
 
-    await userEvent.type(loadAmount, '0');
+    await userEvent.type(reloadAmount, '0');
     expect(screen.queryByText('Must be at least $15.')).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Confirm and pay'})).not.toHaveAttribute(
       'aria-disabled',
@@ -169,7 +182,7 @@ describe('SeerCreditsCard', () => {
     );
   });
 
-  it('saves auto-load after the plan change goes through', async () => {
+  it('saves auto-reload after the plan change goes through', async () => {
     mockAutoTopUp();
     const checkoutRequest = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/`,
@@ -183,7 +196,7 @@ describe('SeerCreditsCard', () => {
     });
     renderCheckout();
 
-    await userEvent.click(await screen.findByRole('checkbox', {name: 'Auto-load'}));
+    await userEvent.click(await screen.findByRole('checkbox', {name: 'Auto-reload'}));
     await userEvent.click(await screen.findByRole('button', {name: 'Confirm and pay'}));
 
     await waitFor(() =>
@@ -195,16 +208,16 @@ describe('SeerCreditsCard', () => {
         })
       )
     );
-    // Auto-load isn't part of the subscription.
+    // Auto-reload isn't part of the subscription.
     expect(checkoutRequest).toHaveBeenCalledWith(
       `/customers/${organization.slug}/subscription/`,
       expect.objectContaining({
-        data: expect.not.objectContaining({seerAutoLoad: expect.anything()}),
+        data: expect.not.objectContaining({seerAutoReload: expect.anything()}),
       })
     );
   });
 
-  it('leaves auto-load alone when it was not changed', async () => {
+  it('leaves auto-reload alone when it was not changed', async () => {
     mockAutoTopUp({enabled: true, topUpCredits: 5000, dailySpendCapCents: 20_00});
     const checkoutRequest = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/`,
@@ -218,7 +231,7 @@ describe('SeerCreditsCard', () => {
     });
     renderCheckout();
 
-    expect(await screen.findByRole('checkbox', {name: 'Auto-load'})).toBeChecked();
+    expect(await screen.findByRole('checkbox', {name: 'Auto-reload'})).toBeChecked();
     await userEvent.click(await screen.findByRole('button', {name: 'Confirm and pay'}));
 
     await waitFor(() => expect(checkoutRequest).toHaveBeenCalled());

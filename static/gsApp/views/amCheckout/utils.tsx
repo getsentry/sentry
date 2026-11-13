@@ -43,12 +43,12 @@ import {isCheckoutCategory} from 'getsentry/utils/dataCategory';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {trackMarketingEvent} from 'getsentry/utils/trackMarketingEvent';
 import type {State as CheckoutState} from 'getsentry/views/amCheckout/';
-import {saveSeerAutoLoad} from 'getsentry/views/amCheckout/seerCredits';
+import {saveSeerAutoReload} from 'getsentry/views/amCheckout/seerCredits';
 import type {
   CheckoutAPIData,
   CheckoutFormData,
   PlanContent,
-  SeerAutoLoad,
+  SeerAutoReload,
 } from 'getsentry/views/amCheckout/types';
 import {
   normalizeOnDemandBudget,
@@ -492,9 +492,9 @@ export function useSubmitCheckout({
     }: {
       data: CheckoutAPIData;
       /**
-       * Seer auto-load settings to save once the plan change goes through.
+       * Seer auto-reload settings to save once the plan change goes through.
        */
-      seerAutoLoad?: SeerAutoLoad;
+      seerAutoReload?: SeerAutoReload;
     }) => {
       return fetchMutation<{
         invoice?: Invoice;
@@ -528,14 +528,14 @@ export function useSubmitCheckout({
       fetchOrganizationDetails(new Client(), organization.slug);
       SubscriptionStore.loadData(organization.slug);
 
-      // Auto-load lives on the Seer wallet rather than the subscription. Save it
+      // Auto-reload lives on the Seer wallet rather than the subscription. Save it
       // even when the payment still needs authenticating, since the plan
       // change has gone through.
-      if (_variables.seerAutoLoad) {
-        saveSeerAutoLoad({
+      if (_variables.seerAutoReload) {
+        saveSeerAutoReload({
           organization,
           queryClient,
-          seerAutoLoad: _variables.seerAutoLoad,
+          seerAutoReload: _variables.seerAutoReload,
         });
       }
 
