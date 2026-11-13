@@ -805,22 +805,22 @@ class ServiceAccountTokenAuthentication(StandardAuthentication):
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
         token_hashed = hash_token(token_str)
 
-        token: ServiceAccountToken | ServiceAccountTokenReplica | None
+        token: ServiceAccountToken | ServiceAccountTokenReplica
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
-            token = ServiceAccountToken.objects.filter(
-                token_hashed=token_hashed, date_deactivated__isnull=True
-            ).first()
-            if token is None:
+            try:
+                token = ServiceAccountToken.objects.get(
+                    token_hashed=token_hashed, date_deactivated__isnull=True
+                )
+            except ServiceAccountToken.DoesNotExist:
                 raise AuthenticationFailed("Invalid service account token")
             token_id = token.id
             service_account_id = token.service_account_id
         else:
-            token = (
-                ServiceAccountTokenReplica.objects.select_related("service_account")
-                .filter(token_hashed=token_hashed, date_deactivated__isnull=True)
-                .first()
-            )
-            if token is None:
+            try:
+                token = ServiceAccountTokenReplica.objects.select_related("service_account").get(
+                    token_hashed=token_hashed, date_deactivated__isnull=True
+                )
+            except ServiceAccountTokenReplica.DoesNotExist:
                 raise AuthenticationFailed("Invalid service account token")
             token_id = token.token_id
             service_account_id = token.service_account.service_account_id
