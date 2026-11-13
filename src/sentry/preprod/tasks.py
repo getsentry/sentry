@@ -33,6 +33,7 @@ from sentry.preprod.quotas import (
     has_installable_quota,
     has_size_quota,
 )
+from sentry.preprod.size_analysis.comparison_run import SIZE_COMPARISON_RESULT_FILE_TYPE
 from sentry.preprod.size_analysis.models import SizeAnalysisResults
 from sentry.preprod.size_analysis.monitors import maybe_emit_issues_from_absolute_size_results
 from sentry.preprod.size_analysis.tasks import compare_preprod_artifact_size_analysis
@@ -59,6 +60,8 @@ logger = logging.getLogger(__name__)
 
 # Must equal the preprod-detect-expired-artifacts schedule, or consecutive windows overlap or leave gaps.
 UNREFERENCED_RESULT_FILE_WINDOW_MINUTES = 30
+# A result file is stored before its comparison row, so a newer file may not be referenced yet.
+UNREFERENCED_RESULT_FILE_GRACE_MINUTES = 30
 
 
 # Typed RPC stub — the body is never called. The decorator registers the task signature
@@ -840,24 +843,25 @@ def assemble_preprod_artifact_installable_app(
 
 def _count_unreferenced_size_comparison_result_files(current_time: datetime.datetime) -> int:
     window = datetime.timedelta(minutes=UNREFERENCED_RESULT_FILE_WINDOW_MINUTES)
+    grace = datetime.timedelta(minutes=UNREFERENCED_RESULT_FILE_GRACE_MINUTES)
     minutes_into_slot = current_time.minute % UNREFERENCED_RESULT_FILE_WINDOW_MINUTES
-    slot_start = current_time.replace(
-        minute=current_time.minute - minutes_into_slot, second=0, microsecond=0
-    )
-    window_end = slot_start - window
+    slot_minute = current_time.minute - minutes_into_slot
+    slot_start = current_time.replace(minute=slot_minute, second=0, microsecond=0)
+    window_end = slot_start - grace
     window_start = window_end - window
 
     result_files = File.objects.filter(
-        type="size_analysis_comparison.json",
+        type=SIZE_COMPARISON_RESULT_FILE_TYPE,
         timestamp__gte=window_start,
         timestamp__lt=window_end,
     )
-    file_ids = list(result_files.values_list("id", flat=True))
+    file_ids = set(result_files.values_list("id", flat=True))
 
     referencing_comparisons = PreprodArtifactSizeComparison.objects.filter(file_id__in=file_ids)
     referenced_file_ids = set(referencing_comparisons.values_list("file_id", flat=True))
+    unreferenced_file_ids = file_ids - referenced_file_ids
 
-    return len(file_ids) - len(referenced_file_ids)
+    return len(unreferenced_file_ids)
 
 
 @instrumented_task(

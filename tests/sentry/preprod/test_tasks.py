@@ -1429,8 +1429,9 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
         self, mock_metrics: MagicMock
     ) -> None:
         run_time = datetime(2024, 3, 5, 12, 7, 41, tzinfo=UTC)
-        inside_window = datetime(2024, 3, 5, 11, 10, tzinfo=UTC)
+        window_start = datetime(2024, 3, 5, 11, 0, tzinfo=UTC)
         window_end = datetime(2024, 3, 5, 11, 30, tzinfo=UTC)
+        inside_window = datetime(2024, 3, 5, 11, 10, tzinfo=UTC)
 
         with freeze_time(run_time):
             detect_expired_preprod_artifacts()
@@ -1444,10 +1445,20 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
             name="referenced", type="size_analysis_comparison.json", timestamp=inside_window
         )
         self.create_file(
-            name="unreferenced", type="size_analysis_comparison.json", timestamp=inside_window
+            name="at-window-start", type="size_analysis_comparison.json", timestamp=window_start
         )
         self.create_file(
-            name="next-window", type="size_analysis_comparison.json", timestamp=window_end
+            name="just-before-window-end",
+            type="size_analysis_comparison.json",
+            timestamp=window_end - timedelta(seconds=1),
+        )
+        self.create_file(
+            name="before-window",
+            type="size_analysis_comparison.json",
+            timestamp=window_start - timedelta(seconds=1),
+        )
+        self.create_file(
+            name="in-grace-period", type="size_analysis_comparison.json", timestamp=window_end
         )
         self.create_file(name="other-type", type="size_analysis.json", timestamp=inside_window)
 
@@ -1467,5 +1478,5 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
             detect_expired_preprod_artifacts()
 
         mock_metrics.incr.assert_called_once_with(
-            "preprod.size_analysis.compare.unreferenced_result_files", amount=1, sample_rate=1.0
+            "preprod.size_analysis.compare.unreferenced_result_files", amount=2, sample_rate=1.0
         )

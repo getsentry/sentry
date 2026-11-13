@@ -18,6 +18,8 @@ from sentry.utils.json import dumps_htmlsafe
 
 logger = logging.getLogger(__name__)
 
+SIZE_COMPARISON_RESULT_FILE_TYPE = "size_analysis_comparison.json"
+
 
 @dataclass(frozen=True)
 class _PreparedSizeComparison:
@@ -346,7 +348,7 @@ def _record_success(comparison: PreprodArtifactSizeComparison, result_file: File
 def _store_size_comparison_results(name: str, comparison_results: ComparisonResults) -> File:
     file = File.objects.create(
         name=name,
-        type="size_analysis_comparison.json",
+        type=SIZE_COMPARISON_RESULT_FILE_TYPE,
         headers={"Content-Type": "application/json"},
     )
     try:
