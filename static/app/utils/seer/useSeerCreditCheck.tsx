@@ -17,7 +17,20 @@ export type SeerCreditOperation =
   | 'autofix_open_pr'
   | 'autofix_pr_iteration';
 
+/**
+ * Why the check denied credit:
+ *
+ * - `not_enough_credits`: the wallet can't cover the operation.
+ * - `daily_cap_exceeded`: the operation would take today's spend over the
+ *   org's daily usage limit.
+ */
+export type SeerCreditDenialReason = 'not_enough_credits' | 'daily_cap_exceeded';
+
 interface SeerCreditCheckResponse {
+  /**
+   * Null when the check allows the operation, or doesn't say why it doesn't.
+   */
+  denialReason: SeerCreditDenialReason | null;
   hasEnoughCredits: boolean;
 }
 
@@ -93,6 +106,7 @@ export function useSeerCreditCheck(
 
   return {
     hasEnoughCredits: isChecking ? (query.data?.hasEnoughCredits ?? true) : true,
+    denialReason: isChecking ? (query.data?.denialReason ?? null) : null,
     /**
      * Whether the check has answered, or failed, since the caller mounted. A
      * cached answer from an earlier mount doesn't count, since credits can

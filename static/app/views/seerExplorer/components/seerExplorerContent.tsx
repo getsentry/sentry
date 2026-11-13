@@ -364,7 +364,7 @@ export function SeerExplorerContent({
   // waits on an answer to a message it already has.
   const isComposerShown =
     !readOnly && !showLoadError && !showFileApprovalBar && !showQuestionBar;
-  const {hasEnoughCredits, hasCheckedSinceMount} = useSeerCreditCheck(
+  const {hasEnoughCredits, denialReason, hasCheckedSinceMount} = useSeerCreditCheck(
     'agent_chat_message',
     {enabled: isComposerShown}
   );
@@ -399,18 +399,23 @@ export function SeerExplorerContent({
   // own notice wins, so the card's waits for the chat's check to answer. While
   // the approval or question bar stands in for the composer, there's nowhere to
   // put it, so cards show their own.
-  const {isAutofixOutOfCredits, reportOutOfCredits} = useAutofixOutOfCreditsEmbeds();
+  const {isAutofixOutOfCredits, autofixDenialReason, reportOutOfCredits} =
+    useAutofixOutOfCreditsEmbeds();
   let outOfCreditsNotice: ReactNode = null;
   if (isOutOfCredits) {
     outOfCreditsNotice = (
       <Container data-test-id="seer-explorer-out-of-credits">
-        <SeerOutOfCreditsCta reason="agent-chat" />
+        <SeerOutOfCreditsCta reason="agent-chat" denialReason={denialReason} />
       </Container>
     );
   } else if (isAutofixOutOfCredits && !isCheckingCredits) {
     outOfCreditsNotice = (
       <Container data-test-id="seer-explorer-autofix-out-of-credits">
-        <SeerOutOfCreditsCta reason="autofix-continue" size="md" />
+        <SeerOutOfCreditsCta
+          reason="autofix-continue"
+          denialReason={autofixDenialReason}
+          size="md"
+        />
       </Container>
     );
   }
