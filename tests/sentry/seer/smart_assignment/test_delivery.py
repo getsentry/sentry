@@ -158,6 +158,20 @@ class DeliverSmartAssignmentResultTest(TestCase):
         assert data["run_uuid"] == str(self.seer_run.uuid)
         assert data["predicted_assignee_user_ids"] == [alice.id]
 
+    @patch("sentry.issues.action_log.publish.logger")
+    @patch(METRICS_PATH)
+    def test_completion_activity_published_with_action_context(
+        self, mock_metrics: MagicMock, mock_publish_logger: MagicMock
+    ) -> None:
+        # Creating the completion activity publishes a group action, which needs an
+        # ActionContext; without one it's attributed to an UNKNOWN source.
+        self._deliver({"candidates": [{"identifier": "nobody", "identifier_kind": "username"}]})
+
+        self._completion_activity()
+        missing_context_msg = "publish_action_from_context called without ActionContext"
+        logged = [call.args[0] for call in mock_publish_logger.error.call_args_list if call.args]
+        assert missing_context_msg not in logged
+
     @patch(METRICS_PATH)
     def test_redelivery_does_not_duplicate_activity(self, mock_metrics: MagicMock) -> None:
         # A Seer retry/redelivery re-invokes the handler for the same run: the second
