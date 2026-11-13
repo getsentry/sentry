@@ -17,18 +17,31 @@ import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies.abstract import MessageRejected, ProcessingStrategy
 from arroyo.types import FilteredPayload, Message
+from redis.exceptions import ConnectionError as RedisConnectionError
+from redis.exceptions import TimeoutError as RedisTimeoutError
+from rediscluster.exceptions import RedisClusterException
 
 from sentry import options
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.processing.backpressure.memory import ServiceMemory
 from sentry.spans.buffer import SpansBuffer
+from sentry.spans.buffer_types import FlushedSegment
 from sentry.spans.consumers.process_segments.tasks import process_segment_task
+from sentry.spans.segment_key import SegmentKey
 from sentry.utils import metrics
 from sentry.utils.arroyo import run_with_initialized_sentry
 from sentry.utils.outcomes import Outcome, track_outcome
 
 MAX_PROCESS_RESTARTS = 10
+
+# The Redis cluster client is created lazily on the first flush. Creating it
+# sends a single CLUSTER SLOTS request to the configured startup node, and
+# redis-py-cluster does not retry it, so one slow or dropped connection would
+# kill the flusher process and, during startup, the whole consumer.
+STARTUP_CONNECT_ATTEMPTS = 5
+STARTUP_CONNECT_BACKOFF_SECONDS = 1.0
+STARTUP_CONNECT_ERRORS = (RedisClusterException, RedisConnectionError, RedisTimeoutError)
 
 logger = logging.getLogger(__name__)
 
@@ -177,6 +190,33 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 break
 
     @staticmethod
+    def _first_flush_with_retry(
+        buffer: SpansBuffer, now: int, shard_tag: str
+    ) -> dict[SegmentKey, FlushedSegment]:
+        """
+        Run the first flush_segments call, retrying transient Redis connection
+        errors. Once a flush has succeeded the client exists, and later errors
+        are handled by the client's own retries and _ensure_processes_alive.
+        """
+        for attempt in range(1, STARTUP_CONNECT_ATTEMPTS + 1):
+            try:
+                return buffer.flush_segments(now=now)
+            except STARTUP_CONNECT_ERRORS:
+                if attempt == STARTUP_CONNECT_ATTEMPTS:
+                    raise
+                metrics.incr(
+                    "spans.buffer.flusher.startup_connect_retry",
+                    tags={"shard": shard_tag, "attempt": str(attempt)},
+                )
+                logger.warning(
+                    "spans.buffer.flusher.startup_connect_retry",
+                    extra={"shards": shard_tag, "attempt": attempt},
+                    exc_info=True,
+                )
+                time.sleep(STARTUP_CONNECT_BACKOFF_SECONDS * 2 ** (attempt - 1))
+        raise AssertionError("unreachable")
+
+    @staticmethod
     def main(
         buffer: SpansBuffer,
         shards: list[int],
@@ -203,7 +243,10 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
             while not stopped.value:
                 system_now = int(time.time())
                 now = system_now + current_drift.value
-                flushed_segments = buffer.flush_segments(now=now)
+                if first_iteration:
+                    flushed_segments = SpanFlusher._first_flush_with_retry(buffer, now, shard_tag)
+                else:
+                    flushed_segments = buffer.flush_segments(now=now)
 
                 if first_iteration:
                     logger.info("Flusher first flush_segments completed for shards %s", shard_tag)
