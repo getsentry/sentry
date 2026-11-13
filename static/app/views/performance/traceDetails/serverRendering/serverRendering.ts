@@ -48,7 +48,7 @@ const PAGELOAD_OP = 'pageload';
 const CACHE_ORIGIN_LINK_TYPE = 'cache_origin';
 const SERVER_REQUEST_LINK_TYPE = 'server_request';
 
-function getServerRenderingType(
+export function getServerRenderingType(
   value: string | number | boolean | undefined
 ): ServerRenderingType | undefined {
   return value === 'static' || value === 'partially_static' ? value : undefined;
@@ -61,7 +61,7 @@ function toLinkedLocation(link: TraceItemResponseLink): RenderLocation {
     : {type: 'other_trace', link};
 }
 
-function getStaticPart(type: ServerRenderingType): StaticPart {
+export function getStaticPart(type: ServerRenderingType): StaticPart {
   return type === 'static' ? 'whole_page' : 'static_part';
 }
 
