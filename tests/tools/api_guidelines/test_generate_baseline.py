@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json  # noqa: S003 - tools tests run without the sentry package
 import os
 import subprocess
 import sys
@@ -9,7 +10,6 @@ from unittest import mock
 
 import pytest
 
-from sentry.utils import json
 from tools.api_guidelines import generate_baseline
 from tools.api_guidelines.generate_baseline import (
     build_entries,
