@@ -16,7 +16,7 @@ export function useAgenticSetupRun(options: UseAgenticProgressInitOptions) {
   });
   const run = progress.data ?? initialization.data;
   const connectionStatus = run?.stages.find(
-    stage => stage.stage === 'connect_mcp'
+    stage => stage.stage === 'connect_agent' || stage.stage === 'connect_mcp'
   )?.status;
 
   return {
