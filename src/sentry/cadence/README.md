@@ -200,7 +200,7 @@ such as when a scheduled task is picked up, depends on the consumer and isn't co
 `ScheduledTrigger` rows store each trigger: its schedule, its next scheduled time
 (`next_scheduled_for`) and when that firing is due (`next_fire_at`, the scheduled time plus
 the offset). Every 10 seconds the `cadence_tick` task claims rows whose `next_fire_at` has
-passed in the last 30 minutes, in batches (`SELECT ... FOR UPDATE SKIP LOCKED`, so
+passed in the last 10 minutes, in batches (`SELECT ... FOR UPDATE SKIP LOCKED`, so
 overlapping ticks split the work), moves both times forward, commits, and then calls each
 trigger type's `dispatch` with that type's firings. Every minute, `cadence_sweep` does the
 same for older rows.

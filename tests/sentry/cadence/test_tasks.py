@@ -533,7 +533,9 @@ class CadenceSweepTest(CadenceTickTestCase):
         just_before = self.create_trigger(NOW - TICK_WINDOW - timedelta(microseconds=1))
 
         cadence_tick()
-        assert self.dispatched() == [self.firing(on_boundary, NOW - TICK_WINDOW, NOW + TICK_WINDOW)]
+        assert self.dispatched() == [
+            self.firing(on_boundary, NOW - TICK_WINDOW, NOW - TICK_WINDOW + timedelta(hours=1))
+        ]
 
         self.action.reset_mock()
         cadence_sweep_worker()
@@ -541,7 +543,7 @@ class CadenceSweepTest(CadenceTickTestCase):
             self.firing(
                 just_before,
                 NOW - TICK_WINDOW - timedelta(microseconds=1),
-                NOW + TICK_WINDOW - timedelta(microseconds=1),
+                NOW - TICK_WINDOW - timedelta(microseconds=1) + timedelta(hours=1),
             )
         ]
 

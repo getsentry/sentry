@@ -32,7 +32,7 @@ TICK_BATCH_SIZE = 500
 TICK_CLAIM_SECONDS = 40
 # The tick only claims triggers due within this long before now; the sweep claims the rest.
 # Bounding the tick's scan keeps it clear of the stale index entries left by older claims.
-TICK_WINDOW = timedelta(minutes=30)
+TICK_WINDOW = timedelta(minutes=10)
 # Triggers whose schedule was set more recently than this aren't checked for missing targets,
 # so a trigger set alongside its target isn't deleted before the target is visible.
 MISSING_TARGET_CHECK_SETTLE_WINDOW = timedelta(hours=1)
@@ -174,12 +174,14 @@ def _claim_batch(
     claimed: dict[ScheduledTriggerType, list[_ClaimedFiring]] = defaultdict(list)
     using = router.db_for_write(ScheduledTrigger)
     with transaction.atomic(using=using):
+        # Subqueries hide the bounds from the planner. Given their values, it reads the index to
+        # estimate the row count, which wastes the time the bounded scan saves.
         query: QuerySet[ScheduledTrigger] = ScheduledTrigger.objects.select_for_update(
             skip_locked=True
-        ).filter(next_fire_at__lte=due_by)
+        ).extra(where=['"next_fire_at" <= (SELECT %s::timestamptz)'], params=[due_by])
         if after is not None:
             query = query.extra(
-                where=['ROW("next_fire_at", "id") > ROW(%s, %s)'],
+                where=['ROW("next_fire_at", "id") > ROW((SELECT %s::timestamptz), %s)'],
                 params=[after.fire_at, after.id],
             )
         due = list(query.order_by("next_fire_at", "id")[:TICK_BATCH_SIZE])
