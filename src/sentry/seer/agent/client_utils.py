@@ -143,6 +143,7 @@ class AgentRunOptions(TypedDict):
     enable_write_pull_request: NotRequired[bool]
     enable_investigation_tools: NotRequired[bool]
     enable_inbox_tools: NotRequired[bool]
+    enable_scm_connect_prompt: NotRequired[bool]
     enable_tool_summary: NotRequired[bool]
     embed_widgets: NotRequired[list[dict[str, Any]] | None]
     enable_streaming: NotRequired[bool]
