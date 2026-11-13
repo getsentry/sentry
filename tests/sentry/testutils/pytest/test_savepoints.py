@@ -9,14 +9,18 @@ from sentry.testutils.pytest.savepoints import (
     LOOP_REPORT_THRESHOLD,
     SUBTRANSACTION_CACHE_SIZE,
     ApplicationTransaction,
+    Opening,
     SavepointUsage,
     evaluate_usage,
 )
 
 NODEID = "tests/sentry/example/test_example.py::test_example"
-CALL_SITE = "src/sentry/example/transaction.py:run (line 10)"
+CALL_SITE = Opening("src/sentry/example/transaction.py:run", 10)
+FORMATTED_CALL_SITE = "src/sentry/example/transaction.py:run (line 10)"
 OPENED_IN = "src/sentry/example/loop.py:process_all"
 OPENED_LINE = 20
+OTHER_OPENER = "src/sentry/example/other.py:write_one"
+NO_BASELINE: frozenset[str] = frozenset()
 
 RAW_WRITE_SQL = """
 WITH target AS (SELECT id FROM sentry_project WHERE id = %s)
@@ -28,8 +32,8 @@ def make_usage(peak_held_ids: int, savepoints_opened: int) -> SavepointUsage:
     txn = ApplicationTransaction(
         call_site=CALL_SITE,
         peak_held_ids=peak_held_ids,
-        savepoints_opened=Counter({OPENED_IN: savepoints_opened}),
-        first_lines={OPENED_IN: OPENED_LINE},
+        savepoints_opened=Counter({OPENED_IN: savepoints_opened, OTHER_OPENER: 1}),
+        first_lines={OPENED_IN: OPENED_LINE, OTHER_OPENER: 1},
     )
     return SavepointUsage(transactions=[txn])
 
@@ -130,27 +134,57 @@ def test_fails_at_overflow_and_clear_suppresses() -> None:
     below_limit = make_usage(peak_held_ids=SUBTRANSACTION_CACHE_SIZE - 1, savepoints_opened=1)
 
     with pytest.raises(pytest.fail.Exception) as excinfo:
-        evaluate_usage(at_limit, NODEID, [])
+        evaluate_usage(at_limit, NODEID, [], NO_BASELINE)
 
     message = str(excinfo.value)
-    assert CALL_SITE in message
+    assert FORMATTED_CALL_SITE in message
     assert f"{OPENED_IN} (line {OPENED_LINE})" in message
 
-    evaluate_usage(below_limit, NODEID, [])
+    evaluate_usage(below_limit, NODEID, [], NO_BASELINE)
 
     at_limit.clear()
-    evaluate_usage(at_limit, NODEID, [])
+    evaluate_usage(at_limit, NODEID, [], NO_BASELINE)
+
+
+def test_baseline_reports_known_overflows_instead_of_failing() -> None:
+    overflowing = make_usage(peak_held_ids=SUBTRANSACTION_CACHE_SIZE, savepoints_opened=2)
+
+    by_call_site: list[tuple[str, object]] = []
+    evaluate_usage(overflowing, NODEID, by_call_site, frozenset({CALL_SITE.opened_in}))
+    assert by_call_site == [
+        (
+            "savepoint_baseline_hit",
+            {
+                "nodeid": NODEID,
+                "entry": CALL_SITE.opened_in,
+                "peak_held_ids": SUBTRANSACTION_CACHE_SIZE,
+                "call_site": FORMATTED_CALL_SITE,
+            },
+        )
+    ]
+
+    by_top_opener: list[tuple[str, object]] = []
+    evaluate_usage(overflowing, NODEID, by_top_opener, frozenset({OPENED_IN}))
+    assert by_top_opener[0][1] == {
+        "nodeid": NODEID,
+        "entry": OPENED_IN,
+        "peak_held_ids": SUBTRANSACTION_CACHE_SIZE,
+        "call_site": FORMATTED_CALL_SITE,
+    }
+
+    with pytest.raises(pytest.fail.Exception):
+        evaluate_usage(overflowing, NODEID, [], frozenset({OTHER_OPENER}))
 
 
 def test_reports_repeated_opener_without_failing() -> None:
     properties: list[tuple[str, object]] = []
 
     below_threshold = make_usage(peak_held_ids=3, savepoints_opened=LOOP_REPORT_THRESHOLD - 1)
-    evaluate_usage(below_threshold, NODEID, properties)
+    evaluate_usage(below_threshold, NODEID, properties, NO_BASELINE)
     assert properties == []
 
     at_threshold = make_usage(peak_held_ids=3, savepoints_opened=LOOP_REPORT_THRESHOLD)
-    evaluate_usage(at_threshold, NODEID, properties)
+    evaluate_usage(at_threshold, NODEID, properties, NO_BASELINE)
     assert properties == [
         (
             "savepoint_loop",
@@ -160,7 +194,7 @@ def test_reports_repeated_opener_without_failing() -> None:
                 "line": OPENED_LINE,
                 "savepoints_opened": LOOP_REPORT_THRESHOLD,
                 "peak_held_ids": 3,
-                "call_site": CALL_SITE,
+                "call_site": FORMATTED_CALL_SITE,
             },
         )
     ]

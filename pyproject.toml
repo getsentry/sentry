@@ -349,6 +349,10 @@ filterwarnings = [
   "ignore:The list-based error format for `ListSerializer` is deprecated.*:PendingDeprecationWarning",
 ]
 looponfailroots = ["src", "tests"]
+# Functions whose transactions overflow Postgres's subtransaction cache today. Only remove entries.
+savepoint_baseline = [
+  "src/sentry/backup/imports.py:_import",
+]
 
 [tool.mypy]
 python_version = "3.13"

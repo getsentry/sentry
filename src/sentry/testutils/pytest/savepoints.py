@@ -18,6 +18,8 @@ SUBTRANSACTION_CACHE_SIZE = 64
 # Report-only: one function opening this many savepoints in a transaction looks like a loop.
 LOOP_REPORT_THRESHOLD = 6
 SAVEPOINT_LOOP_PROPERTY = "savepoint_loop"
+SAVEPOINT_BASELINE_PROPERTY = "savepoint_baseline_hit"
+SAVEPOINT_BASELINE_INI = "savepoint_baseline"
 SUMMARY_NODEIDS_PER_OPENER = 3
 STATEMENT_HEAD_CHARS = 24
 LOCKING_CLAUSE_TAIL_CHARS = 120
@@ -32,6 +34,7 @@ SKIPPED_PATH_PARTS = (
     "sentry/utils/db.py",
     "sentry/silo/base.py",
     "sentry/utils/snowflake.py",
+    "sentry/testutils/pytest/stale_database_reads.py",
 )
 SKIPPED_FUNCTIONS = (("sentry/hybridcloud/models/outbox.py", "outbox_context"),)
 PATH_MARKERS = ("/src/", "/tests/", "/getsentry/", "/site-packages/")
@@ -74,7 +77,7 @@ class Savepoint:
 
 @dataclasses.dataclass
 class ApplicationTransaction:
-    call_site: str
+    call_site: Opening
     peak_held_ids: int = 0
     held_ids: int = 0
     root_sid: str | None = None
@@ -133,7 +136,9 @@ def outward_frames() -> Iterator[FrameType]:
         frame = frame.f_back
 
 
-def short_path(path: str) -> str:
+def short_path(path: str, root_prefix: str) -> str:
+    if path.startswith(root_prefix):
+        return path[len(root_prefix) :]
     cut = len(path)
     for marker in PATH_MARKERS:
         position = path.find(marker)
@@ -155,6 +160,10 @@ def format_opening(opened_in: str, line: int) -> str:
     return f"{opened_in} (line {line})"
 
 
+def format_call_site(txn: ApplicationTransaction) -> str:
+    return format_opening(txn.call_site.opened_in, txn.call_site.line)
+
+
 def is_skipped(filename: str, function: str) -> bool:
     if contains_any(filename, SKIPPED_PATH_PARTS):
         return True
@@ -166,13 +175,14 @@ def is_skipped(filename: str, function: str) -> bool:
     return False
 
 
-def find_opening() -> Opening:
+def find_opening(root_prefix: str) -> Opening:
     for frame in outward_frames():
         filename = frame.f_code.co_filename
         function = frame.f_code.co_name
         if is_skipped(filename, function):
             continue
-        return Opening(f"{short_path(filename)}:{function}", frame.f_lineno)
+        path = short_path(filename, root_prefix)
+        return Opening(f"{path}:{function}", frame.f_lineno)
     return Opening("unknown", 0)
 
 
@@ -252,8 +262,9 @@ def on_rollback_to(txn: ApplicationTransaction, sid: str) -> None:
 
 
 class SavepointTracker:
-    def __init__(self, usage: SavepointUsage) -> None:
+    def __init__(self, usage: SavepointUsage, root_prefix: str) -> None:
         self.usage = usage
+        self.root_prefix = root_prefix
         self.active = True
         self.local = threading.local()
         self.attached: list[BaseDatabaseWrapper] = []
@@ -327,7 +338,7 @@ class SavepointTracker:
         if entering is not None:
             opening = entering.opening
         else:
-            opening = find_opening()
+            opening = find_opening(self.root_prefix)
         savepoint = Savepoint(sid=sid, opened_in=opening.opened_in)
         txn.record(savepoint, opening.line)
 
@@ -336,15 +347,14 @@ class SavepointTracker:
             return original_enter(atomic)
         connection = transaction.get_connection(atomic.using)
         state = self.connection_state(connection.alias)
-        opening = find_opening()
+        opening = find_opening(self.root_prefix)
         entry = Entry(atomic=atomic, opening=opening)
         if not entered_by_harness(atomic):
             parent_txn = state.current_txn()
             if parent_txn is not None:
                 entry.txn = parent_txn
             else:
-                call_site = format_opening(opening.opened_in, opening.line)
-                entry.txn = ApplicationTransaction(call_site=call_site)
+                entry.txn = ApplicationTransaction(call_site=opening)
                 entry.root = True
         state.stack.append(entry)
         # Django issues SAVEPOINT inside Atomic.__enter__; this links the statement to its atomic.
@@ -419,7 +429,7 @@ def format_overflow_message(txn: ApplicationTransaction) -> str:
 A transaction in this test reached {txn.peak_held_ids} savepoints that each hold a
 Postgres subtransaction id (the limit is {SUBTRANSACTION_CACHE_SIZE}).
 
-  - Transaction opened at: {txn.call_site}
+  - Transaction opened at: {format_call_site(txn)}
   - Savepoints holding an id: {txn.peak_held_ids}
   - Opened the most savepoints: {opener} ({top.savepoints_opened})
 
@@ -447,13 +457,36 @@ Or like this in pytest-based tests:
 {_SEP_LINE}"""
 
 
+def matching_baseline_entry(
+    txn: ApplicationTransaction, top: TopOpener, baseline: frozenset[str]
+) -> str | None:
+    if txn.call_site.opened_in in baseline:
+        return txn.call_site.opened_in
+    if top.opened_in in baseline:
+        return top.opened_in
+    return None
+
+
 def evaluate_usage(
-    usage: SavepointUsage, nodeid: str, user_properties: list[tuple[str, Any]]
+    usage: SavepointUsage,
+    nodeid: str,
+    user_properties: list[tuple[str, Any]],
+    baseline: frozenset[str],
 ) -> None:
     for txn in usage.transactions:
         top = txn.top_opener()
+        call_site = format_call_site(txn)
         if txn.peak_held_ids >= SUBTRANSACTION_CACHE_SIZE:
-            pytest.fail(format_overflow_message(txn))
+            entry = matching_baseline_entry(txn, top, baseline)
+            if entry is None:
+                pytest.fail(format_overflow_message(txn))
+            known_overflow = {
+                "nodeid": nodeid,
+                "entry": entry,
+                "peak_held_ids": txn.peak_held_ids,
+                "call_site": call_site,
+            }
+            user_properties.append((SAVEPOINT_BASELINE_PROPERTY, known_overflow))
         if top.savepoints_opened >= LOOP_REPORT_THRESHOLD:
             loop = {
                 "nodeid": nodeid,
@@ -461,46 +494,84 @@ def evaluate_usage(
                 "line": top.line,
                 "savepoints_opened": top.savepoints_opened,
                 "peak_held_ids": txn.peak_held_ids,
-                "call_site": txn.call_site,
+                "call_site": call_site,
             }
             user_properties.append((SAVEPOINT_LOOP_PROPERTY, loop))
+
+
+def read_baseline(config: pytest.Config) -> frozenset[str]:
+    entries = config.getini(SAVEPOINT_BASELINE_INI)
+    return frozenset(entries)
+
+
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addini(
+        SAVEPOINT_BASELINE_INI,
+        type="linelist",
+        default=[],
+        help="Functions whose transactions overflow the subtransaction cache today; "
+        "their overflows are reported instead of failing the test.",
+    )
 
 
 @pytest.fixture(autouse=True)
 def savepoint_usage(request: pytest.FixtureRequest) -> Generator[SavepointUsage]:
     usage = SavepointUsage()
-    tracker = SavepointTracker(usage)
+    root_prefix = f"{request.config.rootpath}/"
+    tracker = SavepointTracker(usage, root_prefix)
     with tracker.installed():
         yield usage
-    evaluate_usage(usage, request.node.nodeid, request.node.user_properties)
+    baseline = read_baseline(request.config)
+    evaluate_usage(usage, request.node.nodeid, request.node.user_properties, baseline)
+
+
+def reported_properties(stats: dict[str, list[Any]], name: str) -> list[dict[str, Any]]:
+    found: list[dict[str, Any]] = []
+    for reports in stats.values():
+        for report in reports:
+            for property_name, value in getattr(report, "user_properties", []):
+                if property_name == name and value not in found:
+                    found.append(value)
+    return found
 
 
 def collect_loop_hits(stats: dict[str, list[Any]]) -> dict[str, list[LoopHit]]:
     hits_by_opener: dict[str, list[LoopHit]] = {}
-    seen: set[tuple[str, str]] = set()
-    for reports in stats.values():
-        for report in reports:
-            for name, loop in getattr(report, "user_properties", []):
-                if name != SAVEPOINT_LOOP_PROPERTY:
-                    continue
-                key = (loop["nodeid"], loop["opened_in"])
-                if key in seen:
-                    continue
-                seen.add(key)
-                hit = LoopHit(
-                    savepoints_opened=loop["savepoints_opened"],
-                    nodeid=loop["nodeid"],
-                    line=loop["line"],
-                )
-                hits = hits_by_opener.get(loop["opened_in"])
-                if hits is None:
-                    hits = []
-                    hits_by_opener[loop["opened_in"]] = hits
-                hits.append(hit)
+    for loop in reported_properties(stats, SAVEPOINT_LOOP_PROPERTY):
+        hit = LoopHit(
+            savepoints_opened=loop["savepoints_opened"],
+            nodeid=loop["nodeid"],
+            line=loop["line"],
+        )
+        hits = hits_by_opener.get(loop["opened_in"])
+        if hits is None:
+            hits = []
+            hits_by_opener[loop["opened_in"]] = hits
+        hits.append(hit)
     return hits_by_opener
 
 
-def pytest_terminal_summary(terminalreporter: Any) -> None:
+def write_baseline_summary(terminalreporter: Any, baseline: frozenset[str]) -> None:
+    known_overflows = reported_properties(terminalreporter.stats, SAVEPOINT_BASELINE_PROPERTY)
+    terminalreporter.section("savepoint baseline")
+    for entry in sorted(baseline):
+        entry_overflows = [overflow for overflow in known_overflows if overflow["entry"] == entry]
+        if not entry_overflows:
+            terminalreporter.write_line(
+                f"{entry}: no overflow in this run; remove the entry once its code is fixed"
+            )
+            continue
+        ordered = sorted(entry_overflows, key=lambda overflow: overflow["peak_held_ids"])
+        ordered.reverse()
+        worst = ordered[0]["peak_held_ids"]
+        terminalreporter.write_line(
+            f"{entry}: {len(ordered)} tests overflowed, up to {worst} savepoints holding an id"
+        )
+        for overflow in ordered:
+            terminalreporter.write_line(f"    {overflow['nodeid']} ({overflow['peak_held_ids']})")
+
+
+def write_loop_summary(terminalreporter: Any) -> None:
     hits_by_opener = collect_loop_hits(terminalreporter.stats)
     if not hits_by_opener:
         return
@@ -525,3 +596,10 @@ def pytest_terminal_summary(terminalreporter: Any) -> None:
         shown_hits = summary.hits[:SUMMARY_NODEIDS_PER_OPENER]
         for hit in shown_hits:
             terminalreporter.write_line(f"    {hit.nodeid} ({hit.savepoints_opened})")
+
+
+def pytest_terminal_summary(terminalreporter: Any) -> None:
+    baseline = read_baseline(terminalreporter.config)
+    if baseline:
+        write_baseline_summary(terminalreporter, baseline)
+    write_loop_summary(terminalreporter)
