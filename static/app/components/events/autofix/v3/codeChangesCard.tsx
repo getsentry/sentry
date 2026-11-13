@@ -96,12 +96,16 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   const isSingleRun = isSingleRunAutofix(autofix.runState);
   const stoppedStep = getOutOfCreditsStep(section);
   const isOutOfCredits = defined(stoppedStep);
+  // Single runs take PR feedback in the chat, so the card offers no retry for a
+  // PR update that stopped for credits.
+  const hasOutOfCreditsRetry =
+    isOutOfCredits && !(isSingleRun && stoppedStep === 'pr_iteration');
   const outOfCreditsRetry = useOutOfCreditsRetry(
     // A single run is retried with a new one, which starts at the root cause.
     isSingleRun ? 'root_cause' : (stoppedStep ?? 'code_changes'),
     {
       billingFeature: isSingleRun ? undefined : autofix.runState?.billing_feature,
-      enabled: isOutOfCredits,
+      enabled: hasOutOfCreditsRetry,
     }
   );
 
@@ -131,7 +135,10 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
 
   const {copy} = useCopyToClipboard();
   const singleRunRerun = useRerunSingleRun(autofix, {
-    enabled: isSingleRun && section.status === 'error',
+    enabled:
+      isSingleRun &&
+      section.status === 'error' &&
+      (!isOutOfCredits || hasOutOfCreditsRetry),
   });
   const markdown = useMemo(
     () => (artifact ? artifactToMarkdown(artifact) : null),
@@ -348,7 +355,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
       );
     } else if (isSingleRun) {
       // Single runs reject step restarts, so this starts a new one.
-      retry = (
+      retry = hasOutOfCreditsRetry ? (
         <Flex>
           <Button
             variant="primary"
@@ -360,7 +367,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
             {t('Re-run')}
           </Button>
         </Flex>
-      );
+      ) : null;
     } else if (isResetAvailable) {
       // An iteration is retried with feedback, through the PR iteration form.
       // TODO(CW-3102): Retry the stopped iteration's own feedback once the

@@ -2881,6 +2881,38 @@ describe('out of credits', () => {
     }
   );
 
+  it('offers a single run no retry for a PR update that stopped, since single runs take feedback in the chat', () => {
+    render(
+      <CodeChangesCard
+        autofix={{
+          ...mockAutofix,
+          runState: {...stoppedRunState, feature_id: 'autofix_single_run'},
+        }}
+        groupId="1"
+        section={makeOutOfCreditsSection(
+          'code_changes',
+          [
+            makeBlock('block-1', 'Guarded the handler.', {step: 'single_run'}),
+            makePrIterationBlock(0, {text: 'Add a regression test'}),
+            seerErrorBlock,
+          ],
+          [[makePatch('org/repo', 'src/cart.py')]]
+        )}
+      />,
+      {organization}
+    );
+
+    expect(
+      screen.getByText(
+        'Seer stopped before updating the pull request because your organization is out of credits.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Re-run'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Add context & retry'})
+    ).not.toBeInTheDocument();
+  });
+
   it('leaves the retry to the backend without token-billed Seer', () => {
     const creditCheck = mockCreditCheck('autofix_code_changes', false);
     render(
