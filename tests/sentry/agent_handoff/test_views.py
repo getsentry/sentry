@@ -55,7 +55,7 @@ class AgentHandoffViewTest(TestCase):
         ip_address: str = "127.0.0.1",
         disable_ip_pinning: bool = False,
     ) -> str:
-        return issue_handoff(
+        issued = issue_handoff(
             flow=HandoffFlow.ONBOARDING,
             user_id=self.user.id,
             organization_id=self.organization.id,
@@ -64,7 +64,9 @@ class AgentHandoffViewTest(TestCase):
             ip_address=ip_address,
             disable_ip_pinning=disable_ip_pinning,
             context=context or self.onboarding_context,
-        ).code
+        )
+        self.handoff_id = issued.handoff_id
+        return issued.code
 
     def claim(self, code: str, ip_address: str = "127.0.0.1") -> HttpResponse:
         return self.client.post(
@@ -283,6 +285,7 @@ class AgentHandoffViewTest(TestCase):
             record,
             AgentHandoffClaimedEvent(
                 outcome=outcome.value,
+                handoff_id=self.handoff_id if attributed else None,
                 user_id=self.user.id if attributed else None,
                 organization_id=self.organization.id if attributed else None,
                 flow=HandoffFlow.ONBOARDING.value if attributed else None,
