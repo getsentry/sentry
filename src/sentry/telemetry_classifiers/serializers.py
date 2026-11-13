@@ -126,7 +126,8 @@ class PrebuiltClassifierSerializer(Serializer[PrebuiltClassifierResponse]):
 
 class TelemetryClassifierRequestSerializer(CamelSnakeSerializer[TelemetryClassifier]):
     project = ProjectField(
-        scope="project:write",
+        # Any member who can read the project may create a classifier on it for now.
+        scope="project:read",
         id_allowed=True,
         help_text="The ID or slug of the project the classifier runs on.",
     )

@@ -7,11 +7,13 @@ from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_se
 )
 
 from sentry.constants import DataCategory
+from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
 from sentry.seer.autofix.feature.dispatch import (
     AutofixFeatureArgs,
     continue_single_run,
+    continue_single_run_from_pr_feedback,
     trigger_autofix_feature,
 )
 from sentry.seer.autofix.feature.models import (
@@ -24,8 +26,13 @@ from sentry.seer.autofix.feature.models import (
     SolutionStepArgs,
 )
 from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
+from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
+    GithubPrCommentFeedbackSource,
+)
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.credits import SeerOperation
 from sentry.seer.models import SeerPermissionError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -748,3 +755,61 @@ class TestContinueSingleRun(TestCase):
             )
 
         mock_client_cls.return_value.continue_feature_run.assert_not_called()
+
+
+@django_db_all
+class TestContinueSingleRunFromPrFeedback(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group(project=self.project)
+        self.seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        self.agent_run = self.create_seer_agent_run(
+            run=self.seer_run,
+            source=SINGLE_RUN_FEATURE_ID,
+            group=self.group,
+            project=self.group.project,
+        )
+        self.organization.update_option("sentry:enable_seer_coding", True)
+        self.feedback = [
+            Feedback(
+                source=GithubPrCommentFeedbackSource(
+                    comment={"id": 1, "body": "@sentry rename it", "user": {"login": "octo"}}
+                )
+            )
+        ]
+        self.author: SeerCommitAuthor = {"name": "Octo", "email": "octo@example.com"}
+
+    def _send(self) -> MagicMock:
+        with patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as mock_client_cls:
+            mock_client_cls.return_value.continue_feature_run.return_value = self.seer_run
+            continue_single_run_from_pr_feedback(
+                self.agent_run,
+                self.group,
+                feedback=self.feedback,
+                iteration_index=2,
+                iteration_id=7,
+                commit_author=self.author,
+                referrer=AutofixReferrer.GITHUB_PR_COMMENT,
+            )
+        return mock_client_cls
+
+    def test_sends_feedback_and_pr_settings(self) -> None:
+        mock_client_cls = self._send()
+        kwargs = mock_client_cls.return_value.continue_feature_run.call_args.kwargs
+        payload = kwargs["payload"]
+
+        assert payload["reply"] == "rename it"
+        assert payload["existing_run_id"] == 123
+        assert payload["pr_feedback"]["iteration_index"] == 2
+        assert payload["pr_feedback"]["iteration_id"] == 7
+        assert payload["pr_feedback"]["feedback"] == serialize_feedback(self.feedback)
+        assert payload["pr_internal_settings"]["commit_author"] == self.author
+        assert kwargs["agent_run_options"]["enable_pr_context_tools"] is True
+        assert kwargs["agent_run_options"]["enable_write_pull_request"] is True
+        assert mock_client_cls.call_args.kwargs["user"] is None
+
+    def test_bills_as_pr_iteration(self) -> None:
+        with patch("sentry.seer.autofix.feature.dispatch.check_autofix_billing") as mock_billing:
+            self._send()
+
+        assert mock_billing.call_args.args[1] == SeerOperation.AUTOFIX_PR_ITERATION

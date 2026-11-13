@@ -24,4 +24,4 @@ class NewHighPriorityIssueConditionHandler(WorkflowTriggerDataConditionHandler):
     @staticmethod
     def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
         is_new = is_new_event(event_data)
-        return is_new and event_data.group.priority == PriorityLevel.HIGH
+        return is_new and event_data.require_group().priority == PriorityLevel.HIGH

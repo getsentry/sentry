@@ -15,6 +15,7 @@ from django.db import IntegrityError, router, transaction
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -231,7 +232,7 @@ class ServiceAccountPermission(OrganizationPermission):
 
 class OrganizationServiceAccountEndpointBase(ControlSiloOrganizationEndpoint):
     owner = ApiOwner.COMMUNITY
-    permission_classes = (ServiceAccountPermission,)
+    permission_classes: tuple[type[BasePermission], ...] = (ServiceAccountPermission,)
 
     def convert_args(
         self, request: Request, *args: Any, **kwargs: Any

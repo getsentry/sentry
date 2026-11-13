@@ -38,9 +38,11 @@ from sentry.seer.autofix.pr_iteration.pr_state import (
     iteration_prs_any_closed,
     record_pr_closed,
 )
+from sentry.seer.autofix.pr_iteration.queue import count_queued_autofix_feedback
 from sentry.seer.autofix.pr_iteration.stranded import StrandedAction, record_stranded_action
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.autofix.pr_ready_for_review import format_pull_requests_payload
+from sentry.seer.autofix.single_run import is_single_run
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.tasks.seer.pr_iteration import consume_queued_autofix_feedback
 from sentry.utils import metrics
@@ -289,13 +291,18 @@ def continue_pr_iteration(
         state.repo_pr_states[repo].pr_creation_error_code
         for repo in iteration_terminal_errored_repos(state)
     }
-    if outcome == PrIterationOutcome.PR_CREATION_ERRORED and "out_of_credits" in errored_codes:
+    if (
+        not is_single_run(state)
+        and outcome == PrIterationOutcome.PR_CREATION_ERRORED
+        and "out_of_credits" in errored_codes
+    ):
         # Seer's push ran out of credits. The next drain pushes again.
         record_stranded_action(
             run_id=run_id, organization_id=organization.id, stranded_action=StrandedAction.PUSH
         )
     elif (
         state.status == "completed"
+        and not is_single_run(state)
         and outcome == PrIterationOutcome.PR_CREATION_ERRORED
         and "branch_moved" in errored_codes
     ):
@@ -321,6 +328,7 @@ def continue_pr_iteration(
     if outcome in (
         PrIterationOutcome.ALREADY_PUSHED,
         PrIterationOutcome.NO_CODE_CHANGES,
+        PrIterationOutcome.NOT_PUSHED,
     ):
         consume_queued_feedback(log_ctx, organization, run_id)
 
@@ -331,6 +339,39 @@ def continue_pr_iteration(
         outcome=outcome.value,
     )
     return False
+
+
+def is_pr_feedback_turn(state: SeerRunState) -> bool:
+    for block in reversed(state.blocks):
+        step = (block.message.metadata or {}).get("step")
+        if step is not None:
+            return step == AutofixStep.PR_ITERATION.value
+    return False
+
+
+def drain_single_run_feedback_queue(
+    organization: Organization, group: Group, run_id: int, state: SeerRunState
+) -> None:
+    if count_queued_autofix_feedback(run_id):
+        consume_queued_feedback(
+            iteration_log_context(organization, group, state), organization, run_id
+        )
+
+
+def _single_run_unpushed_outcome(state: SeerRunState) -> PrIterationOutcome | None:
+    if any(pr.pr_creation_status == "creating" for pr in state.repo_pr_states.values()):
+        return None
+    if iteration_terminal_errored_repos(state):
+        return PrIterationOutcome.PR_CREATION_ERRORED
+    metrics.incr(
+        "autofix.pr_iteration.step",
+        tags={
+            "checkpoint": "single_run_unpushed_edits",
+            "feedback_kind": latest_iteration_feedback_kind(state),
+        },
+        sample_rate=1.0,
+    )
+    return PrIterationOutcome.NOT_PUSHED
 
 
 @traces.trace
@@ -435,6 +476,9 @@ def pr_iteration_push_outcome(
     if is_synced:
         log_ctx.info("autofix.pr_iteration.push", outcome="not_pushed", reason="already_synced")
         return PrIterationOutcome.ALREADY_PUSHED
+
+    if is_single_run(state):
+        return _single_run_unpushed_outcome(state)
 
     errored_repos = iteration_terminal_errored_repos(state)
     moved_branch = bool(errored_repos) and _push_failed_on_moved_branch(group, state, errored_repos)

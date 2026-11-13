@@ -71,6 +71,7 @@ import {Contexts} from './eapSections/contexts';
 import {SpanDescription as EAPSpanDescription} from './eapSections/description';
 import {MCPInputSection} from './eapSections/mcpInput';
 import {MCPOutputSection} from './eapSections/mcpOutput';
+import {ServerRenderingSection} from './eapSections/serverRendering';
 import {TraceSpanLinks} from './eapSections/traceSpanLinks';
 import {HttpErrorCard} from './sections/httpErrorCard';
 
@@ -150,7 +151,7 @@ export function EAPSpanNodeDetails(props: EAPSpanNodeDetailsProps) {
     projectId: node.value.project_id.toString(),
     traceId: node.extra?.replayTraceSlug ?? traceId,
     traceItemType: TraceItemDataset.SPANS,
-    referrer: 'api.explore.log-item-details', // TODO: change to span details
+    referrer: 'api.trace-view.span-detail',
     timestamp: node.value.start_timestamp,
     enabled: true,
   });
@@ -410,15 +411,26 @@ function EAPSpanNodeDetailsContent({
           hideNodeActions={hideNodeActions}
         />
         {organization.features.includes('performance-trace-cache-lifecycle') ? (
-          <CacheLifecycleSection
-            node={node}
-            attributes={attributes}
-            links={links}
-            location={location}
-            organization={organization}
-            tree={tree}
-            onTabScrollToNode={onTabScrollToNode}
-          />
+          <Fragment>
+            <CacheLifecycleSection
+              node={node}
+              attributes={attributes}
+              links={links}
+              location={location}
+              organization={organization}
+              tree={tree}
+              onTabScrollToNode={onTabScrollToNode}
+            />
+            <ServerRenderingSection
+              node={node}
+              attributes={attributes}
+              links={links}
+              location={location}
+              organization={organization}
+              tree={tree}
+              onTabScrollToNode={onTabScrollToNode}
+            />
+          </Fragment>
         ) : null}
         <AIIOAlert node={node} attributes={attributes} />
         <AIInputSection

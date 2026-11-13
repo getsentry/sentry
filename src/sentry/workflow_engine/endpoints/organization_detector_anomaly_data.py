@@ -12,7 +12,12 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.utils import to_valid_int_id
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
 from sentry.apidocs.parameters import DetectorParams, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
@@ -77,6 +82,7 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
             200: inline_sentry_response_serializer(
                 "AnomalyThresholdDataResponse", AnomalyThresholdDataResponse
             ),
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,

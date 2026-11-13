@@ -80,6 +80,7 @@ class PrIterationOutcome(StrEnum):
     PR_CLOSED = "pr_closed"
     PR_CREATION_ERRORED = "pr_creation_errored"
     PUSH_FAILED = "push_failed"
+    NOT_PUSHED = "not_pushed"
     # Sentry refused the push or retry turn for credits.
     # The turn may be retriggered after a top-up.
     OUT_OF_CREDITS = "out_of_credits"

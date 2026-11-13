@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections import Counter
 from typing import TYPE_CHECKING, Any, Literal
 
 import sentry_sdk
@@ -33,8 +34,10 @@ from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
 from sentry.seer.autofix.feature.models import LEGACY_FEATURE_ID as LEGACY_AUTOFIX_FEATURE_ID
 from sentry.seer.autofix.pr_iteration.completion import (
     continue_pr_iteration,
+    drain_single_run_feedback_queue,
     fail_pr_iteration,
     fail_pr_iteration_missing_group,
+    is_pr_feedback_turn,
     iteration_completed_webhook_fields,
     iteration_terminal_errored_repos,
     log_completion_received,
@@ -232,9 +235,30 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         group_id: int | None,
         run_referrer: AutofixReferrer | None,
     ) -> None:
+        feedback_turn = is_pr_feedback_turn(state)
+        if feedback_turn and state.status == "error":
+            fail_pr_iteration(organization, run_id, state, group_id)
+            return
         group = cls._fetch_group(organization, run_id, group_id)
         if group is None:
+            if feedback_turn and state.status == "completed":
+                fail_pr_iteration_missing_group(organization, state, group_id)
             return
+        if state.status == "completed":
+            if feedback_turn:
+                _, referrer = get_current_step(state)
+                continue_pr_iteration(
+                    organization,
+                    group,
+                    run_id,
+                    state,
+                    referrer or run_referrer or AutofixReferrer.ON_COMPLETION_HOOK,
+                )
+                cls._log_reaction_outcomes(
+                    organization, run_id, react_to_completed_iteration(organization, run_id, state)
+                )
+            else:
+                drain_single_run_feedback_queue(organization, group, run_id, state)
         paused = state.status == "awaiting_user_input"
         if not cls._run_completed(organization, run_id, state) and not paused:
             if state.status == "error":
@@ -392,7 +416,14 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
 
         record_failed_tool_calls(organization, group, state)
 
-        reaction_outcomes = react_to_completed_iteration(organization, run_id, state)
+        cls._log_reaction_outcomes(
+            organization, run_id, react_to_completed_iteration(organization, run_id, state)
+        )
+
+    @classmethod
+    def _log_reaction_outcomes(
+        cls, organization: Organization, run_id: int, reaction_outcomes: Counter[str]
+    ) -> None:
         if reaction_outcomes:
             logger.info(
                 "autofix.on_completion_hook.completion_reaction.summary",
