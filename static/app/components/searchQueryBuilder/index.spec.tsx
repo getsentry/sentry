@@ -3483,6 +3483,54 @@ describe('SearchQueryBuilder', () => {
         });
       });
 
+      it('preserves a typed wildcard when clicking the typed option', async () => {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery="browser.name:"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+        await userEvent.keyboard('foo*');
+        await userEvent.click(await screen.findByRole('option', {name: 'foo*'}));
+
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith(
+            'browser.name:foo*',
+            expect.anything()
+          );
+        });
+      });
+
+      it('preserves a typed escaped asterisk when clicking the typed option', async () => {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery="browser.name:"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+        await userEvent.keyboard('foo\\*');
+        await userEvent.click(await screen.findByRole('option', {name: 'foo*'}));
+
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith(
+            'browser.name:foo\\*',
+            expect.anything()
+          );
+        });
+      });
+
       it('preserves each form in a mixed multi-value list', async () => {
         const mockOnChange = jest.fn();
         render(
