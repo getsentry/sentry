@@ -406,8 +406,6 @@ const appConfig: Configuration = {
         ],
       },
       {
-        // Legacy stylesheets for Django-rendered pages, emitted as
-        // entrypoints/sentry.css (see output.cssFilename)
         test: /\.css$/,
         include: [legacyCssPath],
         type: 'css/auto',
