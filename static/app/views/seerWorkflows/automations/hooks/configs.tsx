@@ -1,5 +1,4 @@
 import {
-  keepPreviousData,
   skipToken,
   useIsMutating,
   useMutation,
@@ -40,11 +39,10 @@ function useConfigUrls(configId = '') {
 
 /**
  * Fetches the organization's automation configs. Pass `ids` to only fetch those configs;
- * an empty list fetches nothing. Pass `keepPrevious` to keep returning the last configs
- * while a different set of `ids` loads. `options` override the query's options.
+ * an empty list fetches nothing. `options` override the query's options.
  */
 export function useFetchConfigs(
-  {ids, keepPrevious}: {ids?: string[]; keepPrevious?: boolean} = {},
+  {ids}: {ids?: string[]} = {},
   options: AutomationQueryOptions = {}
 ) {
   const organization = useOrganization();
@@ -63,7 +61,6 @@ export function useFetchConfigs(
       }
     ),
     select: data => selectJson(data).configs,
-    placeholderData: keepPrevious ? keepPreviousData : undefined,
     ...options,
   });
 }
