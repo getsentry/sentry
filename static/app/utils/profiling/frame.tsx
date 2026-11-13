@@ -25,6 +25,7 @@ export class Frame {
   readonly symbolAddr?: string;
   readonly symbolicatorStatus?: SymbolicatorStatus;
   readonly threadId?: number;
+  readonly unqualifiedName?: string;
 
   readonly isRoot: boolean;
 
@@ -75,6 +76,7 @@ export class Frame {
     // Java frames are shown fully qualified as <module>.<function>.
     // For constructors ("<init>") the class name alone is more readable.
     if (this.platform === 'java' && this.module) {
+      this.unqualifiedName = this.name;
       this.name = this.name === '<init>' ? this.module : `${this.module}.${this.name}`;
     }
 

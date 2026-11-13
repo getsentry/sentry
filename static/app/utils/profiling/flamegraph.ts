@@ -344,7 +344,10 @@ export class Flamegraph {
 
     for (const item of this.frames) {
       if (
-        item.frame.name === frameName &&
+        // deep links pass the bare function name, which java frames keep as unqualifiedName
+        (item.frame.name === frameName ||
+          (item.frame.unqualifiedName !== undefined &&
+            item.frame.unqualifiedName === frameName)) &&
         // the framePackage can match either the package or the module
         // this is an artifact of how we previously used image
         (tryTrimPackage(item.frame.package) === framePackage ||

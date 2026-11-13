@@ -96,17 +96,19 @@ describe('Frame', () => {
 
   describe('java frames', () => {
     it('qualifies name with module', () => {
-      expect(
-        new Frame(
-          {
-            key: 0,
-            name: 'call',
-            module: 'rx.internal.util.ScalarSynchronousObservable$ScalarAsyncOnSubscribe',
-            platform: 'java',
-          },
-          'mobile'
-        ).name
-      ).toBe('rx.internal.util.ScalarSynchronousObservable$ScalarAsyncOnSubscribe.call');
+      const frame = new Frame(
+        {
+          key: 0,
+          name: 'call',
+          module: 'rx.internal.util.ScalarSynchronousObservable$ScalarAsyncOnSubscribe',
+          platform: 'java',
+        },
+        'mobile'
+      );
+      expect(frame.name).toBe(
+        'rx.internal.util.ScalarSynchronousObservable$ScalarAsyncOnSubscribe.call'
+      );
+      expect(frame.unqualifiedName).toBe('call');
     });
 
     it('shows only module for constructors', () => {
@@ -130,12 +132,12 @@ describe('Frame', () => {
     });
 
     it('does not qualify non-java frames', () => {
-      expect(
-        new Frame(
-          {key: 0, name: 'memcpy', module: 'libc.so', platform: 'native'},
-          'mobile'
-        ).name
-      ).toBe('memcpy');
+      const frame = new Frame(
+        {key: 0, name: 'memcpy', module: 'libc.so', platform: 'native'},
+        'mobile'
+      );
+      expect(frame.name).toBe('memcpy');
+      expect(frame.unqualifiedName).toBeUndefined();
     });
   });
 
