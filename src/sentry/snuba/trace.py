@@ -900,6 +900,7 @@ def query_trace_data(
     additional_attributes: list[str] | None = None,
     include_uptime: bool = False,
     organization: Organization | None = None,
+    config: SearchResolverConfig | None = None,
 ) -> list[SerializedTraceItem]:
     """Queries span/error data for a given trace"""
     # This is a hack, long term EAP will store both errors and performance_issues eventually but is not ready
@@ -933,7 +934,7 @@ def query_trace_data(
             trace_id=trace_id,
             params=snuba_params,
             referrer=referrer,
-            config=SearchResolverConfig(),
+            config=config or SearchResolverConfig(),
             additional_attributes=all_additional_attributes,
         )
         errors_future = query_thread_pool.submit(

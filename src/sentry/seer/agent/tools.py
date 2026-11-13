@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta, timezone
 from typing import Any, Literal, TypedDict, cast
 
+import orjson
 from django.core.exceptions import BadRequest
 from django.db import models
 from django.db.models import Q
@@ -17,6 +18,7 @@ from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Req
 from sentry import eventstore, features
 from sentry.api.client import client
 from sentry.api.endpoints.organization_events_timeseries import TOP_EVENTS_DATASETS
+from sentry.api.endpoints.project_trace_item_details import serialize_link
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.activity import ActivitySerializer, ActivitySerializerResponse
 from sentry.api.serializers.models.commit import CommitSerializer, CommitSerializerResponse
@@ -64,7 +66,7 @@ from sentry.search.eap.constants import (
 )
 from sentry.search.eap.occurrences.query_utils import build_event_id_in_filter
 from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.types import FieldsACL, SearchResolverConfig
 from sentry.search.events.constants import ISSUE_ID_ALIAS
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.seer.agent.index_data import UNESCAPED_QUOTE_RE
@@ -629,6 +631,27 @@ def execute_trace_table_query(
         raise
 
 
+SPAN_LINKS_ATTRIBUTE = "sentry.links"
+
+
+def _parse_span_links(items: Sequence[dict[str, Any]]) -> None:
+    """Replace the raw `sentry.links` JSON on each span with parsed `links`, in place."""
+    for item in items:
+        attributes = item.get("additional_attributes")
+        raw_links = (
+            attributes.pop(SPAN_LINKS_ATTRIBUTE, None) if isinstance(attributes, dict) else None
+        )
+        if isinstance(raw_links, str):
+            try:
+                item["links"] = [serialize_link(link) for link in orjson.loads(raw_links)]
+            except (orjson.JSONDecodeError, KeyError, TypeError):
+                logger.warning(
+                    "get_trace_waterfall: Could not parse span links",
+                    extra={"span_id": item.get("event_id")},
+                )
+        _parse_span_links(item.get("children", []))
+
+
 def get_trace_waterfall(
     trace_id: str,
     organization_id: int,
@@ -644,9 +667,11 @@ def get_trace_waterfall(
 
     Returns:
         The spans and errors in the trace, along with the full 32-character trace ID.
+        Spans with span links carry them in `links`.
     """
     if additional_attributes is None:
         additional_attributes = ["span.status_code"]
+    additional_attributes = [*additional_attributes, SPAN_LINKS_ATTRIBUTE]
 
     try:
         organization = Organization.objects.get(id=organization_id)
@@ -688,12 +713,16 @@ def get_trace_waterfall(
         additional_attributes=additional_attributes,
         referrer=referrer,
         organization=organization,
+        # `sentry.links` is private, so only this caller may select it.
+        config=SearchResolverConfig(fields_acl=FieldsACL(attributes={SPAN_LINKS_ATTRIBUTE})),
     )
+    trace = cast(list[dict[str, Any]], events)
+    _parse_span_links(trace)
 
     return EAPTrace(
         trace_id=full_trace_id,
         org_id=organization_id,
-        trace=events,
+        trace=trace,
     )
 
 
