@@ -182,6 +182,29 @@ ruleTester.run('prefer-info-text', preferInfoText, {
         const x = <Tooltip title="x">{t('label')}</Tooltip>;
       `,
     },
+    {
+      name: 'Conditional expression with a non-text consequent',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        const x = <Tooltip title="x">{condition ? <IconInfo /> : 'label'}</Tooltip>;
+      `,
+    },
+    {
+      name: 'Logical OR with a non-text left side',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {t} from 'sentry/locale';
+        const x = <Tooltip title="x">{value || t('fallback')}</Tooltip>;
+      `,
+    },
+    {
+      name: 'Logical OR with a non-text right side',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {t} from 'sentry/locale';
+        const x = <Tooltip title="x">{t('label') || value}</Tooltip>;
+      `,
+    },
   ],
 
   invalid: [
@@ -288,12 +311,18 @@ ruleTester.run('prefer-info-text', preferInfoText, {
         const x = <Tooltip title="explanation">Some text here</Tooltip>;
       `,
       errors: [
-        errorWithSuggestion(`
+        {
+          ...errorWithSuggestion(`
         import {Tooltip} from '@sentry/scraps/tooltip';
 import {InfoText} from '@sentry/scraps/info';
 
         const x = <InfoText variant="inherit" title="explanation">Some text here</InfoText>;
       `),
+          line: 3,
+          column: 18,
+          endLine: 3,
+          endColumn: 47,
+        },
       ],
     },
     {
@@ -522,6 +551,97 @@ import {InfoText} from '@sentry/scraps/info';
       ],
     },
     {
+      name: 'Stripped prop after a line comment keeps the line break',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        const x = <Tooltip title="x" // note
+          showUnderline>Some text</Tooltip>;
+      `,
+      errors: [
+        errorWithSuggestion(`
+        import {Tooltip} from '@sentry/scraps/tooltip';
+import {InfoText} from '@sentry/scraps/info';
+
+        const x = <InfoText variant="inherit" title="x" // note
+          >Some text</InfoText>;
+      `),
+      ],
+    },
+    {
+      name: 'Adjacent stripped props after a line comment keep the line break',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        const x = <Tooltip
+          title="x"
+          // why
+          skipWrapper
+          isHoverable>hi</Tooltip>;
+      `,
+      errors: [
+        errorWithSuggestion(`
+        import {Tooltip} from '@sentry/scraps/tooltip';
+import {InfoText} from '@sentry/scraps/info';
+
+        const x = <InfoText variant="inherit"
+          title="x"
+          // why
+          >hi</InfoText>;
+      `),
+      ],
+    },
+    {
+      name: 'Adjacent stripped props after a line comment on the tag line keep the line break',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        const x = <Tooltip // why
+          skipWrapper
+          isHoverable>hi</Tooltip>;
+      `,
+      errors: [
+        errorWithSuggestion(`
+        import {Tooltip} from '@sentry/scraps/tooltip';
+import {InfoText} from '@sentry/scraps/info';
+
+        const x = <InfoText variant="inherit" // why
+          >hi</InfoText>;
+      `),
+      ],
+    },
+    {
+      name: 'Block comment between stripped props is kept',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        const x = <Tooltip title="x" isHoverable /* keep */ skipWrapper>hi</Tooltip>;
+      `,
+      errors: [
+        errorWithSuggestion(`
+        import {Tooltip} from '@sentry/scraps/tooltip';
+import {InfoText} from '@sentry/scraps/info';
+
+        const x = <InfoText variant="inherit" title="x" /* keep */>hi</InfoText>;
+      `),
+      ],
+    },
+    {
+      name: 'Line comments between stripped props are kept',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        const x = <Tooltip title="x" // a
+          isHoverable // b
+          skipWrapper>hi</Tooltip>;
+      `,
+      errors: [
+        errorWithSuggestion(`
+        import {Tooltip} from '@sentry/scraps/tooltip';
+import {InfoText} from '@sentry/scraps/info';
+
+        const x = <InfoText variant="inherit" title="x" // a
+           // b
+          >hi</InfoText>;
+      `),
+      ],
+    },
+    {
       name: 'isHoverable is stripped in suggestion',
       code: `
         import {Tooltip} from '@sentry/scraps/tooltip';
@@ -542,7 +662,7 @@ import {InfoText} from '@sentry/scraps/info';
         import {Tooltip} from '@sentry/scraps/tooltip';
         const x = <Tooltip title="x" isHoverable={false}>Some text here</Tooltip>;
       `,
-      errors: [{messageId: 'preferInfoText'}],
+      errors: [{messageId: 'preferInfoText', suggestions: []}],
     },
     {
       name: 'showOnlyOnOverflow becomes overflowOnly mode in suggestion',
@@ -566,7 +686,7 @@ import {InfoText} from '@sentry/scraps/info';
         import {t} from 'sentry/locale';
         const x = <Tooltip title="x" showUnderline disabled>{t('label')}</Tooltip>;
       `,
-      errors: [{messageId: 'preferInfoText'}],
+      errors: [{messageId: 'preferInfoText', suggestions: []}],
     },
     {
       name: 'Text component with delay and disabled',
@@ -590,7 +710,7 @@ import {InfoText} from '@sentry/scraps/info';
           </Tooltip>
         );
       `,
-      errors: [{messageId: 'preferInfoText'}],
+      errors: [{messageId: 'preferInfoText', suggestions: []}],
     },
     {
       name: 'Tooltip with supported delay prop',
@@ -713,6 +833,272 @@ import {InfoText} from '@sentry/scraps/info';
             },
           ],
         },
+      ],
+    },
+    {
+      name: 'Tooltip with supported position prop',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        const x = <Tooltip title="x" position="top">Some text here</Tooltip>;
+      `,
+      errors: [
+        errorWithSuggestion(`
+        import {Tooltip} from '@sentry/scraps/tooltip';
+import {InfoText} from '@sentry/scraps/info';
+
+        const x = <InfoText variant="inherit" title="x" position="top">Some text here</InfoText>;
+      `),
+      ],
+    },
+    {
+      name: 'JSX element in an expression container',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        const x = <Tooltip title="x">{<span>label</span>}</Tooltip>;
+      `,
+      errors: [
+        errorWithSuggestion(`
+        import {Tooltip} from '@sentry/scraps/tooltip';
+import {InfoText} from '@sentry/scraps/info';
+
+        const x = <InfoText variant="inherit" title="x">{<span>label</span>}</InfoText>;
+      `),
+      ],
+    },
+    {
+      name: 'Stripped prop on its own line takes its line with it',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        const x = (
+          <Tooltip
+            title="x"
+            showUnderline
+          >
+            Some text here
+          </Tooltip>
+        );
+      `,
+      errors: [
+        errorWithSuggestion(`
+        import {Tooltip} from '@sentry/scraps/tooltip';
+import {InfoText} from '@sentry/scraps/info';
+
+        const x = (
+          <InfoText variant="inherit"
+            title="x"
+          >
+            Some text here
+          </InfoText>
+        );
+      `),
+      ],
+    },
+    {
+      name: 'Comments in a Text child suggestion keep the Text element',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {Text} from '@sentry/scraps/text';
+        const x = <Tooltip title="x" /* note */ position="top"><Text size="sm">label</Text></Tooltip>;
+      `,
+      errors: [
+        errorWithSuggestion(`
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {Text} from '@sentry/scraps/text';
+import {InfoText} from '@sentry/scraps/info';
+
+        const x = <InfoText variant="inherit" title="x" /* note */ position="top"><Text size="sm">label</Text></InfoText>;
+      `),
+      ],
+    },
+    {
+      name: 'Comments in a Text child opening tag keep the Text element',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {Text} from '@sentry/scraps/text';
+        const x = <Tooltip title="x"><Text /* note */ size="sm">label</Text></Tooltip>;
+      `,
+      errors: [
+        errorWithSuggestion(`
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {Text} from '@sentry/scraps/text';
+import {InfoText} from '@sentry/scraps/info';
+
+        const x = <InfoText variant="inherit" title="x"><Text /* note */ size="sm">label</Text></InfoText>;
+      `),
+      ],
+    },
+    {
+      name: 'Comments in a Text child closing tag keep the Text element',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {Text} from '@sentry/scraps/text';
+        const x = <Tooltip title="x"><Text>label</Text /* keep */></Tooltip>;
+      `,
+      errors: [
+        errorWithSuggestion(`
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {Text} from '@sentry/scraps/text';
+import {InfoText} from '@sentry/scraps/info';
+
+        const x = <InfoText variant="inherit" title="x"><Text>label</Text /* keep */></InfoText>;
+      `),
+      ],
+    },
+    {
+      name: 'Comments in a Tooltip closing tag keep the Text element',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {Text} from '@sentry/scraps/text';
+        const x = <Tooltip title="x"><Text>label</Text></Tooltip /* keep */>;
+      `,
+      errors: [
+        errorWithSuggestion(`
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {Text} from '@sentry/scraps/text';
+import {InfoText} from '@sentry/scraps/info';
+
+        const x = <InfoText variant="inherit" title="x"><Text>label</Text></InfoText /* keep */>;
+      `),
+      ],
+    },
+    {
+      name: 'isHoverable true is stripped in suggestion',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        const x = <Tooltip title="x" isHoverable={true}>Some text here</Tooltip>;
+      `,
+      errors: [
+        errorWithSuggestion(`
+        import {Tooltip} from '@sentry/scraps/tooltip';
+import {InfoText} from '@sentry/scraps/info';
+
+        const x = <InfoText variant="inherit" title="x">Some text here</InfoText>;
+      `),
+      ],
+    },
+    {
+      name: 'skipWrapper is stripped in suggestion',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        const x = <Tooltip title="x" skipWrapper>Some text here</Tooltip>;
+      `,
+      errors: [
+        errorWithSuggestion(`
+        import {Tooltip} from '@sentry/scraps/tooltip';
+import {InfoText} from '@sentry/scraps/info';
+
+        const x = <InfoText variant="inherit" title="x">Some text here</InfoText>;
+      `),
+      ],
+    },
+    {
+      name: 'Tooltip with spread props has no suggestion',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        const x = <Tooltip {...props}>Some text here</Tooltip>;
+      `,
+      errors: [{messageId: 'preferInfoText', suggestions: []}],
+    },
+    {
+      name: 'Text child spread props are kept',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {Text} from '@sentry/scraps/text';
+        const x = <Tooltip title="x"><Text {...rest} size="sm">label</Text></Tooltip>;
+      `,
+      errors: [
+        errorWithSuggestion(`
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {Text} from '@sentry/scraps/text';
+import {InfoText} from '@sentry/scraps/info';
+
+        const x = <InfoText title="x" {...rest} size="sm">label</InfoText>;
+      `),
+      ],
+    },
+    {
+      name: 'Text child without any props',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {Text} from '@sentry/scraps/text';
+        const x = <Tooltip><Text>label</Text></Tooltip>;
+      `,
+      errors: [
+        errorWithSuggestion(`
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {Text} from '@sentry/scraps/text';
+import {InfoText} from '@sentry/scraps/info';
+
+        const x = <InfoText>label</InfoText>;
+      `),
+      ],
+    },
+    {
+      name: 'Text ellipsis is kept without overflow-only mode',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {Text} from '@sentry/scraps/text';
+        const x = <Tooltip title="x" position="top"><Text ellipsis underline>label</Text></Tooltip>;
+      `,
+      errors: [
+        errorWithSuggestion(`
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {Text} from '@sentry/scraps/text';
+import {InfoText} from '@sentry/scraps/info';
+
+        const x = <InfoText title="x" position="top" ellipsis>label</InfoText>;
+      `),
+      ],
+    },
+    {
+      name: 'Text underline and ellipsis are stripped in overflow-only mode',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {Text} from '@sentry/scraps/text';
+        const x = <Tooltip title="x" showOnlyOnOverflow><Text ellipsis underline>label</Text></Tooltip>;
+      `,
+      errors: [
+        errorWithSuggestion(`
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {Text} from '@sentry/scraps/text';
+import {InfoText} from '@sentry/scraps/info';
+
+        const x = <InfoText title="x" mode="overflowOnly">label</InfoText>;
+      `),
+      ],
+    },
+    {
+      name: 'Self-closing Text child is wrapped',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {Text} from '@sentry/scraps/text';
+        const x = <Tooltip title="x"><Text /></Tooltip>;
+      `,
+      errors: [
+        errorWithSuggestion(`
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {Text} from '@sentry/scraps/text';
+import {InfoText} from '@sentry/scraps/info';
+
+        const x = <InfoText variant="inherit" title="x"><Text /></InfoText>;
+      `),
+      ],
+    },
+    {
+      name: 'Text child with a text sibling is wrapped',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {Text} from '@sentry/scraps/text';
+        const x = <Tooltip title="x"><Text>label</Text> more</Tooltip>;
+      `,
+      errors: [
+        errorWithSuggestion(`
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {Text} from '@sentry/scraps/text';
+import {InfoText} from '@sentry/scraps/info';
+
+        const x = <InfoText variant="inherit" title="x"><Text>label</Text> more</InfoText>;
+      `),
       ],
     },
   ],

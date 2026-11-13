@@ -12,7 +12,12 @@ type CssNode = {
   nodes?: CssNode[];
   params?: string;
   prop?: string;
-  raws?: {before?: string; between?: string};
+  raws?: {
+    afterName?: string;
+    before?: string;
+    between?: string;
+    params?: {raw?: string};
+  };
   selector?: string;
   source?: {
     end?: {line?: number; offset?: number};
@@ -41,12 +46,12 @@ export interface ParsedCssDeclaration {
   root: boolean;
   sourceRange: [number, number] | null;
   value: string;
-  valueRange: [number, number] | null;
 }
 
 export interface ParsedCssAtRule {
   name: string;
   params: string;
+  sourceRange: [number, number];
 }
 
 export interface ParsedCssSelector {
@@ -60,17 +65,11 @@ export interface ParsedCssSelector {
 const styledSyntax: CssParser = createRequire(import.meta.url)('postcss-styled-syntax');
 const PREFIX = 'styled.div';
 
-function valueStart(node: CssNode, source: string): number | undefined {
+function valueStart(node: CssNode): number | undefined {
   const start = node.source?.start?.offset;
-  if (start === undefined || node.prop === undefined) {
-    return undefined;
-  }
-  const propertyEnd = start + node.prop.length;
-  if (node.raws?.between) {
-    return propertyEnd + node.raws.between.length;
-  }
-  const colon = source.indexOf(':', propertyEnd);
-  return colon === -1 ? undefined : colon + 1;
+  return start === undefined || node.prop === undefined
+    ? undefined
+    : start + node.prop.length + (node.raws?.between?.length ?? 0);
 }
 
 function parseCss(source: string): CssDocument | null {
@@ -114,6 +113,30 @@ export function cookCssTemplateText(raw: string): string {
   );
 }
 
+export function isDisabledByCssDirective(
+  {directives, line, sourceRange}: ParsedCssDeclaration | ParsedCssSelector,
+  ruleId: string
+): boolean {
+  let disabled = false;
+  for (const directive of directives) {
+    if (directive.rules.length > 0 && !directive.rules.includes(ruleId)) {
+      continue;
+    }
+    if (directive.action === 'disable-next-line') {
+      if (directive.endLine !== undefined && line === directive.endLine + 1) {
+        return true;
+      }
+    } else if (directive.action === 'disable-line') {
+      if (line === directive.line) {
+        return true;
+      }
+    } else if (sourceRange && directive.offset < sourceRange[0]) {
+      disabled = directive.action === 'disable';
+    }
+  }
+  return disabled;
+}
+
 /** Parse a complete styled template and map each interpolation to its CSS value declaration. */
 export function parseCssTemplate(
   template: ESTree.TemplateLiteral | null,
@@ -122,8 +145,7 @@ export function parseCssTemplate(
   selectors?: ParsedCssSelector[]
 ): ParsedCssDeclaration[] | null {
   const templateStart = template?.range[0] ?? 0;
-  const parsedSource = `${PREFIX}${source}`;
-  const root = parseCss(parsedSource)?.nodes[0];
+  const root = parseCss(`${PREFIX}${source}`)?.nodes[0];
   if (!root) {
     return null;
   }
@@ -166,8 +188,25 @@ export function parseCssTemplate(
           }),
         });
       }
-      if (node.type === 'atrule' && node.name && node.params !== undefined) {
-        atRules?.push({name: node.name, params: node.params});
+      if (
+        node.type === 'atrule' &&
+        node.name !== undefined &&
+        node.params !== undefined &&
+        node.source?.start?.offset !== undefined
+      ) {
+        const start = node.source.start.offset - PREFIX.length;
+        atRules?.push({
+          name: node.name,
+          params: node.params,
+          sourceRange: [
+            start,
+            start +
+              1 +
+              node.name.length +
+              (node.raws?.afterName?.length ?? 0) +
+              (node.raws?.params?.raw ?? node.params).length,
+          ],
+        });
       }
       if (node.type === 'comment' && node.source?.start?.offset !== undefined) {
         const match = node.text
@@ -189,15 +228,11 @@ export function parseCssTemplate(
       if (node.type === 'decl' && node.prop !== undefined && node.value !== undefined) {
         const sourceStart = node.source?.start?.offset;
         const sourceEnd = node.source?.end?.offset;
-        const start = valueStart(node, parsedSource);
+        const start = valueStart(node);
         const sourceRange: [number, number] | null =
           sourceStart === undefined || sourceEnd === undefined
             ? null
             : [sourceStart - PREFIX.length, sourceEnd - PREFIX.length];
-        const valueRange: [number, number] | null =
-          start === undefined || sourceEnd === undefined
-            ? null
-            : [start - PREFIX.length, sourceEnd - PREFIX.length];
         const interpolations = (template?.expressions ?? []).flatMap(
           (expression, index) => {
             if (
@@ -224,7 +259,6 @@ export function parseCssTemplate(
           root: isRoot,
           sourceRange,
           value: node.value,
-          valueRange,
         });
       } else if (node.nodes) {
         walk(

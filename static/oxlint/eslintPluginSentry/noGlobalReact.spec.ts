@@ -51,6 +51,11 @@ ruleTester.run('no-global-react', noGlobalReact, {
       filename: 'component.tsx',
       languageOptions: {globals: {React: 'readonly'}},
     },
+    {
+      code: "var React = require('react'); React.createElement('div');",
+      filename: 'component.js',
+      languageOptions: {sourceType: 'script'},
+    },
   ],
   invalid: [
     {

@@ -36,10 +36,10 @@ export const namingConvention = defineRule({
         const name =
           node.id.type === 'Identifier'
             ? node.id.name
-            : node.id.type === 'Literal' && typeof node.id.value === 'string'
+            : node.id.type === 'Literal'
               ? node.id.value
-              : undefined;
-        if (name !== undefined && !UPPER_CASE.test(name)) {
+              : (node.id.quasis[0]!.value.cooked ?? '');
+        if (!UPPER_CASE.test(name)) {
           context.report({node: node.id, messageId: 'enumMember'});
         }
       },

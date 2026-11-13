@@ -208,6 +208,11 @@
       "count": 3
     }
   },
+  "components/core/form/field/rangeField.spec.tsx": {
+    "@sentry/prefer-fake-timers": {
+      "count": 1
+    }
+  },
   "components/core/relativeTime/relativeTime.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 1
@@ -2679,6 +2684,16 @@
       "count": 1
     }
   },
+  "views/detectors/detectorNewSettings.spec.tsx": {
+    "@sentry/prefer-fake-timers": {
+      "count": 1
+    }
+  },
+  "views/detectors/hooks/useDetectorStatsPeriods.spec.tsx": {
+    "@sentry/prefer-fake-timers": {
+      "count": 5
+    }
+  },
   "views/discover/eventDetails.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -2887,6 +2902,9 @@
     }
   },
   "views/explore/logs/tables/logsInfiniteTable.spec.tsx": {
+    "@sentry/prefer-fake-timers": {
+      "count": 1
+    },
     "@sentry/require-fake-timer-cleanup": {
       "count": 1
     }

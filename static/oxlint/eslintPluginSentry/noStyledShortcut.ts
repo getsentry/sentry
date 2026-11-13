@@ -20,9 +20,10 @@ export const noStyledShortcut = defineRule({
         const {tag} = node;
         if (
           tag.type !== 'MemberExpression' ||
+          tag.computed ||
+          tag.property.type !== 'Identifier' ||
           tag.object.type !== 'Identifier' ||
-          tag.object.name !== 'styled' ||
-          tag.property.type !== 'Identifier'
+          tag.object.name !== 'styled'
         ) {
           return;
         }
@@ -30,7 +31,7 @@ export const noStyledShortcut = defineRule({
         const element = tag.property.name;
 
         context.report({
-          node,
+          node: tag,
           messageId: 'noShorthand',
           data: {element},
           fix(fixer) {

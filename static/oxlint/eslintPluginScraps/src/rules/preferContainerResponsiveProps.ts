@@ -4,8 +4,8 @@ import {parseCssTemplate, type ParsedCssAtRule} from '../ast/extractor/css.ts';
 import {createImportTracker} from '../ast/tracker/imports.ts';
 import {getStyledCallInfo} from '../ast/utils/styled.ts';
 
-const STYLE_QUERY = /@(?:media|container)\b/g;
-const WIDTH_QUERY = /(?:min-|max-)?width\s*[:<>=]/;
+const STYLE_QUERY = /@(?:media|container)\b/;
+const WIDTH_QUERY = /\bwidth\b/;
 const LAYOUT_MEDIA_FEATURE = /\b(?:width|height|aspect-ratio|orientation)\b/;
 const NON_LAYOUT_MEDIA_FEATURE =
   /\b(?:prefers-[\w-]+|hover|pointer|forced-colors|color-gamut|dynamic-range|resolution|print)\b/;
@@ -52,12 +52,9 @@ function hasOnlyAllowedMediaDeclarations(
       .split(';')
       .map(declaration => declaration.trim())
       .filter(Boolean);
-    return (
-      declarations.length > 0 &&
-      declarations.every(
-        declaration =>
-          property.test(declaration) || (allowDynamicBody && declaration === 'VALUE')
-      )
+    return declarations.every(
+      declaration =>
+        property.test(declaration) || (allowDynamicBody && declaration === 'VALUE')
     );
   });
 }
@@ -113,7 +110,6 @@ export const preferContainerResponsiveProps = defineRule({
     const importTracker = createImportTracker(context);
 
     return {
-      ...importTracker.visitors,
       TaggedTemplateExpression(node) {
         if (!getStyledCallInfo(node, importTracker)) {
           return;
@@ -127,7 +123,17 @@ export const preferContainerResponsiveProps = defineRule({
               !isNonLayoutMediaQuery(`@media ${atRule.params}`) &&
               !allowsViewportSizing(node, context.filename))
           ) {
-            context.report({node, messageId: 'forbidden'});
+            context.report({
+              loc: {
+                start: context.sourceCode.getLocFromIndex(
+                  node.quasi.range[0] + atRule.sourceRange[0]
+                ),
+                end: context.sourceCode.getLocFromIndex(
+                  node.quasi.range[0] + atRule.sourceRange[1]
+                ),
+              },
+              messageId: 'forbidden',
+            });
           }
         }
       },
@@ -148,25 +154,16 @@ export const preferContainerResponsiveProps = defineRule({
       },
       Property(node) {
         const key = node.key;
-        const keyName =
-          key.type === 'Literal' && typeof key.value === 'string'
-            ? key.value
-            : key.type === 'Identifier'
-              ? key.name
-              : undefined;
-        if (
-          keyName?.startsWith('screen:') &&
-          !context.filename.includes('/static/packages/') &&
-          !context.filename.includes('/static/oxlint/')
-        ) {
-          context.report({node: key, messageId: 'forbidden'});
+        if (key.type !== 'Literal' || typeof key.value !== 'string') {
           return;
         }
-        const query = keyName?.match(STYLE_QUERY)?.[0];
+        const isViewportKey =
+          key.value.startsWith('screen:') &&
+          !context.filename.includes('/static/packages/') &&
+          !context.filename.includes('/static/oxlint/');
         if (
-          query &&
-          keyName &&
-          (query === '@container' || !isNonLayoutMediaQuery(keyName))
+          isViewportKey ||
+          (STYLE_QUERY.test(key.value) && !isNonLayoutMediaQuery(key.value))
         ) {
           context.report({node: key, messageId: 'forbidden'});
         }

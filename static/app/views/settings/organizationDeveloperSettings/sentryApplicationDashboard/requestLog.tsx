@@ -14,7 +14,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {sentryAppWebhookRequestsApiOptions} from 'sentry/actionCreators/sentryApps';
 import {DateTime} from 'sentry/components/dateTime';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InteractionStateLayer} from 'sentry/components/interactionStateLayer';
 import {LoadingError} from 'sentry/components/loadingError';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';

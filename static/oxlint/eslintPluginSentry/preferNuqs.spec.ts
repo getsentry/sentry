@@ -11,6 +11,9 @@ ruleTester.run('prefer-nuqs', preferNuqs, {
     {code: 'navigate({pathname: location.pathname + "/details/", query});'},
     {code: 'navigate({pathname: otherLocation.pathname, query});'},
     {code: 'navigate({pathname: location["pathname"], query});'},
+    {code: 'navigate({pathname: location[pathname], query});'},
+    {code: 'navigate({pathname: location.search, query});'},
+    {code: 'navigate({query, hash: location.pathname});'},
     {code: 'navigate({pathname: location.pathname});'},
     {code: 'navigate({...location});'},
     {code: 'navigate({query, ...location});'},
@@ -21,6 +24,7 @@ ruleTester.run('prefer-nuqs', preferNuqs, {
     {code: 'navigate({query, state: {open: true}});'},
     {code: 'navigate({query, search: "?tab=details"});'},
     {code: 'navigate({query}, {state: {open: true}});'},
+    {code: 'navigate({query}, {replace: true, state: {open: true}});'},
     {code: 'navigate({query}, {"state": null});'},
     {code: 'navigate({query}, {...options});'},
     {code: 'navigate({query}, {[option]: true});'},
@@ -38,6 +42,7 @@ ruleTester.run('prefer-nuqs', preferNuqs, {
     {code: 'update({query});'},
     {code: 'router.push({query});'},
     {code: 'router[method]({query});'},
+    {code: 'router[navigate]({query});'},
   ],
   invalid: [
     {

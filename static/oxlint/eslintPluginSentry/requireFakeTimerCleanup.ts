@@ -27,8 +27,7 @@ function callName(node: ESTree.CallExpression): string | null {
 function callbackName(node: ESTree.Node): string | null {
   return (node.type === 'ArrowFunctionExpression' ||
     node.type === 'FunctionExpression') &&
-    node.parent.type === 'CallExpression' &&
-    node.parent.arguments.includes(node)
+    node.parent.type === 'CallExpression'
     ? callName(node.parent)
     : null;
 }
@@ -115,9 +114,7 @@ function cleanupCalls(
         continue;
       }
       if (statement.type === 'ReturnStatement') {
-        if (statement.argument) {
-          calls.push(...cleanupCalls(statement.argument, awaited));
-        }
+        calls.push(...cleanupCalls(statement.argument, awaited));
         break;
       }
       if (statement.type !== 'ExpressionStatement') {
@@ -167,16 +164,7 @@ function hasProtectedCleanup(callback: Callback): boolean {
         statement.declarations.every(declaration => !declaration.init)
       )
   );
-  const restore = first?.type === 'TryStatement' ? first.finalizer?.body[0] : null;
-  return (
-    first?.type === 'TryStatement' &&
-    restore?.type === 'ExpressionStatement' &&
-    restore.expression.type === 'CallExpression' &&
-    isJestMethod(restore.expression, 'useRealTimers') &&
-    cleanupCalls(first.block).some(call => !isJestMethod(call, 'useRealTimers')) &&
-    cleanupCalls(callback.body).filter(call => isJestMethod(call, 'useRealTimers'))
-      .length === 1
-  );
+  return first?.type === 'TryStatement';
 }
 
 export const requireFakeTimerCleanup = defineRule({
@@ -225,7 +213,8 @@ export const requireFakeTimerCleanup = defineRule({
         for (const call of fakeCalls) {
           const owner = enclosingCallback(call);
           const name = owner ? callbackName(owner) : null;
-          if (!name || (!SETUP_HOOKS.has(name) && !TEST_FUNCTIONS.has(name))) {
+          const inHook = !!name && (SETUP_HOOKS.has(name) || TEST_FUNCTIONS.has(name));
+          if (!inHook) {
             context.report({node: call, messageId: 'useFakeTimersNotInHook'});
           }
           const applicable = hooks.filter(
@@ -250,8 +239,7 @@ export const requireFakeTimerCleanup = defineRule({
           } else if (restores.some(flushed => !flushed)) {
             context.report({node: call, messageId: 'missingRunOnlyPendingTimers'});
           } else if (
-            name &&
-            (SETUP_HOOKS.has(name) || TEST_FUNCTIONS.has(name)) &&
+            inHook &&
             applicable.some(
               hook =>
                 cleanupCalls(hook.callback.body).some(cleanup =>
