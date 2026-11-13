@@ -21,6 +21,7 @@ from sentry.notebooks.models import (
     NotebookSourceType,
     NotebookStatus,
 )
+from sentry.notebooks.services.producer_sources import ProducerSource
 
 UPDATABLE_NOTEBOOK_FIELDS = frozenset({"title", "status", "filters"})
 MAX_NOTEBOOK_TITLE_LENGTH = 255
@@ -184,6 +185,39 @@ def get_or_create_source_notebook(
                     return active, False
                 raise
     raise AssertionError("unreachable")
+
+
+def create_producer_notebook(
+    *,
+    organization: Organization,
+    creator: CreatorReference,
+    title: str,
+    source: ProducerSource,
+    filters: dict[str, Any],
+) -> tuple[Notebook, bool]:
+    """The active notebook for the producer's source, or a new revision of it.
+    The bool is True when it was created.
+    """
+    source_type, resolved = source.source_type, source.resolved
+    source_key = source_type.source_key(resolved)
+
+    def create(revision: int) -> Notebook:
+        return create_notebook(
+            organization=organization,
+            created_by_id=creator["created_by_id"],
+            created_by_service_account_id=creator["created_by_service_account_id"],
+            title=title,
+            source_type=source_type.name,
+            source_key=source_key,
+            source=source_type.notebook_source(resolved),
+            source_revision=revision,
+            filters=filters,
+            project_ids=resolved.project_ids,
+        )
+
+    return get_or_create_source_notebook(
+        organization=organization, source_key=source_key, create=create
+    )
 
 
 def _copy_title(title: str) -> str:

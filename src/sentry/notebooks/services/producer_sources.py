@@ -69,3 +69,11 @@ def register_producer_source_type(source_type: ProducerSourceType) -> None:
 
 def get_producer_source_type(source_type: str) -> ProducerSourceType | None:
     return PRODUCER_SOURCE_TYPES.get(source_type)
+
+
+@dataclass(frozen=True)
+class ProducerSource:
+    """A producer's validated source."""
+
+    source_type: ProducerSourceType
+    resolved: ResolvedProducerSource
