@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import signal
 import threading
 from collections.abc import Iterator, MutableMapping
 from typing import Any
@@ -17,6 +18,8 @@ import orjson
 from arroyo.backends.kafka import KafkaProducer
 from django.conf import settings
 from django.core.cache.backends.base import BaseCache
+from django.db import connections
+from django.db.backends.base.base import BaseDatabaseWrapper
 from sentry_sdk import capture_exception
 from taskbroker_client.metrics import DatadogMetrics, MetricsBackend, NoOpMetricsBackend
 from taskbroker_client.router import TaskRouter as LibraryRouter
@@ -172,6 +175,80 @@ def clear_local_caches() -> None:
         GroupMeta.objects.clear_local_cache()
     except Exception:
         logger.exception("taskworker.clear_local_caches.failed")
+
+
+class DatabaseConnectionResetHook:
+    """
+    Workers re-use database connections
+    However, if a processing deadline is hit, it could happen in the middle of Django's transaction cleanup
+    This leaves a connection mid-transaction and with auto-commit off, causing later tasks that
+    re-use the connection to fail until the worker is recycled
+
+    This hook makes it so that after every task, whether it failed or not, any connection left in a
+    broken transaction state is closed, so the next task reconnects from a clean state
+
+    Healthy connections are kept, even when the task failed. Closing them would make the next task
+    reconnect, and when pgbouncer is at max_client_conn that reconnect is refused, fails the task,
+    and would close everything again
+    """
+
+    def on_dispatch(self, headers: MutableMapping[str, Any]) -> None:
+        return None
+
+    @contextlib.contextmanager
+    def on_execute(self, headers: dict[str, str]) -> Iterator[None]:
+        try:
+            yield
+        finally:
+            # A task can also catch the error a deadline leaves behind and still succeed
+            reset_broken_database_connections()
+
+
+def is_broken(connection: BaseDatabaseWrapper) -> bool:
+    # No atomic block can legitimately be open, or owe commit hooks, once the task has exited
+    if (
+        connection.in_atomic_block
+        or connection.needs_rollback
+        or connection.closed_in_transaction
+        or connection.run_on_commit
+    ):
+        return True
+
+    # Read the attribute rather than get_autocommit(), which would open a connection
+    return connection.connection is not None and not connection.autocommit
+
+
+def reset_broken_database_connections() -> None:
+    broken_connections = [
+        connection for connection in connections.all(initialized_only=True) if is_broken(connection)
+    ]
+
+    if not broken_connections:
+        return
+
+    # It is possible for this step to get SIGALRM'd too, so delay it to the end of the function
+    alarm_signal_mask = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGALRM})
+
+    try:
+        for connection in broken_connections:
+            reset_database_connection(connection)
+    finally:
+        # Immediately trigger a SIGALRM if one was pending
+        signal.pthread_sigmask(signal.SIG_SETMASK, alarm_signal_mask)
+
+
+def reset_database_connection(connection: BaseDatabaseWrapper) -> None:
+    # Since we may have interrupted Django's transaction cleanup we
+    # need to reset these flags
+    # The test cases showcase why this is necessary
+    connection.in_atomic_block = False
+    connection.run_on_commit = []
+    # Otherwise the closed connection still looks broken, and every later task resets it again
+    connection.needs_rollback = False
+    # close() is a no-op for a connection already closed inside an atomic block
+    connection.closed_in_transaction = False
+
+    connection.close()
 
 
 _producers: dict[str, SingletonProducer] = {}
