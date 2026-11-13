@@ -323,6 +323,19 @@ describe('PathMappingList', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('replaces the example with the warning banner', () => {
+      renderList({
+        pathMappings: [
+          {id: '1', stackRoot: 'src/', sourceRoot: 'app/', branch: 'main'},
+          {id: '2', stackRoot: 'src/', sourceRoot: 'app/', branch: 'main'},
+        ],
+      });
+
+      // Only the first row keeps its example line.
+      expect(screen.getAllByText('e.g')).toHaveLength(1);
+      expect(screen.getByText(/Duplicate code mapping/)).toBeInTheDocument();
+    });
+
     it('does not warn when roots are unrelated', () => {
       renderList({
         pathMappings: [
@@ -331,11 +344,7 @@ describe('PathMappingList', () => {
         ],
       });
 
-      expect(
-        screen.queryByText(
-          /Remove one since only one of them is required for path matching/
-        )
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText(/Duplicate code mapping/)).not.toBeInTheDocument();
     });
 
     it('shows the in-form duplicate alert only on the later copy', () => {
@@ -348,11 +357,7 @@ describe('PathMappingList', () => {
       });
 
       // The first row is the original; each later copy is flagged.
-      expect(
-        screen.getAllByText(
-          /Remove one since only one of them is required for path matching/
-        )
-      ).toHaveLength(2);
+      expect(screen.getAllByText(/Duplicate code mapping/)).toHaveLength(2);
     });
 
     it('shows the across-repos alert when an existing mapping on another repo has the same pair', () => {
@@ -370,7 +375,7 @@ describe('PathMappingList', () => {
       });
 
       expect(screen.getByText(/getsentry\/relay/)).toBeInTheDocument();
-      expect(screen.getByText(/Only one can be used for matching/)).toBeInTheDocument();
+      expect(screen.getByText(/Already mapped in/)).toBeInTheDocument();
     });
 
     it('still only disables add-another when roots are exact duplicates, not distinct pairs', () => {
@@ -403,11 +408,7 @@ describe('PathMappingList', () => {
       });
 
       expect(screen.getByRole('link', {name: 'Code Owners'})).toBeInTheDocument();
-      expect(
-        screen.getAllByText(
-          /Remove one since only one of them is required for path matching/
-        )
-      ).toHaveLength(1);
+      expect(screen.getAllByText(/Duplicate code mapping/)).toHaveLength(1);
     });
 
     it('flags a Code Owners row that duplicates an earlier mapping', () => {
@@ -425,11 +426,7 @@ describe('PathMappingList', () => {
       });
 
       // The duplicate warning takes priority over the Code Owners message.
-      expect(
-        screen.getAllByText(
-          /Remove one since only one of them is required for path matching/
-        )
-      ).toHaveLength(1);
+      expect(screen.getAllByText(/Duplicate code mapping/)).toHaveLength(1);
       expect(screen.queryByRole('link', {name: 'Code Owners'})).not.toBeInTheDocument();
     });
 
@@ -447,9 +444,7 @@ describe('PathMappingList', () => {
       });
 
       expect(screen.getByRole('link', {name: 'Code Owners'})).toBeInTheDocument();
-      expect(
-        screen.queryByText(/Only one can be used for matching/)
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText(/Already mapped in/)).not.toBeInTheDocument();
     });
 
     it('explains the disabled delete with a link to Code Owners', async () => {

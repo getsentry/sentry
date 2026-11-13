@@ -8,7 +8,7 @@ export function CodeOwnerMessage({projectSlug}: {projectSlug?: string}) {
   const ownershipUrl = `/settings/${organization.slug}/projects/${projectSlug}/ownership/`;
 
   return tct(
-    'This mapping is linked to a [link:Code Owners] file. Remove the Code Owners connection before editing these paths or deleting this mapping.',
+    "Linked to a [link:Code Owners] file, so its paths can't be edited or deleted.",
     {link: <Link to={ownershipUrl} />}
   );
 }

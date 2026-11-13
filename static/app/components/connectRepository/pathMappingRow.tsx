@@ -215,37 +215,42 @@ export const PathMappingRow = withFieldGroup({
         {/* Same columns as the inputs, so the example and any banner end at
             the branch field and leave the delete column clear. */}
         <Grid columns={PATH_MAPPING_COLUMNS} gap="lg">
-          <group.Subscribe
-            selector={state => ({
-              stackRoot: state.values?.stackRoot ?? '',
-              sourceRoot: state.values?.sourceRoot ?? '',
-            })}
-          >
-            {({stackRoot, sourceRoot}) => (
-              // Inset by the sm input's 12px padding so the example lines up
-              // with the text inside the inputs above it.
-              <Flex
-                column={BELOW_INPUTS_COLUMN}
-                align="center"
-                gap="md"
-                paddingLeft="lg"
-                minWidth={0}
-              >
-                <Container flex={1} minWidth={0}>
-                  <PathMappingExample
-                    stackRoot={normalizeRoot(stackRoot)}
-                    sourceRoot={normalizeRoot(sourceRoot)}
-                    providerKey={providerKey}
-                  />
-                </Container>
-                {automaticallyGenerated && (
-                  <Container flexShrink={0}>
-                    <AutomaticTag />
+          {/* A warning banner replaces the example; the Automatic tag stays. */}
+          {(!warning || automaticallyGenerated) && (
+            <group.Subscribe
+              selector={state => ({
+                stackRoot: state.values?.stackRoot ?? '',
+                sourceRoot: state.values?.sourceRoot ?? '',
+              })}
+            >
+              {({stackRoot, sourceRoot}) => (
+                // Inset by the sm input's 12px padding so the example lines up
+                // with the text inside the inputs above it.
+                <Flex
+                  column={BELOW_INPUTS_COLUMN}
+                  align="center"
+                  gap="md"
+                  paddingLeft="lg"
+                  minWidth={0}
+                >
+                  <Container flex={1} minWidth={0}>
+                    {!warning && (
+                      <PathMappingExample
+                        stackRoot={normalizeRoot(stackRoot)}
+                        sourceRoot={normalizeRoot(sourceRoot)}
+                        providerKey={providerKey}
+                      />
+                    )}
                   </Container>
-                )}
-              </Flex>
-            )}
-          </group.Subscribe>
+                  {automaticallyGenerated && (
+                    <Container flexShrink={0}>
+                      <AutomaticTag />
+                    </Container>
+                  )}
+                </Flex>
+              )}
+            </group.Subscribe>
+          )}
 
           {warning && (
             <Container column={BELOW_INPUTS_COLUMN} minWidth={0}>

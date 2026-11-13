@@ -659,7 +659,7 @@ describe('ConnectRepositoryModal', () => {
       // Alert with link is shown on the protected row only.
       expect(screen.getByRole('link', {name: 'Code Owners'})).toBeInTheDocument();
       expect(
-        screen.getByText(/Remove the Code Owners connection before editing/)
+        screen.getByText(/so its paths can't be edited or deleted/)
       ).toBeInTheDocument();
 
       // Both prefix inputs on the protected row are disabled; branch is still editable.
@@ -891,9 +891,7 @@ describe('ConnectRepositoryModal', () => {
       await userEvent.type(vendorBranch!, 'dev');
 
       expect(vendorBranch).toHaveValue('dev');
-      expect(
-        screen.queryByText(/Only one can be used for matching/)
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText(/Already mapped in/)).not.toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();
     });
 
@@ -907,9 +905,7 @@ describe('ConnectRepositoryModal', () => {
       renderEditModal();
 
       expect(await screen.findAllByText('src/')).not.toHaveLength(0);
-      expect(
-        screen.queryByText(/Only one can be used for matching/)
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText(/Already mapped in/)).not.toBeInTheDocument();
 
       await userEvent.clear(screen.getByRole('textbox', {name: /branch/i}));
       await userEvent.type(screen.getByRole('textbox', {name: /branch/i}), 'dev');
@@ -930,11 +926,9 @@ describe('ConnectRepositoryModal', () => {
       expect(await screen.findAllByText('src/')).not.toHaveLength(0);
 
       expect(
-        screen.getByText(/Remove the Code Owners connection before editing/)
+        screen.getByText(/so its paths can't be edited or deleted/)
       ).toBeInTheDocument();
-      expect(
-        screen.queryByText(/Only one can be used for matching/)
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText(/Already mapped in/)).not.toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();
     });
   });
@@ -974,7 +968,7 @@ describe('ConnectRepositoryModal', () => {
     await userEvent.click(document.body);
 
     expect(await screen.findByText(/getsentry\/relay/)).toBeInTheDocument();
-    expect(screen.getByText(/Only one can be used for matching/)).toBeInTheDocument();
+    expect(screen.getByText(/Already mapped in/)).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
   });
 
@@ -1012,9 +1006,7 @@ describe('ConnectRepositoryModal', () => {
     );
     await userEvent.tab();
 
-    expect(
-      screen.queryByText(/Only one can be used for matching/)
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/Already mapped in/)).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();
   });
 

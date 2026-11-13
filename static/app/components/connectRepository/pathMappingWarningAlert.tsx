@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {Alert} from '@sentry/scraps/alert';
 
 import {t, tct} from 'sentry/locale';
@@ -12,24 +10,13 @@ interface PathMappingWarningAlertProps {
   warning?: PathMappingWarning;
 }
 
-function displayRoot(root: string, emptyLabel: string) {
-  if (root) {
-    return <strong>{root}</strong>;
-  }
-  return (
-    <Fragment>
-      <strong>{t('empty')}</strong> {emptyLabel}
-    </Fragment>
-  );
-}
-
 export function PathMappingWarningAlert({
   warning,
   projectSlug,
 }: PathMappingWarningAlertProps) {
   if (warning?.type === 'codeOwner') {
     return (
-      <Alert variant="warning" showIcon>
+      <Alert variant="warning" showIcon={false}>
         <CodeOwnerMessage projectSlug={projectSlug} />
       </Alert>
     );
@@ -37,29 +24,18 @@ export function PathMappingWarningAlert({
 
   if (warning?.type === 'exactInForm') {
     return (
-      <Alert variant="warning" showIcon>
-        {tct(
-          '[stackRoot] is already mapped to [sourceRoot] in this form. Remove one since only one of them is required for path matching.',
-          {
-            stackRoot: displayRoot(warning.stackRoot, t('stack trace prefix')),
-            sourceRoot: displayRoot(warning.sourceRoot, t('repository prefix')),
-          }
-        )}
+      <Alert variant="warning" showIcon={false}>
+        {t('Duplicate code mapping')}
       </Alert>
     );
   }
 
   if (warning?.type === 'exactAcrossRepos') {
     return (
-      <Alert variant="warning" showIcon>
-        {tct(
-          '[stackRoot] is already mapped to [sourceRoot] in the connection to [repoName] repository. Only one can be used for matching.',
-          {
-            stackRoot: displayRoot(warning.stackRoot, t('stack trace prefix')),
-            sourceRoot: displayRoot(warning.sourceRoot, t('repository prefix')),
-            repoName: <strong>{warning.repoName}</strong>,
-          }
-        )}
+      <Alert variant="warning" showIcon={false}>
+        {tct('Already mapped in [repoName]. Change the paths to save.', {
+          repoName: <strong>{warning.repoName}</strong>,
+        })}
       </Alert>
     );
   }
