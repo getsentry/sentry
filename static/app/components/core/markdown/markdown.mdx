@@ -153,6 +153,7 @@ Override `Heading` to render headings as bold text instead of `<h1>`-`<h6>`.
 Set `variant="streaming"` to enable animation for new content. As the `raw` string grows, new text appears to be decoded progressively. The consumer accumulates chunks into a string and passes it as `raw`—the component handles the animation imperatively.
 
 - New block-level elements animate with a staggered character reveal
+- `delay` holds the glyph shuffle for the given milliseconds before decoding starts (default `0`), while new glyphs fade in progressively
 - Growing blocks re-animate only the new tail (already-visible text is preserved)
 - When a newer block arrives, any in-progress animation on the previous block settles immediately
 - Long blocks are capped at a max duration, with remaining text fading in gracefully
@@ -176,7 +177,7 @@ function StreamingExample() {
     };
   }, []);
 
-  return <Markdown raw={text} variant="streaming" />;
+  return <Markdown raw={text} variant="streaming" delay={500} />;
 }
 ```
 

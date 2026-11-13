@@ -1,11 +1,80 @@
 import {Fragment} from 'react';
 import {expectTypeOf} from 'expect-type';
 
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {Markdown} from '@sentry/scraps/markdown';
 
 describe('Markdown', () => {
+  describe('streaming animation', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      try {
+        act(() => jest.runOnlyPendingTimers());
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it.each([0, 2000])('holds the shuffle for %i ms before decoding', async delay => {
+      const {rerender} = render(<Markdown raw="" variant="streaming" delay={delay} />);
+
+      await act(async () => {
+        rerender(<Markdown raw="abc" variant="streaming" delay={delay} />);
+        await Promise.resolve();
+      });
+      expect(screen.queryAllByText(/./, {selector: '[data-scraps-decode]'})).toHaveLength(
+        3
+      );
+      expect(screen.getByRole('paragraph')).toHaveTextContent('abc');
+
+      if (delay > 0) {
+        act(() => jest.advanceTimersByTime(delay - 16));
+        expect(
+          screen.queryAllByText(/./, {selector: '[data-scraps-decode]'})
+        ).toHaveLength(3);
+      }
+
+      act(() => jest.advanceTimersByTime(48));
+      expect(screen.queryAllByText(/./, {selector: '[data-scraps-decode]'})).toHaveLength(
+        0
+      );
+      act(() => jest.advanceTimersByTime(200));
+      expect(screen.getByText('abc')).toBeInTheDocument();
+    });
+
+    it('settles a held shuffle when new content arrives', async () => {
+      const {rerender} = render(<Markdown raw="" variant="streaming" delay={2000} />);
+      await act(async () => {
+        rerender(<Markdown raw="abc" variant="streaming" delay={2000} />);
+        await Promise.resolve();
+      });
+      act(() => jest.advanceTimersByTime(100));
+      expect(screen.queryAllByText(/./, {selector: '[data-scraps-decode]'})).toHaveLength(
+        3
+      );
+
+      await act(async () => {
+        rerender(<Markdown raw={'abc\n\ndef'} variant="streaming" delay={2000} />);
+        await Promise.resolve();
+      });
+      act(() => jest.advanceTimersByTime(200));
+      expect(screen.getByText('abc')).toBeInTheDocument();
+      expect(screen.queryAllByText(/./, {selector: '[data-scraps-decode]'})).toHaveLength(
+        3
+      );
+
+      act(() => jest.advanceTimersByTime(2200));
+      expect(screen.getByText('def')).toBeInTheDocument();
+      expect(screen.queryAllByText(/./, {selector: '[data-scraps-decode]'})).toHaveLength(
+        0
+      );
+    });
+  });
+
   describe('basic rendering', () => {
     it('renders paragraphs', () => {
       render(<Markdown raw="Hello world" />);
