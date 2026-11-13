@@ -405,6 +405,7 @@ def replace_investigation_buttons(
     Return None when the message has no investigation-start button.
     """
     # Slack action registration imports the entrypoint that imports this module.
+    from sentry.integrations.slack.message_builder.routing import decode_action_id
     from sentry.integrations.slack.message_builder.types import SlackAction
 
     changed = False
@@ -414,8 +415,7 @@ def replace_investigation_buttons(
         action_id = element.get("action_id", "")
         if (
             element["type"] == "button"
-            and action_id.partition("|")[0].partition("::")[0]
-            == SlackAction.SEER_INVESTIGATION_START.value
+            and decode_action_id(action_id).action == SlackAction.SEER_INVESTIGATION_START.value
         ):
             changed = True
             return deepcopy(link_button.to_dict())
