@@ -747,11 +747,11 @@ export function actionRequestDryRunQueryOptions(
   actionRequest: InvestigationActionRequest
 ) {
   const options = apiOptions.as<ActionRequestError | null>()(
-    '/organizations/$organizationIdOrSlug/notebooks/$investigationId/action-requests/$actionRequestId/apply/',
+    '/organizations/$organizationIdOrSlug/notebooks/$notebookId/action-requests/$actionRequestId/apply/',
     {
       path: {
         organizationIdOrSlug: organizationSlug,
-        investigationId,
+        notebookId: investigationId,
         actionRequestId: actionRequest.id,
       },
       method: 'POST',
