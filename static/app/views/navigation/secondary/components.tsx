@@ -1129,12 +1129,13 @@ interface SecondaryNavigationFeatureBadgeProps {
 
 /**
  * In settings v3 feature badges sit before the link label, so a tooltip on the
- * right would cover the label of the hovered link.
+ * right would cover the label of the hovered link. Outside v3 the badge keeps
+ * the default tooltip position from scraps.
  */
 function SecondaryNavigationFeatureBadge({type}: SecondaryNavigationFeatureBadgeProps) {
   const settingsV3 = useSettingsV3();
   return (
-    <FeatureBadge type={type} tooltipProps={{position: settingsV3 ? 'top' : 'right'}} />
+    <FeatureBadge type={type} tooltipProps={settingsV3 ? {position: 'top'} : undefined} />
   );
 }
 
