@@ -25,5 +25,5 @@ export function setExploreAttributeBounds(
  * `0.0000001`.
  */
 function formatSearchNumber(value: number): string {
-  return value.toLocaleString('en-US', {useGrouping: false, maximumFractionDigits: 20});
+  return value.toLocaleString(undefined, {useGrouping: false, maximumFractionDigits: 20});
 }
