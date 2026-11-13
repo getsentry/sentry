@@ -57,6 +57,8 @@ import {NavigationMenuHeader} from './navigationMenuHeader';
 
 const QUICK_ACCESS_PROJECT_LIMIT = 5;
 
+export const ORGANIZATION_MENU_MAX_WIDTH = 258;
+
 type OrgMenuProjectSource = 'quick_access' | 'all_projects';
 
 interface OrganizationDropdownProps {
@@ -237,7 +239,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
             portalContainerRef={portalContainerRef}
             zIndex={theme.zIndex.modal}
             trigger={trigger}
-            maxWidth={258}
+            maxWidth={ORGANIZATION_MENU_MAX_WIDTH}
             menuTitle={
               <NavigationMenuHeader
                 organization={organization}
@@ -309,7 +311,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                       title: t('All Projects'),
                       emptyMessage: t('No projects found'),
                       search: {placeholder: t('Search')},
-                      maxWidth: 258,
+                      maxWidth: ORGANIZATION_MENU_MAX_WIDTH,
                     },
                     hidden: projects.length === 0,
                     children: [
