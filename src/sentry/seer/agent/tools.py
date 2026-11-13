@@ -6,7 +6,6 @@ from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta, timezone
 from typing import Any, Literal, TypedDict, cast
 
-import orjson
 from django.core.exceptions import BadRequest
 from django.db import models
 from django.db.models import Q
@@ -18,7 +17,7 @@ from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Req
 from sentry import eventstore, features
 from sentry.api.client import client
 from sentry.api.endpoints.organization_events_timeseries import TOP_EVENTS_DATASETS
-from sentry.api.endpoints.project_trace_item_details import serialize_link
+from sentry.api.endpoints.project_trace_item_details import parse_links_json
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.activity import ActivitySerializer, ActivitySerializerResponse
 from sentry.api.serializers.models.commit import CommitSerializer, CommitSerializerResponse
@@ -642,14 +641,8 @@ def _parse_span_links(items: Sequence[dict[str, Any]]) -> None:
             attributes.pop(SPAN_LINKS_ATTRIBUTE, None) if isinstance(attributes, dict) else None
         )
         # EAP returns "" for spans without the attribute.
-        if raw_links and isinstance(raw_links, str):
-            try:
-                item["links"] = [serialize_link(link) for link in orjson.loads(raw_links)]
-            except (orjson.JSONDecodeError, AttributeError, KeyError, TypeError):
-                logger.warning(
-                    "get_trace_waterfall: Could not parse span links",
-                    extra={"span_id": item.get("event_id")},
-                )
+        if raw_links and isinstance(raw_links, str) and (links := parse_links_json(raw_links)):
+            item["links"] = links
         _parse_span_links(item.get("children", []))
 
 

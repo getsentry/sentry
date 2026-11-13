@@ -431,16 +431,29 @@ def serialize_links(attributes: list[dict[str, Any]]) -> list[TraceItemLink] | N
     if link_attribute is None:
         return None
 
+    value = link_attribute.get("value", {}).get("valStr", None)
+    if value is None:
+        return None
+    return parse_links_json(value)
+
+
+def parse_links_json(raw: str) -> list[TraceItemLink] | None:
+    """Parse the JSON stored in `sentry.links`, keeping every link that can be serialized."""
     try:
-        value = link_attribute.get("value", {}).get("valStr", None)
-        if value is not None:
-            links = json.loads(value)
-            return [serialize_link(link) for link in links]
-        else:
-            return None
-    except Exception as e:
+        links = json.loads(raw)
+    except json.JSONDecodeError as e:
         sentry_sdk.capture_exception(e)
         return None
+    if not isinstance(links, list):
+        return None
+
+    parsed = []
+    for link in links:
+        try:
+            parsed.append(serialize_link(link))
+        except (AttributeError, KeyError, TypeError) as e:
+            sentry_sdk.capture_exception(e)
+    return parsed
 
 
 def serialize_link(link: dict[str, Any]) -> TraceItemLink:
