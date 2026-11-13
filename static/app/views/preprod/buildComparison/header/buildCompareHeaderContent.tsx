@@ -120,16 +120,20 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
           label: t('Build size'),
           items: [
             {
-              type: 'text',
-              label: installStat.label,
-              labelTooltip: installStat.tooltip,
+              label: {
+                type: 'text',
+                content: installStat.label,
+                tooltip: installStat.tooltip,
+              },
               value: formattedPrimaryMetricInstallSize(sizeInfo),
               isLoading,
             },
             {
-              type: 'text',
-              label: t('Bytes Transferred'),
-              labelTooltip: t('Over the network'),
+              label: {
+                type: 'text',
+                content: t('Bytes Transferred'),
+                tooltip: t('Over the network'),
+              },
               value: formattedPrimaryMetricDownloadSize(sizeInfo),
               isLoading,
             },
