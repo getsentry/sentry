@@ -6,13 +6,19 @@ from typing import Any
 import psycopg2
 from django.db.backends.postgresql.base import DatabaseWrapper as DjangoDatabaseWrapper
 from django.db.backends.postgresql.operations import DatabaseOperations
+from taskbroker_client.state import current_task
 
+from sentry.utils import metrics
 from sentry.utils.strings import strip_lone_surrogates
 
 from .decorators import auto_reconnect_connection, auto_reconnect_cursor
 from .schema import DatabaseSchemaEditorProxy
 
 __all__ = ("DatabaseWrapper",)
+
+SAVEPOINT_DISTRIBUTION_MIN = 10
+# Postgres caches 64 subtransaction ids per backend; past that, every snapshot falls back to pg_subtrans.
+SAVEPOINT_CACHE_SIZE = 64
 
 
 def remove_null(value: str) -> str:
@@ -73,6 +79,15 @@ def _execute__include_sql_in_error(
         raise
 
 
+def _savepoint_metric_tags(alias: str) -> dict[str, str]:
+    task = current_task()
+    if task is None:
+        taskname = "none"
+    else:
+        taskname = task.taskname
+    return {"taskname": taskname, "alias": alias}
+
+
 class CursorWrapper:
     """
     A wrapper around the postgresql_psycopg2 backend which handles various events
@@ -108,6 +123,7 @@ class DatabaseWrapper(DjangoDatabaseWrapper):
         super().__init__(*args, **kwargs)
         self.ops = DatabaseOperations(self)
         self.execute_wrappers.extend((_execute__include_sql_in_error, _execute__clean_params))
+        self.savepoint_count = 0
 
     @auto_reconnect_connection
     def _cursor(self, *args: Any, **kwargs: Any) -> Any:
@@ -122,10 +138,37 @@ class DatabaseWrapper(DjangoDatabaseWrapper):
         cursor = super()._prepare_cursor(CursorWrapper(self, cursor))  # type: ignore[misc]
         return cursor
 
+    def _savepoint(self, sid: str) -> None:
+        super()._savepoint(sid)
+        self.savepoint_count += 1
+        if self.savepoint_count == SAVEPOINT_CACHE_SIZE + 1:
+            tags = _savepoint_metric_tags(self.alias)
+            metrics.incr("db.transaction.savepoint_overflow", tags=tags)
+
+    def _commit(self) -> None:
+        try:
+            super()._commit()
+        finally:
+            self._end_savepoint_count()
+
+    def _rollback(self) -> None:
+        try:
+            super()._rollback()
+        finally:
+            self._end_savepoint_count()
+
+    def _end_savepoint_count(self) -> None:
+        savepoint_count = self.savepoint_count
+        self.savepoint_count = 0
+        if savepoint_count >= SAVEPOINT_DISTRIBUTION_MIN:
+            tags = _savepoint_metric_tags(self.alias)
+            metrics.distribution("db.transaction.savepoints", savepoint_count, tags=tags)
+
     def close(self, reconnect: bool = False) -> None:
         """
         This ensures we don't error if the connection has already been closed.
         """
+        self._end_savepoint_count()
         if self.connection is not None:
             if not self.connection.closed:
                 try:
