@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Sequence
 from copy import deepcopy
 from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, assert_never
 
@@ -403,56 +403,16 @@ class InvestigationAlertMessage(TypedDict):
     blocks: NotRequired[list[dict[str, Any]]]
 
 
-class InvalidInvestigationAlertMessage(ValueError):
-    pass
-
-
-def _validate_investigation_alert_message(message: object) -> None:
-    if (
-        not isinstance(message, Mapping)
-        or not isinstance(message.get("text"), str)
-        or not isinstance(message.get("attachments"), list)
-    ):
-        raise InvalidInvestigationAlertMessage("Expected alert text and attachments")
-
-    for attachment in message["attachments"]:
-        _validate_investigation_alert_attachment(attachment)
-
-
-def _validate_investigation_alert_attachment(attachment: object) -> None:
-    if not isinstance(attachment, dict):
-        raise InvalidInvestigationAlertMessage("Expected an attachment")
-    blocks = attachment.get("blocks", [])
-    if not isinstance(blocks, list):
-        raise InvalidInvestigationAlertMessage("Expected attachment blocks")
-    for block in blocks:
-        if not isinstance(block, dict) or not isinstance(block.get("type"), str):
-            raise InvalidInvestigationAlertMessage("Expected a block")
-        if block["type"] != "actions":
-            continue
-        if not isinstance(block.get("elements"), list):
-            raise InvalidInvestigationAlertMessage("Expected action elements")
-        for element in block["elements"]:
-            if (
-                not isinstance(element, dict)
-                or not isinstance(element.get("type"), str)
-                or not isinstance(element.get("action_id", ""), str)
-            ):
-                raise InvalidInvestigationAlertMessage("Expected an action element")
-
-
 def replace_investigation_buttons(
     *, message: InvestigationAlertMessage, link_button: ButtonElement
 ) -> InvestigationAlertMessage | None:
     """Replace metric alert start buttons without mutating the supplied content.
 
-    Return None for valid content with no start button. Malformed content raises
-    InvalidInvestigationAlertMessage so callers can distinguish it from a no-op.
+    Return None when the message has no investigation-start button.
     """
     # Slack action registration imports the entrypoint that imports this module.
     from sentry.integrations.slack.message_builder.types import SlackAction
 
-    _validate_investigation_alert_message(message)
     changed = False
 
     def replace_button(element: dict[str, Any]) -> dict[str, Any]:
@@ -500,13 +460,16 @@ def update_investigation_alert_message(
     ).capture() as lifecycle:
         lifecycle.add_extras({"channel_id": channel_id, "message_ts": message_ts})
         try:
-            message_data = replace_investigation_buttons(
-                message=request.data["message"], link_button=link_button
+            original_message = request.data["message"]
+            message = InvestigationAlertMessage(
+                text=original_message["text"], attachments=original_message["attachments"]
             )
-            if message_data is None:
-                return
-        except (KeyError, TypeError, InvalidInvestigationAlertMessage) as e:
+        except (KeyError, TypeError) as e:
             lifecycle.record_failure(failure_reason=e)
+            return
+
+        message_data = replace_investigation_buttons(message=message, link_button=link_button)
+        if message_data is None:
             return
 
         try:

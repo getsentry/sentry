@@ -27,11 +27,9 @@ from sentry.seer.entrypoints.operator import process_investigation_updates
 from sentry.seer.entrypoints.slack.entrypoint import (
     SlackInvestigationCachePayload,
 )
-from sentry.seer.entrypoints.slack.messaging import InvalidInvestigationAlertMessage
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
-from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.workflow_engine.models.data_condition import Condition
@@ -347,7 +345,7 @@ class SeerInvestigationStartActionTest(BaseEventTest):
     @with_feature(FEATURES)
     @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_malformed_alert_reports_update_failure(
+    def test_malformed_alert_is_handled_by_operator(
         self, mock_record_event: MagicMock, mock_record_sent: MagicMock
     ) -> None:
         message = self.get_original_message()
@@ -358,9 +356,12 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         assert response.status_code == 200
         assert len(self.investigations()) == 1
         self.mock_update.assert_not_called()
-        self.mock_post_message.assert_called_once()
-        mock_record_sent.assert_called_once_with(ANY, links=set())
-        assert_failure_metric(mock_record_event, InvalidInvestigationAlertMessage())
+        self.mock_post_message.assert_not_called()
+        mock_record_sent.assert_not_called()
+        assert any(
+            call.args[0] == EventLifecycleOutcome.FAILURE and isinstance(call.args[1], TypeError)
+            for call in mock_record_event.call_args_list
+        )
 
     @with_feature(FEATURES)
     @patch("sentry.notebooks.telemetry.sentry_sdk.metrics.count")

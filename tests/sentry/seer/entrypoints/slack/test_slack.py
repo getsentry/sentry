@@ -1,6 +1,6 @@
 from copy import deepcopy
 from datetime import UTC, datetime
-from typing import Any, cast
+from typing import Any
 from unittest.mock import ANY, MagicMock, Mock, patch
 
 import pytest
@@ -72,7 +72,6 @@ from sentry.seer.entrypoints.slack.investigation_status import (
     MAX_SUMMARY_DESCRIPTION_LENGTH,
 )
 from sentry.seer.entrypoints.slack.messaging import (
-    InvalidInvestigationAlertMessage,
     InvestigationAlertMessage,
     edit_thread_message,
     process_thread_update,
@@ -1603,31 +1602,6 @@ def test_replace_investigation_buttons_preserves_content() -> None:
     assert link_button.to_dict() == original_button
     assert result is not None
     assert replace_investigation_buttons(message=result, link_button=link_button) is None
-
-
-@pytest.mark.parametrize(
-    "message",
-    [
-        {"attachments": []},
-        {"text": "Alert", "attachments": [{"blocks": [{"type": "actions", "elements": None}]}]},
-        {
-            "text": "Alert",
-            "attachments": [
-                {
-                    "blocks": [
-                        {"type": "actions", "elements": [{"type": "button", "action_id": None}]}
-                    ]
-                }
-            ],
-        },
-    ],
-)
-def test_replace_investigation_buttons_rejects_malformed_content(message: dict[str, Any]) -> None:
-    with pytest.raises(InvalidInvestigationAlertMessage):
-        replace_investigation_buttons(
-            message=cast(InvestigationAlertMessage, message),
-            link_button=ButtonElement(text="Open investigation", url="https://example.com/"),
-        )
 
 
 class SlackInvestigationEntrypointTest(TestCase):
