@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from threading import Barrier
 from typing import Any, assert_type
 from unittest.mock import patch
+from urllib.parse import urlsplit
 
 import pytest
 from django.db import connections, router, transaction
@@ -80,6 +81,62 @@ class ReferenceItemType(StubItemType[SubjectReference]):
 @dataclass(frozen=True, kw_only=True)
 class MentionedData(InboxEventData):
     comment_id: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class LinkedMentionData(InboxEventData):
+    comment_id: int
+
+    def get_url(self, subject_url: str) -> str:
+        return urlsplit(subject_url)._replace(fragment=f"comment-{self.comment_id}").geturl()
+
+
+class LinkedItemType(StubItemType[SubjectReference]):
+    def get_url(self, *, organization: Organization, subject_id: str) -> str:
+        return f"https://sentry.example/subjects/{subject_id}/"
+
+
+def test_data_from_payload_ignores_unknown_keys() -> None:
+    payload = {"summary": "Mentioned you in a comment", "comment_id": 123, "removed_field": True}
+
+    assert MentionedData.from_payload(payload) == MentionedData(
+        summary=InboxEventSummary.ISSUE_USER_MENTIONED, comment_id=123
+    )
+
+
+def test_event_url() -> None:
+    organization = Organization(id=1, slug="org-slug")
+    item_type = LinkedItemType("test.reference")
+    plain = InboxEventType(
+        event_type="test.reference.mentioned",
+        item_type=item_type,
+        data_class=MentionedData,
+        notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
+    )
+    linked = InboxEventType(
+        event_type="test.reference.linked",
+        item_type=item_type,
+        data_class=LinkedMentionData,
+        notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
+    )
+    payload = {"summary": "Mentioned you in a comment", "comment_id": 123}
+
+    assert (
+        plain.get_url(
+            organization=organization,
+            subject_id="1",
+            data=plain.data_class.from_payload(payload),
+        )
+        == "https://sentry.example/subjects/1/"
+    )
+    assert (
+        linked.get_url(
+            organization=organization,
+            subject_id="1",
+            data=linked.data_class.from_payload(payload),
+        )
+        == "https://sentry.example/subjects/1/#comment-123"
+    )
 
 
 @pytest.mark.parametrize(

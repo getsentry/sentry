@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Iterable, Sequence
-from dataclasses import asdict, dataclass
+from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import asdict, dataclass, fields
 from enum import StrEnum
 from functools import partial
 from random import random
+from typing import Any, Self
 
 from django.db import router, transaction
 from django.db.models.functions import Greatest
@@ -89,6 +90,22 @@ class InboxEventData:
 
     summary: InboxEventSummary
 
+    @classmethod
+    def from_payload(cls, payload: Mapping[str, Any]) -> Self:
+        """
+        Rebuild data from a stored payload, ignoring keys from removed fields.
+        Values are as stored in JSON, so enums such as `summary` come back as strings.
+        """
+        names = {data_field.name for data_field in fields(cls)}
+        return cls(**{key: value for key, value in payload.items() if key in names})
+
+    def get_url(self, subject_url: str) -> str:
+        """
+        URL for this event, built from the subject URL. Override to point at something on the
+        subject's page, such as the comment that mentioned you.
+        """
+        return subject_url
+
 
 @dataclass(frozen=True, kw_only=True)
 class InboxEventType[SubjectT, DataT: InboxEventData]:
@@ -99,6 +116,14 @@ class InboxEventType[SubjectT, DataT: InboxEventData]:
     data_class: type[DataT]
     # Personal notification setting category that controls email and Slack for this event.
     notification_setting: NotificationSettingEnum
+
+    def get_url(self, *, organization: Organization, subject_id: str, data: DataT) -> str:
+        """
+        URL for an event of this type. To link to a stored event, pass
+        `data_class.from_payload(event.data)`.
+        """
+        subject_url = self.item_type.get_url(organization=organization, subject_id=subject_id)
+        return data.get_url(subject_url)
 
     def record(
         self,
