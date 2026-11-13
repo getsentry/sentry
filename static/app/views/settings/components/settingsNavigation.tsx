@@ -1,12 +1,11 @@
 import {cloneElement, Fragment} from 'react';
 import {matchPath} from 'react-router';
-import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 import {IconAdd} from '@sentry/icons/add';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
-import {Container} from '@sentry/scraps/layout';
+import {Container, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
@@ -105,9 +104,11 @@ function SettingsProjectSelector() {
           preventOverflowOptions={{boundary: 'clippingAncestors'}}
           value={projectId}
           trigger={triggerProps => (
-            <Container width="100%">
+            // A one-column grid on the trigger itself stretches the label across
+            // the full width: transparent buttons otherwise size it to its content.
+            <Grid width="100%" columns="minmax(0, 1fr)">
               {buttonProps => (
-                <ProjectSelectorButton
+                <OverlayTrigger.Button
                   {...mergeProps(buttonProps, triggerProps)}
                   variant="transparent"
                   aria-label={t('Select a project')}
@@ -122,9 +123,9 @@ function SettingsProjectSelector() {
                       {projectId}
                     </Text>
                   </Container>
-                </ProjectSelectorButton>
+                </OverlayTrigger.Button>
               )}
-            </Container>
+            </Grid>
           )}
           search={{onChange: onSearch}}
           menuFooter={
@@ -165,11 +166,3 @@ function SettingsProjectSelector() {
     </Container>
   );
 }
-
-// Transparent buttons size their label to its content. A one-column grid
-// stretches the label across this full-width trigger, so the slug starts at the
-// leading edge and the chevron sits at the trailing edge.
-const ProjectSelectorButton = styled(OverlayTrigger.Button)`
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-`;
