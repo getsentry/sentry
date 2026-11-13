@@ -1047,6 +1047,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.seer.autofix_issue_data",
     "sentry.tasks.seer.backfill_supergroups_lightweight",
     "sentry.telemetry_classifiers.poc_tasks",
+    "sentry.telemetry_classifiers.tasks",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
@@ -1194,6 +1195,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "telemetry-classifiers-conversations": {
         "task": "telemetry.classifiers:sentry.telemetry_classifiers.tasks.schedule_conversation_classifiers",
         "schedule": crontab("*/5", "*", "*", "*", "*"),
+    },
+    "telemetry-classifiers-schedule": {
+        "task": "telemetry.classifiers:sentry.telemetry_classifiers.tasks.schedule_classifiers",
+        "schedule": timedelta(minutes=1),
     },
     "weekly-escalating-forecast": {
         "task": "issues:sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
