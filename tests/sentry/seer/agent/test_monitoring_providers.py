@@ -807,7 +807,7 @@ class TestAwsMonitoringProviderConnections(TestCase):
             self.options({"aws-seer.principal-arn": "arn:aws:iam::987654321098:role/SeerWorkload"})
         )
         self.config = {
-            "role_arn": "arn:aws:iam::123456789012:role/SentrySeer",
+            "role_arn": "arn:aws:iam::123456789012:role/sentry-seer/SentrySeer",
             "external_id": "11111111-1111-4111-8111-111111111111",
             "region": "us-east-1",
         }

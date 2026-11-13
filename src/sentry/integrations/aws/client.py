@@ -30,7 +30,13 @@ AWS_MCP_REGIONS = (
 AWS_ROLE_ARN_RE = re.compile(
     r"arn:aws:iam::[0-9]{12}:role/(?:[A-Za-z0-9_+=,.@-]+/)*[A-Za-z0-9_+=,.@-]{1,64}"
 )
-AWS_ROLE_ARN_MESSAGE = "Enter an AWS IAM role ARN."
+# Seer's workload role may assume only roles under this IAM path (see the role policy
+# in getsentry/ops). Other roles that trust Sentry's AWS account, such as the AWS Lambda
+# integration's SentryRole, are outside it and so are unreachable from Seer.
+AWS_CUSTOMER_ROLE_PATH = "/sentry-seer/"
+AWS_ROLE_ARN_MESSAGE = (
+    f"Enter the ARN of an AWS IAM role created under the {AWS_CUSTOMER_ROLE_PATH} path."
+)
 AWS_ROLE_ACCESS_MESSAGE = (
     "Could not assume the AWS role. Check the role ARN and trust policy, then try again."
 )
@@ -78,7 +84,7 @@ SEER_TELEMETRY_ACTIONS = [
 ]
 
 
-def parse_role_arn(value: Any) -> str:
+def _parse_iam_role_arn(value: Any) -> str:
     if not isinstance(value, str) or len(value.strip()) > 2048:
         raise IntegrationConfigurationError(AWS_ROLE_ARN_MESSAGE)
     value = value.strip()
@@ -87,11 +93,19 @@ def parse_role_arn(value: Any) -> str:
     return value
 
 
+def parse_role_arn(value: Any) -> str:
+    """Validate a customer role ARN, which must sit under `AWS_CUSTOMER_ROLE_PATH`."""
+    value = _parse_iam_role_arn(value)
+    if not value.split(":role", 1)[1].startswith(AWS_CUSTOMER_ROLE_PATH):
+        raise IntegrationConfigurationError(AWS_ROLE_ARN_MESSAGE)
+    return value
+
+
 def get_sentry_principal_arn() -> str:
     principal_arn = options.get("aws-seer.principal-arn")
     if not principal_arn:
         raise IntegrationConfigurationError(AWS_NOT_CONFIGURED_MESSAGE)
-    return parse_role_arn(principal_arn)
+    return _parse_iam_role_arn(principal_arn)
 
 
 def get_mcp_url(region: str) -> str:
@@ -109,6 +123,7 @@ def build_cloudformation_template(principal_arn: str, external_id: str) -> dict[
             "SeerRole": {
                 "Type": "AWS::IAM::Role",
                 "Properties": {
+                    "Path": AWS_CUSTOMER_ROLE_PATH,
                     "MaxSessionDuration": 3600,
                     "AssumeRolePolicyDocument": {
                         "Version": "2012-10-17",

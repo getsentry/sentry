@@ -51,6 +51,14 @@ role and rejects credentials resolving to a different account or role. The
 workload role needs `sts:AssumeRole` on the customer roles; each customer role
 must trust it and require that organization's external ID.
 
+Customer roles must be created under the IAM path `/sentry-seer/`
+(`AWS_CUSTOMER_ROLE_PATH`); the CloudFormation template sets it and
+`parse_role_arn` rejects any other role. The workload role's policy in
+getsentry/ops allows `sts:AssumeRole` only on `arn:aws:iam::*:role/sentry-seer/*`.
+This is an allowlist: roles that trust Sentry's whole AWS account, such as the AWS
+Lambda integration's `SentryRole`, stay out of Seer's reach. Keep the path in sync
+across this module, Seer's role ARN validation, and the ops policy.
+
 The external ID is persisted in the organization option `aws-seer.external-id`
 before the CloudFormation template is returned. It survives pipeline expiry,
 setup restarts, and reinstalls. Existing installations retain their external ID.

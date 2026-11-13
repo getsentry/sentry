@@ -14,8 +14,8 @@ _PATCH_VERIFY = (
     ".verify_aws_connection"
 )
 
-_ROLE_ARN = "arn:aws:iam::123456789012:role/SentrySeer"
-_OTHER_ROLE_ARN = "arn:aws:iam::123456789012:role/Other"
+_ROLE_ARN = "arn:aws:iam::123456789012:role/sentry-seer/SentrySeer"
+_OTHER_ROLE_ARN = "arn:aws:iam::123456789012:role/sentry-seer/Other"
 _EXTERNAL_ID = "11111111-1111-4111-8111-111111111111"
 
 _CONNECTED = {"connection_status": "connected", "error_detail": None}

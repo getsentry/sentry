@@ -8,6 +8,7 @@ import pytest
 from django.http.response import HttpResponse
 from django.urls import reverse
 
+from sentry.integrations.aws.client import AWS_ROLE_ARN_MESSAGE
 from sentry.integrations.aws.integration import AwsIntegration, AwsIntegrationProvider
 from sentry.integrations.base import IntegrationData
 from sentry.integrations.example import AliasedIntegrationProvider, ExampleIntegrationProvider
@@ -801,7 +802,7 @@ class GitlabFinishPipelineTest(IntegrationTestCase):
 @control_silo_test
 class AwsApiPipelineTest(APITestCase):
     endpoint = "sentry-api-0-organization-pipeline"
-    role_arn = "arn:aws:iam::123456789012:role/SentrySeer"
+    role_arn = "arn:aws:iam::123456789012:role/sentry-seer/SentrySeer"
 
     def setUp(self) -> None:
         super().setUp()
@@ -880,7 +881,7 @@ class AwsApiPipelineTest(APITestCase):
             url,
             data={
                 "connectionStatus": "connected",
-                "roleArn": "arn:aws:iam::123456789012:role/Other",
+                "roleArn": "arn:aws:iam::123456789012:role/sentry-seer/Other",
                 "region": "us-east-1",
             },
             format="json",
@@ -987,7 +988,7 @@ class AwsApiPipelineTest(APITestCase):
         response = self.client.post(
             url, data={"roleArn": "not-an-arn", "region": "us-east-1"}, format="json"
         )
-        assert response.data == {"roleArn": ["Enter an AWS IAM role ARN."]}
+        assert response.data == {"roleArn": [AWS_ROLE_ARN_MESSAGE]}
         assert not Integration.objects.filter(provider="aws").exists()
 
     def test_settings_preserve_external_id_and_mark_unverified(self) -> None:

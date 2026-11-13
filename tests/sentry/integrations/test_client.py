@@ -495,7 +495,7 @@ class ApiClientTest(TestCase):
             )
 
 
-AWS_TEST_ROLE_ARN = "arn:aws:iam::123456789012:role/SentrySeer"
+AWS_TEST_ROLE_ARN = "arn:aws:iam::123456789012:role/sentry-seer/SentrySeer"
 AWS_TEST_PRINCIPAL_ARN = "arn:aws:iam::987654321098:role/SeerWorkload"
 AWS_TEST_EXTERNAL_ID = "11111111-1111-4111-8111-111111111111"
 
@@ -509,17 +509,36 @@ AWS_TEST_EXTERNAL_ID = "11111111-1111-4111-8111-111111111111"
         "arn:aws:iam::123:role/Seer",
         "arn:aws:iam::123456789012:role/Seer\ntrailing",
         "https://example.com/role/Seer",
+        # Outside the path Seer's workload role may assume, including the AWS Lambda
+        # integration's role, which trusts Sentry's whole AWS account.
+        "arn:aws:iam::123456789012:role/Seer",
+        "arn:aws:iam::123456789012:role/SentryRole",
+        "arn:aws:iam::123456789012:role/service-role/Seer",
+        "arn:aws:iam::123456789012:role/sentry-seer",
+        "arn:aws:iam::123456789012:role/sentry-seer-other/Seer",
+        "arn:aws:iam::123456789012:role/other/sentry-seer/Seer",
         None,
     ],
 )
-def test_aws_role_arn_rejects_non_role_identities(role_arn: str | None) -> None:
-    with pytest.raises(IntegrationConfigurationError, match="IAM role ARN"):
+def test_aws_role_arn_rejects_roles_seer_may_not_assume(role_arn: str | None) -> None:
+    with pytest.raises(IntegrationConfigurationError, match="IAM role"):
         parse_role_arn(role_arn)
 
 
-def test_aws_role_arn_supports_paths() -> None:
-    role_arn = "arn:aws:iam::123456789012:role/service-role/Seer"
+@pytest.mark.parametrize(
+    "role_arn",
+    [
+        "arn:aws:iam::123456789012:role/sentry-seer/Seer",
+        "arn:aws:iam::123456789012:role/sentry-seer/nested/Seer",
+    ],
+)
+def test_aws_role_arn_requires_the_seer_path(role_arn: str) -> None:
     assert parse_role_arn(f" {role_arn} ") == role_arn
+
+
+def test_aws_cloudformation_template_creates_the_role_under_the_seer_path() -> None:
+    template = build_cloudformation_template(AWS_TEST_PRINCIPAL_ARN, AWS_TEST_EXTERNAL_ID)
+    assert template["Resources"]["SeerRole"]["Properties"]["Path"] == "/sentry-seer/"
 
 
 @pytest.mark.parametrize("region", ["us-gov-west-1", "cn-north-1", "us-east-1.example.com", ""])
