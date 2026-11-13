@@ -128,6 +128,7 @@ from sentry.spans.buffer_store import add_buffer_script as add_buffer_script
 from sentry.spans.buffer_types import (
     FlushedSegment,
     InsertedSubsegment,
+    LoadedBytes,
     LoadedSegment,
     OutputSpan,
     Span,
@@ -443,10 +444,13 @@ class SpansBuffer:
 
         flush_candidates = self.store.acquire_flush_locks(flush_candidates)
 
-        loaded_segments, load_data_latency_ms, decompress_latency_ms = self.store.load_segments(
-            flush_candidates,
-            decompress_payload=self._decompress_batch,
+        loaded_segments, load_data_latency_ms, decompress_latency_ms, loaded_bytes = (
+            self.store.load_segments(
+                flush_candidates,
+                decompress_payload=self._decompress_batch,
+            )
         )
+        self._record_loaded_bytes_metrics(loaded_segments, loaded_bytes)
 
         self._record_segment_loss_metrics(loaded_segments, now)
 
@@ -538,6 +542,30 @@ class SpansBuffer:
             ).emit(self._get_debug_trace_logger)
 
         return return_segments, num_has_root_spans, any_shard_at_limit
+
+    def _record_loaded_bytes_metrics(
+        self,
+        loaded_segments: Sequence[LoadedSegment],
+        loaded_bytes: LoadedBytes,
+    ) -> None:
+        """
+        Emit how many payload bytes one flush cycle loaded, as read from Redis
+        and after decompression. Cycles that loaded no segment are skipped.
+        """
+        if not loaded_segments:
+            return
+
+        tags = {"shards": ",".join(map(str, self.assigned_shards))}
+        metrics.timing(
+            "spans.buffer.flush_segments.loaded_compressed_bytes",
+            loaded_bytes.compressed,
+            tags=tags,
+        )
+        metrics.timing(
+            "spans.buffer.flush_segments.loaded_decompressed_bytes",
+            loaded_bytes.decompressed,
+            tags=tags,
+        )
 
     def _record_segment_loss_metrics(
         self,
