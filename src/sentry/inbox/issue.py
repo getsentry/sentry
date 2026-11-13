@@ -46,6 +46,7 @@ class IssueMentionedData(InboxEventData):
     comment_id: int  # Comment reference exposed as commentId by the activity API.
 
     def get_activity_id(self) -> int:
+        # Issue comments are NOTE activities, so the comment ID is the activity ID.
         return self.comment_id
 
 
