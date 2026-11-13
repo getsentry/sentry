@@ -78,10 +78,6 @@ describe('ProjectDetail', () => {
     ProjectsStore.init();
   });
 
-  afterEach(() => {
-    ProjectsStore.reset();
-  });
-
   it('Render an error if project not found', async () => {
     ProjectsStore.loadInitialData([{...project, slug: 'different-slug'}]);
     setupMockResponses();
