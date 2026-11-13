@@ -85,6 +85,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "dotnet-xamarin",
     "electron",
     "elixir",
+    "expo",
     "flutter",
     "go",
     "go-echo",
