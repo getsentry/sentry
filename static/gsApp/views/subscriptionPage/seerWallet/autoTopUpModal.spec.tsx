@@ -433,6 +433,34 @@ describe('openSeerAutoTopUpModal', () => {
     expect(resendMock).toHaveBeenCalledTimes(1);
   });
 
+  it('returns to the entered settings when the earlier refill cannot be paid', async () => {
+    MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      statusCode: 402,
+      body: {
+        detail: 'Pay your last Seer credit purchase to turn on auto-load.',
+        invoiceId: 3,
+        invoiceGuid: 'pending-guid',
+      },
+    });
+    const intentMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/payments/pending-guid/new/`,
+      statusCode: 400,
+      body: {detail: 'No payment method on file.'},
+    });
+    openAutoTopUpModal();
+
+    await userEvent.click(await screen.findByRole('radio', {name: '$25 2,500 credits'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Turn on and pay $25.00 + tax'})
+    );
+
+    expect(await screen.findByText('No payment method on file.')).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: '$25 2,500 credits'})).toBeChecked();
+    expect(intentMock).toHaveBeenCalledTimes(1);
+  });
+
   it('returns to the entered settings when bank verification fails', async () => {
     MockApiClient.addMockResponse({
       url,
