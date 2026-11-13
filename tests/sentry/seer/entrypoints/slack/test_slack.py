@@ -110,6 +110,7 @@ class SlackAutofixEntrypointTest(TestCase):
         self.slack_request.integration = self.integration
         self.slack_request.channel_id = self.channel_id
         self.slack_request.user_id = self.slack_user_id
+        self.slack_request.get_identity_user.return_value = self.user
         self.slack_request.data = {"message": {"ts": self.thread_ts}}
         self.action = BlockKitMessageAction(
             name=SlackAction.SEER_AUTOFIX_START.value,
@@ -216,7 +217,7 @@ class SlackAutofixEntrypointTest(TestCase):
         assert cache_payload["group_id"] == self.group.id
         assert cache_payload["threads"] == [self.thread]
         assert cache_payload["handoff_target"] is None
-        assert cache_payload["slack_user_id"] == self.slack_user_id
+        assert cache_payload["user_id"] == self.user.id
 
     @patch("sentry.seer.autofix.utils.read_preference_from_sentry_db")
     def test_create_autofix_cache_payload_captures_handoff_target(
@@ -385,12 +386,7 @@ class SlackAutofixEntrypointTest(TestCase):
         assert AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE in blocks
         assert "couldn't finish working on this issue" not in blocks
 
-    def _post_out_of_credits_message_for_linked_user(self) -> str:
-        self.create_identity(
-            user=self.user,
-            identity_provider=self.create_identity_provider(integration=self.integration),
-            external_id=self.slack_user_id,
-        )
+    def _post_out_of_credits_message(self) -> str:
         SeerOperatorAutofixCache.populate_post_autofix_cache(
             entrypoint_key=SeerEntrypointKey.SLACK,
             run_id=MOCK_RUN_ID,
@@ -422,13 +418,21 @@ class SlackAutofixEntrypointTest(TestCase):
     def test_out_of_credits_run_started_by_billing_member_posts_billing_message(
         self, _mock_get_scopes: MagicMock
     ) -> None:
-        blocks = self._post_out_of_credits_message_for_linked_user()
+        blocks = self._post_out_of_credits_message()
 
         assert AUTOFIX_OUT_OF_CREDITS_BILLING_MESSAGE in blocks
         assert "Configure auto-reload" in blocks
 
-    def test_out_of_credits_run_started_by_member_posts_member_message(self) -> None:
-        blocks = self._post_out_of_credits_message_for_linked_user()
+    @patch(
+        "sentry.models.organizationmember.OrganizationMember.get_scopes",
+        return_value=frozenset({"org:billing"}),
+    )
+    def test_out_of_credits_run_without_a_starter_posts_member_message(
+        self, _mock_get_scopes: MagicMock
+    ) -> None:
+        self.slack_request.get_identity_user.return_value = None
+
+        blocks = self._post_out_of_credits_message()
 
         assert AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE in blocks
         assert "Contact Admin" in blocks
