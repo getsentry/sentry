@@ -926,6 +926,8 @@ export function SeerExplorerContent({
         <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>
           {showEmptyState ? (
             <EmptyState
+              composerRef={composerRef}
+              hasDraft={inputValue.text.length > 0}
               isLoading={isPolling}
               isError={showLoadError}
               errorStatusCode={errorStatusCode}

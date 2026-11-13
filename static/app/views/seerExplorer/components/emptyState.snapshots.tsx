@@ -8,6 +8,29 @@ jest.mock('@sentry/scraps/markdown', () =>
 );
 
 describe('Seer empty state', () => {
+  it.snapshot(
+    'draft hides suggestions and Slack reminder',
+    () => (
+      <Stack height="750px" background="primary">
+        <EmptyState
+          hasDraft
+          displaySlackAgentReminder
+          onSuggestionClick={() => {}}
+          suggestions={{
+            isLoading: false,
+            source: 'generated',
+            suggestions: [
+              {text: 'Which issues should I investigate?'},
+              {text: 'Where are my slowest queries?'},
+              {text: 'What changed in this release?'},
+            ],
+          }}
+        />
+      </Stack>
+    ),
+    {viewport: 476}
+  );
+
   describe.each([false, true])('suggestions loading=%s', isLoading => {
     it.snapshot.each([320, 476, 800])(
       'beam and suggestions at %s px',
