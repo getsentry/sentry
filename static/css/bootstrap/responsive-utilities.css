@@ -1,5 +1,6 @@
-// stylelint-disable declaration-no-important, at-rule-no-vendor-prefix
+/* stylelint-disable declaration-no-important, at-rule-no-vendor-prefix */
 
+/*
 //
 // Responsive: Utility classes
 // --------------------------------------------------
@@ -18,28 +19,19 @@
 // Docs: https://getbootstrap.com/docs/3.4/getting-started/#support-ie10-width
 // Source: https://timkadlec.com/2013/01/windows-phone-8-and-device-width/
 // Source: https://timkadlec.com/2012/10/ie10-snap-mode-and-responsive-design/
+*/
 
 @-ms-viewport {
   width: device-width;
 }
 
 .hidden-xs {
-  @media (max-width: @screen-xs-max) {
-    .responsive-invisibility();
+  @media (max-width: 767px) {
+    display: none !important;
   }
 }
 .hidden-sm {
-  @media (min-width: @screen-sm-min) and (max-width: @screen-sm-max) {
-    .responsive-invisibility();
-  }
-}
-.hidden-md {
-  @media (min-width: @screen-md-min) and (max-width: @screen-md-max) {
-    .responsive-invisibility();
-  }
-}
-.hidden-lg {
-  @media (min-width: @screen-lg-min) {
-    .responsive-invisibility();
+  @media (min-width: 768px) and (max-width: 991px) {
+    display: none !important;
   }
 }

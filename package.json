@@ -81,8 +81,6 @@
     "esbuild": "0.28.1",
     "gettext-parser": "9.1.1",
     "html-webpack-plugin": "5.6.3",
-    "less": "4.9.1",
-    "less-loader": "^13.0.0",
     "peggy": "5.1.1",
     "react": "19.3.0",
     "reflux": "0.4.1",

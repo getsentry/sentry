@@ -36,7 +36,7 @@ body.narrow {
         font-size: 20px;
 
         &:hover {
-          color: @gray-dark;
+          color: var(--legacy-gray-dark);
         }
       }
     }
@@ -50,10 +50,10 @@ body.narrow {
 
         a.pull-right {
           font-size: 15px;
-          color: @50;
+          color: var(--legacy-gray-50);
 
           &:hover {
-            color: @80;
+            color: var(--legacy-gray-80);
           }
         }
       }
@@ -113,7 +113,7 @@ body.auth {
     padding-right: 40px;
 
     &.border-bottom {
-      border-bottom: 1px solid @trim;
+      border-bottom: 1px solid var(--legacy-trim);
     }
 
     ul,
@@ -148,10 +148,10 @@ body.auth {
     .secondary {
       flex: 1;
       text-align: right;
-      color: @gray-light;
+      color: var(--legacy-gray-light);
 
       &:hover {
-        color: @gray-dark;
+        color: var(--legacy-gray-dark);
       }
     }
   }
@@ -171,7 +171,7 @@ body.auth {
   flex-direction: column;
   flex-grow: 1;
 
-  // Necessary for the correct positioning of dropdown menus/overlays
+  /* Necessary for the correct positioning of dropdown menus/overlays */
   position: relative;
 }
 
@@ -183,7 +183,7 @@ body.auth {
   flex: 1;
 }
 
-// So loader can take up full height so that footer is fixed to bottom of screen
+/* So loader can take up full height so that footer is fixed to bottom of screen */
 .loading-full-layout {
   flex: 1;
   display: flex;
@@ -236,7 +236,7 @@ body.auth {
 
 @media print {
   body {
-    color: @gray-darkest;
+    color: var(--legacy-gray-darkest);
   }
 
   header {
@@ -279,7 +279,7 @@ body.auth {
   body {
     padding-top: 0;
 
-    // Hide fake sidebar on mobile
+    /* Hide fake sidebar on mobile */
     background: none;
   }
 

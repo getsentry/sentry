@@ -23,12 +23,12 @@
 .traceback {
   list-style-type: none;
   padding-left: 0;
-  border: 1px solid @trim-dark;
+  border: 1px solid var(--legacy-trim-dark);
   border-radius: 0 6px 6px 6px;
   margin-bottom: 20px;
 }
 
-// TODO(dcramer): we probably shouldn't overload these
+/* TODO(dcramer): we probably shouldn't overload these */
 pre.traceback {
   margin: 0 0 20px;
 }
@@ -73,7 +73,7 @@ div.traceback > ul {
     list-style-type: none;
     position: relative;
     margin: 0;
-    border-top: 1px solid @trim;
+    border-top: 1px solid var(--legacy-trim);
 
     h3 {
       font-size: 22px;
@@ -114,7 +114,7 @@ div.traceback > ul {
 
       .leads-to-app-hint {
         display: inline;
-        color: @gray-light;
+        color: var(--legacy-gray-light);
       }
     }
   }
@@ -156,7 +156,7 @@ div.traceback > ul {
           }
 
           &:hover {
-            color: @gray-dark;
+            color: var(--legacy-gray-dark);
           }
         }
       }
