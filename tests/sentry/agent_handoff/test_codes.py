@@ -24,7 +24,7 @@ from sentry.agent_handoff.codes import (
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import control_silo_test
-from sentry.utils import json
+from sentry.utils import hashlib, json
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 
@@ -96,16 +96,14 @@ class AgentHandoffTest(TestCase):
         with freeze_time(issued.expires_at), pytest.raises(HandoffExpired):
             consume_handoff(issued.code, ip_address="192.0.2.2")
 
-    def test_handoff_without_stored_expiry_remains_claimable(self) -> None:
+    def test_handoff_from_previous_key_version_is_unavailable(self) -> None:
         issued = self.issue()
         client = _get_redis_client()
-        key = _handoff_key(issued.code)
-        raw = client.get(key)
+        raw = client.get(_handoff_key(issued.code))
         assert raw is not None
-        legacy = json.loads(raw)
-        del legacy["expires_at"]
-        client.set(key, json.dumps(legacy))
-        assert consume_handoff(issued.code, ip_address="192.0.2.1") is not None
+        client.delete(_handoff_key(issued.code))
+        client.set(f"agent-handoff:{hashlib.sha256_text(issued.code).hexdigest()}", raw)
+        assert consume_handoff(issued.code, ip_address="192.0.2.1") is None
 
     def test_ip_mismatch_carries_handoff(self) -> None:
         issued = self.issue()
@@ -181,7 +179,7 @@ class AgentHandoffTest(TestCase):
 
 def test_handoff_defaults_to_guided_next_steps() -> None:
     handoff = _StoredAgentHandoff.parse_raw(
-        '{"user_id":1,"organization_id":2,"application_id":3,"scope_list":["org:read"]}',
+        '{"user_id":1,"organization_id":2,"application_id":3,"scope_list":["org:read"],"expires_at":"2026-01-01T00:00:00Z"}',
     ).__root__
     assert handoff.flow is HandoffFlow.GUIDED_NEXT_STEPS
     assert handoff.ip_address is None
@@ -191,7 +189,7 @@ def test_unknown_handoff_flow_is_rejected() -> None:
     with pytest.raises(ValidationError, match="flow"):
         _StoredAgentHandoff.parse_raw(
             '{"flow":"unsupported","user_id":1,"organization_id":2,'
-            '"application_id":3,"scope_list":["org:read"]}',
+            '"application_id":3,"scope_list":["org:read"],"expires_at":"2026-01-01T00:00:00Z"}',
         )
 
 
@@ -199,7 +197,7 @@ def test_guided_next_steps_rejects_onboarding_context() -> None:
     with pytest.raises(ValidationError, match="context"):
         _StoredAgentHandoff.parse_raw(
             '{"flow":"guided_next_steps","user_id":1,"organization_id":2,'
-            '"application_id":3,"scope_list":["org:read"],'
+            '"application_id":3,"scope_list":["org:read"],"expires_at":"2026-01-01T00:00:00Z",'
             '"context":{"run_id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}',
         )
 
@@ -207,7 +205,7 @@ def test_guided_next_steps_rejects_onboarding_context() -> None:
 def test_onboarding_flow_preserves_typed_context() -> None:
     handoff = _StoredAgentHandoff.parse_raw(
         '{"flow":"onboarding","user_id":1,"organization_id":2,'
-        '"application_id":3,"scope_list":["org:read"],'
+        '"application_id":3,"scope_list":["org:read"],"expires_at":"2026-01-01T00:00:00Z",'
         '"context":{"run_id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}',
     ).__root__
     assert handoff.flow is HandoffFlow.ONBOARDING
@@ -218,14 +216,14 @@ def test_onboarding_flow_requires_run_context() -> None:
     with pytest.raises(ValidationError, match="context"):
         _StoredAgentHandoff.parse_raw(
             '{"flow":"onboarding","user_id":1,"organization_id":2,'
-            '"application_id":3,"scope_list":["org:read"]}',
+            '"application_id":3,"scope_list":["org:read"],"expires_at":"2026-01-01T00:00:00Z"}',
         )
 
 
 def test_create_project_flow_preserves_typed_context() -> None:
     handoff = _StoredAgentHandoff.parse_raw(
         '{"flow":"create_project","user_id":1,"organization_id":2,'
-        '"application_id":3,"scope_list":["org:read"],'
+        '"application_id":3,"scope_list":["org:read"],"expires_at":"2026-01-01T00:00:00Z",'
         '"context":{"run_id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}',
     ).__root__
     assert handoff.flow is HandoffFlow.CREATE_PROJECT
@@ -236,5 +234,5 @@ def test_create_project_flow_requires_run_context() -> None:
     with pytest.raises(ValidationError, match="context"):
         _StoredAgentHandoff.parse_raw(
             '{"flow":"create_project","user_id":1,"organization_id":2,'
-            '"application_id":3,"scope_list":["org:read"]}',
+            '"application_id":3,"scope_list":["org:read"],"expires_at":"2026-01-01T00:00:00Z"}',
         )

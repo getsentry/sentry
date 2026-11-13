@@ -56,8 +56,7 @@ class _AgentHandoff(BaseModel):
     scope_list: tuple[StrictStr, ...]
     ip_address: StrictStr | None = None
     disable_ip_pinning: StrictBool = False
-    # Handoffs issued before expiry was stored rely on their Redis TTL alone.
-    expires_at: datetime | None = None
+    expires_at: datetime
 
     class Config:
         frozen = True
@@ -114,7 +113,9 @@ def _get_redis_client() -> RedisCluster[bytes] | StrictRedis[bytes]:
 
 
 def _handoff_key(code: str) -> str:
-    return f"agent-handoff:{hashlib.sha256_text(code).hexdigest()}"
+    # Versioned because replicas on an older payload schema reject unknown fields. During a
+    # rollout each version sees the other's codes as unavailable instead of failing to parse.
+    return f"agent-handoff:v2:{hashlib.sha256_text(code).hexdigest()}"
 
 
 def issue_handoff(
@@ -164,7 +165,7 @@ def consume_handoff(code: str, *, ip_address: str | None) -> AgentHandoff | None
         return None
 
     handoff = _StoredAgentHandoff.parse_raw(value).__root__
-    if handoff.expires_at is not None and handoff.expires_at <= timezone.now():
+    if handoff.expires_at <= timezone.now():
         raise HandoffExpired(handoff)
 
     if (
