@@ -231,7 +231,10 @@ class OrganizationNotebookIndexEndpoint(OrganizationNotebooksBaseEndpoint):
                 {"detail": "One or more projects are inaccessible."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        require_project_access(request, requested_project_ids)
+        require_project_access(
+            request,
+            source.resolved.project_ids if source is not None else values.get("project_ids", []),
+        )
         try:
             notebook, created = validator.save()
         except Exception as error:

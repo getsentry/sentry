@@ -12,6 +12,7 @@ from sentry.seer import agent_token
 from sentry.tasks.seer.investigation import _dispatch_viewer_scope
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.notebook_producer_sources import register_example_source_type
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
@@ -287,6 +288,22 @@ class NotebookWriterTest(APITestCase):
         block.refresh_from_db()
         assert block.content == ""
         assert block.deleted_at is None
+
+    def test_project_limited_service_account_creates_a_source_notebook(self) -> None:
+        register_example_source_type(self)
+        client, _ = self.service_account_client(project_ids=[self.project.id])
+
+        response = client.post(
+            self.url("sentry-api-0-organization-notebooks"),
+            {
+                "title": "Issue notebook",
+                "source": {"type": "example_issue", "issueId": 7, "projectId": self.project.id},
+            },
+            format="json",
+        )
+
+        assert response.status_code == 201, response.data
+        assert response.data["projectIds"] == [self.project.id]
 
     def test_service_account_needs_every_project_for_an_unscoped_notebook(self) -> None:
         self.create_notebook_project(self.notebook, self.project)
