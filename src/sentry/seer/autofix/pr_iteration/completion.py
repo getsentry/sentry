@@ -4,7 +4,7 @@ import logging
 from collections import Counter
 from collections.abc import Callable
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, assert_never
 from uuid import uuid4
 
 from sentry_sdk import traces
@@ -33,7 +33,12 @@ from sentry.seer.autofix.pr_iteration.iterations import (
 )
 from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.missing_permissions import failed_tool_calls
-from sentry.seer.autofix.pr_iteration.pause import PauseReason, pause_pr_iteration
+from sentry.seer.autofix.pr_iteration.pause import (
+    PauseReason,
+    StrandedAction,
+    pause_for_out_of_credits,
+    pause_pr_iteration,
+)
 from sentry.seer.autofix.pr_iteration.pr_state import (
     iteration_prs_any_closed,
     record_pr_closed,
@@ -102,7 +107,11 @@ def fail_pr_iteration(
     paused = pause_pr_iteration(
         run_id=run_id,
         organization_id=organization.id,
-        reason=PauseReason.RUN_ERRORED,
+        reason=(
+            PauseReason.OUT_OF_CREDITS
+            if state.failure_reason == "out_of_credits"
+            else PauseReason.RUN_ERRORED
+        ),
     )
     log_ctx.info(
         "autofix.pr_iteration.paused_on_error",
@@ -282,13 +291,18 @@ def continue_pr_iteration(
         )
         return isinstance(outcome, Retrying)
 
-    if (
+    errored_codes = {
+        state.repo_pr_states[repo].pr_creation_error_code
+        for repo in iteration_terminal_errored_repos(state)
+    }
+    if outcome == PrIterationOutcome.PR_CREATION_ERRORED and "out_of_credits" in errored_codes:
+        pause_for_out_of_credits(
+            run_id=run_id, organization_id=organization.id, stranded_action=StrandedAction.PUSH
+        )
+    elif (
         state.status == "completed"
         and outcome == PrIterationOutcome.PR_CREATION_ERRORED
-        and any(
-            state.repo_pr_states[repo].pr_creation_error_code == "branch_moved"
-            for repo in iteration_terminal_errored_repos(state)
-        )
+        and "branch_moved" in errored_codes
     ):
         # A terminal refusal to overwrite newer PR commits is a failed iteration,
         # not a successful hand-back to the feedback queue.
@@ -461,14 +475,13 @@ def pr_iteration_push_outcome(
         sample_rate=1.0,
     )
 
-    pushed = _push_iteration_changes(
+    return _push_iteration_changes(
         log_ctx,
         group,
         run_id,
         state,
         author=_iteration_commit_author(state),
     )
-    return None if pushed else PrIterationOutcome.PUSH_FAILED
 
 
 @traces.trace
@@ -478,7 +491,8 @@ def _push_iteration_changes(
     run_id: int,
     state: SeerRunState,
     author: SeerCommitAuthor | None = None,
-) -> bool:
+) -> PrIterationOutcome | None:
+    """Returns None once the push is on its way, or why it didn't start."""
     try:
         trigger_push_changes(
             group,
@@ -493,14 +507,12 @@ def _push_iteration_changes(
         )
     except SeerOutOfCreditsException:
         log_ctx.info("autofix.pr_iteration.push", outcome="failed", reason="out_of_credits")
-        # TODO(CW-3066): Resume after a top-up. Until then nothing retries the push, so pause
-        # the run so that new feedback is refused.
-        pause_pr_iteration(
+        pause_for_out_of_credits(
             run_id=run_id,
             organization_id=group.organization.id,
-            reason=PauseReason.RUN_ERRORED,
+            stranded_action=StrandedAction.PUSH,
         )
-        return False
+        return PrIterationOutcome.OUT_OF_CREDITS
     except Exception as e:
         log_ctx.error(
             "autofix.pr_iteration.push",
@@ -508,10 +520,38 @@ def _push_iteration_changes(
             reason="exception",
             error_type=type(e).__name__,
         )
-        return False
+        return PrIterationOutcome.PUSH_FAILED
 
     log_ctx.info("autofix.pr_iteration.push", outcome="pushed", reason="ok")
-    return True
+    return None
+
+
+def redo_stranded_action(
+    log_ctx: PrIterationLogContext,
+    group: Group,
+    run_id: int,
+    state: SeerRunState,
+    action: StrandedAction,
+) -> None:
+    """Redo the push or branch-moved retry that a credits refusal left undone.
+
+    Its completion hook drains the queue, as it would have the first time.
+    """
+    match action:
+        case StrandedAction.PUSH:
+            _push_iteration_changes(
+                log_ctx, group, run_id, state, author=_iteration_commit_author(state)
+            )
+        case StrandedAction.BRANCH_MOVED_RETRY:
+            outcome = _retry_push_on_moved_branch(log_ctx, group, run_id, state)
+            if outcome == PrIterationOutcome.PR_CREATION_ERRORED:
+                pause_pr_iteration(
+                    run_id=run_id,
+                    organization_id=group.organization.id,
+                    reason=PauseReason.RUN_ERRORED,
+                )
+        case _:
+            assert_never(action)
 
 
 def _push_failed_on_moved_branch(
@@ -586,9 +626,14 @@ def _retry_push_on_moved_branch(
         )
     except SeerOutOfCreditsException:
         log_ctx.info("autofix.pr_iteration.push", outcome="not_pushed", reason="out_of_credits")
-        # TODO(CW-3066): Resume after a top-up. Until then nothing retries this, so end the
-        # iteration as errored, and the caller pauses the run and records the outcome.
-        return PrIterationOutcome.PR_CREATION_ERRORED
+        # Paused for credits, not as a branch-moved failure. The drain runs this turn again
+        # after a person retriggers.
+        pause_for_out_of_credits(
+            run_id=run_id,
+            organization_id=group.organization.id,
+            stranded_action=StrandedAction.BRANCH_MOVED_RETRY,
+        )
+        return PrIterationOutcome.OUT_OF_CREDITS
     except Exception as e:
         # End the iteration as errored, so the caller pauses the run and records the outcome.
         log_ctx.error(

@@ -100,8 +100,10 @@ from sentry.seer.autofix.pr_iteration.pause import (
     PauseReason,
     get_pause_reason,
     is_pr_iteration_paused,
+    lift_out_of_credits_pause,
     pause_pr_iteration,
     record_pause_blocked,
+    take_stranded_action,
 )
 from sentry.seer.autofix.pr_iteration.pr_state import (
     iteration_prs_any_closed,
@@ -227,7 +229,7 @@ def trigger_consume_pr_iteration_feedback(
     if is_pr_iteration_paused(run_id=run_id, organization_id=organization_id):
         record_pause_blocked("trigger_consume")
         # The reason costs a second read, paid only on this branch. Nothing
-        # lifts a pause, so this batch is over: whether it was thrown away
+        # lifts a pause here, so this batch is over: whether it was thrown away
         # because someone stopped Seer or because the run before it broke is
         # the difference between a feature working and a user losing work.
         record_pr_iteration_blocked(
@@ -640,9 +642,11 @@ def _drain_queued_autofix_feedback(
         log_ctx.error("autofix.pr_iteration.consume_feedback.group_not_found", exc_info=False)
         return
 
-    if state.status in ("processing", "error"):
-        # An errored run should already be paused. A processing run's
-        # completion hook drains the queue when it finishes.
+    # An errored run should already be paused. A processing run's completion hook drains the
+    # queue when it finishes. A run Seer stopped for credits only gets here once a person has
+    # lifted its pause after a top-up, so it iterates again.
+    stopped_for_credits = state.status == "error" and state.failure_reason == "out_of_credits"
+    if state.status == "processing" or (state.status == "error" and not stopped_for_credits):
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.drain",
             outcome="skipped",
@@ -655,9 +659,31 @@ def _drain_queued_autofix_feedback(
         _record_drain_outcome(f"skipped_run_{state.status}", trigger_source)
         return
 
-    # Wait for the previous iteration to push. Its completion hook drains the queue.
+    # Sentry refused a push or branch-moved retry for out-of-credits, so the last iteration's changes
+    # were never pushed. Redo it here, unless Seer already pushed them during the pause.
+    stranded_action = take_stranded_action(run_id=run_id, organization_id=organization_id)
     _, all_changes_pushed = state.has_code_changes()
-    if not all_changes_pushed:
+    if stranded_action is not None and not all_changes_pushed:
+        from sentry.seer.autofix.pr_iteration.completion import redo_stranded_action
+
+        redo_stranded_action(log_ctx, group, run_id, state, stranded_action)
+        log_ctx.info(
+            "autofix.pr_iteration.consume_feedback.drain",
+            outcome="skipped",
+            reason="redo_stranded",
+            stranded_action=stranded_action.value,
+            trigger_id=trigger_id,
+            trigger_source=trigger_source,
+            left_queued_count=count_queued_autofix_feedback(run_id),
+        )
+        _record_drain_outcome("redo_stranded", trigger_source)
+        # Leave the queued feedback for now: once the redo's push lands, its completion hook
+        # drains the queue and runs it.
+        return
+
+    # Wait for the previous iteration to push. Its completion hook drains the queue. A run Seer
+    # stopped for credits has no push coming, so its next iteration pushes the partial changes.
+    if not all_changes_pushed and not stopped_for_credits:
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.drain",
             outcome="skipped",
@@ -1469,6 +1495,8 @@ def _trigger_pr_iteration_from_comment(
         return None
 
     agent_state = resolved.agent_state
+    # A person asking again lifts a pause for credits, once the organization can pay.
+    lift_out_of_credits_pause(run_id=agent_state.run_id, organization_id=organization_id)
     if is_pr_iteration_paused(run_id=agent_state.run_id, organization_id=organization_id):
         # `@sentry stop iterating` already stopped this run, and nothing restarts
         # it, so consume would drop whatever we queued here. Write nothing at all:
@@ -1574,11 +1602,16 @@ def pause_pr_iteration_from_comment(
         return None
 
     run_id = resolved.agent_state.run_id
-    if is_pr_iteration_paused(run_id=run_id, organization_id=organization_id):
+    # A pause for credits lifts when a person retriggers after a top-up, so it doesn't count as
+    # stopped: write a real stop over it.
+    if get_pause_reason(run_id=run_id, organization_id=organization_id) not in (
+        None,
+        PauseReason.OUT_OF_CREDITS,
+    ):
         # `pause_pr_iteration` is idempotent and reports success either way, so
         # ask first — repeating the stop confirmation would credit this comment
-        # with a stop it didn't perform. Nothing resumes a run, so a paused run
-        # stays paused and this is not a race worth locking.
+        # with a stop it didn't perform. Nothing resumes a run from these pauses,
+        # so a paused run stays paused and this is not a race worth locking.
         metrics.incr("autofix.pr_iteration.stop_command", tags={"outcome": "already_paused"})
         _ack_pr_command(
             resolved.scm,
