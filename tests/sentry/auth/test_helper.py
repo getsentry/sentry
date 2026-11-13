@@ -1263,6 +1263,72 @@ class AuthHelperTest(TestCase):
         assert restored.is_valid()
         assert restored.organization.id == other_org.id
 
+    def _initialize_login_helper(self) -> AuthHelper:
+        with assume_test_silo_mode(SiloMode.CELL):
+            rpc_org = serialize_rpc_organization(self.organization)
+        helper = AuthHelper(
+            request=self.request,
+            organization=rpc_org,
+            auth_provider=self.auth_provider_inst,
+            flow=FLOW_LOGIN,
+        )
+        helper.initialize()
+        return helper
+
+    @mock.patch("sentry.auth.helper.metrics")
+    def test_get_for_request_rejects_stored_invalid_flow(self, mock_metrics: MagicMock) -> None:
+        """A stored invalid flow is already rejected by the session store's is_valid()."""
+        helper = self._initialize_login_helper()
+        helper.state.flow = 99
+
+        assert AuthHelper.get_for_request(self.request) is None
+        mock_metrics.incr.assert_not_called()
+
+    @mock.patch("sentry.auth.helper.metrics")
+    def test_get_for_request_returns_none_when_flow_changes_after_validation(
+        self, mock_metrics: MagicMock
+    ) -> None:
+        """State validated in unpack_state, then rewritten without a valid flow."""
+        helper = self._initialize_login_helper()
+
+        real_unpack = AuthHelper.unpack_state(self.request)
+        assert real_unpack is not None
+        helper.state.flow = None
+
+        with mock.patch.object(AuthHelper, "unpack_state", return_value=real_unpack):
+            assert AuthHelper.get_for_request(self.request) is None
+        mock_metrics.incr.assert_any_call(
+            "sso.pipeline.invalid_flow", tags={"state_present": "true"}
+        )
+
+    @mock.patch("sentry.auth.helper.metrics")
+    def test_get_for_request_returns_none_when_state_vanishes(
+        self, mock_metrics: MagicMock
+    ) -> None:
+        """State validated in unpack_state, then cleared before flow is read."""
+        self._initialize_login_helper()
+
+        # unpack_state must still succeed, so compute it before state vanishes
+        real_unpack = AuthHelper.unpack_state(self.request)
+        assert real_unpack is not None
+        with (
+            mock.patch.object(AuthHelper, "unpack_state", return_value=real_unpack),
+            mock.patch.object(AuthHelperSessionStore, "get_state", return_value=None),
+        ):
+            assert AuthHelper.get_for_request(self.request) is None
+        mock_metrics.incr.assert_any_call(
+            "sso.pipeline.invalid_flow", tags={"state_present": "false"}
+        )
+
+    def test_get_for_request_valid_flow_preserves_referrer(self) -> None:
+        helper = self._initialize_login_helper()
+        helper.state.referrer = "some-referrer"
+
+        restored = AuthHelper.get_for_request(self.request)
+        assert restored is not None
+        assert restored.flow == FLOW_LOGIN
+        assert restored.referrer == "some-referrer"
+
 
 @control_silo_test
 class HasVerifiedAccountTest(AuthIdentityHandlerTest):

@@ -1052,9 +1052,29 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
             logging.info("Invalid SSO data found")
             return None
 
-        # NOTE: pulling custom pipeline state (see get_initial_state)
-        flow = req_state.state.flow
-        referrer = req_state.state.referrer
+        # NOTE: pulling custom pipeline state (see get_initial_state). Read the
+        # state in a single snapshot: each redis_property access is a separate
+        # Redis GET, so the state may expire or be cleared (e.g. by a concurrent
+        # request finishing the pipeline) between reads.
+        state = req_state.state.get_state()
+        flow = state.get("flow") if state else None
+        if flow not in (FLOW_LOGIN, FLOW_SETUP_PROVIDER):
+            logger.warning(
+                "auth.pipeline.invalid-flow",
+                extra={
+                    "flow": flow,
+                    "organization_id": req_state.organization.id,
+                    "state_present": state is not None,
+                },
+            )
+            metrics.incr(
+                "sso.pipeline.invalid_flow",
+                tags={"state_present": str(state is not None).lower()},
+            )
+            return None
+
+        stored_referrer = state.get("referrer") if state else None
+        referrer = stored_referrer if isinstance(stored_referrer, str) else None
 
         return cls(
             auth_provider=req_state.provider_model,
