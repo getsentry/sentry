@@ -940,10 +940,22 @@ class SlackActionEndpoint(Endpoint):
         try:
             member = OrganizationMember.objects.get_member_invite_query(member_id).get()
         except OrganizationMember.DoesNotExist:
-            # member request is gone, likely someone else rejected it
             member_email = slack_request.callback_data["member_email"]
+            approved_member = (
+                OrganizationMember.objects.filter(
+                    id=member_id, invite_status=InviteStatus.APPROVED.value
+                )
+                .select_related("organization")
+                .first()
+            )
+            # Only reveal the request status to users who can see the organization.
+            if approved_member and approved_member.organization.has_access(identity_user):
+                text = f"Member invitation for {member_email} has already been approved."
+            else:
+                # Rejecting a request deletes the member row.
+                text = f"Member invitation for {member_email} no longer exists."
             webhook_client.send(
-                text=f"Member invitation for {member_email} no longer exists.",
+                text=text,
                 response_type="in_channel",
                 replace_original=False,
             )
