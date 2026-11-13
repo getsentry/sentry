@@ -33,13 +33,13 @@ from sentry.seer.autofix.pr_iteration.iterations import (
 )
 from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.missing_permissions import failed_tool_calls
+from sentry.seer.autofix.pr_iteration.out_of_credits import StrandedAction, mark_out_of_credits
 from sentry.seer.autofix.pr_iteration.pause import PauseReason, pause_pr_iteration
 from sentry.seer.autofix.pr_iteration.pr_state import (
     iteration_prs_any_closed,
     record_pr_closed,
 )
 from sentry.seer.autofix.pr_iteration.queue import count_queued_autofix_feedback
-from sentry.seer.autofix.pr_iteration.stranded_action import StrandedAction, record_stranded_action
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.autofix.pr_ready_for_review import format_pull_requests_payload
 from sentry.seer.autofix.single_run import is_single_run
@@ -103,11 +103,15 @@ def fail_pr_iteration(
     set_pr_iteration_attributes(group_id=group_id, iteration_id=log_ctx.iteration_id)
 
     # Don't pause a run that ran out of credits, since the next feedback after a top-up resumes it.
-    paused = state.failure_reason != "out_of_credits" and pause_pr_iteration(
-        run_id=run_id,
-        organization_id=organization.id,
-        reason=PauseReason.RUN_ERRORED,
-    )
+    if state.failure_reason == "out_of_credits":
+        mark_out_of_credits(run_id=run_id, organization_id=organization.id)
+        paused = False
+    else:
+        paused = pause_pr_iteration(
+            run_id=run_id,
+            organization_id=organization.id,
+            reason=PauseReason.RUN_ERRORED,
+        )
     log_ctx.info(
         "autofix.pr_iteration.paused_on_error",
         run_status=state.status,
@@ -233,6 +237,20 @@ def iteration_completed_webhook_fields(
             errored_repos=errored_repos,
         )
         return None
+    if not is_single_run(state) and any(
+        state.repo_pr_states[repo].pr_creation_error_code == "out_of_credits"
+        for repo in errored_repos
+    ):
+        # The drain redoes the push after a top-up; its completion emits the webhook.
+        log_ctx.info(
+            "autofix.pr_iteration.iteration_outcome",
+            outcome="awaiting_push",
+            reason="out_of_credits",
+            webhook_emitted=False,
+            iteration_index=iteration_index,
+            errored_repos=errored_repos,
+        )
+        return None
     if not is_synced and not errored_repos:
         log_ctx.info(
             "autofix.pr_iteration.iteration_outcome",
@@ -290,14 +308,13 @@ def continue_pr_iteration(
         state.repo_pr_states[repo].pr_creation_error_code
         for repo in iteration_terminal_errored_repos(state)
     }
-    if (
-        not is_single_run(state)
-        and outcome == PrIterationOutcome.PR_CREATION_ERRORED
-        and "out_of_credits" in errored_codes
-    ):
-        # Record the failed push, so the next drain can try it again.
-        record_stranded_action(
-            run_id=run_id, organization_id=organization.id, stranded_action=StrandedAction.PUSH
+    if outcome == PrIterationOutcome.PR_CREATION_ERRORED and "out_of_credits" in errored_codes:
+        # Mark the run stopped on credits, with the push for the next drain to redo.
+        mark_out_of_credits(
+            run_id=run_id,
+            organization_id=organization.id,
+            # A single run's agent pushes on its next turn, so it has no push to redo.
+            stranded_action=None if is_single_run(state) else StrandedAction.PUSH,
         )
     elif (
         state.status == "completed"
@@ -546,12 +563,12 @@ def _push_iteration_changes(
     except SeerOutOfCreditsException:
         log_ctx.info("autofix.pr_iteration.push", outcome="failed", reason="out_of_credits")
         # Record the failed push, so the next drain can try it again.
-        record_stranded_action(
+        mark_out_of_credits(
             run_id=run_id,
             organization_id=group.organization.id,
             stranded_action=StrandedAction.PUSH,
         )
-        return PrIterationOutcome.OUT_OF_CREDITS
+        return PrIterationOutcome.SENTRY_OUT_OF_CREDITS
     except Exception as e:
         log_ctx.error(
             "autofix.pr_iteration.push",
@@ -666,12 +683,12 @@ def _retry_push_on_moved_branch(
     except SeerOutOfCreditsException:
         log_ctx.info("autofix.pr_iteration.push", outcome="not_pushed", reason="out_of_credits")
         # Record the failed retry so the next drain can try it again.
-        record_stranded_action(
+        mark_out_of_credits(
             run_id=run_id,
             organization_id=group.organization.id,
             stranded_action=StrandedAction.BRANCH_MOVED_RETRY,
         )
-        return PrIterationOutcome.OUT_OF_CREDITS
+        return PrIterationOutcome.SENTRY_OUT_OF_CREDITS
     except Exception as e:
         # End the iteration as errored, so the caller pauses the run and records the outcome.
         log_ctx.error(

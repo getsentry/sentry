@@ -62,12 +62,16 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPullRequestReviewComment,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
+from sentry.seer.autofix.pr_iteration.out_of_credits import (
+    OutOfCredits,
+    StrandedAction,
+    get_out_of_credits,
+)
 from sentry.seer.autofix.pr_iteration.pause import (
     PauseReason,
     get_pause_reason,
     is_pr_iteration_paused,
 )
-from sentry.seer.autofix.pr_iteration.stranded_action import StrandedAction, take_stranded_action
 from sentry.seer.autofix.single_run import is_single_run, single_run_root_cause_payload
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint
@@ -831,6 +835,20 @@ class TestPrIterationCompletionHook(TestCase):
         mock_broadcast.assert_called_once()
 
     @patch(f"{HOOK_PATH}.broadcast_webhooks_for_organization.delay")
+    def test_a_seer_push_that_ran_out_of_credits_does_not_emit_webhook(
+        self, mock_broadcast: MagicMock
+    ) -> None:
+        # The redo's push emits it once the changes land.
+        state = self._unsynced()
+        repo_state = state.repo_pr_states["test-repo"]
+        repo_state.pr_creation_status = "error"
+        repo_state.pr_creation_error_code = "out_of_credits"
+
+        self._webhook(state)
+
+        mock_broadcast.assert_not_called()
+
+    @patch(f"{HOOK_PATH}.broadcast_webhooks_for_organization.delay")
     def test_an_iteration_without_pr_states_does_not_take_down_the_hook(
         self, mock_broadcast: MagicMock
     ) -> None:
@@ -1293,6 +1311,24 @@ class TestPrIterationCompletionHook(TestCase):
 
         assert outcome == PrIterationOutcome.PR_CREATION_ERRORED
 
+    @patch(
+        "sentry.seer_credit.backend.check_seer_credits",
+        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
+    )
+    def test_a_branch_moved_retry_refused_for_credits_marks_the_run(
+        self, mock_check_seer_credits: MagicMock
+    ) -> None:
+        with self.feature(
+            ["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"]
+        ):
+            outcome, retried = self._branch_moved_push(self._branch_moved())
+
+        assert outcome == PrIterationOutcome.SENTRY_OUT_OF_CREDITS
+        assert retried is False
+        assert get_out_of_credits(run_id=123, organization_id=self.organization.id) == OutOfCredits(
+            stranded_action=StrandedAction.BRANCH_MOVED_RETRY
+        )
+
     @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
     @patch(f"{COMPLETION_PATH}.consume_queued_feedback")
     @patch(f"{COMPLETION_PATH}.trigger_push_changes")
@@ -1366,7 +1402,7 @@ class TestPrIterationCompletionHook(TestCase):
     @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
     @patch(f"{COMPLETION_PATH}.consume_queued_feedback")
     @patch(f"{COMPLETION_PATH}.trigger_push_changes", side_effect=SeerOutOfCreditsException())
-    def test_a_push_refused_for_credits_records_a_stranded_action(
+    def test_a_push_refused_for_credits_marks_the_run(
         self, mock_push: MagicMock, mock_consume: MagicMock, mock_complete: MagicMock
     ) -> None:
         self.create_seer_run(organization=self.organization, seer_run_state_id=123)
@@ -1376,15 +1412,17 @@ class TestPrIterationCompletionHook(TestCase):
         )
 
         assert is_pr_iteration_paused(run_id=123, organization_id=self.organization.id) is False
-        assert (
-            take_stranded_action(run_id=123, organization_id=self.organization.id)
-            == StrandedAction.PUSH
+        assert get_out_of_credits(run_id=123, organization_id=self.organization.id) == OutOfCredits(
+            stranded_action=StrandedAction.PUSH
         )
-        assert mock_complete.call_args.kwargs["outcome"] == PrIterationOutcome.OUT_OF_CREDITS.value
+        assert (
+            mock_complete.call_args.kwargs["outcome"]
+            == PrIterationOutcome.SENTRY_OUT_OF_CREDITS.value
+        )
         mock_consume.assert_not_called()
 
     @patch(f"{COMPLETION_PATH}.trigger_push_changes", side_effect=SeerOutOfCreditsException())
-    def test_a_redone_push_refused_for_credits_records_the_stranded_action_again(
+    def test_a_redone_push_refused_for_credits_marks_the_run_again(
         self, mock_push: MagicMock
     ) -> None:
         self.create_seer_run(organization=self.organization, seer_run_state_id=123)
@@ -1399,9 +1437,8 @@ class TestPrIterationCompletionHook(TestCase):
         )
 
         mock_push.assert_called_once()
-        assert (
-            take_stranded_action(run_id=123, organization_id=self.organization.id)
-            == StrandedAction.PUSH
+        assert get_out_of_credits(run_id=123, organization_id=self.organization.id) == OutOfCredits(
+            stranded_action=StrandedAction.PUSH
         )
 
     def test_a_redone_branch_moved_retry_past_the_retry_cap_pauses_as_an_error(self) -> None:
@@ -1421,12 +1458,8 @@ class TestPrIterationCompletionHook(TestCase):
             == PauseReason.RUN_ERRORED
         )
 
-    @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
-    @patch(f"{COMPLETION_PATH}.consume_queued_feedback")
     @patch(f"{COMPLETION_PATH}.trigger_push_changes")
-    def test_a_seer_push_that_ran_out_of_credits_records_a_stranded_action(
-        self, mock_push: MagicMock, mock_consume: MagicMock, mock_complete: MagicMock
-    ) -> None:
+    def test_a_seer_push_that_ran_out_of_credits_marks_the_run(self, mock_push: MagicMock) -> None:
         self.create_seer_run(organization=self.organization, seer_run_state_id=123)
         state = self._unsynced()
         repo_state = state.repo_pr_states["test-repo"]
@@ -1438,20 +1471,14 @@ class TestPrIterationCompletionHook(TestCase):
         )
 
         assert is_pr_iteration_paused(run_id=123, organization_id=self.organization.id) is False
-        assert (
-            take_stranded_action(run_id=123, organization_id=self.organization.id)
-            == StrandedAction.PUSH
-        )
-        assert (
-            mock_complete.call_args.kwargs["outcome"]
-            == PrIterationOutcome.PR_CREATION_ERRORED.value
+        assert get_out_of_credits(run_id=123, organization_id=self.organization.id) == OutOfCredits(
+            stranded_action=StrandedAction.PUSH
         )
         mock_push.assert_not_called()
-        mock_consume.assert_not_called()
 
     @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
     @patch(f"{COMPLETION_PATH}.trigger_push_changes")
-    def test_a_single_run_seer_push_that_ran_out_of_credits_records_no_stranded_action(
+    def test_a_single_run_seer_push_that_ran_out_of_credits_marks_the_run_without_a_push(
         self, mock_push: MagicMock, mock_complete: MagicMock
     ) -> None:
         # The agent pushes a single run's PR itself, so Sentry has no push to redo.
@@ -1466,28 +1493,10 @@ class TestPrIterationCompletionHook(TestCase):
             self.organization, self.group, 123, state, AutofixReferrer.ON_COMPLETION_HOOK
         )
 
-        assert take_stranded_action(run_id=123, organization_id=self.organization.id) is None
-        mock_push.assert_not_called()
-
-    @patch(
-        "sentry.seer_credit.backend.check_seer_credits",
-        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
-    )
-    def test_a_branch_moved_retry_refused_for_credits_records_a_stranded_action(
-        self, mock_check_seer_credits: MagicMock
-    ) -> None:
-        with self.feature(
-            ["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"]
-        ):
-            outcome, retried = self._branch_moved_push(self._branch_moved())
-
-        assert outcome == PrIterationOutcome.OUT_OF_CREDITS
-        assert retried is False
-        mock_check_seer_credits.assert_called_once()
-        assert (
-            take_stranded_action(run_id=123, organization_id=self.organization.id)
-            == StrandedAction.BRANCH_MOVED_RETRY
+        assert get_out_of_credits(run_id=123, organization_id=self.organization.id) == OutOfCredits(
+            stranded_action=None
         )
+        mock_push.assert_not_called()
 
 
 class TestFailedRunCompletionHook(TestCase):
@@ -1588,11 +1597,9 @@ class TestFailedRunCompletionHook(TestCase):
             ),
         )
 
-    @patch(f"{COMPLETION_PATH}.consume_queued_feedback")
-    @patch(f"{COMPLETION_PATH}.trigger_push_changes")
     @patch(f"{HOOK_PATH}.fetch_run_status")
-    def test_a_seer_iteration_that_ran_out_of_credits_does_not_pause(
-        self, mock_fetch: MagicMock, mock_push: MagicMock, mock_consume: MagicMock
+    def test_a_seer_iteration_that_ran_out_of_credits_marks_the_run_instead_of_pausing(
+        self, mock_fetch: MagicMock
     ) -> None:
         self.create_seer_run(
             organization=self.organization, seer_run_state_id=123, user_id=self.user.id
@@ -1603,11 +1610,11 @@ class TestFailedRunCompletionHook(TestCase):
 
         AutofixOnCompletionHook.execute(self.organization, 123)
 
-        mock_push.assert_not_called()
-        mock_consume.assert_not_called()
         assert is_pr_iteration_paused(run_id=123, organization_id=self.organization.id) is False
         # Nothing was refused in Sentry: the next iteration pushes the partial changes.
-        assert take_stranded_action(run_id=123, organization_id=self.organization.id) is None
+        assert get_out_of_credits(run_id=123, organization_id=self.organization.id) == OutOfCredits(
+            stranded_action=None
+        )
 
     @patch(f"{COMPLETION_PATH}.consume_queued_feedback")
     @patch(f"{COMPLETION_PATH}.trigger_push_changes")
@@ -1701,7 +1708,7 @@ class TestFailedRunCompletionHook(TestCase):
         for failure_reason, expected in (
             ("timeout", PrIterationOutcome.TIMEOUT.value),
             ("stalled", PrIterationOutcome.STALLED.value),
-            ("out_of_credits", PrIterationOutcome.OUT_OF_CREDITS.value),
+            ("out_of_credits", PrIterationOutcome.SEER_OUT_OF_CREDITS.value),
             (None, PrIterationOutcome.ERRORED.value),
         ):
             with self.subTest(failure_reason=failure_reason):
