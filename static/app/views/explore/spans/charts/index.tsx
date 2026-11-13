@@ -11,8 +11,8 @@ import {Container, Flex, type ContainerProps} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {ChartLayersControl} from 'sentry/components/charts/chartLayersControl';
 import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
-import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
 import {useDroppedDataLayer} from 'sentry/components/droppedData/useDroppedDataLayer';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -407,7 +407,7 @@ function Chart({
   const Actions = visualize.visible ? (
     <Fragment>
       {droppedData.layerControl && !isHeatMap ? (
-        <DroppedDataLayerControl {...droppedData.layerControl} />
+        <ChartLayersControl {...droppedData.layerControl} />
       ) : null}
       <Tooltip
         title={
