@@ -324,12 +324,10 @@ class SeerAutofixOperator[CachePayloadT]:
                 return
             except SeerOutOfCreditsException:
                 with SeerOperatorEventLifecycleMetric(
-                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ERROR,
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_OUT_OF_CREDITS,
                     entrypoint_key=self.entrypoint.key,
                 ).capture():
-                    self.entrypoint.on_trigger_autofix_error(
-                        error="Your organization does not have enough Seer credits"
-                    )
+                    self.entrypoint.on_trigger_autofix_out_of_credits(started=run_id is not None)
                 lifecycle.record_halt(halt_reason="not_enough_seer_credits")
                 return
             except Exception as e:

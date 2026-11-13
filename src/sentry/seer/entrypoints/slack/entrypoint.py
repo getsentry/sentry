@@ -410,6 +410,22 @@ class SlackAutofixEntrypoint(
             ephemeral_user_id=self.slack_request.user_id,
         )
 
+    def on_trigger_autofix_out_of_credits(self, *, started: bool) -> None:
+        # The action webhook already resolved who clicked, so this lookup is cached.
+        user = self.slack_request.get_identity_user()
+        send_thread_update(
+            install=self.install,
+            thread=self.thread,
+            data=SeerAutofixOutOfCredits(
+                organization_id=self.organization_id,
+                has_billing_access=user_has_billing_access(
+                    organization_id=self.organization_id,
+                    user_id=user.id if user else None,
+                ),
+            ),
+            ephemeral_user_id=self.slack_request.user_id,
+        )
+
     def on_trigger_autofix_success(self, *, run_id: int) -> None:
         self._update_existing_message(run_id=run_id, has_complete_stage=False, include_user=True)
 
