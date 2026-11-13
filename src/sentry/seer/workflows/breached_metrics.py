@@ -134,9 +134,16 @@ class MetricAlertTrigger(AutomationTrigger[MetricBreachInputs]):
         )
 
     def sync(self, config: SeerWorkflowConfig) -> None:
-        Workflow.objects.filter(
-            id=config.backing_workflow_id, organization_id=config.organization_id
-        ).exclude(enabled=config.enabled).update(enabled=config.enabled)
+        workflow = (
+            Workflow.objects.filter(
+                id=config.backing_workflow_id, organization_id=config.organization_id
+            )
+            .exclude(enabled=config.enabled)
+            .first()
+        )
+        if workflow is not None:
+            # Saved through the instance so the processing-workflows cache is invalidated.
+            workflow.update(enabled=config.enabled)
 
     def teardown(self, config: SeerWorkflowConfig) -> None:
         if config.backing_workflow_id is None:
