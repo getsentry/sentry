@@ -6,6 +6,7 @@ import type {
 } from 'sentry/components/charts/chartLayersControl';
 import {useDroppedDataLayer} from 'sentry/components/droppedData/useDroppedDataLayer';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -46,9 +47,10 @@ export function useWidgetChartLayers({
   const droppedDataDataset = widget.widgetType
     ? WIDGET_TYPE_TO_DROPPED_DATA_DATASET[widget.widgetType]
     : undefined;
+  const dataset = droppedDataDataset ?? DiscoverDatasets.SPANS;
   const droppedData = useDroppedDataLayer(
     {
-      dataset: droppedDataDataset ?? DiscoverDatasets.SPANS,
+      dataset,
       interval: interval ?? '',
     },
     {
@@ -61,13 +63,22 @@ export function useWidgetChartLayers({
   );
 
   // Stable so the memoized VisualizationWidget doesn't re-render on every pass.
-  const onLayerChange = useCallback((value: string, selected: boolean) => {
-    if (value === RELEASES_LAYER) {
-      setIsReleasesLayerOn(selected);
-    } else {
-      setIsDroppedDataLayerOn(selected);
-    }
-  }, []);
+  const onLayerChange = useCallback(
+    (value: string, selected: boolean) => {
+      if (value === RELEASES_LAYER) {
+        setIsReleasesLayerOn(selected);
+        trackAnalytics('releases.bubbles_legend', {organization, selected});
+      } else {
+        setIsDroppedDataLayerOn(selected);
+        trackAnalytics('explore.dropped_data.layer_toggled', {
+          organization,
+          dataset,
+          selected,
+        });
+      }
+    },
+    [organization, dataset]
+  );
 
   const supportsReleases = widget.widgetType !== WidgetType.PREPROD_APP_SIZE;
   const droppedDataLayers = hidden

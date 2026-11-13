@@ -27,6 +27,11 @@ export type ExploreAnalyticsEventParameters = {
     dataset: DiscoverDatasets;
     organization: Organization;
   };
+  'explore.dropped_data.layer_toggled': {
+    dataset: DiscoverDatasets;
+    organization: Organization;
+    selected: boolean;
+  };
   'explore.dropped_data.legend_outcome_toggled': {
     dataset: DiscoverDatasets;
     organization: Organization;
@@ -103,6 +108,7 @@ type ExploreAnalyticsEventKey = keyof ExploreAnalyticsEventParameters;
 export const exploreAnalyticsEventMap = {
   'explore.dropped_data.ask_seer_clicked': 'Explore: Dropped Data Ask Seer Clicked',
   'explore.dropped_data.drawer_opened': 'Explore: Dropped Data Drawer Opened',
+  'explore.dropped_data.layer_toggled': 'Explore: Dropped Data Layer Toggled',
   'explore.dropped_data.legend_outcome_toggled':
     'Explore: Dropped Data Legend Outcome Toggled',
   'explore.dropped_data.scope_toggled': 'Explore: Dropped Data Scope Toggled',

@@ -6,9 +6,12 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetType} from 'sentry/views/dashboards/types';
 
 import {useWidgetChartLayers} from './useWidgetChartLayers';
+
+jest.mock('sentry/utils/analytics');
 
 const organization = OrganizationFixture({
   features: ['explore-data-fidelity-annotations', 'dashboards-data-fidelity-annotations'],
@@ -60,10 +63,11 @@ describe('useWidgetChartLayers', () => {
     expect(droppedDataRequest).not.toHaveBeenCalled();
   });
 
-  it('toggles releases from the Releases layer', () => {
+  it('toggles and tracks releases from the Releases layer', () => {
+    const releasesOrganization = OrganizationFixture();
     const {result} = renderHookWithProviders(
       () => useWidgetChartLayers({widget: spansWidget, interval: '5m'}),
-      {organization: OrganizationFixture()}
+      {organization: releasesOrganization}
     );
 
     expect(result.current.showReleases).toBe(true);
@@ -75,9 +79,13 @@ describe('useWidgetChartLayers', () => {
 
     expect(result.current.showReleases).toBe(false);
     expect(result.current.layerControl?.layers[0]?.selected).toBe(false);
+    expect(trackAnalytics).toHaveBeenCalledWith('releases.bubbles_legend', {
+      organization: releasesOrganization,
+      selected: false,
+    });
   });
 
-  it('adds the dropped data layer once it loads and toggles the band', async () => {
+  it('adds the dropped data layer once it loads, and toggles and tracks the band', async () => {
     const {result} = renderHookWithProviders(
       () => useWidgetChartLayers({widget: spansWidget, interval: '5m'}),
       {organization}
@@ -93,6 +101,11 @@ describe('useWidgetChartLayers', () => {
     act(() => result.current.layerControl?.onChange('dropped-data', false));
 
     expect(result.current.droppedData.band).toBeUndefined();
+    expect(trackAnalytics).toHaveBeenCalledWith('explore.dropped_data.layer_toggled', {
+      organization,
+      dataset: 'spans',
+      selected: false,
+    });
   });
 
   it('leaves out the dropped data layer when the band is hidden', async () => {
