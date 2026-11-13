@@ -1,6 +1,6 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {getCustomInstrumentationLink} from 'sentry/views/performance/traceDetails/traceConfigurations';
+import {getCustomInstrumentationLink} from './traceConfigurations';
 
 describe('getCustomInstrumentationLink', () => {
   it.each(['react-native', 'expo'] as const)(
