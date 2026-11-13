@@ -82,4 +82,32 @@ describe('DroppedDataLLMContext', () => {
       })
     );
   });
+
+  it('requests the interval it is given', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-dropped/`,
+      body: {
+        meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
+        droppedEvents: [],
+        acceptedEvents: [],
+      },
+    });
+
+    renderHookWithProviders(() => useLLMContext(), {
+      organization,
+      additionalWrapper: ({children}: {children: ReactNode}) => (
+        <Fragment>
+          <DroppedDataLLMContext dataset={DiscoverDatasets.SPANS} interval="3h" />
+          {children}
+        </Fragment>
+      ),
+    });
+
+    await waitFor(() =>
+      expect(request).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({query: expect.objectContaining({interval: '3h'})})
+      )
+    );
+  });
 });
