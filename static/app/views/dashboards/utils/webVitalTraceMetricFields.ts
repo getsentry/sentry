@@ -63,8 +63,6 @@ export function webVitalCountField(vital: WebVitals): string {
 export const WEB_VITAL_SCORE_FIELDS = ORDER.map(webVitalScoreField);
 export const WEB_VITAL_SCORE_COUNT_FIELDS = ORDER.map(webVitalScoreCountField);
 
-// The trace metrics score formulas read the web vital score metrics directly, so they
-// take no argument. The spans dataset versions still take a per-vital measurement.
 export const PERFORMANCE_SCORE_FIELD = 'performance_score()';
 export const OPPORTUNITY_SCORE_FIELD = 'opportunity_score()';
 
