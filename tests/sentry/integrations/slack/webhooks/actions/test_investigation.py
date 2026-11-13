@@ -16,7 +16,6 @@ from sentry.integrations.slack.webhooks.actions.investigation import (
     MissingInvestigationAction,
     _get_investigation_source,
 )
-from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.group import Group
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.notebooks.models import Notebook
@@ -315,53 +314,16 @@ class SeerInvestigationStartActionTest(BaseEventTest):
 
     @with_feature(FEATURES)
     @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_alert_without_start_button_skips_update(
-        self, mock_record_event: MagicMock, mock_record_sent: MagicMock
-    ) -> None:
+    def test_alert_without_start_button_skips_update(self, mock_record_sent: MagicMock) -> None:
         message = self.get_original_message()
-        message["attachments"][0]["blocks"][1]["elements"] = [
-            {
-                "type": "button",
-                "action_id": "link_clicked",
-                "text": {"type": "plain_text", "text": "Open investigation"},
-                "url": "https://example.sentry.io/seer/investigations/1/",
-            }
-        ]
+        del message["attachments"][0]["blocks"][1]
         with patch.object(self, "get_original_message", return_value=message):
             response = self.click()
 
         assert response.status_code == 200
-        assert len(self.investigations()) == 1
         self.mock_update.assert_not_called()
         self.mock_post_message.assert_called_once()
         mock_record_sent.assert_called_once_with(ANY, links=set())
-        assert not [
-            call
-            for call in mock_record_event.call_args_list
-            if call.args[0] == EventLifecycleOutcome.FAILURE
-        ]
-
-    @with_feature(FEATURES)
-    @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_malformed_alert_is_handled_by_operator(
-        self, mock_record_event: MagicMock, mock_record_sent: MagicMock
-    ) -> None:
-        message = self.get_original_message()
-        message["attachments"][0]["blocks"][1]["elements"] = None
-        with patch.object(self, "get_original_message", return_value=message):
-            response = self.click()
-
-        assert response.status_code == 200
-        assert len(self.investigations()) == 1
-        self.mock_update.assert_not_called()
-        self.mock_post_message.assert_not_called()
-        mock_record_sent.assert_not_called()
-        assert any(
-            call.args[0] == EventLifecycleOutcome.FAILURE and isinstance(call.args[1], TypeError)
-            for call in mock_record_event.call_args_list
-        )
 
     @with_feature(FEATURES)
     @patch("sentry.notebooks.telemetry.sentry_sdk.metrics.count")

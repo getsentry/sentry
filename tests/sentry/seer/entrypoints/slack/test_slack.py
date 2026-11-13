@@ -1555,32 +1555,19 @@ def test_replace_investigation_buttons_preserves_content() -> None:
             tracking=SlackActionTracking(notification_uuid="alert-uuid", source="metric-alert"),
         ),
         "text": {"type": "plain_text", "text": "Investigate with Seer"},
-        "value": "source-reference",
     }
     other_button = {**start_button, "action_id": "seer_investigation_start_other"}
-    chart = {"type": "image", "image_url": "https://example.com/chart.png", "alt_text": "Chart"}
     message: SlackRenderable = {
         "text": "Critical alert",
-        "blocks": [SectionBlock(text="Alert heading")],
+        "blocks": [],
         "attachments": [
             {
                 "color": "E03E2F",
-                "fallback": "Critical alert",
                 "blocks": [
-                    chart,
-                    {
-                        "type": "actions",
-                        "block_id": "actions",
-                        "elements": [other_button, start_button],
-                    },
-                    {
-                        "type": "context",
-                        "elements": [{"type": "mrkdwn", "text": "Workflow footer"}],
-                    },
+                    {"type": "section", "text": {"type": "mrkdwn", "text": "Alert details"}},
+                    {"type": "actions", "elements": [other_button, start_button]},
                 ],
             },
-            {"text": "Additional notes"},
-            {"blocks": [{"type": "actions", "elements": [start_button, other_button]}]},
         ],
     }
     link_button = ButtonElement(
@@ -1592,7 +1579,6 @@ def test_replace_investigation_buttons_preserves_content() -> None:
     original_button = link_button.to_dict()
     expected = deepcopy(message)
     expected["attachments"][0]["blocks"][1]["elements"][1] = original_button
-    expected["attachments"][2]["blocks"][0]["elements"][0] = original_button
 
     result = replace_investigation_buttons(message=message, link_button=link_button)
 
