@@ -198,7 +198,7 @@ function LifecycleFoldSection({
       title={
         <Flex gap="sm" align="center">
           <TraceDrawerComponents.SectionTitleWithQuestionTooltip
-            title={t('Cache Lifecycle')}
+            title={t('Cache lifecycle')}
             tooltipText={t(
               'A cache-specific summary of this span’s attributes and links. Times are relative to this span.'
             )}

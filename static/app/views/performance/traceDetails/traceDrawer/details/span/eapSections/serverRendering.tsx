@@ -116,7 +116,7 @@ function SectionTitle({type}: {type: ServerRenderingType | undefined}) {
   return (
     <Flex gap="sm" align="center">
       <TraceDrawerComponents.SectionTitleWithQuestionTooltip
-        title={t('Server Rendering')}
+        title={t('Server rendering')}
         tooltipText={t(
           'Where the server spans of this page are. A reused part has its spans in the trace that rendered it.'
         )}
