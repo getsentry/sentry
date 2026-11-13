@@ -17,7 +17,11 @@ from sentry.notebooks.endpoints.validators.base import StrictCamelSnakeValidator
 from sentry.notebooks.models import Notebook, NotebookBlock, NotebookBlockKind
 from sentry.notebooks.services.notebooks import create_block
 from sentry.notebooks.services.producer_sources import get_producer_source_type
-from sentry.notebooks.services.producer_writes import UNSET, write_api_producer_block
+from sentry.notebooks.services.producer_writes import (
+    MAX_REVISION_STEP,
+    UNSET,
+    write_api_producer_block,
+)
 
 BLOCK_UPDATE_FIELDS = frozenset({"title", "content", "generation_prompt", "config", "display"})
 CHART_DISPLAY_TYPES = frozenset({"line", "bar", "area"})
@@ -150,13 +154,13 @@ class BlockCreateValidator(StrictCamelSnakeValidator[tuple[NotebookBlock, bool]]
     key = serializers.CharField(
         max_length=128,
         required=False,
-        help_text="The producer's stable key for the block. Writing the same key again updates the block, even if a user edited or deleted it. Send with revision instead of investigationVersion. Only service accounts can send it.",
+        help_text="The producer's stable key for the block. Writing the same key again updates the block, even if a user edited or deleted it. Send with revision instead of investigationVersion. Only service accounts and Seer agents can send it.",
     )
     revision = serializers.IntegerField(
         min_value=1,
         max_value=BoundedPositiveIntegerField.MAX_VALUE,
         required=False,
-        help_text="The producer's revision for the block. A block with a newer revision returns 409.",
+        help_text=f"The producer's revision for the block. A block with a newer revision returns 409, and a write can raise it by at most {MAX_REVISION_STEP}.",
     )
     position = serializers.IntegerField(
         min_value=0,
@@ -201,7 +205,7 @@ class BlockCreateValidator(StrictCamelSnakeValidator[tuple[NotebookBlock, bool]]
                 {"investigation_version": "Send investigationVersion, or key and revision."}
             )
         elif not self.context["producer_writer"]:
-            raise PermissionDenied("Only service accounts write by key.")
+            raise PermissionDenied("Only service accounts and Seer agents write by key.")
         elif attrs["kind"] != NotebookBlockKind.TEXT:
             raise serializers.ValidationError({"kind": "A producer's block must be text."})
         elif not attrs.get("content"):

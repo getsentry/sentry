@@ -25,7 +25,7 @@ from sentry.notebooks.models import (
     NotebookProject,
     NotebookStatus,
 )
-from sentry.notebooks.services.notebooks import NotebookConflictError
+from sentry.notebooks.services.notebooks import NotebookConflictError, NotebookValidationError
 from sentry.utils import json
 
 
@@ -364,6 +364,10 @@ def upsert_block(
     return block
 
 
+# How far one API write can move a key's revision. Producers count up by one, so this
+# leaves room for skipped revisions while no single write can fence the key near I32_MAX.
+MAX_REVISION_STEP = 100
+
 # Request IDs for producer writes made through the notebook API.
 _API_EXECUTION_NAMESPACE = UUID("80e0d41c-f969-4a16-9b0d-dddfc844f713")
 
@@ -387,6 +391,16 @@ def write_api_producer_block(
     live blocks; a new block with no position goes last.
     """
     with notebook_writes(notebook) as writes:
+        # Deleted rows count, as they do for the newer-revision check.
+        stored = (
+            NotebookBlock.objects.filter(notebook=writes.notebook, producer_key=key)
+            .aggregate(newest=Max("producer_revision"))
+            .get("newest")
+        )
+        if revision > (stored or 0) + MAX_REVISION_STEP:
+            raise NotebookValidationError(
+                {"revision": f"Raise revision by at most {MAX_REVISION_STEP} per write."}
+            )
         live = _live_block(writes.notebook, key)
         if position is not None:
             position = _make_room_at(writes.notebook, position, moving=live)

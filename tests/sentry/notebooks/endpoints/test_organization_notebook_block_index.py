@@ -4,6 +4,7 @@ from typing import Any
 
 from django.test import override_settings
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework.response import Response
 
 from sentry.db.models.fields.bounded import BoundedPositiveIntegerField
@@ -16,6 +17,7 @@ from sentry.notebooks.models import (
     NotebookProject,
     NotebookStatus,
 )
+from sentry.notebooks.services.producer_writes import MAX_REVISION_STEP
 from sentry.seer import agent_token
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -281,7 +283,7 @@ class NotebookProducerBlockTest(APITestCase):
         assert set(response.data) == {"key"}
         assert not NotebookBlock.objects.filter(notebook=self.notebook).exists()
 
-    def test_agent_token_cannot_write_by_key(self) -> None:
+    def test_agent_token_writes_by_key(self) -> None:
         token, _ = agent_token.encode_agent_token(
             user_id=self.user.id,
             organization_id=self.organization.id,
@@ -292,8 +294,36 @@ class NotebookProducerBlockTest(APITestCase):
 
         response = self.write()
 
-        assert response.status_code == 403, response.data
+        assert response.status_code == 201, response.data
+        assert response.data["producerKey"] == "summary"
+
+    def test_revision_can_rise_by_at_most_the_step(self) -> None:
+        assert self.write(revision=MAX_REVISION_STEP).status_code == 201
+
+        too_far = self.write(revision=2 * MAX_REVISION_STEP + 1)
+        assert too_far.status_code == 400, too_far.data
+        assert set(too_far.data) == {"revision"}
+
+        within = self.write(revision=2 * MAX_REVISION_STEP)
+        assert within.status_code == 200, within.data
+        assert within.data["producerRevision"] == 2 * MAX_REVISION_STEP
+
+    def test_a_new_key_cannot_jump_past_the_step(self) -> None:
+        response = self.write(revision=MAX_REVISION_STEP + 1)
+
+        assert response.status_code == 400, response.data
+        assert set(response.data) == {"revision"}
         assert not NotebookBlock.objects.filter(notebook=self.notebook).exists()
+
+    def test_one_write_cannot_fence_a_key(self) -> None:
+        created = self.write()
+        NotebookBlock.objects.filter(id=created.data["id"]).update(deleted_at=timezone.now())
+
+        fenced = self.write(revision=BoundedPositiveIntegerField.MAX_VALUE)
+
+        assert fenced.status_code == 400, fenced.data
+        assert self.write(revision=2).status_code == 201
+        assert NotebookBlock.objects.get(id=created.data["id"]).producer_revision == 1
 
     def test_user_session_cannot_write_by_key(self) -> None:
         self.client.credentials()
