@@ -1,6 +1,7 @@
 import {act} from 'react';
 import {duration} from 'moment-timezone';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RawReplayErrorFixture} from 'sentry-fixture/replay/error';
 import {ReplayNavigateEventFixture} from 'sentry-fixture/replay/helpers';
 import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
 import {
@@ -13,11 +14,13 @@ import {
   render,
   renderHookWithProviders,
   screen,
+  userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import {ReplayReader} from 'sentry/utils/replays/replayReader';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 
 import {ReplayDetailsEntityHeader} from './replayDetailsEntityHeader';
@@ -229,6 +232,44 @@ describe('ReplayDetailsEntityHeader', () => {
     expect(screen.queryByRole('link', {name: /Errors/})).not.toBeInTheDocument();
     expect(screen.queryByRole('link', {name: /Dead Clicks/})).not.toBeInTheDocument();
     expect(screen.getByRole('banner')).toHaveAttribute('aria-busy', 'true');
+  });
+
+  it('breaks the error count down by project from the count, not the link', async () => {
+    const replayRecord = replayRecordFixture();
+    mockViewedBy(replayRecord.id);
+    const timestamp = new Date(replayRecord.started_at);
+    const errors = [
+      RawReplayErrorFixture({timestamp, id: 'e1', 'project.name': 'backend'}),
+      RawReplayErrorFixture({timestamp, id: 'e2', 'project.name': 'backend'}),
+      RawReplayErrorFixture({timestamp, id: 'e3', 'project.name': 'frontend'}),
+    ];
+
+    render(
+      <ReplayDetailsEntityHeader
+        readerResult={readerResultFixture({
+          replayRecord,
+          errors,
+          replay: ReplayReader.factory({
+            replayRecord,
+            errors,
+            fetching: false,
+            attachments: RRWebInitFrameEventsFixture({timestamp}),
+          }),
+        })}
+      />,
+      {organization}
+    );
+
+    // The breakdown describes the number, so the number is its trigger. The
+    // link only navigates.
+    const link = screen.getByRole('link', {name: 'Errors'});
+    await userEvent.hover(link, {delay: null});
+    expect(screen.queryByText('frontend')).not.toBeInTheDocument();
+
+    await userEvent.unhover(link, {delay: null});
+    await userEvent.hover(screen.getByText('3'), {delay: null});
+    expect(await screen.findByText('backend')).toBeInTheDocument();
+    expect(screen.getByText('frontend')).toBeInTheDocument();
   });
 
   it('should show LIVE badge when last received segment is within 5 minutes', async () => {
