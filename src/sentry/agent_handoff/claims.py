@@ -1,11 +1,20 @@
+from enum import StrEnum
+
 from django.views.decorators.debug import sensitive_variables
 
-from sentry import options
+from sentry import analytics, options
 from sentry.agent_handoff.applications import get_handoff_application
-from sentry.agent_handoff.codes import consume_handoff
+from sentry.agent_handoff.codes import (
+    AgentHandoff,
+    HandoffAttribution,
+    HandoffIPMismatch,
+    consume_handoff,
+    get_expired_handoff,
+)
 from sentry.agent_handoff.flows import get_flow
 from sentry.agent_handoff.flows.base import InvalidHandoffContext
 from sentry.agent_handoff.runbook import render_agent_runbook
+from sentry.analytics.events.agent_handoff import AgentHandoffClaimedEvent
 from sentry.api.helpers.oauth_consent import (
     InvalidOrganizationSelection,
     persist_authorization,
@@ -17,13 +26,49 @@ from sentry.organizations.services.organization.service import organization_serv
 from sentry.users.models.user import User
 
 
+class ClaimOutcome(StrEnum):
+    ACCEPTED = "accepted"
+    EXPIRED = "expired"
+    IP_MISMATCH = "ip_mismatch"
+    INVALID = "invalid"
+
+
+def _record_claim(outcome: ClaimOutcome, attribution: HandoffAttribution | None) -> None:
+    analytics.record(
+        AgentHandoffClaimedEvent(
+            outcome=outcome.value,
+            user_id=attribution.user_id if attribution else None,
+            organization_id=attribution.organization_id if attribution else None,
+            flow=attribution.flow.value if attribution else None,
+            run_id=attribution.run_id if attribution else None,
+        )
+    )
+
+
 @sensitive_variables()
 def claim_handoff(code: str, *, ip_address: str | None) -> str | None:
     """Consume a handoff and render credentials after revalidating its authorization."""
-    handoff = consume_handoff(code, ip_address=ip_address)
+    try:
+        handoff = consume_handoff(code, ip_address=ip_address)
+    except HandoffIPMismatch as error:
+        _record_claim(ClaimOutcome.IP_MISMATCH, HandoffAttribution.from_handoff(error.handoff))
+        raise
+
     if handoff is None:
+        expired = get_expired_handoff(code)
+        _record_claim(ClaimOutcome.EXPIRED if expired else ClaimOutcome.INVALID, expired)
         return None
 
+    guide = _render_guide(handoff)
+    _record_claim(
+        ClaimOutcome.ACCEPTED if guide is not None else ClaimOutcome.INVALID,
+        HandoffAttribution.from_handoff(handoff),
+    )
+    return guide
+
+
+@sensitive_variables()
+def _render_guide(handoff: AgentHandoff) -> str | None:
     user = User.objects.filter(id=handoff.user_id, is_active=True, is_suspended=False).first()
     application = get_handoff_application(handoff.scope_list)
     if user is None or application is None or application.id != handoff.application_id:

@@ -7,6 +7,7 @@ from pydantic import ValidationError
 from sentry.agent_handoff.codes import (
     HANDOFF_LIFETIME,
     GuidedNextStepsHandoff,
+    HandoffAttribution,
     HandoffFlow,
     HandoffIPMismatch,
     IssuedAgentHandoff,
@@ -15,6 +16,7 @@ from sentry.agent_handoff.codes import (
     _handoff_key,
     _StoredAgentHandoff,
     consume_handoff,
+    get_expired_handoff,
     issue_handoff,
     revoke_handoff,
 )
@@ -75,11 +77,30 @@ class AgentHandoffTest(TestCase):
         _get_redis_client().expire(_handoff_key(issued.code), 0)
         assert consume_handoff(issued.code, ip_address="192.0.2.1") is None
 
+    def test_expired_handoff_remains_attributable(self) -> None:
+        issued = self.issue()
+        _get_redis_client().expire(_handoff_key(issued.code), 0)
+        assert get_expired_handoff(issued.code) == HandoffAttribution(
+            flow=HandoffFlow.GUIDED_NEXT_STEPS, user_id=1, organization_id=2
+        )
+
+    def test_claimed_handoff_is_not_attributed_as_expired(self) -> None:
+        issued = self.issue()
+        assert consume_handoff(issued.code, ip_address="192.0.2.1") is not None
+        assert get_expired_handoff(issued.code) is None
+
+    def test_ip_mismatch_carries_handoff(self) -> None:
+        issued = self.issue()
+        with pytest.raises(HandoffIPMismatch) as error:
+            consume_handoff(issued.code, ip_address="192.0.2.2")
+        assert error.value.handoff.user_id == 1
+
     def test_revoke_is_idempotent(self) -> None:
         issued = self.issue()
         revoke_handoff(issued.code)
         revoke_handoff(issued.code)
         assert consume_handoff(issued.code, ip_address="192.0.2.1") is None
+        assert get_expired_handoff(issued.code) is None
 
     def test_unknown_handoff_is_unavailable(self) -> None:
         assert consume_handoff("unrecognized-code", ip_address="192.0.2.1") is None

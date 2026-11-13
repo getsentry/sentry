@@ -1,9 +1,10 @@
 import re
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode
 
 from django.http import HttpResponse
 
+from sentry.agent_handoff.claims import ClaimOutcome
 from sentry.agent_handoff.codes import (
     HandoffFlow,
     ProjectSetupContext,
@@ -11,7 +12,9 @@ from sentry.agent_handoff.codes import (
     _handoff_key,
     consume_handoff,
     issue_handoff,
+    revoke_handoff,
 )
+from sentry.analytics.events.agent_handoff import AgentHandoffClaimedEvent
 from sentry.models.apiapplication import ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apisetupcode import ApiSetupCode
@@ -19,6 +22,7 @@ from sentry.onboarding.agentic_progress.model import ProgressUpdate, Stage, Stag
 from sentry.onboarding.agentic_progress.service import get_onboarding_progress_service
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
@@ -268,6 +272,59 @@ class AgentHandoffViewTest(TestCase):
     def test_unpinned_handoff_accepts_remote_agent(self) -> None:
         code = self.issue(disable_ip_pinning=True)
         assert self.claim(code, ip_address="192.0.2.2").status_code == 200
+
+    def assert_claim_recorded(
+        self, record: MagicMock, outcome: ClaimOutcome, *, attributed: bool = True
+    ) -> None:
+        assert_last_analytics_event(
+            record,
+            AgentHandoffClaimedEvent(
+                outcome=outcome.value,
+                user_id=self.user.id if attributed else None,
+                organization_id=self.organization.id if attributed else None,
+                flow=HandoffFlow.ONBOARDING.value if attributed else None,
+                run_id=self.onboarding_context.run_id if attributed else None,
+            ),
+        )
+
+    @patch("sentry.analytics.record")
+    def test_records_accepted_claim(self, record: MagicMock) -> None:
+        assert self.claim(self.issue()).status_code == 200
+        self.assert_claim_recorded(record, ClaimOutcome.ACCEPTED)
+
+    @patch("sentry.analytics.record")
+    def test_records_expired_claim(self, record: MagicMock) -> None:
+        code = self.issue()
+        _get_redis_client().expire(_handoff_key(code), 0)
+        assert self.claim(code).status_code == 410
+        self.assert_claim_recorded(record, ClaimOutcome.EXPIRED)
+
+    @patch("sentry.analytics.record")
+    def test_records_ip_mismatch_claim(self, record: MagicMock) -> None:
+        code = self.issue(ip_address="192.0.2.1")
+        assert self.claim(code, ip_address="192.0.2.2").status_code == 403
+        self.assert_claim_recorded(record, ClaimOutcome.IP_MISMATCH)
+
+    @patch("sentry.analytics.record")
+    def test_records_claim_that_fails_revalidation_as_invalid(self, record: MagicMock) -> None:
+        code = self.issue()
+        self.user.update(is_active=False)
+        assert self.claim(code).status_code == 410
+        self.assert_claim_recorded(record, ClaimOutcome.INVALID)
+
+    @patch("sentry.analytics.record")
+    def test_records_reused_claim_as_unattributed_invalid(self, record: MagicMock) -> None:
+        code = self.issue()
+        assert self.claim(code).status_code == 200
+        assert self.claim(code).status_code == 410
+        self.assert_claim_recorded(record, ClaimOutcome.INVALID, attributed=False)
+
+    @patch("sentry.analytics.record")
+    def test_records_revoked_claim_as_unattributed_invalid(self, record: MagicMock) -> None:
+        code = self.issue()
+        revoke_handoff(code)
+        assert self.claim(code).status_code == 410
+        self.assert_claim_recorded(record, ClaimOutcome.INVALID, attributed=False)
 
 
 @control_silo_test
