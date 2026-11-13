@@ -5,6 +5,7 @@ import {parseAsString, useQueryStates} from 'nuqs';
 import qs from 'query-string';
 
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
+import {ChartLayersControl} from 'sentry/components/charts/chartLayersControl';
 import {DateTime} from 'sentry/components/dateTime';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
@@ -425,6 +426,11 @@ function WidgetCard(props: Props) {
             onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
             borderless={props.borderless}
             revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
+            headerActions={
+              chartLayers.layerControl && (
+                <ChartLayersControl triggerLabel="icon" {...chartLayers.layerControl} />
+              )
+            }
           >
             <VisualizationWidget
               widget={widget}

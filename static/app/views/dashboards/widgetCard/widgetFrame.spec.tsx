@@ -231,6 +231,26 @@ describe('WidgetFrame', () => {
     });
   });
 
+  describe('Header Actions', () => {
+    it('Renders the header actions', () => {
+      render(<WidgetFrame title="count()" headerActions={<button>Layers</button>} />);
+
+      expect(screen.getByRole('button', {name: 'Layers'})).toBeInTheDocument();
+    });
+
+    it('Hides the header actions if the widget has an error', () => {
+      render(
+        <WidgetFrame
+          title="count()"
+          headerActions={<button>Layers</button>}
+          error={new Error('Something went wrong')}
+        />
+      );
+
+      expect(screen.queryByRole('button', {name: 'Layers'})).not.toBeInTheDocument();
+    });
+  });
+
   describe('Full Screen View Button', () => {
     it('Renders a full screen view button', async () => {
       const onFullScreenViewClick = jest.fn();
