@@ -25,7 +25,8 @@ export class ServerRenderNode extends BaseNode<TraceTree.ServerRenderPlaceholder
     super(parent, value, extra);
 
     this.pageload = pageload;
-    // Not the pageload id, so lookups by span id still find the pageload.
+    // Must differ from the pageload ID, so that a lookup by span ID finds the
+    // pageload and not this placeholder.
     this.id = `${pageload.id}-server-render`;
     // No hyphen: node paths are `${type}-${id}`, and readers split at the first hyphen.
     this.type = 'sr';
