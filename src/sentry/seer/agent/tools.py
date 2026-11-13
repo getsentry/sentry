@@ -641,10 +641,11 @@ def _parse_span_links(items: Sequence[dict[str, Any]]) -> None:
         raw_links = (
             attributes.pop(SPAN_LINKS_ATTRIBUTE, None) if isinstance(attributes, dict) else None
         )
-        if isinstance(raw_links, str):
+        # EAP returns "" for spans without the attribute.
+        if raw_links and isinstance(raw_links, str):
             try:
                 item["links"] = [serialize_link(link) for link in orjson.loads(raw_links)]
-            except (orjson.JSONDecodeError, KeyError, TypeError):
+            except (orjson.JSONDecodeError, AttributeError, KeyError, TypeError):
                 logger.warning(
                     "get_trace_waterfall: Could not parse span links",
                     extra={"span_id": item.get("event_id")},
