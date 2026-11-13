@@ -87,12 +87,7 @@ class InboxEventSummary(StrEnum):
 
 @dataclass(frozen=True, kw_only=True)
 class InboxEventData:
-    """
-    Stored JSON payload with a producer-supplied summary.
-    Add fields with defaults so existing events remain readable.
-    """
-
-    summary: InboxEventSummary
+    pass
 
 
 @dataclass(frozen=True, kw_only=True)

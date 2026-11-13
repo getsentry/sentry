@@ -3661,7 +3661,6 @@ class InvestigationCompletedInboxTest(InvestigationOrchestrationEventTestBase):
         assert event.actor_type == InboxActorType.SYSTEM
         assert event.actor_id is None
         assert event.data == {
-            "summary": "Investigation completed",
             "seer_run_id": self.seer_run_id,
         }
 

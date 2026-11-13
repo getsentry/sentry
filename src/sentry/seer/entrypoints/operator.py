@@ -7,7 +7,7 @@ from sentry import features, options
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.inbox.issue import ISSUE_PR_READY_FOR_REVIEW, IssuePRReadyForReviewData
 from sentry.inbox.types import SYSTEM_ACTOR as INBOX_SYSTEM_ACTOR
-from sentry.inbox.types import InboxActor, InboxEventSummary
+from sentry.inbox.types import InboxActor
 from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.investigations.services import create_agentic_breached_metric_investigation
 from sentry.investigations.services.breached_metrics import BreachedMetricSource
@@ -815,7 +815,6 @@ def _create_seer_activity(
                     event_type=ISSUE_PR_READY_FOR_REVIEW,
                     subject=group,
                     data=IssuePRReadyForReviewData(
-                        summary=InboxEventSummary.ISSUE_PR_READY_FOR_REVIEW,
                         pr_url=pr_url,
                         seer_run_id=event_payload["run_id"],
                     ),
