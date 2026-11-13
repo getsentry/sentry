@@ -1,4 +1,5 @@
 import {Fragment, type ReactNode} from 'react';
+import {css, type Theme} from '@emotion/react';
 import {IconLock} from '@sentry/icons/lock';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -91,6 +92,21 @@ export function LockedRepoField({
     />
   );
 }
+
+/**
+ * Caps the visible modal surface at 800px. The dialog wrapper pads the
+ * surface horizontally, so widen the wrapper by that padding and cap the
+ * surface itself.
+ */
+export const connectRepositoryModalCss = (theme: Theme) => css`
+  width: calc(800px + 2 * ${theme.space.xl});
+  max-width: 100%;
+
+  [role='document'] {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+`;
 
 /**
  * The project or repository named in the modal title, with its avatar or

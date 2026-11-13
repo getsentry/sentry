@@ -8,6 +8,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
 
+import {connectRepositoryModalCss} from 'sentry/components/connectRepository/connectionModalFrame';
 import {ConnectRepositoryModal} from 'sentry/components/connectRepository/connectRepositoryModal';
 import {
   projectRepoInfiniteOptions,
@@ -53,18 +54,21 @@ function ConnectedRepositoryRow({
             aria-label={t('Edit')}
             icon={<IconEdit />}
             onClick={() =>
-              openModal(modalProps => (
-                <ConnectRepositoryModal
-                  {...modalProps}
-                  project={project}
-                  mode="edit"
-                  repositoryId={repo.repositoryId}
-                  repoName={repo.repoName}
-                  providerKey={repo.providerKey}
-                  integrationId={repo.integrationId}
-                  externalId={repo.externalId}
-                />
-              ))
+              openModal(
+                modalProps => (
+                  <ConnectRepositoryModal
+                    {...modalProps}
+                    project={project}
+                    mode="edit"
+                    repositoryId={repo.repositoryId}
+                    repoName={repo.repoName}
+                    providerKey={repo.providerKey}
+                    integrationId={repo.integrationId}
+                    externalId={repo.externalId}
+                  />
+                ),
+                {modalCss: connectRepositoryModalCss}
+              )
             }
           />
         </Flex>
@@ -122,9 +126,16 @@ export function ConnectedRepositoriesPanel({project}: {project: Project}) {
           size="xs"
           icon={<IconAdd />}
           onClick={() =>
-            openModal(modalProps => (
-              <ConnectRepositoryModal {...modalProps} project={project} mode="connect" />
-            ))
+            openModal(
+              modalProps => (
+                <ConnectRepositoryModal
+                  {...modalProps}
+                  project={project}
+                  mode="connect"
+                />
+              ),
+              {modalCss: connectRepositoryModalCss}
+            )
           }
         >
           {t('Connect repository')}

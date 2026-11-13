@@ -22,6 +22,7 @@ import {useModal} from '@sentry/scraps/modal';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {connectRepositoryModalCss} from 'sentry/components/connectRepository/connectionModalFrame';
 import {ConnectRepositoryModal} from 'sentry/components/connectRepository/connectRepositoryModal';
 import {orgCodeMappingsInfiniteOptions} from 'sentry/components/connectRepository/queries';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -191,18 +192,21 @@ function ConnectRepoRowAction({
       icon={<IconAdd />}
       aria-label={t('Connect project')}
       onClick={() =>
-        openModal(modalProps => (
-          <ConnectRepositoryModal
-            {...modalProps}
-            lockedSide="repo"
-            mode="connect"
-            repositoryId={repo.id}
-            repoName={repo.name}
-            providerKey={providerKey}
-            integrationId={repo.integrationId}
-            externalId={repo.externalId}
-          />
-        ))
+        openModal(
+          modalProps => (
+            <ConnectRepositoryModal
+              {...modalProps}
+              lockedSide="repo"
+              mode="connect"
+              repositoryId={repo.id}
+              repoName={repo.name}
+              providerKey={providerKey}
+              integrationId={repo.integrationId}
+              externalId={repo.externalId}
+            />
+          ),
+          {modalCss: connectRepositoryModalCss}
+        )
       }
     />
   );
@@ -225,19 +229,22 @@ function openMappedProjectEditModal({
   if (!project) {
     return;
   }
-  openModal(modalProps => (
-    <ConnectRepositoryModal
-      {...modalProps}
-      lockedSide="repo"
-      mode="edit"
-      project={project}
-      repositoryId={repo.id}
-      repoName={repo.name}
-      providerKey={providerKey}
-      integrationId={repo.integrationId}
-      externalId={repo.externalId}
-    />
-  ));
+  openModal(
+    modalProps => (
+      <ConnectRepositoryModal
+        {...modalProps}
+        lockedSide="repo"
+        mode="edit"
+        project={project}
+        repositoryId={repo.id}
+        repoName={repo.name}
+        providerKey={providerKey}
+        integrationId={repo.integrationId}
+        externalId={repo.externalId}
+      />
+    ),
+    {modalCss: connectRepositoryModalCss}
+  );
 }
 
 export default function OrganizationRepositories() {
