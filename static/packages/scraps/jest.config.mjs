@@ -2,6 +2,7 @@ import {runOnFirstShard} from '../../../scripts/jestSingleShard.js';
 
 const config = {
   testEnvironment: '<rootDir>/test/env/environment.mjs',
+  setupFiles: ['<rootDir>/test/env/setupContentEditable.ts'],
   setupFilesAfterEnv: ['<rootDir>/test/env/setup.ts'],
   testMatch: ['<rootDir>/src/**/*.spec.{ts,tsx}'],
   moduleNameMapper: {
@@ -21,8 +22,10 @@ const config = {
       },
     ],
   },
-  // TanStack Hotkeys publishes ESM only; compile it for the CommonJS test runtime.
-  transformIgnorePatterns: ['/node_modules/.pnpm/(?!@tanstack\\+(?:react-)?hotkeys@)'],
+  // Compile ESM dependencies for the CommonJS test runtime.
+  transformIgnorePatterns: [
+    '/node_modules/.pnpm/(?!@tanstack\\+(?:react-)?hotkeys@|lexical@|@lexical\\+|@preact\\+signals-core)',
+  ],
   clearMocks: true,
 };
 

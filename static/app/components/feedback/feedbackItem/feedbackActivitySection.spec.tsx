@@ -17,10 +17,7 @@ import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 import {FeedbackActivitySection} from './feedbackActivitySection';
 
 function getCommentEditor(name = 'Add a comment') {
-  const editor = screen.getByRole('combobox', {name});
-  // user-event does not yet recognize contenteditable="plaintext-only".
-  editor.setAttribute('contenteditable', 'true');
-  return editor;
+  return screen.getByRole('combobox', {name});
 }
 
 describe('FeedbackActivitySection', () => {

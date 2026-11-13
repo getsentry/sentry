@@ -1,8 +1,9 @@
-import type React from 'react';
+import type * as React from 'react';
 import type {AnyUseQueryOptions} from '@tanstack/react-query';
 
 import type {FormSize} from '@sentry/scraps/theme';
 
+import type {ComposerMentionActions, MentionData} from './mentionNode';
 import type {ComposerValue} from './model';
 
 /**
@@ -25,6 +26,14 @@ interface ComposerSourceBase<TSuggestion> {
   label: string;
   /** The character that activates this source. */
   trigger: string;
+  /**
+   * Renders an inserted mention inside the editor. The mention is atomic: it
+   * cannot be edited, and one deletion removes it. Its `text` is still what
+   * the value and copied text contain. The text is shown when omitted.
+   * Controls inside it, such as a menu that swaps the reference, edit the
+   * mention through `actions`.
+   */
+  renderMention?(mention: MentionData, actions: ComposerMentionActions): React.ReactNode;
   /** Renders an option. The source text is used when this is omitted. */
   renderSuggestion?(suggestion: TSuggestion): React.ReactNode;
   /**
@@ -76,9 +85,21 @@ export interface ComposerPlugin {
   id: string;
 }
 
+export interface ComposerClipboardEvent {
+  clipboardData: DataTransfer;
+  /** Selected text and mentions, with mention offsets relative to this fragment. */
+  value: ComposerValue;
+}
+
 export interface ComposerProps extends Omit<
   React.HTMLAttributes<HTMLDivElement>,
-  'children' | 'contentEditable' | 'defaultValue' | 'onBeforeInput' | 'onChange'
+  | 'children'
+  | 'contentEditable'
+  | 'defaultValue'
+  | 'onBeforeInput'
+  | 'onChange'
+  | 'onCopy'
+  | 'onPaste'
 > {
   /** Called with plain text and structured mention ranges after an edit. */
   onChange: (value: ComposerValue) => void;
@@ -87,6 +108,12 @@ export interface ComposerProps extends Omit<
   /** Controlled editor text and structured mention ranges. */
   value: ComposerValue;
   minHeight?: number;
+  /** Return true after writing clipboard data. Also handles the copy part of a cut. */
+  onCopy?(event: ComposerClipboardEvent): boolean | void;
+  /** Receives dropped files before the editor handles the drop. Upload state stays with the caller. */
+  onFilesDrop?(files: readonly File[]): void;
+  /** Return a fragment to replace the selection as one undoable edit, or nothing for plain-text paste. */
+  onPaste?(event: ComposerClipboardEvent): ComposerValue | void;
   placeholder?: string;
   ref?: React.Ref<HTMLDivElement>;
   size?: FormSize;

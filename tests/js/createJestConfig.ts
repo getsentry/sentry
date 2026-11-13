@@ -258,6 +258,9 @@ const ESM_NODE_MODULES = [
   'marked',
   '@sentry\\+sqlish',
   '@tanstack\\+(?:react-)?hotkeys@',
+  'lexical@',
+  '@lexical\\+',
+  '@preact\\+signals-core',
 ];
 
 const config: Config.InitialOptions = {
@@ -300,6 +303,7 @@ const config: Config.InitialOptions = {
   setupFiles: [
     '<rootDir>/tests/js/sentry-test/setupReact.ts',
     '<rootDir>/tests/js/sentry-test/setupNuqs.ts',
+    '<rootDir>/static/packages/scraps/test/env/setupContentEditable.ts',
     '<rootDir>/static/app/utils/silenceReactUnsafeWarnings.ts',
     fileURLToPath(import.meta.resolve('jest-canvas-mock')),
   ],

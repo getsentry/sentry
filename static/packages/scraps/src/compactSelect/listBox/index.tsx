@@ -24,7 +24,7 @@ import {useTranslation} from '@sentry/scraps/translation';
 import {ListBoxDetailsHoverContext, ListBoxOption} from './option';
 import {ListBoxSection} from './section';
 
-interface ListBoxProps<T extends ListItemBase>
+export interface ListBoxProps<T extends ListItemBase>
   extends
     Omit<
       React.HTMLAttributes<HTMLUListElement>,

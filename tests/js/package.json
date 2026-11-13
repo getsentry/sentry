@@ -33,6 +33,7 @@
     "./commit": "./fixtures/commit.ts",
     "./commitAuthor": "./fixtures/commitAuthor.ts",
     "./config": "./fixtures/config.ts",
+    "./contentEditable": "./sentry-test/contentEditable.ts",
     "./dashboard": "./fixtures/dashboard.ts",
     "./dataScrubbingRelayPiiConfig": "./fixtures/dataScrubbingRelayPiiConfig.ts",
     "./debugFile": "./fixtures/debugFile.ts",

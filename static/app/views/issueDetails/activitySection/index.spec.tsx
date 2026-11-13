@@ -36,10 +36,7 @@ import {ActivityDrawer} from 'sentry/views/issueDetails/sidebar/activityDrawer';
 import {buildActivityFeedItems} from './activityLineItem/activityFeedItem';
 
 function getCommentEditor(name = 'Add a comment') {
-  const editor = screen.getByRole('combobox', {name});
-  // user-event does not yet recognize contenteditable="plaintext-only".
-  editor.setAttribute('contenteditable', 'true');
-  return editor;
+  return screen.getByRole('combobox', {name});
 }
 
 describe('ActivitySection', () => {

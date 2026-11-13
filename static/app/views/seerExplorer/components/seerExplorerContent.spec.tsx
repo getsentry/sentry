@@ -6,6 +6,7 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
+import {placeCaret} from 'sentry-test/contentEditable';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
   act,
@@ -36,10 +37,7 @@ import {INPUT_STORAGE_KEY_PREFIX, SeerExplorerContent} from './seerExplorerConte
 const mockGetPageReferrer = jest.fn().mockReturnValue('/issues/');
 
 async function getSeerExplorerInput() {
-  const editor = await screen.findByRole('combobox', {name: 'Ask Seer a question'});
-  // user-event does not yet recognize contenteditable="plaintext-only".
-  editor.setAttribute('contenteditable', 'true');
-  return editor;
+  return await screen.findByRole('combobox', {name: 'Ask Seer a question'});
 }
 
 const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer> = {
@@ -717,7 +715,7 @@ describe('SeerExplorerContent', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Send message'}));
 
       expect(sendMessage).toHaveBeenCalledWith('Test message', 0);
-      expect(textarea).toBeEmptyDOMElement();
+      expect(textarea).toHaveTextContent(/^$/);
     });
 
     it('shows an error alert and restores the draft when sending fails', async () => {
@@ -776,7 +774,7 @@ describe('SeerExplorerContent', () => {
           'There was an error sending your message, wait and try again.'
         )
       ).toBeInTheDocument();
-      expect(screen.getByTestId('seer-explorer-input')).toBeEmptyDOMElement();
+      expect(screen.getByTestId('seer-explorer-input')).toHaveTextContent(/^$/);
     });
 
     it('calls sendMessage and clears input when Enter is pressed', async () => {
@@ -805,7 +803,7 @@ describe('SeerExplorerContent', () => {
       await userEvent.keyboard('{Enter}');
 
       expect(sendMessage).toHaveBeenCalledWith('Test message', 0);
-      expect(textarea).toBeEmptyDOMElement();
+      expect(textarea).toHaveTextContent(/^$/);
     });
 
     it('sends literal user and team references without fetching suggestions', async () => {
@@ -840,7 +838,7 @@ describe('SeerExplorerContent', () => {
       expect(teamsRequest).not.toHaveBeenCalled();
       await userEvent.keyboard('{Enter}');
       expect(sendMessage).toHaveBeenCalledWith('Ask @Alice #team', 0);
-      expect(input).toBeEmptyDOMElement();
+      expect(input).toHaveTextContent(/^$/);
     });
 
     it('preserves Shift+Enter newlines', async () => {
@@ -931,7 +929,7 @@ describe('SeerExplorerContent', () => {
       await userEvent.keyboard('{Enter}');
       expect(defaultHookReturn.startNewSession).toHaveBeenCalled();
       expect(sendMessage).not.toHaveBeenCalled();
-      expect(await getSeerExplorerInput()).toBeEmptyDOMElement();
+      expect(await getSeerExplorerInput()).toHaveTextContent(/^$/);
     });
 
     it('[Integration] sends message to the API when Enter is pressed', async () => {
@@ -1316,7 +1314,8 @@ describe('SeerExplorerContent', () => {
       expect(editor).toHaveTextContent('Ask @Alice #team');
       expect(editor.querySelector('[data-mention]')).not.toBeInTheDocument();
       await userEvent.click(editor);
-      await userEvent.keyboard('{End} updated{Enter}');
+      placeCaret(editor);
+      await userEvent.keyboard(' updated{Enter}');
 
       expect(sendMessage).toHaveBeenCalledWith('Ask @Alice #team updated', 0);
       expect(sessionStorage.getItem('seer-explorer-draft:7')).toBeNull();
@@ -1391,7 +1390,7 @@ describe('SeerExplorerContent', () => {
       );
 
       await waitFor(() =>
-        expect(screen.getByTestId('seer-explorer-input')).toBeEmptyDOMElement()
+        expect(screen.getByTestId('seer-explorer-input')).toHaveTextContent(/^$/)
       );
       expect(
         JSON.parse(sessionStorage.getItem(`${INPUT_STORAGE_KEY_PREFIX}:1`) ?? '')
@@ -1465,7 +1464,7 @@ describe('SeerExplorerContent', () => {
       await userEvent.keyboard('{Enter}');
 
       expect(sendMessage).toHaveBeenCalledWith('hello', 0);
-      expect(textarea).toBeEmptyDOMElement();
+      expect(textarea).toHaveTextContent(/^$/);
       expect(sessionStorage.getItem(`${INPUT_STORAGE_KEY_PREFIX}:42`)).toBeNull();
     });
   });
@@ -1890,7 +1889,7 @@ describe('SeerExplorerContent', () => {
         )
       );
       expect(sendMessage).not.toHaveBeenCalled();
-      expect(await getSeerExplorerInput()).toBeEmptyDOMElement();
+      expect(await getSeerExplorerInput()).toHaveTextContent(/^$/);
     });
 
     it('takes a question typed after picking the command from the menu', async () => {

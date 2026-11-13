@@ -120,8 +120,6 @@ describe('BlockCommentsDrawer', () => {
     const drawer = await screen.findByRole('complementary', {name: 'Block comments'});
     const editor = await within(drawer).findByRole('combobox', {name: 'Add a comment'});
     expect(within(drawer).getByRole('button', {name: 'Comment'})).toBeDisabled();
-    // user-event does not yet recognize contenteditable="plaintext-only".
-    editor.setAttribute('contenteditable', 'true');
     await userEvent.type(editor, 'Check this{Enter}');
 
     expect(request).toHaveBeenCalledWith(
@@ -136,8 +134,6 @@ describe('BlockCommentsDrawer', () => {
 
     const drawer = await screen.findByRole('complementary', {name: 'Block comments'});
     const editor = await within(drawer).findByRole('combobox', {name: 'Add a comment'});
-    // user-event does not yet recognize contenteditable="plaintext-only".
-    editor.setAttribute('contenteditable', 'true');
     await userEvent.type(editor, 'Half a thought');
     unmount();
 

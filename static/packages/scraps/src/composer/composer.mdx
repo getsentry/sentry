@@ -1,0 +1,349 @@
+---
+title: Composer
+description: A controlled, composable editor for structured inline references.
+category: forms
+source: '@sentry/scraps/composer'
+---
+
+import * as Storybook from 'sentry/stories';
+
+import {
+  AsyncComposerDemo,
+  CommandComposerDemo,
+  ComposerDemo,
+  InlineComponentComposerDemo,
+  InteractiveMentionComposerDemo,
+  RestoredComposerDemo,
+  SharedTriggerComposerDemo,
+  SizesComposerDemo,
+  SubmitComposerDemo,
+} from 'sentry/components/core/composer/__stories__/demos';
+
+export const documentation = import('!!type-loader!@sentry/scraps/composer/composer');
+
+`<Composer>` keeps editable text and structured references in one controlled value. Behavior is attached with plugins: each plugin contributes suggestion sources that provide their own data, identity, inserted text, and suggestion presentation.
+
+The editor is built on [Lexical](https://lexical.dev). Inserted references are atomic inline nodes: the caret moves around them, one Backspace removes a whole reference, and undo brings it back. The value stays plain text plus mention ranges, so forms, drafts, and serializers never see editor internals.
+
+## Compose with multiple sources
+
+A plugin groups related sources under a stable `id`. This example combines local member (`@`) and team (`#`) sources. The value below the editor updates as you type, select a suggestion, or delete a reference.
+
+Suggestion objects stay within their source. The controlled value stores only stable IDs and text ranges.
+
+<Storybook.Demo overflow="visible">
+  <ComposerDemo />
+</Storybook.Demo>
+
+```jsx
+const mentionPlugin = {
+  id: 'mentions',
+  getSources: () => [
+    {
+      id: 'members',
+      label: 'Members',
+      trigger: '@',
+      getSuggestions: query => filterPeople(query),
+      getId: person => person.id,
+      getText: person => `@${person.label}`,
+    },
+    {
+      id: 'teams',
+      label: 'Teams',
+      trigger: '#',
+      getSuggestions: query => filterTeams(query),
+      getId: team => team.id,
+      getText: team => `#${team.slug}`,
+    },
+  ],
+};
+
+<Composer
+  aria-label="Comment"
+  minHeight={120}
+  plugins={[mentionPlugin]}
+  value={value}
+  onChange={setValue}
+/>;
+```
+
+## Render references as inline components
+
+Provide `renderMention` on a source to render its references as React components, such as an avatar next to a name. The component renders inside your React tree, so theme, router, and query context are available. Its `text` is still what the value and copied text contain.
+
+Try moving the caret across a reference with the arrow keys, deleting it with Backspace, and restoring it with undo.
+
+<Storybook.Demo overflow="visible">
+  <InlineComponentComposerDemo />
+</Storybook.Demo>
+
+```jsx
+const mentionPlugin = {
+  id: 'mentions',
+  getSources: () => [
+    {
+      id: 'members',
+      label: 'Members',
+      trigger: '@',
+      getSuggestions: query => filterPeople(query),
+      getId: person => person.id,
+      getText: person => `@${person.label}`,
+      renderMention: mention => (
+        <Flex as="span" display="inline-flex" align="center" gap="xs">
+          <UserAvatar size={14} user={getPerson(mention.id)} />
+          {mention.text}
+        </Flex>
+      ),
+    },
+  ],
+};
+```
+
+Keep inline components close to the height of a line of text, so the caret and line wrapping stay predictable.
+
+## Edit a reference from inside it
+
+`renderMention` also receives `actions` for the mention it draws. Controls inside a mention, such as a menu's button and search field, keep their own keyboard and pointer input, and can swap the reference with `actions.replace()` or delete it with `actions.remove()`. Each action is one undoable edit, and the value reports the new text and range.
+
+Click the mention to choose someone else, or clear the selection to remove it. The menu renders inside the editor, which scrolls, so position it with `strategy="fixed"` to keep it from being clipped.
+
+<Storybook.Demo overflow="visible">
+  <InteractiveMentionComposerDemo />
+</Storybook.Demo>
+
+```jsx
+renderMention: (mention, actions) => (
+  <CompactSelect
+    clearable
+    search
+    strategy="fixed"
+    value={mention.id}
+    options={people.map(person => ({value: person.id, label: person.label}))}
+    trigger={props => (
+      <OverlayTrigger.Button {...props} size="zero" variant="transparent">
+        {mention.text}
+      </OverlayTrigger.Button>
+    )}
+    onChange={option => {
+      const person = getPerson(option?.value);
+      if (person) {
+        actions.replace({id: person.id, sourceId: 'members', text: `@${person.label}`});
+      } else {
+        actions.remove();
+      }
+    }}
+  />
+);
+```
+
+## Share a trigger between sources
+
+Sources sharing a trigger character contribute suggestions to the same popup, and selecting an option resolves the source that owns it — so each source keeps its own inserted text and suggestion identity. Use this to offer several kinds of references under one affordance, such as members and teams on `@`.
+
+```jsx
+const mentionPlugin = {
+  id: 'mentions',
+  getSources: () => [
+    {
+      id: 'members',
+      label: 'Members',
+      trigger: '@',
+      queryOptions: query => searchMembersQueryOptions(query),
+      getId: person => person.id,
+      getText: person => `@${person.label}`,
+    },
+    {
+      id: 'teams',
+      label: 'Teams',
+      trigger: '@',
+      getSuggestions: query => filterTeams(query),
+      getId: team => team.id,
+      getText: team => `@${team.slug}`,
+    },
+  ],
+};
+
+<Composer
+  aria-label="Comment"
+  plugins={[mentionPlugin]}
+  value={value}
+  onChange={setValue}
+/>;
+```
+
+<Storybook.Demo overflow="visible">
+  <SharedTriggerComposerDemo />
+</Storybook.Demo>
+
+A trigger group supports any number of local sources and at most one async source.
+
+## Restore a value
+
+Persisted text and reference ranges can be supplied together, preserving identity across sessions. A range whose text no longer matches renders as plain text, and the value can include line breaks.
+
+<Storybook.Demo overflow="visible">
+  <RestoredComposerDemo />
+</Storybook.Demo>
+
+```jsx
+const [value, setValue] = useState({
+  text: 'Continue with @Alice Example on the checkout regression.',
+  mentions: [
+    {
+      id: 'user:1',
+      sourceId: 'members',
+      start: 14,
+      end: 28,
+      text: '@Alice Example',
+    },
+  ],
+});
+
+<Composer
+  aria-label="Restored comment"
+  plugins={[mentionPlugin]}
+  value={value}
+  onChange={setValue}
+/>;
+```
+
+## Load queried suggestions
+
+Async sources provide TanStack Query options, sharing the application's loading, caching, cancellation, and error behavior. This example waits before responding: type `@al` to see loading and then results, `@zz` for the empty state, and `@err` for the error state.
+
+<Storybook.Demo overflow="visible">
+  <AsyncComposerDemo />
+</Storybook.Demo>
+
+```jsx
+const remotePlugin = {
+  id: 'remote-members',
+  getSources: () => [
+    {
+      id: 'remote-members',
+      label: 'Remote members',
+      trigger: '@',
+      queryOptions: query =>
+        queryOptions({
+          queryKey: ['members', query],
+          queryFn: () => searchMembers(query),
+          staleTime: Infinity,
+        }),
+      getId: person => person.id,
+      getText: person => `@${person.label}`,
+    },
+  ],
+};
+
+<Composer
+  aria-label="Remote member search"
+  plugins={[remotePlugin]}
+  value={value}
+  onChange={setValue}
+/>;
+```
+
+## Commands instead of references
+
+Sources providing `onSelect` run a custom action on selection instead of inserting text at the trigger position — for command-style triggers that clear the editor, insert a snippet, or toggle a mode. Pair it with `restrictToStart` so the trigger only matches at the very start of the editor's text, like a slash command.
+
+Provide either `getText` or `onSelect`, never both. Call at most one editor action synchronously inside `onSelect`, before any `await`. Actions capture the value and trigger range at selection: `insertText` replaces that range with plain text, and repeated calls do not build on earlier edits. Do not retain actions for later use; asynchronous updates belong in the owner's controlled value.
+
+<Storybook.Demo overflow="visible">
+  <CommandComposerDemo />
+</Storybook.Demo>
+
+```jsx
+const commandPlugin = {
+  id: 'commands',
+  getSources: () => [
+    {
+      id: 'commands',
+      label: 'Commands',
+      trigger: '/',
+      restrictToStart: true,
+      getSuggestions: query =>
+        COMMANDS.filter(command => command.title.startsWith(query)),
+      getId: command => command.id,
+      renderSuggestion: command => `/${command.title}`,
+      onSelect: (command, actions) => {
+        if (command.id === 'clear') {
+          actions.clear();
+        } else {
+          actions.insertText("Thanks for reaching out — I'll take a look shortly.");
+        }
+      },
+    },
+  ],
+};
+
+<Composer
+  aria-label="Command input"
+  placeholder="Type / for commands"
+  plugins={[commandPlugin]}
+  value={value}
+  onChange={setValue}
+/>;
+```
+
+## Submit with Enter
+
+Composer inserts a line break on Enter. Handle `onKeyDown` to submit instead, and call `preventDefault()` to keep the line break out of the value. Composer handles keys first while suggestions are open, so Enter selects a suggestion rather than submitting, and it skips the Enter that confirms an input method candidate.
+
+<Storybook.Demo overflow="visible">
+  <SubmitComposerDemo />
+</Storybook.Demo>
+
+```jsx
+<Composer
+  aria-label="Message"
+  plugins={[mentionPlugin]}
+  value={value}
+  onChange={setValue}
+  onKeyDown={event => {
+    if (event.key === 'Enter' && !event.shiftKey && value.text.trim() !== '') {
+      event.preventDefault();
+      send(value);
+      setValue({text: '', mentions: []});
+    }
+  }}
+/>
+```
+
+## Sizes and long content
+
+Composer accepts the shared form `size` values and grows with its content. Constrain its height with `maxHeight` to scroll long drafts.
+
+<Storybook.Demo overflow="visible">
+  <SizesComposerDemo />
+</Storybook.Demo>
+
+## Clipboard and file drops
+
+`onCopy` receives the selected text and mentions as a `ComposerValue` fragment, with mention offsets starting at the fragment's beginning. Write the clipboard formats your application supports and return `true` to handle the copy. The same handler supplies clipboard data when the selection is cut; Composer removes the selection afterward.
+
+`onPaste` receives clipboard data and the selected fragment. Return a validated `ComposerValue` fragment to replace that selection as one undoable edit. Return nothing to use the default plain-text paste. Clipboard decoding and payload validation belong to the application.
+
+```jsx
+<Composer
+  value={value}
+  onChange={setValue}
+  plugins={mentionPlugins}
+  onCopy={({clipboardData, value: fragment}) => {
+    clipboardData.setData('text/plain', fragment.text);
+    clipboardData.setData('application/x-composer', JSON.stringify(fragment));
+    return true;
+  }}
+  onPaste={({clipboardData}) => decodeAndValidateClipboardFragment(clipboardData)}
+/>
+```
+
+`onFilesDrop` receives files dropped on the editor. Composer enables the file drop and keeps the files out of the editable text. Keep upload state and an attachments bar in application components above or beside Composer. Drag-enter, drag-leave, and drag-over props are available for dropzone feedback.
+
+These handlers use browser data and Composer values. Consumers do not register Lexical commands or access the editor instance.
+
+## Document format
+
+The current value is plain text plus mention ranges. A source's `renderMention` can render an interactive React component, but each mention remains an atomic inline item. Arbitrary embed properties, block structure, and text formatting are not represented in `ComposerValue`.
+
+Lexical's editor state is private. A richer persisted document format can be introduced independently of that implementation. Inline Markdown preview should derive its presentation from document content, rather than give React ownership of editable text nodes.
