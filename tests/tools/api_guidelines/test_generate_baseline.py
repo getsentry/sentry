@@ -1,12 +1,49 @@
 from __future__ import annotations
 
-from tools.api_guidelines.generate_baseline import build_entries
+import os
+import subprocess
+import sys
+from collections.abc import Generator
+from pathlib import Path
+from unittest import mock
+
+import pytest
+
+from sentry.utils import json
+from tools.api_guidelines import generate_baseline
+from tools.api_guidelines.generate_baseline import (
+    build_entries,
+    collect_findings,
+    main,
+    write_exceptions,
+)
 from tools.api_guidelines.rules import ApiRule
-from tools.flake8_plugin import ApiInputViolation
+from tools.flake8_plugin import INPUT_LINT_ALL_ENV, ApiInputViolation
 
 PATH = "src/sentry/api/endpoints/example.py"
 OWNER_MAP = {PATH: {"ExampleEndpoint": "issues-feed"}}
 TODAY = "2026-11-09"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+
+# this example endpoint has 4 findings and all of them are in 3 entries: lines 5 and 6 read the same key in the same method (one entry
+# but count is 2), and _build is a helper reached from both get and put but reported once only at the helper
+EXAMPLE_ENDPOINT = """\
+class ExampleEndpoint(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC, "PUT": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        a = request.GET.get("id") # line 5
+        b = request.GET.get("id") # line 6
+        return _build(request)
+
+    def put(self, request) -> Response[X]:
+        name = request.data.get("name")
+        return _build(request)
+
+
+def _build(request):
+    return request.GET.get("cursor")
+"""
 
 
 def _violation(
@@ -156,3 +193,148 @@ def test_entries_are_sorted_by_path_scope_rule_then_key() -> None:
 
 def test_no_findings_gives_no_entries() -> None:
     assert build_entries([], OWNER_MAP, TODAY) == []
+
+
+@pytest.fixture
+def fake_repo(tmp_path: Path) -> Generator[Path]:
+    """A repo with one endpoint file and an owner map used as the generator's repo root"""
+    endpoint = tmp_path / PATH
+    endpoint.parent.mkdir(parents=True)
+    endpoint.write_text(EXAMPLE_ENDPOINT)
+
+    owner_map = tmp_path / ".artifacts" / "api-endpoint-owners.json"
+    owner_map.parent.mkdir()
+    owner_map.write_text(json.dumps(OWNER_MAP))
+
+    with mock.patch.object(generate_baseline, "_REPO_ROOT", tmp_path):
+        yield tmp_path
+
+
+def _run_main(repo: Path, *extra: str) -> int:
+    """Runs the generator on `repo` with a fixed date
+    `repo` the fake repo from the `fake_repo` fixture
+    `extra` any more arguments, i.e "--force"
+    Returns the generator's exit code
+    """
+    return main(["--output", str(repo / "out.json"), "--date", TODAY, *extra])
+
+
+def _counted_findings(output: Path) -> int:
+    """Adds up the count of every entry in a generated file"""
+    total = 0
+    for entry in json.loads(output.read_text())["entries"]:
+        total += entry["count"]
+    return total
+
+
+def test_collect_findings_scans_only_src_with_repo_relative_paths(fake_repo: Path) -> None:
+    # same code outside src/ isn't scanned
+    (fake_repo / "tests").mkdir()
+    (fake_repo / "tests" / "example.py").write_text(EXAMPLE_ENDPOINT)
+
+    findings = collect_findings(fake_repo)
+
+    paths = set()
+    for path, _finding in findings:
+        paths.add(path)
+
+    assert len(findings) == 4
+    assert paths == {PATH}
+
+
+def test_write_exceptions_writes_one_entry_per_line(tmp_path: Path) -> None:
+    dest_file = tmp_path / "new_folder" / "exceptions.json"
+    entries: list[dict[str, object]] = [{"rule": "S026", "count": 1}, {"rule": "S028", "count": 2}]
+
+    write_exceptions(entries, dest_file)
+
+    assert dest_file.read_text() == (
+        '{"version": 1, "entries": [\n'
+        '{"rule": "S026", "count": 1},\n'
+        '{"rule": "S028", "count": 2}\n'
+        "]}\n"
+    )
+    assert json.loads(dest_file.read_text()) == {"version": 1, "entries": entries}
+
+
+def test_write_exceptions_with_no_entries(tmp_path: Path) -> None:
+    dest_file = tmp_path / "exceptions.json"
+
+    write_exceptions([], dest_file)
+
+    assert dest_file.read_text() == '{"version": 1, "entries": []}\n'
+
+
+def test_main_writes_the_baseline(fake_repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    assert _run_main(fake_repo) == 0
+
+    entries = json.loads((fake_repo / "out.json").read_text())["entries"]
+    summary = []
+    for entry in entries:
+        summary.append((entry["scope"], entry["key"], entry["count"], entry["owner"]))
+    assert summary == [
+        ("ExampleEndpoint.get", "query:id", 2, "issues-feed"),
+        ("ExampleEndpoint.put", "body:name", 1, "issues-feed"),
+        # the helper isn't in the owner map so it's owned through its caller
+        ("_build", "query:cursor", 1, "issues-feed"),
+    ]
+    assert entries[0]["first_seen"] == TODAY
+    assert "Wrote 3 entries (4 findings)" in capsys.readouterr().out
+
+
+def test_main_stops_without_the_owner_map(fake_repo: Path) -> None:
+    (fake_repo / ".artifacts" / "api-endpoint-owners.json").unlink()
+
+    assert _run_main(fake_repo) == 1
+    assert not (fake_repo / "out.json").exists()
+
+
+def test_main_does_not_replace_an_existing_file_without_force(fake_repo: Path) -> None:
+    (fake_repo / "out.json").write_text("reviewed")
+
+    assert _run_main(fake_repo) == 1
+    assert (fake_repo / "out.json").read_text() == "reviewed"
+
+
+def test_main_replaces_an_existing_file_with_force(fake_repo: Path) -> None:
+    (fake_repo / "out.json").write_text("reviewed")
+
+    assert _run_main(fake_repo, "--force") == 0
+    assert _counted_findings(fake_repo / "out.json") == 4
+
+
+def test_main_stops_before_writing_when_the_counts_dont_add_up(fake_repo: Path) -> None:
+    def drop_last_entry(
+        findings: list[tuple[str, ApiInputViolation]],
+        owner_map: dict[str, dict[str, str]],
+        today: str,
+    ) -> list[dict[str, object]]:
+        return build_entries(findings, owner_map, today)[:-1]
+
+    with mock.patch.object(generate_baseline, "build_entries", drop_last_entry):
+        assert _run_main(fake_repo) == 1
+    assert not (fake_repo / "out.json").exists()
+
+
+def test_generator_total_matches_flake_on_the_same_tree(fake_repo: Path) -> None:
+    assert _run_main(fake_repo) == 0
+
+    # flake only prints S025-S028 when they're enforced or SENTRY_INPUT_LINT_ALL is set
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "flake8",
+            "--select=S025,S026,S027,S028",
+            str(fake_repo / "src"),
+        ],
+        cwd=REPO_ROOT,
+        env={**os.environ, INPUT_LINT_ALL_ENV: "1"},
+        capture_output=True,
+        text=True,
+    )
+    flake_findings = result.stdout.splitlines()
+
+    # if flake itself breaks (maybe the plugin fails to import), stdout is empty, so show its error
+    assert len(flake_findings) == 4, result.stderr
+    assert _counted_findings(fake_repo / "out.json") == len(flake_findings)
