@@ -326,6 +326,10 @@
     "./composer": {
       "types": "./dist/composer/index.d.ts",
       "import": "./dist/composer/index.js"
+    },
+    "./composer/document": {
+      "types": "./dist/composer/document/index.d.ts",
+      "import": "./dist/composer/document/index.js"
     }
   },
   "publishConfig": {
@@ -345,8 +349,15 @@
     "@emotion/is-prop-valid": "^1.4.0",
     "@emotion/styled": "^11.14.0",
     "@floating-ui/react-dom": "^2.1.9",
+    "@lexical/clipboard": "0.52.0",
+    "@lexical/code": "0.52.0",
+    "@lexical/code-prism": "0.52.0",
     "@lexical/history": "0.52.0",
+    "@lexical/markdown": "0.52.0",
     "@lexical/plain-text": "0.52.0",
+    "@lexical/rich-text": "0.52.0",
+    "@lexical/selection": "0.52.0",
+    "@lexical/utils": "0.52.0",
     "@react-aria/button": "3.15.1",
     "@react-aria/disclosure": "3.2.1",
     "@react-aria/focus": "3.22.1",
@@ -386,6 +397,7 @@
     "framer-motion": "12.38.0",
     "input-otp": "^1.5.0",
     "lexical": "0.52.0",
+    "marked": "18.0.2",
     "prismjs": "^1.30.0",
     "query-string": "7.0.1",
     "react-error-boundary": "^6.1.6",
