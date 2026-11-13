@@ -1,4 +1,8 @@
-import {createSentrySampleProfileFrameIndex, memoizeByReference} from './utils';
+import {
+  createContinuousProfileFrameIndex,
+  createSentrySampleProfileFrameIndex,
+  memoizeByReference,
+} from './utils';
 
 describe('createSentrySampleProfileFrameIndex', () => {
   it('dedupes frames', () => {
@@ -26,6 +30,41 @@ describe('createSentrySampleProfileFrameIndex', () => {
       1: frameIndex[1],
       2: frameIndex[0],
     });
+  });
+});
+
+describe('createContinuousProfileFrameIndex', () => {
+  it('qualifies java frame names with the module', () => {
+    const index = createContinuousProfileFrameIndex(
+      [
+        {
+          function: 'onCreate',
+          module: 'com.example.MainActivity',
+          platform: 'java',
+          in_app: true,
+        },
+        {function: 'memcpy', module: 'libc.so', platform: 'native', in_app: false},
+      ],
+      'android'
+    );
+
+    expect(index[0]!.name).toBe('com.example.MainActivity.onCreate');
+    expect(index[1]!.name).toBe('memcpy');
+  });
+
+  it('does not dedupe frames with the same function in different modules', () => {
+    const index = createContinuousProfileFrameIndex(
+      [
+        {function: 'run', module: 'com.example.Foo', platform: 'java', in_app: true},
+        {function: 'run', module: 'com.example.Bar', platform: 'java', in_app: true},
+        {function: 'run', module: 'com.example.Foo', platform: 'java', in_app: true},
+      ],
+      'android'
+    );
+
+    expect(index[0]).not.toBe(index[1]);
+    expect(index[0]).toBe(index[2]);
+    expect(index[1]!.name).toBe('com.example.Bar.run');
   });
 });
 
