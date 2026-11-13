@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import type {RefObject} from 'react';
 import {Global, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -6,6 +6,7 @@ import {IconSeer} from '@sentry/icons/seer';
 
 import seerArmLeft from 'sentry-images/spot/seer-arm-left.svg';
 import seerArmRight from 'sentry-images/spot/seer-arm-right.svg';
+import seerBeamScan from 'sentry-images/spot/seer-beam-scan.svg';
 import seerBeam from 'sentry-images/spot/seer-beam.svg';
 import seerCharacter from 'sentry-images/spot/seer-character.svg';
 import seerEye from 'sentry-images/spot/seer-eye.svg';
@@ -28,6 +29,7 @@ const SUGGESTION_PLACEHOLDERS: readonly [string, string, string] = [
   t('Preparing useful questions for this page…'),
   t('Finding useful questions about your application…'),
 ];
+const DRAFT_STAGGER_MS = 35;
 
 interface EmptyStateProps {
   composerRef?: RefObject<HTMLDivElement | null>;
@@ -56,7 +58,12 @@ export function EmptyState({
   composerRef,
   hasDraft = false,
 }: EmptyStateProps) {
+  const sceneRef = useRef<HTMLDivElement>(null);
   const characterRef = useRef<HTMLDivElement>(null);
+  const [hasDrafted, setHasDrafted] = useState(hasDraft);
+  if (hasDraft && !hasDrafted) {
+    setHasDrafted(true);
+  }
   const sortedSuggestions =
     suggestions && !suggestions.isLoading
       ? suggestions.suggestions.toSorted((a, b) => a.text.length - b.text.length)
@@ -74,7 +81,8 @@ export function EmptyState({
       return;
     }
     const characterElement = characterRef.current;
-    if (!characterElement) {
+    const sceneElement = sceneRef.current;
+    if (!characterElement || !sceneElement) {
       return;
     }
     const ownerDocument = characterElement.ownerDocument;
@@ -82,6 +90,8 @@ export function EmptyState({
     if (!ownerWindow) {
       return;
     }
+    const panelElement =
+      characterElement.closest('[data-seer-explorer-root]') ?? sceneElement;
     const reducedMotion = ownerWindow.matchMedia('(prefers-reduced-motion: reduce)');
     let pointer: Pick<PointerEvent, 'clientX' | 'clientY'> | null = null;
 
@@ -128,6 +138,23 @@ export function EmptyState({
       }
     }
 
+    const updateLayout = () => {
+      const panelBounds = panelElement.getBoundingClientRect();
+      const sceneBounds = sceneElement.getBoundingClientRect();
+      // The visible character occupies the top 35% of the artwork; the rest is beam space.
+      const offset =
+        panelBounds.top +
+        panelBounds.height / 2 -
+        sceneBounds.top -
+        characterElement.clientHeight * 0.175;
+      characterElement.style.setProperty('--seer-focus-y', `${offset / 4}px`);
+      updateGaze();
+    };
+
+    const resizeObserver = new ownerWindow.ResizeObserver(updateLayout);
+    resizeObserver.observe(sceneElement);
+    resizeObserver.observe(characterElement);
+    resizeObserver.observe(panelElement);
     ownerDocument.addEventListener('pointermove', handlePointerMove, {passive: true});
     const caretEvents = [
       'selectionchange',
@@ -142,25 +169,26 @@ export function EmptyState({
     }
     ownerDocument.addEventListener('pointerleave', handlePointerLeave);
     ownerWindow.addEventListener('blur', resetPupil);
-    ownerWindow.addEventListener('resize', updateGaze);
+    ownerWindow.addEventListener('resize', updateLayout);
     reducedMotion.addEventListener('change', updateGaze);
     characterElement.addEventListener('transitionend', handleCharacterTransitionEnd);
-    updateGaze();
+    updateLayout();
     return () => {
+      resizeObserver.disconnect();
       ownerDocument.removeEventListener('pointermove', handlePointerMove);
       for (const event of caretEvents) {
         ownerDocument.removeEventListener(event, updateGaze, true);
       }
       ownerDocument.removeEventListener('pointerleave', handlePointerLeave);
       ownerWindow.removeEventListener('blur', resetPupil);
-      ownerWindow.removeEventListener('resize', updateGaze);
+      ownerWindow.removeEventListener('resize', updateLayout);
       reducedMotion.removeEventListener('change', updateGaze);
       characterElement.removeEventListener('transitionend', handleCharacterTransitionEnd);
     };
   }, [isError, isLoading, composerRef]);
 
   return (
-    <Fragment>
+    <Stack flex="1" style={{overflow: isLoading || isError ? undefined : 'clip'}}>
       <Global styles={streamingAnimationStyles} />
       <Stack
         flex="1"
@@ -205,7 +233,13 @@ export function EmptyState({
             </Container>
           </Fragment>
         ) : (
-          <Grid position="relative" width="100%" maxWidth="360px" columns="1fr">
+          <Grid
+            ref={sceneRef}
+            position="relative"
+            width="100%"
+            maxWidth="360px"
+            columns="1fr"
+          >
             <FloatingCharacter
               ref={characterRef}
               $focused={hasDraft}
@@ -215,10 +249,22 @@ export function EmptyState({
               pointerEvents="none"
               aria-hidden
             >
-              <Arm position="absolute" inset="0" $side="left" $focused={hasDraft}>
+              <Arm
+                position="absolute"
+                inset="0"
+                $side="left"
+                $focused={hasDraft}
+                $hasDrafted={hasDrafted}
+              >
                 <Image data-arm-reaction="" src={seerArmLeft} alt="" loading="eager" />
               </Arm>
-              <Arm position="absolute" inset="0" $side="right" $focused={hasDraft}>
+              <Arm
+                position="absolute"
+                inset="0"
+                $side="right"
+                $focused={hasDraft}
+                $hasDrafted={hasDrafted}
+              >
                 <Image data-arm-reaction="" src={seerArmRight} alt="" loading="eager" />
               </Arm>
               <EyeSocket position="absolute" inset="0">
@@ -275,7 +321,8 @@ export function EmptyState({
                         key={index}
                         $hidden={hasDraft}
                         $offset={-12}
-                        $delay={index * 45}
+                        $delay={index * DRAFT_STAGGER_MS}
+                        $returnDelay={(suggestionCount - index) * DRAFT_STAGGER_MS}
                       >
                         <SuggestionItem
                           suggestion={suggestion}
@@ -295,7 +342,8 @@ export function EmptyState({
         <DraftExtras
           padding="0 xl"
           $hidden={hasDraft}
-          $offset={32}
+          $offset={-12}
+          $delay={suggestionCount * DRAFT_STAGGER_MS}
           aria-hidden={hasDraft || undefined}
           inert={hasDraft}
         >
@@ -310,7 +358,7 @@ export function EmptyState({
           </Alert>
         </DraftExtras>
       )}
-    </Fragment>
+    </Stack>
   );
 }
 
@@ -421,22 +469,30 @@ const armDrift = keyframes`
 `;
 
 const armKick = keyframes`
-  0%, 100% { transform: translateY(0) rotate(0); }
-  28% { transform: translateY(-4px) rotate(var(--arm-kick)); }
-  68% { transform: translateY(1px) rotate(var(--arm-rebound)); }
+  0%, 75%, 100% { transform: rotate(0); }
+  12% { transform: rotate(var(--arm-anticipation)); }
+  36% { transform: rotate(var(--arm-pull)); }
+  88% { transform: rotate(var(--arm-overshoot)); }
+`;
+
+const armReturn = keyframes`
+  0%, 100% { transform: rotate(0); }
+  12% { transform: rotate(calc(-1 * var(--arm-anticipation))); }
+  36% { transform: rotate(calc(-1 * var(--arm-pull))); }
 `;
 
 const scan = keyframes`
-  0% { transform: translateY(450%); opacity: 0; }
+  0% { transform: translateY(-50%) scale(0.2); opacity: 0; }
   15% { opacity: 0.2; }
   80% { opacity: 0.45; }
-  100% { transform: translateY(-50%); opacity: 0; }
+  100% { transform: translateY(450%) scale(1); opacity: 0; }
 `;
 
 const DraftExtras = styled(Stack)<{
   $hidden: boolean;
   $delay?: number;
   $offset?: number;
+  $returnDelay?: number;
 }>`
   opacity: ${p => (p.$hidden ? 0 : 1)};
   visibility: ${p => (p.$hidden ? 'hidden' : 'visible')};
@@ -444,10 +500,11 @@ const DraftExtras = styled(Stack)<{
   @media (prefers-reduced-motion: no-preference) {
     transform: ${p => (p.$hidden ? `translateY(${p.$offset ?? 0}px)` : 'none')};
     transition:
-      opacity 220ms ease-out ${p => (p.$hidden ? (p.$delay ?? 0) : 0)}ms,
-      transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1)
-        ${p => (p.$hidden ? (p.$delay ?? 0) : 0)}ms,
-      visibility 0s linear ${p => (p.$hidden ? 280 + (p.$delay ?? 0) : 0)}ms;
+      opacity ${p => (p.$hidden ? 120 : 230)}ms ease-out
+        ${p => (p.$hidden ? (p.$delay ?? 0) : (p.$returnDelay ?? 0))}ms,
+      transform ${p => (p.$hidden ? 120 : 230)}ms cubic-bezier(0.2, 0.8, 0.2, 1)
+        ${p => (p.$hidden ? (p.$delay ?? 0) : (p.$returnDelay ?? 0))}ms,
+      visibility 0s linear ${p => (p.$hidden ? 120 + (p.$delay ?? 0) : 0)}ms;
   }
 `;
 
@@ -455,12 +512,17 @@ const SuggestionContent = styled(Stack)`
   padding-top: calc(237.4 / 170.58 * 43%);
 `;
 
-const Arm = styled(Container)<{$focused: boolean; $side: 'left' | 'right'}>`
+const Arm = styled(Container)<{
+  $focused: boolean;
+  $hasDrafted: boolean;
+  $side: 'left' | 'right';
+}>`
   z-index: 0;
-  transform-origin: ${p => (p.$side === 'left' ? '39% 27%' : '62% 27%')};
+  transform-origin: ${p => (p.$side === 'left' ? '37.4% 27%' : '63.2% 27%')};
   --arm-tilt: ${p => (p.$side === 'left' ? '1.5deg' : '-1.5deg')};
-  --arm-kick: ${p => (p.$side === 'left' ? '4deg' : '-4deg')};
-  --arm-rebound: ${p => (p.$side === 'left' ? '-0.75deg' : '0.75deg')};
+  --arm-anticipation: ${p => (p.$side === 'left' ? '0.75deg' : '-0.75deg')};
+  --arm-pull: ${p => (p.$side === 'left' ? '3.5deg' : '-3.5deg')};
+  --arm-overshoot: ${p => (p.$side === 'left' ? '-0.5deg' : '0.5deg')};
 
   @media (prefers-reduced-motion: no-preference) {
     animation: ${armDrift} ${p => (p.$side === 'left' ? '5.2s' : '4.6s')} ease-in-out
@@ -469,9 +531,8 @@ const Arm = styled(Container)<{$focused: boolean; $side: 'left' | 'right'}>`
 
     [data-arm-reaction] {
       transform-origin: inherit;
-      animation: ${p => (p.$focused ? armKick : 'none')}
-        ${p => (p.$side === 'left' ? '600ms' : '660ms')} cubic-bezier(0.2, 0.8, 0.2, 1)
-        both;
+      animation: ${p => (p.$focused ? armKick : p.$hasDrafted ? armReturn : 'none')}
+        ${p => (p.$side === 'left' ? '780ms' : '820ms')} ease-in-out both;
     }
   }
 `;
@@ -481,8 +542,9 @@ const FloatingCharacter = styled(Container)<{$focused: boolean}>`
 
   @media (prefers-reduced-motion: no-preference) {
     animation: ${float} 6s ease-in-out infinite;
-    translate: 0 ${p => (p.$focused ? '16px' : '0')};
-    transition: translate 620ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    translate: 0 ${p => (p.$focused ? 'var(--seer-focus-y, 16px)' : '0')};
+    transition: translate 620ms cubic-bezier(0.2, 0.8, 0.2, 1)
+      ${p => (p.$focused ? '120ms' : '0ms')};
   }
 `;
 
@@ -527,13 +589,7 @@ const BeamScan = styled(Container)`
     width: 100%;
     height: 16%;
     opacity: 0;
-    background: linear-gradient(
-      transparent,
-      rgb(158 229 76 / 12%) 40%,
-      rgb(231 255 223 / 65%) 50%,
-      rgb(158 229 76 / 12%) 60%,
-      transparent
-    );
+    background: url('${seerBeamScan}') center / 100% 100% no-repeat;
 
     @media (prefers-reduced-motion: no-preference) {
       animation: ${scan} 6s ease-in-out infinite;
