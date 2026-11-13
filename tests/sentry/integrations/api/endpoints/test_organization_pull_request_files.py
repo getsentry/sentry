@@ -280,30 +280,19 @@ class OrganizationRepositoryPullRequestFilesTest(APITestCase):
         assert scm.pull_request_calls == ["42", "42"]
 
     @mock.patch(_MAKE_SCM)
-    def test_rereads_the_files_when_a_push_lands_while_reading(
+    def test_head_sha_is_null_when_a_push_lands_while_reading(
         self, mock_make_scm: MagicMock
     ) -> None:
         scm = _FakeScmWithPullRequest(
-            pages=[_page([_file("old.py")]), _page([_file("new.py")])],
-            head_shas=["abc123", "def456", "def456"],
+            pages=[_page([_file("old.py")])],
+            head_shas=["abc123", "def456"],
         )
         mock_make_scm.return_value = scm
         data = self._get()
-        assert [f["path"] for f in data["files"]] == ["new.py"]
-        assert data["headSha"] == "def456"
-        assert scm.calls == ["42", "42"]
-
-    @mock.patch(_MAKE_SCM)
-    def test_head_sha_is_null_when_pushes_keep_landing(self, mock_make_scm: MagicMock) -> None:
-        scm = _FakeScmWithPullRequest(
-            pages=[_page([_file("a.py")]), _page([_file("b.py")]), _page([_file("c.py")])],
-            head_shas=["sha1", "sha2", "sha3", "sha4"],
-        )
-        mock_make_scm.return_value = scm
-        data = self._get()
-        assert [f["path"] for f in data["files"]] == ["c.py"]
+        assert [f["path"] for f in data["files"]] == ["old.py"]
         assert data["headSha"] is None
-        assert scm.calls == ["42", "42", "42"]
+        assert scm.calls == ["42"]
+        assert scm.pull_request_calls == ["42", "42"]
 
     @mock.patch(_MAKE_SCM)
     def test_head_sha_is_null_for_a_provider_without_pull_requests(

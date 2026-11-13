@@ -36,9 +36,6 @@ from sentry.utils.auth import is_user_from_viewer_context
 
 logger = logging.getLogger(__name__)
 
-# How many times to reread the files when a push lands while they're being read.
-_HEAD_SHA_ATTEMPTS = 3
-
 
 class PullRequestFilesUnavailable(APIException):
     status_code = 502
@@ -62,8 +59,9 @@ class RepositoryPullRequestFileResponse(PullRequestFileResponse):
 class RepositoryPullRequestFilesResponse(TypedDict):
     files: list[RepositoryPullRequestFileResponse]
     # The PR's head commit while these files were read, or None if the provider doesn't say or
-    # pushes kept landing mid-read. The provider can lag behind a push, so a caller that
-    # pushed compares this to its own commit to tell whether the files include that push.
+    # a push landed mid-read. The provider can lag behind a push, so a caller that pushed
+    # compares this to its own commit to tell whether the files include that push, and
+    # refetches until it does.
     headSha: str | None
 
 
@@ -102,11 +100,11 @@ def _read_files(
     return files, calls
 
 
-def _record_head_sha_read(provider: str, outcome: str, attempts: int, provider_calls: int) -> None:
-    tags = {"provider": provider, "outcome": outcome}
-    metrics.distribution("organization_pull_request_files.head_sha.attempts", attempts, tags=tags)
+def _record_head_sha_read(provider: str, outcome: str, provider_calls: int) -> None:
     metrics.distribution(
-        "organization_pull_request_files.head_sha.provider_calls", provider_calls, tags=tags
+        "organization_pull_request_files.head_sha.provider_calls",
+        provider_calls,
+        tags={"provider": provider, "outcome": outcome},
     )
 
 
@@ -118,35 +116,32 @@ def _read_files_at_one_head(
 ) -> _PullRequestFiles:
     """
     The files, with the PR's head commit read before and after them. If a push moves the head
-    while the pages are read, the pages may mix commits, so read them all again.
+    while the pages are read, the pages may mix commits, so report no head commit and let the
+    caller refetch.
     """
     if not isinstance(scm, GetPullRequestProtocol):
         files, provider_calls = _read_files(scm, pull_request_key)
-        _record_head_sha_read(provider, "no_pull_request_support", 1, provider_calls)
+        _record_head_sha_read(provider, "no_pull_request_support", provider_calls)
         return _PullRequestFiles(files, None)
 
     head_sha = scm_actions.get_pull_request(scm, pull_request_key)["data"]["head"]["sha"]
-    provider_calls = 1
-    for attempt in range(1, _HEAD_SHA_ATTEMPTS + 1):
-        files, page_calls = _read_files(scm, pull_request_key)
-        head_sha_after = scm_actions.get_pull_request(scm, pull_request_key)["data"]["head"]["sha"]
-        provider_calls += page_calls + 1
-        if head_sha_after == head_sha:
-            _record_head_sha_read(provider, "matched", attempt, provider_calls)
-            return _PullRequestFiles(files, head_sha)
-        logger.info(
-            "organization_pull_request_files.head_sha.moved",
-            extra={
-                **log_extra,
-                "provider": provider,
-                "attempt": attempt,
-                "will_retry": attempt < _HEAD_SHA_ATTEMPTS,
-                "head_sha_before": head_sha,
-                "head_sha_after": head_sha_after,
-            },
-        )
-        head_sha = head_sha_after
-    _record_head_sha_read(provider, "gave_up", _HEAD_SHA_ATTEMPTS, provider_calls)
+    files, page_calls = _read_files(scm, pull_request_key)
+    head_sha_after = scm_actions.get_pull_request(scm, pull_request_key)["data"]["head"]["sha"]
+    provider_calls = page_calls + 2
+    if head_sha_after == head_sha:
+        _record_head_sha_read(provider, "matched", provider_calls)
+        return _PullRequestFiles(files, head_sha)
+
+    logger.info(
+        "organization_pull_request_files.head_sha.moved",
+        extra={
+            **log_extra,
+            "provider": provider,
+            "head_sha_before": head_sha,
+            "head_sha_after": head_sha_after,
+        },
+    )
+    _record_head_sha_read(provider, "moved", provider_calls)
     return _PullRequestFiles(files, None)
 
 
@@ -160,7 +155,7 @@ def _fetch_files(
     """
     Every file the pull request changes, as its provider reports them. With
     `head_sha_provider` (the repository's provider, used to tag metrics), also the head commit
-    they were read at, which costs two or more extra provider calls.
+    they were read at, which costs two extra provider calls.
     """
     try:
         scm = make_scm(organization_id, repository_id, referrer="pull-request-files")
