@@ -26,7 +26,12 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.tasks.actions import build_trigger_action_task_params, trigger_action
-from sentry.workflow_engine.types import ActionId, WorkflowEventData, WorkflowId
+from sentry.workflow_engine.types import (
+    ActionId,
+    UnsupportedActionEvent,
+    WorkflowEventData,
+    WorkflowId,
+)
 from sentry.workflow_engine.utils import log_context, scopedstats
 
 logger = log_context.get_logger(__name__)
@@ -211,7 +216,7 @@ def update_workflow_action_group_statuses(
 
 def get_unique_active_actions(
     actions_queryset: BaseQuerySet[Action],
-    group: Group,
+    group: Group | None,
 ) -> BaseQuerySet[Action]:
     """
     Returns a queryset of unique active actions based on their handler's dedup_key method.
@@ -233,14 +238,14 @@ def get_unique_active_actions(
         dedup_key_to_action_id[dedup_key] = action.id
 
     for dedup_key, action_ids in dropped.items():
-        group_type = group.issue_type.slug
+        group_type = group.issue_type.slug if group is not None else "none"
         logger.info(
             "workflow_engine.action.dedup.dropped",
             extra={
                 "dedup_key": dedup_key,
                 "dropped_action_ids": sorted(action_ids),
                 "replacement_action_id": dedup_key_to_action_id[dedup_key],
-                "group_id": group.id,
+                "group_id": group.id if group is not None else None,
                 "group_type": group_type,
             },
         )
@@ -251,6 +256,27 @@ def get_unique_active_actions(
     return actions_queryset.filter(id__in=dedup_key_to_action_id.values())
 
 
+def get_supported_actions(
+    actions: BaseQuerySet[Action], event_data: WorkflowEventData
+) -> BaseQuerySet[Action]:
+    organization = event_data.get_organization()
+    unsupported_ids = []
+    for action in actions:
+        try:
+            action.validate_event_data(event_data)
+        except UnsupportedActionEvent:
+            unsupported_ids.append(action.id)
+            logger.info(
+                "workflow_engine.action.unsupported_event",
+                extra={
+                    "action_id": action.id,
+                    "organization_id": organization.id,
+                    "event_id": event_data.event_id,
+                },
+            )
+    return actions.exclude(id__in=unsupported_ids) if unsupported_ids else actions
+
+
 @scopedstats.timer()
 def fire_actions(
     actions: BaseQuerySet[Action],
@@ -258,7 +284,8 @@ def fire_actions(
     workflow_uuid_map: dict[WorkflowId, str],
     action_to_workflow_id: dict[ActionId, WorkflowId],
 ) -> None:
-    deduped_actions = get_unique_active_actions(actions, event_data.require_group())
+    supported_actions = get_supported_actions(actions, event_data)
+    deduped_actions = get_unique_active_actions(supported_actions, event_data.group)
 
     for action in deduped_actions:
         workflow_id = action_to_workflow_id[action.id]
