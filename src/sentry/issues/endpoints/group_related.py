@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
+from sentry.api.helpers.projects import filter_projects_by_permissions
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -19,8 +20,10 @@ from sentry.apidocs.examples.issue_examples import IssueExamples
 from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.constants import ObjectStatus
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.related.combine import combine
+from sentry.issues.related.same_trace import same_trace_issues
 from sentry.issues.related.similar_stacktrace import similar_stacktrace_issues
 from sentry.issues.related.types import (
     RelatedIssuesContext,
@@ -30,6 +33,7 @@ from sentry.issues.related.types import (
     RelationTypeStatus,
 )
 from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -74,10 +78,12 @@ class GroupRelatedEndpoint(GroupEndpoint):
         description=(
             "Returns other issues related to this one, each with the reasons it's related. "
             "Use it when triaging an issue, before resolving or ignoring it, to check whether it "
-            "duplicates another issue. similar_stacktrace finds issues in the same project whose "
-            "stack traces Seer finds similar to this issue's latest event. meta.types says whether "
-            "each requested type ran, doesn't apply to this issue, or failed. Returns 503 only "
-            "when every requested type failed."
+            "duplicates another issue or is another error from the same request. "
+            "similar_stacktrace finds issues in the same project whose stack traces Seer finds "
+            "similar to this issue's latest event. same_trace finds issues, in any project you "
+            "can read, with errors in the same trace as this issue's latest event. meta.types "
+            "says whether each requested type ran, doesn't apply to this issue, or failed. "
+            "Returns 503 only when every requested type failed."
         ),
         parameters=[GlobalParams.ORG_ID_OR_SLUG, IssueParams.ISSUE_ID, GroupRelatedQuerySerializer],
         responses={
@@ -108,9 +114,19 @@ class GroupRelatedEndpoint(GroupEndpoint):
         results: dict[RelationType, RelationTypeResult] = {}
         if not requested_types or RelationType.SIMILAR_STACKTRACE in requested_types:
             results[RelationType.SIMILAR_STACKTRACE] = similar_stacktrace_issues(ctx)
+        if not requested_types or RelationType.SAME_TRACE in requested_types:
+            results[RelationType.SAME_TRACE] = same_trace_issues(
+                ctx, _readable_projects(request, group.project.organization_id)
+            )
 
         if all(
             result.meta["status"] == RelationTypeStatus.UNAVAILABLE for result in results.values()
         ):
             return Response({"detail": ALL_TYPES_UNAVAILABLE_DETAIL}, status=503)
         return Response(combine(ctx, results))
+
+
+def _readable_projects(request: Request, organization_id: int) -> list[Project]:
+    """The organization's active projects that the caller can read, as RelatedIssuesEndpoint does."""
+    projects = Project.objects.filter(organization_id=organization_id, status=ObjectStatus.ACTIVE)
+    return filter_projects_by_permissions(list(projects), request, include_all_accessible=True)

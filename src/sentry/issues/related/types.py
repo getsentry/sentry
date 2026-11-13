@@ -14,6 +14,7 @@ from sentry.users.models.user import User
 
 class RelationType(StrEnum):
     SIMILAR_STACKTRACE = "similar_stacktrace"
+    SAME_TRACE = "same_trace"
 
 
 class RelationTypeStatus(StrEnum):
@@ -83,8 +84,26 @@ class SimilarStacktraceMeta(RelationTypeMeta):
     ]
 
 
+class SameTraceMeta(RelationTypeMeta):
+    eventId: NotRequired[
+        Annotated[
+            str,
+            ApiDescription(
+                "ID of the event whose trace was searched: the issue's latest event. "
+                "Missing when no event was read"
+            ),
+        ]
+    ]
+    traceId: NotRequired[
+        Annotated[
+            str,
+            ApiDescription("The trace that was searched. Missing when the event has no trace"),
+        ]
+    ]
+
+
 # Any type's entry in meta.types: the union of every RelationTypeMeta subclass.
-AnyRelationTypeMeta = SimilarStacktraceMeta
+AnyRelationTypeMeta = SimilarStacktraceMeta | SameTraceMeta
 
 
 @dataclass(frozen=True)
@@ -105,6 +124,6 @@ class RelatedIssuesMeta(TypedDict):
 class RelatedIssuesResponse(TypedDict):
     data: Annotated[
         list[RelatedIssue],
-        ApiDescription("Related issues, most related first"),
+        ApiDescription("Related issues, those matched by more types first"),
     ]
     meta: RelatedIssuesMeta

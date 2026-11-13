@@ -17,8 +17,8 @@ def combine(
     ctx: RelatedIssuesContext, results: Mapping[RelationType, RelationTypeResult]
 ) -> RelatedIssuesResponse:
     """
-    Build the response from each type's result: one entry per issue, in the order found, with a
-    relation for each type that matched it.
+    Build the response from each type's result. An issue found by several types becomes one entry
+    with a relation for each, and issues matched by more types come first.
     """
     relations_by_group: dict[int, list[RelatedIssueRelation]] = {}
     for result in results.values():
@@ -26,6 +26,7 @@ def combine(
             continue
         for group_id, relation in result.relations.items():
             relations_by_group.setdefault(group_id, []).append(relation)
+    ordered_group_ids = sorted(relations_by_group, key=lambda gid: -len(relations_by_group[gid]))
 
     # Scoped to the organization in case a type's lookup ever returns an ID from outside it. Deleted
     # groups drop out here.
@@ -38,8 +39,8 @@ def combine(
 
     return {
         "data": [
-            {"issue": serialized[group_id], "relations": relations}
-            for group_id, relations in relations_by_group.items()
+            {"issue": serialized[group_id], "relations": relations_by_group[group_id]}
+            for group_id in ordered_group_ids
             if group_id in serialized
         ],
         "meta": {
