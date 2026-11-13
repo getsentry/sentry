@@ -1,9 +1,8 @@
 import {Component} from 'react';
-import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
-import pick from 'lodash/pick';
 import moment from 'moment-timezone';
+import {parseAsString, useQueryStates, type Values} from 'nuqs';
 
 import {toast} from '@sentry/scraps/toast';
 
@@ -15,7 +14,6 @@ import {
   TWENTY_FOUR_HOURS,
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
-import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -25,10 +23,20 @@ import {HealthStatsPeriodOption} from 'sentry/types/release';
 import {percent} from 'sentry/utils';
 import {defined} from 'sentry/utils/defined';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {withApi} from 'sentry/utils/withApi';
 import {getCrashFreePercent} from 'sentry/views/explore/releases/utils';
 
 import {ReleasesDisplayOption} from './releasesDisplayOptions';
+
+const pageFilterQueryParsers = {
+  end: parseAsString,
+  environment: parseAsStringArray,
+  project: parseAsStringArray,
+  start: parseAsString,
+  statsPeriod: parseAsString,
+  utc: parseAsString,
+};
 
 function omitIgnoredProps(props: Props) {
   return omit(props, ['api', 'organization', 'children', 'selection.datetime.utc']);
@@ -83,8 +91,8 @@ type Props = {
   api: Client;
   children: (renderProps: ReleasesRequestRenderProps) => React.ReactNode;
   display: ReleasesDisplayOption[];
-  location: Location;
   organization: Organization;
+  pageFilterQuery: Values<typeof pageFilterQueryParsers>;
   releases: string[];
   selection: PageFilters;
   healthStatsPeriod?: HealthStatsPeriodOption;
@@ -135,7 +143,7 @@ class ReleasesRequest extends Component<Props, State> {
   }
 
   get baseQueryParams() {
-    const {location, selection, releases} = this.props;
+    const {pageFilterQuery, selection, releases} = this.props;
 
     return {
       query: new MutableSearch(
@@ -149,7 +157,7 @@ class ReleasesRequest extends Component<Props, State> {
         }, [])
       ).formatString(),
       interval: getInterval(selection.datetime),
-      ...normalizeDateTimeParams(pick(location.query, Object.values(URL_PARAM))),
+      ...normalizeDateTimeParams(pageFilterQuery),
     };
   }
 
@@ -516,4 +524,9 @@ class ReleasesRequest extends Component<Props, State> {
   }
 }
 
-export default withApi(ReleasesRequest);
+function ReleasesRequestWithPageFilterQuery(props: Omit<Props, 'pageFilterQuery'>) {
+  const [pageFilterQuery] = useQueryStates(pageFilterQueryParsers);
+  return <ReleasesRequest {...props} pageFilterQuery={pageFilterQuery} />;
+}
+
+export default withApi(ReleasesRequestWithPageFilterQuery);
