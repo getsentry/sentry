@@ -26,7 +26,10 @@ from sentry.notebooks.models import Notebook, NotebookActionRequestState
 from sentry.notifications.platform.service import serialize_notification_data
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
+    AUTOFIX_OUT_OF_CREDITS_BILLING_MESSAGE,
+    AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE,
     SeerAgentError,
+    SeerAgentOutOfCredits,
     SeerAgentResponse,
     SeerAgentWriteApproval,
     SeerAutofixUpdate,
@@ -92,6 +95,11 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.utils.locking import UnableToAcquireLock
 
+SEER_OUT_OF_CREDITS_TEXT = (
+    "Your organization doesn't have enough Seer credits for this, so I stopped here. "
+    "Add credits to continue."
+)
+
 
 class SlackAutofixEntrypointTest(TestCase):
     def setUp(self) -> None:
@@ -108,6 +116,7 @@ class SlackAutofixEntrypointTest(TestCase):
         self.slack_request.integration = self.integration
         self.slack_request.channel_id = self.channel_id
         self.slack_request.user_id = self.slack_user_id
+        self.slack_request.get_identity_user.return_value = self.user
         self.slack_request.data = {"message": {"ts": self.thread_ts}}
         self.action = BlockKitMessageAction(
             name=SlackAction.SEER_AUTOFIX_START.value,
@@ -214,6 +223,7 @@ class SlackAutofixEntrypointTest(TestCase):
         assert cache_payload["group_id"] == self.group.id
         assert cache_payload["threads"] == [self.thread]
         assert cache_payload["handoff_target"] is None
+        assert cache_payload["user_id"] == self.user.id
 
     @patch("sentry.seer.autofix.utils.read_preference_from_sentry_db")
     def test_create_autofix_cache_payload_captures_handoff_target(
@@ -350,6 +360,88 @@ class SlackAutofixEntrypointTest(TestCase):
         assert renderable["text"] == "Seer stopped early"
         assert "The API key expired." in str(renderable["blocks"])
         assert "Rotate the key." in str(renderable["blocks"])
+
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
+        return_value={"ok": True, "ts": "1234567890.000100"},
+    )
+    def test_out_of_credits_run_posts_out_of_credits_message(
+        self,
+        mock_send_threaded_message: MagicMock,
+        _mock_has_access: MagicMock,
+    ) -> None:
+        SeerOperatorAutofixCache.populate_post_autofix_cache(
+            entrypoint_key=SeerEntrypointKey.SLACK,
+            run_id=MOCK_RUN_ID,
+            cache_payload=self._get_entrypoint().create_autofix_cache_payload(),
+        )
+
+        with self.tasks():
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_ERRORED,
+                event_payload={
+                    "run_id": MOCK_RUN_ID,
+                    "group_id": self.group.id,
+                    "failure_reason": "out_of_credits",
+                },
+                organization_id=self.organization.id,
+            )
+
+        blocks = str(mock_send_threaded_message.call_args.kwargs["renderable"]["blocks"])
+        assert AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE in blocks
+        assert "couldn't finish working on this issue" not in blocks
+
+    def _post_out_of_credits_message(self) -> str:
+        SeerOperatorAutofixCache.populate_post_autofix_cache(
+            entrypoint_key=SeerEntrypointKey.SLACK,
+            run_id=MOCK_RUN_ID,
+            cache_payload=self._get_entrypoint().create_autofix_cache_payload(),
+        )
+        with (
+            patch.object(SeerAutofixOperator, "has_access", return_value=True),
+            patch(
+                "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
+                return_value={"ok": True, "ts": "1234567890.000100"},
+            ) as mock_send_threaded_message,
+            self.tasks(),
+        ):
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_ERRORED,
+                event_payload={
+                    "run_id": MOCK_RUN_ID,
+                    "group_id": self.group.id,
+                    "failure_reason": "out_of_credits",
+                },
+                organization_id=self.organization.id,
+            )
+        return str(mock_send_threaded_message.call_args.kwargs["renderable"]["blocks"])
+
+    @patch(
+        "sentry.models.organizationmember.OrganizationMember.get_scopes",
+        return_value=frozenset({"org:billing"}),
+    )
+    def test_out_of_credits_run_started_by_billing_member_posts_billing_message(
+        self, _mock_get_scopes: MagicMock
+    ) -> None:
+        blocks = self._post_out_of_credits_message()
+
+        assert AUTOFIX_OUT_OF_CREDITS_BILLING_MESSAGE in blocks
+        assert "Configure auto-reload" in blocks
+
+    @patch(
+        "sentry.models.organizationmember.OrganizationMember.get_scopes",
+        return_value=frozenset({"org:billing"}),
+    )
+    def test_out_of_credits_run_without_a_starter_posts_member_message(
+        self, _mock_get_scopes: MagicMock
+    ) -> None:
+        self.slack_request.get_identity_user.return_value = None
+
+        blocks = self._post_out_of_credits_message()
+
+        assert AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE in blocks
+        assert "Contact Admin" in blocks
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
     @patch(
@@ -971,6 +1063,10 @@ class SlackAgentEntrypointTest(TestCase):
         assert payload["thread"]["thread_ts"] == self.thread_ts
         assert payload["thread"]["channel_id"] == self.channel_id
         assert payload["slack_user_id"] == self.slack_user_id
+        assert payload["user_id"] is None
+
+        ep.user_id = self.user.id
+        assert ep.create_agent_cache_payload()["user_id"] == self.user.id
 
     @override_options({"notifications.tracking.sources": [NotificationSource.SEER_AGENT_RESPONSE]})
     @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
@@ -1295,6 +1391,250 @@ class SlackAgentEntrypointTest(TestCase):
         )
         second_data = mock_send.call_args.kwargs["data"]
         assert second_data.missing_scope_settings_url is None
+
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
+    def test_on_agent_update_out_of_credits_replies_once(self, mock_send: MagicMock) -> None:
+        cache_payload = self._get_entrypoint().create_agent_cache_payload()
+        state = _agent_state(SEER_OUT_OF_CREDITS_TEXT)
+        state.status = "error"
+        state.failure_reason = "out_of_credits"
+
+        SlackAgentEntrypoint.on_agent_update(cache_payload=cache_payload, run_id=12345, state=state)
+        SlackAgentEntrypoint.on_agent_update(cache_payload=cache_payload, run_id=12345, state=state)
+
+        mock_send.assert_called_once()
+        data = mock_send.call_args.kwargs["data"]
+        assert isinstance(data, SeerAgentOutOfCredits)
+        assert data.has_billing_access is False
+
+    @patch(
+        "sentry.models.organizationmember.OrganizationMember.get_scopes",
+        return_value=frozenset({"org:billing"}),
+    )
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
+    def test_on_agent_update_out_of_credits_is_written_for_billing_sender(
+        self, mock_send: MagicMock, _mock_get_scopes: MagicMock
+    ) -> None:
+        ep = self._get_entrypoint()
+        ep.user_id = self.user.id
+        cache_payload = ep.create_agent_cache_payload()
+        state = _agent_state(SEER_OUT_OF_CREDITS_TEXT)
+        state.status = "error"
+        state.failure_reason = "out_of_credits"
+
+        SlackAgentEntrypoint.on_agent_update(cache_payload=cache_payload, run_id=12345, state=state)
+
+        data = mock_send.call_args.kwargs["data"]
+        assert isinstance(data, SeerAgentOutOfCredits)
+        assert data.has_billing_access is True
+
+    @patch(
+        "sentry.models.organizationmember.OrganizationMember.get_scopes",
+        return_value=frozenset({"org:billing"}),
+    )
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
+    def test_on_agent_update_pr_out_of_credits_is_written_for_billing_sender(
+        self, mock_send: MagicMock, _mock_get_scopes: MagicMock
+    ) -> None:
+        ep = self._get_entrypoint()
+        ep.user_id = self.user.id
+        cache_payload = ep.create_agent_cache_payload()
+        state = _agent_state("I tried to open a PR.")
+        state.repo_pr_states["acme/web"] = RepoPRState(
+            repo_name="acme/web",
+            pr_creation_status="error",
+            pr_creation_error_code="out_of_credits",
+        )
+
+        SlackAgentEntrypoint.on_agent_update(cache_payload=cache_payload, run_id=12345, state=state)
+
+        notice = mock_send.call_args.kwargs["data"]
+        assert isinstance(notice, SeerAgentOutOfCredits)
+        assert notice.has_billing_access is True
+
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
+    def test_on_agent_update_pr_out_of_credits_posts_notice_once(
+        self, mock_send: MagicMock
+    ) -> None:
+        cache_payload = self._get_entrypoint().create_agent_cache_payload()
+        state = _agent_state("I tried to open a PR.")
+        pr = RepoPRState(
+            repo_name="acme/web",
+            pr_creation_status="error",
+            pr_creation_error_code="out_of_credits",
+        )
+        state.repo_pr_states[pr.repo_name] = pr
+
+        SlackAgentEntrypoint.on_agent_update(cache_payload=cache_payload, run_id=12345, state=state)
+        SlackAgentEntrypoint.on_agent_update(cache_payload=cache_payload, run_id=12345, state=state)
+
+        sent = [call.kwargs["data"] for call in mock_send.call_args_list]
+        assert len(sent) == 2
+        answer, notice = sent
+        assert isinstance(answer, SeerAgentResponse)
+        assert answer.summary == "I tried to open a PR."
+        assert answer.repo_pr_states == [pr]
+        assert isinstance(notice, SeerAgentOutOfCredits)
+
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
+    def test_on_agent_update_prs_out_of_credits_share_one_notice(
+        self, mock_send: MagicMock
+    ) -> None:
+        cache_payload = self._get_entrypoint().create_agent_cache_payload()
+        state = _agent_state("I tried to open two PRs.")
+        for repo_name in ("acme/api", "acme/web"):
+            state.repo_pr_states[repo_name] = RepoPRState(
+                repo_name=repo_name,
+                pr_creation_status="error",
+                pr_creation_error_code="out_of_credits",
+            )
+
+        SlackAgentEntrypoint.on_agent_update(cache_payload=cache_payload, run_id=12345, state=state)
+        SlackAgentEntrypoint.on_agent_update(cache_payload=cache_payload, run_id=12345, state=state)
+
+        sent = [call.kwargs["data"] for call in mock_send.call_args_list]
+        assert [type(data) for data in sent] == [SeerAgentResponse, SeerAgentOutOfCredits]
+
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
+    def test_on_agent_update_run_and_pr_out_of_credits_share_one_notice(
+        self, mock_send: MagicMock
+    ) -> None:
+        cache_payload = self._get_entrypoint().create_agent_cache_payload()
+        state = _agent_state(SEER_OUT_OF_CREDITS_TEXT)
+        state.status = "error"
+        state.failure_reason = "out_of_credits"
+        state.repo_pr_states["acme/web"] = RepoPRState(
+            repo_name="acme/web",
+            pr_creation_status="error",
+            pr_creation_error_code="out_of_credits",
+        )
+
+        SlackAgentEntrypoint.on_agent_update(cache_payload=cache_payload, run_id=12345, state=state)
+        SlackAgentEntrypoint.on_agent_update(cache_payload=cache_payload, run_id=12345, state=state)
+
+        mock_send.assert_called_once()
+        assert isinstance(mock_send.call_args.kwargs["data"], SeerAgentOutOfCredits)
+
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
+    def test_on_agent_update_out_of_credits_notice_once_per_turn(
+        self, mock_send: MagicMock
+    ) -> None:
+        cache_payload = self._get_entrypoint().create_agent_cache_payload()
+        pr = RepoPRState(
+            repo_name="acme/web",
+            pr_creation_status="error",
+            pr_creation_error_code="out_of_credits",
+        )
+        # The PR fails while the turn is still running, then the run stops for the same reason.
+        state = _agent_state(None)
+        state.status = "processing"
+        state.repo_pr_states[pr.repo_name] = pr
+        SlackAgentEntrypoint.on_agent_update(cache_payload=cache_payload, run_id=12345, state=state)
+
+        state = _agent_state(SEER_OUT_OF_CREDITS_TEXT)
+        state.status = "error"
+        state.failure_reason = "out_of_credits"
+        state.repo_pr_states[pr.repo_name] = pr
+        SlackAgentEntrypoint.on_agent_update(cache_payload=cache_payload, run_id=12345, state=state)
+
+        mock_send.assert_called_once()
+        assert isinstance(mock_send.call_args.kwargs["data"], SeerAgentOutOfCredits)
+
+        # The next turn runs out too. Its notice is new, but the old PR failure isn't.
+        state.blocks += [
+            MemoryBlock(
+                id="b3",
+                message=Message(role="user", content="try again"),
+                timestamp="2024-01-01T00:00:02Z",
+            ),
+            MemoryBlock(
+                id="b4",
+                message=Message(role="assistant", content=SEER_OUT_OF_CREDITS_TEXT),
+                timestamp="2024-01-01T00:00:03Z",
+            ),
+        ]
+        SlackAgentEntrypoint.on_agent_update(cache_payload=cache_payload, run_id=12345, state=state)
+        SlackAgentEntrypoint.on_agent_update(cache_payload=cache_payload, run_id=12345, state=state)
+
+        assert mock_send.call_count == 2
+        assert isinstance(mock_send.call_args.kwargs["data"], SeerAgentOutOfCredits)
+
+    @patch("sentry.seer.entrypoints.slack.entrypoint.edit_thread_message")
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
+    def test_on_agent_update_pr_out_of_credits_notice_per_push_attempt(
+        self, mock_send: MagicMock, mock_edit: MagicMock
+    ) -> None:
+        cache_payload = self._get_entrypoint().create_agent_cache_payload()
+        state = _agent_state("I tried to open a PR.")
+        state.repo_pr_states["acme/web"] = RepoPRState(
+            repo_name="acme/web",
+            pr_creation_status="error",
+            pr_creation_error_code="out_of_credits",
+            idempotency_key="push-1",
+        )
+        SlackAgentEntrypoint.on_agent_update(cache_payload=cache_payload, run_id=12345, state=state)
+
+        sent = [type(call.kwargs["data"]) for call in mock_send.call_args_list]
+        assert sent == [SeerAgentResponse, SeerAgentOutOfCredits]
+
+        # The next turn doesn't retry the PR, so the failure still in the state isn't new.
+        mock_send.reset_mock()
+        state.blocks += [
+            MemoryBlock(
+                id="b3",
+                message=Message(role="user", content="what changed?"),
+                timestamp="2024-01-01T00:00:02Z",
+            ),
+            MemoryBlock(
+                id="b4",
+                message=Message(role="assistant", content="Here is what changed."),
+                timestamp="2024-01-01T00:00:03Z",
+            ),
+        ]
+        SlackAgentEntrypoint.on_agent_update(cache_payload=cache_payload, run_id=12345, state=state)
+
+        sent = [type(call.kwargs["data"]) for call in mock_send.call_args_list]
+        assert sent == [SeerAgentResponse]
+
+        # The turn after retries the PR and runs out again; only the push's key is new.
+        mock_send.reset_mock()
+        state.blocks += [
+            MemoryBlock(
+                id="b5",
+                message=Message(role="user", content="try the PR again"),
+                timestamp="2024-01-01T00:00:04Z",
+            ),
+            MemoryBlock(
+                id="b6",
+                message=Message(role="assistant", content="I tried again."),
+                timestamp="2024-01-01T00:00:05Z",
+            ),
+        ]
+        state.repo_pr_states["acme/web"] = RepoPRState(
+            repo_name="acme/web",
+            pr_creation_status="error",
+            pr_creation_error_code="out_of_credits",
+            idempotency_key="push-2",
+        )
+        SlackAgentEntrypoint.on_agent_update(cache_payload=cache_payload, run_id=12345, state=state)
+        SlackAgentEntrypoint.on_agent_update(cache_payload=cache_payload, run_id=12345, state=state)
+
+        sent = [type(call.kwargs["data"]) for call in mock_send.call_args_list]
+        assert sent == [SeerAgentResponse, SeerAgentOutOfCredits]
+
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
+    def test_on_agent_update_pr_error_without_credits_posts_no_notice(
+        self, mock_send: MagicMock
+    ) -> None:
+        cache_payload = self._get_entrypoint().create_agent_cache_payload()
+        state = _agent_state("I tried to open a PR.")
+        pr = RepoPRState(repo_name="acme/web", pr_creation_status="error")
+        state.repo_pr_states[pr.repo_name] = pr
+
+        SlackAgentEntrypoint.on_agent_update(cache_payload=cache_payload, run_id=12345, state=state)
+
+        mock_send.assert_called_once()
+        assert isinstance(mock_send.call_args.kwargs["data"], SeerAgentResponse)
 
     @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
     def test_on_agent_update_does_not_duplicate_answers(self, mock_send: MagicMock) -> None:
