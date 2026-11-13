@@ -4,7 +4,7 @@ import re
 
 from django.conf import settings
 from django.conf.urls import include
-from django.urls import URLPattern, URLResolver, path, re_path
+from django.urls import URLPattern, URLResolver, re_path
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_safe
 from django.views.generic import RedirectView
@@ -182,8 +182,10 @@ urlpatterns += [
         name="get_cli_download_url",
     ),
     # Versioned API
-    path(
-        f"{API_BASE_PATH.removeprefix('/')}/",
+    # A regex route, not path(): route strings such as "^api/0/users/$" feed analytics and
+    # generated silo URL lists.
+    re_path(
+        rf"^{re.escape(API_BASE_PATH.removeprefix('/'))}/",
         include("sentry.api.urls"),
     ),
     # Legacy unversioned endpoints
