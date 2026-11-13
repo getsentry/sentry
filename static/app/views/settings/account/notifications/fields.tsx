@@ -119,7 +119,7 @@ export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
     // Component will create choices
   },
   inbox: {
-    title: t('Inbox Notifications'),
+    title: t('Inbox'),
     description: t(
       'Choose which notifications are sent to you directly. All notifications will still appear in your inbox. These apply to all your orgs.'
     ),

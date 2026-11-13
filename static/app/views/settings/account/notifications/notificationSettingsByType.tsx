@@ -206,7 +206,9 @@ function InboxNotificationSettings({
 }) {
   return (
     <Fragment>
-      <SentryDocumentTitle title={title} />
+      {/* The breadcrumb reads "Inbox" per the design, but the tab title needs to
+          differ from the Inbox page's own tab title. */}
+      <SentryDocumentTitle title={t('Inbox Notifications')} />
       <SettingsPageHeader title={title} />
       <Stack gap="xs" marginBottom="xl">
         <Heading as="h2" size="xl">
