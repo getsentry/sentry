@@ -11,6 +11,7 @@ from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnub
 from sentry.apidocs.examples.release_examples import RELEASE
 from sentry.apidocs.formats import absolute_url, hex_id, numeric_id, slug
 from sentry.issues.related.types import (
+    ContributingMeta,
     RelatedIssuesResponse,
     RelationType,
     RelationTypeStatus,
@@ -355,6 +356,11 @@ RELATED_ISSUES_RESPONSE: RelatedIssuesResponse = {
                 status=RelationTypeStatus.OK,
                 eventId="60fc17404bf4445c81675be939ef74d6",
                 traceId="a7d67cf796774551a95be6543cacd459",
+            ),
+            ContributingMeta(
+                type=RelationType.CONTRIBUTING,
+                status=RelationTypeStatus.NOT_APPLICABLE,
+                detail="Only metric issues have contributing issues.",
             ),
         ],
     },
