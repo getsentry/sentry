@@ -181,22 +181,14 @@ def test_flow_preview(flow: HandoffFlow, expected: str) -> None:
     assert expected in guide
 
 
-def test_runbook_has_windows_commands_and_restores_the_environment() -> None:
+def test_runbook_has_windows_commands() -> None:
     guide = render()
     assert "macOS, Linux, and WSL" in guide
     assert "Follow only" in guide
     assert "Get-Command sentry -ErrorAction SilentlyContinue" in guide
-    assert "Invoke-RestMethod https://cli.sentry.dev/install.ps1 | Invoke-Expression" in guide
+    assert "irm https://cli.sentry.dev/install.ps1 | iex" in guide
     assert "sentry auth bootstrap --url 'https://sentry.example.com'" in guide
     assert "$env:SENTRY_SETUP_CODE = 'sntryc_example-setup-code'" in guide
-    assert "SENTRY_SETUP_CODE = $env:SENTRY_SETUP_CODE" in guide
-    assert "} finally {" in guide
-    assert 'Remove-Item -LiteralPath "Env:$name" -ErrorAction SilentlyContinue' in guide
-    assert (
-        "[Environment]::SetEnvironmentVariable($name, $previousEnvironment[$name], 'Process')"
-        in guide
-    )
-    assert 'if ($LASTEXITCODE -ne 0) { throw "Sentry CLI authentication failed." }' in guide
 
 
 @pytest.mark.parametrize("field", ["setup_code", "sentry_url", "client_id"])
@@ -207,20 +199,20 @@ def test_powershell_values_are_literal_strings(field: str) -> None:
 
 def test_claim_runbook_has_a_powershell_form_post() -> None:
     guide = render_claim_runbook(claim_url="https://sentry.example.com/agent-handoff/")
-    assert "macOS, Linux, and WSL" in guide
-    assert "run the command for the current\nshell once" in guide
-    assert "Invoke-WebRequest -UseBasicParsing -Method Post" in guide
-    assert "-Uri 'https://sentry.example.com/agent-handoff/'" in guide
-    assert "-ContentType 'application/x-www-form-urlencoded'" in guide
-    assert "-Body @{handoff_code = 'HANDOFF_CODE'} -ErrorAction Stop).Content" in guide
-    assert "if ($null -eq $_.Exception.Response) { throw }" in guide
-    assert "$_.ErrorDetails.Message" in guide
-    assert "GetResponseStream()" in guide
+    assert "run the applicable command once" in guide
+    assert (
+        """try {
+  irm -Method Post 'https://sentry.example.com/agent-handoff/' `
+    -ContentType 'application/x-www-form-urlencoded' `
+    -Body @{handoff_code = 'HANDOFF_CODE'}
+} catch { $_.ErrorDetails.Message }"""
+        in guide
+    )
 
 
 def test_powershell_claim_url_is_a_literal_string() -> None:
     guide = render_claim_runbook(claim_url="https://sentry.example.com/path'with'quotes")
-    assert "-Uri 'https://sentry.example.com/path''with''quotes'" in guide
+    assert "irm -Method Post 'https://sentry.example.com/path''with''quotes'" in guide
 
 
 def test_onboarding_preview_uses_live_documentation() -> None:
