@@ -82,7 +82,7 @@ class InboxEventSummary(StrEnum):
     ISSUE_TEAM_MENTIONED = "Mentioned your team in a comment"
     ISSUE_PR_READY_FOR_REVIEW = "Pull request ready for review"
     NOTEBOOK_COMPLETED = "Investigation completed"
-    NOTEBOOK_MENTIONED = "Mentioned you"
+    NOTEBOOK_USER_MENTIONED = "Mentioned you"
     NOTEBOOK_TEAM_MENTIONED = "Mentioned your team"
     NOTEBOOK_PARTICIPANT_ADDED = "Added you"
 

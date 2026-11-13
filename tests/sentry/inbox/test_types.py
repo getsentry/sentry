@@ -101,7 +101,7 @@ def test_idempotency_key_uses_only_event_data() -> None:
 def test_idempotency_key_sorts_nested_data() -> None:
     event_type = InboxEventType(
         event_type="test.structured",
-        summary=InboxEventSummary.NOTEBOOK_MENTIONED,
+        summary=InboxEventSummary.NOTEBOOK_USER_MENTIONED,
         item_type=StubItemType[Group]("test.issue"),
         data_class=StructuredData,
         notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
@@ -135,7 +135,7 @@ def test_register_types() -> None:
     )
     reference_event = InboxEventType(
         event_type="test.reference.mentioned",
-        summary=InboxEventSummary.NOTEBOOK_MENTIONED,
+        summary=InboxEventSummary.NOTEBOOK_USER_MENTIONED,
         item_type=reference_type,
         data_class=MentionedData,
         notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
