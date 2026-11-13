@@ -73,8 +73,16 @@ export function EmptyState({
     if (isError || isLoading) {
       return;
     }
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const characterElement = characterRef.current;
+    if (!characterElement) {
+      return;
+    }
+    const ownerDocument = characterElement.ownerDocument;
+    const ownerWindow = ownerDocument.defaultView;
+    if (!ownerWindow) {
+      return;
+    }
+    const reducedMotion = ownerWindow.matchMedia('(prefers-reduced-motion: reduce)');
     let pointer: Pick<PointerEvent, 'clientX' | 'clientY'> | null = null;
 
     function handlePointerMove(event: PointerEvent) {
@@ -120,7 +128,7 @@ export function EmptyState({
       }
     }
 
-    document.addEventListener('pointermove', handlePointerMove, {passive: true});
+    ownerDocument.addEventListener('pointermove', handlePointerMove, {passive: true});
     const caretEvents = [
       'selectionchange',
       'focusin',
@@ -130,27 +138,24 @@ export function EmptyState({
       'scroll',
     ];
     for (const event of caretEvents) {
-      document.addEventListener(event, updateGaze, true);
+      ownerDocument.addEventListener(event, updateGaze, true);
     }
-    document.addEventListener('pointerleave', handlePointerLeave);
-    window.addEventListener('blur', resetPupil);
-    window.addEventListener('resize', updateGaze);
+    ownerDocument.addEventListener('pointerleave', handlePointerLeave);
+    ownerWindow.addEventListener('blur', resetPupil);
+    ownerWindow.addEventListener('resize', updateGaze);
     reducedMotion.addEventListener('change', updateGaze);
-    characterElement?.addEventListener('transitionend', handleCharacterTransitionEnd);
+    characterElement.addEventListener('transitionend', handleCharacterTransitionEnd);
     updateGaze();
     return () => {
-      document.removeEventListener('pointermove', handlePointerMove);
+      ownerDocument.removeEventListener('pointermove', handlePointerMove);
       for (const event of caretEvents) {
-        document.removeEventListener(event, updateGaze, true);
+        ownerDocument.removeEventListener(event, updateGaze, true);
       }
-      document.removeEventListener('pointerleave', handlePointerLeave);
-      window.removeEventListener('blur', resetPupil);
-      window.removeEventListener('resize', updateGaze);
+      ownerDocument.removeEventListener('pointerleave', handlePointerLeave);
+      ownerWindow.removeEventListener('blur', resetPupil);
+      ownerWindow.removeEventListener('resize', updateGaze);
       reducedMotion.removeEventListener('change', updateGaze);
-      characterElement?.removeEventListener(
-        'transitionend',
-        handleCharacterTransitionEnd
-      );
+      characterElement.removeEventListener('transitionend', handleCharacterTransitionEnd);
     };
   }, [isError, isLoading, composerRef]);
 
@@ -343,7 +348,10 @@ function getComposerCaretPoint(editor: HTMLDivElement | null) {
     }
   }
   const bounds = editor.getBoundingClientRect();
-  const style = getComputedStyle(editor);
+  const style = editor.ownerDocument.defaultView?.getComputedStyle(editor);
+  if (!style) {
+    return null;
+  }
   return {
     clientX: bounds.left + (parseFloat(style.paddingLeft) || 0),
     clientY:
