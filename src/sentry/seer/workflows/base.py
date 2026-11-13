@@ -80,7 +80,7 @@ class NoSettings(BaseModel):
         extra = "forbid"
 
 
-class WorkflowTrigger[Inputs: BaseModel](Protocol):
+class AutomationTrigger[Inputs: BaseModel](Protocol):
     """How an automation's runs start, and which projects those runs cover."""
 
     # What a firing hands to the automation's action; recorded in the run's snapshot.
@@ -105,7 +105,7 @@ class WorkflowTrigger[Inputs: BaseModel](Protocol):
         ...
 
 
-class WorkflowAction[Inputs: BaseModel](Protocol):
+class AutomationAction[Inputs: BaseModel](Protocol):
     """What Seer does for an admitted run."""
 
     settings_type: type[BaseModel]
@@ -152,11 +152,11 @@ class AdmittedRun:
 
 
 @dataclass(frozen=True)
-class WorkflowDefinition[Inputs: BaseModel]:
+class AutomationDefinition[Inputs: BaseModel]:
     """An automation: a trigger paired with an action that accepts what it produces."""
 
-    trigger: WorkflowTrigger[Inputs]
-    action: WorkflowAction[Inputs]
+    trigger: AutomationTrigger[Inputs]
+    action: AutomationAction[Inputs]
 
     def project_ids(self, config: SeerWorkflowConfig) -> list[int]:
         return list(self.trigger.projects(config).order_by("id").values_list("id", flat=True))
@@ -169,10 +169,13 @@ class WorkflowDefinition[Inputs: BaseModel]:
             and self.trigger.projects(config).filter(id=project_id).exists()
         )
 
-    def validate_settings(self, extras: SeerWorkflowConfigExtras) -> None:
+    def validate_settings(self, extras: SeerWorkflowConfigExtras) -> tuple[BaseModel, BaseModel]:
+        """Return the parsed trigger and action settings."""
         try:
-            self.trigger.settings_type.parse_obj(extras.trigger_settings or {})
-            self.action.settings_type.parse_obj(extras.action_settings or {})
+            return (
+                self.trigger.settings_type.parse_obj(extras.trigger_settings or {}),
+                self.action.settings_type.parse_obj(extras.action_settings or {}),
+            )
         except ValidationError as e:
             raise WorkflowUpdateError(
                 "; ".join(
@@ -232,6 +235,8 @@ class WorkflowDefinition[Inputs: BaseModel]:
             admission=admission,
         )
         lifecycle = SeerWorkflowRunLifecycle.create(config, trigger_key=trigger_key, extras=extras)
+        # TODO(telkins): Decide whether an automation that stays over quota should keep
+        # recording a rejected run for every trigger.
         if admission.status == "rejected":
             lifecycle.reject(
                 error=WorkflowRunError(code=admission.reason, message="Automation quota exceeded.")
@@ -258,7 +263,7 @@ class ConfigUpdate:
 
     # Config DB row to update. DO NOT call save() on this directly - use ``update_config``
     config: LockedConfig
-    definition: WorkflowDefinition[Any]
+    definition: AutomationDefinition[Any]
     dirty_fields: set[str] = field(default_factory=set)
     related_changed: bool = False
 

@@ -4,7 +4,13 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from sentry.cadence.api import ScheduledTriggerType, TriggerFiring, TriggerTarget, get_schedules
+from sentry.cadence.api import (
+    ScheduledTriggerType,
+    TriggerFiring,
+    TriggerTarget,
+    cron,
+    get_schedules,
+)
 from sentry.cadence.registry import trigger_type_registry
 from sentry.cadence.tasks import cadence_tick
 from sentry.seer.models.workflow import (
@@ -14,16 +20,16 @@ from sentry.seer.models.workflow import (
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
 )
-from sentry.seer.workflows.base import WorkflowDefinition
+from sentry.seer.workflows.base import AutomationDefinition
 from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
-from sentry.seer.workflows.schedule import (
-    PromptedInvestigationAction,
-    ScheduledRunInputs,
-)
 from sentry.seer.workflows.scheduled import (
     SCHEDULED_EXECUTION_FEATURE,
+    PromptedInvestigationAction,
+    ScheduledRunInputs,
     SeerWorkflowTriggerHandler,
     record_scheduled_automation_run,
+    schedule_for,
+    sync_schedule,
     trigger_key_for,
 )
 from sentry.seer.workflows.workflow import SeerWorkflow
@@ -206,7 +212,7 @@ class RecordScheduledAutomationRunTest(TestCase):
         assert self.is_scheduled()
 
     def test_quota_exceeded_rejects_the_run(self) -> None:
-        with patch.object(WorkflowDefinition, "has_quota_available", return_value=False):
+        with patch.object(AutomationDefinition, "has_quota_available", return_value=False):
             self.run_task()
 
         (run,) = self.runs()
@@ -293,3 +299,58 @@ class ScheduledAutomationEndToEndTest(TestCase):
             target_ids=[config.id],
         ).values()
         assert info.next_scheduled_for == SCHEDULED_FOR + timedelta(days=1)
+
+
+class ScheduleForTest(TestCase):
+    def test_enabled_daily_config_runs_daily(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, enabled=True
+        )
+        assert schedule_for(config) == cron("0 10 * * *")
+
+    def test_config_cron_overrides_the_daily_schedule(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization,
+            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            enabled=True,
+            extras={"trigger_settings": {"cron": "0 9 * * 1"}},
+        )
+        assert schedule_for(config) == cron("0 9 * * 1")
+
+    def test_config_cron_runs_in_its_timezone(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization,
+            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            enabled=True,
+            extras={"trigger_settings": {"cron": "0 9 * * 1", "timezone": "America/New_York"}},
+        )
+        assert schedule_for(config) == cron("0 9 * * 1", "America/New_York")
+
+    def test_disabled_config_is_unscheduled(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, enabled=False
+        )
+        assert schedule_for(config) is None
+
+
+class SyncScheduleTest(TestCase):
+    def next_run(self, config: SeerWorkflowConfig) -> datetime | None:
+        info = get_schedules(
+            organization_id=config.organization_id,
+            trigger_type=ScheduledTriggerType.SEER_WORKFLOW,
+            target_ids=[config.id],
+        ).get(config.id)
+        return info.next_scheduled_for if info else None
+
+    @freeze_time("2024-03-09 12:00:00")
+    def test_sets_and_clears(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, enabled=True
+        )
+
+        sync_schedule(config)
+        assert self.next_run(config) == datetime(2024, 3, 10, 10, 0, tzinfo=UTC)
+
+        config.enabled = False
+        sync_schedule(config)
+        assert self.next_run(config) is None

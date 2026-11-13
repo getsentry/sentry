@@ -67,7 +67,7 @@ class SeerWorkflow:
 
     Each change applies to fresh state under the config's row lock. Returned models do not
     carry a lock or refresh automatically. What starts the automation's runs and what they do
-    come from its strategy's ``WorkflowDefinition``.
+    come from its strategy's ``AutomationDefinition``.
     """
 
     config_id: int
