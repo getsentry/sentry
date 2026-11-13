@@ -9,6 +9,7 @@ from sentry.notebooks.endpoints.validators import (
     StrictCamelSnakeValidator,
     VisualizationSuggestionValidator,
 )
+from sentry.notebooks.endpoints.validators.base import NotebookVersionValidator
 
 
 class _ExampleValidator(StrictCamelSnakeValidator):
@@ -64,3 +65,34 @@ class TestStrictCamelSnakeValidator:
         assert "currentResult" in validator.errors
         assert "schemaVersion" in validator.errors["currentResult"]
         assert "schemaversion" not in validator.errors["currentResult"]
+
+
+class TestNotebookVersionValidator:
+    def test_takes_notebook_version(self) -> None:
+        data = assert_valid(NotebookVersionValidator(data={"notebookVersion": 3}))
+
+        assert data == {"notebook_version": 3}
+
+    def test_takes_the_old_investigation_version_name(self) -> None:
+        data = assert_valid(NotebookVersionValidator(data={"investigationVersion": 3}))
+
+        assert data == {"notebook_version": 3}
+
+    def test_takes_both_names_with_the_same_value(self) -> None:
+        data = assert_valid(
+            NotebookVersionValidator(data={"notebookVersion": 3, "investigationVersion": 3})
+        )
+
+        assert data == {"notebook_version": 3}
+
+    def test_rejects_both_names_with_different_values(self) -> None:
+        validator = NotebookVersionValidator(data={"notebookVersion": 3, "investigationVersion": 2})
+
+        assert not validator.is_valid()
+        assert "notebookVersion" in validator.errors
+
+    def test_requires_a_version(self) -> None:
+        validator = NotebookVersionValidator(data={})
+
+        assert not validator.is_valid()
+        assert "notebookVersion" in validator.errors

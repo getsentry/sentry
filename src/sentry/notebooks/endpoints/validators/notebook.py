@@ -7,7 +7,10 @@ from rest_framework import serializers
 
 from sentry.api.helpers.creator import CreatorReference
 from sentry.models.organization import Organization
-from sentry.notebooks.endpoints.validators.base import StrictCamelSnakeValidator
+from sentry.notebooks.endpoints.validators.base import (
+    NotebookVersionValidator,
+    StrictCamelSnakeValidator,
+)
 from sentry.notebooks.models import Notebook, NotebookStatus
 from sentry.notebooks.services.notebooks import (
     NotebookSourceNotFound,
@@ -106,11 +109,7 @@ class NotebookCreateValidator(StrictCamelSnakeValidator[tuple[Notebook, bool]]):
         return value
 
 
-class NotebookUpdateValidator(StrictCamelSnakeValidator):
-    investigation_version = serializers.IntegerField(
-        min_value=1,
-        help_text="Current investigation version from the latest detail response. Stale versions return 409.",
-    )
+class NotebookUpdateValidator(NotebookVersionValidator):
     title = serializers.CharField(
         max_length=255,
         required=False,
@@ -141,8 +140,5 @@ class NotebookUpdateValidator(StrictCamelSnakeValidator):
         return value
 
 
-class NotebookDeleteValidator(StrictCamelSnakeValidator):
-    investigation_version = serializers.IntegerField(
-        min_value=1,
-        help_text="Current investigation version from the latest detail response. Stale versions return 409.",
-    )
+class NotebookDeleteValidator(NotebookVersionValidator):
+    pass

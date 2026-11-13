@@ -150,7 +150,23 @@ class TestBlockCreateValidator:
         validator = BlockCreateValidator(data={"kind": "text"})
 
         assert not validator.is_valid()
-        assert "investigationVersion" in validator.errors
+        assert "notebookVersion" in validator.errors
+
+    def test_takes_the_notebook_version_under_either_name(self) -> None:
+        for data in ({"notebookVersion": 2}, {"investigationVersion": 2}):
+            validator = BlockCreateValidator(data={"kind": "text", **data})
+
+            assert validator.is_valid(), validator.errors
+            assert validator.validated_data["notebook_version"] == 2
+
+    def test_a_notebook_version_under_either_name_excludes_a_producer_key(self) -> None:
+        for name in ("notebookVersion", "investigationVersion"):
+            validator = BlockCreateValidator(
+                data={name: 1, "kind": "text", "key": "summary", "revision": 1, "content": "a"}
+            )
+
+            assert not validator.is_valid()
+            assert "detail" in validator.errors
 
 
 class TestBlockUpdateValidator:
