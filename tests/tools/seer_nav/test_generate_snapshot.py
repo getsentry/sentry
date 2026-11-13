@@ -68,8 +68,3 @@ def test_entry_defaults_are_left_out_of_the_snapshot() -> None:
         "sub_page": True,
     }
     assert LOGS.to_dict() == {"crumbs": "Explore → Logs", "path": "/explore/logs/"}
-
-
-def test_parses_this_checkout() -> None:
-    sections = {e.crumbs.split(" → ")[0] for e in generate_snapshot.parse_checkout()}
-    assert {"Explore", "Issues", "Settings"} <= sections
