@@ -19,6 +19,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrganizationPermission
 from sentry.api.permissions import DisallowImpersonatedTokenCreation, SentryIsAuthenticated
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import require_user
 from sentry.organizations.services.organization.model import (
@@ -126,7 +127,10 @@ class OrganizationAgentHandoffEndpoint(ControlSiloOrganizationEndpoint):
     @extend_schema(
         operation_id="Create a private agent onboarding prompt",
         request=AgentHandoffRequestSerializer,
-        responses={201: inline_sentry_response_serializer("AgentHandoff", AgentHandoffResponse)},
+        responses={
+            201: inline_sentry_response_serializer("AgentHandoff", AgentHandoffResponse),
+            403: RESPONSE_FORBIDDEN,
+        },
     )
     def post(
         self,

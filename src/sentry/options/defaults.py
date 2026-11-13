@@ -1678,6 +1678,14 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Most entities one telemetry classifier selection enqueues, and its page size.
+register(
+    "telemetry-classifiers.select-limit",
+    type=Int,
+    default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Conversation classifiers PoC.
 register(
     "classifiers.conversations.project-ids",

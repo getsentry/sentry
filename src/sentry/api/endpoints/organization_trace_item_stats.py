@@ -29,7 +29,12 @@ from sentry.api.event_search import (
 )
 from sentry.api.serializers.base import serialize
 from sentry.api.utils import TimeoutException, handle_query_errors
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
 from sentry.apidocs.examples.trace_item_stats_examples import TraceItemStatsExamples
 from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
@@ -241,6 +246,7 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
             200: inline_sentry_response_serializer(
                 "TraceItemStatsResponse", TraceItemStatsResponse
             ),
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
