@@ -1,7 +1,13 @@
 import {Fragment} from 'react';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  isInaccessible,
+  render,
+  screen,
+  userEvent,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {Tag} from '@sentry/scraps/badge';
 import type {EntityHeaderProps} from '@sentry/scraps/entityHeader';
@@ -878,12 +884,12 @@ describe('EntityHeader', () => {
 
       // A tab stop that announces nothing is focus landing somewhere a screen
       // reader cannot follow.
-      const header = screen.getByRole('banner');
-      const hiddenFocusable = header.querySelectorAll(
-        '[aria-hidden="true"] :is(a, [tabindex]), [aria-hidden="true"]:is(a, [tabindex])'
-      );
+      const tabStops = screen
+        .getByRole('banner')
+        .querySelectorAll('a[href], button, [tabindex]:not([tabindex="-1"])');
 
-      expect(hiddenFocusable).toHaveLength(0);
+      expect(tabStops.length).toBeGreaterThan(0);
+      expect([...tabStops].filter(isInaccessible)).toEqual([]);
     });
 
     it('renders a tooltip on a metadata item', async () => {
