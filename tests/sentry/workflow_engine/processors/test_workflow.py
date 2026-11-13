@@ -299,7 +299,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         self, mock_filter: MagicMock, mock_fire_actions: MagicMock
     ) -> None:
         action = self.create_action()
-        mock_filter.return_value = (Action.objects.filter(id=action.id), {action.id: 1})
+        mock_filter.return_value = (Action.objects.filter(id=action.id), {action.id: 1}, {1})
 
         # this should not pass because the environment is not None
         self.error_workflow.update(environment=self.group_event.get_environment())
@@ -437,7 +437,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
             patch("sentry.workflow_engine.processors.workflow.enqueue_workflows") as enqueue,
             patch(
                 "sentry.workflow_engine.processors.action.filter_recently_fired_workflow_actions",
-                return_value=([], {}),
+                return_value=([], {}, set()),
             ) as suppress_actions,
         ):
             result = process_workflows(
