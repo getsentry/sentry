@@ -37,7 +37,9 @@ from sentry.seer.models.workflow import (
 from sentry.seer.workflows.base import SeerServiceAccountGrant, SelectedMonitors
 from sentry.seer.workflows.workflow import SeerWorkflow
 from sentry.snuba import errors
-from sentry.snuba.models import QuerySubscription
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.entity_subscription import apply_dataset_query_conditions
+from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.snuba.referrer import Referrer
 from sentry.users.models.user import User
 from sentry.utils import json
@@ -159,9 +161,16 @@ class MetricBreachTrigger:
         self, monitor: Detector, subscription: QuerySubscription, end: datetime
     ) -> float:
         snuba_query = subscription.snuba_query
+        if snuba_query.dataset != Dataset.Events.value:
+            sys.exit(f"> Only error monitors are supported, not {snuba_query.dataset} ones.")
         result = errors.query(
             selected_columns=[snuba_query.aggregate],
-            query=snuba_query.query,
+            query=apply_dataset_query_conditions(
+                SnubaQuery.Type(snuba_query.type),
+                snuba_query.query,
+                snuba_query.event_types,
+                discover=True,
+            ),
             snuba_params=SnubaParams(
                 start=end - timedelta(seconds=snuba_query.time_window),
                 end=end,
@@ -171,7 +180,10 @@ class MetricBreachTrigger:
             ),
             referrer=Referrer.API_ALERTS_ALERT_RULE_CHART.value,
         )
-        return next(iter(result["data"][0].values()))
+        value = next(iter(result["data"][0].values()), None) if result["data"] else None
+        if value is None:
+            sys.exit("> The monitor's query returned no value for its latest window.")
+        return value
 
     def _automation(self) -> SeerWorkflow:
         config = SeerWorkflowConfig.objects.filter(
