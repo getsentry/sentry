@@ -56,18 +56,26 @@ function renderList({
   return render(<Wrapper />);
 }
 
+const stackInputs = () => screen.getAllByRole('textbox', {name: /stack trace prefix/i});
+
+// Matches the element whose full text is `text`, even when it's split across a
+// highlighted span, and not its ancestors.
+const fullText = (text: string) => (_: string, element: Element | null) =>
+  element?.textContent === text &&
+  ![...element.children].some(child => child.textContent === text);
+
 describe('PathMappingList', () => {
   describe('empty', () => {
-    it('starts with a single new mapping open for editing', () => {
+    it('starts with a single editable row', () => {
       renderList();
 
-      expect(screen.getByText(/Paths \(1\)/)).toBeInTheDocument();
+      expect(screen.getByText('Code mappings')).toBeInTheDocument();
+      expect(stackInputs()).toHaveLength(1);
       expect(
-        screen.getByRole('textbox', {name: /stack trace prefix/i})
+        screen.getByRole('textbox', {name: /repository prefix/i})
       ).toBeInTheDocument();
-      expect(
-        screen.queryByRole('button', {name: 'Delete path mapping'})
-      ).not.toBeInTheDocument();
+      expect(screen.getByRole('textbox', {name: /branch/i})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Delete path mapping'})).toBeEnabled();
     });
 
     it('updates the input as the user types', async () => {
@@ -82,72 +90,54 @@ describe('PathMappingList', () => {
         'lib/'
       );
     });
-
-    it('pins the summary when reopening a filled row that was collapsed', async () => {
-      renderList();
-
-      await userEvent.type(
-        screen.getByRole('textbox', {name: /stack trace prefix/i}),
-        'app/'
-      );
-      await userEvent.click(screen.getByRole('button', {name: 'Add another path'}));
-      await userEvent.click(screen.getByRole('button', {name: 'Expand path mapping'}));
-
-      expect(
-        screen.getByRole('button', {name: 'Collapse path mapping'})
-      ).toBeInTheDocument();
-    });
   });
 
   describe('with existing mappings', () => {
-    it('renders each mapping as a collapsed summary', () => {
+    it('renders every mapping as an editable row', () => {
       renderList({initialPathMappings: MAPPINGS});
 
-      expect(screen.getByText(/Paths \(2\)/)).toBeInTheDocument();
-      expect(screen.getByText('app/')).toBeInTheDocument();
-      expect(screen.getByText('src/')).toBeInTheDocument();
-      expect(
-        screen.queryByRole('textbox', {name: /stack trace prefix/i})
-      ).not.toBeInTheDocument();
-    });
-
-    it('expands a single mapping at a time', async () => {
-      renderList({initialPathMappings: MAPPINGS});
-
-      const [first, second] = screen.getAllByRole('button', {
-        name: 'Expand path mapping',
-      });
-
-      await userEvent.click(first!);
-      expect(
-        screen.getByRole('textbox', {name: /stack trace prefix/i})
-      ).toBeInTheDocument();
-
-      await userEvent.click(second!);
-      // Only one edit form open at a time.
-      expect(screen.getAllByRole('textbox', {name: /stack trace prefix/i})).toHaveLength(
-        1
+      expect(stackInputs()).toHaveLength(2);
+      expect(screen.getAllByRole('textbox', {name: /repository prefix/i})).toHaveLength(
+        2
+      );
+      expect(screen.getAllByRole('textbox', {name: /branch/i})).toHaveLength(2);
+      // Each prefix shows in its input and in the row's example path.
+      expect(screen.getAllByText('static/app/')).toHaveLength(2);
+      expect(screen.getAllByRole('textbox', {name: /branch/i})[1]).toHaveValue(
+        'frontend'
       );
     });
 
-    it('adds a new mapping when "Add another path" is clicked', async () => {
-      renderList({initialPathMappings: MAPPINGS});
-
-      await userEvent.click(screen.getByRole('button', {name: 'Add another path'}));
-
-      expect(screen.getByText(/Paths \(3\)/)).toBeInTheDocument();
-      expect(screen.getByRole('textbox', {name: /stack trace prefix/i})).toHaveValue('');
-    });
-
-    it('keeps delete on the summary when the only mapping is open', async () => {
+    it('shows the example with each prefix leading its path', () => {
       renderList({initialPathMappings: [MAPPINGS[0]!]});
 
-      await userEvent.click(screen.getByRole('button', {name: 'Expand path mapping'}));
+      expect(screen.getByText('e.g')).toBeInTheDocument();
+      // Each side reads as one path: the prefix, then the file.
+      expect(screen.getByText(fullText('app/views/index.tsx'))).toBeInTheDocument();
+      expect(
+        screen.getByText(fullText('static/app/views/index.tsx'))
+      ).toBeInTheDocument();
+      // The prefixes appear both in the inputs and in the example.
+      expect(screen.getAllByText('app/')).toHaveLength(2);
+      expect(screen.getAllByText('static/app/')).toHaveLength(2);
+    });
 
-      // enableDelete is false for a single mapping, so delete stays on the summary
-      expect(screen.getAllByRole('button', {name: 'Delete path mapping'})).toHaveLength(
-        1
-      );
+    it('shows just the file for an empty prefix', () => {
+      renderList({
+        initialPathMappings: [{stackRoot: '', sourceRoot: 'src/', branch: 'main'}],
+      });
+
+      expect(screen.getByText(fullText('views/index.tsx'))).toBeInTheDocument();
+      expect(screen.getByText(fullText('src/views/index.tsx'))).toBeInTheDocument();
+    });
+
+    it('adds a new mapping when "Add mapping" is clicked', async () => {
+      renderList({initialPathMappings: MAPPINGS});
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add mapping'}));
+
+      expect(stackInputs()).toHaveLength(3);
+      expect(stackInputs()[2]).toHaveValue('');
     });
 
     it('shows an Automatic tag only on generated rows', () => {
@@ -166,35 +156,20 @@ describe('PathMappingList', () => {
       expect(screen.getAllByText('Automatic')).toHaveLength(1);
     });
 
-    it('keeps delete on the summary when an existing row is expanded', async () => {
-      renderList({initialPathMappings: MAPPINGS});
-
-      const [firstExpand] = screen.getAllByRole('button', {name: 'Expand path mapping'});
-      await userEvent.click(firstExpand!);
-
-      expect(screen.getAllByRole('button', {name: 'Delete path mapping'})).toHaveLength(
-        2
-      );
-    });
-
     it('removes a mapping', async () => {
       renderList({initialPathMappings: MAPPINGS});
 
       const [firstDelete] = screen.getAllByRole('button', {name: 'Delete path mapping'});
       await userEvent.click(firstDelete!);
 
-      expect(screen.getByText(/Paths \(1\)/)).toBeInTheDocument();
-      expect(screen.getByText('src/')).toBeInTheDocument();
-      expect(screen.queryByText('app/')).not.toBeInTheDocument();
+      expect(stackInputs()).toHaveLength(1);
+      expect(screen.getByRole('textbox', {name: /branch/i})).toHaveValue('frontend');
+      expect(screen.queryByText('static/app/')).not.toBeInTheDocument();
     });
 
-    it('keeps the open row editable after deleting a row above it', async () => {
+    it('keeps the remaining row editable after deleting a row above it', async () => {
       renderList({initialPathMappings: MAPPINGS});
 
-      const [, secondExpand] = screen.getAllByRole('button', {
-        name: 'Expand path mapping',
-      });
-      await userEvent.click(secondExpand!);
       const [firstDelete] = screen.getAllByRole('button', {name: 'Delete path mapping'});
       await userEvent.click(firstDelete!);
       await userEvent.click(screen.getByRole('textbox', {name: /branch/i}));
@@ -203,13 +178,13 @@ describe('PathMappingList', () => {
       expect(screen.getByRole('textbox', {name: /branch/i})).toHaveValue('frontend');
     });
 
-    it('falls back to a fresh open row when the last mapping is deleted', async () => {
+    it('falls back to a fresh row when the last mapping is deleted', async () => {
       renderList({initialPathMappings: [MAPPINGS[0]!]});
 
       await userEvent.click(screen.getByRole('button', {name: 'Delete path mapping'}));
 
-      expect(screen.getByText(/Paths \(1\)/)).toBeInTheDocument();
-      expect(screen.getByRole('textbox', {name: /stack trace prefix/i})).toHaveValue('');
+      expect(stackInputs()).toHaveLength(1);
+      expect(screen.queryByText('static/app/')).not.toBeInTheDocument();
     });
   });
 
@@ -221,7 +196,7 @@ describe('PathMappingList', () => {
       ];
       renderList({initialPathMappings: duplicates});
 
-      expect(screen.getByRole('button', {name: 'Add another path'})).toHaveAttribute(
+      expect(screen.getByRole('button', {name: 'Add mapping'})).toHaveAttribute(
         'aria-disabled',
         'true'
       );
@@ -234,7 +209,7 @@ describe('PathMappingList', () => {
       ];
       renderList({initialPathMappings: duplicates});
 
-      expect(screen.getByRole('button', {name: 'Add another path'})).toHaveAttribute(
+      expect(screen.getByRole('button', {name: 'Add mapping'})).toHaveAttribute(
         'aria-disabled',
         'true'
       );
@@ -247,24 +222,24 @@ describe('PathMappingList', () => {
       ];
       renderList({initialPathMappings: duplicates});
 
-      expect(screen.getByRole('button', {name: 'Add another path'})).toHaveAttribute(
+      expect(screen.getByRole('button', {name: 'Add mapping'})).toHaveAttribute(
         'aria-disabled',
         'true'
       );
     });
   });
 
-  describe('add another path', () => {
+  describe('add mapping', () => {
     it('blocks adding a third empty row as a duplicate of the second', async () => {
       renderList({initialPathMappings: [MAPPINGS[0]!]});
 
-      await userEvent.click(screen.getByRole('button', {name: 'Add another path'}));
-      expect(screen.getByText(/Paths \(2\)/)).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Add mapping'}));
+      expect(stackInputs()).toHaveLength(2);
 
-      await userEvent.click(screen.getByRole('button', {name: 'Add another path'}));
-      expect(screen.getByText(/Paths \(3\)/)).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Add mapping'}));
+      expect(stackInputs()).toHaveLength(3);
 
-      expect(screen.getByRole('button', {name: 'Add another path'})).toHaveAttribute(
+      expect(screen.getByRole('button', {name: 'Add mapping'})).toHaveAttribute(
         'aria-disabled',
         'true'
       );
@@ -294,12 +269,12 @@ describe('PathMappingList', () => {
       expect(screen.getByRole('textbox', {name: /branch/i})).toHaveValue('master');
     });
 
-    it('seeds new rows added via "Add another path" with the provided default branch', async () => {
+    it('seeds new rows added via "Add mapping" with the provided default branch', async () => {
       renderList({initialPathMappings: [MAPPINGS[0]!], defaultBranch: 'master'});
 
-      await userEvent.click(screen.getByRole('button', {name: 'Add another path'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Add mapping'}));
 
-      expect(screen.getByRole('textbox', {name: /branch/i})).toHaveValue('master');
+      expect(screen.getAllByRole('textbox', {name: /branch/i})[1]).toHaveValue('master');
     });
   });
 
@@ -371,34 +346,31 @@ describe('PathMappingList', () => {
         ],
       });
 
-      // No warning icon on either collapsed row.
-      expect(screen.queryByRole('img', {name: 'Warning'})).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(
+          /Remove one since only one of them is required for path matching/
+        )
+      ).not.toBeInTheDocument();
     });
 
-    it('shows the warning icon and alert only on the later identical row', async () => {
+    it('shows the in-form duplicate alert only on the later copy', () => {
       renderList({
         pathMappings: [
-          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
-          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
+          {id: '1', stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
+          {id: '2', stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
+          {id: '3', stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
         ],
       });
 
-      // The first row is the original; only the later copy is flagged.
-      expect(screen.getAllByRole('img', {name: 'Warning'})).toHaveLength(1);
-
-      const [, secondExpand] = screen.getAllByRole('button', {
-        name: 'Expand path mapping',
-      });
-      await userEvent.click(secondExpand!);
-
+      // The first row is the original; each later copy is flagged.
       expect(
-        screen.getByText(
+        screen.getAllByText(
           /Remove one since only one of them is required for path matching/
         )
-      ).toBeInTheDocument();
+      ).toHaveLength(2);
     });
 
-    it('shows warning icon and across-repos alert when an existing mapping on another repo has the same pair', async () => {
+    it('shows the across-repos alert when an existing mapping on another repo has the same pair', () => {
       renderList({
         pathMappings: [
           {id: '1', stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
@@ -411,10 +383,6 @@ describe('PathMappingList', () => {
           } as RepositoryProjectPathConfig,
         ],
       });
-
-      expect(screen.getByRole('img', {name: 'Warning'})).toBeInTheDocument();
-
-      await userEvent.click(screen.getByRole('button', {name: 'Expand path mapping'}));
 
       expect(screen.getByText(/getsentry\/relay/)).toBeInTheDocument();
       expect(screen.getByText(/Only one can be used for matching/)).toBeInTheDocument();
@@ -429,37 +397,58 @@ describe('PathMappingList', () => {
       });
 
       // Different (stackRoot, sourceRoot) pairs — add is NOT disabled.
-      expect(screen.getByRole('button', {name: 'Add another path'})).not.toHaveAttribute(
+      expect(screen.getByRole('button', {name: 'Add mapping'})).not.toHaveAttribute(
         'aria-disabled',
         'true'
       );
     });
 
-    it('shows the exact-duplicate warning on a Code Owners row that duplicates an earlier mapping', async () => {
+    it('keeps the Code Owners alert on the original and flags the later copy', () => {
       renderList({
         pathMappings: [
-          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
-          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main', hasCodeOwner: true},
+          {
+            id: '1',
+            stackRoot: 'src/',
+            sourceRoot: 'src/app/',
+            branch: 'main',
+            hasCodeOwner: true,
+          },
+          {id: '2', stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
         ],
       });
 
-      // Exact duplicate takes priority: warning icon visible on the Code Owners row.
-      expect(screen.getAllByRole('img', {name: 'Warning'})).toHaveLength(1);
-
-      const [, expandCodeOwner] = screen.getAllByRole('button', {
-        name: 'Expand path mapping',
-      });
-      await userEvent.click(expandCodeOwner!);
-
+      expect(screen.getByRole('link', {name: 'Code Owners'})).toBeInTheDocument();
       expect(
-        screen.getByText(
+        screen.getAllByText(
           /Remove one since only one of them is required for path matching/
         )
-      ).toBeInTheDocument();
-      expect(screen.queryByText(/Code Owners/)).not.toBeInTheDocument();
+      ).toHaveLength(1);
     });
 
-    it('shows the Code Owners alert on a Code Owners row with no duplicate', async () => {
+    it('flags a Code Owners row that duplicates an earlier mapping', () => {
+      renderList({
+        pathMappings: [
+          {id: '1', stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
+          {
+            id: '2',
+            stackRoot: 'src/',
+            sourceRoot: 'src/app/',
+            branch: 'main',
+            hasCodeOwner: true,
+          },
+        ],
+      });
+
+      // The duplicate warning takes priority over the Code Owners message.
+      expect(
+        screen.getAllByText(
+          /Remove one since only one of them is required for path matching/
+        )
+      ).toHaveLength(1);
+      expect(screen.queryByRole('link', {name: 'Code Owners'})).not.toBeInTheDocument();
+    });
+
+    it('shows the Code Owners alert on a Code Owners row with no duplicate', () => {
       renderList({
         pathMappings: [
           {
@@ -472,15 +461,29 @@ describe('PathMappingList', () => {
         ],
       });
 
-      // No duplicate — no warning icon on the collapsed row.
-      expect(screen.queryByRole('img', {name: 'Warning'})).not.toBeInTheDocument();
-
-      await userEvent.click(screen.getByRole('button', {name: 'Expand path mapping'}));
-
       expect(screen.getByRole('link', {name: 'Code Owners'})).toBeInTheDocument();
       expect(
         screen.queryByText(/Only one can be used for matching/)
       ).not.toBeInTheDocument();
+    });
+
+    it('explains the disabled delete with a link to Code Owners', async () => {
+      renderList({
+        pathMappings: [
+          {
+            id: '1',
+            stackRoot: 'src/',
+            sourceRoot: 'src/app/',
+            branch: 'main',
+            hasCodeOwner: true,
+          },
+        ],
+      });
+
+      const deleteButton = screen.getByRole('button', {name: 'Delete path mapping'});
+      expect(deleteButton).toHaveAttribute('aria-disabled', 'true');
+      await userEvent.hover(deleteButton);
+      expect(await screen.findAllByRole('link', {name: 'Code Owners'})).toHaveLength(2);
     });
   });
 
@@ -501,10 +504,6 @@ describe('PathMappingList', () => {
     it('converts invalid branch characters to dashes', async () => {
       renderList();
 
-      await userEvent.type(
-        screen.getByRole('textbox', {name: /stack trace prefix/i}),
-        'src/'
-      );
       await userEvent.clear(screen.getByRole('textbox', {name: /branch/i}));
       await userEvent.type(screen.getByRole('textbox', {name: /branch/i}), 'my branch');
 

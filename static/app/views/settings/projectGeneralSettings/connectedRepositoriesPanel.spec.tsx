@@ -207,6 +207,15 @@ describe('ConnectedRepositoriesPanel', () => {
 
   it('Edit opens the modal locked to that repository with seeded path rows', async () => {
     const integration = GitHubIntegrationFixture();
+    // Every row is editable, so each one loads prefix suggestions.
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/code-mapping-prefixes/stack/`,
+      body: {prefixes: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mapping-prefixes/repo/`,
+      body: {prefixes: []},
+    });
     MockApiClient.addMockResponse({
       url: repoUrl,
       method: 'GET',
@@ -259,7 +268,7 @@ describe('ConnectedRepositoriesPanel', () => {
     expect(screen.getByRole('textbox', {name: 'Repository'})).toBeDisabled();
 
     // Seeded row from the server is rendered and Save is enabled.
-    expect(await screen.findByText('src/')).toBeInTheDocument();
+    expect(await screen.findAllByText('src/')).not.toHaveLength(0);
     expect(await screen.findByRole('button', {name: 'Save'})).toBeEnabled();
   });
 
@@ -330,10 +339,10 @@ describe('ConnectedRepositoriesPanel', () => {
 
     // Wait for seeded row then add a second mapping.
     expect(await screen.findByRole('button', {name: 'Save'})).toBeEnabled();
-    await userEvent.click(screen.getByRole('button', {name: 'Add another path'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add mapping'}));
     await userEvent.type(
-      screen.getByRole('textbox', {name: /stack trace prefix/i}),
-      'src/'
+      screen.getAllByRole('textbox', {name: /stack trace prefix/i})[1]!,
+      'lib/'
     );
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 

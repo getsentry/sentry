@@ -149,6 +149,7 @@ describe('ConnectRepositoryModal', () => {
     ).toBeInTheDocument();
     // The project is named in the title, so there is no locked project field.
     expect(screen.queryByRole('textbox', {name: /project/i})).not.toBeInTheDocument();
+    expect(screen.getByText('Code mappings')).toBeInTheDocument();
     expect(
       await screen.findByText('Select a repository first to configure code paths')
     ).toBeInTheDocument();
@@ -221,12 +222,9 @@ describe('ConnectRepositoryModal', () => {
       'app/'
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Add another path'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add mapping'}));
 
-    expect(screen.getByText(/Paths \(2\)/)).toBeInTheDocument();
-    expect(
-      screen.getByRole('textbox', {name: /stack trace prefix/i})
-    ).toBeInTheDocument();
+    expect(screen.getAllByRole('textbox', {name: /stack trace prefix/i})).toHaveLength(2);
   });
 
   it('disables Save only when both stack root and source root match', async () => {
@@ -247,34 +245,26 @@ describe('ConnectRepositoryModal', () => {
 
     // Add a second mapping: src/app/ → dist/  (prefix overlap — Save still enabled)
     // Clicking the button blurs the repo prefix field, committing 'app/'.
-    await userEvent.click(screen.getByRole('button', {name: 'Add another path'}));
-    await userEvent.type(
-      screen.getByRole('textbox', {name: /stack trace prefix/i}),
-      'src/app/'
-    );
-    await userEvent.type(
-      screen.getByRole('textbox', {name: /repository prefix/i}),
-      'dist/'
-    );
+    await userEvent.click(screen.getByRole('button', {name: 'Add mapping'}));
+    const secondStack = () =>
+      screen.getAllByRole('textbox', {name: /stack trace prefix/i})[1]!;
+    const secondSource = () =>
+      screen.getAllByRole('textbox', {name: /repository prefix/i})[1]!;
+    await userEvent.type(secondStack(), 'src/app/');
+    await userEvent.type(secondSource(), 'dist/');
     await userEvent.tab();
     expect(await screen.findByRole('button', {name: 'Save'})).toBeEnabled();
 
     // Change second stack root to src/ — same stack, different source root (sameStack warning)
     // → Save stays enabled because the pair src/+dist/ is distinct from src/+app/
-    await userEvent.clear(screen.getByRole('textbox', {name: /stack trace prefix/i}));
-    await userEvent.type(
-      screen.getByRole('textbox', {name: /stack trace prefix/i}),
-      'src/'
-    );
+    await userEvent.clear(secondStack());
+    await userEvent.type(secondStack(), 'src/');
     await userEvent.tab();
     expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();
 
     // Now make source roots identical too → exact duplicate → Save disabled
-    await userEvent.clear(screen.getByRole('textbox', {name: /repository prefix/i}));
-    await userEvent.type(
-      screen.getByRole('textbox', {name: /repository prefix/i}),
-      'app/'
-    );
+    await userEvent.clear(secondSource());
+    await userEvent.type(secondSource(), 'app/');
     await userEvent.tab();
     expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
   });
@@ -573,7 +563,7 @@ describe('ConnectRepositoryModal', () => {
       expect(screen.getByRole('textbox', {name: 'Repository'})).toBeDisabled();
 
       // Seeded row becomes visible after the query resolves.
-      expect(await screen.findByText('src/')).toBeInTheDocument();
+      expect(await screen.findAllByText('src/')).not.toHaveLength(0);
       expect(await screen.findByRole('button', {name: 'Save'})).toBeEnabled();
     });
 
@@ -603,25 +593,22 @@ describe('ConnectRepositoryModal', () => {
       renderEditModal(closeModal);
 
       // Wait for both seeded rows to appear.
-      expect(await screen.findByText('vendor/')).toBeInTheDocument();
+      expect(await screen.findAllByText('vendor/')).not.toHaveLength(0);
 
       // Delete the first seeded row (src/→app/).
       const deleteButtons = screen.getAllByRole('button', {name: 'Delete path mapping'});
       await userEvent.click(deleteButtons[0]!);
 
-      // Expand and edit the remaining row (vendor/) to change its stack root.
-      await userEvent.click(screen.getByRole('button', {name: 'Expand path mapping'}));
-      await userEvent.clear(screen.getByRole('textbox', {name: /stack trace prefix/i}));
+      // Edit the remaining row (vendor/) to change its stack root.
       await userEvent.type(
         screen.getByRole('textbox', {name: /stack trace prefix/i}),
         'vendor/updated/'
       );
-      await userEvent.click(screen.getByRole('button', {name: 'Collapse path mapping'}));
 
       // Add a brand-new mapping (no id → POST).
-      await userEvent.click(screen.getByRole('button', {name: 'Add another path'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Add mapping'}));
       await userEvent.type(
-        screen.getByRole('textbox', {name: /stack trace prefix/i}),
+        screen.getAllByRole('textbox', {name: /stack trace prefix/i})[1]!,
         'src/'
       );
 
@@ -660,32 +647,25 @@ describe('ConnectRepositoryModal', () => {
 
       renderEditModal();
 
-      expect(await screen.findByText('src/')).toBeInTheDocument();
+      expect(await screen.findAllByText('src/')).not.toHaveLength(0);
 
-      // Delete is disabled before expanding (scraps Button uses aria-disabled).
-      const [deleteProtected] = screen.getAllByRole('button', {
+      // Delete is disabled (scraps Button uses aria-disabled).
+      const [deleteProtected, deleteOther] = screen.getAllByRole('button', {
         name: 'Delete path mapping',
       });
       expect(deleteProtected).toHaveAttribute('aria-disabled', 'true');
+      expect(deleteOther).not.toHaveAttribute('aria-disabled', 'true');
 
-      // No alert until the row is expanded.
-      expect(screen.queryByText(/Code Owners/)).not.toBeInTheDocument();
-
-      const [expandProtected] = screen.getAllByRole('button', {
-        name: 'Expand path mapping',
-      });
-      await userEvent.click(expandProtected!);
-
-      // Alert with link is shown.
+      // Alert with link is shown on the protected row only.
       expect(screen.getByRole('link', {name: 'Code Owners'})).toBeInTheDocument();
       expect(
         screen.getByText(/Remove the Code Owners connection before editing/)
       ).toBeInTheDocument();
 
-      // Both prefix inputs are disabled; branch is still editable.
-      const stackInput = screen.getByRole('textbox', {name: /stack trace prefix/i});
-      const sourceInput = screen.getByRole('textbox', {name: /repository prefix/i});
-      const branchInput = screen.getByRole('textbox', {name: /branch/i});
+      // Both prefix inputs on the protected row are disabled; branch is still editable.
+      const [stackInput] = screen.getAllByRole('textbox', {name: /stack trace prefix/i});
+      const [sourceInput] = screen.getAllByRole('textbox', {name: /repository prefix/i});
+      const [branchInput] = screen.getAllByRole('textbox', {name: /branch/i});
       expect(stackInput).toBeDisabled();
       expect(sourceInput).toBeDisabled();
       expect(branchInput).toBeEnabled();
@@ -832,7 +812,7 @@ describe('ConnectRepositoryModal', () => {
 
       renderEditModal(closeModal);
 
-      expect(await screen.findByText('src/')).toBeInTheDocument();
+      expect(await screen.findAllByText('src/')).not.toHaveLength(0);
       await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
       await waitFor(() => expect(closeModal).toHaveBeenCalled());
@@ -860,12 +840,10 @@ describe('ConnectRepositoryModal', () => {
 
       renderEditModal(closeModal);
 
-      expect(await screen.findByText('vendor/')).toBeInTheDocument();
+      expect(await screen.findAllByText('vendor/')).not.toHaveLength(0);
       const [deleteFirst] = screen.getAllByRole('button', {name: 'Delete path mapping'});
       await userEvent.click(deleteFirst!);
 
-      await userEvent.click(screen.getByRole('button', {name: 'Expand path mapping'}));
-      await userEvent.clear(screen.getByRole('textbox', {name: /stack trace prefix/i}));
       await userEvent.type(
         screen.getByRole('textbox', {name: /stack trace prefix/i}),
         'vendor/updated/'
@@ -904,18 +882,18 @@ describe('ConnectRepositoryModal', () => {
 
       renderEditModal();
 
-      expect(await screen.findByText('src/')).toBeInTheDocument();
-      expect(await screen.findByText('vendor/')).toBeInTheDocument();
+      expect(await screen.findAllByText('src/')).not.toHaveLength(0);
+      expect(await screen.findAllByText('vendor/')).not.toHaveLength(0);
 
       // Edit only the non-duplicate row.
-      const [, vendorExpand] = screen.getAllByRole('button', {
-        name: 'Expand path mapping',
-      });
-      await userEvent.click(vendorExpand!);
-      await userEvent.clear(screen.getByRole('textbox', {name: /branch/i}));
-      await userEvent.type(screen.getByRole('textbox', {name: /branch/i}), 'dev');
+      const [, vendorBranch] = screen.getAllByRole('textbox', {name: /branch/i});
+      await userEvent.clear(vendorBranch!);
+      await userEvent.type(vendorBranch!, 'dev');
 
-      expect(screen.queryByLabelText('Warning')).not.toBeInTheDocument();
+      expect(vendorBranch).toHaveValue('dev');
+      expect(
+        screen.queryByText(/Only one can be used for matching/)
+      ).not.toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();
     });
 
@@ -928,9 +906,10 @@ describe('ConnectRepositoryModal', () => {
 
       renderEditModal();
 
-      expect(await screen.findByText('src/')).toBeInTheDocument();
-      await userEvent.click(screen.getByRole('button', {name: 'Expand path mapping'}));
-      expect(screen.queryByLabelText('Warning')).not.toBeInTheDocument();
+      expect(await screen.findAllByText('src/')).not.toHaveLength(0);
+      expect(
+        screen.queryByText(/Only one can be used for matching/)
+      ).not.toBeInTheDocument();
 
       await userEvent.clear(screen.getByRole('textbox', {name: /branch/i}));
       await userEvent.type(screen.getByRole('textbox', {name: /branch/i}), 'dev');
@@ -948,8 +927,7 @@ describe('ConnectRepositoryModal', () => {
 
       renderEditModal();
 
-      expect(await screen.findByText('src/')).toBeInTheDocument();
-      await userEvent.click(screen.getByRole('button', {name: 'Expand path mapping'}));
+      expect(await screen.findAllByText('src/')).not.toHaveLength(0);
 
       expect(
         screen.getByText(/Remove the Code Owners connection before editing/)
@@ -993,7 +971,7 @@ describe('ConnectRepositoryModal', () => {
       screen.getByRole('textbox', {name: /repository prefix/i}),
       'app/'
     );
-    await userEvent.tab();
+    await userEvent.click(document.body);
 
     expect(await screen.findByText(/getsentry\/relay/)).toBeInTheDocument();
     expect(screen.getByText(/Only one can be used for matching/)).toBeInTheDocument();
@@ -1034,7 +1012,9 @@ describe('ConnectRepositoryModal', () => {
     );
     await userEvent.tab();
 
-    expect(screen.queryByRole('img', {name: 'Warning'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Only one can be used for matching/)
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();
   });
 
@@ -1281,7 +1261,7 @@ describe('ConnectRepositoryModal', () => {
         expect(screen.getByRole('textbox', {name: 'Project'})).toBeDisabled();
 
         // Seeded row appears; Save enabled once paths load.
-        expect(await screen.findByText('src/')).toBeInTheDocument();
+        expect(await screen.findAllByText('src/')).not.toHaveLength(0);
         expect(await screen.findByRole('button', {name: 'Save'})).toBeEnabled();
       });
 

@@ -112,7 +112,7 @@ export function ConnectRepositoryForm({
     />
   ) : (
     <Stack gap="md">
-      <Text bold>{t('Paths')}</Text>
+      <Text bold>{t('Code mappings')}</Text>
       <PathsPlaceholder />
     </Stack>
   );

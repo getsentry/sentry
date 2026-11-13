@@ -3,6 +3,7 @@ import {useDebouncedValue} from '@tanstack/react-pacer';
 
 import {Select} from '@sentry/scraps/select';
 import type {SelectValue} from '@sentry/scraps/select';
+import type {FormSize} from '@sentry/scraps/theme';
 
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
@@ -61,6 +62,7 @@ export interface PathPrefixComboboxProps {
   name?: string;
   onBlur?: () => void;
   placeholder?: string;
+  size?: FormSize;
 }
 
 /**
@@ -83,6 +85,7 @@ export function PathPrefixCombobox({
   name,
   onBlur,
   placeholder,
+  size,
 }: PathPrefixComboboxProps) {
   const [inputValue, setInputValue] = useState('');
   // A ref that always holds the latest typed text synchronously. State updates
@@ -140,6 +143,7 @@ export function PathPrefixCombobox({
       creatable
       searchable
       isInsideModal
+      size={size}
       disabled={disabled}
       isLoading={isLoading}
       placeholder={placeholder ?? t('e.g. src/')}

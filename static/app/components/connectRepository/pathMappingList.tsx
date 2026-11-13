@@ -3,22 +3,17 @@ import {IconAdd} from '@sentry/icons/add';
 
 import {Button} from '@sentry/scraps/button';
 import {withForm} from '@sentry/scraps/form';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
 
 import {DEFAULT_BRANCH, normalizePathMapping} from './normalization';
-import {PathMapping} from './pathMapping';
 import {PathMappingEmptyState} from './pathMappingEmptyState';
+import {PATH_MAPPING_COLUMNS, PathMappingRow} from './pathMappingRow';
 import type {PathMappingValue} from './type';
 import {getPathMappingWarnings} from './warnings';
-
-interface RowMeta {
-  id: number;
-  isNew: boolean;
-}
 
 const EMPTY_MAPPING: PathMappingValue = {stackRoot: '', sourceRoot: '', branch: ''};
 
@@ -32,17 +27,37 @@ const hasDuplicateMappings = (values: PathMappingValue[], branchFallback: string
   return new Set(keys).size !== keys.length;
 };
 
-// Collapsing a row promotes it to an established mapping so reopening it
-// shows the summary pinned above the editor, even if the row is still empty.
-const clearIsNewOnCollapse = (
-  meta: RowMeta[],
-  collapsingId: number | null
-): RowMeta[] => {
-  if (collapsingId === null) {
-    return meta;
-  }
-  return meta.map(m => (m.id === collapsingId ? {...m, isNew: false} : m));
-};
+function ColumnHeading({children}: {children: React.ReactNode}) {
+  return (
+    <Container minWidth={0}>
+      <Text size="sm" bold ellipsis>
+        {children}
+      </Text>
+    </Container>
+  );
+}
+
+function PathMappingTableHeader() {
+  return (
+    <Container
+      background="secondary"
+      // Inner radius of the table's md corners, less its 1px border.
+      radius="sm sm 0 0"
+      padding="lg"
+      display={{zero: 'none', sm: 'block'}}
+    >
+      <Grid columns={PATH_MAPPING_COLUMNS} gap="lg" align="center">
+        <ColumnHeading>{t('Stack trace prefix')}</ColumnHeading>
+        {/* Spacer for the arrow column; matches the row's sm arrow icon. */}
+        <Container width="14px" />
+        <ColumnHeading>{t('Repository prefix')}</ColumnHeading>
+        <ColumnHeading>{t('Branch')}</ColumnHeading>
+        {/* Spacer for the delete column; matches the zero-size icon button. */}
+        <Container width="24px" />
+      </Grid>
+    </Container>
+  );
+}
 
 export const PathMappingList = withForm({
   defaultValues: {
@@ -71,29 +86,20 @@ export const PathMappingList = withForm({
     const branchFallback = defaultBranch ?? DEFAULT_BRANCH;
     const newRowValue: PathMappingValue = {...EMPTY_MAPPING, branch: branchFallback};
 
+    // Stable per-row ids for React keys; form values are index-addressed.
     const idRef = useRef(0);
     const nextId = () => idRef.current++;
-
-    const [rowMeta, setRowMeta] = useState<RowMeta[]>(() => {
+    const [rowIds, setRowIds] = useState<number[]>(() => {
       const initial = form.state.values.pathMappings;
       idRef.current = initial.length;
-      return initial.map((v, i) => ({id: i, isNew: !v.id}));
+      return initial.map((_, i) => i);
     });
-
-    const [openId, setOpenId] = useState<number | null>(() =>
-      rowMeta.length === 1 && rowMeta[0]!.isNew ? rowMeta[0]!.id : null
-    );
-
-    const toggle = (id: number) => {
-      setRowMeta(prev => clearIsNewOnCollapse(prev, openId));
-      setOpenId(prev => (prev === id ? null : id));
-    };
 
     return (
       <Stack gap="lg">
         <Stack gap="xs">
-          <Text bold>{tct('Paths ([count])', {count: rowMeta.length})}</Text>
-          <Text size="sm" variant="muted">
+          <Text bold>{t('Code mappings')}</Text>
+          <Text>
             {t(
               'Tell Sentry how to translate file paths, so errors open the right line of code.'
             )}
@@ -104,25 +110,17 @@ export const PathMappingList = withForm({
           {field => {
             const handleDelete = (i: number) => {
               if (form.state.values.pathMappings.length === 1 && !allowEmpty) {
-                const freshId = nextId();
                 form.setFieldValue('pathMappings', [newRowValue]);
-                setRowMeta([{id: freshId, isNew: true}]);
-                setOpenId(freshId);
+                setRowIds([nextId()]);
               } else {
                 field.removeValue(i);
-                setRowMeta(prev => prev.filter((_, idx) => idx !== i));
-                setOpenId(prev => (prev === rowMeta[i]!.id ? null : prev));
+                setRowIds(prev => prev.filter((_, idx) => idx !== i));
               }
             };
 
             const handleAdd = () => {
-              const id = nextId();
               field.pushValue(newRowValue);
-              setRowMeta(prev => [
-                ...clearIsNewOnCollapse(prev, openId),
-                {id, isNew: true},
-              ]);
-              setOpenId(id);
+              setRowIds(prev => [...prev, nextId()]);
             };
 
             return (
@@ -146,41 +144,43 @@ export const PathMappingList = withForm({
 
                   return (
                     <Fragment>
-                      <Stack gap="md">
+                      {/* No overflow clipping here: it would cut off the prefix
+                          dropdowns. The header rounds its own top corners instead. */}
+                      <Container containerType="inline-size" border="muted" radius="md">
+                        <PathMappingTableHeader />
                         {pathMappings.map((value, i) => {
-                          const meta = rowMeta[i]!;
                           const fields: `pathMappings[${number}]` = `pathMappings[${i}]`;
                           return (
-                            <PathMapping
-                              key={meta.id}
-                              editing={openId === meta.id}
-                              enableDelete={allowEmpty || pathMappings.length > 1}
-                              fields={fields}
+                            <PathMappingRow
+                              // Remount when a row's index changes: TanStack Form's
+                              // field groups don't follow `fields` changes.
+                              // https://github.com/TanStack/form/issues/1648
+                              key={`${rowIds[i]}:${fields}`}
                               form={form}
-                              isNew={meta.isNew}
-                              value={value}
+                              fields={fields}
+                              automaticallyGenerated={value.automaticallyGenerated}
+                              hasCodeOwner={value.hasCodeOwner}
                               warning={warnings[i]}
-                              providerKey={providerKey}
                               projectSlug={projectSlug}
+                              providerKey={providerKey}
                               repositoryId={repositoryId}
                               defaultBranch={defaultBranch}
                               onDelete={() => handleDelete(i)}
-                              onExpandToggle={() => toggle(meta.id)}
                             />
                           );
                         })}
-                      </Stack>
+                      </Container>
 
                       <Flex justify="end">
                         <Button
-                          size="xs"
+                          size="sm"
                           variant="transparent"
                           icon={<IconAdd />}
                           disabled={Boolean(addDisabledReason)}
                           tooltipProps={{title: addDisabledReason}}
                           onClick={handleAdd}
                         >
-                          {t('Add another path')}
+                          {t('Add mapping')}
                         </Button>
                       </Flex>
                     </Fragment>
