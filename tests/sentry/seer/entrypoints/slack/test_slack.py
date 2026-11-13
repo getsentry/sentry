@@ -1,6 +1,6 @@
 from copy import deepcopy
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 from unittest.mock import ANY, MagicMock, Mock, patch
 
 import pytest
@@ -73,6 +73,7 @@ from sentry.seer.entrypoints.slack.investigation_status import (
 )
 from sentry.seer.entrypoints.slack.messaging import (
     InvalidInvestigationAlertMessage,
+    InvestigationAlertMessage,
     edit_thread_message,
     process_thread_update,
     replace_investigation_buttons,
@@ -1560,7 +1561,7 @@ def test_replace_investigation_buttons_preserves_content() -> None:
     }
     other_button = {**start_button, "action_id": "seer_investigation_start_other"}
     chart = {"type": "image", "image_url": "https://example.com/chart.png", "alt_text": "Chart"}
-    message: dict[str, Any] = {
+    message: InvestigationAlertMessage = {
         "text": "Critical alert",
         "blocks": [{"type": "section", "text": {"type": "mrkdwn", "text": "Alert heading"}}],
         "attachments": [
@@ -1584,14 +1585,13 @@ def test_replace_investigation_buttons_preserves_content() -> None:
             {"blocks": [{"type": "actions", "elements": [start_button, other_button]}]},
         ],
     }
-    link_button = {
-        "type": "button",
-        "text": {"type": "plain_text", "text": "Open investigation"},
-        "url": "https://example.sentry.io/seer/investigations/1/",
-        "value": "link_clicked",
-    }
+    link_button = ButtonElement(
+        text="Open investigation",
+        url="https://example.sentry.io/seer/investigations/1/",
+        value="link_clicked",
+    )
     original_message = deepcopy(message)
-    original_button = deepcopy(link_button)
+    original_button = link_button.to_dict()
     expected = deepcopy(message)
     expected["attachments"][0]["blocks"][1]["elements"][1] = original_button
     expected["attachments"][2]["blocks"][0]["elements"][0] = original_button
@@ -1600,7 +1600,7 @@ def test_replace_investigation_buttons_preserves_content() -> None:
 
     assert result == expected
     assert message == original_message
-    assert link_button == original_button
+    assert link_button.to_dict() == original_button
     assert result is not None
     assert replace_investigation_buttons(message=result, link_button=link_button) is None
 
@@ -1614,7 +1614,10 @@ def test_replace_investigation_buttons_preserves_content() -> None:
 )
 def test_replace_investigation_buttons_rejects_malformed_content(message: dict[str, Any]) -> None:
     with pytest.raises(InvalidInvestigationAlertMessage):
-        replace_investigation_buttons(message=message, link_button={})
+        replace_investigation_buttons(
+            message=cast(InvestigationAlertMessage, message),
+            link_button=ButtonElement(text="Open investigation", url="https://example.com/"),
+        )
 
 
 class SlackInvestigationEntrypointTest(TestCase):

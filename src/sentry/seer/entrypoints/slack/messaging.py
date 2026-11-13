@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable, Mapping, Sequence
 from copy import deepcopy
-from typing import TYPE_CHECKING, Any, assert_never
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, assert_never
 
 from pydantic import ValidationError
 from slack_sdk.models.blocks import ActionsBlock, ButtonElement, LinkButtonElement, MarkdownBlock
@@ -397,13 +397,19 @@ def update_existing_message(
         )
 
 
+class InvestigationAlertMessage(TypedDict):
+    text: str
+    attachments: list[dict[str, Any]]
+    blocks: NotRequired[list[dict[str, Any]]]
+
+
 class InvalidInvestigationAlertMessage(ValueError):
     pass
 
 
 def replace_investigation_buttons(
-    *, message: Mapping[str, Any], link_button: Mapping[str, Any]
-) -> dict[str, Any] | None:
+    *, message: InvestigationAlertMessage, link_button: ButtonElement
+) -> InvestigationAlertMessage | None:
     """Replace metric alert start buttons without mutating the supplied content.
 
     Return None for valid content with no start button. Malformed content raises
@@ -436,7 +442,7 @@ def replace_investigation_buttons(
             == SlackAction.SEER_INVESTIGATION_START.value
         ):
             changed = True
-            return deepcopy(dict(link_button))
+            return deepcopy(link_button.to_dict())
         return element
 
     attachments = []
@@ -471,7 +477,7 @@ def update_investigation_alert_message(
     link_decorator = NotificationLinkDecorator(data=data, provider=NotificationProviderKey.SLACK)
     link_button = SeerSlackRenderer.render_investigation_link_button(
         investigation_url=data.investigation_url, link_decorator=link_decorator
-    ).to_dict()
+    )
 
     with SlackEntrypointEventLifecycleMetric(
         interaction_type=SlackEntrypointInteractionType.UPDATE_EXISTING_MESSAGE,
