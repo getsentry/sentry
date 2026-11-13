@@ -337,7 +337,7 @@ The row is a list, and `label` names it — "Replay stats". Without it a screen 
 
 The label comes first, on screen and in the DOM: "Errors 3", not "3 Errors". A screen reader never announces a bare number before saying what it counts, the row reads the same whatever the count with no plural to agree ("Errors 1"), and someone using voice control meets the word they would say before the number beside it.
 
-Each half is read as itself — "Errors", then "3" — rather than composed into one announcement. Nothing is hidden and nothing is renamed, so what a screen reader reads is what is on screen.
+Each half is read as itself — "Errors", then "3" — rather than composed into one announcement. Nothing is hidden and nothing is renamed, except the dash shown for an empty value (see No data, below), so what a screen reader reads is what is on screen.
 
 A `link` stat's anchor wraps the label only, and is named by it: a links list reads "Errors", which says where it leads. The count is not part of the name and does not need to be — it sits in the same list item, which is context enough for the link's purpose.
 
@@ -410,6 +410,58 @@ Colour says it navigates; an underline says it explains. A link label is accent-
     ],
   }}
 />
+```
+
+### No data
+
+Pass `value: null` for a stat that applies to this entity but has nothing to show — a build with no cost recorded, an artifact with no size reported. It renders a muted "—" in the value's own typography, so the row does not shift. The dash is hidden from screen readers and "No data" is read in its place, so the stat reads "Cost", then "No data".
+
+Four states look alike and are not:
+
+- **No data** — `value: null`. The stat applies; there is nothing to show.
+- **Zero** — `value: 0`. A real measurement, read as "Errors", "0". A count that is genuinely zero is not empty.
+- **Loading** — `isLoading`. The value is on its way; the stat renders a skeleton, not a dash.
+- **Does not apply** — `null` for the whole item. The stat is left out, as for dead clicks on a video replay.
+
+Do not pass a placeholder string such as `'-'`, `'—'` or `'N/A'`. A screen reader reads it aloud as the value — "Cost", "dash" — and nothing tells it the stat is empty. The header warns in development when it sees one.
+
+An empty `link` stat is still a link, named by its label ("Errors"), since a stat's type must not change once its data arrives. Its value half reads "No data".
+
+Say why there is no value in `valueTooltip`: the reason shows in the value's tooltip. Keep that reason readable on its own, without links: nothing inside a tooltip can be reached by keyboard.
+
+Screen readers cannot reach the reason yet. Focus on the value reads "No data", but tooltip content is not announced until `Tooltip` itself is fixed, so do not put anything there that a screen reader user needs.
+
+<Storybook.Demo resizable direction="column" align="stretch">
+  <EntityHeader
+    title={{type: 'text', label: 'Build', value: '1.0.0 (42)'}}
+    stats={{
+      label: 'Build stats',
+      items: [
+        {type: 'text', label: 'Install Size', value: '12 MB'},
+        {
+          type: 'text',
+          label: 'Download Size',
+          value: null,
+          valueTooltip: 'Download size is not reported for this platform.',
+        },
+        {type: 'link', label: 'Errors', value: null, to: '/issues/'},
+      ],
+    }}
+  />
+</Storybook.Demo>
+
+```jsx
+// ❌ Read aloud as "Download Size", "dash"
+{type: 'text', label: t('Download Size'), value: '-'}
+
+// ✅ Read as "Download Size", "No data", with the reason on the value
+{
+  type: 'text',
+  label: t('Download Size'),
+  value: null,
+  valueTooltip: t('Download size is not reported for this platform.'),
+}
+{type: 'link', label: t('Errors'), value: null, to: errorsUrl}
 ```
 
 ## People
