@@ -97,9 +97,13 @@ export const PathMappingRow = withFieldGroup({
   defaultValues: {stackRoot: '', sourceRoot: '', branch: ''},
   props: {} as {
     onDelete: () => void;
+    /** Focus the stack trace prefix when the row mounts. */
+    autoFocus?: boolean;
     automaticallyGenerated?: boolean;
     defaultBranch?: string;
     hasCodeOwner?: boolean;
+    /** Called when focus moves from inside the row to somewhere outside it. */
+    onLeave?: () => void;
     projectSlug?: string;
     /** SCM provider, for the logo in the example path. */
     providerKey?: string;
@@ -115,6 +119,8 @@ export const PathMappingRow = withFieldGroup({
     projectSlug,
     providerKey,
     repositoryId,
+    autoFocus,
+    onLeave,
     warning,
   }) {
     const organization = useOrganization();
@@ -128,7 +134,17 @@ export const PathMappingRow = withFieldGroup({
     const branchFallback = defaultBranch ?? DEFAULT_BRANCH;
 
     return (
-      <Stack gap="md" padding="lg" borderTop="muted">
+      <Stack
+        onBlur={(event: React.FocusEvent<HTMLElement>) => {
+          // Focus moving between this row's own fields doesn't count.
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+            onLeave?.();
+          }
+        }}
+        gap="md"
+        padding="lg"
+        borderTop="muted"
+      >
         <Grid columns={PATH_MAPPING_COLUMNS} gap="lg" align="center">
           <group.AppField name="stackRoot">
             {field => (
@@ -141,6 +157,7 @@ export const PathMappingRow = withFieldGroup({
                       emptyHint={t(
                         'With no prefix, this mapping matches every file in your stack traces.'
                       )}
+                      autoFocus={autoFocus}
                       value={field.state.value}
                       onChange={field.handleChange}
                       options={stackPrefixes.data?.prefixes ?? []}

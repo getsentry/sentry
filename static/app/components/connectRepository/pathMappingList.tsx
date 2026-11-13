@@ -95,6 +95,34 @@ export const PathMappingList = withForm({
       return initial.map((_, i) => i);
     });
 
+    // Rows that haven't been saved yet stay quiet until focus leaves them, so a
+    // blank row isn't flagged (e.g. as a duplicate of another blank row) before
+    // the user has filled it in. Saved rows warn right away.
+    const [untouchedIds, setUntouchedIds] = useState<Set<number>>(
+      () =>
+        new Set(
+          form.state.values.pathMappings.flatMap((value, i) => (value.id ? [] : [i]))
+        )
+    );
+    // The row just added with "Add mapping", which takes focus when it mounts.
+    const [autoFocusId, setAutoFocusId] = useState<number | null>(null);
+
+    const markTouched = (id: number) => {
+      setUntouchedIds(prev => {
+        if (!prev.has(id)) {
+          return prev;
+        }
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      // Rows remount when their index changes; don't steal focus again then.
+      setAutoFocusId(prev => (prev === id ? null : prev));
+    };
+
+    const addUntouchedRow = (id: number) =>
+      setUntouchedIds(prev => new Set(prev).add(id));
+
     return (
       <Stack gap="lg">
         <Stack gap="xs">
@@ -110,8 +138,10 @@ export const PathMappingList = withForm({
           {field => {
             const handleDelete = (i: number) => {
               if (form.state.values.pathMappings.length === 1 && !allowEmpty) {
+                const id = nextId();
                 form.setFieldValue('pathMappings', [newRowValue]);
-                setRowIds([nextId()]);
+                setRowIds([id]);
+                addUntouchedRow(id);
               } else {
                 field.removeValue(i);
                 setRowIds(prev => prev.filter((_, idx) => idx !== i));
@@ -119,8 +149,11 @@ export const PathMappingList = withForm({
             };
 
             const handleAdd = () => {
+              const id = nextId();
               field.pushValue(newRowValue);
-              setRowIds(prev => [...prev, nextId()]);
+              setRowIds(prev => [...prev, id]);
+              addUntouchedRow(id);
+              setAutoFocusId(id);
             };
 
             return (
@@ -130,10 +163,14 @@ export const PathMappingList = withForm({
                     return <PathMappingEmptyState onAdd={handleAdd} />;
                   }
 
+                  // Save is still blocked by any duplicate; this only holds back
+                  // the message on rows the user hasn't left yet.
                   const warnings = getPathMappingWarnings(
                     pathMappings,
                     existingMappings,
                     seededById
+                  ).map((warning, i) =>
+                    untouchedIds.has(rowIds[i]!) ? undefined : warning
                   );
                   const addDisabledReason = hasDuplicateMappings(
                     pathMappings,
@@ -165,6 +202,8 @@ export const PathMappingList = withForm({
                               providerKey={providerKey}
                               repositoryId={repositoryId}
                               defaultBranch={defaultBranch}
+                              autoFocus={rowIds[i] === autoFocusId}
+                              onLeave={() => markTouched(rowIds[i]!)}
                               onDelete={() => handleDelete(i)}
                             />
                           );

@@ -467,6 +467,43 @@ describe('PathMappingList', () => {
     });
   });
 
+  describe('adding a mapping', () => {
+    it("focuses the new row's stack trace prefix", async () => {
+      renderList({initialPathMappings: MAPPINGS});
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add mapping'}));
+
+      expect(stackInputs()[2]).toHaveFocus();
+    });
+
+    it('holds back warnings on a new blank row until focus leaves it', async () => {
+      renderList({
+        initialPathMappings: [{id: '1', stackRoot: '', sourceRoot: '', branch: 'main'}],
+      });
+
+      // The new blank row duplicates it, but stays quiet while it's being filled in.
+      await userEvent.click(screen.getByRole('button', {name: 'Add mapping'}));
+      expect(stackInputs()[1]).toHaveFocus();
+      expect(screen.queryByText(/Duplicate code mapping/)).not.toBeInTheDocument();
+
+      // Leaving the row reveals the duplicate warning.
+      await userEvent.click(document.body);
+      expect(screen.getByText(/Duplicate code mapping/)).toBeInTheDocument();
+    });
+
+    it('does not flag a new row the user fills in with distinct paths', async () => {
+      renderList({
+        initialPathMappings: [{id: '1', stackRoot: '', sourceRoot: '', branch: 'main'}],
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add mapping'}));
+      await userEvent.type(stackInputs()[1]!, 'src/');
+      await userEvent.click(document.body);
+
+      expect(screen.queryByText(/Duplicate code mapping/)).not.toBeInTheDocument();
+    });
+  });
+
   describe('empty prefixes', () => {
     it('keeps "No prefix" when opened, and shows the placeholder after clearing typed text', async () => {
       renderList();

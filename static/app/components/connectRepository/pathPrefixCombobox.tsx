@@ -55,6 +55,7 @@ export interface PathPrefixComboboxProps {
   'aria-describedby'?: string;
   'aria-invalid'?: boolean;
   'aria-label'?: string;
+  autoFocus?: boolean;
   disabled?: boolean;
   /** Info tip shown in the field while it is set to "No prefix". */
   emptyHint?: ReactNode;
@@ -80,6 +81,7 @@ export function PathPrefixCombobox({
   'aria-describedby': ariaDescribedby,
   'aria-invalid': ariaInvalid,
   'aria-label': ariaLabel,
+  autoFocus,
   emptyHint,
   disabled,
   id,
@@ -163,6 +165,7 @@ export function PathPrefixCombobox({
         }
         setTypedText(text);
       }}
+      autoFocus={autoFocus}
       onBlur={handleBlur}
       // Leading slot, not the dropdown indicator: the select hides its
       // indicators from assistive tech, which would hide the tip too.
