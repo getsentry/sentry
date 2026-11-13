@@ -196,7 +196,7 @@ function findLongestMatchingFrame(
   while (frames.length > 0) {
     const frame = frames.pop()!;
     if (
-      focusFrame.name === frame.frame.name &&
+      frame.frame.matchesName(focusFrame.name) &&
       // the image name on a frame is optional treat it the same as the empty string
       (focusFrame.package === (frame.frame.package || '') ||
         focusFrame.package === (frame.frame.module || '')) &&

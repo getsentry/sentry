@@ -31,6 +31,19 @@ describe('createSentrySampleProfileFrameIndex', () => {
       2: frameIndex[0],
     });
   });
+
+  it('does not dedupe frames with the same function in different modules', () => {
+    const frameIndex = createSentrySampleProfileFrameIndex(
+      [
+        {in_app: true, function: 'run', module: 'com.example.Foo'},
+        {in_app: true, function: 'run', module: 'com.example.Bar'},
+      ],
+      'mobile'
+    );
+
+    expect(frameIndex[0]).not.toBe(frameIndex[1]);
+    expect(frameIndex[1]!.module).toBe('com.example.Bar');
+  });
 });
 
 describe('createContinuousProfileFrameIndex', () => {
