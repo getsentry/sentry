@@ -1283,7 +1283,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "schedule": crontab("*/30", "*", "*", "*", "*"),
     },
     "preprod-detect-expired-artifacts": {
-        # Must match UNREFERENCED_RESULT_FILE_WINDOW_MINUTES in sentry.preprod.tasks.
         "task": "preprod.size:sentry.preprod.tasks.detect_expired_preprod_artifacts",
         "schedule": crontab("*/30", "*", "*", "*", "*"),
     },

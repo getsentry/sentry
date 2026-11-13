@@ -33,7 +33,6 @@ from sentry.preprod.quotas import (
     has_installable_quota,
     has_size_quota,
 )
-from sentry.preprod.size_analysis.comparison_run import SIZE_COMPARISON_RESULT_FILE_TYPE
 from sentry.preprod.size_analysis.models import SizeAnalysisResults
 from sentry.preprod.size_analysis.monitors import maybe_emit_issues_from_absolute_size_results
 from sentry.preprod.size_analysis.tasks import compare_preprod_artifact_size_analysis
@@ -851,7 +850,7 @@ def _count_unreferenced_size_comparison_result_files(current_time: datetime.date
     window_start = window_end - window
 
     result_files = File.objects.filter(
-        type=SIZE_COMPARISON_RESULT_FILE_TYPE,
+        type="size_analysis_comparison.json",
         timestamp__gte=window_start,
         timestamp__lt=window_end,
     )
