@@ -29,11 +29,9 @@ export function UserBlock({block}: UserBlockProps) {
 
 function PrFeedbackNotice({block}: UserBlockProps) {
   const metadata = block.message.metadata;
-  const iterationIndex = Number(metadata?.iteration_index ?? 0);
   const items = metadata?.feedback
     ? parseFeedback(metadata.feedback).map(item => ({
         ...item,
-        iterationIndex,
         timestamp: undefined,
       }))
     : [];
