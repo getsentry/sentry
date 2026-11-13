@@ -130,7 +130,7 @@ class TestProcessWorkflowActivity(TestCase):
 
     @mock.patch(
         "sentry.workflow_engine.processors.action.filter_recently_fired_workflow_actions",
-        return_value=([], {}),
+        return_value=([], {}, set()),
     )
     def test_process_workflow_activity(self, mock_filter_actions: mock.MagicMock) -> None:
         self.workflow = self.create_workflow(organization=self.organization)
@@ -175,7 +175,7 @@ class TestProcessWorkflowActivity(TestCase):
 
     @mock.patch(
         "sentry.workflow_engine.processors.action.filter_recently_fired_workflow_actions",
-        return_value=([], {}),
+        return_value=([], {}, set()),
     )
     def test_process_workflow_activity__matching_environment(
         self, mock_filter_actions: mock.MagicMock
@@ -200,7 +200,7 @@ class TestProcessWorkflowActivity(TestCase):
 
     @mock.patch(
         "sentry.workflow_engine.processors.action.filter_recently_fired_workflow_actions",
-        return_value=([], {}),
+        return_value=([], {}, set()),
     )
     def test_process_workflow_activity__other_environment(
         self, mock_filter_actions: mock.MagicMock
