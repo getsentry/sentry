@@ -17,6 +17,7 @@ import {useKeyboard} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
+import {IconAdd} from '@sentry/icons/add';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconSearch} from '@sentry/icons/search';
 import {useDebouncedValue} from '@tanstack/react-pacer';
@@ -34,7 +35,7 @@ import {useOverlay} from '@sentry/scraps/useOverlay';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
@@ -54,6 +55,7 @@ import {MetricDetailPanel} from './metricDetailPanel';
 import {MetricListBoxOption} from './metricListBoxOption';
 import {
   isMetricSelectorOption,
+  type FreeformDataType,
   type MetricSelectorItem,
   type MetricSelectorOption,
 } from './types';
@@ -62,6 +64,32 @@ const METRIC_SELECTOR_OPTION_HEIGHT = 42;
 const METRIC_SELECTOR_DROPDOWN_MAX_HEIGHT = 400;
 const METRIC_SELECTOR_DROPDOWN_MIN_HEIGHT = 0;
 const FIELD_OPTION_VALUE = '__field__';
+const FREEFORM_OPTION_VALUE = '__freeform__';
+const FREEFORM_DATA_TYPE_OPTION_PREFIX = '__freeform_data_type__:';
+
+// Prototype mapping: metrics are always numeric, so a freeform data type has to
+// resolve to a real metric type for the widget query to be valid.
+const FREEFORM_DATA_TYPES: Array<{
+  dataType: FreeformDataType;
+  example: string;
+  label: string;
+  metricType: TraceMetricTypeValue;
+}> = [
+  {dataType: 'string', label: t('String'), example: '"checkout"', metricType: 'counter'},
+  {
+    dataType: 'number',
+    label: t('Number'),
+    example: '42, 3.5',
+    metricType: 'distribution',
+  },
+  {
+    dataType: 'boolean',
+    label: t('Boolean'),
+    example: 'true, false',
+    metricType: 'counter',
+  },
+];
+
 function maybePortal(element: React.ReactElement, portal?: boolean) {
   return portal ? createPortal(element, document.body) : element;
 }
@@ -101,9 +129,13 @@ export function MetricSelector({
   usePortal,
   fieldOption,
   getDisabledOptionReason,
+  allowFreeformMetric,
 }: {
   onChange: (traceMetric: TraceMetric) => void;
   traceMetric: TraceMetric;
+  // Lets users type a metric name that hasn't been emitted yet and use it as a
+  // stand-in until real data arrives.
+  allowFreeformMetric?: boolean;
   environments?: string[];
   // A field option is a special option that is injected and used to select a field from the dataset.
   fieldOption?: {
@@ -138,6 +170,21 @@ export function MetricSelector({
     projectIds,
     environments,
   });
+
+  // Looked up separately from the search results so the "Awaiting data" state
+  // doesn't flicker while the user types in the search input.
+  const {data: selectedMetricData} = useMetricOptions({
+    search: traceMetric.name,
+    projectIds,
+    environments,
+    enabled: Boolean(allowFreeformMetric && traceMetric.name),
+  });
+  const isAwaitingData =
+    Boolean(allowFreeformMetric && traceMetric.name) &&
+    selectedMetricData !== undefined &&
+    !selectedMetricData.data?.some(
+      row => row[TraceMetricKnownFieldKey.METRIC_NAME] === traceMetric.name
+    );
 
   const traceMetricDisplayUnit =
     traceMetric.unit && traceMetric.unit !== '-' ? traceMetric.unit : NONE_UNIT;
@@ -265,9 +312,18 @@ export function MetricSelector({
     // Prefer the API version of the selected metric (it has count/lastSeen),
     // falling back to the bare optionFromTraceMetric when the API hasn't
     // returned it (e.g. filtered by search or still loading).
+    const selectedApiOption = selectedApiOptions.find(
+      o => o.value === traceMetricSelectValue
+    );
+    const fallbackOption =
+      optionFromTraceMetric && isAwaitingData
+        ? {
+            ...optionFromTraceMetric,
+            trailingItems: () => <Tag variant="muted">{t('Awaiting data')}</Tag>,
+          }
+        : optionFromTraceMetric;
     const selectedOption = traceMetric.name
-      ? (selectedApiOptions.find(o => o.value === traceMetricSelectValue) ??
-        optionFromTraceMetric)
+      ? (selectedApiOption ?? fallbackOption)
       : null;
 
     const options = [
@@ -291,6 +347,7 @@ export function MetricSelector({
       ...options,
     ];
   }, [
+    isAwaitingData,
     fieldOption,
     metricOptionsData,
     optionFromTraceMetric,
@@ -339,10 +396,62 @@ export function MetricSelector({
   // Show the previous options while a new search is loading so the list
   // doesn't flash empty during debounced re-fetches.
   const previousOptions = usePrevious(metricOptions);
-  const displayedOptions = useMemo(
-    () => (isFetching ? previousOptions : metricOptions),
-    [isFetching, previousOptions, metricOptions]
-  );
+  const freeformMetricName = searchInputValue.trim();
+  // Set after "Add freeform metric" is picked; the list then asks for a data type.
+  const [pendingFreeformName, setPendingFreeformName] = useState<string | null>(null);
+  const displayedOptions = useMemo((): MetricSelectorItem[] => {
+    if (pendingFreeformName) {
+      const dataTypeSearch = freeformMetricName.toLowerCase();
+      return FREEFORM_DATA_TYPES.filter(({label}) =>
+        label.toLowerCase().includes(dataTypeSearch)
+      ).map(({dataType, label, example}) => ({
+        kind: 'freeformDataType',
+        dataType,
+        label,
+        textValue: label,
+        value: `${FREEFORM_DATA_TYPE_OPTION_PREFIX}${dataType}`,
+        trailingItems: () => (
+          <Text size="sm" variant="muted" monospace>
+            {example}
+          </Text>
+        ),
+      }));
+    }
+    const options = isFetching ? previousOptions : metricOptions;
+    const hasExactMatch = options.some(
+      option => isMetricSelectorOption(option) && option.metricName === freeformMetricName
+    );
+    if (!allowFreeformMetric || !freeformMetricName || hasExactMatch) {
+      return options;
+    }
+    return [
+      {
+        kind: 'freeform',
+        metricName: freeformMetricName,
+        label: (
+          <Flex gap="sm" align="center" minWidth="0">
+            <IconAdd size="xs" />
+            <Text ellipsis>
+              {tct('Add freeform metric [name]', {
+                name: <Text bold>{`"${freeformMetricName}"`}</Text>,
+              })}
+            </Text>
+          </Flex>
+        ),
+        textValue: freeformMetricName,
+        value: FREEFORM_OPTION_VALUE,
+        trailingItems: () => <Tag variant="info">{t('New')}</Tag>,
+      },
+      ...options,
+    ];
+  }, [
+    allowFreeformMetric,
+    freeformMetricName,
+    isFetching,
+    pendingFreeformName,
+    previousOptions,
+    metricOptions,
+  ]);
 
   // Find the option with the longest label to render as a hidden element.
   // This reserves enough width for the overlay so it doesn't resize as
@@ -380,8 +489,11 @@ export function MetricSelector({
     return new Set(
       displayedOptions
         .filter(option => {
-          if (!isMetricSelectorOption(option)) {
+          if (option.kind === 'field') {
             return Boolean(fieldOption?.disabledReason);
+          }
+          if (!isMetricSelectorOption(option)) {
+            return false;
           }
           return Boolean(getDisabledOptionReason?.(option));
         })
@@ -407,6 +519,7 @@ export function MetricSelector({
     }
 
     setSearchInputValue('');
+    setPendingFreeformName(null);
     comboBoxState.selectionManager.setFocused(false);
     comboBoxState.selectionManager.setFocusedKey(null);
     nextFrameCallback(() => {
@@ -450,6 +563,23 @@ export function MetricSelector({
       }
       if (String(key) === FIELD_OPTION_VALUE && fieldOption) {
         fieldOption.onSelect();
+        comboBoxState.toggle();
+        return;
+      }
+      if (String(key) === FREEFORM_OPTION_VALUE && freeformMetricName) {
+        setPendingFreeformName(freeformMetricName);
+        setSearchInputValue('');
+        return;
+      }
+      if (
+        String(key).startsWith(FREEFORM_DATA_TYPE_OPTION_PREFIX) &&
+        pendingFreeformName
+      ) {
+        const dataType = String(key).slice(FREEFORM_DATA_TYPE_OPTION_PREFIX.length);
+        const metricType =
+          FREEFORM_DATA_TYPES.find(option => option.dataType === dataType)?.metricType ??
+          'distribution';
+        onChange({name: pendingFreeformName, type: metricType, unit: NONE_UNIT});
         comboBoxState.toggle();
         return;
       }
@@ -611,6 +741,11 @@ export function MetricSelector({
           <Text ellipsis italic>
             {t('field')}
           </Text>
+        ) : isAwaitingData ? (
+          <Flex gap="sm" align="center" minWidth="0">
+            <Text ellipsis>{traceMetric.name}</Text>
+            <Tag variant="muted">{t('Awaiting data')}</Tag>
+          </Flex>
         ) : (
           <Text ellipsis>{traceMetric.name || t('None')}</Text>
         )}
@@ -653,8 +788,12 @@ export function MetricSelector({
                     width="100%"
                   >
                     <Flex align="center" justify="between" padding="sm lg">
-                      <Text size="sm" bold wrap="nowrap">
-                        {t('Application Metrics')}
+                      <Text size="sm" bold ellipsis>
+                        {pendingFreeformName
+                          ? tct('Choose a data type for [name]', {
+                              name: <Text monospace>{pendingFreeformName}</Text>,
+                            })
+                          : t('Application Metrics')}
                       </Text>
                       {isFetching ? (
                         <LoadingIndicator size={12} style={{margin: 0}} />
@@ -676,7 +815,11 @@ export function MetricSelector({
                         </InputGroup.LeadingItems>
                         <InputGroup.Input
                           {...comboBoxInputProps}
-                          placeholder={t('Search application metrics\u2026')}
+                          placeholder={
+                            pendingFreeformName
+                              ? t('Search data types\u2026')
+                              : t('Search application metrics\u2026')
+                          }
                           size="xs"
                           ref={searchRef}
                         />

@@ -53,6 +53,7 @@ import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
+import {AwaitingMetricDataPanel, useAwaitingMetricNames} from './awaitingMetricDataPanel';
 import {VisualizationWidget} from './visualizationWidget';
 import {WidgetCardChartContainer} from './widgetCardChartContainer';
 import {
@@ -252,6 +253,11 @@ function WidgetCard(props: Props) {
     widget,
     dashboardFilters,
   });
+  const awaitingMetricNames = useAwaitingMetricNames(widget, selection);
+  const awaitingMetricPanel =
+    awaitingMetricNames.length > 0 ? (
+      <AwaitingMetricDataPanel metricNames={awaitingMetricNames} />
+    ) : null;
 
   const onDataFetchStart = useCallback(() => {
     if (timeoutRef.current) {
@@ -417,19 +423,21 @@ function WidgetCard(props: Props) {
             borderless={props.borderless}
             revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
           >
-            <VisualizationWidget
-              widget={widget}
-              selection={selection}
-              dashboardFilters={dashboardFilters}
-              onDataFetched={handleDataFetched}
-              onDataFetchStart={onDataFetchStart}
-              tableItemLimit={tableItemLimit}
-              widgetInterval={widgetInterval}
-              showConfidenceWarning={showConfidenceWarning}
-              legendSelection={legendSelectionForWidget}
-              onLegendSelectionChange={handleLegendSelectionChange}
-              disableFullscreen={disableFullscreen}
-            />
+            {awaitingMetricPanel ?? (
+              <VisualizationWidget
+                widget={widget}
+                selection={selection}
+                dashboardFilters={dashboardFilters}
+                onDataFetched={handleDataFetched}
+                onDataFetchStart={onDataFetchStart}
+                tableItemLimit={tableItemLimit}
+                widgetInterval={widgetInterval}
+                showConfidenceWarning={showConfidenceWarning}
+                legendSelection={legendSelectionForWidget}
+                onLegendSelectionChange={handleLegendSelectionChange}
+                disableFullscreen={disableFullscreen}
+              />
+            )}
           </WidgetFrame>
         </VisuallyCompleteWithData>
       </ErrorBoundary>
@@ -461,28 +469,30 @@ function WidgetCard(props: Props) {
           revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
           noVisualizationPadding
         >
-          <WidgetCardChartContainer
-            selection={selection}
-            widget={widget}
-            isMobile={isMobile}
-            tableItemLimit={tableItemLimit}
-            windowWidth={windowWidth}
-            onDataFetched={handleDataFetched}
-            dashboardFilters={dashboardFilters}
-            chartGroup={DASHBOARD_CHART_GROUP}
-            shouldResize={shouldResize}
-            onLegendSelectChanged={onLegendSelectChanged}
-            legendOptions={legendOptions}
-            widgetLegendState={widgetLegendState}
-            showConfidenceWarning={showConfidenceWarning}
-            minTableColumnWidth={minTableColumnWidth}
-            disableZoom={disableZoom}
-            onDataFetchStart={onDataFetchStart}
-            showLoadingText={showLoadingText && isLoadingTextVisible}
-            onWidgetTableSort={onWidgetTableSort}
-            onWidgetTableResizeColumn={onWidgetTableResizeColumn}
-            disableTableActions={disableTableActions}
-          />
+          {awaitingMetricPanel ?? (
+            <WidgetCardChartContainer
+              selection={selection}
+              widget={widget}
+              isMobile={isMobile}
+              tableItemLimit={tableItemLimit}
+              windowWidth={windowWidth}
+              onDataFetched={handleDataFetched}
+              dashboardFilters={dashboardFilters}
+              chartGroup={DASHBOARD_CHART_GROUP}
+              shouldResize={shouldResize}
+              onLegendSelectChanged={onLegendSelectChanged}
+              legendOptions={legendOptions}
+              widgetLegendState={widgetLegendState}
+              showConfidenceWarning={showConfidenceWarning}
+              minTableColumnWidth={minTableColumnWidth}
+              disableZoom={disableZoom}
+              onDataFetchStart={onDataFetchStart}
+              showLoadingText={showLoadingText && isLoadingTextVisible}
+              onWidgetTableSort={onWidgetTableSort}
+              onWidgetTableResizeColumn={onWidgetTableResizeColumn}
+              disableTableActions={disableTableActions}
+            />
+          )}
         </WidgetFrame>
       </VisuallyCompleteWithData>
     </ErrorBoundary>

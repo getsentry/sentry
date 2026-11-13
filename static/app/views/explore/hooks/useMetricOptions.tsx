@@ -23,7 +23,7 @@ interface UseMetricOptionsProps {
   search?: string;
 }
 
-function metricOptionsQueryKey({
+export function metricOptionsQueryKey({
   orgSlug,
   projectIds,
   datetime,
