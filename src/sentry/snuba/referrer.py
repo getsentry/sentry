@@ -658,6 +658,8 @@ class Referrer(StrEnum):
     INCIDENTS_GET_INCIDENT_AGGREGATES_PRIMARY = "incidents.get_incident_aggregates.primary"
     INCIDENTS_GET_INCIDENT_AGGREGATES = "incidents.get_incident_aggregates"
     IS_ESCALATING_GROUP = "sentry.issues.escalating.is_escalating"
+    ISSUE_DETAILS_AGENT_RUN_RECENT_ERRORS = "issue_details.agent_run.recent_errors"
+    ISSUE_DETAILS_AGENT_RUN_RECENT_ERROR_SPANS = "issue_details.agent_run.recent_error_spans"
     ISSUE_DETAILS_STREAMLINE_GRAPH = "issue_details.streamline_graph"
     ISSUE_DETAILS_STREAMLINE_LIST = "issue_details.streamline_list"
     ISSUES_ESCALATING_ISSUE_VELOCITY = "sentry.issues.escalating.issue_velocity"
