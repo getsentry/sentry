@@ -8,6 +8,7 @@ describe('useAgentHandoff', () => {
   const organization = OrganizationFixture();
   const url = `/organizations/${organization.slug}/agent-handoff/prompts/`;
   const code = 'sntryh_example';
+  const handoffId = 'a'.repeat(32);
   const prompt =
     'Follow the instructions verbatim at https://sentry-jest-tests.example.com/agent-handoff/. Your handoff code is `sntryh_example`.';
   const write = jest.fn();
@@ -35,7 +36,7 @@ describe('useAgentHandoff', () => {
     const mint = MockApiClient.addMockResponse({
       url,
       method: 'POST',
-      body: {code, expiresAt: new Date(Date.now() + 300_000).toISOString()},
+      body: {code, handoffId, expiresAt: new Date(Date.now() + 300_000).toISOString()},
     });
     write.mockRejectedValueOnce(new Error('Clipboard unavailable'));
     const {result} = renderHookWithProviders(
@@ -46,7 +47,7 @@ describe('useAgentHandoff', () => {
       await expect(result.current.copyPrompt(options)).rejects.toThrow('Unable to copy');
     });
     await act(async () => {
-      await result.current.copyPrompt(options);
+      await expect(result.current.copyPrompt(options)).resolves.toBe(handoffId);
     });
     expect(mint).toHaveBeenCalledTimes(1);
     expect(mint).toHaveBeenCalledWith(
@@ -103,7 +104,7 @@ describe('useAgentHandoff', () => {
     const mint = MockApiClient.addMockResponse({
       url,
       method: 'POST',
-      body: {code, expiresAt: new Date(Date.now() + 300_000).toISOString()},
+      body: {code, handoffId, expiresAt: new Date(Date.now() + 300_000).toISOString()},
       asyncDelay: promise,
     });
     class DeferredClipboardItem {
@@ -116,7 +117,7 @@ describe('useAgentHandoff', () => {
       {organization}
     );
 
-    let copy!: Promise<void>;
+    let copy!: Promise<string>;
     act(() => {
       copy = result.current.copyPrompt(options);
     });
@@ -138,7 +139,7 @@ describe('useAgentHandoff', () => {
     const mint = MockApiClient.addMockResponse({
       url,
       method: 'POST',
-      body: {code, expiresAt: new Date(Date.now() + 300_000).toISOString()},
+      body: {code, handoffId, expiresAt: new Date(Date.now() + 300_000).toISOString()},
       asyncDelay: promise,
     });
     const {result} = renderHookWithProviders(
@@ -146,8 +147,8 @@ describe('useAgentHandoff', () => {
       {organization}
     );
 
-    let firstCopy!: Promise<void>;
-    let secondCopy!: Promise<void>;
+    let firstCopy!: Promise<string>;
+    let secondCopy!: Promise<string>;
     act(() => {
       firstCopy = result.current.copyPrompt(options);
       secondCopy = result.current.copyPrompt(options);
@@ -168,14 +169,14 @@ describe('useAgentHandoff', () => {
     const mint = MockApiClient.addMockResponse({
       url,
       method: 'POST',
-      body: {code, expiresAt: new Date(Date.now() + 300_000).toISOString()},
+      body: {code, handoffId, expiresAt: new Date(Date.now() + 300_000).toISOString()},
       asyncDelay: promise,
     });
     const {result, unmount} = renderHookWithProviders(
       () => useAgentHandoff(AgentHandoffFlow.ONBOARDING, context),
       {organization}
     );
-    let copy!: Promise<void>;
+    let copy!: Promise<string>;
     act(() => {
       copy = result.current.copyPrompt(options);
     });
