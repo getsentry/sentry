@@ -132,7 +132,7 @@ def _record_scheduled_run(
     try:
         with lock_config(organization_id, config_id) as config:
             if not config.enabled:
-                return ScheduledRunOutcome("ignored", reason="configuration_unavailable")
+                return ScheduledRunOutcome("ignored", reason="config_disabled")
 
             run = get_definition(config.strategy).trigger_run(
                 config,
