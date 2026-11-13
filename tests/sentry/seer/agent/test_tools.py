@@ -3206,10 +3206,10 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
             organization = self.create_organization()
             self._connect(organization, provider, name, domain_name)
             not_connected = RepositoryDefinitionFailure(
-                failure_reason="scm_account_not_connected", connected_accounts=[name]
+                failure_reason="scm_account_not_connected", connected_accounts=[path]
             )
             not_in_sentry = RepositoryDefinitionFailure(
-                failure_reason="repo_not_in_sentry", connected_accounts=[name]
+                failure_reason="repo_not_in_sentry", connected_accounts=[path]
             )
             with self.subTest(provider=provider):
                 assert self._lookup(organization, "other-org/app") == not_connected
@@ -3217,6 +3217,10 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
                 assert self._lookup(organization, f"{path}-2/app") == not_connected
                 assert self._lookup(organization, f"{path}/app") == not_in_sentry
                 assert self._lookup(organization, f"{path.upper()}/app") == not_in_sentry
+                # The lookup misses a name with the host in front even when Sentry has the
+                # repository, so it can't say why. Another account's is still not connected.
+                assert self._lookup(organization, f"{domain_name}/app") is None
+                assert self._lookup(organization, f"{domain_name}-2/app") == not_connected
                 # A name with no owner can't be under any account.
                 assert self._lookup(organization, "invalid-format") is None
 
@@ -3226,9 +3230,10 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         for repo_name in ("My Group / Sub / App", "my-group/sub/nested/app"):
             result = self._lookup(self.organization, repo_name)
             assert result.failure_reason == "repo_not_in_sentry"
-        for repo_name in ("my-group/other/app", "my-group/app"):
-            result = self._lookup(self.organization, repo_name)
-            assert result.failure_reason == "scm_account_not_connected"
+        # The lookup reads a display name only as it is, so it misses these even when Sentry has
+        # the repository, and can't say why.
+        for repo_name in ("My Group/Sub/App", "my group / sub / app"):
+            assert self._lookup(self.organization, repo_name) is None
 
     def test_failure_when_the_account_has_no_url(self) -> None:
         self._connect(self.organization, "github", "acme-labs")
@@ -3243,10 +3248,8 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
 
         result = self._lookup(self.organization, "my-group/sub/app")
         assert result.failure_reason == "repo_not_in_sentry"
-        assert set(result.connected_accounts) == {"acme-labs", "My Group / Sub"}
-
-        result = self._lookup(self.organization, "other-org/app")
-        assert result.failure_reason == "scm_account_not_connected"
+        # Each account once, as the path a lookup reads.
+        assert result.connected_accounts == ["acme-labs", "my-group/sub"]
 
     def test_get_repository_definition_not_found(self) -> None:
         """Test that nonexistent repository returns None"""

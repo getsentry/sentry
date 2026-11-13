@@ -26,6 +26,7 @@ from sentry.api.serializers.models.groupactionlogentry import get_serialized_act
 from sentry.api.utils import MAX_STATS_PERIOD, default_start_end_dates, get_date_range_from_params
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
 from sentry.integrations.services.integration import RpcIntegration, integration_service
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.formatting.formatter import Format
 from sentry.issues.formatting.limits import LIMITS_DEFAULT, LIMITS_LOW
@@ -932,19 +933,48 @@ def rpc_get_profile_flamegraph(
     )
 
 
-def _name_segments(name: str) -> list[str]:
-    return [segment.strip().casefold() for segment in name.split("/") if segment.strip()]
+def _account_path(integration: RpcIntegration) -> str:
+    """The path an account's repository paths start with, so what a lookup should be given:
+    "acme-labs" for "acme-labs/app". It's the account's name, except on GitLab, where the name is
+    the group's display name ("My Group / Sub") and the path is "my-group/sub"."""
+    if integration.provider == IntegrationProviderSlug.GITLAB.value:
+        return integration.metadata.get("domain_name", "").partition("/")[2]
+    return integration.name
 
 
-def _is_under_account(repo_segments: list[str], integration: RpcIntegration) -> bool:
-    """Whether a repository name starts with the integration's account, by the account's name or
-    its URL path. GitLab needs both: its repository names can start with the group's display name
-    ("My Group / Sub") or its path ("my-group/sub")."""
-    domain_name = integration.metadata.get("domain_name", "")
-    url_path = domain_name.removeprefix("https://").partition("/")[2]
-    for account_name in (integration.name, url_path):
-        account = _name_segments(account_name)
-        if 0 < len(account) < len(repo_segments) and repo_segments[: len(account)] == account:
+def _starts_with(segments: list[str], prefix: list[str]) -> bool:
+    """Whether ``segments`` start with all of ``prefix``, with more after it."""
+    return 0 < len(prefix) < len(segments) and segments[: len(prefix)] == prefix
+
+
+def _loose_segments(name: str) -> list[str]:
+    """A name's segments, ignoring a leading "https://", spaces around each "/", and case."""
+    without_scheme = name.split("://", 1)[-1]
+    return [segment.strip().casefold() for segment in without_scheme.split("/") if segment.strip()]
+
+
+def _is_under_account(repo_full_name: str, integration: RpcIntegration) -> bool:
+    """Whether a repository name is under the integration's account, written the way a lookup
+    reads names: the account's path in any case ("ACME-Labs/app"), or on GitLab, the group's
+    display name as it is ("My Group / Sub / App"). A lookup that misses such a name means Sentry
+    has no such repository."""
+    account_path = _account_path(integration).casefold().split("/")
+    if _starts_with(repo_full_name.casefold().split("/"), account_path):
+        return True
+    return integration.provider == IntegrationProviderSlug.GITLAB.value and _starts_with(
+        repo_full_name.split(" / "), integration.name.split(" / ")
+    )
+
+
+def _may_be_under_account(repo_full_name: str, integration: RpcIntegration) -> bool:
+    """Whether a repository name is under the integration's account once spaces and case are
+    ignored ("My Group/Sub/App"), or past the account's host ("github.com/acme-labs/app"). A lookup
+    misses names written like this even when Sentry has the repository."""
+    repo_segments = _loose_segments(repo_full_name)
+    url = _loose_segments(integration.metadata.get("domain_name", ""))
+    # The URL with its host ("github.com/acme-labs") and without it ("acme-labs").
+    for account in (_loose_segments(integration.name), url, url[1:]):
+        if _starts_with(repo_segments, account):
             return True
     return False
 
@@ -982,18 +1012,23 @@ def _repository_lookup_failure(
     if not integrations:
         return RepositoryDefinitionFailure(failure_reason="no_scm_integration")
 
-    repo_segments = _name_segments(repo_full_name)
     # A name with no owner can't be under any account, so there's nothing to say about it.
-    if len(repo_segments) < 2:
+    if len(_loose_segments(repo_full_name)) < 2:
         return None
     under_connected_account = any(
-        _is_under_account(repo_segments, integration) for integration in integrations
+        _is_under_account(repo_full_name, integration) for integration in integrations
     )
+    # The lookup may have missed only because of how the name is written, so the reason isn't known.
+    if not under_connected_account and any(
+        _may_be_under_account(repo_full_name, integration) for integration in integrations
+    ):
+        return None
     return RepositoryDefinitionFailure(
         failure_reason=(
             "repo_not_in_sentry" if under_connected_account else "scm_account_not_connected"
         ),
-        connected_accounts=[integration.name for integration in integrations],
+        # What the agent can retry with, once each. Sorted: integrations come in no set order.
+        connected_accounts=sorted({_account_path(integration) for integration in integrations}),
     )
 
 
