@@ -335,11 +335,11 @@ Keep the value to the single number the label names. Anything that explains it b
 
 The row is a list, and `label` names it — "Replay stats". Without it a screen reader meets a run of numbers with nothing saying what they count. People sit beside that list rather than inside it: a list named for its stats cannot hold something that is not one.
 
-A stat is one fact split across two elements, which a screen reader moving element by element otherwise reads as two: "0", then "Dead Clicks".
+The label comes first, on screen and in the DOM: "Errors 3", not "3 Errors". A screen reader never announces a bare number before saying what it counts, the row reads the same whatever the count with no plural to agree ("Errors 1"), and someone using voice control meets the word they would say before the number beside it.
 
-On a `link` stat the anchor is named from the value and the label together, so it reads "4 Dead Clicks" in one go, and the value is hidden since the name already speaks it. A `text` stat is still two elements — adjacent and read in order, but visited separately.
+Each half is read as itself — "Errors", then "3" — rather than composed into one announcement. Nothing is hidden and nothing is renamed, so what a screen reader reads is what is on screen.
 
-That is why a `link` stat's `value` is text rather than a node: the name is composed from it. A graphic there would leave the link named by its label alone, silently dropping the half that says how many.
+A `link` stat's anchor wraps the label only, and is named by it: a links list reads "Errors", which says where it leads. The count is not part of the name and does not need to be — it sits in the same list item, which is context enough for the link's purpose.
 
 ### Types
 
@@ -358,7 +358,7 @@ On a `link` stat it is the **label** that navigates, not the value: a link named
 
 `labelTooltip` covers a label that is jargon on its own. `valueTooltip` carries a breakdown — a replay's errors can come from several projects, so the stat shows the total and the tooltip splits it by project. Both take structured content, so either can be built from `Tooltip.Header`, `Tooltip.Grid` and `Tooltip.Row`.
 
-`valueTooltip` is only available on a `text` stat. On a link the value is hidden, and a tooltip needs a visible, focusable trigger — put the breakdown in `labelTooltip`, where it attaches to the link.
+Each tooltip has one trigger, on its own half, and either or both can be set on any stat type. Tab visits the label, then the value, and each opens only its own tooltip. On a `link` stat the label tooltip attaches to the link itself rather than nesting a second tab stop inside it, and the value tooltip is a separate trigger after the link.
 
 Colour says it navigates; an underline says it explains. A link label is accent-coloured, a tooltipped label is underlined, and one that does both is both — as the three stats below are, in order. A single treatment would mean a link that only navigates looked like one that explains, and an underline reads as "hover for more" to most people, so that is the meaning it keeps.
 

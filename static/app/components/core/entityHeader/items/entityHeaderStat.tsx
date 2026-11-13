@@ -14,6 +14,11 @@ interface EntityHeaderStatBase {
    */
   label: string;
   /**
+   * The measurement itself. Text, not a node: the row is built for single
+   * numbers, and any breakdown belongs in `valueTooltip`.
+   */
+  value: number | string;
+  /**
    * Hold this one stat as a skeleton while the rest of the header is live. Use
    * it when the value comes from a request that settles after the entity does;
    * without it a stat renders whatever it has, which asserts a zero before the
@@ -27,6 +32,11 @@ interface EntityHeaderStatBase {
    * `Tooltip.Header`, `Tooltip.Grid` and `Tooltip.Row`.
    */
   labelTooltip?: React.ReactNode;
+  /**
+   * What the value is made of — the projects behind an error count, say.
+   * Takes structured content, which is how a breakdown stays out of the row.
+   */
+  valueTooltip?: React.ReactNode;
 }
 
 /**
@@ -35,37 +45,14 @@ interface EntityHeaderStatBase {
  * as it likes; the type may not.
  */
 export type EntityHeaderStatProps =
-  | ({
-      type: 'text';
-      /**
-       * The measurement itself. Text, not a node: the row is built for single
-       * numbers, and any breakdown belongs in `valueTooltip`.
-       */
-      value: number | string;
-      /**
-       * What the value is made of — the projects behind an error count, say.
-       * Takes structured content, which is how a breakdown stays out of the row.
-       *
-       * Only on a text stat. On a link stat the value is hidden, since the link
-       * speaks it as part of its own name, and a tooltip needs a visible,
-       * focusable trigger — put the breakdown in `labelTooltip` instead, where
-       * it attaches to the link.
-       */
-      valueTooltip?: React.ReactNode;
-    } & EntityHeaderStatBase)
+  | ({type: 'text'} & EntityHeaderStatBase)
   | ({
       /**
-       * Where the value leads. Required, so the stat cannot quietly stop being
+       * Where the label leads. Required, so the stat cannot quietly stop being
        * a link when its count is zero.
        */
       to: LinkProps['to'];
       type: 'link';
-      /**
-       * Text, not a node, because the link is named from it. A graphic here
-       * would leave the link named by its label alone, silently dropping the
-       * half that says how many.
-       */
-      value: number | string;
       onClick?: () => void;
     } & EntityHeaderStatBase);
 
@@ -78,43 +65,30 @@ const LABEL_STYLES = {
   wrap: 'nowrap',
 } as const;
 
-function StatValue(props: EntityHeaderStatProps) {
-  if (props.type === 'text' && props.valueTooltip) {
+function StatValue({value, valueTooltip}: EntityHeaderStatProps) {
+  if (valueTooltip) {
     return (
-      <InfoText title={props.valueTooltip} {...VALUE_STYLES}>
-        {props.value}
+      <InfoText title={valueTooltip} {...VALUE_STYLES}>
+        {value}
       </InfoText>
     );
   }
 
-  // Hidden on a link stat, where the anchor's own name already speaks it.
-  return (
-    <Text aria-hidden={props.type === 'link'} {...VALUE_STYLES}>
-      {props.value}
-    </Text>
-  );
+  return <Text {...VALUE_STYLES}>{value}</Text>;
 }
 
 function StatLabel(props: EntityHeaderStatProps) {
   const {label, labelTooltip} = props;
 
   if (props.type === 'link') {
-    const {to, onClick, value} = props;
-    // The label is what navigates, so the link is named by what it leads to
-    // rather than by a number.
+    const {to, onClick} = props;
+    // Named by its label alone — where it leads. The count beside it is read
+    // in the same list item, which is context enough for the link's purpose.
     return (
       <Text {...LABEL_STYLES} variant="accent">
         {styleProps => {
           const link = (
-            <Link
-              to={to}
-              onClick={onClick}
-              // Composed rather than assembled from the DOM with
-              // `aria-labelledby`, which would have to reach into the hidden
-              // value node — something not every engine is known to honour.
-              aria-label={`${value} ${label}`}
-              {...styleProps}
-            >
+            <Link to={to} onClick={onClick} {...styleProps}>
               {label}
             </Link>
           );
@@ -159,14 +133,13 @@ export function EntityHeaderStat(props: EntityHeaderStatProps) {
   return (
     <Flex as="li" align="center" height={ROW_HEIGHT} flexShrink={0} minWidth={0}>
       {/*
-        A stat is one fact split across two elements, which a screen reader
-        moving element by element reads as two: "0", then "link, Dead Clicks".
-        On a link stat the anchor is named from both, so it reads "0 Dead
-        Clicks" in one go.
+        The label comes first, on screen and in the DOM, so a number is never
+        read before what it counts. Each half is read as itself: "Errors",
+        then "3".
       */}
       <Flex align="baseline" gap="xs" minWidth={0}>
-        <StatValue {...props} />
         <StatLabel {...props} />
+        <StatValue {...props} />
       </Flex>
     </Flex>
   );
