@@ -71,7 +71,7 @@ class ProjectDetailsTest(APITestCase):
 
         response = self.get_success_response(self.organization.slug, self.project.slug)
 
-        assert "securityToken" not in response.data
+        assert response.data["securityToken"] == ""
 
     def test_security_token_hidden_from_read_only_owner_token(self) -> None:
         self.project.update_option("sentry:token", "source-token")
@@ -83,7 +83,7 @@ class ProjectDetailsTest(APITestCase):
             extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
         )
 
-        assert "securityToken" not in response.data
+        assert response.data["securityToken"] == ""
 
     def test_superuser_simple(self) -> None:
         superuser = self.create_user(is_superuser=True)
@@ -331,7 +331,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         )
         assert response.status_code == 200
         assert response.data["isBookmarked"] is True
-        assert "securityToken" not in response.data
+        assert response.data["securityToken"] == ""
 
     @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
     @with_feature("organizations:service-accounts")

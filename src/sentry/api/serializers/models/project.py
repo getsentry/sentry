@@ -1169,13 +1169,11 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     subjectTemplate: Annotated[
         str, ApiDescription("Email subject used for individual alerts, excluding the prefix")
     ]
-    securityToken: NotRequired[
-        Annotated[
-            str,
-            ApiDescription(
-                "Token sent with outbound source-scraping requests. Only included with project:write or project:admin access"
-            ),
-        ]
+    securityToken: Annotated[
+        str,
+        ApiDescription(
+            "Token sent with outbound source-scraping requests. Returns an empty string without project:write or project:admin access"
+        ),
     ]
     securityTokenHeader: Annotated[
         str | None,
@@ -1416,6 +1414,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "sensitiveFields": attrs["options"].get("sentry:sensitive_fields", []),
                 "subjectTemplate": attrs["options"].get("mail:subject_template")
                 or DEFAULT_SUBJECT_TEMPLATE.template,
+                "securityToken": "",
                 "securityTokenHeader": attrs["options"].get("sentry:token_header"),
                 "verifySSL": bool(attrs["options"].get("sentry:verify_ssl", False)),
                 "scrubIPAddresses": bool(attrs["options"].get("sentry:scrub_ip_address", False)),

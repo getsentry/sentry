@@ -253,6 +253,7 @@
       "safeFields",
       "scrapeJavaScript",
       "scrubIPAddresses",
+      "securityToken",
       "securityTokenHeader",
       "sensitiveFields",
       "slug",
@@ -508,7 +509,7 @@
       },
       "securityToken": {
         "type": "string",
-        "description": "Token sent with outbound source-scraping requests. Only included with project:write or project:admin access."
+        "description": "Token sent with outbound source-scraping requests. Returns an empty string without project:write or project:admin access."
       },
       "securityTokenHeader": {
         "type": "string",
