@@ -100,7 +100,7 @@ export function AutofixStartCard({
             </Stack>
           </Fragment>
         )}
-        <Flex gap="md">
+        <Flex gap="md" wrap="wrap">
           {showContext ? null : (
             <Button size="md" onClick={() => setShowContext(true)}>
               {t('Add context')}
