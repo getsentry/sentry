@@ -7,7 +7,7 @@ from django.utils import timezone
 from taskbroker_client.retry import Retry
 from taskbroker_client.state import current_task
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.analytics.events.autofix_automation_events import AiAutofixAutomationEvent
 from sentry.constants import (
     ObjectStatus,
@@ -33,7 +33,6 @@ from sentry.seer.autofix.utils import (
     bulk_read_preferences_from_sentry_db,
     get_org_default_seer_automation_handoff,
     get_seer_seat_based_tier_cache_key,
-    is_seer_token_based_billing_onboarding_enabled,
     update_seer_project_settings,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
@@ -256,8 +255,8 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
     sentry_sdk.set_attribute("organization_id", organization.id)
     sentry_sdk.set_tag("organization_slug", organization.slug)
     sentry_sdk.set_attribute("organization_slug", organization.slug)
-    is_token_billed = is_seer_token_based_billing_onboarding_enabled(organization)
-    # Free cohort orgs stay in the cohort when they're token-billed.
+    is_token_billed = features.has("organizations:token-billed-seer-enabled", organization)
+    # The cleanup deletes Seer repo config, which a token-billed org should keep.
     if not is_token_billed:
         _clear_free_autofix_cohort_configuration(organization)
 
