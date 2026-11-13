@@ -648,8 +648,8 @@ def _match_event_frames_to_project_repos(
             is not None
         ]
         if matches:
-            # User-made mappings sort first, and a catch-all one would claim every frame.
-            best_match = max(matches, key=lambda code_mapping: len(code_mapping.stack_root))
+            # A catch-all mapping matches every frame, so it only wins when nothing else does.
+            best_match = next((match for match in matches if match.stack_root), matches[0])
             matched_ids.add(best_match.project_repository_id)
     return matched_ids
 

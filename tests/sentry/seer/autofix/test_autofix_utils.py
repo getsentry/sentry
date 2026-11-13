@@ -1795,6 +1795,14 @@ class TestGetEventMatchedProjectRepoIds(TestCase, SnubaTestCase):
         assert get_event_matched_project_repo_ids(self._store_group()) == {matched.id}
 
     @with_feature(TOKEN_BILLING_FEATURES)
+    def test_user_made_mapping_beats_more_specific_automatic_mapping(self) -> None:
+        self._link_filler_repos()
+        self._link_repo("automatic", stack_root="billing/charge", automatically_generated=True)
+        matched = self._link_repo("billing", stack_root="billing/")
+
+        assert get_event_matched_project_repo_ids(self._store_group()) == {matched.id}
+
+    @with_feature(TOKEN_BILLING_FEATURES)
     def test_single_catch_all_mapping_matches(self) -> None:
         self._link_filler_repos()
         matched = self._link_repo("catch-all", stack_root="")
