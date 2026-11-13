@@ -37,10 +37,16 @@ class IssueAssignedData(InboxEventData):
     activity_id: int
     assignment_source: ActivityIntegration | None
 
+    def get_activity_id(self) -> int:
+        return self.activity_id
+
 
 @dataclass(frozen=True, kw_only=True)
 class IssueMentionedData(InboxEventData):
     comment_id: int  # Comment reference exposed as commentId by the activity API.
+
+    def get_activity_id(self) -> int:
+        return self.comment_id
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -48,6 +54,9 @@ class IssuePRReadyForReviewData(InboxEventData):
     activity_id: int
     pr_url: str
     seer_run_id: int  # Seer DbRunState ID.
+
+    def get_activity_id(self) -> int:
+        return self.activity_id
 
 
 ISSUE = IssueItemType()

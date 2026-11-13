@@ -89,6 +89,10 @@ class InboxEventSummary(StrEnum):
 class InboxEventData:
     pass
 
+    def get_activity_id(self) -> int | None:
+        """The ID of the Activity this event records, if any."""
+        return None
+
 
 @dataclass(frozen=True, kw_only=True)
 class InboxEventType[SubjectT, DataT: InboxEventData]:

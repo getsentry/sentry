@@ -3,7 +3,6 @@ from collections.abc import Iterable, Sequence
 from django.db.models import Q
 
 from sentry import features
-from sentry.inbox.issue import IssueAssignedData, IssueMentionedData, IssuePRReadyForReviewData
 from sentry.inbox.types import InboxActor, InboxEventData, InboxEventType
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
@@ -99,7 +98,7 @@ def _send_notifications[SubjectT, DataT: InboxEventData](
         build_activity_notification_data,
     )
 
-    activity_id = _get_activity_id(data)
+    activity_id = data.get_activity_id()
     if activity_id is None:
         # TODO(ISWF-3737): Notify about notebook events.
         return
@@ -143,16 +142,6 @@ def _get_user_ids_with_other_activity_events(
         .exclude(id__in=[event.id for event in events])
         .values_list("inbox_item__user_id", flat=True)
     )
-
-
-def _get_activity_id(data: InboxEventData) -> int | None:
-    match data:
-        case IssueAssignedData() | IssuePRReadyForReviewData():
-            return data.activity_id
-        case IssueMentionedData():
-            return data.comment_id
-        case _:
-            return None
 
 
 def _get_recipient_user_ids(
