@@ -19,6 +19,7 @@ from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
+from sentry.utils.locking import UnableToAcquireLock
 
 pytestmark = [requires_snuba]
 
@@ -275,11 +276,12 @@ class DiscardGroupTest(TestCase):
             "deletions.discard_group.retries_exhausted", sample_rate=1.0
         )
 
-    def test_skips_when_another_copy_holds_the_lock(self) -> None:
+    def test_retries_when_another_run_holds_the_lock(self) -> None:
         lock = locks.get(f"discard-group:{self.group.id}", duration=60, name="discard_group")
         with (
             lock.acquire(),
             patch("sentry.deletions.tasks.groups.delete_groups_for_project") as delete_task,
+            pytest.raises(UnableToAcquireLock),
         ):
             self.run_task()
 

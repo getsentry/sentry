@@ -2,6 +2,7 @@ from datetime import timedelta
 from unittest import mock
 
 from django.core.cache import cache
+from django.db import IntegrityError
 from django.test import override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
@@ -1249,6 +1250,25 @@ class GroupUpdateTest(APITestCase):
             group_hash.refresh_from_db()
             assert group_hash.group_id is None
             assert group_hash.group_tombstone_id == tombstone.id
+
+    def test_discard_skips_group_whose_tombstone_was_concurrently_removed(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+        GroupHash.objects.create(hash="x" * 32, project=group.project, group=group)
+
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
+
+        # The tombstone insert conflicts, but an undiscard deletes that tombstone before the lookup.
+        with (
+            self.feature("projects:discard-groups"),
+            mock.patch.object(GroupTombstone.objects, "create", side_effect=IntegrityError),
+            mock.patch("sentry.api.helpers.group_index.update.discard_group") as discard_group,
+        ):
+            resp = self.client.put(url, data={"discard": True})
+
+        assert resp.status_code == 204
+        discard_group.apply_async.assert_not_called()
+        assert Group.objects.filter(id=group.id).exists()
 
     def test_discard_performance_issue(self) -> None:
         self.login_as(user=self.user)

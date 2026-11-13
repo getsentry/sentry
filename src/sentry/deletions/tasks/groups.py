@@ -127,10 +127,11 @@ def discard_group(
     try:
         with lock.acquire():
             _discard_group(group_id, project_id, tombstone_id, transaction_id)
-    except UnableToAcquireLock:
-        # Another copy of this task is already discarding the group.
-        metrics.incr("deletions.discard_group.lock_unavailable", sample_rate=1.0)
-    except (Exception, ProcessingDeadlineExceeded):
+    except (Exception, ProcessingDeadlineExceeded) as e:
+        if isinstance(e, UnableToAcquireLock):
+            # Another run holds the lock, possibly one that died without releasing it. Retrying
+            # outlasts the lock, so the work isn't dropped.
+            metrics.incr("deletions.discard_group.lock_unavailable", sample_rate=1.0)
         task = current_task()
         if task is None or not task.retries_remaining:
             logger.exception("discard_group.retries_exhausted", extra=extra)

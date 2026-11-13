@@ -124,7 +124,11 @@ def handle_discard(
         except IntegrityError:
             # An earlier request already discarded this group, and its task may have stopped
             # before it finished. Run the task again; it continues where it left off.
-            tombstone = GroupTombstone.objects.get(previous_group_id=group.id)
+            try:
+                tombstone = GroupTombstone.objects.get(previous_group_id=group.id)
+            except GroupTombstone.DoesNotExist:
+                # An undiscard removed that tombstone after the conflict, so leave the group be.
+                continue
         else:
             newly_discarded[group.project_id].append(group)
         discards.append((group, tombstone))
