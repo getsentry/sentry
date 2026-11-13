@@ -6,6 +6,28 @@ import {ContinuousTimeSeries} from './continuousTimeSeries';
 import type {Plottable} from './plottable';
 
 describe('ContinuousTimeSeries', () => {
+  describe('labelSuffix', () => {
+    it.each([
+      {alias: undefined, groupBy: undefined, expectedLabel: 'avg(span.duration)'},
+      {alias: 'Duration', groupBy: undefined, expectedLabel: 'Duration'},
+      {
+        alias: undefined,
+        groupBy: [{key: 'span.op', value: 'db'}],
+        expectedLabel: 'db',
+      },
+    ])('keeps $expectedLabel separate from transformations', config => {
+      const series = TimeSeriesFixture({
+        yAxis: 'avg(span.duration)',
+        groupBy: config.groupBy,
+        requestedTransformations: ['fill(linear)', 'smooth(sma,5)'],
+      });
+      const plottable = new Dots(series, {alias: config.alias});
+
+      expect(plottable.label).toBe(config.expectedLabel);
+      expect(plottable.labelSuffix).toBe('fill(linear) → SMA(5)');
+    });
+  });
+
   describe('isEmpty', () => {
     it('marks normal plottables as not empty', () => {
       const timeSeries = TimeSeriesFixture();
