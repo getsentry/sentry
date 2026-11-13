@@ -74,6 +74,8 @@ import {
   usePrimaryNavigation,
 } from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
+import {useSettingsNavigation} from 'sentry/views/navigation/useSettingsNavigation';
+import {useSettingsNavigationScope} from 'sentry/views/navigation/useSettingsNavigationScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 const MotionContainer = motion.create(Container);
@@ -123,6 +125,10 @@ function SecondarySidebarPanel({
   const {layout, activeGroup} = usePrimaryNavigation();
   // Group switches only animate to smooth over hover previews.
   const shouldAnimateGroupSwitch = useNavigationGroupHoverEnabled();
+  const isSettingsNavigation = useSettingsNavigation();
+  const {scope: settingsScope} = useSettingsNavigationScope();
+  // Settings scopes switch like groups do, so they animate the same way.
+  const panelKey = isSettingsNavigation ? `settings-${settingsScope}` : activeGroup;
 
   const [secondarySidebarWidth, setSecondarySidebarWidth] = useSyncedLocalStorageState(
     NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
@@ -160,7 +166,7 @@ function SecondarySidebarPanel({
         <MotionContainer
           width="100%"
           height="100%"
-          key={activeGroup}
+          key={panelKey}
           initial={shouldAnimateGroupSwitch ? {x: -6, opacity: 0} : false}
           animate={{x: 0, opacity: 1}}
           exit={shouldAnimateGroupSwitch ? {x: 6, opacity: 0} : undefined}

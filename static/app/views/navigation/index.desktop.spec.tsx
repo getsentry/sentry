@@ -451,6 +451,103 @@ describe('desktop navigation', () => {
       expect(screen.getByRole('link', {name: 'Personal Tokens'})).toBeInTheDocument();
     });
 
+    describe('scope hover preview', () => {
+      beforeEach(() => {
+        MockApiClient.addMockResponse({
+          url: '/projects/org-slug/project-slug/',
+          body: ProjectFixture(),
+        });
+      });
+
+      function renderOrgSettings(features = settingsV3.features) {
+        return render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({
+            organization: {features},
+            initialRouterConfig: {location: {pathname: '/settings/org-slug/'}},
+          })
+        );
+      }
+
+      it('previews account settings without leaving the route', async () => {
+        const {router} = renderOrgSettings();
+
+        await userEvent.hover(screen.getByRole('link', {name: 'Account'}));
+
+        // find* waits for the previous panel's exit animation to finish.
+        expect(await screen.findByText('Account Settings')).toBeInTheDocument();
+        expect(
+          await screen.findByRole('link', {name: 'Personal Tokens'})
+        ).toBeInTheDocument();
+        expect(
+          screen.queryByRole('link', {name: 'Organization Tokens'})
+        ).not.toBeInTheDocument();
+        expect(router.location.pathname).toBe('/settings/org-slug/');
+        assertActivePrimaryNavLink(screen.getByRole('link', {name: 'Org'}));
+      });
+
+      it('previews the settings of the project the rail links to', async () => {
+        renderOrgSettings();
+
+        await userEvent.hover(await screen.findByRole('link', {name: 'Project'}));
+
+        expect(
+          await screen.findByRole('button', {name: 'Select a project'})
+        ).toHaveTextContent('project-slug');
+      });
+
+      it('returns to the route scope when the mouse leaves the navigation', async () => {
+        renderOrgSettings();
+
+        await userEvent.hover(screen.getByRole('link', {name: 'Account'}));
+        expect(
+          await screen.findByRole('link', {name: 'Personal Tokens'})
+        ).toBeInTheDocument();
+
+        await userEvent.unhover(
+          screen.getByRole('navigation', {name: 'Primary Navigation'})
+        );
+
+        expect(await screen.findByText('Organization Settings')).toBeInTheDocument();
+        await waitFor(() =>
+          expect(
+            screen.queryByRole('link', {name: 'Personal Tokens'})
+          ).not.toBeInTheDocument()
+        );
+      });
+
+      describe('with hover previews disabled', () => {
+        beforeEach(() => {
+          jest.useFakeTimers();
+        });
+
+        afterEach(() => {
+          try {
+            act(() => jest.runOnlyPendingTimers());
+          } finally {
+            jest.useRealTimers();
+          }
+        });
+
+        it('does not preview scopes on hover', async () => {
+          renderOrgSettings([...settingsV3.features, 'universal-inbox']);
+
+          await userEvent.hover(screen.getByRole('link', {name: 'Account'}), {
+            delay: null,
+          });
+          // Advance past the longest hover activation delay.
+          act(() => jest.advanceTimersByTime(250));
+
+          expect(screen.getByText('Organization Settings')).toBeInTheDocument();
+          expect(
+            screen.queryByRole('link', {name: 'Personal Tokens'})
+          ).not.toBeInTheDocument();
+        });
+      });
+    });
+
     it.each([
       {customerDomain: false, pathname: '/settings/org-slug/projects/'},
       {customerDomain: true, pathname: '/settings/projects/'},

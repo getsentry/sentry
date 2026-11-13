@@ -21,11 +21,11 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
+import {useSettingsNavigationScope} from 'sentry/views/navigation/useSettingsNavigationScope';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {getSettingsScopeTitle} from 'sentry/views/settings/settingsScope';
 import type {NavigationProps, NavigationSection} from 'sentry/views/settings/types';
 import {useSettingsProjectSwitchTemplate} from 'sentry/views/settings/useSettingsProjectSwitchTemplate';
-import {useSettingsScope} from 'sentry/views/settings/useSettingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 import {SettingsNavigationGroup} from './settingsNavigationGroup';
@@ -53,7 +53,7 @@ export function SettingsNavigation({
 }: Props) {
   const navWithHooks = navigationObjects.concat(hookConfigs);
   const settingsV3 = useSettingsV3();
-  const {scope} = useSettingsScope();
+  const {scope} = useSettingsNavigationScope();
   const showProjectSelector = settingsV3 && scope === 'project';
   const title = settingsV3 && scope ? getSettingsScopeTitle(scope) : t('Settings');
 
@@ -85,8 +85,12 @@ function SettingsProjectSelector() {
   const subpage = matchPath('/settings/:orgId?/projects/:projectId/*', location.pathname)
     ?.params['*'];
   const params = useParams<{projectId: string; orgId?: string}>();
-  const {projectId} = params;
-  const switchTo = useSettingsProjectSwitchTemplate();
+  // While a scope is previewed, the project is the one the rail links to, not
+  // the route's.
+  const {projectSlug: projectId} = useSettingsNavigationScope();
+  // Only project routes have a template to switch between projects with.
+  const routeSwitchTo = useSettingsProjectSwitchTemplate();
+  const switchTo = params.projectId ? routeSwitchTo : undefined;
   const {projects, onSearch} = useProjects();
   const selectedProject = projects.find(project => project.slug === projectId);
   const organization = useOrganization();

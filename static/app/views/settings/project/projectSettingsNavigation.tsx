@@ -2,8 +2,8 @@ import {useContext} from 'react';
 
 import type {Organization} from 'sentry/types/organization';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
-import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
+import {useSettingsNavigationScope} from 'sentry/views/navigation/useSettingsNavigationScope';
 import {ProjectRouteContext} from 'sentry/views/projects/projectRouteContext';
 import {SettingsNavigation} from 'sentry/views/settings/components/settingsNavigation';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
@@ -17,8 +17,10 @@ interface ProjectSettingsNavigationProps {
 export function ProjectSettingsNavigation({
   organization,
 }: ProjectSettingsNavigationProps) {
-  const projectFromContext = useContext(ProjectRouteContext);
-  const {projectId} = useParams<{projectId?: string}>();
+  const routeProject = useContext(ProjectRouteContext);
+  // While a scope is previewed, this is the project the rail links to.
+  const {projectSlug: projectId} = useSettingsNavigationScope();
+  const projectFromContext = routeProject?.slug === projectId ? routeProject : null;
   const settingsV3 = useSettingsV3();
   const {projects} = useProjects({slugs: projectId ? [projectId] : []});
   const summaryProject = projects.find(({slug}) => slug === projectId);

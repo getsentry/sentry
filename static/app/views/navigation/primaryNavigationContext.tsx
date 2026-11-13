@@ -75,7 +75,21 @@ interface PrimaryNavigationContext {
   activeGroup: NavigationGroup;
   features: PrimaryNavigationFeatures;
   layout: 'mobile' | 'sidebar';
+  /**
+   * Overrides the active group until the route group changes. `null` goes back
+   * to following the route, and also clears the settings scope preview.
+   */
   setActiveGroup: (group: NavigationGroup | null) => void;
+  /**
+   * Previews the settings scope of this path in the secondary navigation,
+   * until the route changes. `null` goes back to the route's scope.
+   */
+  setSettingsPreviewPath: (path: string | null) => void;
+  /**
+   * The path whose settings scope the secondary navigation previews, set while
+   * hovering a scope in the settings navigation rail.
+   */
+  settingsPreviewPath: string | null;
 }
 
 const PrimaryNavigationContext = createContext<PrimaryNavigationContext>({
@@ -83,6 +97,8 @@ const PrimaryNavigationContext = createContext<PrimaryNavigationContext>({
   activeGroup: 'issues',
   features: {hover: true},
   setActiveGroup: () => {},
+  settingsPreviewPath: null,
+  setSettingsPreviewPath: () => {},
 });
 
 export function usePrimaryNavigation(): PrimaryNavigationContext {
@@ -103,8 +119,13 @@ export function PrimaryNavigationContextProvider(
     group: NavigationGroup;
     routeGroup: NavigationGroup;
   } | null>(null);
+  const [settingsPreview, setSettingsPreview] = useState<{
+    path: string;
+    routePathname: string;
+  } | null>(null);
 
   const theme = useTheme();
+  const {pathname} = useLocation();
   // Primary navigation switches at the viewport breakpoint.
   // oxlint-disable-next-line @sentry/scraps/prefer-container-responsive-props
   const isMobile = useMedia(`(width < ${theme.breakpoints.md})`);
@@ -124,10 +145,28 @@ export function PrimaryNavigationContextProvider(
       ? activeGroupOverride.group
       : null;
 
+  // Like the group override, a settings preview only lasts for the route it
+  // was set under, so navigating never leaves a stale scope behind.
+  if (settingsPreview && settingsPreview.routePathname !== pathname) {
+    setSettingsPreview(null);
+  }
+  const settingsPreviewPath =
+    settingsPreview?.routePathname === pathname ? settingsPreview.path : null;
+
   const setActiveGroup = useCallback(
-    (group: NavigationGroup | null) =>
-      setActiveGroupOverride(group ? {group, routeGroup: activeRouteGroup} : null),
+    (group: NavigationGroup | null) => {
+      setActiveGroupOverride(group ? {group, routeGroup: activeRouteGroup} : null);
+      if (!group) {
+        setSettingsPreview(null);
+      }
+    },
     [activeRouteGroup]
+  );
+
+  const setSettingsPreviewPath = useCallback(
+    (path: string | null) =>
+      setSettingsPreview(path ? {path, routePathname: pathname} : null),
+    [pathname]
   );
 
   const value = useMemo(
@@ -136,8 +175,18 @@ export function PrimaryNavigationContextProvider(
       features: {hover: hasHover},
       activeGroup: activeGroupOverrideForRoute ?? activeRouteGroup,
       setActiveGroup,
+      settingsPreviewPath,
+      setSettingsPreviewPath,
     }),
-    [isMobile, hasHover, activeGroupOverrideForRoute, activeRouteGroup, setActiveGroup]
+    [
+      isMobile,
+      hasHover,
+      activeGroupOverrideForRoute,
+      activeRouteGroup,
+      setActiveGroup,
+      settingsPreviewPath,
+      setSettingsPreviewPath,
+    ]
   );
 
   return (

@@ -33,15 +33,17 @@ import {useMouseMovement} from './useMouseMovement';
  * groups without a secondary navigation.
  */
 
-interface UseActivateNavigationGroupOnHoverProps {
+interface UseNavigationHoverIntentProps {
   ref: React.RefObject<HTMLElement | null>;
 }
-export function useActivateNavigationGroupOnHover({
-  ref,
-}: UseActivateNavigationGroupOnHoverProps) {
-  const {layout, features, setActiveGroup, activeGroup} = usePrimaryNavigation();
-  const {view, setView} = useSecondaryNavigation();
-  const location = useLocation();
+
+/**
+ * Returns a function that makes hover handlers for a primary nav item. The
+ * handlers call `activate` on mouse enter, after the delay described above.
+ */
+export function useNavigationHoverIntent({ref}: UseNavigationHoverIntentProps) {
+  const {layout} = usePrimaryNavigation();
+  const {view} = useSecondaryNavigation();
   const hoverEnabled = useNavigationGroupHoverEnabled();
 
   const mouseAccelerationRef = useMouseMovement({
@@ -51,23 +53,16 @@ export function useActivateNavigationGroupOnHover({
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const windowHeight = useWindowHeight();
 
-  return function makeNavigationItemProps(
-    group: ReturnType<typeof usePrimaryNavigation>['activeGroup'],
-    to: string,
-    activeTo?: string | string[]
-  ): Omit<Partial<LinkProps>, 'to'> {
-    const activePaths = Array.isArray(activeTo) ? activeTo : [activeTo ?? to];
-    const isActive = activePaths.some(path =>
-      isPrimaryNavigationLinkActive(normalizeUrl(path), location.pathname)
-    );
-
+  return function makeHoverIntentProps(
+    activate: () => void
+  ): Pick<LinkProps, 'onMouseEnter' | 'onMouseLeave'> {
     const onMouseEnter = (e: React.MouseEvent<HTMLAnchorElement>) => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
 
       if (view === 'collapsed') {
-        setActiveGroup(group);
+        activate();
         return;
       }
 
@@ -115,9 +110,7 @@ export function useActivateNavigationGroupOnHover({
         return 0;
       };
 
-      timeoutRef.current = setTimeout(() => {
-        setActiveGroup(group);
-      }, getDelay());
+      timeoutRef.current = setTimeout(activate, getDelay());
     };
 
     const onMouseLeave = () => {
@@ -125,6 +118,32 @@ export function useActivateNavigationGroupOnHover({
         clearTimeout(timeoutRef.current);
       }
     };
+
+    return {onMouseEnter, onMouseLeave};
+  };
+}
+
+interface UseActivateNavigationGroupOnHoverProps {
+  ref: React.RefObject<HTMLElement | null>;
+}
+export function useActivateNavigationGroupOnHover({
+  ref,
+}: UseActivateNavigationGroupOnHoverProps) {
+  const {layout, features, setActiveGroup, activeGroup} = usePrimaryNavigation();
+  const {setView} = useSecondaryNavigation();
+  const location = useLocation();
+  const hoverEnabled = useNavigationGroupHoverEnabled();
+  const makeHoverIntentProps = useNavigationHoverIntent({ref});
+
+  return function makeNavigationItemProps(
+    group: ReturnType<typeof usePrimaryNavigation>['activeGroup'],
+    to: string,
+    activeTo?: string | string[]
+  ): Omit<Partial<LinkProps>, 'to'> {
+    const activePaths = Array.isArray(activeTo) ? activeTo : [activeTo ?? to];
+    const isActive = activePaths.some(path =>
+      isPrimaryNavigationLinkActive(normalizeUrl(path), location.pathname)
+    );
 
     const onClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
       if (layout === 'mobile') {
@@ -147,8 +166,7 @@ export function useActivateNavigationGroupOnHover({
       'aria-current': isActive ? ('location' as const) : undefined,
       'data-active-group': activeGroup === group ? 'true' : undefined,
       onClick,
-      onMouseEnter: canPreview ? onMouseEnter : undefined,
-      onMouseLeave: canPreview ? onMouseLeave : undefined,
+      ...(canPreview ? makeHoverIntentProps(() => setActiveGroup(group)) : {}),
     };
   };
 }

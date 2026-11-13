@@ -56,7 +56,10 @@ import {PrimaryNavigationHelpMenu} from './primary/helpMenu';
 import {PrimaryNavigationOnboarding} from './primary/onboarding';
 import {OrganizationDropdown} from './primary/organizationDropdown';
 import {PrimaryNavigationServiceIncidents} from './primary/serviceIncidents';
-import {useActivateNavigationGroupOnHover} from './primary/useActivateNavigationGroupOnHover';
+import {
+  useActivateNavigationGroupOnHover,
+  useNavigationHoverIntent,
+} from './primary/useActivateNavigationGroupOnHover';
 import {UserDropdown} from './primary/userDropdown';
 import {PrimaryNavigationWhatsNew} from './primary/whatsNew';
 import {SecondaryNavigation} from './secondary/components';
@@ -74,10 +77,15 @@ import {
   useNavigationTour,
   useNavigationTourModal,
 } from './navigationTour';
-import {hasSecondaryNavigation, usePrimaryNavigation} from './primaryNavigationContext';
+import {
+  hasSecondaryNavigation,
+  useNavigationGroupHoverEnabled,
+  usePrimaryNavigation,
+} from './primaryNavigationContext';
 import {useSecondaryNavigation} from './secondaryNavigationContext';
 import {useCollapsedNavigation} from './useCollapsedNavigation';
 import {useSettingsNavigation} from './useSettingsNavigation';
+import {useSettingsNavigationScope} from './useSettingsNavigationScope';
 
 function NavigationImpl() {
   const organization = useOrganization({allowNull: true});
@@ -146,7 +154,10 @@ function NavigationImpl() {
         </PrimaryNavigation.SidebarHeader>
         <PrimaryNavigation.List ref={ref}>
           {isSettingsNavigation && organization ? (
-            <SettingsPrimaryNavigationItems organizationSlug={organization.slug} />
+            <SettingsPrimaryNavigationItems
+              organizationSlug={organization.slug}
+              listRef={ref}
+            />
           ) : (
             <PrimaryNavigationItems listRef={ref} />
           )}
@@ -230,11 +241,18 @@ export function SettingsNavigationBackButton({
 
 export function SettingsPrimaryNavigationItems({
   organizationSlug,
+  listRef,
 }: {
   organizationSlug: string;
+  listRef?: RefObject<HTMLUListElement | null>;
 }) {
   const {projects} = useProjects();
   const {scope: activeScope, projectSlug: activeProjectSlug} = useSettingsScope();
+  const {scope: shownScope} = useSettingsNavigationScope();
+  const {setSettingsPreviewPath} = usePrimaryNavigation();
+  const hoverEnabled = useNavigationGroupHoverEnabled();
+  const fallbackRef = useRef<HTMLUListElement>(null);
+  const makeHoverIntentProps = useNavigationHoverIntent({ref: listRef ?? fallbackRef});
   // Stored by ID, not slug, so renaming the project does not lose it.
   const [lastProjectId, setLastProjectId] = useLocalStorageState<string | null>(
     getSettingsLastProjectKey(organizationSlug),
@@ -269,6 +287,9 @@ export function SettingsPrimaryNavigationItems({
         analyticsKey={`settings-${key}`}
         label={label}
         aria-current={key === activeScope ? 'location' : undefined}
+        data-active-group={key === shownScope ? 'true' : undefined}
+        // Hovering a scope previews its pages, like hovering a group in the app.
+        {...(hoverEnabled ? makeHoverIntentProps(() => setSettingsPreviewPath(to)) : {})}
       >
         {getSettingsScopeIcon(key)}
       </PrimaryNavigation.Link>
