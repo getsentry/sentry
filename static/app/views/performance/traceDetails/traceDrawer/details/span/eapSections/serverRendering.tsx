@@ -1,4 +1,3 @@
-import styled from '@emotion/styled';
 import {IconOpen} from '@sentry/icons/open';
 import type {Location} from 'history';
 
@@ -73,14 +72,23 @@ export function ServerRenderingSection(props: ServerRenderingSectionProps) {
       title={<SectionTitle type={serverRendering.type} />}
     >
       {sharedRender ? (
-        <ReusedBlock gap="md" padding="md" radius="md" background="secondary">
+        <Stack
+          gap="md"
+          padding="md"
+          radius="md"
+          background="secondary"
+          border="primary"
+          // Dashed, because the spans of a reused part are never in this trace.
+          // The border prop only draws solid lines.
+          style={{borderStyle: 'dashed'}}
+        >
           <BlockHeader
             title={getReusedPartTitle(sharedRender.part)}
             subtitle={t('Rendered earlier and reused')}
             action={<RenderAction {...props} render={sharedRender} />}
           />
           {requestBlock}
-        </ReusedBlock>
+        </Stack>
       ) : (
         requestBlock
       )}
@@ -117,11 +125,6 @@ function SectionTitle({type}: {type: ServerRenderingType | undefined}) {
     </Flex>
   );
 }
-
-/** Dashed, because the spans of a reused part are never in this trace. */
-const ReusedBlock = styled(Stack)`
-  border: 1px dashed ${p => p.theme.tokens.border.primary};
-`;
 
 function RequestBlock({
   render,

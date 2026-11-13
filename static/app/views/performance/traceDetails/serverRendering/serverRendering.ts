@@ -86,12 +86,8 @@ export function getPageServerRendering({
   const type = getServerRenderingType(
     getAttributeValue(attributes, SEARCH_PAGE__SERVER_RENDERING__TYPE, 'string')
   );
-  const cacheOrigin = links?.find(
-    link => getSpanLinkType(link) === CACHE_ORIGIN_LINK_TYPE
-  );
-  const serverRequest = links?.find(
-    link => getSpanLinkType(link) === SERVER_REQUEST_LINK_TYPE
-  );
+  const cacheOrigin = findLinkOfType(links, CACHE_ORIGIN_LINK_TYPE);
+  const serverRequest = findLinkOfType(links, SERVER_REQUEST_LINK_TYPE);
 
   const sharedRender = getSharedRender(type, cacheOrigin);
   const requestRender = getRequestRender(type, serverRequest);
@@ -100,6 +96,13 @@ export function getPageServerRendering({
     return null;
   }
   return {type, sharedRender, requestRender};
+}
+
+function findLinkOfType(
+  links: TraceItemResponseLink[] | undefined,
+  type: string
+): TraceItemResponseLink | undefined {
+  return links?.find(link => getSpanLinkType(link) === type);
 }
 
 /** A `cache_origin` link or a static type means the server reused HTML. */
