@@ -55,6 +55,7 @@ export function NavigationMenuHeader({
           width="32px"
           height="32px"
           flexShrink={0}
+          alignSelf="start"
           radius="full"
           overflow="hidden"
           border="muted"
@@ -75,6 +76,7 @@ function OrganizationHeaderAvatar({organization}: {organization: OrganizationSum
       width="32px"
       height="32px"
       flexShrink={0}
+      alignSelf="start"
       radius="md"
       overflow="hidden"
       border="muted"
@@ -119,7 +121,7 @@ function MenuHeader({
           <Text size="sm" density="fixed" bold variant="primary" tabular>
             {label}
           </Text>
-          <Flex align="start" gap="md">
+          <Flex align="center" gap="md">
             {avatar}
             <Stack gap="0">
               <Text size="md" density="comfortable" bold variant="primary">
