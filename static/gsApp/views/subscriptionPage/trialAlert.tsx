@@ -36,7 +36,7 @@ export function TrialAlert({organization, subscription}: Props) {
     : t('Business Plan Trial');
 
   const trialType = subscription.isEnterpriseTrial ? t('Enterprise') : t('Business');
-  const trialEndDate = moment(subscription.trialEnd).format('MMM D, YYYY');
+  const trialEndDate = moment(subscription.trialEnd).utc().format('MMM D, YYYY');
 
   return (
     <Container

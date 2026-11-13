@@ -74,7 +74,7 @@ describe('Subscription > TrialAlert', () => {
       isEnterpriseTrial: true,
       onDemandMaxSpend: 1000,
       onDemandSpendUsed: 0,
-      trialEnd: '2021-01-15',
+      trialEnd: '2021-01-15T00:00:00Z',
     };
     render(<TrialAlert subscription={sub} organization={organization} />);
     expect(screen.getByText('Enterprise Trial')).toBeInTheDocument();
@@ -93,7 +93,7 @@ describe('Subscription > TrialAlert', () => {
       isEnterpriseTrial: true,
       onDemandMaxSpend: 1000,
       onDemandSpendUsed: 0,
-      trialEnd: '2021-01-15',
+      trialEnd: '2021-01-15T00:00:00Z',
     };
     render(<TrialAlert subscription={sub} organization={organization} />);
     expect(screen.getByText('Enterprise Trial')).toBeInTheDocument();
@@ -111,7 +111,7 @@ describe('Subscription > TrialAlert', () => {
       isEnterpriseTrial: false,
       onDemandMaxSpend: 1000,
       onDemandSpendUsed: 0,
-      trialEnd: '2021-01-15',
+      trialEnd: '2021-01-15T00:00:00Z',
     };
     render(<TrialAlert subscription={sub} organization={organization} />);
     expect(screen.getByText('Business Plan Trial')).toBeInTheDocument();
