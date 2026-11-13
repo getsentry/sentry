@@ -23,7 +23,9 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {seerCreditChecksQueryKey} from 'sentry/utils/seer/useSeerCreditCheck';
 
 import {AuthenticatePayment} from 'getsentry/components/authenticatePayment';
+import {CreditCardForm} from 'getsentry/components/creditCardEdit/form';
 import {StripeWrapper} from 'getsentry/components/stripeWrapper';
+import {usePaymentIntentData} from 'getsentry/hooks/useIntentData';
 import {displayPrice, displayPriceWithCents} from 'getsentry/utils/billing';
 import {
   seerWalletAutoTopUpOptions,
@@ -55,7 +57,20 @@ type PaymentVerification = {
 };
 
 type PaymentRequiredResponse = {
+  detail?: string;
   invoiceGuid?: string;
+  verification?: PaymentVerification;
+};
+
+/**
+ * Auto-reload stays off until its first refill is paid. Once the customer pays,
+ * the settings are sent again to turn it on, and nothing is charged twice
+ * because the paid refill lifts the balance above the threshold.
+ */
+type PendingPayment = {
+  invoiceGuid: string;
+  settings: SeerWalletAutoTopUp;
+  detail?: string;
   verification?: PaymentVerification;
 };
 
@@ -157,9 +172,7 @@ function AutoTopUpForm({
     toWholeDollarCents(autoTopUp.dailySpendCapCents)
   );
   const [error, setError] = useState<string | null>(null);
-  const [verification, setVerification] = useState<
-    (PaymentVerification & {invoiceGuid: string}) | null
-  >(null);
+  const [pendingPayment, setPendingPayment] = useState<PendingPayment | null>(null);
 
   const refreshWallet = () => {
     queryClient.invalidateQueries({
@@ -193,10 +206,10 @@ function AutoTopUpForm({
       }
       closeModal();
     },
-    onError: err => {
-      const paymentRequired = getPaymentVerification(err);
-      if (paymentRequired) {
-        setVerification(paymentRequired);
+    onError: (err, settings) => {
+      const payment = getPendingPayment(err, settings);
+      if (payment) {
+        setPendingPayment(payment);
         return;
       }
       const fieldErrors = err instanceof RequestError ? err.responseJSON : undefined;
@@ -209,32 +222,46 @@ function AutoTopUpForm({
     },
   });
 
-  if (verification) {
+  if (pendingPayment) {
+    const returnToSettings = (message?: string) => {
+      setPendingPayment(null);
+      setError(message ?? null);
+    };
+    const sendSettingsAgain = () => {
+      refreshWallet();
+      setPendingPayment(null);
+      save(pendingPayment.settings);
+    };
     return (
       <Fragment>
         <Header closeButton>
           <Heading as="h2" size="xl">
-            {t('Verify payment')}
+            {pendingPayment.verification
+              ? t('Verify payment')
+              : t('Pay for Seer credits')}
           </Heading>
         </Header>
         <Body>
-          <StripeWrapper>
-            <AuthenticatePayment
-              clientSecret={verification.clientSecret}
-              invoiceGuid={verification.invoiceGuid}
+          {pendingPayment.verification ? (
+            <StripeWrapper>
+              <AuthenticatePayment
+                clientSecret={pendingPayment.verification.clientSecret}
+                invoiceGuid={pendingPayment.invoiceGuid}
+                organization={organization}
+                onCancel={() => returnToSettings()}
+                onFailure={returnToSettings}
+                onSuccess={sendSettingsAgain}
+              />
+            </StripeWrapper>
+          ) : (
+            <PayPendingInvoice
               organization={organization}
-              onCancel={() => setVerification(null)}
-              onFailure={message => {
-                setVerification(null);
-                setError(message);
-              }}
-              onSuccess={() => {
-                refreshWallet();
-                toast.success(t('Auto-reload turned on'));
-                closeModal();
-              }}
+              invoiceGuid={pendingPayment.invoiceGuid}
+              detail={pendingPayment.detail}
+              onCancel={() => returnToSettings()}
+              onSuccess={sendSettingsAgain}
             />
-          </StripeWrapper>
+          )}
         </Body>
       </Fragment>
     );
@@ -433,22 +460,71 @@ function AutoTopUpForm({
   );
 }
 
-function getPaymentVerification(error: unknown) {
-  if (!(error instanceof RequestError)) {
+function getPendingPayment(
+  error: unknown,
+  settings: SeerWalletAutoTopUp
+): PendingPayment | null {
+  if (!(error instanceof RequestError) || error.status !== 402) {
     return null;
   }
   const response = error.responseJSON as PaymentRequiredResponse | undefined;
-  const verification = response?.verification;
-  if (
-    !response ||
-    !verification?.required ||
-    !verification.clientSecret ||
-    !verification.paymentIntentId ||
-    !response.invoiceGuid
-  ) {
+  if (!response?.invoiceGuid) {
     return null;
   }
-  return {...verification, invoiceGuid: response.invoiceGuid};
+  const verification = response.verification;
+  return {
+    invoiceGuid: response.invoiceGuid,
+    settings,
+    detail: response.detail,
+    verification:
+      verification?.required && verification.clientSecret ? verification : undefined,
+  };
+}
+
+/**
+ * Pays a refill that is still open from an earlier attempt, or one the card on
+ * file declined. Pay Now resumes a 3D Secure challenge that is still waiting,
+ * and otherwise lets the customer pay with another card.
+ */
+function PayPendingInvoice({
+  organization,
+  invoiceGuid,
+  detail,
+  onCancel,
+  onSuccess,
+}: {
+  invoiceGuid: string;
+  onCancel: () => void;
+  onSuccess: () => void;
+  organization: Organization;
+  detail?: string;
+}) {
+  // The payment form needs the amount up front. This shares its query, so the
+  // intent is created once.
+  const {intentData, isLoading} = usePaymentIntentData({
+    organizationSlug: organization.slug,
+    invoiceId: invoiceGuid,
+  });
+
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
+  return (
+    <Stack gap="md">
+      {detail && <Text as="p">{detail}</Text>}
+      <CreditCardForm
+        organization={organization}
+        budgetTerm={t('pay-as-you-go')}
+        cardMode="payment"
+        invoiceGuid={invoiceGuid}
+        amount={intentData ? Number(intentData.amount) : undefined}
+        buttonText={t('Pay Now')}
+        onCancel={onCancel}
+        onSuccess={onSuccess}
+      />
+    </Stack>
+  );
 }
 
 function TurnOffMessage({purchased}: {purchased: SeerWalletBalance['purchased']}) {
