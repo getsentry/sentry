@@ -17,13 +17,13 @@ from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import cell_silo_test
-from sentry.workflow_engine.debug import (
+from sentry.workflow_engine.artifacts import (
     CONFIGURATION_ITEM_LIMIT,
     RELATED_ITEM_LIMIT,
-    DebuggerContext,
+    ArtifactContext,
     _context_value,
-    query_debugger_artifacts,
-    resolve_debugger_context,
+    query_artifacts,
+    resolve_artifact_context,
 )
 from sentry.workflow_engine.models import Action, DataConditionGroup, Detector, Workflow
 from sentry.workflow_engine.models.data_condition import Condition
@@ -63,7 +63,7 @@ def artifact_row(
 
 
 @cell_silo_test
-class ResolveDebuggerContextTest(TestCase):
+class ResolveArtifactContextTest(TestCase):
     def test_hidden_pending_deletion_workflow_and_unlinked_project_are_included(self):
         workflow = self.create_workflow(
             type=Workflow.Type.INBOX, status=ObjectStatus.PENDING_DELETION, enabled=False
@@ -74,7 +74,7 @@ class ResolveDebuggerContextTest(TestCase):
         self.create_detector_workflow(detector=detector, workflow=workflow)
         self.create_project(organization=self.create_organization())
 
-        context = resolve_debugger_context("workflow", str(workflow.id))
+        context = resolve_artifact_context("workflow", str(workflow.id))
 
         assert context.organization.id == workflow.organization_id
         assert set(context.project_ids) == {linked_project.id, historical_project.id}
@@ -90,7 +90,7 @@ class ResolveDebuggerContextTest(TestCase):
         self.create_detector_workflow(detector=detector, workflow=workflow)
         self.create_project()
 
-        context = resolve_debugger_context("detector", str(detector.id))
+        context = resolve_artifact_context("detector", str(detector.id))
 
         assert context.project_ids == [self.project.id]
         assert context.item["organizationId"] == str(self.organization.id)
@@ -107,7 +107,7 @@ class ResolveDebuggerContextTest(TestCase):
             config={"frequency": 0},
         )
 
-        context = resolve_debugger_context("workflow", str(workflow.id)).item["context"]
+        context = resolve_artifact_context("workflow", str(workflow.id)).item["context"]
 
         assert context["dateAdded"] == workflow.date_added.isoformat()
         assert context["dateUpdated"] == workflow.date_updated.isoformat()
@@ -137,7 +137,7 @@ class ResolveDebuggerContextTest(TestCase):
             description="Investigate new errors",
         )
 
-        context = resolve_debugger_context("detector", str(detector.id)).item["context"]
+        context = resolve_artifact_context("detector", str(detector.id)).item["context"]
 
         assert context["dateAdded"] == detector.date_added.isoformat()
         assert context["dateUpdated"] == detector.date_updated.isoformat()
@@ -152,8 +152,8 @@ class ResolveDebuggerContextTest(TestCase):
         workflow = self.create_workflow()
         detector = self.create_detector()
 
-        workflow_context = resolve_debugger_context("workflow", str(workflow.id)).item["context"]
-        detector_context = resolve_debugger_context("detector", str(detector.id)).item["context"]
+        workflow_context = resolve_artifact_context("workflow", str(workflow.id)).item["context"]
+        detector_context = resolve_artifact_context("detector", str(detector.id)).item["context"]
 
         for context in (workflow_context, detector_context):
             assert context["createdById"] is None
@@ -172,7 +172,7 @@ class ResolveDebuggerContextTest(TestCase):
         other_project = self.create_project()
         other_project.update_option("sentry:resolve_age", 24)
 
-        context = resolve_debugger_context("detector", str(detector.id)).item["context"]
+        context = resolve_artifact_context("detector", str(detector.id)).item["context"]
 
         assert set(context["projectOptions"]) == set(
             Detector.error_detector_project_options.values()
@@ -191,7 +191,7 @@ class ResolveDebuggerContextTest(TestCase):
         self.project.update_option("sentry:fingerprinting_rules", False)
         self.project.update_option("sentry:resolve_age", 0)
 
-        context = resolve_debugger_context("detector", str(detector.id)).item["context"]
+        context = resolve_artifact_context("detector", str(detector.id)).item["context"]
 
         assert context["projectOptions"]["sentry:fingerprinting_rules"] is False
         assert context["projectOptions"]["sentry:resolve_age"] == 0
@@ -206,7 +206,7 @@ class ResolveDebuggerContextTest(TestCase):
         self.project.update_option("sentry:fingerprinting_rules", "message:example -> custom-group")
         self.project.update_option("sentry:resolve_age", 48)
 
-        context = resolve_debugger_context("detector", str(detector.id)).item["context"]
+        context = resolve_artifact_context("detector", str(detector.id)).item["context"]
 
         assert context["projectOptions"] == {
             "sentry:fingerprinting_rules": "message:example -> custom-group",
@@ -217,7 +217,7 @@ class ResolveDebuggerContextTest(TestCase):
         detector = self.create_all_projects_detector(self.organization)
         self.project.update_option("sentry:resolve_age", 24)
 
-        context = resolve_debugger_context("detector", str(detector.id)).item["context"]
+        context = resolve_artifact_context("detector", str(detector.id)).item["context"]
 
         assert context["projectOptions"] == {}
         assert context["projectOptionSources"] == {}
@@ -252,7 +252,7 @@ class ResolveDebuggerContextTest(TestCase):
         )
         self.create_data_condition_group_action(condition_group=filters, action=action)
 
-        context = resolve_debugger_context("workflow", str(workflow.id)).item["context"]
+        context = resolve_artifact_context("workflow", str(workflow.id)).item["context"]
 
         assert context["triggers"] == {
             "id": str(triggers.id),
@@ -309,7 +309,7 @@ class ResolveDebuggerContextTest(TestCase):
             for value in (False, 0, "")
         ]
 
-        context = resolve_debugger_context("detector", str(detector.id)).item["context"]
+        context = resolve_artifact_context("detector", str(detector.id)).item["context"]
 
         assert context["conditionGroup"]["conditions"] == [
             {
@@ -338,8 +338,8 @@ class ResolveDebuggerContextTest(TestCase):
             workflow=workflow, condition_group=foreign_triggers
         )
 
-        workflow_context = resolve_debugger_context("workflow", str(workflow.id)).item["context"]
-        detector_context = resolve_debugger_context("detector", str(detector.id)).item["context"]
+        workflow_context = resolve_artifact_context("workflow", str(workflow.id)).item["context"]
+        detector_context = resolve_artifact_context("detector", str(detector.id)).item["context"]
 
         assert workflow_context["whenConditionGroupId"] == str(foreign_triggers.id)
         assert workflow_context["triggers"] is None
@@ -364,7 +364,7 @@ class ResolveDebuggerContextTest(TestCase):
             condition_group=filters, comparison=0, condition_result=False
         )
 
-        complete = resolve_debugger_context("workflow", str(workflow.id)).item["context"]
+        complete = resolve_artifact_context("workflow", str(workflow.id)).item["context"]
 
         assert len(complete["triggers"]["conditions"]) == len(conditions)
         assert complete["actionFilters"][0]["conditions"][0]["id"] == str(last_condition.id)
@@ -372,7 +372,7 @@ class ResolveDebuggerContextTest(TestCase):
 
         self.create_data_condition(condition_group=filters, comparison=1, condition_result=True)
 
-        truncated = resolve_debugger_context("workflow", str(workflow.id)).item["context"]
+        truncated = resolve_artifact_context("workflow", str(workflow.id)).item["context"]
 
         assert len(truncated["triggers"]["conditions"]) == CONFIGURATION_ITEM_LIMIT - 1
         assert len(truncated["actionFilters"][0]["conditions"]) == 1
@@ -386,7 +386,7 @@ class ResolveDebuggerContextTest(TestCase):
         for action in actions:
             self.create_data_condition_group_action(condition_group=filters, action=action)
 
-        complete = resolve_debugger_context("workflow", str(workflow.id)).item["context"]
+        complete = resolve_artifact_context("workflow", str(workflow.id)).item["context"]
 
         assert [action["id"] for action in complete["actionFilters"][0]["actions"]] == [
             str(action.id) for action in actions
@@ -395,7 +395,7 @@ class ResolveDebuggerContextTest(TestCase):
 
         self.create_data_condition_group_action(condition_group=filters)
 
-        truncated = resolve_debugger_context("workflow", str(workflow.id)).item["context"]
+        truncated = resolve_artifact_context("workflow", str(workflow.id)).item["context"]
 
         assert len(truncated["actionFilters"][0]["actions"]) == CONFIGURATION_ITEM_LIMIT
         assert truncated["contextTruncated"] is True
@@ -407,7 +407,7 @@ class ResolveDebuggerContextTest(TestCase):
         for group in filters:
             self.create_workflow_data_condition_group(workflow=workflow, condition_group=group)
 
-        complete = resolve_debugger_context("workflow", str(workflow.id)).item["context"]
+        complete = resolve_artifact_context("workflow", str(workflow.id)).item["context"]
 
         assert complete["triggers"]["id"] == str(triggers.id)
         assert [group["id"] for group in complete["actionFilters"]] == [
@@ -419,7 +419,7 @@ class ResolveDebuggerContextTest(TestCase):
             workflow=workflow, condition_group=self.create_data_condition_group()
         )
 
-        truncated = resolve_debugger_context("workflow", str(workflow.id)).item["context"]
+        truncated = resolve_artifact_context("workflow", str(workflow.id)).item["context"]
 
         assert truncated["triggers"]["id"] == str(triggers.id)
         assert len(truncated["actionFilters"]) == RELATED_ITEM_LIMIT - 1
@@ -431,7 +431,7 @@ class ResolveDebuggerContextTest(TestCase):
         detector = self.create_all_projects_detector(org)
         self.create_project()
 
-        context = resolve_debugger_context("detector", str(detector.id))
+        context = resolve_artifact_context("detector", str(detector.id))
 
         assert context.organization.id == org.id
         assert context.project_ids == [project.id]
@@ -445,7 +445,7 @@ class ResolveDebuggerContextTest(TestCase):
         detector = self.create_detector(project=self.project)
         self.create_detector_group(detector=detector, group=group)
 
-        context = resolve_debugger_context("group", str(group.id))
+        context = resolve_artifact_context("group", str(group.id))
 
         assert context.project_ids == [self.project.id]
         assert context.item["organizationId"] == str(self.organization.id)
@@ -454,13 +454,14 @@ class ResolveDebuggerContextTest(TestCase):
 
     def test_event_lookup_is_scoped_to_the_requested_project_and_tenant(self):
         event = self.store_event(
-            data={"event_id": EVENT_ID, "message": "debugger event", "timestamp": NOW.timestamp()},
+            data={"event_id": EVENT_ID, "message": "artifact event", "timestamp": NOW.timestamp()},
             project_id=self.project.id,
         )
         with patch(
-            "sentry.workflow_engine.debug.eventstore.backend.get_event_by_id", return_value=event
+            "sentry.workflow_engine.artifacts.eventstore.backend.get_event_by_id",
+            return_value=event,
         ) as get_event:
-            context = resolve_debugger_context("event", EVENT_ID, self.project.id)
+            context = resolve_artifact_context("event", EVENT_ID, self.project.id)
 
         get_event.assert_called_once_with(
             self.project.id, EVENT_ID, tenant_ids={"organization_id": self.organization.id}
@@ -470,14 +471,14 @@ class ResolveDebuggerContextTest(TestCase):
 
     def test_event_missing_in_selected_project_is_not_found(self):
         with patch(
-            "sentry.workflow_engine.debug.eventstore.backend.get_event_by_id", return_value=None
+            "sentry.workflow_engine.artifacts.eventstore.backend.get_event_by_id", return_value=None
         ):
             with pytest.raises(Http404):
-                resolve_debugger_context("event", EVENT_ID, self.project.id)
+                resolve_artifact_context("event", EVENT_ID, self.project.id)
 
     def assert_missing_database_object_is_not_found(self, item_type):
         with pytest.raises(Http404):
-            resolve_debugger_context(item_type, str(2**63 - 1))
+            resolve_artifact_context(item_type, str(2**63 - 1))
 
     def test_missing_workflow_is_not_found(self):
         self.assert_missing_database_object_is_not_found("workflow")
@@ -490,9 +491,9 @@ class ResolveDebuggerContextTest(TestCase):
 
 
 @cell_silo_test
-class QueryDebuggerArtifactsTest(TestCase):
+class QueryArtifactsTest(TestCase):
     def context(self, item_type="workflow", item_id="123", project_ids=None):
-        return DebuggerContext(
+        return ArtifactContext(
             organization=self.organization,
             project_ids=[self.project.id] if project_ids is None else project_ids,
             item={
@@ -500,7 +501,7 @@ class QueryDebuggerArtifactsTest(TestCase):
                 "id": item_id,
                 "organizationId": str(self.organization.id),
                 "projectId": str(self.project.id),
-                "name": "debugger item",
+                "name": "artifact item",
                 "context": {},
             },
         )
@@ -512,9 +513,9 @@ class QueryDebuggerArtifactsTest(TestCase):
         context = self.context(item_type, item_id, [self.project.id, project.id])
         start = NOW - timedelta(days=1)
         with patch(
-            "sentry.workflow_engine.debug.table_rpc", return_value=[TraceItemTableResponse()]
+            "sentry.workflow_engine.artifacts.table_rpc", return_value=[TraceItemTableResponse()]
         ) as rpc:
-            result = query_debugger_artifacts(context, start=start, end=NOW)
+            result = query_artifacts(context, start=start, end=NOW)
 
         assert result.artifacts == []
         assert result.truncated is False
@@ -544,8 +545,8 @@ class QueryDebuggerArtifactsTest(TestCase):
         ]
 
     def test_no_projects_means_no_unscoped_query(self):
-        with patch("sentry.workflow_engine.debug.table_rpc") as rpc:
-            result = query_debugger_artifacts(
+        with patch("sentry.workflow_engine.artifacts.table_rpc") as rpc:
+            result = query_artifacts(
                 self.context(project_ids=[]), start=NOW - timedelta(days=1), end=NOW
             )
         assert result.artifacts == []
@@ -573,11 +574,9 @@ class QueryDebuggerArtifactsTest(TestCase):
             ),
         ]
         with patch(
-            "sentry.workflow_engine.debug.table_rpc", return_value=[table_response(rows)]
+            "sentry.workflow_engine.artifacts.table_rpc", return_value=[table_response(rows)]
         ) as rpc:
-            result = query_debugger_artifacts(
-                self.context(), start=NOW - timedelta(days=1), end=NOW
-            )
+            result = query_artifacts(self.context(), start=NOW - timedelta(days=1), end=NOW)
 
         rpc.assert_called_once()
         by_id = {artifact["itemId"]: artifact for artifact in result.artifacts}
@@ -596,11 +595,9 @@ class QueryDebuggerArtifactsTest(TestCase):
     def assert_primary_row_cap_and_truncation(self, count, truncated):
         rows = [artifact_row(i, project_id=self.project.id) for i in range(count, 0, -1)]
         with patch(
-            "sentry.workflow_engine.debug.table_rpc", return_value=[table_response(rows)]
+            "sentry.workflow_engine.artifacts.table_rpc", return_value=[table_response(rows)]
         ) as rpc:
-            result = query_debugger_artifacts(
-                self.context(), start=NOW - timedelta(days=1), end=NOW
-            )
+            result = query_artifacts(self.context(), start=NOW - timedelta(days=1), end=NOW)
         assert len(result.artifacts) == 100
         assert result.truncated is truncated
         assert result.artifacts[0]["itemId"] == f"{count:032x}"
@@ -617,9 +614,9 @@ class QueryDebuggerArtifactsTest(TestCase):
             for index, attribute in enumerate(("workflow_id", "detector_id", "group_id"), 1)
         ]
         with patch(
-            "sentry.workflow_engine.debug.table_rpc", return_value=[table_response(rows)]
+            "sentry.workflow_engine.artifacts.table_rpc", return_value=[table_response(rows)]
         ) as rpc:
-            result = query_debugger_artifacts(
+            result = query_artifacts(
                 self.context("event", EVENT_ID), start=NOW - timedelta(days=1), end=NOW
             )
 
@@ -643,13 +640,13 @@ class QueryDebuggerArtifactsTest(TestCase):
         related_other_project = artifact_row(1, project_id=self.project.id + 1)
         context = self.context(project_ids=[self.project.id, self.project.id + 1])
         with patch(
-            "sentry.workflow_engine.debug.table_rpc",
+            "sentry.workflow_engine.artifacts.table_rpc",
             side_effect=[
                 [table_response([primary])],
                 [table_response([related, primary, related_other_project])],
             ],
         ) as rpc:
-            result = query_debugger_artifacts(context, start=NOW - timedelta(days=1), end=NOW)
+            result = query_artifacts(context, start=NOW - timedelta(days=1), end=NOW)
 
         assert rpc.call_count == 2
         first = rpc.call_args_list[0].args[0][0]
@@ -671,11 +668,9 @@ class QueryDebuggerArtifactsTest(TestCase):
     def test_eventless_detector_trace_does_not_expand(self):
         row = artifact_row(1, project_id=self.project.id, detector_id=AttributeValue(val_int=123))
         with patch(
-            "sentry.workflow_engine.debug.table_rpc", return_value=[table_response([row])]
+            "sentry.workflow_engine.artifacts.table_rpc", return_value=[table_response([row])]
         ) as rpc:
-            query_debugger_artifacts(
-                self.context("detector"), start=NOW - timedelta(days=1), end=NOW
-            )
+            query_artifacts(self.context("detector"), start=NOW - timedelta(days=1), end=NOW)
         rpc.assert_called_once()
 
     def test_correlation_trace_cap_marks_truncation(self):
@@ -689,12 +684,10 @@ class QueryDebuggerArtifactsTest(TestCase):
             for i in range(51, 0, -1)
         ]
         with patch(
-            "sentry.workflow_engine.debug.table_rpc",
+            "sentry.workflow_engine.artifacts.table_rpc",
             side_effect=[[table_response(rows)], [TraceItemTableResponse()]],
         ) as rpc:
-            result = query_debugger_artifacts(
-                self.context(), start=NOW - timedelta(days=1), end=NOW
-            )
+            result = query_artifacts(self.context(), start=NOW - timedelta(days=1), end=NOW)
         assert rpc.call_count == 2
         expansion = rpc.call_args_list[1].args[0][0]
         assert len(expansion.filter.comparison_filter.value.val_str_array.values) == 50
@@ -706,12 +699,10 @@ class QueryDebuggerArtifactsTest(TestCase):
         )
         expansion = [artifact_row(i, project_id=self.project.id) for i in range(101, 0, -1)]
         with patch(
-            "sentry.workflow_engine.debug.table_rpc",
+            "sentry.workflow_engine.artifacts.table_rpc",
             side_effect=[[table_response([primary])], [table_response(expansion)]],
         ) as rpc:
-            result = query_debugger_artifacts(
-                self.context(), start=NOW - timedelta(days=1), end=NOW
-            )
+            result = query_artifacts(self.context(), start=NOW - timedelta(days=1), end=NOW)
         assert rpc.call_count == 2
         assert len(result.artifacts) == 101
         assert result.truncated is True

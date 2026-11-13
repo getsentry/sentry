@@ -46,11 +46,11 @@ from sentry.workflow_engine.models import (
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 type JSONValue = None | bool | int | float | str | list[JSONValue] | dict[str, JSONValue]
-type DebuggerItemType = Literal["workflow", "detector", "group", "event"]
+type ArtifactItemType = Literal["workflow", "detector", "group", "event"]
 
 
-class DebuggerItem(TypedDict):
-    type: DebuggerItemType
+class ArtifactItem(TypedDict):
+    type: ArtifactItemType
     id: str
     organizationId: str
     projectId: str | None
@@ -58,7 +58,7 @@ class DebuggerItem(TypedDict):
     context: dict[str, JSONValue]
 
 
-class DebuggerArtifact(TypedDict):
+class EvaluationArtifact(TypedDict):
     itemId: str
     traceId: str
     timestamp: str
@@ -67,15 +67,15 @@ class DebuggerArtifact(TypedDict):
 
 
 @dataclass
-class DebuggerContext:
+class ArtifactContext:
     organization: Organization
     project_ids: list[int]
-    item: DebuggerItem
+    item: ArtifactItem
 
 
 @dataclass
 class ArtifactQueryResult:
-    artifacts: list[DebuggerArtifact]
+    artifacts: list[EvaluationArtifact]
     truncated: bool
 
 
@@ -99,7 +99,7 @@ def _context_value(value: object) -> JSONValue:
         return {str(name): _context_value(item) for name, item in value.items()}
     if isinstance(value, Sequence) and not isinstance(value, (bytes, bytearray)):
         return [_context_value(item) for item in value]
-    raise TypeError(f"Unsupported debugger context value: {type(value).__name__}")
+    raise TypeError(f"Unsupported artifact context value: {type(value).__name__}")
 
 
 def _workflow_summary(workflow: Workflow) -> dict[str, JSONValue]:
@@ -221,9 +221,9 @@ def _group_relationships(
     )
 
 
-def resolve_debugger_context(
+def resolve_artifact_context(
     item_type: str, item_id: str, project_id: int | None = None
-) -> DebuggerContext:
+) -> ArtifactContext:
     """Resolve validated IDs after elevated-admin authorization, without an org context.
 
     The caller must authorize the resolved organization before querying artifacts. Event
@@ -471,13 +471,13 @@ def resolve_debugger_context(
         name = event.title
         resolved_project_id = project.id
     else:
-        raise ValueError("Unsupported debugger item type")
+        raise ValueError("Unsupported artifact item type")
 
-    return DebuggerContext(
+    return ArtifactContext(
         organization=organization,
         project_ids=project_ids,
         item={
-            "type": cast(DebuggerItemType, item_type),
+            "type": cast(ArtifactItemType, item_type),
             "id": item_id,
             "organizationId": str(organization.id),
             "projectId": str(resolved_project_id) if resolved_project_id is not None else None,
@@ -550,11 +550,11 @@ _JSON_ATTRIBUTES = frozenset({"trigger_evaluation", "filter_evaluations", "delay
 
 
 def _query_artifact_rows(
-    context: DebuggerContext,
+    context: ArtifactContext,
     start: datetime,
     end: datetime,
     item_filter: TraceItemFilter,
-) -> tuple[list[DebuggerArtifact], bool]:
+) -> tuple[list[EvaluationArtifact], bool]:
     start_timestamp = Timestamp()
     start_timestamp.FromDatetime(start)
     end_timestamp = Timestamp()
@@ -566,7 +566,7 @@ def _query_artifact_rows(
             start_timestamp=start_timestamp,
             end_timestamp=end_timestamp,
             trace_item_type=TraceItemType.TRACE_ITEM_TYPE_WORKFLOW_ENGINE_EVALUATION,
-            referrer="api.admin.workflow-engine.debugger",
+            referrer="api.admin.workflow-engine.artifacts",
             cogs_category="workflow_engine",
             downsampled_storage_config=DownsampledStorageConfig(
                 mode=DownsampledStorageConfig.MODE_HIGHEST_ACCURACY
@@ -588,10 +588,10 @@ def _query_artifact_rows(
     )
     responses = table_rpc([request])
     if not responses:
-        raise ValueError("No response from workflow debugger artifact query")
+        raise ValueError("No response from workflow-engine artifact query")
     rows = _decode_rows(responses[0])
     truncated = len(rows) > ARTIFACT_LIMIT
-    artifacts: list[DebuggerArtifact] = []
+    artifacts: list[EvaluationArtifact] = []
     for row in rows[:ARTIFACT_LIMIT]:
         timestamp = row["timestamp"]
         if not isinstance(timestamp, (int, float)) or isinstance(timestamp, bool):
@@ -639,8 +639,8 @@ def _decode_rows(response: TraceItemTableResponse) -> list[dict[str, JSONValue]]
     return rows
 
 
-def query_debugger_artifacts(
-    context: DebuggerContext, *, start: datetime, end: datetime
+def query_artifacts(
+    context: ArtifactContext, *, start: datetime, end: datetime
 ) -> ArtifactQueryResult:
     """Read at most two scoped batches; synthetic traces are not execution IDs.
 

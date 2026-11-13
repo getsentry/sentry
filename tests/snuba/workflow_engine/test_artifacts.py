@@ -7,7 +7,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import cell_silo_test
-from sentry.workflow_engine.debug import DebuggerContext, query_debugger_artifacts
+from sentry.workflow_engine.artifacts import ArtifactContext, query_artifacts
 from sentry.workflow_engine.processors.evaluations.eap import EAPAttributeValue, _build_trace_item
 
 NOW = before_now(minutes=1).replace(microsecond=0)
@@ -16,7 +16,7 @@ EVENT_ID = "1234567890abcdef1234567890abcdef"
 
 @pytest.mark.snuba_ci
 @cell_silo_test
-class WorkflowDebuggerSnubaTest(TestCase, SnubaTestCase):
+class WorkflowEngineArtifactsSnubaTest(TestCase, SnubaTestCase):
     def make_artifact(
         self,
         attributes: dict[str, EAPAttributeValue],
@@ -56,7 +56,7 @@ class WorkflowDebuggerSnubaTest(TestCase, SnubaTestCase):
         self.store_eap_items(
             [matching, other_id, other_tenant, other_project_item, outside_window, other_type]
         )
-        context = DebuggerContext(
+        context = ArtifactContext(
             organization=self.organization,
             project_ids=[self.project.id],
             item={
@@ -64,12 +64,12 @@ class WorkflowDebuggerSnubaTest(TestCase, SnubaTestCase):
                 "id": item_id,
                 "organizationId": str(self.organization.id),
                 "projectId": str(self.project.id),
-                "name": "debugger item",
+                "name": "artifact item",
                 "context": {},
             },
         )
 
-        result = query_debugger_artifacts(
+        result = query_artifacts(
             context, start=NOW - timedelta(hours=1), end=NOW + timedelta(seconds=1)
         )
 
@@ -103,7 +103,7 @@ class WorkflowDebuggerSnubaTest(TestCase, SnubaTestCase):
             {"detector_id": 456, "event_id": "f" * 32, "outcome": "ok"}, **scope
         )
         self.store_eap_items([workflow_item, detector_item, unrelated])
-        context = DebuggerContext(
+        context = ArtifactContext(
             organization=self.organization,
             project_ids=[self.project.id],
             item={
@@ -111,12 +111,12 @@ class WorkflowDebuggerSnubaTest(TestCase, SnubaTestCase):
                 "id": "123",
                 "organizationId": str(self.organization.id),
                 "projectId": None,
-                "name": "debugger workflow",
+                "name": "artifact workflow",
                 "context": {},
             },
         )
 
-        result = query_debugger_artifacts(
+        result = query_artifacts(
             context, start=NOW - timedelta(hours=1), end=NOW + timedelta(seconds=1)
         )
 

@@ -768,7 +768,9 @@ from sentry.users.api.endpoints.user_permissions import UserPermissionsEndpoint
 from sentry.users.api.endpoints.user_permissions_config import UserPermissionsConfigEndpoint
 from sentry.users.api.endpoints.user_regions import UserRegionsEndpoint
 from sentry.workflow_engine.endpoints import urls as workflow_urls
-from sentry.workflow_engine.endpoints.admin_workflow_debugger import AdminWorkflowDebuggerEndpoint
+from sentry.workflow_engine.endpoints.admin_workflow_engine_artifacts import (
+    AdminWorkflowEngineArtifactsEndpoint,
+)
 
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
@@ -3833,9 +3835,9 @@ INTERNAL_URLS = [
 
 urlpatterns = [
     re_path(
-        r"^_admin/cells/(?P<cell_id>[^/]+)/workflow-engine/debugger/$",
-        AdminWorkflowDebuggerEndpoint.as_view(),
-        name="sentry-api-0-admin-workflow-debugger",
+        r"^_admin/workflow-engine/artifacts/$",
+        AdminWorkflowEngineArtifactsEndpoint.as_view(),
+        name="sentry-api-0-admin-workflow-engine-artifacts",
     ),
     # Relay
     re_path(

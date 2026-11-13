@@ -448,44 +448,8 @@ The sanitized `trigger_evaluation`, `filter_evaluations`, and `delayed` attribut
 JSON strings because EAP ingestion discards nested protobuf key/value lists. Scalar
 attributes and primitive arrays, such as `triggered_action_ids`, retain their native types.
 
-The **Workflow Engine** page at `/_admin/workflow-engine/` provides read-only,
-cross-organization inspection for on-call engineers. It is linked directly from the
-admin navigation and requires no additional debugger feature flag. Artifact production
-still requires the separate organization feature described above.
-
-For local testing, bootstrap, authentication, and lookup requests must all use the local
-backend. The frontend-only `dev-ui-admin` server proxies APIs to production by default;
-it cannot see fixtures seeded into local PostgreSQL, Nodestore, or Snuba. Use a full
-local admin server or a local-only proxy rather than mixing the two environments.
-
-Select the item's cell and enter a workflow, detector, or group ID. Event searches also
-require a project ID because event IDs do not identify their organization or project.
-The debugger shows current configuration and related objects alongside retained EAP
-evaluation artifacts. It does not evaluate detectors or run workflow actions.
-
-Evaluation artifacts remain the main search results. **Configuration and Relationships**
-is a collapsed section above them. Opening it shows a connected entity diagram; expand
-a detector, workflow, condition group, condition, action, or related record to inspect
-its fields inside that node. Nodes expand independently; a new search collapses them.
-
-Recognized error-detector project options include stored values and their sources;
-unset values are marked without inventing effective defaults. A context truncation
-warning indicates that some conditions, actions, or related items were omitted.
-
-Each evaluation artifact has labeled result and ID tables plus a full-width JSON
-disclosure. JSON uses body-sized text, wraps long values, and can be copied in full.
-
-The API requires an active elevated superuser browser session, not staff access or an
-API token. Impersonation and delegated identities are denied. Organization data-secrecy
-restrictions, per-organization approval, and cross-organization session expiry still apply.
-
-Searches default to 24 hours; one-hour and seven-day windows are also available. Each
-search returns at most 100 matching artifacts and 100 related artifacts from one bounded
-correlation query. Truncated results are marked; shorten the window to narrow the search.
-Synthetic trace IDs correlate event artifacts, not individual executions or customer traces.
-An existing item with no artifacts is distinct from an item that cannot be found. Sampling,
-best-effort delivery, and seven-day retention mean an empty result does not prove that
-evaluation never ran.
+To inspect or investigate workflow engine issues, use the admin page at
+`/_admin/workflow-engine/`.
 
 When tracing a missing action, check the boundaries in order:
 
