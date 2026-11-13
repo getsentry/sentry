@@ -37,18 +37,21 @@ def enqueue_alert_triggered_webhooks(
     This runs inline with workflow processing, so it only checks the flag and
     leaves every lookup to the task.
     """
-    if not fire_histories:
+    # The payload describes the issue that fired the alert, so org-level
+    # events without an issue are out of scope.
+    group = event_data.group
+    if not fire_histories or group is None:
         return
 
     try:
-        # Same lookup process_workflows already made, so the project and org are cached.
-        organization = event_data.event.project.organization
+        # Same lookup process_workflows already made, so the org is cached.
+        organization = event_data.get_organization()
         if not features.has(FEATURE_FLAG, organization):
             return
 
         send_alert_triggered_webhooks.delay(
             organization_id=organization.id,
-            group_id=event_data.group.id,
+            group_id=group.id,
             event_id=(
                 event_data.event.event_id if isinstance(event_data.event, GroupEvent) else None
             ),
@@ -64,7 +67,7 @@ def enqueue_alert_triggered_webhooks(
         # A webhook problem must never stop the alert's own actions from firing.
         logger.exception(
             "workflow_engine.alert_webhooks.enqueue_failed",
-            extra={"group_id": event_data.group.id},
+            extra={"group_id": group.id},
         )
 
 

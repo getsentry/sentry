@@ -84,6 +84,14 @@ class EnqueueAlertTriggeredWebhooksTest(AlertTriggeredWebhookTestBase):
         assert mock_delay.call_args.kwargs["event_id"] is None
 
     @with_feature(FEATURE_FLAG)
+    @patch(TASK_DELAY)
+    def test_skips_fires_without_an_issue(self, mock_delay: MagicMock) -> None:
+        enqueue_alert_triggered_webhooks(
+            [self.fire(self.workflow)], WorkflowEventData(event=self.group_event, group=None)
+        )
+        mock_delay.assert_not_called()
+
+    @with_feature(FEATURE_FLAG)
     @patch(TASK_DELAY, side_effect=Exception("broker down"))
     def test_enqueue_failure_does_not_raise(self, mock_delay: MagicMock) -> None:
         enqueue_alert_triggered_webhooks(
