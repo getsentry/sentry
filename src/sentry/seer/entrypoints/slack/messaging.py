@@ -465,7 +465,7 @@ def update_investigation_alert_message(
             message = SlackRenderable(
                 blocks=[],
                 text=original_message["text"],
-                attachments=original_message.get("attachments", []),
+                attachments=original_message["attachments"],
             )
         except (KeyError, TypeError) as e:
             lifecycle.record_failure(failure_reason=e)
