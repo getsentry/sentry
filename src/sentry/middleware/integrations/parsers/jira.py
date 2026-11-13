@@ -30,7 +30,10 @@ from sentry.integrations.jira.webhooks import (
     JiraSentryInstalledWebhook,
     JiraSentryUninstalledWebhook,
 )
-from sentry.integrations.jira.webhooks.forge_issue_updated import FORGE_ISSUE_UPDATED_MODULE_KEY
+from sentry.integrations.jira.webhooks.forge_issue_updated import (
+    FORGE_ISSUE_UPDATED_MODULE_KEY,
+    has_applied_change,
+)
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.types import IntegrationProviderSlug
@@ -125,6 +128,10 @@ class JiraRequestParser(BaseRequestParser):
         cloud_id = jira_cloud_id(invocation)
         if cloud_id is None:
             return HttpResponse(status=400)
+
+        # Forge sends every issue edit, and most change nothing Sentry syncs.
+        if not has_applied_change(self.get_request_body()):
+            return HttpResponse(status=202)
 
         # Only Forge-native sites are keyed by cloud ID for now. Sites that moved from
         # Connect keep their clientKey, so their events are dropped here and they keep

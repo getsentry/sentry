@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import responses
@@ -28,6 +30,7 @@ from sentry.testutils.outbox import (
 )
 from sentry.testutils.silo import control_silo_test
 from sentry.types.cell import Cell, Locality
+from sentry.utils import json
 
 cell = Cell("us", 1, "http://us.testserver")
 eu_cell = Cell("eu", 2, "http://eu.testserver")
@@ -259,6 +262,7 @@ class JiraRequestParserTest(TestCase):
 
 CLOUD_ID = "11111111-2222-3333-4444-555555555555"
 INSTALLATION_ID = "ari:cloud:ecosystem::installation/test"
+STATUS_EVENT = {"issue": {"id": "10425"}, "changelog": {"items": [{"field": "status"}]}}
 
 
 @control_silo_test
@@ -280,7 +284,9 @@ class JiraForgeIssueUpdatedParserTest(TestCase):
             metadata={"forge": {"installation_id": INSTALLATION_ID}},
         )
 
-    def post(self, mock_verify: MagicMock, **invocation: str) -> HttpResponseBase:
+    def post(
+        self, mock_verify: MagicMock, event: Mapping[str, Any] = STATUS_EVENT, **invocation: str
+    ) -> HttpResponseBase:
         mock_verify.return_value = ForgeInvocation(
             app_id="ari:cloud:ecosystem::app/test",
             installation_id=invocation.get("installation_id", INSTALLATION_ID),
@@ -292,7 +298,7 @@ class JiraForgeIssueUpdatedParserTest(TestCase):
         )
         request = self.factory.post(
             path=self.path,
-            data={"issue": {"id": "10425"}},
+            data=event,
             content_type="application/json",
             headers={
                 "Authorization": "Bearer fit",
@@ -314,11 +320,13 @@ class JiraForgeIssueUpdatedParserTest(TestCase):
         responses.add(responses.POST, f"http://us.testserver{self.path}", status=202)
         perform_cell_request(cell, payload)
 
-        headers = responses.calls[0].request.headers
+        delivered = responses.calls[0].request
+        headers = delivered.headers
+        assert json.loads(delivered.body) == STATUS_EVENT
         assert verify_webhook_delivery_signature(
             self.path,
             headers["Authorization"],
-            b'{"issue": {"id": "10425"}}',
+            delivered.body,
             headers[WEBHOOK_DELIVERY_SIGNATURE_HEADER],
         )
         assert "X-Forge-OAuth-System" not in headers
@@ -333,6 +341,10 @@ class JiraForgeIssueUpdatedParserTest(TestCase):
         mock_verify.side_effect = ForgeInvocationTokenError("bad")
         assert self.post(mock_verify).status_code == 401
         mock_verify.side_effect = None
+
+        # An edit the handlers don't sync, such as a summary change.
+        summary_event = {**STATUS_EVENT, "changelog": {"items": [{"field": "summary"}]}}
+        assert self.post(mock_verify, summary_event).status_code == 202
 
         # A UI module of the app, which any Jira user can drive.
         assert self.post(mock_verify, module_key="issue-panel").status_code == 403

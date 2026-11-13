@@ -31,7 +31,12 @@ from sentry.silo.util import WEBHOOK_DELIVERY_SIGNATURE_HEADER, verify_webhook_d
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import jwt
 
-from ..utils import handle_assignee_change, handle_issue_moved, handle_status_change
+from ..utils.api import (
+    changelog_items,
+    handle_assignee_change,
+    handle_issue_moved,
+    handle_status_change,
+)
 from .base import JiraWebhookBase
 
 logger = logging.getLogger(__name__)
@@ -39,6 +44,17 @@ logger = logging.getLogger(__name__)
 # The manifest's `avi:jira:updated:issue` trigger. Any module of the app can call the
 # remote, including UI modules a Jira user drives, so only this one may send events.
 FORGE_ISSUE_UPDATED_MODULE_KEY = "issue-updated"
+# The changelog fields the handlers act on. Any other edit (summary, labels, comments)
+# changes nothing in Sentry.
+_APPLIED_FIELDS = frozenset({"key", "status", "assignee"})
+
+
+def has_applied_change(event: Mapping[str, Any]) -> bool:
+    """Whether the event changes anything the handlers sync, so others aren't queued."""
+    return any(
+        isinstance(item, Mapping) and str(item.get("field") or "").lower() in _APPLIED_FIELDS
+        for item in changelog_items(event)
+    )
 
 
 class _TemporaryFailure(Exception):
@@ -126,9 +142,10 @@ class JiraForgeIssueUpdatedWebhook(JiraWebhookBase):
                 use_email_scope=settings.JIRA_USE_EMAIL_SCOPE,
             )
         except _TemporaryFailure:
-            # WebhookPayload retries a 5xx, possibly after this issue's later events. That's
-            # safe: rekeys are idempotent, and status and assignee changes older than the
-            # issue's last sync are dropped.
+            # WebhookPayload retries a 5xx, possibly after this issue's later events. Status
+            # and assignee changes older than the issue's last sync are dropped, so those
+            # are safe. A move isn't: if an issue moves twice and the first move is retried
+            # after the second, the link is left at the middle key.
             return self.respond(status=503)
         return self.respond(status=202)
 
