@@ -56,7 +56,7 @@ from sentry.search.eap.spans.attributes import (
 )
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig, SupportedTraceItemType
-from sentry.search.eap.utils import can_expose_attribute_to_api
+from sentry.search.eap.utils import can_expose_attribute_to_api, get_stats_chunk_count
 from sentry.search.events.types import SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.snuba.occurrences_rpc import Occurrences
@@ -386,9 +386,10 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
                     AttributeKey(name=requested_key, type=AttributeKey.TYPE_STRING)
                 )
 
+            chunk_count = get_stats_chunk_count(len(request_attrs_list), MAX_THREADS)
             chunked_attributes: defaultdict[int, list[AttributeKey]] = defaultdict(list)
             for i, attr in enumerate(request_attrs_list):
-                chunked_attributes[i % MAX_THREADS].append(
+                chunked_attributes[i % chunk_count].append(
                     AttributeKey(name=attr.name, type=AttributeKey.TYPE_STRING)
                 )
 

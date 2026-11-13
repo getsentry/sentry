@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import moment from 'moment-timezone';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
@@ -34,7 +35,8 @@ export function TrialAlert({organization, subscription}: Props) {
     ? t('Enterprise Trial')
     : t('Business Plan Trial');
 
-  const featuresName = 'business plan';
+  const trialType = subscription.isEnterpriseTrial ? t('Enterprise') : t('Business');
+  const trialEndDate = moment(subscription.trialEnd).utc().format('MMM D, YYYY');
 
   return (
     <Container
@@ -50,9 +52,10 @@ export function TrialAlert({organization, subscription}: Props) {
             <TrialBadge subscription={subscription} organization={organization} />
           </Flex>
           <StyledSubText>
-            {tct("With your trial you have access to Sentry's [featuresName] features.", {
-              featuresName,
-            })}
+            {tct(
+              'Your [trialType] trial is separate from your plan and stays active until [trialEndDate].',
+              {trialType, trialEndDate}
+            )}
           </StyledSubText>
         </Grid>
 

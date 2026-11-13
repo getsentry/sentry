@@ -9,9 +9,11 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import analytics
 from sentry.agent_handoff.applications import get_handoff_application
 from sentry.agent_handoff.codes import HandoffContext, HandoffFlow, issue_handoff
 from sentry.agent_handoff.flows import get_flow
+from sentry.analytics.events.agent_handoff import AgentHandoffPromptCreatedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import SessionNoAuthTokenAuthentication
@@ -177,5 +179,14 @@ class OrganizationAgentHandoffEndpoint(ControlSiloOrganizationEndpoint):
         logger.info(
             "agent-handoff.generated",
             extra={"user_id": user.id, "organization_id": organization.id},
+        )
+        analytics.record(
+            AgentHandoffPromptCreatedEvent(
+                user_id=user.id,
+                organization_id=organization.id,
+                flow=flow.value,
+                run_id=values["context"].run_id if values["context"] is not None else None,
+                ip_pinning=not values["disable_ip_pinning"],
+            )
         )
         return Response(data, status=201)

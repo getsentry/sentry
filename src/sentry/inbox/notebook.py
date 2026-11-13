@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
-from sentry.inbox.types import InboxEventData, InboxEventType, InboxItemType
+from sentry.inbox.types import InboxEventData, InboxEventSummary, InboxEventType, InboxItemType
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.notebooks.access import NOTEBOOK_SCOPES, has_notebooks_access
@@ -65,12 +65,14 @@ inbox_item_type_registry.register(NOTEBOOK.subject_type)(NOTEBOOK)
 
 NOTEBOOK_COMPLETED = InboxEventType(
     event_type="notebook.completed",
+    summary=InboxEventSummary.NOTEBOOK_COMPLETED,
     item_type=NOTEBOOK,
     data_class=NotebookCompletedData,
     notification_setting=NotificationSettingEnum.INBOX_COMPLETION_STATUS,
 )
 NOTEBOOK_USER_MENTIONED = InboxEventType(
     event_type="notebook.user_mentioned",
+    summary=InboxEventSummary.NOTEBOOK_MENTIONED,
     item_type=NOTEBOOK,
     data_class=NotebookMentionedData,
     notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
@@ -78,12 +80,14 @@ NOTEBOOK_USER_MENTIONED = InboxEventType(
 NOTEBOOK_TEAM_MENTIONED = InboxEventType(
     recipient="team",
     event_type="notebook.team_mentioned",
+    summary=InboxEventSummary.NOTEBOOK_TEAM_MENTIONED,
     item_type=NOTEBOOK,
     data_class=NotebookMentionedData,
     notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
 )
 NOTEBOOK_PARTICIPANT_ADDED = InboxEventType(
     event_type="notebook.participant_added",
+    summary=InboxEventSummary.NOTEBOOK_PARTICIPANT_ADDED,
     item_type=NOTEBOOK,
     data_class=NotebookParticipantAddedData,
     notification_setting=NotificationSettingEnum.INBOX_ASSIGNMENTS,

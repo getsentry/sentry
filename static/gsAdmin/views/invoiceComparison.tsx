@@ -52,28 +52,11 @@ type Summary = {
   rows_page_size: number;
   rows_total_pages: number;
   start: string;
-  unmatched_org_count: number;
-  unmatched_page: number;
-  unmatched_page_size: number;
-  unmatched_total_pages: number;
-};
-
-type UnmatchedSide = 'legacy_only' | 'platform_only';
-
-type UnmatchedRow = {
-  amount: number;
-  invoice_count: number;
-  // Present only when the org has exactly one invoice on its one side.
-  invoice_guid: string | null;
-  organization_id: number;
-  organization_slug: string | null;
-  side: UnmatchedSide;
 };
 
 type ComparisonResponse = {
   rows: Row[];
   summary: Summary;
-  unmatched: UnmatchedRow[];
 };
 
 const STATUS_VARIANT: Record<RowStatus, TagProps['variant']> = {
@@ -199,7 +182,6 @@ export function InvoiceComparison() {
   const queryStart = parseDayParam(location.query.start);
   const queryEnd = parseDayParam(location.query.end);
   const rowsPage = parsePageParam(location.query.rows_page);
-  const unmatchedPage = parsePageParam(location.query.unmatched_page);
   const pageSize = parsePageSizeParam(location.query.page_size);
 
   // Without a window in the URL (first visit, or a link that only carries
@@ -250,9 +232,7 @@ export function InvoiceComparison() {
         start: hasWindow ? startDay : undefined,
         end: hasWindow ? endDay : undefined,
         rows_page: rowsPage,
-        unmatched_page: unmatchedPage,
         rows_page_size: pageSize,
-        unmatched_page_size: pageSize,
       },
       staleTime: 0,
     }),
@@ -296,9 +276,6 @@ export function InvoiceComparison() {
     if (data.summary.rows_page !== rowsPage) {
       fixes.rows_page = String(data.summary.rows_page);
     }
-    if (data.summary.unmatched_page !== unmatchedPage) {
-      fixes.unmatched_page = String(data.summary.unmatched_page);
-    }
     if (Object.keys(fixes).length > 0) {
       navigate(
         {
@@ -312,7 +289,6 @@ export function InvoiceComparison() {
     data,
     isPlaceholderData,
     rowsPage,
-    unmatchedPage,
     navigate,
     location.pathname,
     location.query,
@@ -324,17 +300,17 @@ export function InvoiceComparison() {
   // tests for the contract.
   const rows = data?.rows ?? [];
 
-  const setPage = (key: 'rows_page' | 'unmatched_page', page: number) => {
+  const setRowsPage = (page: number) => {
     navigate({
       pathname: location.pathname,
-      query: {...location.query, ...pinnedWindow, [key]: String(page)},
+      query: {...location.query, ...pinnedWindow, rows_page: String(page)},
     });
   };
 
   const setPageSize = (size: number) => {
     // Changing page size with a non-1 page is almost never what the user
     // wants — the offset they were viewing maps to a different position in
-    // the resized list. Reset both paginators.
+    // the resized list. Reset the paginator.
     navigate({
       pathname: location.pathname,
       query: {
@@ -342,7 +318,6 @@ export function InvoiceComparison() {
         ...pinnedWindow,
         page_size: String(size),
         rows_page: '1',
-        unmatched_page: '1',
       },
     });
   };
@@ -352,8 +327,8 @@ export function InvoiceComparison() {
       return;
     }
     // Re-running the comparison persists the chosen window to the URL and
-    // resets both paginators — the new window's result set is unrelated
-    // to the previous one's page numbers.
+    // resets the paginator — the new window's result set is unrelated to
+    // the previous one's page number.
     navigate({
       pathname: location.pathname,
       query: {
@@ -361,7 +336,6 @@ export function InvoiceComparison() {
         start: startInput,
         end: endInput,
         rows_page: '1',
-        unmatched_page: '1',
         page_size: String(pageSize),
       },
     });
@@ -380,10 +354,9 @@ export function InvoiceComparison() {
         <strong>Platform invoices</strong> reflect every <code>PlatformInvoice</code> in
         the window; in production milestone-1 those are equivalent to both-sided since{' '}
         <code>InvoicerService</code> only generates platform invoices for orgs with a{' '}
-        <code>Contract</code> (which already have a legacy counterpart). The first table
-        compares the both-sided orgs, sorted by absolute % delta (relative to legacy),
-        largest first. The second table lists one-sided orgs by absolute amount so you can
-        see who hasn't been onboarded yet.
+        <code>Contract</code> (which already have a legacy counterpart). The table
+        compares the migrated orgs, sorted by absolute % delta (relative to legacy),
+        largest first.
       </p>
 
       <Panel>
@@ -504,7 +477,7 @@ export function InvoiceComparison() {
                 totalPages={data.summary.rows_total_pages}
                 total={data.summary.row_count}
                 pageSize={data.summary.rows_page_size}
-                onChange={p => setPage('rows_page', p)}
+                onChange={setRowsPage}
               />
               <Table>
                 <thead>
@@ -561,62 +534,6 @@ export function InvoiceComparison() {
                       <td>
                         <Tag variant={STATUS_VARIANT[row.status]}>{row.status}</Tag>
                       </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </PanelBody>
-          </Panel>
-
-          <Panel>
-            <PanelHeader>Unmatched orgs (one side only, sorted by |amount|)</PanelHeader>
-            <PanelBody>
-              <Paginator
-                page={data.summary.unmatched_page}
-                totalPages={data.summary.unmatched_total_pages}
-                total={data.summary.unmatched_org_count}
-                pageSize={data.summary.unmatched_page_size}
-                onChange={p => setPage('unmatched_page', p)}
-              />
-              <Table>
-                <thead>
-                  <tr>
-                    <th>Organization</th>
-                    <th>Side</th>
-                    <RightHeader>Amount</RightHeader>
-                    <RightHeader>Invoices</RightHeader>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.unmatched.length === 0 && (
-                    <tr>
-                      <td colSpan={4}>
-                        <em>No unmatched invoices in this range.</em>
-                      </td>
-                    </tr>
-                  )}
-                  {data.unmatched.map(row => (
-                    <tr key={`${row.side}-${row.organization_id}`}>
-                      <td>
-                        {row.organization_slug ? (
-                          <Link to={`/_admin/customers/${row.organization_slug}/`}>
-                            {row.organization_slug}
-                          </Link>
-                        ) : (
-                          <span>org#{row.organization_id}</span>
-                        )}
-                      </td>
-                      <td>
-                        <Tag variant="danger">{row.side}</Tag>
-                      </td>
-                      <RightCell>
-                        <InvoiceAmount
-                          cents={row.amount}
-                          guid={row.invoice_guid}
-                          region={cell?.name}
-                        />
-                      </RightCell>
-                      <RightCell>{row.invoice_count}</RightCell>
                     </tr>
                   ))}
                 </tbody>

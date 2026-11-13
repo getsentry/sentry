@@ -100,6 +100,7 @@ class InboxEventType[SubjectT, DataT: InboxEventData]:
     """Keep event_type stable so retained events can be looked up."""
 
     event_type: str
+    summary: InboxEventSummary
     item_type: InboxItemType[SubjectT]
     data_class: type[DataT]
     # Personal notification setting category that controls email and Slack for this event.

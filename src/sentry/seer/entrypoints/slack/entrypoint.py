@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, cast
 import orjson
 
 from sentry import features
+from sentry.auth.access import from_user
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.utils.metrics import EventLifecycle
@@ -27,9 +28,11 @@ from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.templates.seer import (
     SeerAgentError,
+    SeerAgentOutOfCredits,
     SeerAgentResponse,
     SeerAgentWriteApproval,
     SeerAutofixError,
+    SeerAutofixOutOfCredits,
     SeerAutofixStopped,
     SeerAutofixUpdate,
     SeerInvestigationError,
@@ -56,6 +59,7 @@ from sentry.seer.agent.client_models import (
     SeerRunState,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
+from sentry.seer.credits import OUT_OF_CREDITS
 from sentry.seer.endpoints.agent_request import (
     AgentApprovalRequestData,
     AgentApprovalRequestSerializer,
@@ -93,6 +97,7 @@ from sentry.seer.entrypoints.types import (
 )
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
@@ -108,6 +113,17 @@ if TYPE_CHECKING:
     from sentry.integrations.slack.integration import SlackIntegration
     from sentry.integrations.slack.requests.action import SlackActionRequest
     from sentry.models.group import Group
+
+
+def user_has_billing_access(*, organization_id: int, user_id: int | None) -> bool:
+    """Whether the user can manage the organization's billing."""
+    if user_id is None:
+        return False
+    organization = Organization.objects.filter(id=organization_id).first()
+    if not organization:
+        return False
+    user = user_service.get_user(user_id)
+    return from_user(user, organization).has_scope("org:billing")
 
 
 class EntrypointSetupError(Exception):
@@ -131,6 +147,8 @@ class SlackAutofixCachePayload(TypedDict):
     # Captured at cache creation. When set, the Slack ROOT_CAUSE update swaps the
     # next-stage trigger button for a "Hand off to ..." button.
     handoff_target: CodingAgentProviderType | None
+    # The Sentry user who started the run from Slack. Unset for runs nobody started by hand.
+    user_id: NotRequired[int | None]
 
 
 class SlackAgentCachePayload(TypedDict):
@@ -138,6 +156,8 @@ class SlackAgentCachePayload(TypedDict):
     integration_id: int
     thread: SlackThreadDetails
     slack_user_id: NotRequired[str]
+    # The Sentry user linked to slack_user_id.
+    user_id: NotRequired[int | None]
 
 
 class SlackInvestigationCachePayload(TypedDict):
@@ -447,6 +467,8 @@ class SlackAutofixEntrypoint(
         )
 
     def create_autofix_cache_payload(self) -> SlackAutofixCachePayload:
+        # The action webhook already resolved who clicked, so this lookup is cached.
+        user = self.slack_request.get_identity_user()
         return SlackAutofixCachePayload(
             threads=[self.thread],
             organization_id=self.organization_id,
@@ -455,6 +477,7 @@ class SlackAutofixEntrypoint(
             group_id=self.group.id,
             group_link=self.get_group_link(self.group),
             handoff_target=_get_handoff_target(self.group.project),
+            user_id=user.id if user else None,
         )
 
     @staticmethod
@@ -480,7 +503,7 @@ class SlackAutofixEntrypoint(
         match event_type:
             case SentryAppEventType.SEER_ERRORED | SentryAppEventType.SEER_STOPPED:
                 stopped = event_type == SentryAppEventType.SEER_STOPPED
-                message: SeerAutofixError | SeerAutofixStopped
+                message: SeerAutofixError | SeerAutofixOutOfCredits | SeerAutofixStopped
                 if stopped:
                     from sentry.integrations.slack.utils.escape import escape_slack_text
 
@@ -489,6 +512,15 @@ class SlackAutofixEntrypoint(
                         organization_id=cache_payload["organization_id"],
                         reason=escape_slack_text(stop["reason"]),
                         suggestion=escape_slack_text(stop["suggestion"]),
+                    )
+                elif event_payload.get("failure_reason") == OUT_OF_CREDITS:
+                    # The copy is written for whoever started the run.
+                    message = SeerAutofixOutOfCredits(
+                        organization_id=cache_payload["organization_id"],
+                        has_billing_access=user_has_billing_access(
+                            organization_id=cache_payload["organization_id"],
+                            user_id=cache_payload.get("user_id"),
+                        ),
                     )
                 else:
                     message = SeerAutofixError(
@@ -682,6 +714,8 @@ class SlackAgentEntrypoint(
         self.integration = integration
         self.install = SlackIntegration(model=integration, organization_id=organization_id)
         self.slack_user_id = slack_user_id
+        # Set by the caller once it has resolved the Slack user to a Sentry user.
+        self.user_id: int | None = None
 
     @staticmethod
     def has_access(organization: Organization | RpcOrganization) -> bool:
@@ -704,6 +738,7 @@ class SlackAgentEntrypoint(
             organization_id=self.organization_id,
             integration_id=self.install.model.id,
             slack_user_id=self.slack_user_id,
+            user_id=self.user_id,
         )
 
     @staticmethod
@@ -763,6 +798,33 @@ class SlackAgentEntrypoint(
                 )
 
         replies = SlackSeerAgentReplyCache.get(run_id=run_id)
+        # Keyed by push: a failed retry leaves the PR's number and commit unchanged.
+        pr_keys = [
+            key
+            for pr in _get_repo_pr_states(state)
+            if _is_pr_out_of_credits(pr)
+            and (key := f"pr_out_of_credits:{pr.repo_name}:{pr.idempotency_key}") not in replies
+        ]
+        if pr_keys:
+            # A turn gets one notice in total, shared by its failed PRs and the run itself.
+            turn_key = _out_of_credits_key(state)
+            notice = replies.get(turn_key)
+            message_ts = (
+                notice["message_ts"]
+                if notice
+                else send_thread_update(
+                    install=install,
+                    thread=thread,
+                    data=_agent_out_of_credits(cache_payload),
+                )
+            )
+            if message_ts:
+                for key in (turn_key, *pr_keys):
+                    SlackSeerAgentReplyCache.set(
+                        run_id=run_id, key=key, reply=SlackSeerAgentReply(message_ts=message_ts)
+                    )
+
+        replies = SlackSeerAgentReplyCache.get(run_id=run_id)
         answers = [answer for turn in state.get_turns() if (answer := turn.answer) is not None]
         latest = next(
             (
@@ -811,6 +873,27 @@ def _get_repo_pr_states(state: SeerRunState) -> list[RepoPRState]:
     return [state.repo_pr_states[repo] for repo in sorted(state.repo_pr_states)]
 
 
+def _agent_out_of_credits(cache_payload: SlackAgentCachePayload) -> SeerAgentOutOfCredits:
+    """The out-of-credits notice, written for whoever sent the message that started the run."""
+    return SeerAgentOutOfCredits(
+        organization_id=cache_payload["organization_id"],
+        has_billing_access=user_has_billing_access(
+            organization_id=cache_payload["organization_id"],
+            user_id=cache_payload.get("user_id"),
+        ),
+    )
+
+
+def _is_pr_out_of_credits(pr: RepoPRState) -> bool:
+    return pr.pr_creation_status == "error" and pr.pr_creation_error_code == OUT_OF_CREDITS
+
+
+def _out_of_credits_key(state: SeerRunState) -> str:
+    """The reply key of the latest turn's out-of-credits notice, shared by the run and its PRs."""
+    turns = state.get_turns()
+    return f"out_of_credits:{turns[-1].blocks[0].id}" if turns else "out_of_credits"
+
+
 def _hash_pr_status(prs: Sequence[RepoPRState]) -> str:
     payload = orjson.dumps(
         [
@@ -829,7 +912,7 @@ def _next_agent_reply(
     cache_payload: SlackAgentCachePayload,
     state: SeerRunState,
     replies: Mapping[str, SlackSeerAgentReply],
-) -> tuple[str, SeerAgentError | SeerAgentResponse] | None:
+) -> tuple[str, SeerAgentError | SeerAgentResponse | SeerAgentOutOfCredits] | None:
     """The reply to post and its cache key, or None if the thread is up to date.
 
     Sends and records the write approval DM when a new approval is pending.
@@ -886,6 +969,12 @@ def _next_agent_reply(
             "I sent you a message."
         )
         repo_pr_states: list[RepoPRState] = []
+    elif state.failure_reason == OUT_OF_CREDITS:
+        # Replace Seer's plain-text notice with the out-of-credits notification.
+        key = _out_of_credits_key(state)
+        if key in replies:
+            return None
+        return key, _agent_out_of_credits(cache_payload)
     else:
         turn = next((turn for turn in reversed(state.get_turns()) if turn.answer), None)
         if turn is None or turn.answer is None:
@@ -1282,6 +1371,29 @@ def _post_conclusion(
         lifecycle.record_halt(halt_reason="conclusion_not_sent")
         return False
     return True
+
+
+def _get_investigation_thread(
+    *, investigation_id: int, integration_id: int, channel_id: str, thread_ts: str
+) -> NotificationThread:
+    """Returns the investigation's thread for a Slack thread, creating it if needed."""
+    return ThreadingService.get_or_create_thread(
+        threading_config=ThreadingConfig(
+            key_type=NotificationSource.SEER_INVESTIGATION_CONCLUSION,
+            key_data={
+                "investigation_id": investigation_id,
+                "integration_id": integration_id,
+                "thread_ts": thread_ts,
+            },
+            provider_key=NotificationProviderKey.SLACK,
+            target_id=channel_id,
+            thread_identifier=thread_ts,
+            provider_data=None,
+            object_type=NotificationThreadObjectType.INVESTIGATION,
+            object_id=investigation_id,
+            integration_id=integration_id,
+        )
+    )
 
 
 def _record_status_sent(*, data: SeerInvestigationStatus, links: set[NotificationLink]) -> None:
