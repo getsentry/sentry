@@ -7,7 +7,9 @@ import {AgentHandoffFlow, useAgentHandoff} from './useAgentHandoff';
 describe('useAgentHandoff', () => {
   const organization = OrganizationFixture();
   const url = `/organizations/${organization.slug}/agent-handoff/prompts/`;
-  const prompt = 'Open the instructions. Your handoff code is `sntryh_example`.';
+  const code = 'sntryh_example';
+  const prompt =
+    'Follow the instructions verbatim at https://sentry-jest-tests.example.com/agent-handoff/. Your handoff code is `sntryh_example`.';
   const write = jest.fn();
   const options = {disableIpPinning: false};
   const context = {runId: 'a'.repeat(32)};
@@ -33,7 +35,7 @@ describe('useAgentHandoff', () => {
     const mint = MockApiClient.addMockResponse({
       url,
       method: 'POST',
-      body: {prompt, expiresAt: new Date(Date.now() + 300_000).toISOString()},
+      body: {code, expiresAt: new Date(Date.now() + 300_000).toISOString()},
     });
     write.mockRejectedValueOnce(new Error('Clipboard unavailable'));
     const {result} = renderHookWithProviders(
@@ -101,7 +103,7 @@ describe('useAgentHandoff', () => {
     const mint = MockApiClient.addMockResponse({
       url,
       method: 'POST',
-      body: {prompt, expiresAt: new Date(Date.now() + 300_000).toISOString()},
+      body: {code, expiresAt: new Date(Date.now() + 300_000).toISOString()},
       asyncDelay: promise,
     });
     class DeferredClipboardItem {
@@ -136,7 +138,7 @@ describe('useAgentHandoff', () => {
     const mint = MockApiClient.addMockResponse({
       url,
       method: 'POST',
-      body: {prompt, expiresAt: new Date(Date.now() + 300_000).toISOString()},
+      body: {code, expiresAt: new Date(Date.now() + 300_000).toISOString()},
       asyncDelay: promise,
     });
     const {result} = renderHookWithProviders(
@@ -166,7 +168,7 @@ describe('useAgentHandoff', () => {
     const mint = MockApiClient.addMockResponse({
       url,
       method: 'POST',
-      body: {prompt, expiresAt: new Date(Date.now() + 300_000).toISOString()},
+      body: {code, expiresAt: new Date(Date.now() + 300_000).toISOString()},
       asyncDelay: promise,
     });
     const {result, unmount} = renderHookWithProviders(

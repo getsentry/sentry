@@ -11,6 +11,7 @@ import {IconUpload} from '@sentry/icons/upload';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {parseAsString, useQueryStates} from 'nuqs';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {openConfirmModal} from '@sentry/scraps/confirm';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
@@ -37,12 +38,14 @@ import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 import {getAnalyticsDataForGroup, getMessage, getTitle} from 'sentry/utils/events';
 import {getStacktraceBody} from 'sentry/utils/getStacktraceBody';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -212,6 +215,32 @@ export function GroupActions({
   });
   const queryClient = useQueryClient();
   const {mutate: discardIssue} = useMutation(discardIssueMutationOptions({navigate}));
+  const {mutate: assessImpact, isPending: isAssessingImpact} = useMutation({
+    mutationFn: () =>
+      fetchMutation<{runId: string}>({
+        method: 'POST',
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/issues/$issueId/impact/assess/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              issueId: group.id,
+            },
+          }
+        ),
+      }),
+    onMutate: () => {
+      toast.loading(t('Starting impact assessment\u2026'));
+    },
+    onSuccess: () => {
+      toast.dismiss();
+      toast.success(t('Impact assessment started'));
+    },
+    onError: () => {
+      toast.dismiss();
+      toast.error(t('Unable to start impact assessment'));
+    },
+  });
 
   const bookmarkKey = group.isBookmarked ? 'unbookmark' : 'bookmark';
   const bookmarkTitle = group.isBookmarked ? t('Remove bookmark') : t('Bookmark');
@@ -613,6 +642,17 @@ export function GroupActions({
             />
           )}
           items={[
+            {
+              key: 'impact-assessment',
+              label: t('Assess impact'),
+              trailingItems: <FeatureBadge type="alpha" />,
+              hidden: !organization.features.includes('seer-impact-assessment'),
+              disabled: disabled || isAssessingImpact,
+              details: isAssessingImpact
+                ? t('Impact assessment is being started')
+                : undefined,
+              onAction: () => assessImpact(),
+            },
             {
               key: 'mark-review',
               label: t('Mark reviewed'),

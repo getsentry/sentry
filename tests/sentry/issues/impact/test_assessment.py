@@ -32,7 +32,7 @@ class AssessImpactForGroupTest(TestCase):
 
         assert result is expected_run
         mock_client_cls.assert_called_once_with(
-            self.organization, project=self.project, group=event.group
+            self.organization, user=None, project=self.project, group=event.group
         )
         call = mock_client_cls.return_value.start_feature_run.call_args.kwargs
         assert call["feature_id"] == IMPACT_FEATURE_ID
@@ -54,13 +54,13 @@ class AssessImpactForGroupTest(TestCase):
 
         with self.feature("organizations:seer-impact-assessment"):
             with pytest.raises(ValueError, match="has no event"):
-                assess_impact_for_group(group)
+                assess_impact_for_group(group=group)
 
     @patch("sentry.issues.impact.assessment.SeerAgentClient")
     def test_requires_feature(self, mock_client_cls: MagicMock) -> None:
         group = self.create_group(project=self.project)
 
         with pytest.raises(PermissionError, match="not enabled"):
-            assess_impact_for_group(group)
+            assess_impact_for_group(group=group)
 
         mock_client_cls.assert_not_called()

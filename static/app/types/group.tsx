@@ -673,6 +673,7 @@ export enum GroupActivityType {
   SEER_PR_READY_FOR_REVIEW = 'seer_pr_ready_for_review',
   SEER_ITERATION_STARTED = 'seer_iteration_started',
   SEER_ITERATION_COMPLETED = 'seer_iteration_completed',
+  SEER_STOPPED = 'seer_stopped',
   PULL_REQUEST_CLOSED = 'pull_request_closed',
   PULL_REQUEST_REOPENED = 'pull_request_reopened',
   PULL_REQUEST_MERGED = 'pull_request_merged',
@@ -695,6 +696,7 @@ export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
   GroupActivityType.SEER_ITERATION_STARTED,
   GroupActivityType.SEER_ITERATION_COMPLETED,
   GroupActivityType.SEER_PR_READY_FOR_REVIEW,
+  GroupActivityType.SEER_STOPPED,
   GroupActivityType.TRIGGER_AUTOFIX,
 ]);
 
@@ -1143,6 +1145,15 @@ interface GroupActivitySeerIterationCompleted extends GroupActivityBase {
   type: GroupActivityType.SEER_ITERATION_COMPLETED;
 }
 
+interface GroupActivitySeerStopped extends GroupActivityBase {
+  data: {
+    reason?: string;
+    run_id?: number;
+    suggestion?: string;
+  };
+  type: GroupActivityType.SEER_STOPPED;
+}
+
 interface GroupActivityUnlinkExternalIssue extends GroupActivityBase {
   data: {external_issue_key: string; provider: string};
   type: GroupActivityType.UNLINK_EXTERNAL_ISSUE;
@@ -1240,6 +1251,7 @@ export type GroupActivity =
   | GroupActivitySeerPrReadyForReview
   | GroupActivitySeerIterationStarted
   | GroupActivitySeerIterationCompleted
+  | GroupActivitySeerStopped
   | GroupActivityPullRequestClosed
   | GroupActivityPullRequestReopened
   | GroupActivityPullRequestMerged

@@ -65,6 +65,7 @@ class NotificationSource(StrEnum):
 
     # SEER
     SEER_AUTOFIX_ERROR = "seer-autofix-error"
+    SEER_AUTOFIX_STOPPED = "seer-autofix-stopped"
     SEER_AUTOFIX_UPDATE = "seer-autofix-update"
     SEER_AUTOFIX_TRIGGER = "seer-autofix-trigger"
     SEER_AUTOFIX_FOOTER = "seer-autofix-footer"
@@ -135,6 +136,7 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
     NotificationCategory.SEER: [
         NotificationSource.SEER_AUTOFIX_TRIGGER,
         NotificationSource.SEER_AUTOFIX_ERROR,
+        NotificationSource.SEER_AUTOFIX_STOPPED,
         NotificationSource.SEER_AUTOFIX_SUCCESS,
         NotificationSource.SEER_AUTOFIX_UPDATE,
         NotificationSource.SEER_AGENT_RESPONSE,

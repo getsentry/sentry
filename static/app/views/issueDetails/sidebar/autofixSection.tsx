@@ -39,7 +39,7 @@ import {AutofixStartCard} from 'sentry/components/events/autofix/v3/autofixStart
 import {useAutoTriggerAutofix} from 'sentry/components/events/autofix/v3/useAutoTriggerAutofix';
 import {
   useIsSingleRunChatOpen,
-  useToggleSingleRunChat,
+  useOpenSingleRunChat,
 } from 'sentry/components/events/autofix/v3/useToggleSingleRunChat';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
@@ -297,7 +297,8 @@ function AutofixPreviews({
   referrer,
   singleRunId,
 }: AutofixPreviewsProps) {
-  const toggleSingleRunChat = useToggleSingleRunChat(singleRunId);
+  const openSingleRunChat = useOpenSingleRunChat();
+  const isSingleRunChatOpen = useIsSingleRunChatOpen(singleRunId);
   const hasRootCause =
     sections.findLast(isRootCauseSection)?.artifacts?.some(isRootCauseArtifact) ?? false;
 
@@ -364,7 +365,11 @@ function AutofixPreviews({
           icon={<IconSeer />}
           aria-label={t('Open Autofix')}
           variant="primary"
-          onClick={defined(singleRunId) ? toggleSingleRunChat : openSeerDrawer}
+          onClick={
+            defined(singleRunId) ? () => openSingleRunChat(singleRunId) : openSeerDrawer
+          }
+          disabled={isSingleRunChatOpen}
+          tooltipProps={{title: isSingleRunChatOpen ? t('Chat is open') : undefined}}
           analyticsEventKey="issue_details.seer_opened"
           analyticsEventName="Issue Details: Seer Opened"
           analyticsParams={{
