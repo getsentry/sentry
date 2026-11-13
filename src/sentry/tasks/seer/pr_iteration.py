@@ -724,6 +724,13 @@ def _drain_queued_autofix_feedback(
             left_queued_count=count_queued_autofix_feedback(run_id),
         )
         _record_drain_outcome("skipped_out_of_credits", trigger_source)
+        # Nothing drains this feedback until a top-up. Save the reason for the sweep.
+        record_pr_iteration_failure_reason(
+            log_ctx=log_ctx,
+            run_id=run_id,
+            organization_id=organization_id,
+            reason=PrIterationOutcome.SENTRY_OUT_OF_CREDITS.value,
+        )
         return
 
     # Claim before the pop, so feedback arriving mid-drain opens its own row.

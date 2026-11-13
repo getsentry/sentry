@@ -233,6 +233,20 @@ def iteration_completed_webhook_fields(
             errored_repos=errored_repos,
         )
         return None
+    if not is_single_run(state) and any(
+        state.repo_pr_states[repo].pr_creation_error_code == "out_of_credits"
+        for repo in errored_repos
+    ):
+        # The drain redoes the push after a top-up; its completion emits the webhook.
+        log_ctx.info(
+            "autofix.pr_iteration.iteration_outcome",
+            outcome="awaiting_push",
+            reason="out_of_credits",
+            webhook_emitted=False,
+            iteration_index=iteration_index,
+            errored_repos=errored_repos,
+        )
+        return None
     if not is_synced and not errored_repos:
         log_ctx.info(
             "autofix.pr_iteration.iteration_outcome",
@@ -551,7 +565,7 @@ def _push_iteration_changes(
             organization_id=group.organization.id,
             stranded_action=StrandedAction.PUSH,
         )
-        return PrIterationOutcome.OUT_OF_CREDITS
+        return PrIterationOutcome.SENTRY_OUT_OF_CREDITS
     except Exception as e:
         log_ctx.error(
             "autofix.pr_iteration.push",
@@ -671,7 +685,7 @@ def _retry_push_on_moved_branch(
             organization_id=group.organization.id,
             stranded_action=StrandedAction.BRANCH_MOVED_RETRY,
         )
-        return PrIterationOutcome.OUT_OF_CREDITS
+        return PrIterationOutcome.SENTRY_OUT_OF_CREDITS
     except Exception as e:
         # End the iteration as errored, so the caller pauses the run and records the outcome.
         log_ctx.error(

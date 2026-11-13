@@ -831,6 +831,20 @@ class TestPrIterationCompletionHook(TestCase):
         mock_broadcast.assert_called_once()
 
     @patch(f"{HOOK_PATH}.broadcast_webhooks_for_organization.delay")
+    def test_a_seer_push_that_ran_out_of_credits_does_not_emit_webhook(
+        self, mock_broadcast: MagicMock
+    ) -> None:
+        # The redo's push emits it once the changes land.
+        state = self._unsynced()
+        repo_state = state.repo_pr_states["test-repo"]
+        repo_state.pr_creation_status = "error"
+        repo_state.pr_creation_error_code = "out_of_credits"
+
+        self._webhook(state)
+
+        mock_broadcast.assert_not_called()
+
+    @patch(f"{HOOK_PATH}.broadcast_webhooks_for_organization.delay")
     def test_an_iteration_without_pr_states_does_not_take_down_the_hook(
         self, mock_broadcast: MagicMock
     ) -> None:
@@ -1380,7 +1394,10 @@ class TestPrIterationCompletionHook(TestCase):
             take_stranded_action(run_id=123, organization_id=self.organization.id)
             == StrandedAction.PUSH
         )
-        assert mock_complete.call_args.kwargs["outcome"] == PrIterationOutcome.OUT_OF_CREDITS.value
+        assert (
+            mock_complete.call_args.kwargs["outcome"]
+            == PrIterationOutcome.SENTRY_OUT_OF_CREDITS.value
+        )
         mock_consume.assert_not_called()
 
     @patch(f"{COMPLETION_PATH}.trigger_push_changes", side_effect=SeerOutOfCreditsException())
@@ -1481,7 +1498,7 @@ class TestPrIterationCompletionHook(TestCase):
         ):
             outcome, retried = self._branch_moved_push(self._branch_moved())
 
-        assert outcome == PrIterationOutcome.OUT_OF_CREDITS
+        assert outcome == PrIterationOutcome.SENTRY_OUT_OF_CREDITS
         assert retried is False
         mock_check_seer_credits.assert_called_once()
         assert (
@@ -1701,7 +1718,7 @@ class TestFailedRunCompletionHook(TestCase):
         for failure_reason, expected in (
             ("timeout", PrIterationOutcome.TIMEOUT.value),
             ("stalled", PrIterationOutcome.STALLED.value),
-            ("out_of_credits", PrIterationOutcome.OUT_OF_CREDITS.value),
+            ("out_of_credits", PrIterationOutcome.SEER_OUT_OF_CREDITS.value),
             (None, PrIterationOutcome.ERRORED.value),
         ):
             with self.subTest(failure_reason=failure_reason):

@@ -1305,13 +1305,17 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         _mock_can_run: MagicMock,
     ) -> None:
         # The feedback waits for a top-up instead of being taken off the queue and dropped.
+        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
         mock_fetch.return_value = self._state()
+        self._open_iteration_row()
 
         self._call()
 
         mock_claim.assert_not_called()
         mock_pop.assert_not_called()
         mock_trigger.assert_not_called()
+        (row,) = open_iterations(seer_run)
+        assert row.data[FAILURE_REASON_DATA_KEY] == PrIterationOutcome.SENTRY_OUT_OF_CREDITS.value
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
