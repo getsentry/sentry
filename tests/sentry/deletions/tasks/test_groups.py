@@ -221,6 +221,22 @@ class DiscardGroupTest(TestCase):
         assert self.group_hash.group_tombstone_id == self.tombstone.id
         delete_task.apply_async.assert_not_called()
 
+    def test_retry_schedules_deletion_when_earlier_run_failed_to(self) -> None:
+        with (
+            patch("sentry.deletions.tasks.groups.delete_groups_for_project") as delete_task,
+            pytest.raises(RuntimeError),
+        ):
+            delete_task.apply_async.side_effect = RuntimeError
+            self.run_task()
+
+        assert Group.objects.get(id=self.group.id).status == GroupStatus.UNRESOLVED
+
+        with patch("sentry.deletions.tasks.groups.delete_groups_for_project") as delete_task:
+            self.run_task()
+
+        delete_task.apply_async.assert_called_once()
+        assert Group.objects.get(id=self.group.id).status == GroupStatus.PENDING_DELETION
+
     def test_skips_when_another_copy_holds_the_lock(self) -> None:
         lock = locks.get(f"discard-group:{self.group.id}", duration=60, name="discard_group")
         with (

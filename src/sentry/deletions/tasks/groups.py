@@ -145,20 +145,16 @@ def _discard_group(group_id: int, project_id: int, tombstone_id: int, transactio
             group=None, group_tombstone_id=tombstone_id
         )
 
-    # Mark the group pending deletion only after every hash has moved. Deleting a group also
-    # deletes the hashes still attached to it, and `delete_pending_groups` deletes any group
-    # left pending, even if this task has stalled.
-    marked_pending = (
-        Group.objects.filter(id=group_id)
-        .exclude(status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS])
-        .update(status=GroupStatus.PENDING_DELETION, substatus=None)
-    )
-    if not marked_pending:
-        # An earlier run already scheduled the deletion, and `delete_pending_groups` picks the
-        # group up if that deletion failed. Scheduling another could overlap with it.
+    deletion_statuses = [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
+    if Group.objects.filter(id=group_id, status__in=deletion_statuses).exists():
+        # An earlier run already scheduled the deletion. Scheduling another could overlap with it.
         return
-    GroupInbox.objects.filter(project_id=project_id, group_id=group_id).delete()
 
+    # Schedule the deletion before marking the group pending, so a run that stops in between
+    # schedules it again on retry rather than leaving a pending group that nothing deletes.
+    # Mark the group pending deletion only after every hash has moved: deleting a group also
+    # deletes the hashes still attached to it, and `delete_pending_groups` deletes any group
+    # left pending.
     delete_groups_for_project.apply_async(
         kwargs={
             "project_id": project_id,
@@ -166,3 +162,7 @@ def _discard_group(group_id: int, project_id: int, tombstone_id: int, transactio
             "transaction_id": transaction_id,
         }
     )
+    Group.objects.filter(id=group_id).exclude(status__in=deletion_statuses).update(
+        status=GroupStatus.PENDING_DELETION, substatus=None
+    )
+    GroupInbox.objects.filter(project_id=project_id, group_id=group_id).delete()
