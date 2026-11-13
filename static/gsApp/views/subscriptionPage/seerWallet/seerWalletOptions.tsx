@@ -28,7 +28,7 @@ export type SeerWalletBalance = {
 
 export type SeerWalletAutoTopUp = {
   /**
-   * Null means no daily limit.
+   * Null means no daily usage limit.
    */
   dailySpendCapCents: number | null;
   enabled: boolean;

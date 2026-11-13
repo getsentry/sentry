@@ -265,7 +265,7 @@ describe('openSeerAutoTopUpModal', () => {
     );
   });
 
-  it('shows an unset daily limit as no limit', async () => {
+  it('shows an unset daily usage limit as no limit', async () => {
     openAutoTopUpModal({autoTopUp: AutoTopUpFixture({dailySpendCapCents: null})});
 
     const dailyLimit = await screen.findByRole('textbox', {name: 'Daily usage limit'});
@@ -273,7 +273,7 @@ describe('openSeerAutoTopUpModal', () => {
     expect(dailyLimit).toHaveAttribute('placeholder', 'No limit');
   });
 
-  it('saves no daily limit when the field is cleared', async () => {
+  it('saves no daily usage limit when the field is cleared', async () => {
     const saveMock = MockApiClient.addMockResponse({
       url,
       method: 'PUT',
@@ -329,7 +329,7 @@ describe('openSeerAutoTopUpModal', () => {
     expect(saveMock).not.toHaveBeenCalled();
   });
 
-  it('warns about a $0 daily limit and still saves it', async () => {
+  it('warns about a $0 daily usage limit and still saves it', async () => {
     const saveMock = MockApiClient.addMockResponse({
       url,
       method: 'PUT',
