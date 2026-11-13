@@ -72,7 +72,6 @@ from sentry.seer.entrypoints.slack.investigation_status import (
     MAX_SUMMARY_DESCRIPTION_LENGTH,
 )
 from sentry.seer.entrypoints.slack.messaging import (
-    InvestigationAlertMessage,
     edit_thread_message,
     process_thread_update,
     replace_investigation_buttons,
@@ -1560,9 +1559,9 @@ def test_replace_investigation_buttons_preserves_content() -> None:
     }
     other_button = {**start_button, "action_id": "seer_investigation_start_other"}
     chart = {"type": "image", "image_url": "https://example.com/chart.png", "alt_text": "Chart"}
-    message: InvestigationAlertMessage = {
+    message: SlackRenderable = {
         "text": "Critical alert",
-        "blocks": [{"type": "section", "text": {"type": "mrkdwn", "text": "Alert heading"}}],
+        "blocks": [SectionBlock(text="Alert heading")],
         "attachments": [
             {
                 "color": "E03E2F",

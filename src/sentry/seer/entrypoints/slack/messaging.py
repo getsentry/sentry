@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable, Sequence
 from copy import deepcopy
-from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, assert_never
+from typing import TYPE_CHECKING, Any, assert_never
 
 from pydantic import ValidationError
 from slack_sdk.models.blocks import ActionsBlock, ButtonElement, LinkButtonElement, MarkdownBlock
@@ -397,15 +397,9 @@ def update_existing_message(
         )
 
 
-class InvestigationAlertMessage(TypedDict):
-    text: str
-    attachments: list[dict[str, Any]]
-    blocks: NotRequired[list[dict[str, Any]]]
-
-
 def replace_investigation_buttons(
-    *, message: InvestigationAlertMessage, link_button: ButtonElement
-) -> InvestigationAlertMessage | None:
+    *, message: SlackRenderable, link_button: ButtonElement
+) -> SlackRenderable | None:
     """Replace metric alert start buttons without mutating the supplied content.
 
     Return None when the message has no investigation-start button.
@@ -434,7 +428,7 @@ def replace_investigation_buttons(
         }
         if "blocks" in attachment
         else attachment
-        for attachment in message["attachments"]
+        for attachment in message.get("attachments", [])
     ]
 
     return {**message, "attachments": attachments} if changed else None
@@ -461,8 +455,10 @@ def update_investigation_alert_message(
         lifecycle.add_extras({"channel_id": channel_id, "message_ts": message_ts})
         try:
             original_message = request.data["message"]
-            message = InvestigationAlertMessage(
-                text=original_message["text"], attachments=original_message["attachments"]
+            message = SlackRenderable(
+                blocks=[],
+                text=original_message["text"],
+                attachments=original_message["attachments"],
             )
         except (KeyError, TypeError) as e:
             lifecycle.record_failure(failure_reason=e)
@@ -476,11 +472,7 @@ def update_investigation_alert_message(
             install.update_message(
                 channel_id=channel_id,
                 message_ts=message_ts,
-                renderable=SlackRenderable(
-                    blocks=[],
-                    attachments=message_data["attachments"],
-                    text=message_data["text"],
-                ),
+                renderable=message_data,
             )
         except (IntegrationError, IntegrationConfigurationError) as e:
             lifecycle.record_halt(halt_reason=e)
