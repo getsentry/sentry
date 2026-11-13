@@ -51,12 +51,19 @@ export function NotificationSettings() {
   const organization = useOrganization({allowNull: true});
 
   const isSelfHosted = ConfigStore.get('isSelfHosted');
-  // Inbox settings aren't tied to an organization, so the flag is read from the
-  // organization currently in context.
+  // Inbox settings apply to all of the user's organizations, but the feature flag is
+  // per organization, so the entry follows whichever organization is active.
   const hasInbox = organization?.features.includes('universal-inbox') ?? false;
-  const notificationFields = NOTIFICATION_SETTINGS_TYPES.filter(
-    type => !(type === 'quota' && isSelfHosted) && !(type === 'inbox' && !hasInbox)
-  );
+  const isVisible = (type: NotificationSettingsType) => {
+    if (type === 'quota') {
+      return !isSelfHosted;
+    }
+    if (type === 'inbox') {
+      return hasInbox;
+    }
+    return true;
+  };
+  const notificationFields = NOTIFICATION_SETTINGS_TYPES.filter(isVisible);
 
   const renderOneSetting = (type: NotificationSettingsType) => {
     const field = NOTIFICATION_SETTING_FIELDS[type];
