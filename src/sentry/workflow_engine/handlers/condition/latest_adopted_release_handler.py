@@ -1,9 +1,9 @@
 from typing import Any
 
-from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.release import Release, follows_semver_versioning_scheme
 from sentry.search.utils import LatestReleaseOrders
+from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.handlers.condition.latest_release_handler import (
     get_latest_adopted_release_for_env,
 )
@@ -72,8 +72,8 @@ class LatestAdoptedReleaseConditionHandler(ActionFilterDataConditionHandler[Work
             return result
 
         event = event_data.event
-        if isinstance(event, Activity):
-            # If the event is an Activity, we cannot determine the latest adopted release
+        if not isinstance(event, GroupEvent):
+            # Only ingested issue events carry release information.
             return log_result(False)
 
         if follows_semver_versioning_scheme(event.organization.id, event.project.id):

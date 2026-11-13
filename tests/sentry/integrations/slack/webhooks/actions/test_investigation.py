@@ -279,6 +279,7 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         update_kwargs = self.mock_update.call_args.kwargs
         assert update_kwargs["channel"] == CHANNEL_ID
         assert update_kwargs["ts"] == MESSAGE_TS
+        assert update_kwargs["blocks"] is None
         (button,) = update_kwargs["attachments"][0]["blocks"][1]["elements"]
         assert button["text"]["text"] == "Open investigation"
         assert button["url"].startswith(f"{link}?referrer=seer-investigation-started-slack")
@@ -310,6 +311,19 @@ class SeerInvestigationStartActionTest(BaseEventTest):
             last_sent_state=ANY,
             final_sent=False,
         )
+
+    @with_feature(FEATURES)
+    @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
+    def test_alert_without_start_button_skips_update(self, mock_record_sent: MagicMock) -> None:
+        message = self.get_original_message()
+        del message["attachments"][0]["blocks"][1]
+        with patch.object(self, "get_original_message", return_value=message):
+            response = self.click()
+
+        assert response.status_code == 200
+        self.mock_update.assert_not_called()
+        self.mock_post_message.assert_called_once()
+        mock_record_sent.assert_called_once_with(ANY, links=set())
 
     @with_feature(FEATURES)
     @patch("sentry.notebooks.telemetry.sentry_sdk.metrics.count")

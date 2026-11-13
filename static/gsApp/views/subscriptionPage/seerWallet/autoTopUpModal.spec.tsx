@@ -68,7 +68,7 @@ describe('openSeerAutoTopUpModal', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('turns on auto-load with a preset', async () => {
+  it('turns on auto-reload with a preset', async () => {
     const saveMock = MockApiClient.addMockResponse({
       url,
       method: 'PUT',
@@ -128,7 +128,7 @@ describe('openSeerAutoTopUpModal', () => {
     );
   });
 
-  it('turns on auto-load with a custom amount above the daily limit', async () => {
+  it('turns on auto-reload with a custom amount above the daily usage limit', async () => {
     const saveMock = MockApiClient.addMockResponse({
       url,
       method: 'PUT',
@@ -235,7 +235,7 @@ describe('openSeerAutoTopUpModal', () => {
     );
   });
 
-  it('confirms before turning off auto-load', async () => {
+  it('confirms before turning off auto-reload', async () => {
     const autoTopUp = AutoTopUpFixture({enabled: true, topUpCredits: 2500});
     const saveMock = MockApiClient.addMockResponse({
       url,
@@ -249,7 +249,7 @@ describe('openSeerAutoTopUpModal', () => {
     });
 
     await userEvent.click(
-      await screen.findByRole('button', {name: 'Turn off auto-load'})
+      await screen.findByRole('button', {name: 'Turn off auto-reload'})
     );
     expect(
       screen.getByText(
@@ -260,7 +260,7 @@ describe('openSeerAutoTopUpModal', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Keep it on'}));
     expect(saveMock).not.toHaveBeenCalled();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Turn off auto-load'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Turn off auto-reload'}));
     await userEvent.click(screen.getByRole('button', {name: 'Turn off'}));
 
     expect(saveMock).toHaveBeenCalledWith(
@@ -276,7 +276,7 @@ describe('openSeerAutoTopUpModal', () => {
     });
 
     await userEvent.click(
-      await screen.findByRole('button', {name: 'Turn off auto-load'})
+      await screen.findByRole('button', {name: 'Turn off auto-reload'})
     );
 
     expect(
@@ -290,7 +290,7 @@ describe('openSeerAutoTopUpModal', () => {
     openAutoTopUpModal({autoTopUp: AutoTopUpFixture({enabled: true})});
 
     await userEvent.click(
-      await screen.findByRole('button', {name: 'Turn off auto-load'})
+      await screen.findByRole('button', {name: 'Turn off auto-reload'})
     );
 
     expect(

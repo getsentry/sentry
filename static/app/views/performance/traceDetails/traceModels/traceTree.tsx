@@ -1,3 +1,4 @@
+import {SEARCH_PAGE__SERVER_RENDERING__TYPE} from '@sentry/conventions/attributes/search';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 import * as qs from 'query-string';
@@ -9,14 +10,21 @@ import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import type {ReplayTrace} from 'sentry/views/explore/replays/detail/trace/useReplayTraces';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {
+  getServerRenderingType,
+  getStaticPart,
+  type StaticPart,
+} from 'sentry/views/performance/traceDetails/serverRendering/serverRendering';
 import type {
   TraceError as TraceErrorType,
   TracePerformanceIssue as TracePerformanceIssueType,
 } from 'sentry/views/performance/traceDetails/traceApi/types';
 import {getTraceQueryParams} from 'sentry/views/performance/traceDetails/traceApi/useTrace';
+import {isBrowserRequestNode} from 'sentry/views/performance/traceDetails/traceApi/utils';
 import {
   isEAPError,
   isEAPSpan,
+  isEAPSpanNode,
   isMissingInstrumentationNode,
   isParentAutogroupedNode,
   isSiblingAutogroupedNode,
@@ -31,6 +39,7 @@ import {ErrorNode} from './traceTreeNode/errorNode';
 import {NoInstrumentationNode} from './traceTreeNode/noInstrumentationNode';
 import {ParentAutogroupNode} from './traceTreeNode/parentAutogroupNode';
 import {RootNode} from './traceTreeNode/rootNode';
+import {ServerRenderNode} from './traceTreeNode/serverRenderNode';
 import {SiblingAutogroupNode} from './traceTreeNode/siblingAutogroupNode';
 import {TraceNode} from './traceTreeNode/traceNode';
 import {UptimeCheckNode} from './traceTreeNode/uptimeCheckNode';
@@ -213,6 +222,7 @@ export declare namespace TraceTree {
     | UptimeCheck
     | UptimeCheckTiming
     | MissingInstrumentationSpan
+    | ServerRenderPlaceholder
     | SiblingAutogroup
     | ChildrenAutogroup
     | CollapsedNode
@@ -227,6 +237,15 @@ export declare namespace TraceTree {
     start_timestamp: number;
     timestamp: number;
     type: 'missing_instrumentation';
+  }
+
+  /** Placeholder for the server spans of a reused page, which are in another trace. */
+  interface ServerRenderPlaceholder {
+    /** From the document request. It orders the row, but is not when the render ran. */
+    end_timestamp: number;
+    part: StaticPart;
+    start_timestamp: number;
+    type: 'server_render_placeholder';
   }
 
   interface BaseAutogroup {
@@ -259,6 +278,7 @@ export declare namespace TraceTree {
     | 'ag'
     | 'trace'
     | 'ms'
+    | 'sr'
     | 'error'
     | 'empty'
     | 'uptime-check'
@@ -556,6 +576,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
     tree.indicators.sort((a, b) => a.start - b.start);
 
+    if (options.organization.features.includes('performance-trace-cache-lifecycle')) {
+      TraceTree.AddServerRenderPlaceholders(tree.root);
+    }
+
     TraceTree.ApplyPreferences(tree.root, options);
 
     return tree;
@@ -635,6 +659,45 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
     for (const child of tree.root.children) {
       this.list = this.list.concat(child.visibleChildren);
+    }
+  }
+
+  /**
+   * Adds a placeholder to each pageload with `page.server_rendering.type`, first
+   * under its document request (or the pageload), where the server spans would be.
+   */
+  static AddServerRenderPlaceholders(root: BaseNode): void {
+    // Collect first, so the traversal does not visit the inserted nodes.
+    const pageloads: EapSpanNode[] = [];
+    root.forEachChild(child => {
+      if (isEAPSpanNode(child) && child.op === 'pageload') {
+        pageloads.push(child);
+      }
+    });
+
+    for (const pageload of pageloads) {
+      const type = getServerRenderingType(
+        pageload.value.additional_attributes?.[SEARCH_PAGE__SERVER_RENDERING__TYPE]
+      );
+      if (!type) {
+        continue;
+      }
+
+      const documentRequest = pageload.children.find(isBrowserRequestNode);
+      const parent = documentRequest ?? pageload;
+      const startTimestamp = parent.startTimestamp ?? 0;
+      const placeholder = new ServerRenderNode(
+        pageload,
+        parent,
+        {
+          type: 'server_render_placeholder',
+          part: getStaticPart(type),
+          start_timestamp: startTimestamp,
+          end_timestamp: documentRequest?.endTimestamp ?? startTimestamp,
+        },
+        pageload.extra
+      );
+      parent.children.unshift(placeholder);
     }
   }
 

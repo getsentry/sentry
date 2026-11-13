@@ -14,6 +14,7 @@ from sentry.ai_monitoring.message_normalizer import (
     normalize_to_messages,
     stringify_message_content,
 )
+from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
 from sentry.search.eap.types import SearchResolverConfig
@@ -40,6 +41,7 @@ class ConversationDataset:
 
     # A conversation is classified once 20 minutes pass after its last span.
     cooldown = timedelta(minutes=20)
+    data_category = DataCategory.SPAN
 
     def compile_filter(self, filter_query: str, snuba_params: SnubaParams) -> str:
         """Compile a classifier filter into a query that selects whole conversations.
@@ -54,9 +56,16 @@ class ConversationDataset:
         return query
 
     def select(
-        self, project: Project, filter_query: str, start: datetime, end: datetime, limit: int
+        self,
+        project: Project,
+        filter_query: str,
+        start: datetime,
+        end: datetime,
+        limit: int,
+        offset: int,
     ) -> list[str]:
-        """Return conversations whose cooldown ended in ``[start, end)`` and that match the filter.
+        """Return a page of IDs of conversations whose cooldown ended in ``[start, end)`` and that match
+        the filter.
 
         Any newer span keeps a conversation out until it goes quiet again.
         """
@@ -74,8 +83,8 @@ class ConversationDataset:
                 f"max(timestamp):>={last_span_start} max(timestamp):<{last_span_end}"
             ),
             selected_columns=[CONVERSATION_ID, "max(timestamp)"],
-            orderby=["max(timestamp)", CONVERSATION_ID],
-            offset=0,
+            orderby=["-max(timestamp)", CONVERSATION_ID],
+            offset=offset,
             limit=limit,
             referrer=Referrer.TELEMETRY_CLASSIFIERS_CONVERSATIONS_SELECT.value,
             config=CONVERSATION_RESOLVER_CONFIG,

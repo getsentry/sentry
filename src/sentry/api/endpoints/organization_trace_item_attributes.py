@@ -663,12 +663,16 @@ def as_attribute_key(
         # convention whose name is already the same internally -- e.g.
         # `http.route` -- is missing from it and resolves as a `user` source
         # attribute. A Sentry-defined attribute that isn't a convention (e.g.
-        # `span.description`) instead carries its context on the definition.
-        # Custom attributes get an empty context here; see
-        # attach_custom_attribute_context.
+        # `span.description`) instead carries its context on the definition, which
+        # a user attribute merely shadowing its name doesn't share. Custom
+        # attributes get an empty context here; see attach_custom_attribute_context.
         context: TraceItemAttributeContext = (
             build_sentry_convention_context(public_name, name, attr_type)
-            or build_sentry_attribute_context(public_name, attr_type, item_type)
+            or (
+                build_sentry_attribute_context(public_name, attr_type, item_type)
+                if serialized_source["source_type"] == AttributeSourceType.SENTRY.value
+                else None
+            )
             or {}
         )
         unit = resolve_attribute_unit(name, public_name, attr_type, item_type)
@@ -769,6 +773,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             200: inline_sentry_response_serializer(
                 "ListTraceItemAttributesResponse", list[TraceItemAttributeKey]
             ),
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,

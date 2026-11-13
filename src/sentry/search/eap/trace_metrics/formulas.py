@@ -122,8 +122,6 @@ def per_minute(args: ResolvedArguments, settings: ResolverSettings) -> Column.Bi
 
 WEB_VITALS = ["lcp", "fcp", "cls", "ttfb", "inp"]
 
-TOTAL_SCORE_ARGUMENT = "measurements.score.total"
-
 WEB_VITAL_SCORE_METRICS: dict[str, TraceMetric] = {
     vital: TraceMetric(
         metric_name=f"browser.web_vital.{vital}.score",
@@ -275,13 +273,6 @@ def opportunity_score(_: ResolvedArguments, settings: ResolverSettings) -> Colum
     return operate_multiple_columns(weighted_scores, Column.BinaryFormula.OP_ADD)
 
 
-def _total_score_argument() -> ValueArgumentDefinition:
-    return ValueArgumentDefinition(
-        argument_types={"string"},
-        validator=literal_validator([TOTAL_SCORE_ARGUMENT]),
-    )
-
-
 def _score_metrics(_: ResolvedArguments) -> frozenset[TraceMetric]:
     return frozenset(WEB_VITAL_SCORE_METRICS.values())
 
@@ -391,7 +382,7 @@ TRACE_METRICS_FORMULA_DEFINITIONS_WITHOUT_IF: dict[str, FormulaDefinition] = {
     "performance_score": MultiTraceMetricFormulaDefinition(
         default_search_type="percentage",
         infer_search_type_from_arguments=False,
-        arguments=[_total_score_argument()],
+        arguments=[],
         formula_resolver=performance_score,
         trace_metrics_resolver=_score_metrics,
         processor=none_if_zero_processor,
@@ -401,7 +392,7 @@ TRACE_METRICS_FORMULA_DEFINITIONS_WITHOUT_IF: dict[str, FormulaDefinition] = {
     "opportunity_score": MultiTraceMetricFormulaDefinition(
         default_search_type="percentage",
         infer_search_type_from_arguments=False,
-        arguments=[_total_score_argument()],
+        arguments=[],
         formula_resolver=opportunity_score,
         trace_metrics_resolver=_score_metrics,
         is_aggregate=True,

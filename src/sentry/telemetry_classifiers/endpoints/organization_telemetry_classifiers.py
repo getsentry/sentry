@@ -29,9 +29,8 @@ from sentry.telemetry_classifiers.serializers import (
 
 
 class TelemetryClassifierPermission(OrganizationPermission):
-    # Team admins have project:write on their projects but only org:read on the org, so writes
-    # check project:write on the classifier's project instead (in the create serializer and in
-    # the update handler).
+    # Members only have org:read on the org, so writes check project:read on the classifier's
+    # project instead (in the create serializer and in the update handler).
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
         "POST": ["org:read", "org:write", "org:admin"],
@@ -105,7 +104,7 @@ class OrganizationTelemetryClassifiersEndpoint(OrganizationEndpoint):
         self, request: Request, organization: Organization
     ) -> Response[TelemetryClassifierResponse]:
         """
-        Create a telemetry classifier on a project the caller can write to.
+        Create a telemetry classifier on a project the caller can access.
         """
         if not features.has("organizations:classifiers-ui", organization, actor=request.user):
             return self.respond(status=404)

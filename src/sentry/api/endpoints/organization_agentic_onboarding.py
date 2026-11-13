@@ -22,6 +22,12 @@ from sentry.api.serializers.models.agentic_onboarding import (
     AgenticOnboardingRunSerializer,
 )
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_CONFLICT,
+    RESPONSE_GONE,
+    RESPONSE_NOT_FOUND,
+)
 from sentry.auth.principal import require_user
 from sentry.models.organization import Organization
 from sentry.onboarding.agentic_progress.model import (
@@ -240,7 +246,11 @@ class OrganizationAgenticOnboardingRunIndexEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         request=AgenticOnboardingRunRequestSerializer,
-        responses={201: AgenticOnboardingRunSerializer},
+        responses={
+            201: AgenticOnboardingRunSerializer,
+            404: RESPONSE_NOT_FOUND,
+            409: RESPONSE_CONFLICT,
+        },
     )
     def post(self, request: Request, organization: Organization) -> Response:
         serializer = AgenticOnboardingRunRequestSerializer(data=request.data)
@@ -280,7 +290,13 @@ class OrganizationAgenticOnboardingStatusEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         request=AgenticOnboardingStatusRequestSerializer,
-        responses={200: AgenticOnboardingRunSerializer},
+        responses={
+            200: AgenticOnboardingRunSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            404: RESPONSE_NOT_FOUND,
+            409: RESPONSE_CONFLICT,
+            410: RESPONSE_GONE,
+        },
     )
     def post(self, request: Request, organization: Organization) -> Response:
         serializer = AgenticOnboardingStatusRequestSerializer(data=request.data)
