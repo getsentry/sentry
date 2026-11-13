@@ -1,9 +1,11 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EntryType} from 'sentry/types/event';
 import {
   makeEAPError,
@@ -160,6 +162,14 @@ describe('EventTraceView', () => {
       ...organization,
       features: [...organization.features, 'issue-details-agent-run'],
     };
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: group.project.id, hasInsightsAgentMonitoring: true}),
+    ]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      match: [MockApiClient.matchQuery({dataset: 'spans'})],
+      body: {data: [{id: 'agent-span'}]},
+    });
     MockApiClient.addMockResponse({
       url: '/customers/org-slug/',
       method: 'GET',

@@ -9,6 +9,7 @@ import {type Event} from 'sentry/types/event';
 import {type Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
@@ -32,8 +33,12 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
   const hasTracePreview =
     !!traceId && !eventHasSyntheticTrace(event) && !issueTypeConfig.spanEvidence.enabled;
 
+  const project = useProjectFromId({project_id: event.projectID});
   const agentRun = useEventAgentRun(event, {
-    enabled: hasTracePreview && organization.features.includes('issue-details-agent-run'),
+    enabled:
+      hasTracePreview &&
+      organization.features.includes('issue-details-agent-run') &&
+      !!project?.hasInsightsAgentMonitoring,
   });
   const [selectedView, setSelectedView] = useState<TraceView | null>(null);
 
@@ -71,7 +76,6 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
               source="issues"
             />
           )}
-          {/* Last, so the toggle stays under the cursor when the button changes. */}
           {hasAgentActivity && (
             <SegmentedControl<TraceView>
               aria-label={t('Trace view')}

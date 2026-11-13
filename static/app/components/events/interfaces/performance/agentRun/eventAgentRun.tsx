@@ -7,6 +7,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {t, tn} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -81,6 +82,7 @@ function HiddenStepsRow({
   position: 'top' | 'bottom';
   to: LinkProps['to'];
 }) {
+  const organization = useOrganization();
   if (count === 0) {
     return null;
   }
@@ -91,7 +93,17 @@ function HiddenStepsRow({
       borderTop={position === 'bottom' ? 'muted' : undefined}
     >
       <Text size="sm" variant="muted">
-        <Link to={to}>{tn('%s more step', '%s more steps', count)}</Link>
+        <Link
+          to={to}
+          onClick={() =>
+            trackAnalytics('issue_details.agent_run.step_clicked', {
+              organization,
+              source: 'hidden_steps',
+            })
+          }
+        >
+          {tn('%s more step', '%s more steps', count)}
+        </Link>
       </Text>
     </Container>
   );
@@ -126,6 +138,7 @@ export function AgentActivityFullTraceButton({agentRun, event}: AgentRunProps) {
  * The Agent Activity view of the trace preview: the steps around the failing one.
  */
 export function EventAgentActivity({agentRun, event}: AgentRunProps) {
+  const organization = useOrganization();
   const navigate = useNavigate();
   const getAgentActivityLink = useAgentActivityLink(event);
 
@@ -144,7 +157,13 @@ export function EventAgentActivity({agentRun, event}: AgentRunProps) {
         <AiSpanTimeline
           nodes={steps}
           selectedNodeKey={failingNode.id}
-          onSelectNode={node => navigate(getAgentActivityLink(node.id))}
+          onSelectNode={node => {
+            trackAnalytics('issue_details.agent_run.step_clicked', {
+              organization,
+              source: 'timeline',
+            });
+            navigate(getAgentActivityLink(node.id));
+          }}
         />
       </Container>
       <HiddenStepsRow count={hiddenAfter} position="bottom" to={fullActivityLink} />

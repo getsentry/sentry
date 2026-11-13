@@ -1,9 +1,14 @@
 import {useMemo} from 'react';
+import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {isWebVitalsEvent} from 'sentry/components/events/interfaces/performance/utils';
 import {getEventTimestampInSeconds} from 'sentry/components/events/interfaces/utils';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getUtcDateString} from 'sentry/utils/dates';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AI_TRACE_BASE_ATTRIBUTES} from 'sentry/views/insights/pages/agents/hooks/useAITrace';
 import {
@@ -11,8 +16,12 @@ import {
   getIsAiAgentNode,
   getIsAiNode,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
-import {getIsAiAgentSpan} from 'sentry/views/insights/pages/agents/utils/query';
+import {
+  getHasAiSpansFilter,
+  getIsAiAgentSpan,
+} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+import {SpanFields} from 'sentry/views/insights/types';
 import {useTrace} from 'sentry/views/performance/traceDetails/traceApi/useTrace';
 import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
@@ -86,24 +95,87 @@ export function getEventAgentRun(
   };
 }
 
+// TODO(aknaus): Split AI_TRACE_BASE_ATTRIBUTES into the attributes the timeline
+// needs and the ones only the span details need.
+const AGENT_RUN_ATTRIBUTES = AI_TRACE_BASE_ATTRIBUTES.filter(
+  attribute =>
+    attribute !== SpanFields.GEN_AI_INPUT_MESSAGES &&
+    attribute !== SpanFields.GEN_AI_OUTPUT_MESSAGES
+);
+
+const HAS_AI_SPAN_TOLERANCE_S = 1;
+const DAY_IN_S = 24 * 60 * 60;
+
+/**
+ * Checks whether an AI span was active when the error happened, so the much more
+ * expensive trace request only runs when there can be an agent run.
+ */
+function useHasActiveAiSpan({
+  timestamp,
+  traceId,
+}: {
+  timestamp: number | undefined;
+  traceId: string | undefined;
+}) {
+  const organization = useOrganization();
+  const canQuery = traceId !== undefined && timestamp !== undefined;
+
+  const query = useQuery(
+    apiOptions.as<{data: Array<{id: string}>}>()(
+      '/organizations/$organizationIdOrSlug/events/',
+      {
+        path: canQuery ? {organizationIdOrSlug: organization.slug} : skipToken,
+        query: canQuery
+          ? {
+              dataset: DiscoverDatasets.SPANS,
+              field: ['id'],
+              per_page: 1,
+              project: ALL_ACCESS_PROJECTS,
+              start: getUtcDateString((timestamp - DAY_IN_S) * 1000),
+              end: getUtcDateString((timestamp + DAY_IN_S) * 1000),
+              query: [
+                `trace:${traceId}`,
+                getHasAiSpansFilter(),
+                `precise.start_ts:<=${timestamp + HAS_AI_SPAN_TOLERANCE_S}`,
+                `precise.finish_ts:>=${timestamp - HAS_AI_SPAN_TOLERANCE_S}`,
+              ].join(' '),
+              referrer: 'api.issues.agent-run.has-active-ai-span',
+            }
+          : {},
+        staleTime: Infinity,
+      }
+    )
+  );
+
+  return {
+    hasActiveAiSpan: (query.data?.data.length ?? 0) > 0,
+    isLoading: query.isLoading,
+  };
+}
+
 /**
  * Finds the AI agent run that an error event was raised in, from the event's trace.
  */
 export function useEventAgentRun(event: Event, {enabled}: {enabled: boolean}) {
   const organization = useOrganization();
-  const traceId = event.contexts.trace?.trace_id;
+  const canHaveAgentRun = enabled && !isWebVitalsEvent(event);
+  const traceId = canHaveAgentRun ? event.contexts.trace?.trace_id : undefined;
+  const timestamp = getEventTimestampInSeconds(event);
+
+  const activeAiSpan = useHasActiveAiSpan({traceId, timestamp});
 
   const trace = useTrace({
     // useTrace only fetches when it has a trace slug.
-    traceSlug: enabled ? traceId : undefined,
-    timestamp: isWebVitalsEvent(event) ? undefined : getEventTimestampInSeconds(event),
+    traceSlug: activeAiSpan.hasActiveAiSpan ? traceId : undefined,
+    timestamp,
     targetEventId: event.eventID,
-    additionalAttributes: AI_TRACE_BASE_ATTRIBUTES,
+    additionalAttributes: AGENT_RUN_ATTRIBUTES,
     disableUrlSync: true,
+    referrer: 'api.trace-view.issues.agent-run',
   });
 
   return useMemo((): EventAgentRun => {
-    if (trace.isLoading) {
+    if (activeAiSpan.isLoading || trace.isLoading) {
       return {type: 'loading'};
     }
     if (!trace.data) {
@@ -114,5 +186,5 @@ export function useEventAgentRun(event: Event, {enabled}: {enabled: boolean}) {
     } catch {
       return NO_AGENT_RUN;
     }
-  }, [trace.isLoading, trace.data, event.eventID, organization]);
+  }, [activeAiSpan.isLoading, trace.isLoading, trace.data, event.eventID, organization]);
 }

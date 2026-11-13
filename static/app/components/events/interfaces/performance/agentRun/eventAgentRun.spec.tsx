@@ -129,7 +129,43 @@ describe('getEventAgentRun', () => {
   });
 });
 
+function mockActiveAiSpan(data: Array<{id: string}>) {
+  return MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/events/`,
+    match: [MockApiClient.matchQuery({dataset: 'spans'})],
+    body: {data},
+  });
+}
+
 describe('useEventAgentRun', () => {
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
+  it('does not fetch the trace when no AI span was active at the time of the error', async () => {
+    const activeAiSpanRequest = mockActiveAiSpan([]);
+    const traceRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace/${traceId}/`,
+      body: makeTrace({errorInsideTool: true}),
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useEventAgentRun(event, {enabled: true}),
+      {organization}
+    );
+
+    await waitFor(() => expect(result.current).toEqual({type: 'none'}));
+    expect(activeAiSpanRequest).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events/`,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: expect.stringContaining(`trace:${traceId} has:gen_ai.operation.type`),
+        }),
+      })
+    );
+    expect(traceRequest).not.toHaveBeenCalled();
+  });
+
   it('does not fetch the trace when disabled', () => {
     const traceRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace/${traceId}/`,
@@ -145,6 +181,7 @@ describe('useEventAgentRun', () => {
     expect(traceRequest).not.toHaveBeenCalled();
   });
   it('reports loading until the trace is fetched', async () => {
+    mockActiveAiSpan([{id: 'tool-span'}]);
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace/${traceId}/`,
       body: makeTrace({errorInsideTool: true}),
