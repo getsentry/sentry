@@ -3,12 +3,12 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-from tools.api_guidelines.rules import BASELINED_RULES
 from tools.flake8_plugin import ApiInputViolation, get_api_violations
 
 
 def collect_findings(root: Path) -> list[tuple[str, ApiInputViolation]]:
-    """Collects every finding of a baselined rule (S025-S028) under root/src as a list
+    """Collects every API rule finding under root/src as a list. Callers pick the rules they need,
+    i.e the baseline only keeps BASELINED_RULES while the report card shows every rule
     `root` the repo's top folder, the one that contains /src
     Returns a list of (`path`, `ApiInputViolation`) pairs where path is repo-based (i.e, "src/sentry/etc")
     """
@@ -25,10 +25,8 @@ def collect_findings(root: Path) -> list[tuple[str, ApiInputViolation]]:
 
         violations = get_api_violations(tree=module_node, filename=root_path, all_rules=True)
 
-        # one pair per violation and all point at the same file. Rules without a baseline are
-        # skipped here, so every caller gets the same set of findings
+        # one pair per violation and all point at the same file
         for violation in violations:
-            if violation.rule in BASELINED_RULES:
-                path_violation.append((root_path, violation))
+            path_violation.append((root_path, violation))
 
     return path_violation

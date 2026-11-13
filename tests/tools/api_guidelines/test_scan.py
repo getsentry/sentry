@@ -70,13 +70,14 @@ def test_collect_findings_scans_only_src_with_repo_relative_paths(tmp_path: Path
     assert paths == {PATH}
 
 
-def test_collect_findings_keeps_only_baselined_rules(tmp_path: Path) -> None:
+def test_collect_findings_returns_every_rules_findings(tmp_path: Path) -> None:
     _write_example(tmp_path)
-    # no real file gives a structured S034 finding today, so the plugin's output is faked
+    # no real file gives a structured S034 finding today, so the plugin's output is faked. The
+    # scan keeps both, since picking rules is up to each caller (the baseline, the report card)
     s026 = _violation("S026", "query:id")
     s034 = _violation("S034", "status:404")
 
     with mock.patch.object(scan, "get_api_violations", return_value=[s026, s034]):
         findings = collect_findings(tmp_path)
 
-    assert findings == [(PATH, s026)]
+    assert findings == [(PATH, s026), (PATH, s034)]
