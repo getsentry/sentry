@@ -509,7 +509,7 @@ export default Storybook.story('ChatWindow', story => {
   story('Out of credits in a new chat', () => (
     <Fragment>
       <p>
-        The organization can't afford another message and auto reload is off. The
+        The organization can't afford another message and auto-reload is off. The
         out-of-credits CTA sits right above the composer, the usage meter turns
         warning-colored, the suggested questions are gone, and nothing sends: not the send
         button, Enter, or the /investigate command. Typing still works so a draft isn't
@@ -530,7 +530,7 @@ export default Storybook.story('ChatWindow', story => {
     <Fragment>
       <p>
         The same gate partway through a conversation, for an organization that has used
-        every auto reload it allows. The transcript stays readable, the CTA sits above the
+        every auto-reload it allows. The transcript stays readable, the CTA sits above the
         composer, and the follow-up in the composer can't be sent until someone tops up.
       </p>
       <ChatWindow

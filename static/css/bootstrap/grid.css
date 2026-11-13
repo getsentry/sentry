@@ -1,0 +1,128 @@
+/* Grid system */
+/* -------------------------------------------------- */
+
+/* Container widths */
+/* Set the container width, and override it for fixed navbars in media queries. */
+
+.container {
+  padding-right: 15px;
+  padding-left: 15px;
+  margin-right: auto;
+  margin-left: auto;
+
+  @media (min-width: 768px) {
+    width: 750px;
+  }
+  @media (min-width: 992px) {
+    width: 970px;
+  }
+  @media (min-width: 1200px) {
+    width: 1170px;
+  }
+}
+
+/* Row */
+/* Rows contain and clear the floats of your columns. */
+
+.row {
+  margin-right: -15px;
+  margin-left: -15px;
+}
+
+.row-no-gutters {
+  margin-right: 0;
+  margin-left: 0;
+
+  [class*='col-'] {
+    padding-right: 0;
+    padding-left: 0;
+  }
+}
+
+/* Columns */
+/* Common styles for small and large grid columns */
+
+.col-lg-2,
+.col-sm-3,
+.col-md-4,
+.col-lg-4,
+.col-xs-6,
+.col-md-6,
+.col-sm-8,
+.col-lg-8 {
+  position: relative;
+  min-height: 1px;
+  padding-right: 15px;
+  padding-left: 15px;
+}
+
+/* Extra small grid */
+/* Columns, offsets, pushes, and pulls for extra small devices like */
+/* smartphones. */
+
+.col-xs-6 {
+  float: left;
+  width: 50%;
+}
+
+/* Small grid */
+/* Columns, offsets, pushes, and pulls for the small device range, from phones */
+/* to tablets. */
+
+@media (min-width: 768px) {
+  .col-sm-3,
+  .col-sm-8 {
+    float: left;
+  }
+  .col-sm-8 {
+    width: 66.66666667%;
+  }
+  .col-sm-3 {
+    width: 25%;
+  }
+  .col-sm-offset-3 {
+    margin-left: 25%;
+  }
+}
+
+/* Medium grid */
+/* Columns, offsets, pushes, and pulls for the desktop device range. */
+
+@media (min-width: 992px) {
+  .col-md-4,
+  .col-md-6 {
+    float: left;
+  }
+  .col-md-6 {
+    width: 50%;
+  }
+  .col-md-4 {
+    width: 33.33333333%;
+  }
+  .col-md-offset-4 {
+    margin-left: 33.33333333%;
+  }
+}
+
+/* Large grid */
+/* Columns, offsets, pushes, and pulls for the large desktop device range. */
+
+@media (min-width: 1200px) {
+  .col-lg-2,
+  .col-lg-4,
+  .col-lg-8 {
+    float: left;
+  }
+  .col-lg-8 {
+    width: 66.66666667%;
+  }
+  .col-lg-4 {
+    width: 33.33333333%;
+  }
+  .col-lg-2 {
+    width: 16.66666667%;
+  }
+  .col-lg-offset-2 {
+    margin-left: 16.66666667%;
+  }
+}

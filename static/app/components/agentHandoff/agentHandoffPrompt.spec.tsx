@@ -144,6 +144,11 @@ describe('AgentHandoffPrompt', () => {
     expect(onSelect).toHaveBeenCalledTimes(1);
     expect(document.activeElement?.textContent).toContain('sntryh_****');
     expect(window.getSelection()?.toString()).toContain('sntryh_****');
+    expect(screen.getByText('sntryh_****')).toHaveAttribute('data-selected', 'true');
+
+    await userEvent.click(screen.getByRole('textbox', {name: 'Prior input'}));
+
+    expect(screen.getByText('sntryh_****')).not.toHaveAttribute('data-selected');
   });
 
   it('shows prompt creation errors', async () => {

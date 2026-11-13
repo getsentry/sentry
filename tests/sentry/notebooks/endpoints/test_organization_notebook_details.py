@@ -48,7 +48,7 @@ class OrganizationNotebookDetailsTest(APITestCase):
             "sentry-api-0-organization-notebook-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": foreign.id,
+                "notebook_id": foreign.id,
             },
         )
         assert self.client.get(url).status_code == 404
@@ -64,7 +64,7 @@ class OrganizationNotebookDetailsTest(APITestCase):
             "sentry-api-0-organization-notebook-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": first["id"],
+                "notebook_id": first["id"],
             },
         )
 
@@ -150,7 +150,7 @@ class OrganizationNotebookDetailsTest(APITestCase):
             "sentry-api-0-organization-notebook-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": notebook.id,
+                "notebook_id": notebook.id,
             },
         )
 
@@ -299,7 +299,7 @@ class OrganizationNotebookDetailsTest(APITestCase):
             "sentry-api-0-organization-notebook-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": notebook.id,
+                "notebook_id": notebook.id,
             },
         )
 
@@ -330,7 +330,7 @@ class OrganizationNotebookDetailsTest(APITestCase):
             "sentry-api-0-organization-notebook-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": created["id"],
+                "notebook_id": created["id"],
             },
         )
         response = self.client.put(
@@ -398,7 +398,7 @@ class OrganizationNotebookDetailsTest(APITestCase):
             "sentry-api-0-organization-notebook-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": notebook.id,
+                "notebook_id": notebook.id,
             },
         )
 

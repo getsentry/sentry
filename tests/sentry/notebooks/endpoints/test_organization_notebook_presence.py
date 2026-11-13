@@ -27,7 +27,7 @@ class OrganizationNotebookPresenceTest(APITestCase):
             "sentry-api-0-organization-notebook-presence",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": self.notebook.id,
+                "notebook_id": self.notebook.id,
             },
         )
 
@@ -162,7 +162,7 @@ class OrganizationNotebookPresenceTest(APITestCase):
             "sentry-api-0-organization-notebook-presence",
             kwargs={
                 "organization_id_or_slug": other_org.slug,
-                "investigation_id": self.notebook.id,
+                "notebook_id": self.notebook.id,
             },
         )
 

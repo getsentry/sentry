@@ -593,3 +593,12 @@ class OrganizationTraceItemStatsEndpointTest(
         for call in stats_calls:
             assert call.kwargs["params"].start < oldest - timedelta(hours=1)
             assert call.kwargs["params"].end > newest
+
+    def test_many_attributes(self) -> None:
+        self._store_span(tags={f"attr_{i}": "value" for i in range(2500)})
+
+        response = self.do_request(query={"statsType": ["attributeDistributions"], "limit": 2500})
+        assert response.status_code == 200, response.data
+        attribute_distribution = response.data["data"][0]["attributeDistributions"]["data"]
+        assert "attr_0" in attribute_distribution
+        assert "attr_2499" in attribute_distribution
