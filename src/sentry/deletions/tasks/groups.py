@@ -147,25 +147,31 @@ def _discard_group(group_id: int, project_id: int, tombstone_id: int, transactio
     while True:
         with transaction.atomic(router.db_for_write(GroupHash)):
             # The tombstone stays locked until the batch commits, so an undiscard can't run between
-            # this check and the update. An undiscarded issue keeps its group and remaining hashes.
-            if not list(
-                GroupTombstone.objects.select_for_update()
-                .filter(id=tombstone_id)
-                .values_list("id", flat=True)
-            ):
-                logger.info(
-                    "discard_group.tombstone_deleted",
-                    extra={"group_id": group_id, "tombstone_id": tombstone_id},
+            # this check and the update.
+            tombstone_exists = bool(
+                list(
+                    GroupTombstone.objects.select_for_update()
+                    .filter(id=tombstone_id)
+                    .values_list("id", flat=True)
                 )
-                metrics.incr("deletions.discard_group.tombstone_deleted", sample_rate=1.0)
-                return
+            )
             hash_ids = list(
                 GroupHash.objects.filter(group_id=group_id).values_list("id", flat=True)[
                     :DISCARD_GROUP_HASH_BATCH_SIZE
                 ]
             )
             if not hash_ids:
+                # With no hashes left, nothing can route events to the group, so delete it even
+                # if the issue was undiscarded after the last batch.
                 break
+            if not tombstone_exists:
+                # Undiscarded while hashes were moving: keep the group and its remaining hashes.
+                logger.info(
+                    "discard_group.tombstone_deleted",
+                    extra={"group_id": group_id, "tombstone_id": tombstone_id},
+                )
+                metrics.incr("deletions.discard_group.tombstone_deleted", sample_rate=1.0)
+                return
             GroupHash.objects.filter(id__in=hash_ids, group_id=group_id).update(
                 group=None, group_tombstone_id=tombstone_id
             )

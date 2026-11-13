@@ -249,6 +249,16 @@ class DiscardGroupTest(TestCase):
         assert Group.objects.get(id=self.group.id).status == GroupStatus.UNRESOLVED
         delete_task.apply_async.assert_not_called()
 
+    def test_deletes_group_without_hashes_when_tombstone_was_removed(self) -> None:
+        self.group_hash.update(group=None, group_tombstone_id=None)
+        self.tombstone.delete()
+
+        with patch("sentry.deletions.tasks.groups.delete_groups_for_project") as delete_task:
+            self.run_task()
+
+        delete_task.apply_async.assert_called_once()
+        assert Group.objects.get(id=self.group.id).status == GroupStatus.PENDING_DELETION
+
     def test_records_metric_when_retries_are_exhausted(self) -> None:
         with (
             patch(
