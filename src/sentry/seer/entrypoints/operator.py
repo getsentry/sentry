@@ -1025,6 +1025,8 @@ def process_investigation_updates(*, investigation_id: int) -> None:
                 investigation_id=investigation_id,
             )
             if cache_payload is None:
+                # Metric investigations started outside Slack have no entrypoint cache, but their
+                # conclusions still need to reach the Slack alert threads found via NotificationThread.
                 if run.investigation.source_type != NotebookSourceType.METRIC_OPEN_PERIOD:
                     continue
             elif cache_payload["organization_id"] != organization.id:
