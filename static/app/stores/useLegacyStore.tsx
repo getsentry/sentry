@@ -25,5 +25,5 @@ export function useLegacyStore<T extends LegacyStoreShape>(
     [store]
   );
 
-  return useSyncExternalStore(listener, store.getState);
+  return useSyncExternalStore(listener, store.getState, store.getState);
 }
