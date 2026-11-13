@@ -21,7 +21,7 @@ from sentry.workflow_engine.tasks.utils import (
     build_workflow_event_data_from_activity,
     build_workflow_event_data_from_event,
 )
-from sentry.workflow_engine.types import WorkflowEventData, WorkflowId
+from sentry.workflow_engine.types import UnsupportedActionEvent, WorkflowEventData, WorkflowId
 from sentry.workflow_engine.utils import log_context
 
 logger = log_context.get_logger(__name__)
@@ -178,6 +178,12 @@ def trigger_action(
                 workflow_id=workflow_id,
                 detector=detector,
             )
+        except UnsupportedActionEvent:
+            logger.exception(
+                "workflow_engine.action.unsupported_event",
+                extra={"action_id": action_id, "workflow_id": workflow_id},
+            )
+            return
         except TRIGGER_ACTION_RETRY_IGNORED_EXCEPTIONS:
             return
         except (Exception, ProcessingDeadlineExceeded) as error:
