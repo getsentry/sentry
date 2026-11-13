@@ -293,17 +293,39 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
         """
         This is the platform method that wraps `create_occurrence`.
 
-        The occurrence from the hook is decorated with the platform's identifiers, fingerprint,
-        evidence data, and event data, then set as the result of the evaluation.
-
         `fingerprint` defaults to `get_issue_fingerprint` for the evaluation's group key.
         """
         detector_occurrence, event_data = self.create_occurrence(evaluation, data_packet)
 
+        return self._with_occurrence(
+            evaluation,
+            detector_occurrence,
+            event_data,
+            data_packet.source_id,
+            evaluation_value,
+            fingerprint=fingerprint,
+        )
+
+    def _with_occurrence(
+        self,
+        evaluation: DetectorEvaluation,
+        detector_occurrence: DetectorOccurrence,
+        event_data: EventData,
+        data_packet_source_id: str,
+        evaluation_value: DataPacketEvaluationType,
+        *,
+        fingerprint: list[str] | None = None,
+    ) -> DetectorEvaluation:
+        """
+        Decorates a detector's occurrence with the platform's identifiers, fingerprint, evidence
+        data, and event data, then sets it as the result of the evaluation.
+
+        `fingerprint` defaults to `get_issue_fingerprint` for the evaluation's group key.
+        """
         group_key = evaluation.data["group_key"]
         event_id = self.get_event_id(event_data)
         evidence_data = self._build_workflow_engine_evidence_data(
-            evaluation, data_packet, evaluation_value
+            evaluation, data_packet_source_id, evaluation_value
         )
 
         issue_occurrence = detector_occurrence.to_issue_occurrence(
@@ -325,7 +347,7 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
     def _build_workflow_engine_evidence_data(
         self,
         evaluation: DetectorEvaluation,
-        data_packet: DataPacket[DataPacketType],
+        data_packet_source_id: str,
         evaluation_value: DataPacketEvaluationType,
     ) -> EvidenceData[DataPacketEvaluationType]:
         """
@@ -348,10 +370,10 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
         return EvidenceData(
             detector_id=self.detector.id,
             value=evaluation_value,
-            data_packet_source_id=data_packet.source_id,
+            data_packet_source_id=data_packet_source_id,
             conditions=triggered_conditions,
             config=self.detector.config,
-            data_sources=self._build_evidence_data_sources(data_packet.source_id),
+            data_sources=self._build_evidence_data_sources(data_packet_source_id),
         )
 
     def _build_evidence_data_sources(self, source_id: str) -> list[dict[str, Any]]:
