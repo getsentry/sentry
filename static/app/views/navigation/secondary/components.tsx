@@ -473,9 +473,7 @@ function SectionTitle(props: SectionTitleProps) {
 
   if (props.canCollapse) {
     return (
-      // A Flex, not a Grid: the button label inherits the display but not the
-      // grid columns, so a Grid would stack the title and chevron.
-      <Flex justify="between" align="center" gap="sm" width="100%" padding="sm lg">
+      <Grid columns="1fr auto" align="center" width="100%" padding="sm lg">
         {p => (
           <Button
             {...p}
@@ -495,7 +493,7 @@ function SectionTitle(props: SectionTitleProps) {
             </Flex>
           </Button>
         )}
-      </Flex>
+      </Grid>
     );
   }
 
