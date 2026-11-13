@@ -12,7 +12,8 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
 from django.http import HttpHeaders, HttpRequest
-from django.urls import resolve
+from django.urls import Resolver404, resolve
+from django.utils import timezone
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_str
 from jwt import MissingRequiredClaimError, PyJWTError
@@ -48,7 +49,8 @@ from sentry.seer import agent_token
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.token_exchange.util import GrantTypes
-from sentry.service_accounts.auth import authenticate_service_account
+from sentry.service_accounts.auth import authenticate_service_account, resolve_service_account
+from sentry.service_accounts.models import ServiceAccountToken, ServiceAccountTokenReplica
 from sentry.service_accounts.tokens import SERVICE_ACCOUNT_TOKEN_PREFIX
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.types.superuser import from_viewer_context_superuser
@@ -783,6 +785,81 @@ class OrgAuthTokenAuthentication(StandardAuthentication):
             api_token_type=self.token_name,
             api_token_is_org_token=True,
         )
+
+
+@AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.CELL)
+class ServiceAccountTokenAuthentication(StandardAuthentication):
+    """
+    Authenticates a service account token. The request acts as the token's service account,
+    never as the person who created the token, with the token's scopes capped by the
+    account's current scopes.
+    """
+
+    token_name = b"bearer"
+
+    def accepts_auth(self, auth: list[bytes]) -> bool:
+        if not super().accepts_auth(auth) or len(auth) != 2:
+            return False
+        return force_str(auth[1]).startswith(SERVICE_ACCOUNT_TOKEN_PREFIX)
+
+    def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
+        token_hashed = hash_token(token_str)
+
+        token: ServiceAccountToken | ServiceAccountTokenReplica
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            try:
+                token = ServiceAccountToken.objects.get(
+                    token_hashed=token_hashed, date_deactivated__isnull=True
+                )
+            except ServiceAccountToken.DoesNotExist:
+                raise AuthenticationFailed("Invalid service account token")
+            token_id = token.id
+            service_account_id = token.service_account_id
+        else:
+            try:
+                token = ServiceAccountTokenReplica.objects.select_related("service_account").get(
+                    token_hashed=token_hashed, date_deactivated__isnull=True
+                )
+            except ServiceAccountTokenReplica.DoesNotExist:
+                raise AuthenticationFailed("Invalid service account token")
+            token_id = token.token_id
+            service_account_id = token.service_account.service_account_id
+
+        if token.date_expires is not None and token.date_expires <= timezone.now():
+            raise AuthenticationFailed("Token expired")
+
+        resolved = resolve_service_account(service_account_id, token.organization_id)
+        if resolved is None:
+            raise AuthenticationFailed("Invalid service account token")
+        principal, account_auth = resolved
+
+        # Access already denies other orgs, but failing here gives a clear 401 and covers
+        # endpoints that never build access.
+        self._check_organization_url(request, token.organization_id)
+
+        scope = sentry_sdk.get_isolation_scope()
+        scope.set_tag("api_token_type", self.token_name)
+        scope.set_attribute("api_token_type", self.token_name.decode())
+        scope.set_tag("service_account_token_id", token_id)
+        scope.set_attribute("service_account_token_id", token_id)
+
+        # Token scopes are fixed at creation, so narrowing the account narrows the token,
+        # but widening the account doesn't widen it.
+        scopes = sorted(set(token.scope_list) & set(account_auth.scopes))
+        return principal, account_auth.copy(update={"scopes": scopes})
+
+    def _check_organization_url(self, request: Request, organization_id: int) -> None:
+        try:
+            target = resolve(request.path_info).kwargs.get("organization_id_or_slug")
+        except Resolver404:
+            return
+        if target is None or str(target) == str(organization_id):
+            return
+        org_context = organization_service.get_organization_by_id(
+            id=organization_id, include_projects=False, include_teams=False
+        )
+        if org_context is None or org_context.organization.slug != target:
+            raise AuthenticationFailed("Unauthorized organization access.")
 
 
 @AuthenticationSiloLimit(SiloMode.CELL)
