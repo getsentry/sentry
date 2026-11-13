@@ -237,6 +237,6 @@ const MaskedCode = styled(InfoText)`
   }
 
   &[data-selected]::before {
-    display: none;
+    visibility: hidden;
   }
 `;
