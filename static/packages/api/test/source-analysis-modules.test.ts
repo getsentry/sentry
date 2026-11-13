@@ -2,8 +2,8 @@ import { describe, expect, test } from "vitest";
 import { analyzeSourceApiUsage, type SourceApiOperation } from "../lib/source-analysis.ts";
 
 const operations = [
-  { functionName: "deleteProject", method: "DELETE", path: "/api/0/projects/{org}/{project}/" },
-  { functionName: "listOrganizations", method: "GET", path: "/api/0/organizations/" },
+  { functionName: "deleteProject", method: "DELETE", path: "/projects/{org}/{project}/" },
+  { functionName: "listOrganizations", method: "GET", path: "/organizations/" },
 ] as const satisfies readonly SourceApiOperation[];
 const helper = `import { deleteProject } from "@sentry/api"; export const read = () => deleteProject({});`;
 

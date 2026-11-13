@@ -8,14 +8,14 @@ describe("selectIdempotentWrites", () => {
   test("keeps marked writes and drops safe methods and unmarked writes", () => {
     expect(
       selectIdempotentWrites([
-        { method: "GET", path: "/api/0/b/", idempotent: true },
-        { method: "PUT", path: "/api/0/b/", idempotent: true },
-        { method: "POST", path: "/api/0/b/", idempotent: false },
-        { method: "DELETE", path: "/api/0/a/", idempotent: true },
+        { method: "GET", path: "/b/", idempotent: true },
+        { method: "PUT", path: "/b/", idempotent: true },
+        { method: "POST", path: "/b/", idempotent: false },
+        { method: "DELETE", path: "/a/", idempotent: true },
       ]),
     ).toEqual([
-      { method: "DELETE", path: "/api/0/a/" },
-      { method: "PUT", path: "/api/0/b/" },
+      { method: "DELETE", path: "/a/" },
+      { method: "PUT", path: "/b/" },
     ]);
   });
 });
@@ -24,7 +24,7 @@ describe("createIdempotentOperationMatcher", () => {
   const isIdempotent = createIdempotentOperationMatcher(() => [
     {
       method: "POST",
-      path: "/api/0/organizations/{organization_id_or_slug}/chunk-upload/",
+      path: "/organizations/{organization_id_or_slug}/chunk-upload/",
     },
   ]);
   const url = "https://us.sentry.io/api/0/organizations/acme/chunk-upload/";

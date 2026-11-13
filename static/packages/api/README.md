@@ -54,6 +54,8 @@ Each `createSentryClient` call creates an independent transport configuration. T
 
 Supply the base URL and authentication appropriate for your deployment. See Sentry's [API authentication documentation](https://docs.sentry.io/api/auth/).
 
+The base URL is the Sentry origin, such as `https://sentry.io` or a self-hosted `https://sentry.example.com`. Operation paths are relative to the API base path, which the client adds after the origin. It comes from the server URL in Sentry's OpenAPI spec and is exported as `API_BASE_PATH` (`"/api/0"`) from `@sentry/api`, `@sentry/api/client`, and `@sentry/api/operations`. Raw requests take the same relative paths, such as `sentry.client.get({ url: "/organizations/" })`.
+
 ### Standalone operations
 
 Individual operation functions remain available as a modular alternative and accept transport configuration directly:
@@ -118,7 +120,7 @@ const logOperations = operations.filter(operation =>
 console.log(logOperations.map(({ functionName, method, path }) => ({ functionName, method, path })));
 ```
 
-Each `ApiOperation` records the actual exported `functionName`, original OpenAPI `operationId`, method, path, summary, description, tags, path parameter names, query metadata, explicit deprecation flag, `experimental` flag, and `idempotent` flag. `ApiQueryParameter` includes the name, required flag, description, type, and declared enum values (item values for arrays). Operation parameters override inherited path parameters.
+Each `ApiOperation` records the actual exported `functionName`, original OpenAPI `operationId`, method, path (relative to `API_BASE_PATH`), summary, description, tags, path parameter names, query metadata, explicit deprecation flag, `experimental` flag, and `idempotent` flag. `ApiQueryParameter` includes the name, required flag, description, type, and declared enum values (item values for arrays). Operation parameters override inherited path parameters.
 
 `experimental` is `true` when Sentry marks the operation with the `x-sentry-experimental` OpenAPI extension, which it sets for endpoints under active development that may change. Their SDK docs also start with an **Experimental:** note. To find or reject experimental operations, for example in a lint rule or build check:
 
@@ -221,7 +223,7 @@ validation, body serialization, and request interceptors.
 const sentry = createSentryClient({ baseUrl: "https://example.test/sentry" });
 const request = await sentry.client.prepareRequest({
   method: "GET",
-  url: "/api/0/organizations/example/events/?field=id&field=title&cursor=old#view",
+  url: "/organizations/example/events/?field=id&field=title&cursor=old#view",
   query: { cursor: "opaque-next", per_page: 50 },
 });
 // Both field values remain; the old cursor is replaced and the fragment removed.
@@ -607,7 +609,7 @@ Generic helpers delegate cancellation to your fetcher. Pass its signal through t
 `@sentry/api/client` is the request layer the Sentry CLI and MCP servers share, built on the generated operations. It uses only web-standard APIs (`fetch`, `Request`, `Headers`, `URL`, `AbortSignal`, `crypto.subtle`), so it runs in Node, Cloudflare Workers, and browsers. Hosts inject what differs between them:
 
 - **Transport.** `createApiTransport` sets `Authorization` from a `CredentialProvider`, refreshes the credential once after a 401, times out each attempt, retries through the shared retry policy (429 for any method; 500, 502, 503, 504, timeouts, and network errors only for GET, HEAD, OPTIONS, or writes marked idempotent), follows redirects only to trusted origins, and serves and invalidates cached GETs. `CredentialProvider.current` receives the request URL and the organization and project its path targets (`parseApiPathScope`), so a host with several logins can pick the one that can reach that organization. The host passes credentials, a `TransportCache`, the request-scoped `fresh` hook, a logger, a span hook, and its error classes.
-- **Request core.** `createApiClientCore` sends `<origin>/api/0<path>` through the transport and throws the status's `ApiError` subclass for an error response. `sdkClient` gives a generated operation a client that sends through the same path.
+- **Request core.** `createApiClientCore` sends `<origin><API_BASE_PATH><path>` through the transport and throws the status's `ApiError` subclass for an error response. `sdkClient` gives a generated operation a client that sends through the same path.
 - **Response cache.** The cache policy (`lookupResponse`, `storeResponse`, tiers, identity-scoped keys, invalidation) works on any `CacheStore` and `BodyCodec`. `createMemoryStore` is a byte-budgeted in-memory store. Compressing codecs need host APIs such as `node:zlib`, so hosts supply them.
 - **Validation.** Endpoint wrappers validate responses with any [Standard Schema](https://standardschema.dev) validator the host passes in, such as the `@sentry/api/zod` or `@sentry/api/valibot` schemas. The client depends on neither.
 - **Pagination.** `paginate` and `fetchAllPages` walk list endpoints on top of `paginateUpTo` and `consumePage`. Their cursors are Sentry cursors that also record rows already returned from a page, so a resumed walk neither repeats nor skips rows.

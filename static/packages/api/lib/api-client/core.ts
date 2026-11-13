@@ -14,7 +14,7 @@ import {
   parseSentryLinkHeader,
   type SentryClient,
 } from "@sentry/api";
-import { buildSentryApiUrl } from "./api-path.js";
+import { API_BASE_PATH, buildSentryApiUrl } from "./api-path.js";
 import {
   type ApiError,
   ApiValidationError,
@@ -56,7 +56,7 @@ export type ApiRequestOptions = {
 
 export type ApiClientCore = {
   /**
-   * Send a request to `origin` + `/api/0` + `path`.
+   * Send a request to `origin` + {@link API_BASE_PATH} + `path`.
    *
    * @throws {ApiError} For an error status not in `allowStatuses`
    * @throws {ConfigurationError} When the host is unreachable or misconfigured
@@ -104,8 +104,6 @@ const NETWORK_ERROR_MESSAGES: Record<string, string> = {
   ETIMEDOUT: "Connection timed out. Check network connectivity.",
   ECONNRESET: "Connection reset. Try again in a moment.",
 };
-
-const API_PREFIX = "/api/0";
 
 /** Network failures that mean the host is wrong or unreachable. */
 const CONFIGURATION_ERROR_CODES = new Set([
@@ -265,7 +263,7 @@ export function createApiClientCore({
         const url = new URL(sdkRequest.url);
         if (
           url.origin !== base ||
-          url.pathname !== API_PREFIX.concat(expectedPath) ||
+          url.pathname !== API_BASE_PATH.concat(expectedPath) ||
           sdkRequest.method !== "GET"
         ) {
           throw new ConfigurationError(
@@ -274,7 +272,7 @@ export function createApiClientCore({
         }
         const response = await request(
           origin,
-          `${url.pathname.slice(API_PREFIX.length)}${url.search}`,
+          `${url.pathname.slice(API_BASE_PATH.length)}${url.search}`,
           { method: "GET", signal: sdkRequest.signal },
         );
         const contentType = response.headers.get("content-type");

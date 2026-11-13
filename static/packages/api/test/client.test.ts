@@ -33,7 +33,7 @@ describe("configured operation methods", () => {
       return request;
     });
     const { stream } = await sentry.client.sse.get<string>({
-      url: "/api/0/events/",
+      url: "/events/",
       security: [{ type: "http", scheme: "bearer" }],
       onSseEvent: event => { callbacks.push(event.data.toUpperCase()); },
     });

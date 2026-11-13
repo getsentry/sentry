@@ -202,9 +202,9 @@ export function emit({ normalizedSpec: spec }) {
   // sentry/search/snuba/executors.py (issue cursors), and
   // sentry/issues/endpoints/group_events.py (GenericOffsetPaginator, full cap).
   const resizablePages = new Map([
-    ["GET /api/0/organizations/{organization_id_or_slug}/issues/", { parameter: "limit", max: 100 }],
-    ["GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/", { parameter: "limit", max: 100 }],
-    ["GET /api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/events/", { parameter: "per_page", max: 100, fullMax: 10 }],
+    ["GET /organizations/{organization_id_or_slug}/issues/", { parameter: "limit", max: 100 }],
+    ["GET /projects/{organization_id_or_slug}/{project_id_or_slug}/issues/", { parameter: "limit", max: 100 }],
+    ["GET /organizations/{organization_id_or_slug}/issues/{issue_id}/events/", { parameter: "per_page", max: 100, fullMax: 10 }],
   ]);
 
   for (const [route, sizing] of resizablePages) {

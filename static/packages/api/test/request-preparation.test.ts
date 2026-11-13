@@ -34,7 +34,7 @@ describe("request preparation", () => {
     });
     const options = {
       method: "POST" as const,
-      url: "/api/0/organizations/{org}/items/",
+      url: "/organizations/{org}/items/",
       path: { org: "example" },
       body: { title: "Overview" },
       headers: { "x-override": "per-call" },
@@ -68,7 +68,7 @@ describe("request preparation", () => {
     try {
       const config = createBrowserSdkConfig({ baseUrl: "https://example.test", getCsrfToken: () => "csrf-example" });
       const sentry = createSentryClient({ ...config, fetch: asFetch(request => config.fetch(request)) });
-      const prepared = await sentry.client.prepareRequest({ method: "POST", url: "/api/0/custom/", body: { value: 1 } });
+      const prepared = await sentry.client.prepareRequest({ method: "POST", url: "/custom/", body: { value: 1 } });
       expect(requests).toHaveLength(0);
       expect(prepared.headers.has("X-CSRFToken")).toBe(false);
       const raw = await config.fetch(prepared);
@@ -91,7 +91,7 @@ describe("request preparation", () => {
     });
     const options = {
       method: "GET" as const,
-      url: "/api/0/items/a%2Fb/?cursor=old&cursor=older&field=id&field=name&?cursor=unrelated&query=a%20b#ignored",
+      url: "/items/a%2Fb/?cursor=old&cursor=older&field=id&field=name&?cursor=unrelated&query=a%20b#ignored",
       query: { cursor: "opaque/+?=#", per_page: 25 },
     };
     const request = await sentry.client.prepareRequest(options);
@@ -111,7 +111,7 @@ describe("request preparation", () => {
   test("clears a cursor for the first page while leaving unspecified query parameters intact", async () => {
     const sentry = createSentryClient({ baseUrl: "https://example.test" });
     const request = await sentry.client.prepareRequest({
-      method: "GET", url: "/api/0/items/?cursor=one&cursor=two&per_page=25&field=id&field=name",
+      method: "GET", url: "/items/?cursor=one&cursor=two&per_page=25&field=id&field=name",
       query: { cursor: null, per_page: undefined },
     });
     const query = new URL(request.url).searchParams;
@@ -123,7 +123,7 @@ describe("request preparation", () => {
   test("retains a custom serializer's bytes when overlaying an existing query", async () => {
     const sentry = createSentryClient({ baseUrl: "https://example.test" });
     const request = await sentry.client.prepareRequest({
-      method: "GET", url: "/api/0/items/?cursor=old&field=old&%3Fcursor=old&query=a%20b",
+      method: "GET", url: "/items/?cursor=old&field=old&%3Fcursor=old&query=a%20b",
       query: { cursor: "custom/cursor value", field: ["id", "name"] },
       querySerializer: () => "??cursor=literal&cursor=custom%2fcursor+value&field=id&field=name",
     });
@@ -133,7 +133,7 @@ describe("request preparation", () => {
   test("supports native raw and multipart bodies without JSON serialization", async () => {
     const sentry = createSentryClient({ baseUrl: "https://example.test" });
     const raw = await sentry.client.prepareRequest({
-      method: "POST", url: "/api/0/custom/", body: "raw payload", bodySerializer: null,
+      method: "POST", url: "/custom/", body: "raw payload", bodySerializer: null,
       headers: { "Content-Type": "text/custom" },
     });
     expect(raw.headers.get("Content-Type")).toBe("text/custom");
@@ -142,7 +142,7 @@ describe("request preparation", () => {
     form.append("tag", "one");
     form.append("tag", "two");
     const multipart = await sentry.client.prepareRequest({
-      method: "POST", url: "/api/0/upload/", body: form, bodySerializer: null,
+      method: "POST", url: "/upload/", body: form, bodySerializer: null,
       headers: { "Content-Type": null },
     });
     expect(multipart.headers.get("Content-Type")).toMatch(/^multipart\/form-data; boundary=/);
@@ -155,7 +155,7 @@ describe("request preparation", () => {
     controller.abort(reason);
     let calls = 0;
     const sentry = createSentryClient({ baseUrl: "https://example.test", fetch: asFetch(async () => { calls++; return new Response(); }) });
-    const request = await sentry.client.prepareRequest({ method: "GET", url: "/api/0/items/", signal: controller.signal });
+    const request = await sentry.client.prepareRequest({ method: "GET", url: "/items/", signal: controller.signal });
     expect(request.signal.aborted).toBe(true);
     expect(request.signal.reason).toBe(reason);
     expect(() => request.signal.throwIfAborted()).toThrow(reason);
@@ -166,7 +166,7 @@ describe("request preparation", () => {
     const first = createSentryClient({ baseUrl: "https://first.example.test", headers: { "X-Context": "first" } });
     const second = createSentryClient({ baseUrl: "https://second.example.test", headers: { "X-Context": "second" } });
     const { prepareRequest } = first.client;
-    const options = { method: "POST" as const, url: "/api/0/items/", body: { value: "original" } };
+    const options = { method: "POST" as const, url: "/items/", body: { value: "original" } };
     const [prepared, other] = await Promise.all([prepareRequest(options), second.client.prepareRequest(options)]);
     first.client.setConfig({ baseUrl: "https://changed.example.test", headers: { "X-Context": "changed" } });
     options.body.value = "edited";

@@ -20,7 +20,7 @@ export type ApiOperation = {
   readonly operationId: string;
   /** HTTP method used by the generated operation. */
   readonly method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS" | "TRACE";
-  /** Canonical OpenAPI path including parameter placeholders. */
+  /** OpenAPI path template, relative to `API_BASE_PATH`, such as `/organizations/{organization_id_or_slug}/`. */
   readonly path: string;
   /** Short operation description, when documented. */
   readonly summary?: string;

@@ -5,17 +5,17 @@ const operations = [
   {
     functionName: "listOrganizationEvents",
     method: "GET",
-    path: "/api/0/organizations/{organization_id_or_slug}/events/",
+    path: "/organizations/{organization_id_or_slug}/events/",
   },
   {
     functionName: "getOrganizationTrace",
     method: "GET",
-    path: "/api/0/organizations/{organization_id_or_slug}/trace/{trace_id}/",
+    path: "/organizations/{organization_id_or_slug}/trace/{trace_id}/",
   },
   {
     functionName: "deleteProject",
     method: "DELETE",
-    path: "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/",
+    path: "/projects/{organization_id_or_slug}/{project_id_or_slug}/",
   },
 ] as const satisfies readonly SourceApiOperation[];
 
@@ -136,7 +136,7 @@ describe("consumer source analysis", () => {
     ]);
     const result = analyzeSourceApiUsage(sources, [
       ...operations,
-      { functionName: "otherEvents", method: "GET", path: "/api/0/organizations/{org}/events/" },
+      { functionName: "otherEvents", method: "GET", path: "/organizations/{org}/events/" },
     ], {
       requests: [{ functionName: "request", pathArgument: 0, optionsArgument: 1 }],
     }).exports.get("src/requests.ts")!;

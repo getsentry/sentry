@@ -22,9 +22,9 @@ const SKIP_ADJACENT_EVENTS = {
  */
 export const QUERY_DEFAULTS = new Map([
   // getsentry/sentry#129094
-  ["GET /api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/events/{event_id}/", SKIP_ADJACENT_EVENTS],
+  ["GET /organizations/{organization_id_or_slug}/issues/{issue_id}/events/{event_id}/", SKIP_ADJACENT_EVENTS],
   // getsentry/sentry#129123
-  ["GET /api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/events/{event_id}/", SKIP_ADJACENT_EVENTS],
+  ["GET /projects/{organization_id_or_slug}/{project_id_or_slug}/events/{event_id}/", SKIP_ADJACENT_EVENTS],
 ]);
 
 /** Fail the build when the schema no longer documents a configured default. */

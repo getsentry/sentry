@@ -33,10 +33,10 @@ function publicFactory() {
 
 async function preparedRequests(sentry: SentryClient) {
   const request: Request = await sentry.client.prepareRequest({
-    method: "GET", url: "/api/0/custom/", query: { cursor: "opaque" },
+    method: "GET", url: "/custom/", query: { cursor: "opaque" },
   });
   // @ts-expect-error Generic preparation requires an explicit method.
-  await sentry.client.prepareRequest({ url: "/api/0/custom/" });
+  await sentry.client.prepareRequest({ url: "/custom/" });
   // Custom clients accepted by standalone operations need no new capability.
   const { prepareRequest, ...legacyClient } = sentry.client;
   await listOrganizations({ client: legacyClient });
@@ -45,7 +45,7 @@ async function preparedRequests(sentry: SentryClient) {
 
 async function streamingCallbacks(sentry: SentryClient) {
   const { stream } = await sentry.client.sse.get<string>({
-    url: "/api/0/events/",
+    url: "/events/",
     onSseEvent: event => {
       const value: string = event.data.toUpperCase();
       // @ts-expect-error SSE callback data retains the requested type.

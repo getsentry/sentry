@@ -7,7 +7,7 @@
  * apply:
  *
  * 1. **Hierarchy walk.** Sweep the URL's own path and every ancestor
- *    up to `/api/0/`. A mutation on
+ *    up to the API base path. A mutation on
  *    `/organizations/{org}/releases/1.0.0/deploys/` sweeps itself,
  *    `.../releases/1.0.0/`, and `.../releases/` — which catches the
  *    detail, deploys-list, and releases-list GET caches in one pass.
@@ -27,7 +27,9 @@
  * query-param variant cached under that path).
  */
 
-const API_V0_SEGMENT = "/api/0/";
+import { API_BASE_PATH } from "../../api-base-path.gen.js";
+
+const API_SEGMENT = `${API_BASE_PATH}/`;
 const TRAILING_SLASH_RE = /\/$/;
 
 /**
@@ -45,7 +47,7 @@ const SKIP_INVALIDATION_PATTERNS: readonly RegExp[] = [
 
 /**
  * Rule for mutations whose effects cross URL trees. Patterns match
- * the path relative to `/api/0/`. `extra` returns additional
+ * the path relative to the API base path. `extra` returns additional
  * path-prefixes (swept under the mutation's own origin); `extraAbsolute`
  * returns absolute URL prefixes (when invalidation must cross origins,
  * e.g. region-scoped mutation clearing a cache under the control silo).
@@ -80,7 +82,7 @@ const CROSS_ENDPOINT_RULES: CrossEndpointRule[] = [
   {
     match: /^organizations\/[^/]+\/issues\/([^/]+)\/?$/,
     extraAbsolute: ([, issueId], { apiBaseUrl }) => [
-      `${apiBaseUrl.replace(TRAILING_SLASH_RE, "")}/api/0/issues/${issueId}/`,
+      `${apiBaseUrl.replace(TRAILING_SLASH_RE, "")}${API_SEGMENT}issues/${issueId}/`,
     ],
   },
 ];
@@ -95,7 +97,7 @@ const CROSS_ENDPOINT_RULES: CrossEndpointRule[] = [
  *   that need to clear caches under a different origin — e.g. the
  *   legacy `/issues/{id}/` endpoint the CLI's `getIssue()` reads).
  * @returns Full-URL prefixes to sweep. Returns `[]` if the URL is
- *   not under `/api/0/` (e.g. sourcemap chunk upload to an arbitrary
+ *   not under the API base path (e.g. sourcemap chunk upload to an arbitrary
  *   endpoint) or can't be parsed.
  */
 export function computeInvalidationPrefixes(
@@ -110,7 +112,7 @@ export function computeInvalidationPrefixes(
     return [];
   }
 
-  const apiIdx = parsed.pathname.indexOf(API_V0_SEGMENT);
+  const apiIdx = parsed.pathname.indexOf(API_SEGMENT);
   if (apiIdx === -1) {
     return [];
   }
@@ -119,8 +121,8 @@ export function computeInvalidationPrefixes(
     return [];
   }
 
-  const base = `${parsed.origin}${parsed.pathname.slice(0, apiIdx + API_V0_SEGMENT.length)}`;
-  const relPath = parsed.pathname.slice(apiIdx + API_V0_SEGMENT.length);
+  const base = `${parsed.origin}${parsed.pathname.slice(0, apiIdx + API_SEGMENT.length)}`;
+  const relPath = parsed.pathname.slice(apiIdx + API_SEGMENT.length);
   if (relPath === "") {
     return [];
   }

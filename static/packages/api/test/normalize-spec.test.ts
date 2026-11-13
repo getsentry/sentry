@@ -87,39 +87,39 @@ describe("singularize", () => {
 // ---------------------------------------------------------------------------
 
 describe("parsePath", () => {
-  it("strips /api/0/ prefix and trailing slash", () => {
-    const segs = parsePath("/api/0/organizations/");
+  it("strips the leading and trailing slashes", () => {
+    const segs = parsePath("/organizations/");
     expect(segs).toEqual([
       { value: "organizations", singularValue: "organization", isParam: false, followedByParam: false },
     ]);
   });
 
   it("marks path params correctly", () => {
-    const segs = parsePath("/api/0/organizations/{org}/issues/{id}/");
+    const segs = parsePath("/organizations/{org}/issues/{id}/");
     expect(segs.map((s) => s.isParam)).toEqual([false, true, false, true]);
     expect(segs.map((s) => s.followedByParam)).toEqual([true, false, true, false]);
   });
 
   it("converts kebab-case to camelCase", () => {
-    const segs = parsePath("/api/0/organizations/{org}/events-timeseries/");
+    const segs = parsePath("/organizations/{org}/events-timeseries/");
     const values = segs.filter((s) => !s.isParam).map((s) => s.value);
     expect(values).toEqual(["organizations", "eventsTimeseries"]);
   });
 
   it("handles uppercase letters after a hyphen", () => {
-    const segs = parsePath("/api/0/foo-Bar/");
+    const segs = parsePath("/foo-Bar/");
     expect(segs[0]?.value).toBe("fooBar");
   });
 
   it("converts underscores to camelCase (e.g. stats_v2 → statsV2)", () => {
-    const segs = parsePath("/api/0/organizations/{org}/stats_v2/");
+    const segs = parsePath("/organizations/{org}/stats_v2/");
     const statics = segs.filter((s) => !s.isParam);
     expect(statics.at(-1)?.value).toBe("statsV2");
   });
 
   it("singularValue singularizes the last word of a compound segment", () => {
     const segs = parsePath(
-      "/api/0/organizations/{org}/release-threshold-statuses/{id}/",
+      "/organizations/{org}/release-threshold-statuses/{id}/",
     );
     const statics = segs.filter((s) => !s.isParam);
     // "statuses" (last word) hits IRREGULAR → "status"; full camelCase result:
@@ -131,13 +131,13 @@ describe("parsePath", () => {
   it("handles consecutive separators without crashing", () => {
     // "foo--bar" and "a__b" must not crash on the empty word between separators.
     // Both value and singularValue go through the same split-filter-join path.
-    const segs = parsePath("/api/0/foo--bar/a__b/");
+    const segs = parsePath("/foo--bar/a__b/");
     expect(segs[0]?.value).toBe("fooBar");
     expect(segs[0]?.singularValue).toBe("fooBar");
     expect(segs[1]?.value).toBe("aB");
   });
 
-  it("drops empty segments from leading slashes (non-/api/0/ paths)", () => {
+  it("drops empty segments from leading slashes", () => {
     const segs = parsePath("/custom/resources/");
     expect(segs.every((s) => s.value.length > 0)).toBe(true);
     expect(segs.map((s) => s.value)).toEqual(["custom", "resources"]);
@@ -145,7 +145,7 @@ describe("parsePath", () => {
 
   it("returns empty array for a path of only params", () => {
     // parsePath itself never throws — normalizeOperationId validates the result
-    const segs = parsePath("/api/0/{a}/{b}/");
+    const segs = parsePath("/{a}/{b}/");
     expect(segs.every((s) => s.isParam)).toBe(true);
   });
 });
@@ -156,50 +156,50 @@ describe("parsePath", () => {
 
 describe("normalizeOperationId", () => {
   it("GET collection → list", () => {
-    expect(normalizeOperationId("get", "/api/0/organizations/")).toBe(
+    expect(normalizeOperationId("get", "/organizations/")).toBe(
       "listOrganizations",
     );
     expect(
-      normalizeOperationId("get", "/api/0/organizations/{org}/issues/"),
+      normalizeOperationId("get", "/organizations/{org}/issues/"),
     ).toBe("listOrganizationIssues");
     expect(
       normalizeOperationId(
         "get",
-        "/api/0/organizations/{org}/issues/{id}/events/",
+        "/organizations/{org}/issues/{id}/events/",
       ),
     ).toBe("listOrganizationIssueEvents");
   });
 
   it("GET detail (ends in param) → get + singularized", () => {
     expect(
-      normalizeOperationId("get", "/api/0/organizations/{org}/"),
+      normalizeOperationId("get", "/organizations/{org}/"),
     ).toBe("getOrganization");
     expect(
-      normalizeOperationId("get", "/api/0/organizations/{org}/issues/{id}/"),
+      normalizeOperationId("get", "/organizations/{org}/issues/{id}/"),
     ).toBe("getOrganizationIssue");
     expect(
       normalizeOperationId(
         "get",
-        "/api/0/organizations/{org}/dashboards/{id}/",
+        "/organizations/{org}/dashboards/{id}/",
       ),
     ).toBe("getOrganizationDashboard");
   });
 
   it("POST → create + singularized last segment", () => {
     expect(
-      normalizeOperationId("post", "/api/0/organizations/{org}/dashboards/"),
+      normalizeOperationId("post", "/organizations/{org}/dashboards/"),
     ).toBe("createOrganizationDashboard");
     expect(
-      normalizeOperationId("post", "/api/0/organizations/{org}/teams/"),
+      normalizeOperationId("post", "/organizations/{org}/teams/"),
     ).toBe("createOrganizationTeam");
   });
 
   it("PUT/PATCH → update", () => {
     expect(
-      normalizeOperationId("put", "/api/0/organizations/{org}/dashboards/{id}/"),
+      normalizeOperationId("put", "/organizations/{org}/dashboards/{id}/"),
     ).toBe("updateOrganizationDashboard");
     expect(
-      normalizeOperationId("patch", "/api/0/organizations/{org}/issues/{id}/"),
+      normalizeOperationId("patch", "/organizations/{org}/issues/{id}/"),
     ).toBe("updateOrganizationIssue");
   });
 
@@ -207,14 +207,14 @@ describe("normalizeOperationId", () => {
     expect(
       normalizeOperationId(
         "delete",
-        "/api/0/organizations/{org}/dashboards/{id}/",
+        "/organizations/{org}/dashboards/{id}/",
       ),
     ).toBe("deleteOrganizationDashboard");
   });
 
   it("DELETE collection (bulk) → plural", () => {
     expect(
-      normalizeOperationId("delete", "/api/0/organizations/{org}/detectors/"),
+      normalizeOperationId("delete", "/organizations/{org}/detectors/"),
     ).toBe("deleteOrganizationDetectors");
   });
 
@@ -222,26 +222,26 @@ describe("normalizeOperationId", () => {
     expect(
       normalizeOperationId(
         "get",
-        "/api/0/organizations/{org}/events-timeseries/",
+        "/organizations/{org}/events-timeseries/",
       ),
     ).toBe("listOrganizationEventsTimeseries");
     expect(
       normalizeOperationId(
         "get",
-        "/api/0/organizations/{org}/release-threshold-statuses/",
+        "/organizations/{org}/release-threshold-statuses/",
       ),
     ).toBe("listOrganizationReleaseThresholdStatuses");
   });
 
   it("handles uppercase letters after a hyphen", () => {
-    expect(normalizeOperationId("get", "/api/0/foo-Bar/")).toBe("listFooBar");
+    expect(normalizeOperationId("get", "/foo-Bar/")).toBe("listFooBar");
   });
 
   it("converts underscores in path segments to camelCase", () => {
-    expect(normalizeOperationId("get", "/api/0/organizations/{org}/stats_v2/")).toBe(
+    expect(normalizeOperationId("get", "/organizations/{org}/stats_v2/")).toBe(
       "listOrganizationStatsV2",
     );
-    expect(normalizeOperationId("get", "/api/0/organizations/{org}/relay_usage/")).toBe(
+    expect(normalizeOperationId("get", "/organizations/{org}/relay_usage/")).toBe(
       "listOrganizationRelayUsage",
     );
   });
@@ -251,7 +251,7 @@ describe("normalizeOperationId", () => {
     expect(
       normalizeOperationId(
         "get",
-        "/api/0/organizations/{org}/release-threshold-statuses/{id}/",
+        "/organizations/{org}/release-threshold-statuses/{id}/",
       ),
     ).toBe("getOrganizationReleaseThresholdStatus"); // not "...Statuse"
 
@@ -259,7 +259,7 @@ describe("normalizeOperationId", () => {
     expect(
       normalizeOperationId(
         "post",
-        "/api/0/organizations/{org}/external-issues/",
+        "/organizations/{org}/external-issues/",
       ),
     ).toBe("createOrganizationExternalIssue");
   });
@@ -268,58 +268,52 @@ describe("normalizeOperationId", () => {
     expect(
       normalizeOperationId(
         "get",
-        "/api/0/projects/{org}/{project}/keys/",
+        "/projects/{org}/{project}/keys/",
       ),
     ).toBe("listProjectKeys");
     expect(
       normalizeOperationId(
         "get",
-        "/api/0/projects/{org}/{project}/keys/{id}/",
+        "/projects/{org}/{project}/keys/{id}/",
       ),
     ).toBe("getProjectKey");
   });
 
   it("singularizes parent segments that precede a path param", () => {
     expect(
-      normalizeOperationId("get", "/api/0/organizations/{org}/issues/"),
+      normalizeOperationId("get", "/organizations/{org}/issues/"),
     ).toBe("listOrganizationIssues");
     expect(
       normalizeOperationId(
         "get",
-        "/api/0/organizations/{org}/issues/{id}/events/",
+        "/organizations/{org}/issues/{id}/events/",
       ),
     ).toBe("listOrganizationIssueEvents");
   });
 
   it("handles consecutive params (/projects/{org}/{project}/)", () => {
     expect(
-      normalizeOperationId("get", "/api/0/projects/{org}/{project}/"),
+      normalizeOperationId("get", "/projects/{org}/{project}/"),
     ).toBe("getProject");
   });
 
-  it("handles paths not under /api/0/ prefix", () => {
-    expect(normalizeOperationId("get", "/custom/resources/")).toBe(
-      "listCustomResources",
-    );
-  });
-
   it("trailing slash presence does not affect the result", () => {
-    expect(normalizeOperationId("get", "/api/0/organizations")).toBe(
+    expect(normalizeOperationId("get", "/organizations")).toBe(
       "listOrganizations",
     );
-    expect(normalizeOperationId("get", "/api/0/organizations/")).toBe(
+    expect(normalizeOperationId("get", "/organizations/")).toBe(
       "listOrganizations",
     );
   });
 
   it("throws when path has no static segments", () => {
-    expect(() => normalizeOperationId("get", "/api/0/{id}/")).toThrow(
+    expect(() => normalizeOperationId("get", "/{id}/")).toThrow(
       /no .*usable static segments/,
     );
   });
 
   it("throws on degenerate all-param path", () => {
-    expect(() => normalizeOperationId("get", "/api/0/{a}/{b}/")).toThrow(
+    expect(() => normalizeOperationId("get", "/{a}/{b}/")).toThrow(
       /no .*usable static segments/,
     );
   });
@@ -328,10 +322,10 @@ describe("normalizeOperationId", () => {
     // splitWords("---") → [] → camelJoin → "", so statics.length is 1 but the
     // assembled resource is empty. The guard must catch this, not crash on
     // resource[0].toUpperCase().
-    expect(() => normalizeOperationId("get", "/api/0/---/")).toThrow(
+    expect(() => normalizeOperationId("get", "/---/")).toThrow(
       /no .*usable static segments/,
     );
-    expect(() => normalizeOperationId("get", "/api/0/___/")).toThrow(
+    expect(() => normalizeOperationId("get", "/___/")).toThrow(
       /no .*usable static segments/,
     );
   });
@@ -339,10 +333,10 @@ describe("normalizeOperationId", () => {
   it("skips interior all-separator segments instead of crashing", () => {
     // An interior segment of pure separators camelCases to "". It must be
     // dropped before assembly, not crash camelJoin on p[0].toUpperCase().
-    expect(normalizeOperationId("get", "/api/0/organizations/---/issues/")).toBe(
+    expect(normalizeOperationId("get", "/organizations/---/issues/")).toBe(
       "listOrganizationsIssues",
     );
-    expect(normalizeOperationId("get", "/api/0/orgs/___/issues/")).toBe(
+    expect(normalizeOperationId("get", "/orgs/___/issues/")).toBe(
       "listOrgsIssues",
     );
   });
@@ -360,10 +354,10 @@ describe("normalizeSpec collision detection", () => {
   }
 
   it("throws when two different paths normalize to the same name", () => {
-    // /api/0/x-y/ and /api/0/xY/ both produce "listXY" after kebab→camelCase.
+    // /x-y/ and /xY/ both produce "listXY" after kebab→camelCase.
     const input = writeSpec({
-      "/api/0/x-y/": { get: { operationId: "List X Y" } },
-      "/api/0/xY/": { get: { operationId: "List XY" } },
+      "/x-y/": { get: { operationId: "List X Y" } },
+      "/xY/": { get: { operationId: "List XY" } },
     });
     const output = join(tmpdir(), `out-${Date.now()}.json`);
     expect(() => normalizeSpec(input, output)).toThrow(/collision/);
@@ -376,11 +370,11 @@ describe("normalizeSpec collision detection", () => {
     // "listOrganizationIssues" (clean) and path B sentence-style normalizes to
     // the same name, that's a collision even though B's ID was a sentence.
     const input = writeSpec({
-      "/api/0/something/": {
+      "/something/": {
         // Manually set to the same name that the other path would generate.
         get: { operationId: "listOrganizationIssues" },
       },
-      "/api/0/organizations/{org}/issues/": {
+      "/organizations/{org}/issues/": {
         // Sentence-style → normalizes to "listOrganizationIssues".
         get: { operationId: "List An Organization's Issues" },
       },
@@ -393,7 +387,7 @@ describe("normalizeSpec collision detection", () => {
 
   it("does not throw when operationIds are already clean identifiers", () => {
     const input = writeSpec({
-      "/api/0/organizations/": {
+      "/organizations/": {
         get: { operationId: "listOrganizations" }, // already clean — skipped
       },
     });
@@ -405,7 +399,7 @@ describe("normalizeSpec collision detection", () => {
 
   it("rewrites sentence-style operationIds and leaves clean ones alone", () => {
     const input = writeSpec({
-      "/api/0/organizations/": {
+      "/organizations/": {
         get: { operationId: "List Your Organizations" },
         post: { operationId: "createOrganization" }, // already clean
       },
@@ -413,10 +407,10 @@ describe("normalizeSpec collision detection", () => {
     const output = join(tmpdir(), `out-${Date.now()}.json`);
     normalizeSpec(input, output);
     const result = JSON.parse(readFileSync(output, "utf8"));
-    expect(result.paths["/api/0/organizations/"].get.operationId).toBe(
+    expect(result.paths["/organizations/"].get.operationId).toBe(
       "listOrganizations",
     );
-    expect(result.paths["/api/0/organizations/"].post.operationId).toBe(
+    expect(result.paths["/organizations/"].post.operationId).toBe(
       "createOrganization", // untouched
     );
     unlinkSync(input);

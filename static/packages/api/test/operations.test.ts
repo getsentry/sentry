@@ -1,14 +1,15 @@
 import { describe, expect, test } from "vitest";
 import { createClient } from "@hey-api/openapi-ts";
-import { operations } from "@sentry/api/operations";
+import { API_BASE_PATH, operations } from "@sentry/api/operations";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { splitApiBasePath } from "../lib/api-base-path.mjs";
 import { extractOperations } from "../lib/operation-catalog.mjs";
 import { normalizeSpec } from "../lib/normalize-spec.mjs";
 import * as sdk from "../src/sdk.gen";
 
-const eventsPath = "/api/0/organizations/{organization_id_or_slug}/events/";
+const eventsPath = "/organizations/{organization_id_or_slug}/events/";
 
 // The events endpoint demonstrates both dataset discovery and repeated fields.
 const fixture = (datasets = ["logs", "spans"]) => ({
@@ -75,7 +76,7 @@ describe("operation discovery", () => {
     }]);
 
     const next = fixture(["logs", "spans", "new_dataset"]);
-    const newPath = "/api/0/new-capability/";
+    const newPath = "/new-capability/";
     const grown = await generate({
       ...next,
       paths: {
@@ -106,8 +107,8 @@ describe("operation discovery", () => {
     const { catalog } = await generate({
       ...fixture(),
       paths: {
-        "/api/0/assemble/": { post: { operationId: "assemble", ...response, "x-sentry-idempotent": true } },
-        "/api/0/things/": {
+        "/assemble/": { post: { operationId: "assemble", ...response, "x-sentry-idempotent": true } },
+        "/things/": {
           post: { operationId: "createThing", ...response },
           put: { operationId: "updateThing", ...response },
           delete: { operationId: "deleteThing", ...response },
@@ -124,7 +125,7 @@ describe("operation discovery", () => {
     const { catalog } = await generate({
       ...fixture(),
       paths: {
-        "/api/0/things/": {
+        "/things/": {
           get: { operationId: "listThings", ...response, "x-sentry-experimental": true },
           post: { operationId: "createThing", ...response },
         },
@@ -145,9 +146,21 @@ describe("operation discovery", () => {
     expect(source.match(/\*\*Experimental:\*\*/g)).toHaveLength(experimental.length);
   });
 
+  test.each([
+    ["the server URL", "https://{region}.sentry.io/api/0", "/organizations/", "/api/0"],
+    ["the paths, while Sentry's server URL lacks it", "https://{region}.sentry.io", "/api/0/organizations/", "/api/0"],
+    ["a later API version", "https://{region}.sentry.io/api/1", "/organizations/", "/api/1"],
+  ])("reads the API base path from %s", (_, url, path, basePath) => {
+    const spec = { servers: [{ url }], paths: { [path]: { get: { servers: [{ url }] } } } };
+    expect(splitApiBasePath(spec)).toBe(basePath);
+    const origin = [{ url: "https://{region}.sentry.io" }];
+    expect(spec).toEqual({ servers: origin, paths: { "/organizations/": { get: { servers: origin } } } });
+  });
+
   test("ships one catalog entry for every actual standalone SDK export", () => {
     expect(operations.map(operation => operation.functionName).sort()).toEqual(Object.keys(sdk).sort());
     const original = JSON.parse(readFileSync(new URL("../spec/openapi-derefed.json", import.meta.url), "utf8"));
+    expect(splitApiBasePath(original)).toBe(API_BASE_PATH);
     const source = readFileSync(new URL("../src/sdk.gen.ts", import.meta.url), "utf8");
     expect(operations).toEqual(extractOperations(original, source));
   });

@@ -306,7 +306,7 @@ describe("createApiClientCore sdkClient", () => {
     const client = core.sdkClient(ORIGIN, "/organizations/");
 
     await expect(
-      client.get({ url: "/api/0/projects/", throwOnError: true }),
+      client.get({ url: "/projects/", throwOnError: true }),
     ).rejects.toThrow("Unexpected SDK request target or method");
     expect(transport.request).not.toHaveBeenCalled();
   });

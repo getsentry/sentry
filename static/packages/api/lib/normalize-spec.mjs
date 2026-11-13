@@ -19,6 +19,7 @@
  */
 
 import { readFileSync, writeFileSync } from "node:fs";
+import { splitApiBasePath } from "./api-base-path.mjs";
 
 // ---------------------------------------------------------------------------
 // Singularization
@@ -114,12 +115,11 @@ function segmentToCamel(s, { singular } = {}) {
  *
  * Empty segments (from leading/double slashes) are dropped upfront.
  *
- * @param {string} path - e.g. "/api/0/organizations/{org}/issues/{id}/"
+ * @param {string} path - e.g. "/organizations/{org}/issues/{id}/"
  * @returns {{ value: string; singularValue: string; isParam: boolean; followedByParam: boolean }[]}
  */
 export function parsePath(path) {
-  const clean = path.replace(/^\/api\/0\//, "").replace(/\/$/, "");
-  const raw = clean.split("/").filter((s) => s.length > 0);
+  const raw = path.split("/").filter((s) => s.length > 0);
 
   return raw.map((s, i) => {
     const isParam = s.startsWith("{");
@@ -148,7 +148,7 @@ const VERBS = {
  * and URL path.
  *
  * @param {string} method - HTTP method (lowercase: "get", "post", …)
- * @param {string} path   - Full path, e.g. "/api/0/organizations/{org}/issues/{id}/"
+ * @param {string} path   - Path relative to the API base path, e.g. "/organizations/{org}/issues/{id}/"
  * @returns {string} Normalized identifier, e.g. "getOrganizationIssue"
  * @throws {Error} If the path produces no usable resource name (no static
  *   segments, or only separator-character segments)
@@ -225,7 +225,8 @@ function dropNumberSafeFormats(node) {
 }
 
 /**
- * Reads the spec at `inputPath`, rewrites all sentence-style operationIds to
+ * Reads the spec at `inputPath`, makes its paths relative to the API base path
+ * (lib/api-base-path.mjs), rewrites all sentence-style operationIds to
  * short REST-conventional names, drops uint64 formats and int64 formats from
  * integers that fit in a JS number, and writes the result to `outputPath`.
  *
@@ -240,6 +241,7 @@ export function normalizeSpec(inputPath, outputPath) {
   // JSON.parse produces a fresh object every call; mutations are safe and
   // intentional — we rewrite operationIds in place before serialising.
   const spec = JSON.parse(readFileSync(inputPath, "utf8"));
+  splitApiBasePath(spec);
   // Track every final operationId (rewritten or pre-existing) so that a manually
   // set clean identifier cannot collide with a path-derived one without detection.
   const seen = new Map(); // final operationId → "METHOD /path" that first claimed it

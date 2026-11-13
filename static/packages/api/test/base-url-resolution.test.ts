@@ -31,8 +31,9 @@ describe("resolveBaseUrl", () => {
       scope: { organization: "acme" },
     }]);
     expect(urls).toHaveLength(1);
-    expect(urls[0]).toMatch(/^https:\/\/us\.sentry\.io\/api\/0\/organizations\/acme\/issues\/\?/);
-    expect(new URL(urls[0]!).searchParams.get("query")).toBe("is:unresolved");
+    const url = new URL(urls[0]!);
+    expect(`${url.origin}${url.pathname}`).toBe("https://us.sentry.io/api/0/organizations/acme/issues/");
+    expect(url.searchParams.get("query")).toBe("is:unresolved");
   });
 
   test("passes the project scope and omits scope for unscoped paths", async () => {
@@ -48,10 +49,10 @@ describe("resolveBaseUrl", () => {
 
     const project = await sentry.client.prepareRequest({
       method: "GET",
-      url: "/api/0/projects/{org}/{project}/",
+      url: "/projects/{org}/{project}/",
       path: { org: "acme", project: "web" },
     });
-    const unscoped = await sentry.client.prepareRequest({ method: "GET", url: "/api/0/organizations/" });
+    const unscoped = await sentry.client.prepareRequest({ method: "GET", url: "/organizations/" });
 
     expect(seen.map(request => request.scope)).toEqual([{ organization: "acme", project: "web" }, undefined]);
     expect("scope" in seen[1]!).toBe(false);
@@ -70,7 +71,7 @@ describe("resolveBaseUrl", () => {
 
     const request = await sentry.client.prepareRequest({
       method: "POST",
-      url: "/api/0/organizations/acme/releases/?existing=1",
+      url: "/organizations/acme/releases/?existing=1",
       body: { version: "1.0.0" },
     });
 

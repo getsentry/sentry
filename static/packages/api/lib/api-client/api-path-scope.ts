@@ -1,7 +1,10 @@
 /**
- * Reading the organization and project an API path targets. No imports, so
- * the generated client can use it without pulling in `@sentry/api/client`.
+ * Reading the organization and project an API path targets. It imports only
+ * the base path, so the generated client can use it without pulling in
+ * `@sentry/api/client`.
  */
+
+import { API_BASE_PATH } from "../api-base-path.gen.js";
 
 /** The organization, and project when present, an API path targets. */
 export type ApiPathScope = { organization: string; project?: string };
@@ -16,19 +19,19 @@ function isApiPathIdentifier(segment: string | undefined): segment is string {
   return segment !== undefined && API_PATH_IDENTIFIER.test(segment);
 }
 
-/** Path segments after `/api/0/`, or undefined for a URL outside the API. */
+/** Path segments after {@link API_BASE_PATH}, or undefined for a URL outside the API. */
 function apiPathSegments(urlOrPath: string): string[] | undefined {
   const isUrl = URL.canParse(urlOrPath);
-  const path = isUrl
+  let path = isUrl
     ? new URL(urlOrPath).pathname
     : (urlOrPath.split(/[?#]/, 1)[0] ?? "");
-  const segments = path.split("/").filter((segment) => segment.length > 0);
-  for (let index = 0; index < segments.length - 1; index += 1) {
-    if (segments[index] === "api" && segments[index + 1] === "0") {
-      return segments.slice(index + 2);
-    }
+  const apiIndex = path.indexOf(`${API_BASE_PATH}/`);
+  if (apiIndex !== -1) {
+    path = path.slice(apiIndex + API_BASE_PATH.length);
+  } else if (isUrl) {
+    return;
   }
-  return isUrl ? undefined : segments;
+  return path.split("/").filter((segment) => segment.length > 0);
 }
 
 /**
@@ -36,9 +39,9 @@ function apiPathSegments(urlOrPath: string): string[] | undefined {
  * read from its path: `/organizations/{org}/`, `/projects/{org}/{project}/`,
  * `/teams/{org}/`, and `/organizations/{org}/projects/{project}/`.
  *
- * Accepts a full URL, whose path must contain `/api/0/` (a self-hosted
- * install may serve it under a prefix), or a path relative to `/api/0/` with
- * or without that prefix. Undefined for unscoped paths, list endpoints such
+ * Accepts a full URL, whose path must contain {@link API_BASE_PATH} (a
+ * self-hosted install may serve it under a prefix), or a path relative to it
+ * with or without that prefix. Undefined for unscoped paths, list endpoints such
  * as `/organizations/`, and schema placeholders.
  *
  * Hosts with several credentials or regions use it to pick the one that

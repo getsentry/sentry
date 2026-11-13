@@ -5,12 +5,12 @@ const operations = [
   {
     functionName: "deleteProject",
     method: "DELETE",
-    path: "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/",
+    path: "/projects/{organization_id_or_slug}/{project_id_or_slug}/",
   },
   {
     functionName: "listOrganizationEvents",
     method: "GET",
-    path: "/api/0/organizations/{organization_id_or_slug}/events/",
+    path: "/organizations/{organization_id_or_slug}/events/",
   },
 ] as const satisfies readonly SourceApiOperation[];
 

@@ -7,13 +7,14 @@
  * `@sentry/api/operations` directly.
  */
 
+import { API_BASE_PATH } from "../api-base-path.gen.js";
 import { isIdempotentRequest } from "./retry.js";
 
 /** A non-safe operation Sentry marks idempotent. */
 export type IdempotentOperation = {
   /** Uppercase HTTP method */
   method: string;
-  /** OpenAPI path template, such as `/api/0/organizations/{org}/chunk-upload/` */
+  /** OpenAPI path template relative to {@link API_BASE_PATH}, such as `/organizations/{org}/chunk-upload/` */
   path: string;
 };
 
@@ -59,8 +60,8 @@ function toMatcher({ method, path }: IdempotentOperation): Matcher {
  * Build `isIdempotent(method, url)` for a list of writes. The list is read on
  * the first call, so a caller may pass a thunk that loads it lazily.
  *
- * Matches from the `/api/` segment on, so a self-hosted install served under
- * a path prefix still matches.
+ * Matches the path after {@link API_BASE_PATH}, so a self-hosted install
+ * served under a path prefix still matches.
  */
 export function createIdempotentOperationMatcher(
   operations: () => readonly IdempotentOperation[],
@@ -71,11 +72,11 @@ export function createIdempotentOperationMatcher(
       return false;
     }
     const pathname = new URL(url).pathname;
-    const apiIndex = pathname.indexOf("/api/");
+    const apiIndex = pathname.indexOf(`${API_BASE_PATH}/`);
     if (apiIndex === -1) {
       return false;
     }
-    const apiPath = pathname.slice(apiIndex);
+    const apiPath = pathname.slice(apiIndex + API_BASE_PATH.length);
     const normalized = apiPath.endsWith("/") ? apiPath : `${apiPath}/`;
     const upper = method.toUpperCase();
 

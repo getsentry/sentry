@@ -87,7 +87,7 @@ describe("package entry points", () => {
         assert.equal("analyzeSourceApiUsage" in client, false);
         const sentry = client.createSentryClient({baseUrl: "https://example.test/prefix"});
         const request = await sentry.client.prepareRequest({
-          method: "POST", url: "/api/0/custom/?field=id&field=name&cursor=old#view",
+          method: "POST", url: "/custom/?field=id&field=name&cursor=old#view",
           query: {cursor: "opaque:next"}, body: {message: "example"},
         });
         assert.equal(request.url, "https://example.test/prefix/api/0/custom/?field=id&field=name&cursor=opaque%3Anext");
@@ -146,7 +146,7 @@ describe("package entry points", () => {
       writeFileSync(join(directory, "types.ts"), `
         import { consumePage, type PaginationContinuation, type PagePosition, type SentryClient } from "@sentry/api";
         declare const sentry: SentryClient;
-        const prepared: Promise<Request> = sentry.client.prepareRequest({method: "GET", url: "/api/0/custom/"});
+        const prepared: Promise<Request> = sentry.client.prepareRequest({method: "GET", url: "/custom/"});
         const position: PagePosition = {cursor: "opaque", offset: 2};
         const resume: PaginationContinuation = {...position, requestBudget: 10};
         const rows: string[] = consumePage({data: ["one"]}, position).data;

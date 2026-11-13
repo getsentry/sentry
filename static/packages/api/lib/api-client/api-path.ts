@@ -1,5 +1,7 @@
+import { API_BASE_PATH } from "../api-base-path.gen.js";
 import { UserInputError } from "./errors.js";
 
+export { API_BASE_PATH } from "../api-base-path.gen.js";
 export { type ApiPathScope, parseApiPathScope } from "./api-path-scope.js";
 
 /**
@@ -26,7 +28,7 @@ export function buildSentryApiUrl(baseUrl: string, endpoint: string): string {
   while (end > 0 && baseUrl.charAt(end - 1) === "/") {
     end -= 1;
   }
-  return `${baseUrl.slice(0, end)}/api/0/${path}`;
+  return `${baseUrl.slice(0, end)}${API_BASE_PATH}/${path}`;
 }
 
 /**

@@ -89,7 +89,6 @@ type Module = {
 };
 
 const SDK = "@sentry/api";
-const API_PREFIX = /^\/api\/\d+(?=\/)/;
 const PATH_PARAMETER = /\{[^{}]*\}/g;
 
 function unwrap(node: ts.Node): ts.Node {
@@ -298,7 +297,7 @@ export function analyzeSourceApiUsage(
   );
   const identities = new Map<string, SourceApiOperation[]>();
   const pathKey = (path: string) =>
-    `/${path.replace(API_PREFIX, "").split("/").filter(Boolean).join("/")}/`.replace(
+    `/${path.split("/").filter(Boolean).join("/")}/`.replace(
       PATH_PARAMETER,
       "{}",
     );

@@ -4,7 +4,7 @@ import { analyzeSourceApiUsage, type SourceApiOperation } from "../lib/source-an
 const operation = {
   functionName: "listOrganizationEvents",
   method: "GET",
-  path: "/api/0/organizations/{organization_id_or_slug}/events/",
+  path: "/organizations/{organization_id_or_slug}/events/",
 } as const satisfies SourceApiOperation;
 
 describe("source analysis value certainty", () => {
