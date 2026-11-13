@@ -225,7 +225,7 @@ class LinearApiPipelineTest(APITestCase):
         assert response.data["dynamicDisplayInformation"]["configure_integration"][
             "instructions"
         ] == [
-            "Seer has read-only access to this Linear workspace. "
+            "Seer has read and write access to this Linear workspace. "
             "Reconnect Linear to update its authorization."
         ]
         assert "app-token" not in response.content.decode()
