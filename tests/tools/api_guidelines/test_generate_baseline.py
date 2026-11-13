@@ -242,6 +242,17 @@ def test_collect_findings_scans_only_src_with_repo_relative_paths(fake_repo: Pat
     assert paths == {PATH}
 
 
+def test_collect_findings_keeps_only_baselined_rules(fake_repo: Path) -> None:
+    # no real file gives a structured S034 finding today, so the plugin's output is faked
+    _path, s026 = _violation("S026", "ExampleEndpoint.get", "query:id")
+    _path, s034 = _violation("S034", "ExampleEndpoint.get", "status:404")
+
+    with mock.patch.object(generate_baseline, "get_api_violations", return_value=[s026, s034]):
+        findings = collect_findings(fake_repo)
+
+    assert findings == [(PATH, s026)]
+
+
 def test_write_exceptions_writes_one_entry_per_line(tmp_path: Path) -> None:
     dest_file = tmp_path / "new_folder" / "exceptions.json"
     entries: list[dict[str, object]] = [{"rule": "S026", "count": 1}, {"rule": "S028", "count": 2}]
