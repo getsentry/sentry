@@ -6,6 +6,7 @@ from dataclasses import asdict, dataclass
 from enum import StrEnum
 from functools import partial
 from random import random
+from typing import Literal
 
 from django.db import router, transaction
 from django.db.models.functions import Greatest
@@ -99,6 +100,7 @@ class InboxEventType[SubjectT, DataT: InboxEventData]:
     data_class: type[DataT]
     # Personal notification setting category that controls email and Slack for this event.
     notification_setting: NotificationSettingEnum
+    recipient: Literal["team", "user"] = "user"
 
     def record(
         self,

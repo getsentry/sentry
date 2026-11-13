@@ -60,7 +60,7 @@ def test_delete_api_schema() -> None:
     assert "204" in operation["responses"]
     assert "content" not in operation["responses"]["204"]
     assert "requestBody" not in operation
-    assert {"id", "subject_type", "subject_id", "event_type", "is_read"} <= {
+    assert {"id", "subject_type", "subject_id", "event_type", "recipient", "is_read"} <= {
         parameter["name"] for parameter in operation["parameters"]
     }
 
@@ -210,11 +210,79 @@ class OrganizationInboxIndexTest(APITestCase):
         )
         assert [entry["id"] for entry in response.data] == [str(team.id)]
 
+    def test_recipient_filter(self) -> None:
+        items_by_recipient: dict[str, list[str]] = {"team": [], "user": []}
+        for index, (recipient, event_type) in enumerate(
+            [
+                ("team", "issue.team_assigned"),
+                ("team", "issue.team_mentioned"),
+                ("team", "notebook.team_mentioned"),
+                ("user", "issue.user_assigned"),
+                ("user", "issue.user_mentioned"),
+                ("user", "issue.pr_ready_for_review"),
+                ("user", "notebook.completed"),
+                ("user", "notebook.user_mentioned"),
+                ("user", "notebook.participant_added"),
+            ]
+        ):
+            item = self.create_inbox_item(
+                subject_type=event_type.partition(".")[0], subject_id=str(index + 1)
+            )
+            self.create_inbox_item_event(
+                inbox_item=item, type=event_type, data={"summary": "Inbox update"}
+            )
+            self.create_inbox_item_event(
+                inbox_item=item, type=event_type, data={"summary": "Another inbox update"}
+            )
+            items_by_recipient[recipient].append(str(item.id))
+        self.create_inbox_item_event(
+            inbox_item=self.create_inbox_item(user=self.create_user()), type="issue.team_assigned"
+        )
+        self.create_inbox_item_event(
+            inbox_item=self.create_inbox_item(organization=self.create_organization()),
+            type="issue.user_assigned",
+        )
+
+        response = self.get_success_response(self.organization.slug, recipient="team")
+        assert {entry["id"] for entry in response.data} == set(items_by_recipient["team"])
+
+        response = self.get_success_response(self.organization.slug, recipient="user")
+        assert {entry["id"] for entry in response.data} == set(items_by_recipient["user"])
+
+        response = self.get_success_response(self.organization.slug, recipient=["team", "user"])
+        assert {entry["id"] for entry in response.data} == set(
+            items_by_recipient["team"] + items_by_recipient["user"]
+        )
+
+    def test_recipient_and_event_type_match_the_same_event(self) -> None:
+        item = self.create_inbox_item()
+        self.create_inbox_item_event(
+            inbox_item=item, type="issue.team_mentioned", data={"summary": "Mentioned your team"}
+        )
+        self.create_inbox_item_event(
+            inbox_item=item, type="issue.user_assigned", data={"summary": "Assigned to you"}
+        )
+
+        response = self.get_success_response(
+            self.organization.slug, recipient="team", event_type="issue.user_assigned"
+        )
+        assert response.data == []
+
+        response = self.get_success_response(
+            self.organization.slug, recipient="team", event_type="issue.team_mentioned"
+        )
+        assert [entry["id"] for entry in response.data] == [str(item.id)]
+
+        response = self.get_success_response(self.organization.slug, recipient="user")
+        assert [entry["id"] for entry in response.data] == [str(item.id)]
+
     def test_invalid_filters(self) -> None:
         for params in (
             {"subject_type": "unknown"},
             {"event_type": "unknown"},
             {"event_type": ["issue.user_assigned", "unknown"]},
+            {"recipient": "unknown"},
+            {"recipient": ["team", "unknown"]},
             {"subject_id": "1"},
             {"subject_type": ["issue", "issue"], "subject_id": "1"},
             {"is_read": "unknown"},
@@ -507,6 +575,22 @@ class OrganizationInboxUpdateTest(APITestCase):
         assert target.last_read_at is not None
         assert other_event.last_read_at is None
 
+    def test_recipient_filter(self) -> None:
+        team = self.create_inbox_item(subject_id="team")
+        self.create_inbox_item_event(inbox_item=team, type="issue.team_assigned")
+        user = self.create_inbox_item(subject_id="user")
+        self.create_inbox_item_event(inbox_item=user, type="issue.user_assigned")
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"recipient": "team"}, isRead=True
+        )
+
+        assert response.data == {"updatedCount": 1}
+        team.refresh_from_db()
+        user.refresh_from_db()
+        assert team.last_read_at is not None
+        assert user.last_read_at is None
+
     def test_subject_filter(self) -> None:
         target = self.create_inbox_item(subject_id="1")
         other = self.create_inbox_item(subject_id="2")
@@ -551,6 +635,7 @@ class OrganizationInboxUpdateTest(APITestCase):
     def test_invalid_filters(self) -> None:
         item = self.create_inbox_item()
         for filters in (
+            {"recipient": "invalid"},
             {"id": "invalid"},
             {"subject_type": "unknown"},
             {"event_type": "unknown"},
@@ -790,9 +875,28 @@ class OrganizationInboxDeleteTest(APITestCase):
         assert item.status == ObjectStatus.ACTIVE
         assert not CellScheduledDeletion.objects.filter(model_name="InboxItem").exists()
 
+    def test_recipient_filter(self) -> None:
+        team = self.create_inbox_item(subject_id="team")
+        self.create_inbox_item_event(inbox_item=team, type="issue.team_assigned")
+        user = self.create_inbox_item(subject_id="user")
+        self.create_inbox_item_event(inbox_item=user, type="issue.user_assigned")
+
+        self.get_success_response(self.organization.slug, qs_params={"recipient": "team"})
+
+        team.refresh_from_db()
+        user.refresh_from_db()
+        assert team.status == ObjectStatus.PENDING_DELETION
+        assert user.status == ObjectStatus.ACTIVE
+        assert list(
+            CellScheduledDeletion.objects.filter(model_name="InboxItem").values_list(
+                "object_id", flat=True
+            )
+        ) == [team.id]
+
     def test_invalid_filters_do_not_remove_items(self) -> None:
         item = self.create_inbox_item()
         for filters in (
+            {"recipient": "invalid"},
             {"id": "invalid"},
             {"subject_type": "unknown"},
             {"event_type": "unknown"},
