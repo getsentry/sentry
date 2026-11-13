@@ -2161,6 +2161,7 @@ class SlackInvestigationEntrypointTest(TestCase):
         group: Group | None = None,
         provider_key: NotificationProviderKey = NotificationProviderKey.SLACK,
         key_type: NotificationSource = NotificationSource.METRIC_ALERT,
+        open_period_start: datetime | None = None,
         date_added: datetime = datetime(2024, 8, 27, 10, 0, tzinfo=UTC),
         has_integration: bool = True,
     ) -> NotificationThread:
@@ -2170,7 +2171,11 @@ class SlackInvestigationEntrypointTest(TestCase):
             target_id=channel_id,
             thread_identifier=self.message_ts,
             key_type=key_type,
-            key_data={},
+            key_data={
+                "open_period_start": (
+                    open_period_start or self.open_period.date_started
+                ).isoformat()
+            },
             object_type=NotificationThreadObjectType.GROUP,
             object_id=(group or self.group).id,
             integration_id=(integration_id or self.integration.id) if has_integration else None,
@@ -2223,6 +2228,15 @@ class SlackInvestigationEntrypointTest(TestCase):
             ("CALERT0001", self.message_ts, "conclusion"),
             ("CALERT0002", self.message_ts, "conclusion"),
         ]
+
+    def test_delayed_alert_thread_gets_conclusion(self) -> None:
+        self._use_open_period()
+        self._alert_thread("CALERT0001", date_added=datetime(2024, 8, 27, 13, 0, tzinfo=UTC))
+        self._complete_with_conclusion()
+
+        self._update_alert_threads()
+
+        assert self._posts() == [("CALERT0001", self.message_ts, "conclusion")]
 
     def test_alert_threads_wait_for_completed_run(self) -> None:
         self._use_open_period()
@@ -2284,8 +2298,9 @@ class SlackInvestigationEntrypointTest(TestCase):
         self._use_open_period()
         other_group = self.create_group(project=self.project, create_open_period=False)
         self._alert_thread("CALERT0001")
-        self._alert_thread("CBEFORE001", date_added=datetime(2024, 8, 27, 8, 0, tzinfo=UTC))
-        self._alert_thread("CAFTER0001", date_added=datetime(2024, 8, 27, 13, 0, tzinfo=UTC))
+        self._alert_thread("CBEFORE001", open_period_start=datetime(2024, 8, 27, 8, 0, tzinfo=UTC))
+        self._alert_thread("CAFTER0001", open_period_start=datetime(2024, 8, 27, 13, 0, tzinfo=UTC))
+        self._alert_thread("CNOPERIOD1").update(key_data={})
         self._alert_thread("COTHERGRP1", group=other_group)
         self._alert_thread("CMSTEAMS01", provider_key=NotificationProviderKey.MSTEAMS)
         self._alert_thread("CISSUE0001", key_type=NotificationSource.ISSUE)

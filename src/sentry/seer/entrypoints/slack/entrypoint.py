@@ -1217,7 +1217,7 @@ def _get_metric_open_period(investigation: Notebook) -> GroupOpenPeriod | None:
 
 
 def _get_alert_threads(open_period: GroupOpenPeriod) -> list[NotificationThread]:
-    """Returns the Slack metric alert threads of the group that started in the open period."""
+    """Returns the Slack metric alert threads belonging to the group and open period."""
     return [
         thread
         for thread in ThreadingService.get_threads_for_object(
@@ -1226,8 +1226,7 @@ def _get_alert_threads(open_period: GroupOpenPeriod) -> list[NotificationThread]
         if thread.provider_key
         in (NotificationProviderKey.SLACK, NotificationProviderKey.SLACK_STAGING)
         and thread.key_type == NotificationSource.METRIC_ALERT
-        and thread.date_added >= open_period.date_started
-        and (open_period.date_ended is None or thread.date_added <= open_period.date_ended)
+        and thread.key_data.get("open_period_start") == open_period.date_started.isoformat()
     ]
 
 
