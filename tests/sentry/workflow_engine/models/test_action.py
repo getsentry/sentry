@@ -93,7 +93,10 @@ class TestAction(TestCase):
         notification_uuid = str(uuid.uuid4())
         with patch.object(self.action, "get_handler", return_value=mock_handler):
             self.action.trigger(
-                self.mock_event, notification_uuid=notification_uuid, workflow_id=self.workflow.id
+                self.mock_event,
+                notification_uuid=notification_uuid,
+                workflow_id=self.workflow.id,
+                detector=mock_detector,
             )
 
             assert mock_handler.execute.call_count == 1
@@ -102,12 +105,12 @@ class TestAction(TestCase):
             assert invocation.event_data == self.mock_event
             assert invocation.action == self.action
             assert invocation.detector == mock_detector
+            mock_get_detector.assert_not_called()
 
-    @patch("sentry.workflow_engine.processors.detector.get_preferred_detector")
-    def test_trigger_with_failing_handler(self, mock_get_detector: MagicMock) -> None:
+    def test_trigger_with_failing_handler(self) -> None:
         mock_handler = Mock(spec=ActionHandler)
         mock_handler.execute.side_effect = Exception("Handler failed")
-        mock_get_detector.return_value = Mock(spec=Detector, type="error")
+        detector = Mock(spec=Detector, type="error")
 
         with patch.object(self.action, "get_handler", return_value=mock_handler):
             with pytest.raises(Exception, match="Handler failed"):
@@ -115,17 +118,20 @@ class TestAction(TestCase):
                     self.mock_event,
                     notification_uuid=str(uuid.uuid4()),
                     workflow_id=self.workflow.id,
+                    detector=detector,
                 )
 
     @patch("sentry.utils.metrics.incr")
-    @patch("sentry.workflow_engine.processors.detector.get_preferred_detector")
-    def test_trigger_metrics(self, mock_get_detector: MagicMock, mock_incr: MagicMock) -> None:
+    def test_trigger_metrics(self, mock_incr: MagicMock) -> None:
         mock_handler = Mock(spec=ActionHandler)
-        mock_get_detector.return_value = Mock(spec=Detector, type="error")
+        detector = Mock(spec=Detector, type="error")
 
         with patch.object(self.action, "get_handler", return_value=mock_handler):
             self.action.trigger(
-                self.mock_event, notification_uuid=str(uuid.uuid4()), workflow_id=self.workflow.id
+                self.mock_event,
+                notification_uuid=str(uuid.uuid4()),
+                workflow_id=self.workflow.id,
+                detector=detector,
             )
 
             mock_handler.execute.assert_called_once()
