@@ -1,8 +1,9 @@
-import {Fragment, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
-import classNames from 'classnames';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {openModal, type ModalRenderProps} from '@sentry/scraps/modal';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {toast} from '@sentry/scraps/toast';
 
 import {FormModel} from 'sentry/components/forms/model';
@@ -177,38 +178,20 @@ function ChangePlanAction({
   // Plan for partner sponsored subscriptions is not modifiable so skipping
   // the navigation that will allow modifying the billing cycle
   const header = partnerPlanId ? null : (
-    <ul className="nav nav-pills">
-      <li
-        className={classNames({
-          active: billingInterval === MONTHLY,
-        })}
+    <Flex>
+      <SegmentedControl
+        aria-label="Billing interval"
+        value={billingInterval}
+        onChange={setBillingInterval}
       >
-        <a
-          onClick={() => {
-            setBillingInterval(MONTHLY);
-          }}
-        >
-          Monthly
-        </a>
-      </li>
-      <li
-        className={classNames({
-          active: billingInterval === ANNUAL,
-        })}
-      >
-        <a
-          onClick={() => {
-            setBillingInterval(ANNUAL);
-          }}
-        >
-          Annual (Upfront)
-        </a>
-      </li>
-    </ul>
+        <SegmentedControl.Item key={MONTHLY}>Monthly</SegmentedControl.Item>
+        <SegmentedControl.Item key={ANNUAL}>Annual (Upfront)</SegmentedControl.Item>
+      </SegmentedControl>
+    </Flex>
   );
 
   return (
-    <Fragment>
+    <Stack gap="xl">
       {header}
       <PlanList
         formModel={formModel}
@@ -230,7 +213,7 @@ function ChangePlanAction({
         onPlanChange={handlePlanChange}
         tierPlans={getPlanList()}
       />
-    </Fragment>
+    </Stack>
   );
 }
 

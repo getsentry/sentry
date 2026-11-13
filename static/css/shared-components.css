@@ -518,23 +518,6 @@ body.theme-system scraps-bleep::before {
       }
     }
 
-    .nav-pills {
-      position: relative;
-      right: -6px;
-
-      a {
-        padding: 2px 8px;
-        font-size: 12px;
-        border-radius: 4px;
-      }
-
-      .active {
-        a {
-          background: var(--legacy-blue);
-        }
-      }
-    }
-
     .checkbox {
       margin-top: -4px;
     }
@@ -769,10 +752,6 @@ header + .alert {
   .open > a:active {
     background: none;
   }
-}
-
-.nav-pills > li.active > a {
-  background-color: var(--legacy-blue);
 }
 
 /**
