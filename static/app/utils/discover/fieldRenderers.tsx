@@ -32,6 +32,7 @@ import type {IssueAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {toArray} from 'sentry/utils/array/toArray';
 import {defined} from 'sentry/utils/defined';
 import {getShortEventId} from 'sentry/utils/events';
@@ -419,7 +420,9 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
           label: attachment.name,
           onAction: () =>
             window.open(
-              `/api/0/projects/${organization.slug}/${projectSlug}/events/${attachment.event_id}/attachments/${attachment.id}/?download=1`
+              resolveHostname(
+                `/api/0/projects/${organization.slug}/${projectSlug}/events/${attachment.event_id}/attachments/${attachment.id}/?download=1`
+              )
             ),
         }));
 
@@ -465,7 +468,9 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
               minidump
                 ? () => {
                     window.open(
-                      `/api/0/projects/${organization.slug}/${projectSlug}/events/${minidump.event_id}/attachments/${minidump.id}/?download=1`
+                      resolveHostname(
+                        `/api/0/projects/${organization.slug}/${projectSlug}/events/${minidump.event_id}/attachments/${minidump.id}/?download=1`
+                      )
                     );
                   }
                 : undefined

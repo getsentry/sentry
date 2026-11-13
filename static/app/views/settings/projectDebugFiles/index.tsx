@@ -17,6 +17,7 @@ import {t} from 'sentry/locale';
 import type {BuiltinSymbolSource, CustomRepo, DebugFile} from 'sentry/types/debugFiles';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {getPaginationProps} from 'sentry/utils/pagination';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
@@ -226,7 +227,9 @@ export default function ProjectDebugSymbols() {
             )}
             {debugFiles?.length
               ? debugFiles.map(debugFile => {
-                  const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${project.slug}/files/dsyms/?id=${debugFile.id}`;
+                  const downloadUrl = resolveHostname(
+                    `/api/0/projects/${organization.slug}/${project.slug}/files/dsyms/?id=${debugFile.id}`
+                  );
 
                   return (
                     <DebugFileRow

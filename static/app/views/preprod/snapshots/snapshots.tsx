@@ -20,6 +20,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -748,7 +749,9 @@ export default function SnapshotsPage() {
   const isComparisonProcessing =
     data?.comparison_state === 'pending' || data?.comparison_state === 'processing';
 
-  const imageBaseUrl = `/api/0/projects/${organization.slug}/${data?.project_id ?? ''}/files/images/`;
+  const imageBaseUrl = resolveHostname(
+    `/api/0/projects/${organization.slug}/${data?.project_id ?? ''}/files/images/`
+  );
   const diffImageBaseUrl = imageBaseUrl;
 
   const processingContent = (

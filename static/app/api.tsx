@@ -314,6 +314,7 @@ export class Client {
   };
 
   constructor(options: ClientOptions = {}) {
+    // eslint-disable-next-line @sentry/no-relative-api-url -- buildRequestUrl() resolves the host
     this.baseUrl = options.baseUrl ?? '/api/0';
     this.headers = options.headers ?? Client.JSON_HEADERS;
     this.activeRequests = {};

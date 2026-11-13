@@ -7,6 +7,7 @@ import type {StatsPeriodRange} from 'sentry/components/pageFilters/types';
 import {t} from 'sentry/locale';
 import type {ApiResult, ResponseMeta} from 'sentry/types/api';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import type {LocationQuery} from 'sentry/utils/discover/eventView';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -112,7 +113,9 @@ function handleDataExportResponse(
   const filename = createExportFilename(data.fileName, format);
   downloadFromHref(
     filename,
-    `/api/0/organizations/${organizationSlug}/data-export/${data.id}/?download=true`
+    resolveHostname(
+      `/api/0/organizations/${organizationSlug}/data-export/${data.id}/?download=true`
+    )
   );
   toast.success(t("Downloading '%s' to your browser.", data.fileName));
 }

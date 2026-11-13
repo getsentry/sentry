@@ -139,7 +139,7 @@ describe('SourceMapsDetails', () => {
       // Download button
       expect(screen.getByRole('button', {name: 'Download Artifact'})).toHaveAttribute(
         'href',
-        '/projects/org-slug/project-slug/releases/bea7335dfaebc0ca6e65a057/files/5678/?download=1'
+        '/api/0/projects/org-slug/project-slug/releases/bea7335dfaebc0ca6e65a057/files/5678/?download=1'
       );
     });
 
@@ -243,7 +243,7 @@ describe('SourceMapsDetails', () => {
       // Download Button
       expect(screen.getByRole('button', {name: 'Download Artifact'})).toHaveAttribute(
         'href',
-        '/projects/org-slug/project-slug/artifact-bundles/7227e105-744e-4066-8c69-3e5e344723fc/files/ZmlsZXMvXy9fL21haW4uanM=/?download=1'
+        '/api/0/projects/org-slug/project-slug/artifact-bundles/7227e105-744e-4066-8c69-3e5e344723fc/files/ZmlsZXMvXy9fL21haW4uanM=/?download=1'
       );
 
       renderGlobalModal();

@@ -16,9 +16,9 @@ import {EntryType} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {defined} from 'sentry/utils/defined';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
-import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
@@ -75,7 +75,6 @@ export function TraceEventDataSection({
   activeThreadId,
   initialCollapse,
 }: Props) {
-  const api = useApi();
   const organization = useOrganization();
 
   const {
@@ -451,7 +450,9 @@ export function TraceEventDataSection({
   const threadIdQuery =
     activeThreadId === undefined ? '' : `&thread_id=${activeThreadId}`;
   const appleCrashEndpoint = `/projects/${organization.slug}/${projectSlug}/events/${eventId}/apple-crash-report?minified=${minified}${threadIdQuery}`;
-  const rawStackTraceDownloadLink = `${api.baseUrl}${appleCrashEndpoint}&download=1`;
+  const rawStackTraceDownloadLink = resolveHostname(
+    `/api/0${appleCrashEndpoint}&download=1`
+  );
 
   const sortByTooltip = hasNewestFirst
     ? displayOptions.includes('raw-stack-trace')

@@ -9,7 +9,6 @@ import {Actions} from './actions';
 import {Information} from './information';
 
 type Props = {
-  baseUrl: string;
   candidate: ImageCandidate;
   hasReprocessWarning: boolean;
   haveCandidatesAtLeastOneAction: boolean;
@@ -23,7 +22,6 @@ export function Candidate({
   candidate,
   organization,
   projSlug,
-  baseUrl,
   haveCandidatesAtLeastOneAction,
   hasReprocessWarning,
   onDelete,
@@ -56,7 +54,6 @@ export function Candidate({
         >
           <Actions
             onDelete={onDelete}
-            baseUrl={baseUrl}
             projSlug={projSlug}
             organization={organization}
             candidate={candidate}
