@@ -61,8 +61,7 @@ _PROCESSING_FEATURE = "organizations:classifiers-ui"
 def schedule_classifiers() -> None:
     """Start selection for each enabled classifier once per SCAN_INTERVAL.
 
-    While the schedule ticks once per SCAN_INTERVAL, every classifier starts on each tick. Ticking
-    more often spreads them across the interval.
+    The schedule ticks more often than SCAN_INTERVAL, so classifiers are spread across it.
     """
     CursoredScheduler(
         name="telemetry_classifiers",
