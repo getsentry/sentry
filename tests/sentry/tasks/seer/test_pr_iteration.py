@@ -1611,6 +1611,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
 
         # The batch is dropped and the run stops iterating.
         assert peek_queued_autofix_feedback(67890) == []
+        assert peek_in_flight_autofix_feedback(67890) == []
         assert (
             get_pause_reason(run_id=67890, organization_id=self.organization.id)
             == PauseReason.DRAIN_FAILED
@@ -1639,6 +1640,8 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         self._call()
 
         assert peek_queued_autofix_feedback(67890) == []
+        # It never reaches Seer, so the UI must stop showing it as queued.
+        assert peek_in_flight_autofix_feedback(67890) == []
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.fetch_run_status")
@@ -1673,7 +1676,24 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         )
         assert queued_texts(self._state(blocks=[block])) == []
 
-    def _hold_check_suite_in_flight(self, updated_at: str) -> None:
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_dropped_feedback_is_not_left_in_flight(
+        self, mock_fetch: MagicMock, mock_trigger: MagicMock
+    ) -> None:
+        # The run has no PR head, so the check suite is dropped as stale.
+        mock_fetch.return_value = self._state()
+        self._enqueue_check_suite("2024-01-01T00:00:00Z")
+        self._enqueue_ui_feedback("fix it")
+
+        self._call()
+
+        assert mock_trigger.call_count == 1
+        assert [item.feedback.source.type for item in peek_in_flight_autofix_feedback(67890)] == [
+            "user-ui"
+        ]
+
+    def _enqueue_check_suite(self, updated_at: str) -> None:
         enqueue_autofix_feedback(
             log_ctx=PrIterationLogContext.for_run(
                 MagicMock(),
@@ -1689,6 +1709,9 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
             referrer=AutofixReferrer.GITHUB_PR_COMMENT,
             run_state=self._state(),
         )
+
+    def _hold_check_suite_in_flight(self, updated_at: str) -> None:
+        self._enqueue_check_suite(updated_at)
         pop_queued_autofix_feedback(67890)
 
     def _check_suite_block(self, updated_at: str) -> MemoryBlock:

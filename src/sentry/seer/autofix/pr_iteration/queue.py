@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, PrivateAttr, ValidationError
 
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
@@ -28,6 +29,9 @@ class QueuedAutofixFeedback(BaseModel):
     feedback: Feedback
     referrer: AutofixReferrer
     actor_user_id: int | None = None
+    # The exact string read from Redis, so the item can be removed from a list
+    # by value. Re-serializing may not match it byte for byte.
+    _raw: str | None = PrivateAttr(default=None)
 
 
 def _feedback_queue_key(run_id: int) -> str:
@@ -105,10 +109,12 @@ def clear_queued_autofix_feedback(run_id: int) -> None:
 
 def _parse_queued_item(raw_item: str) -> QueuedAutofixFeedback | None:
     try:
-        return QueuedAutofixFeedback.parse_raw(raw_item)
+        item = QueuedAutofixFeedback.parse_raw(raw_item)
     except (ValidationError, ValueError):
         logger.warning("autofix.feedback_queue.skipped_unparseable_item")
         return None
+    item._raw = raw_item
+    return item
 
 
 def count_queued_autofix_feedback(run_id: int) -> int:
@@ -146,9 +152,10 @@ def pop_queued_autofix_feedback(run_id: int) -> list[QueuedAutofixFeedback]:
     this pop and Seer recording the iteration. A poll landing there sees an idle
     run with nothing queued, so the UI hides the item and slows its polling.
 
-    The move is one script, so a poll never sees the items in neither list. The
-    in-flight list is only appended to and left to expire: once Seer has an
-    item, the UI state stops showing it (see ``ui_state``).
+    The move is one script, so a poll never sees the items in neither list. Once
+    Seer has an item, the UI state stops showing it (see ``ui_state``). Items
+    that won't reach Seer must be taken off with
+    ``release_in_flight_autofix_feedback``; the rest are left to expire.
     """
     client = redis_clusters.get(_REDIS_CLUSTER)
     raw_items = drain_list_into(
@@ -158,3 +165,26 @@ def pop_queued_autofix_feedback(run_id: int) -> list[QueuedAutofixFeedback]:
     )
 
     return [item for item in (_parse_queued_item(raw) for raw in raw_items) if item is not None]
+
+
+def release_in_flight_autofix_feedback(run_id: int, items: Sequence[QueuedAutofixFeedback]) -> None:
+    """Take drained feedback that won't reach Seer off the in-flight list.
+
+    The UI shows in-flight items that no Seer block has, so without this a
+    dropped item stays "queued" until the list expires, and every later drain
+    restarts that clock. Removes one copy per item, by its exact Redis value.
+
+    Display only, so a failure is logged rather than raised: it must not fail
+    the drain or replace the error the drain is already handling.
+    """
+    if not items:
+        return
+
+    key = _in_flight_key(run_id)
+    try:
+        with redis_clusters.get(_REDIS_CLUSTER).pipeline() as pipe:
+            for item in items:
+                pipe.lrem(key, 1, item._raw if item._raw is not None else item.json())
+            pipe.execute()
+    except Exception:
+        logger.warning("autofix.feedback_queue.release_in_flight_failed", exc_info=True)
