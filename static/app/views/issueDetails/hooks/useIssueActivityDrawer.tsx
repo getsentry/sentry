@@ -8,15 +8,17 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 import {ActivityDrawer} from 'sentry/views/issueDetails/sidebar/activityDrawer';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 interface UseIssueActivityDrawerProps {
+  getReturnPath: () => string;
   group: Group;
 }
 
-export function useIssueActivityDrawer({group}: UseIssueActivityDrawerProps) {
+export function useIssueActivityDrawer({
+  getReturnPath,
+  group,
+}: UseIssueActivityDrawerProps) {
   const {openDrawer} = useDrawer();
-  const {baseUrl} = useGroupDetailsRoute();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -33,7 +35,7 @@ export function useIssueActivityDrawer({group}: UseIssueActivityDrawerProps) {
         onClose: () => {
           navigate(
             {
-              pathname: baseUrl,
+              pathname: getReturnPath(),
               query: {
                 ...location.query,
                 filter: undefined,
@@ -47,7 +49,7 @@ export function useIssueActivityDrawer({group}: UseIssueActivityDrawerProps) {
         },
       }
     );
-  }, [openDrawer, baseUrl, navigate, location.query, group.id]);
+  }, [openDrawer, getReturnPath, navigate, location.query, group.id]);
 
   return {openIssueActivityDrawer};
 }

@@ -238,6 +238,29 @@ describe('SeerDrawer', () => {
     expect(resetButton).not.toHaveAttribute('aria-disabled', 'true');
   });
 
+  it('restarts a failed run without asking what to change', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: makeExplorerAutofixData({status: 'error'})},
+    });
+    const postMock = MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      method: 'POST',
+      body: {run_id: 2},
+    });
+
+    render(<SeerDrawer group={mockGroup} project={mockProject} />, {organization});
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId('ai-setup-loading-indicator')
+    );
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Start a new analysis from scratch'})
+    );
+
+    await waitFor(() => expect(postMock).toHaveBeenCalled());
+  });
+
   it('clicking reset triggers a new root cause analysis', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,

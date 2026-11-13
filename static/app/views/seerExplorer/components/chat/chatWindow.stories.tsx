@@ -143,7 +143,12 @@ function ChatWindow({session, hasEnoughCredits, initialQuery, wallet}: ChatWindo
             persist the story's run over the viewer's own Explorer session. */}
         <SeerExplorerChatDispatchContext.Provider value={noopDispatch}>
           <SeerExplorerChatStateContext.Provider
-            value={{runId: session ? RUN_ID : null, chatPrompt: null, chatStates: {}}}
+            value={{
+              runId: session ? RUN_ID : null,
+              chatPrompt: null,
+              chatStates: {},
+              pendingRestart: null,
+            }}
           >
             <PictureInPictureProvider>
               <SeerExplorerSessionsProvider>

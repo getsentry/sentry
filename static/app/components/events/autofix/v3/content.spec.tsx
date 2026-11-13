@@ -89,7 +89,7 @@ describe('SeerDrawerContent', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Start Analysis'}));
 
-    expect(startStep).toHaveBeenCalledWith('root_cause');
+    expect(startStep).toHaveBeenCalledWith('root_cause', {userContext: ''});
   });
 
   describe('single runs', () => {
@@ -196,6 +196,28 @@ describe('SeerDrawerContent', () => {
     });
   });
 
+  it('starts with the context added through Add context', async () => {
+    const startStep = jest.fn().mockResolvedValue({runId: 1, isSingleRun: false});
+    render(
+      <SeerDrawerContent
+        aiConfig={makeAiConfig()}
+        autofix={makeAutofix({startStep})}
+        group={GroupFixture()}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add context'}));
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Context for Seer'}),
+      'Started after the Celery upgrade'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Start Analysis'}));
+
+    expect(startStep).toHaveBeenCalledWith('root_cause', {
+      userContext: 'Started after the Celery upgrade',
+    });
+  });
+
   describe('out of Seer credits', () => {
     const organization = OrganizationFixture({
       features: ['seer-credit-checks', 'token-billed-seer-enabled'],
@@ -259,7 +281,7 @@ describe('SeerDrawerContent', () => {
       expect(cta).toHaveTextContent('warning autofix-start');
       expect(screen.getAllByTestId('seer-out-of-credits-cta')).toHaveLength(1);
       expect(
-        screen.getByText('Determine the root cause of your issue')
+        screen.getByText('Let Seer find the root cause and fix it')
       ).toBeInTheDocument();
       const startButton = screen.getByRole('button', {name: 'Start Analysis'});
       expect(startButton).toBeDisabled();
