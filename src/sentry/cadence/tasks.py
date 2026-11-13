@@ -161,15 +161,12 @@ def _claim_batch(
     now: datetime, after: _Cursor | None, due_by: datetime
 ) -> tuple[dict[ScheduledTriggerType, list[_ClaimedFiring]], int, _Cursor | None]:
     """
-    Advance up to TICK_BATCH_SIZE triggers due by `due_by` after `after` to their next firing
-    after `now`, returning the claimed firings grouped by trigger type, how many triggers were
-    selected, and the cursor to claim the next batch from. Rows locked by a concurrent claim
-    are skipped, so overlapping ticks and sweeps split the work.
+    Claim up to TICK_BATCH_SIZE triggers that are due by `due_by` and come after the `after`
+    cursor, and move each to its next firing after `now`.
 
-    Claiming moves a trigger's next_fire_at past `now`, but its old index entry stays until
-    vacuum removes it. Starting each batch after the previous one means a tick doesn't rescan
-    the entries it just made stale. A row the cursor passed over (because another claim had
-    it locked) is left for a later one.
+    Returns the claimed firings by trigger type, the number of triggers selected, and the
+    cursor for the next batch. Resuming from the cursor avoids rescanning index entries left
+    stale by earlier batches. Rows locked by another claim are skipped and left for a later one.
     """
     claimed: dict[ScheduledTriggerType, list[_ClaimedFiring]] = defaultdict(list)
     using = router.db_for_write(ScheduledTrigger)
