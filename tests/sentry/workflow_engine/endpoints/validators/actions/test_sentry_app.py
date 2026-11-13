@@ -151,4 +151,5 @@ class TestSentryAppActionValidator(BaseWorkflowTest):
             self.event_data,
             notification_uuid=str(uuid.uuid4()),
             workflow_id=self.workflow.id,
+            detector=self.detector,
         )  # action should be triggerable

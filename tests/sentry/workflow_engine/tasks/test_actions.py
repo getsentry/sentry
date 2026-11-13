@@ -102,7 +102,7 @@ class TestTriggerAction(TestCase):
             patch(
                 "sentry.workflow_engine.processors.detector.get_preferred_detector",
                 return_value=detector,
-            ),
+            ) as get_detector,
         ):
             trigger_action(
                 action_id=action.id,
@@ -119,6 +119,9 @@ class TestTriggerAction(TestCase):
                 ),
                 has_escalated=False,
             )
+
+            get_detector.assert_called_once_with(event_data)
+            assert action.trigger.call_args.kwargs["detector"] is detector
 
     @patch("sentry.workflow_engine.tasks.actions.sentry_sdk.capture_exception")
     def test_reports_and_suppresses_trigger_exception_on_final_attempt(

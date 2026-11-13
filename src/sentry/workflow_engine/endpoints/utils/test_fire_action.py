@@ -5,6 +5,7 @@ import sentry_sdk
 
 from sentry.shared_integrations.exceptions import IntegrationFormError
 from sentry.workflow_engine.models import Action
+from sentry.workflow_engine.processors.detector import get_preferred_detector
 from sentry.workflow_engine.types import WorkflowEventData, WorkflowId
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,7 @@ def test_fire_action(
             event_data=event_data,
             notification_uuid=str(uuid.uuid4()),
             workflow_id=workflow_id,
+            detector=get_preferred_detector(event_data),
         )
     except Exception as exc:
         if isinstance(exc, IntegrationFormError):

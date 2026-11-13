@@ -172,7 +172,12 @@ def trigger_action(
     # in this scope is grouped properly.
     with timeout_grouping_context(action.type), action_context_scope(ActionSource.SYSTEM):
         try:
-            action.trigger(event_data, notification_uuid=notification_uuid, workflow_id=workflow_id)
+            action.trigger(
+                event_data,
+                notification_uuid=notification_uuid,
+                workflow_id=workflow_id,
+                detector=detector,
+            )
         except TRIGGER_ACTION_RETRY_IGNORED_EXCEPTIONS:
             return
         except (Exception, ProcessingDeadlineExceeded) as error:
