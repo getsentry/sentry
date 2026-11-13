@@ -94,7 +94,9 @@ def cadence_sweep() -> None:
     """
     if not options.get("cadence.tick.enabled"):
         return
-    workers = options.get("cadence.sweep.workers")
+    # Fewer than one would silently stop the sweep, and triggers before the tick's window
+    # would never fire.
+    workers = max(1, options.get("cadence.sweep.workers"))
     if workers == 1:
         cadence_sweep_worker()
         return
@@ -117,6 +119,10 @@ def cadence_sweep_worker() -> None:
     now = timezone.now()
     # Timestamps have microsecond resolution, so this is the latest time before the tick's
     # window: together they cover every due trigger, once.
+    # TODO: If the full scan is slow, cache a lower bound to start from (e.g. the oldest
+    # next_fire_at the last sweep left unclaimed). Rows can be written below such a bound
+    # (schedules set in the past, rows skipped while locked), so it needs a rare unbounded
+    # sweep or a reset on schedule writes.
     _claim_and_dispatch(now, None, now - TICK_WINDOW - timedelta(microseconds=1), "sweep")
 
 

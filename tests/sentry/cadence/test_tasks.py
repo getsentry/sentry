@@ -580,6 +580,19 @@ class CadenceSweepTest(CadenceTickTestCase):
             self.firing(trigger, NOW - timedelta(hours=1), NOW + timedelta(hours=1))
         ]
 
+    @freeze_time(NOW)
+    @patch("sentry.cadence.tasks.cadence_sweep_worker.delay")
+    def test_sweep_runs_at_least_one_worker(self, delay: MagicMock) -> None:
+        trigger = self.create_trigger(NOW - timedelta(hours=1))
+
+        with override_options({"cadence.sweep.workers": 0}):
+            cadence_sweep()
+
+        delay.assert_not_called()
+        assert self.dispatched() == [
+            self.firing(trigger, NOW - timedelta(hours=1), NOW + timedelta(hours=1))
+        ]
+
     @patch("sentry.cadence.tasks.cadence_sweep_worker.delay")
     def test_sweep_kill_switch(self, delay: MagicMock) -> None:
         with override_options({"cadence.tick.enabled": False}):
