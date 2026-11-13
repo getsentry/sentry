@@ -37,9 +37,16 @@ export function makeDroppedDataQueryKeyPrefix(organizationSlug: string) {
   ] as const;
 }
 
+interface DroppedDataDateRange {
+  end?: string | null;
+  start?: string | null;
+  statsPeriod?: string | null;
+}
+
 export interface UseDroppedDataParams {
   dataset: DiscoverDatasets;
   interval: string;
+  datetime?: DroppedDataDateRange;
   projects?: number[];
 }
 
@@ -48,10 +55,11 @@ interface UseDroppedDataQueryOptions {
 }
 
 /**
- * Dropped and accepted events for the current page filters
+ * Dropped and accepted events for the current page filters, unless the chart
+ * passes its own date range or projects
  */
 export function useDroppedData(
-  {dataset, interval, projects}: UseDroppedDataParams,
+  {dataset, interval, datetime, projects}: UseDroppedDataParams,
   {enabled = true}: UseDroppedDataQueryOptions = {}
 ) {
   const organization = useOrganization();
@@ -59,13 +67,15 @@ export function useDroppedData(
     'explore-data-fidelity-annotations'
   );
   const {isReady: arePageFiltersReady, selection} = usePageFilters();
+  const hasOwnScope = defined(datetime) && defined(projects);
+  const dateRange = normalizeDateTimeParams(datetime ?? selection.datetime);
 
   // Keep in sync with useSortedTimeSeries so the band refetches with the chart
-  const {period, start, end} = selection.datetime;
+  const {statsPeriod, start, end} = dateRange;
   const intervalInMilliseconds = intervalToMilliseconds(interval);
   let staleTime = defined(end) && moment.utc(end).isAfter() ? 0 : Infinity;
   if (
-    defined(period) &&
+    defined(statsPeriod) &&
     !defined(start) &&
     !defined(end) &&
     intervalInMilliseconds !== 0
@@ -82,7 +92,7 @@ export function useDroppedData(
           dataset,
           interval,
           referrer: REFERRER,
-          ...normalizeDateTimeParams(selection.datetime),
+          ...dateRange,
           project: projects ?? selection.projects,
           environment: selection.environments,
         },
@@ -92,7 +102,7 @@ export function useDroppedData(
     retry: shouldRetryHandler,
     retryDelay: getRetryDelay,
     refetchOnWindowFocus: false,
-    enabled: enabled && droppedDataEnabled && arePageFiltersReady,
+    enabled: enabled && droppedDataEnabled && (hasOwnScope || arePageFiltersReady),
   });
 
   return {

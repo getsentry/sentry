@@ -16,6 +16,7 @@ import {
   type AskSeerHandler,
   type DroppedDataScope,
 } from 'sentry/components/droppedData/outcomeSections';
+import type {DroppedDataSurface} from 'sentry/components/droppedData/types';
 import {
   useDroppedData,
   type UseDroppedDataParams,
@@ -36,13 +37,16 @@ import {
 } from './outcomeColors';
 
 interface DroppedDataDrawerProps extends UseDroppedDataParams {
+  surface: DroppedDataSurface;
   onAskSeer?: AskSeerHandler;
 }
 
 export function DroppedDataDrawer({
   dataset,
   interval,
+  datetime,
   projects,
+  surface,
   onAskSeer,
 }: DroppedDataDrawerProps) {
   const theme = useTheme();
@@ -50,6 +54,7 @@ export function DroppedDataDrawer({
   const {droppedEvents, acceptedEvents, isPending, isError, refetch} = useDroppedData({
     dataset,
     interval,
+    datetime,
     projects,
   });
 
@@ -90,6 +95,7 @@ export function DroppedDataDrawer({
                 organization,
                 dataset,
                 scope: nextScope,
+                surface,
               });
             }}
           >
@@ -152,6 +158,7 @@ export function DroppedDataDrawer({
                             dataset,
                             outcome,
                             selected,
+                            surface,
                           });
                         }
                       }

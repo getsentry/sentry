@@ -210,7 +210,7 @@ export const ResultsChartContainer = memo(
     const isErrorsDataset = eventView.dataset === DiscoverDatasets.ERRORS;
     const chartInterval = getResultsChartInterval(eventView, location);
     const droppedData = useDroppedDataLayer(
-      {dataset: DiscoverDatasets.ERRORS, interval: chartInterval},
+      {dataset: DiscoverDatasets.ERRORS, interval: chartInterval, surface: 'discover'},
       {enabled: isErrorsDataset}
     );
     const isDroppedDataLoaded = defined(droppedData.layerControl);

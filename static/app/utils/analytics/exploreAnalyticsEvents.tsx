@@ -1,3 +1,4 @@
+import type {DroppedDataSurface} from 'sentry/components/droppedData/types';
 import type {Organization} from 'sentry/types/organization';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
@@ -22,21 +23,25 @@ export type ExploreAnalyticsEventParameters = {
     organization: Organization;
     outcome: string;
     reason: string;
+    surface: DroppedDataSurface;
   };
   'explore.dropped_data.drawer_opened': {
     dataset: DiscoverDatasets;
     organization: Organization;
+    surface: DroppedDataSurface;
   };
   'explore.dropped_data.legend_outcome_toggled': {
     dataset: DiscoverDatasets;
     organization: Organization;
     outcome: string;
     selected: boolean;
+    surface: DroppedDataSurface;
   };
   'explore.dropped_data.scope_toggled': {
     dataset: DiscoverDatasets;
     organization: Organization;
     scope: 'unexpected' | 'all';
+    surface: DroppedDataSurface;
   };
   'explore.floating_trigger.clear_selection': {
     organization: Organization;

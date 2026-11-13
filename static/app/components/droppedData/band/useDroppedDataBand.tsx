@@ -49,8 +49,11 @@ interface DroppedDataItem extends DroppedDataBucket {
   value: [start: number, y: number];
 }
 
+type BucketAlignment = 'start' | 'end';
+
 interface DroppedDataSeriesParams {
   bandOffset: number;
+  bucketAlignment: BucketAlignment;
   buckets: DroppedDataBucket[];
   chartRef: React.RefObject<ReactEchartsRef | null>;
   renderTooltip: (bucket: DroppedDataBucket) => string;
@@ -78,18 +81,24 @@ function clampRange({left, right}: PixelRange, track: PixelRange): PixelRange {
 }
 
 /**
- * Centred on the bucket start to line up with bar series, and rounded so
- * neighbouring buckets meet without anti-aliased seams.
+ * Centred on the bucket start to line up with bar series, or spanning the
+ * bucket when points sit at the bucket end, so the slot ends at its point.
+ * Rounded so neighbouring buckets meet without anti-aliased seams.
  */
 function bucketSlot(
   bucket: DroppedDataBucket,
-  api: CustomSeriesRenderItemAPI
+  api: CustomSeriesRenderItemAPI,
+  alignment: BucketAlignment
 ): PixelRange | null {
   const [startX] = api.coord([bucket.start, 0]);
   const [endX] = api.coord([bucket.end, 0]);
 
   if (!defined(startX) || !defined(endX)) {
     return null;
+  }
+
+  if (alignment === 'end') {
+    return {left: Math.round(startX), right: Math.round(endX)};
   }
 
   const halfSlot = (endX - startX) / 2;
@@ -136,12 +145,13 @@ interface BandGradient {
 
 function bandGradient(
   data: DroppedDataItem[],
-  api: CustomSeriesRenderItemAPI
+  api: CustomSeriesRenderItemAPI,
+  alignment: BucketAlignment
 ): BandGradient | null {
   const stops: Array<{color: string; x: number}> = [];
 
   data.forEach((bucket, index) => {
-    const slot = bucketSlot(bucket, api);
+    const slot = bucketSlot(bucket, api, alignment);
     if (!slot) {
       return;
     }
@@ -190,6 +200,7 @@ function bandGradient(
 function droppedDataRenderItem(
   data: DroppedDataItem[],
   bandOffset: number,
+  alignment: BucketAlignment,
   theme: Theme
 ): CustomSeriesRenderItem {
   const trackFill = theme.tokens.background.secondary;
@@ -201,7 +212,7 @@ function droppedDataRenderItem(
       return null;
     }
 
-    const slot = bucketSlot(bucket, api);
+    const slot = bucketSlot(bucket, api, alignment);
     const [, baseY] = api.coord([bucket.start, 0]);
     if (!slot || !defined(baseY)) {
       return null;
@@ -216,7 +227,7 @@ function droppedDataRenderItem(
     if (params.dataIndexInside === 0) {
       children.push(bandRect(track, y, track, trackFill, {silent: true, z2: -1}));
 
-      const gradient = bandGradient(highlighted, api);
+      const gradient = bandGradient(highlighted, api, alignment);
       if (gradient) {
         children.push(
           bandRect(clampRange(gradient.range, track), y, track, gradient.fill, {
@@ -270,6 +281,7 @@ function droppedDataTooltipOption(
 
 function createDroppedDataSeries({
   bandOffset,
+  bucketAlignment,
   buckets,
   chartRef,
   renderTooltip,
@@ -284,7 +296,7 @@ function createDroppedDataSeries({
   return {
     id: DROPPED_DATA_SERIES_ID,
     type: 'custom',
-    renderItem: droppedDataRenderItem(data, bandOffset, theme),
+    renderItem: droppedDataRenderItem(data, bandOffset, bucketAlignment, theme),
     name: DROPPED_DATA_SERIES_ID,
     data,
     color: theme.tokens.dataviz.semantic.bad,
@@ -297,6 +309,7 @@ function createDroppedDataSeries({
 interface UseDroppedDataBandParams {
   chartRef: React.RefObject<ReactEchartsRef | null>;
   bandOffset?: number;
+  bucketAlignment?: BucketAlignment;
   droppedData?: DroppedDataProps;
   utc?: boolean | null;
 }
@@ -305,6 +318,7 @@ export function useDroppedDataBand({
   chartRef,
   droppedData,
   bandOffset = 0,
+  bucketAlignment = 'start',
   utc,
 }: UseDroppedDataBandParams) {
   const theme = useTheme();
@@ -327,6 +341,7 @@ export function useDroppedDataBand({
       isVisible && defined(dataset)
         ? createDroppedDataSeries({
             bandOffset,
+            bucketAlignment,
             buckets,
             chartRef,
             renderTooltip: bucket =>
@@ -340,7 +355,17 @@ export function useDroppedDataBand({
             theme,
           })
         : null,
-    [bandOffset, buckets, chartRef, dataset, isVisible, renderToString, theme, timezone]
+    [
+      bandOffset,
+      bucketAlignment,
+      buckets,
+      chartRef,
+      dataset,
+      isVisible,
+      renderToString,
+      theme,
+      timezone,
+    ]
   );
 
   return {

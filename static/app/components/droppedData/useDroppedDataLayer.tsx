@@ -5,12 +5,15 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
-import {useDroppedDataDrawer} from './drawer/useDroppedDataDrawer';
+import {
+  useDroppedDataDrawer,
+  type UseDroppedDataDrawerParams,
+} from './drawer/useDroppedDataDrawer';
 import {hasDroppedData} from './buckets';
 import type {DroppedDataFilterNoteProps} from './droppedDataFilterNote';
 import {datasetNoun, droppedDataLabel} from './outcomes';
 import type {DroppedDataProps} from './types';
-import {useDroppedData, type UseDroppedDataParams} from './useDroppedData';
+import {useDroppedData} from './useDroppedData';
 
 const DROPPED_DATA_LAYER = 'dropped-data';
 
@@ -21,7 +24,7 @@ const SUPPORTED_DATASETS = new Set<DiscoverDatasets>([
   DiscoverDatasets.TRACEMETRICS,
 ]);
 
-interface UseDroppedDataLayerParams extends UseDroppedDataParams {
+interface UseDroppedDataLayerParams extends UseDroppedDataDrawerParams {
   environments?: string[];
 }
 
@@ -42,7 +45,7 @@ interface DroppedDataLayer {
  * and its filter note.
  */
 export function useDroppedDataLayer(
-  {environments, ...params}: UseDroppedDataLayerParams,
+  {environments, surface, ...params}: UseDroppedDataLayerParams,
   {enabled = true, hidden = false}: UseDroppedDataLayerOptions = {}
 ): DroppedDataLayer {
   const {dataset} = params;
@@ -51,7 +54,10 @@ export function useDroppedDataLayer(
     enabled: isEnabled,
   });
   const [isLayerOn, setIsLayerOn] = useState(true);
-  const openDroppedDataDrawer = useDroppedDataDrawer(params, {enabled: isEnabled});
+  const openDroppedDataDrawer = useDroppedDataDrawer(
+    {...params, surface},
+    {enabled: isEnabled}
+  );
 
   const isLoaded = isEnabled && defined(droppedEvents);
   const canShowDroppedData = isEnabled && hasDroppedData(droppedEvents, acceptedEvents);

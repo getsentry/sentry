@@ -320,7 +320,7 @@ function Chart({
   const groupBys = useQueryParamsGroupBys();
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const dataset = useSpansDataset();
-  const droppedData = useDroppedDataLayer({dataset, interval});
+  const droppedData = useDroppedDataLayer({dataset, interval, surface: 'explore_spans'});
 
   const {
     dismiss: dismissChartSelectionAlert,

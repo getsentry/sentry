@@ -6,6 +6,7 @@ import {useDrawer} from '@sentry/scraps/drawer';
 
 import {droppedAndFilteredLabel} from 'sentry/components/droppedData/outcomes';
 import type {ReasonRow} from 'sentry/components/droppedData/outcomeSections';
+import type {DroppedDataSurface} from 'sentry/components/droppedData/types';
 import type {UseDroppedDataParams} from 'sentry/components/droppedData/useDroppedData';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DiscoverDatasetToUrlParam} from 'sentry/utils/discover/types';
@@ -21,12 +22,16 @@ const DROPPED_DATA_DRAWER_PARSERS = {droppedData: parseAsString};
 
 const loadDroppedDataQuery = createLoader(DROPPED_DATA_DRAWER_PARSERS);
 
+export interface UseDroppedDataDrawerParams extends UseDroppedDataParams {
+  surface: DroppedDataSurface;
+}
+
 interface UseDroppedDataDrawerOptions {
   enabled?: boolean;
 }
 
 export function useDroppedDataDrawer(
-  {dataset, interval, projects}: UseDroppedDataParams,
+  {dataset, interval, datetime, projects, surface}: UseDroppedDataDrawerParams,
   {enabled = true}: UseDroppedDataDrawerOptions = {}
 ) {
   const organization = useOrganization();
@@ -37,7 +42,7 @@ export function useDroppedDataDrawer(
   const paramValue = DiscoverDatasetToUrlParam[dataset];
   const [{droppedData}, setDrawerQuery] = useQueryStates(DROPPED_DATA_DRAWER_PARSERS);
   const isDrawerInUrl = droppedData === paramValue;
-  const renderedQueryRef = useRef({interval, projects});
+  const renderedQueryRef = useRef({interval, datetime, projects});
 
   const {openSeerExplorer} = useSeerExplorerContext();
   const openSeerExplorerRef = useRef(openSeerExplorer);
@@ -51,6 +56,7 @@ export function useDroppedDataDrawer(
         dataset,
         outcome: row.outcome,
         reason: row.reason,
+        surface,
       });
       openSeerExplorerRef.current({
         initialQuery: buildAskSeerPrompt({
@@ -60,7 +66,7 @@ export function useDroppedDataDrawer(
         }),
       });
     },
-    [dataset, organization]
+    [dataset, organization, surface]
   );
   const onAskSeer = isSeerExplorerEnabled(organization) ? handleAskSeer : undefined;
 
@@ -68,7 +74,7 @@ export function useDroppedDataDrawer(
     if (!enabled || !isDrawerInUrl) {
       return;
     }
-    const query = {interval, projects};
+    const query = {interval, datetime, projects};
     const isStale = isDrawerOpen && !isEqual(renderedQueryRef.current, query);
     if (isAnyDrawerOpen && !isStale) {
       return;
@@ -79,7 +85,9 @@ export function useDroppedDataDrawer(
         <DroppedDataDrawer
           dataset={dataset}
           interval={interval}
+          datetime={datetime}
           projects={projects}
+          surface={surface}
           onAskSeer={onAskSeer}
         />
       ),
@@ -103,14 +111,20 @@ export function useDroppedDataDrawer(
     dataset,
     paramValue,
     interval,
+    datetime,
     projects,
+    surface,
     onAskSeer,
     pathname,
     setDrawerQuery,
   ]);
 
   return useCallback(() => {
-    trackAnalytics('explore.dropped_data.drawer_opened', {organization, dataset});
+    trackAnalytics('explore.dropped_data.drawer_opened', {
+      organization,
+      dataset,
+      surface,
+    });
     void setDrawerQuery({droppedData: paramValue}, {history: 'push'});
-  }, [organization, dataset, paramValue, setDrawerQuery]);
+  }, [organization, dataset, paramValue, setDrawerQuery, surface]);
 }

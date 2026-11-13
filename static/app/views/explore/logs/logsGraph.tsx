@@ -185,7 +185,7 @@ function Graph({
 
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const droppedData = useDroppedDataLayer(
-    {dataset: DiscoverDatasets.OURLOGS, interval},
+    {dataset: DiscoverDatasets.OURLOGS, interval, surface: 'explore_logs'},
     {hidden: tableIsEmpty || tableIsPending}
   );
 
