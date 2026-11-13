@@ -596,7 +596,7 @@ describe('ConnectRepositoryModal', () => {
       expect(await screen.findAllByText('vendor/')).not.toHaveLength(0);
 
       // Delete the first seeded row (src/→app/).
-      const deleteButtons = screen.getAllByRole('button', {name: 'Delete path mapping'});
+      const deleteButtons = screen.getAllByRole('button', {name: 'Remove code mapping'});
       await userEvent.click(deleteButtons[0]!);
 
       // Edit the remaining row (vendor/) to change its stack root.
@@ -651,7 +651,7 @@ describe('ConnectRepositoryModal', () => {
 
       // Delete is disabled (scraps Button uses aria-disabled).
       const [deleteProtected, deleteOther] = screen.getAllByRole('button', {
-        name: 'Delete path mapping',
+        name: 'Remove code mapping',
       });
       expect(deleteProtected).toHaveAttribute('aria-disabled', 'true');
       expect(deleteOther).not.toHaveAttribute('aria-disabled', 'true');
@@ -706,7 +706,7 @@ describe('ConnectRepositoryModal', () => {
       renderEditModal(closeModal);
 
       await userEvent.click(
-        await screen.findByRole('button', {name: 'Delete path mapping'})
+        await screen.findByRole('button', {name: 'Remove code mapping'})
       );
       expect(await screen.findByText('No paths configured')).toBeInTheDocument();
 
@@ -841,7 +841,7 @@ describe('ConnectRepositoryModal', () => {
       renderEditModal(closeModal);
 
       expect(await screen.findAllByText('vendor/')).not.toHaveLength(0);
-      const [deleteFirst] = screen.getAllByRole('button', {name: 'Delete path mapping'});
+      const [deleteFirst] = screen.getAllByRole('button', {name: 'Remove code mapping'});
       await userEvent.click(deleteFirst!);
 
       await userEvent.type(

@@ -20,11 +20,15 @@ export function PathMappingDeleteButton({
       size="zero"
       variant="transparent"
       icon={<IconDelete />}
-      aria-label={t('Delete path mapping')}
+      aria-label={t('Remove code mapping')}
       disabled={hasCodeOwner}
-      tooltipProps={
-        hasCodeOwner ? {title: <CodeOwnerMessage projectSlug={projectSlug} />} : undefined
-      }
+      tooltipProps={{
+        title: hasCodeOwner ? (
+          <CodeOwnerMessage projectSlug={projectSlug} />
+        ) : (
+          t('Remove code mapping')
+        ),
+      }}
       onClick={onDelete}
     />
   );

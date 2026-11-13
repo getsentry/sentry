@@ -75,7 +75,7 @@ describe('PathMappingList', () => {
         screen.getByRole('textbox', {name: /repository prefix/i})
       ).toBeInTheDocument();
       expect(screen.getByRole('textbox', {name: /branch/i})).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Delete path mapping'})).toBeEnabled();
+      expect(screen.getByRole('button', {name: 'Remove code mapping'})).toBeEnabled();
     });
 
     it('updates the input as the user types', async () => {
@@ -159,7 +159,7 @@ describe('PathMappingList', () => {
     it('removes a mapping', async () => {
       renderList({initialPathMappings: MAPPINGS});
 
-      const [firstDelete] = screen.getAllByRole('button', {name: 'Delete path mapping'});
+      const [firstDelete] = screen.getAllByRole('button', {name: 'Remove code mapping'});
       await userEvent.click(firstDelete!);
 
       expect(stackInputs()).toHaveLength(1);
@@ -170,7 +170,7 @@ describe('PathMappingList', () => {
     it('keeps the remaining row editable after deleting a row above it', async () => {
       renderList({initialPathMappings: MAPPINGS});
 
-      const [firstDelete] = screen.getAllByRole('button', {name: 'Delete path mapping'});
+      const [firstDelete] = screen.getAllByRole('button', {name: 'Remove code mapping'});
       await userEvent.click(firstDelete!);
       await userEvent.click(screen.getByRole('textbox', {name: /branch/i}));
       await userEvent.tab();
@@ -181,7 +181,7 @@ describe('PathMappingList', () => {
     it('falls back to a fresh row when the last mapping is deleted', async () => {
       renderList({initialPathMappings: [MAPPINGS[0]!]});
 
-      await userEvent.click(screen.getByRole('button', {name: 'Delete path mapping'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Remove code mapping'}));
 
       expect(stackInputs()).toHaveLength(1);
       expect(screen.queryByText('static/app/')).not.toBeInTheDocument();
@@ -257,7 +257,7 @@ describe('PathMappingList', () => {
         screen.getByRole('textbox', {name: /stack trace prefix/i})
       ).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('button', {name: 'Delete path mapping'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Remove code mapping'}));
       expect(screen.getByText('No paths configured')).toBeInTheDocument();
     });
   });
@@ -460,7 +460,7 @@ describe('PathMappingList', () => {
         ],
       });
 
-      const deleteButton = screen.getByRole('button', {name: 'Delete path mapping'});
+      const deleteButton = screen.getByRole('button', {name: 'Remove code mapping'});
       expect(deleteButton).toHaveAttribute('aria-disabled', 'true');
       await userEvent.hover(deleteButton);
       expect(await screen.findAllByRole('link', {name: 'Code Owners'})).toHaveLength(2);
