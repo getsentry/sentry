@@ -1760,7 +1760,9 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         # Seer's run stays errored until an iteration starts, as on the normal path's retry.
         self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
         mark_out_of_credits(run_id=67890, organization_id=self.organization.id)
-        mock_fetch.return_value = self._state(status="error", failure_reason="out_of_credits")
+        mock_fetch.return_value = self._state(
+            status="error", failure_reason="out_of_credits", blocks=[self._unpushed_block()]
+        )
         mock_trigger.side_effect = [SeerPermissionError("denied"), None]
 
         self._enqueue_ui_feedback("fix it")
