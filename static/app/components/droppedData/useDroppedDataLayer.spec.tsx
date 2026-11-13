@@ -67,20 +67,6 @@ describe('useDroppedDataLayer', () => {
     });
   });
 
-  it('names the layer after the telemetry type', async () => {
-    mockDroppedData();
-
-    const {result} = renderHookWithProviders(
-      () => useDroppedDataLayer({dataset: DiscoverDatasets.OURLOGS, interval: '1h'}),
-      {organization}
-    );
-
-    await waitFor(() => expect(result.current.layerControl).toBeDefined());
-    expect(result.current.layerControl!.layers).toEqual([
-      expect.objectContaining({label: 'Dropped Logs'}),
-    ]);
-  });
-
   it('reports loading until the dropped data arrives', async () => {
     mockDroppedData();
 

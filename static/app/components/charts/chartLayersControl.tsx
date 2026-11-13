@@ -16,10 +16,6 @@ export interface ChartLayer {
 export interface ChartLayersControlProps {
   layers: ChartLayer[];
   onChange: (value: string, selected: boolean) => void;
-  /**
-   * `selected` names the selected layers in the trigger, falling back to "Layers".
-   * `icon` shows only the icon, for tight spaces like widget headers.
-   */
   triggerLabel?: 'selected' | 'icon';
 }
 
