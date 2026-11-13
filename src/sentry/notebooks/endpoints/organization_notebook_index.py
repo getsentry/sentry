@@ -19,10 +19,10 @@ from sentry.auth.principal import acting_user_id
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
     OrganizationNotebooksBaseEndpoint,
+    organization_project_ids,
     require_notebook_writer,
     require_project_access,
     service_error,
-    writable_project_ids,
 )
 from sentry.notebooks.endpoints.serializers import (
     NotebookDetailsSerializer,
@@ -211,7 +211,7 @@ class OrganizationNotebookIndexEndpoint(OrganizationNotebooksBaseEndpoint):
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
         values = validator.validated_data
         requested_project_ids = values.get("project_ids", [])
-        if not set(requested_project_ids).issubset(writable_project_ids(request, organization)):
+        if not set(requested_project_ids).issubset(organization_project_ids(organization)):
             return Response(
                 {"detail": "One or more projects are inaccessible."},
                 status=status.HTTP_400_BAD_REQUEST,

@@ -15,11 +15,11 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
     OrganizationNotebookEndpoint,
+    organization_project_ids,
     request_creator_actor,
     require_notebook_writer,
     require_project_access,
     service_error,
-    writable_project_ids,
 )
 from sentry.notebooks.endpoints.serializers import (
     NotebookDetailsSerializer,
@@ -111,7 +111,7 @@ class OrganizationNotebookDetailsEndpoint(OrganizationNotebookEndpoint):
         expected_version = values.pop("investigation_version")
         requested_project_ids = values.pop("project_ids", None)
         if requested_project_ids is not None and not set(requested_project_ids).issubset(
-            writable_project_ids(request, organization)
+            organization_project_ids(organization)
         ):
             return Response(
                 {"detail": "One or more projects are inaccessible."},

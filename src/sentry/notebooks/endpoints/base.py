@@ -52,16 +52,6 @@ def organization_project_ids(organization: Organization) -> set[int]:
     )
 
 
-def writable_project_ids(request: Request, organization: Organization) -> set[int]:
-    """Projects the request can attach to a notebook.
-
-    Open membership gives users every active project, but it doesn't apply to service accounts.
-    """
-    if isinstance(request.access, ServiceAccountAccess):
-        return set(request.access.accessible_project_ids)
-    return organization_project_ids(organization)
-
-
 def user_id(request: Request) -> int:
     resolved = acting_user_id(request.user)
     if resolved is None:

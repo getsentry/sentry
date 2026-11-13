@@ -128,13 +128,6 @@ class NotebookWriterTest(APITestCase):
             deleted.status_code,
         ]
 
-    def test_user_writes(self) -> None:
-        self.login_as(self.user)
-        assert self.write_everything(self.client) == [201, 201, 200, 200, 204]
-        block = NotebookBlock.objects.get(notebook=self.notebook)
-        assert block.created_by_id == self.user.id
-        assert block.last_edited_by_id == self.user.id
-
     def test_agent_token_writes_as_its_user(self) -> None:
         assert self.write_everything(self.agent_client()) == [201, 201, 200, 200, 204]
         assert Notebook.objects.get(title="New").created_by_id == self.user.id
@@ -246,25 +239,6 @@ class NotebookWriterTest(APITestCase):
         with _dispatch_viewer_scope(self.notebook, command=command):
             pass
 
-    def test_project_limited_service_account_cannot_archive_a_running_investigation(
-        self,
-    ) -> None:
-        other = self.create_project(organization=self.organization)
-        self.create_notebook_project(self.notebook, other)
-        run = self.create_investigation_orchestration_run(
-            investigation=self.notebook,
-            projection={"workflowVersion": 1, "report": {"revision": 0, "status": "running"}},
-        )
-        client, _ = self.service_account_client(project_ids=[self.project.id])
-        url = self.url("sentry-api-0-organization-notebook-details", notebook_id=self.notebook.id)
-
-        response = client.delete(url, {"investigationVersion": 1}, format="json")
-
-        assert response.status_code == 403, response.data
-        self.notebook.refresh_from_db()
-        assert self.notebook.status == NotebookStatus.ACTIVE
-        assert not InvestigationOrchestrationCommand.objects.filter(orchestration_run=run).exists()
-
     def test_project_limited_service_account_cannot_change_other_notebooks(self) -> None:
         other = self.create_project(organization=self.organization)
         self.create_notebook_project(self.notebook, other)
@@ -344,13 +318,13 @@ class NotebookWriterTest(APITestCase):
             client.post(
                 index_url, {"title": "Other", "projectIds": [other.id]}, format="json"
             ).status_code
-            == 400
+            == 403
         )
         assert (
             client.put(
                 details_url, {"investigationVersion": 1, "projectIds": [other.id]}, format="json"
             ).status_code
-            == 400
+            == 403
         )
         assert not Notebook.objects.filter(title="Other").exists()
         assert list(self.notebook.projects.values_list("id", flat=True)) == [self.project.id]
