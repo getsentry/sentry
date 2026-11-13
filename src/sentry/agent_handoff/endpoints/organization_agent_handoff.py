@@ -90,6 +90,7 @@ class AgentHandoffRequestSerializer(CamelSnakeSerializer[AgentHandoffRequest]):
 
 
 class AgentHandoffResponse(TypedDict):
+    handoffId: str
     code: str
     prompt: str
     guideUrl: str
@@ -168,6 +169,7 @@ class OrganizationAgentHandoffEndpoint(ControlSiloOrganizationEndpoint):
         )
         guide_url = absolute_uri(reverse("sentry-agent-handoff"))
         data: AgentHandoffResponse = {
+            "handoffId": issued.handoff_id,
             "code": issued.code,
             "prompt": (
                 f"Follow the instructions verbatim at {guide_url}. "
@@ -182,6 +184,7 @@ class OrganizationAgentHandoffEndpoint(ControlSiloOrganizationEndpoint):
         )
         analytics.record(
             AgentHandoffPromptCreatedEvent(
+                handoff_id=issued.handoff_id,
                 user_id=user.id,
                 organization_id=organization.id,
                 flow=flow.value,

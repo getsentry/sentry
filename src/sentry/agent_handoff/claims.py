@@ -36,6 +36,7 @@ def _record_claim(outcome: ClaimOutcome, handoff: AgentHandoff | None) -> None:
     analytics.record(
         AgentHandoffClaimedEvent(
             outcome=outcome.value,
+            handoff_id=handoff.handoff_id if handoff else None,
             user_id=handoff.user_id if handoff else None,
             organization_id=handoff.organization_id if handoff else None,
             flow=handoff.flow.value if handoff else None,

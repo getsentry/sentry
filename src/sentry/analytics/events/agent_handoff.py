@@ -3,6 +3,7 @@ from sentry import analytics
 
 @analytics.eventclass("agent_handoff.prompt_created")
 class AgentHandoffPromptCreatedEvent(analytics.Event):
+    handoff_id: str
     user_id: int
     organization_id: int
     flow: str
@@ -14,6 +15,7 @@ class AgentHandoffPromptCreatedEvent(analytics.Event):
 class AgentHandoffClaimedEvent(analytics.Event):
     outcome: str
     # Unrecognized and already claimed codes cannot be attributed to a handoff.
+    handoff_id: str | None = None
     user_id: int | None = None
     organization_id: int | None = None
     flow: str | None = None
