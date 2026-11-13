@@ -853,9 +853,6 @@ importers:
       admin:
         specifier: workspace:@sentry-internal/gs-admin@*
         version: 'link:'
-      classnames:
-        specifier: 2.3.1
-        version: 2.3.1
       core-js:
         specifier: 3.45.0
         version: 3.45.0
