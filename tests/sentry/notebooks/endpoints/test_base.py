@@ -255,29 +255,29 @@ class NotebookWriterTest(APITestCase):
         )
 
         responses = [
-            client.put(details_url, {"investigationVersion": 1, "title": "No"}, format="json"),
+            client.put(details_url, {"notebookVersion": 1, "title": "No"}, format="json"),
             client.put(
                 details_url,
-                {"investigationVersion": 1, "projectIds": [self.project.id]},
+                {"notebookVersion": 1, "projectIds": [self.project.id]},
                 format="json",
             ),
-            client.delete(details_url, {"investigationVersion": 1}, format="json"),
+            client.delete(details_url, {"notebookVersion": 1}, format="json"),
             client.post(
                 self.url("sentry-api-0-organization-notebook-blocks", notebook_id=self.notebook.id),
-                {"investigationVersion": 1, "kind": "text", "content": "no"},
+                {"notebookVersion": 1, "kind": "text", "content": "no"},
                 format="json",
             ),
             client.put(
-                block_url, {"investigationVersion": 1, "version": 1, "content": "no"}, format="json"
+                block_url, {"notebookVersion": 1, "version": 1, "content": "no"}, format="json"
             ),
             client.put(
                 self.url(
                     "sentry-api-0-organization-notebook-block-order", notebook_id=self.notebook.id
                 ),
-                {"investigationVersion": 1, "blockIds": [block.id]},
+                {"notebookVersion": 1, "blockIds": [block.id]},
                 format="json",
             ),
-            client.delete(block_url, {"investigationVersion": 1, "version": 1}, format="json"),
+            client.delete(block_url, {"notebookVersion": 1, "version": 1}, format="json"),
         ]
 
         assert [response.status_code for response in responses] == [403] * 7
@@ -314,7 +314,7 @@ class NotebookWriterTest(APITestCase):
         )
         cleared = client.put(
             self.url("sentry-api-0-organization-notebook-details", notebook_id=self.notebook.id),
-            {"investigationVersion": 1, "projectIds": []},
+            {"notebookVersion": 1, "projectIds": []},
             format="json",
         )
 
