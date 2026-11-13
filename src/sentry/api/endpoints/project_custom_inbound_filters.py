@@ -34,6 +34,7 @@ from sentry.ingest.inbound_filters import (
     get_supported_condition_types,
     get_supported_operators,
 )
+from sentry.ingest.relay_glob import MAX_GLOB_COMPLEXITY, InvalidGlobPattern, glob_complexity
 from sentry.models.custominboundfilter import (
     COMPARISON_OPERATORS,
     MAX_FILTERS_PER_PROJECT,
@@ -112,6 +113,22 @@ def _is_ip_address_or_range(value: str) -> bool:
     return True
 
 
+def _validate_glob(pattern: str) -> None:
+    try:
+        complexity = glob_complexity(pattern)
+    except InvalidGlobPattern as e:
+        raise serializers.ValidationError({"value": f"{pattern} is not a valid pattern. {e}"})
+    if complexity > MAX_GLOB_COMPLEXITY:
+        raise serializers.ValidationError(
+            {
+                "value": (
+                    f"{pattern} has too many `{{}}` alternatives. Their counts multiplied "
+                    f"together can be at most {MAX_GLOB_COMPLEXITY}."
+                )
+            }
+        )
+
+
 def _is_release_version(release: str) -> bool:
     """
     Whether Relay reads a version out of the release, so that it can compare it. A
@@ -133,8 +150,10 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
         help_text=(
             "The field the condition matches against. Every `dataType` accepts `release`, "
             "`environment` and `ip_address`. In addition, `error` accepts `error_type`, `error_message` and "
-            "`geo_country_code`, `log` accepts `log_message`, and `metric` accepts "
-            "`metric_name`. `span` and `all` accept no other types."
+            "`geo_country_code`, `log` accepts `log_message`, `metric` accepts "
+            "`metric_name`, and `span` accepts `transaction_name`. `all` accepts no other "
+            "types. `transaction_name` matches the name of the transaction a span belongs "
+            "to, which drops all of that transaction's spans."
         ),
     )
     # A row stored before operators existed carries none, and DRF cannot read a required
@@ -191,6 +210,12 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
                 raise serializers.ValidationError(
                     {"value": f"{', '.join(invalid)} is not an IP address or CIDR range."}
                 )
+        # Relay ignores a glob it cannot parse, so the condition would drop less than the
+        # user wrote, without an error. Only `glob` values need the check: the other text
+        # operators escape every special character before the value reaches Relay.
+        if condition_type is ConditionType.TRANSACTION_NAME and operator is ConditionOperator.GLOB:
+            for value in attrs["value"]:
+                _validate_glob(value)
         return attrs
 
     def _validate_comparison(self, attrs: CustomInboundFilterCondition) -> None:
@@ -323,6 +348,23 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
                     {
                         "conditions": (
                             "The environment condition is not enabled for this organization."
+                        )
+                    }
+                )
+
+        if "conditions" in attrs and any(
+            condition["type"] == ConditionType.TRANSACTION_NAME for condition in conditions
+        ):
+            organization = self.context["project"].organization
+            if not features.has(
+                "organizations:inbound-filters-transaction-name",
+                organization,
+                actor=self.context["request"].user,
+            ):
+                raise serializers.ValidationError(
+                    {
+                        "conditions": (
+                            "The transaction_name condition is not enabled for this organization."
                         )
                     }
                 )

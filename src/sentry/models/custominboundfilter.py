@@ -17,6 +17,7 @@ class ConditionType(StrEnum):
     ENVIRONMENT = "environment"
     IP_ADDRESS = "ip_address"
     GEO_COUNTRY_CODE = "geo_country_code"
+    TRANSACTION_NAME = "transaction_name"
 
 
 class ConditionOperator(StrEnum):
