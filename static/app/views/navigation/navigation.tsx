@@ -126,8 +126,11 @@ function NavigationImpl() {
     [collapsedNavigation.view, secondarySidebarWidth]
   );
 
+  // The settings navigation replaces the whole sidebar, so remount the panel
+  // when entering or leaving it instead of animating the group switch. The
+  // exit animation would otherwise slide a second copy of the new content out.
   const secondarySidebar = (
-    <SecondaryNavigation.Sidebar>
+    <SecondaryNavigation.Sidebar key={isSettingsNavigation ? 'settings' : 'app'}>
       <SecondaryNavigationContent />
     </SecondaryNavigation.Sidebar>
   );
