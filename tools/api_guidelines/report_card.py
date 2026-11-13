@@ -8,43 +8,74 @@ from datetime import datetime
 from pathlib import Path
 
 from tools.api_guidelines.owners import UNOWNED, owner_for
-from tools.api_guidelines.rules import BASELINED_RULES, ApiRule
+from tools.api_guidelines.rules import STRUCTURED_RULES, ApiRule
 from tools.api_guidelines.scan import collect_findings
 from tools.flake8_plugin import ApiInputViolation
 
 OWNER_MAP_PATH = Path(".artifacts/api-endpoint-owners.json")
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 
+# (team, path, finding): a finding with the team that owns it, worked out once in main()
+OwnedFinding = tuple[str, str, ApiInputViolation]
 
-def rule_columns(findings: list[tuple[str, ApiInputViolation]]) -> list[str]:
-    """The rules to show as columns, in ApiRule order
-    `findings` every (path, finding) pair from the scan
-    Returns S025-S028 always (a rule with 0 findings is still checked), plus any other rule that has findings
+
+def rule_columns() -> list[str]:
+    """The rules to show as columns: the ones that report structured output, in ApiRule order
+    Returns rule codes like ["S025", "S026", "S027", "S028"]
     """
-    found = set()
-    for _path, finding in findings:
-        found.add(str(finding.rule))
-
     columns: list[str] = []
     for rule in ApiRule:
-        if rule in BASELINED_RULES or str(rule) in found:
+        if rule in STRUCTURED_RULES:
             columns.append(str(rule))
     return columns
 
 
-def count_by_team(
+def rules_without_structured_output() -> list[str]:
+    """The API rules the report card can't count yet, since they report straight to flake8
+    Returns rule codes like ["S021", "S022", "S023", "S034"]
+    """
+    rules: list[str] = []
+    for rule in ApiRule:
+        if rule not in STRUCTURED_RULES:
+            rules.append(str(rule))
+    return rules
+
+
+def find_owners(
     findings: list[tuple[str, ApiInputViolation]], owner_map: dict[str, dict[str, str]]
-) -> tuple[dict[str, Counter[str]], dict[str, set[str]]]:
-    """Counts each team's findings per rule, and the files they're in
+) -> list[OwnedFinding]:
+    """Finds the team of every finding, so the rest of the report card uses one answer
     `findings` every (path, finding) pair from the scan
     `owner_map` {path: {class name: owner}}, from `make api-owner-map`
+    Returns a (team, path, finding) triple per finding, in the scan's order
+    """
+    owned: list[OwnedFinding] = []
+    for path, finding in findings:
+        owned.append((owner_for(path, finding.scope, finding.caller, owner_map), path, finding))
+    return owned
+
+
+def known_teams(owner_map: dict[str, dict[str, str]]) -> set[str]:
+    """Every team in the owner map, plus unowned
+    `owner_map` {path: {class name: owner}}, from `make api-owner-map`
+    Returns the set of team names a --team can be
+    """
+    teams = {UNOWNED}
+    for owners in owner_map.values():
+        for team in owners.values():
+            teams.add(team)
+    return teams
+
+
+def count_by_team(owned: list[OwnedFinding]) -> tuple[dict[str, Counter[str]], dict[str, set[str]]]:
+    """Counts each team's findings per rule, and the files they're in
+    `owned` every finding with its team, from find_owners
     Returns ({team: Counter of rule -> findings}, {team: set of file paths})
     """
     rules_per_team: dict[str, Counter[str]] = {}
     files_per_team: dict[str, set[str]] = {}
 
-    for path, finding in findings:
-        team = owner_for(path, finding.scope, finding.caller, owner_map)
+    for team, path, finding in owned:
         if team not in rules_per_team:
             rules_per_team[team] = Counter()
             files_per_team[team] = set()
@@ -73,19 +104,14 @@ def team_order(rules_per_team: dict[str, Counter[str]]) -> list[str]:
     return teams
 
 
-def format_table(
-    findings: list[tuple[str, ApiInputViolation]],
-    owner_map: dict[str, dict[str, str]],
-    markdown: bool,
-) -> list[str]:
+def format_table(owned: list[OwnedFinding], markdown: bool) -> list[str]:
     """The report card table, one row per team plus a total row
-    `findings` every (path, finding) pair from the scan
-    `owner_map` {path: {class name: owner}}, from `make api-owner-map`
-    `markdown` True for a markdown table (to paste into Slack or a doc), False for plain text
+    `owned` every finding with its team, from find_owners
+    `markdown` True for a markdown table (for docs and PR comments), False for plain text
     Returns the table's lines
     """
-    columns = rule_columns(findings)
-    rules_per_team, files_per_team = count_by_team(findings, owner_map)
+    columns = rule_columns()
+    rules_per_team, files_per_team = count_by_team(owned)
 
     header = ["team", "total"] + columns + ["files"]
     rows: list[list[str]] = []
@@ -97,9 +123,9 @@ def format_table(
         row.append(str(len(files_per_team.get(team, set()))))
         rows.append(row)
 
-    total_row = ["total", str(len(findings))]
+    total_row = ["total", str(len(owned))]
     all_files = set()
-    for path, _finding in findings:
+    for _team, path, _finding in owned:
         all_files.add(path)
     for rule in columns:
         rule_total = 0
@@ -138,20 +164,15 @@ def _text_row(row: list[str], width: int) -> str:
     return text
 
 
-def team_findings(
-    findings: list[tuple[str, ApiInputViolation]],
-    owner_map: dict[str, dict[str, str]],
-    team: str,
-) -> list[str]:
+def team_findings(owned: list[OwnedFinding], team: str) -> list[str]:
     """One team's findings, one line each, sorted by file and line
-    `findings` every (path, finding) pair from the scan
-    `owner_map` {path: {class name: owner}}, from `make api-owner-map`
+    `owned` every finding with its team, from find_owners
     `team` the team to list, i.e "issues-feed" or "unowned"
     Returns lines like "src/sentry/x.py:12  S026  query:id  in ExampleEndpoint.get"
     """
     mine: list[tuple[str, ApiInputViolation]] = []
-    for path, finding in findings:
-        if owner_for(path, finding.scope, finding.caller, owner_map) == team:
+    for finding_team, path, finding in owned:
+        if finding_team == team:
             mine.append((path, finding))
 
     def position(pair: tuple[str, ApiInputViolation]) -> tuple[str, int]:
@@ -168,7 +189,7 @@ def team_findings(
 def main(argv: list[str] | None = None) -> int:
     """Prints the API report card: every team's API rule findings, per rule
     `argv` the CLI arguments. None means use the real ones (tests pass their own list)
-    Returns 0 when the report was printed and 1 when the owner map is missing
+    Returns 0 when the report was printed, and 1 when the owner map is missing or --team is unknown
     """
     parser = argparse.ArgumentParser(description="Print every team's API rule findings.")
     parser.add_argument("--owner-map", type=Path, default=_REPO_ROOT / OWNER_MAP_PATH)
@@ -184,10 +205,20 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     owner_map: dict[str, dict[str, str]] = json.loads(args.owner_map.read_text())
-    findings = collect_findings(_REPO_ROOT)
+
+    # a misspelled team would otherwise print "0 findings", which looks like a clean team
+    teams = known_teams(owner_map)
+    if args.team and args.team not in teams:
+        print(
+            f"Unknown team {args.team!r}. Teams in the owner map: {', '.join(sorted(teams))}",
+            file=sys.stderr,
+        )
+        return 1
+
+    owned = find_owners(collect_findings(_REPO_ROOT), owner_map)
 
     if args.team:
-        lines = team_findings(findings, owner_map, args.team)
+        lines = team_findings(owned, args.team)
         print(f"{len(lines)} findings owned by {args.team}")
         for line in lines:
             print(line)
@@ -195,24 +226,16 @@ def main(argv: list[str] | None = None) -> int:
 
     # the owner map has no date inside it, so its file's modification time is when it was made
     generated = datetime.fromtimestamp(args.owner_map.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
-    rules_per_team, _files = count_by_team(findings, owner_map)
-    unowned = sum(rules_per_team.get(UNOWNED, Counter()).values())
-    print(f"API report card: {len(findings)} findings")
+    unowned = 0
+    for team, _path, _finding in owned:
+        if team == UNOWNED:
+            unowned += 1
+    print(f"API report card: {len(owned)} findings")
     print(f"owner map generated {generated}, {unowned} findings unowned")
-
-    columns = rule_columns(findings)
-    not_shown = []
-    for rule in ApiRule:
-        if str(rule) not in columns:
-            not_shown.append(str(rule))
-    if not_shown:
-        print(
-            f"No structured findings: {', '.join(not_shown)} "
-            "(they don't report structured output yet, or have nothing to report)"
-        )
+    print(f"Not reporting structured output yet: {', '.join(rules_without_structured_output())}")
     print()
 
-    for line in format_table(findings, owner_map, markdown=args.format == "markdown"):
+    for line in format_table(owned, markdown=args.format == "markdown"):
         print(line)
     return 0
 

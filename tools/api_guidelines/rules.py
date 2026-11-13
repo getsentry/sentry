@@ -23,3 +23,7 @@ class ApiRule(StrEnum):
 # the only rules whose existing findings are kept as a baseline of legacy debt. Rules that are
 # always enforced (S021-S023, S034) have no baseline
 BASELINED_RULES = frozenset({ApiRule.S025, ApiRule.S026, ApiRule.S027, ApiRule.S028})
+
+# the rules whose findings come back from get_api_violations. The others (S021-S023, S034) report
+# straight to flake8 for now. When a rule moves onto structured output, add it here in the same PR
+STRUCTURED_RULES = frozenset({ApiRule.S025, ApiRule.S026, ApiRule.S027, ApiRule.S028})
