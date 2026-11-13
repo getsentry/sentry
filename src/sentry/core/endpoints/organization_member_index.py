@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, TypedDict
 
 from django.conf import settings
 from django.db import router, transaction
@@ -171,6 +171,14 @@ class OrganizationMemberRequestSerializer(serializers.Serializer[dict[str, Any]]
         valid_team_roles = [(team, team_role_map[team.slug]) for team in valid_teams]
 
         return valid_team_roles
+
+
+class _OrganizationErrorResponse(TypedDict):
+    organization: str
+
+
+class _EmailErrorResponse(TypedDict):
+    email: str
 
 
 @cell_silo_endpoint
@@ -349,6 +357,8 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
     ) -> (
         Response[OrganizationMemberResponse]
         | Response[DetailResponse]
+        | Response[_OrganizationErrorResponse]
+        | Response[_EmailErrorResponse]
         | Response[ValidationErrorResponse]
     ):
         """

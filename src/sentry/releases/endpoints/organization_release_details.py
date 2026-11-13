@@ -84,6 +84,10 @@ class _ReleaseDateQueryAndOrder(TypedDict):
     order_by: list[str]
 
 
+class _RefsErrorResponse(TypedDict):
+    refs: list[str]
+
+
 def add_status_filter_to_queryset(
     queryset: QuerySet[Release], status_filter: str
 ) -> QuerySet[Release]:
@@ -521,7 +525,11 @@ class OrganizationReleaseDetailsEndpoint(
     )
     def put(
         self, request: Request, organization: Organization, version: str
-    ) -> Response[ReleaseSerializerResponse] | Response[ValidationErrorResponse]:
+    ) -> (
+        Response[ReleaseSerializerResponse]
+        | Response[_RefsErrorResponse]
+        | Response[ValidationErrorResponse]
+    ):
         """
 
         Update a release. This can change some metadata associated with
