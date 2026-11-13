@@ -89,7 +89,6 @@ describe('Onboarding deployment target', () => {
   }
 
   afterEach(() => {
-    ProjectsStore.reset();
     MockApiClient.clearMockResponses();
   });
 

@@ -68,7 +68,6 @@ describe('useScmProjectCreation', () => {
   });
 
   afterEach(() => {
-    ProjectsStore.reset();
     MockApiClient.clearMockResponses();
   });
 
