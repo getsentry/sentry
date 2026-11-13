@@ -148,9 +148,15 @@ def _discard_group(group_id: int, project_id: int, tombstone_id: int, transactio
     # Mark the group pending deletion only after every hash has moved. Deleting a group also
     # deletes the hashes still attached to it, and `delete_pending_groups` deletes any group
     # left pending, even if this task has stalled.
-    Group.objects.filter(id=group_id).exclude(
-        status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
-    ).update(status=GroupStatus.PENDING_DELETION, substatus=None)
+    marked_pending = (
+        Group.objects.filter(id=group_id)
+        .exclude(status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS])
+        .update(status=GroupStatus.PENDING_DELETION, substatus=None)
+    )
+    if not marked_pending:
+        # An earlier run already scheduled the deletion, and `delete_pending_groups` picks the
+        # group up if that deletion failed. Scheduling another could overlap with it.
+        return
     GroupInbox.objects.filter(project_id=project_id, group_id=group_id).delete()
 
     delete_groups_for_project.apply_async(

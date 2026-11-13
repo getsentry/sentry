@@ -211,6 +211,16 @@ class DiscardGroupTest(TestCase):
         delete_task.apply_async.assert_called_once()
         assert delete_task.apply_async.call_args.kwargs["kwargs"]["object_ids"] == [self.group.id]
 
+    def test_does_not_schedule_deletion_again_for_pending_group(self) -> None:
+        self.group.update(status=GroupStatus.PENDING_DELETION)
+
+        with patch("sentry.deletions.tasks.groups.delete_groups_for_project") as delete_task:
+            self.run_task()
+
+        self.group_hash.refresh_from_db()
+        assert self.group_hash.group_tombstone_id == self.tombstone.id
+        delete_task.apply_async.assert_not_called()
+
     def test_skips_when_another_copy_holds_the_lock(self) -> None:
         lock = locks.get(f"discard-group:{self.group.id}", duration=60, name="discard_group")
         with (
