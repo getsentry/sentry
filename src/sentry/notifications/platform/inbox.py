@@ -107,27 +107,27 @@ def _send_notifications[SubjectT, DataT: InboxEventData](
     already_notified_user_ids = _get_user_ids_with_other_activity_events(
         events=events, activity_id=activity_id
     )
-    inbox_items = {
-        event.inbox_item.user_id: event.inbox_item
+    events_by_user_id = {
+        event.inbox_item.user_id: event
         for event in events
         if event.inbox_item.user_id not in already_notified_user_ids
     }
-    if not inbox_items:
+    if not events_by_user_id:
         return
 
     activity = Activity.objects.get(id=activity_id)
     strategy = UserRoutingStrategy(
         project=activity.project,
-        user_ids=list(inbox_items),
+        user_ids=list(events_by_user_id),
         settings_key=event_type.notification_setting,
     )
     for target in strategy.get_targets():
         user_id = (target.specific_data or {}).get("user_id")
-        if not isinstance(user_id, int) or user_id not in inbox_items:
+        if not isinstance(user_id, int) or user_id not in events_by_user_id:
             continue
         NotificationService[ActivityNotificationData](
             data=build_activity_notification_data(
-                activity=activity, target=target, inbox_item=inbox_items[user_id]
+                activity=activity, target=target, inbox_event=events_by_user_id[user_id]
             )
         ).notify_async(targets=[target])
 

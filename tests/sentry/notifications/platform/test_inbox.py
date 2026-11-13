@@ -215,6 +215,8 @@ class InboxNotificationsTest(TestCase):
         assert _sent(notify_async) == [
             (NotificationSource.ACTIVITY_SEER_PR_READY_FOR_REVIEW, "recipient@example.com")
         ]
+        first_event = InboxItemEvent.objects.earliest("id")
+        assert notify_async.call_args.args[0].data.issue_url.endswith(f"&event={first_event.id}")
 
     @with_feature(INBOX_FEATURES)
     def test_user_and_team_mention_notify_once(self, notify_async: MagicMock) -> None:
@@ -246,13 +248,14 @@ class InboxNotificationsTest(TestCase):
         assert _sent(notify_async) == [(NotificationSource.ACTIVITY_NOTE, "recipient@example.com")]
 
     @with_feature(INBOX_FEATURES)
-    def test_links_to_inbox_item_and_inbox_settings(self, notify_async: MagicMock) -> None:
+    def test_links_to_inbox_event_and_inbox_settings(self, notify_async: MagicMock) -> None:
         self._mention()
 
+        event = InboxItemEvent.objects.get()
         data = notify_async.call_args.args[0].data
         assert data.issue_url == self.organization.absolute_url(
             f"/organizations/{self.organization.slug}/inbox/issue/{self.group.id}/",
-            query="referrer=activity_notification",
+            query=f"referrer=activity_notification&event={event.id}",
         )
         assert data.user_settings_url == self.organization.absolute_url(
             "settings/account/notifications/inbox/", query="referrer=activity_notification"

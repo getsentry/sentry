@@ -13,7 +13,7 @@ from sentry.models.group import Group
 from sentry.models.groupemailthread import GroupEmailThread
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.notifications.models.inboxitem import InboxItem
+from sentry.notifications.models.inboxitemevent import InboxItemEvent
 from sentry.notifications.platform.types import (
     CodeSection,
     CodeTextBlock,
@@ -267,11 +267,11 @@ def build_activity_notification_data(
     *,
     target: NotificationTarget,
     workflow_id: int | None = None,
-    inbox_item: InboxItem | None = None,
+    inbox_event: InboxItemEvent | None = None,
 ) -> ActivityNotificationData:
     """
-    With an inbox item, the notification links to the item and to inbox notification settings
-    instead of to the issue and workflow notification settings.
+    With an inbox event, the notification links to the event in the inbox and to inbox
+    notification settings instead of to the issue and workflow notification settings.
     """
     from sentry.integrations.messaging.message_builder import (
         build_attachment_text,
@@ -322,8 +322,10 @@ def build_activity_notification_data(
                     }
                 ),
             )
-    if inbox_item is not None:
-        issue_url = inbox_item.get_absolute_url(params={"referrer": ACTIVITY_NOTIFICATION_REFERRER})
+    if inbox_event is not None:
+        issue_url = inbox_event.get_absolute_url(
+            params={"referrer": ACTIVITY_NOTIFICATION_REFERRER}
+        )
 
     action_data = dict(
         source=source,
@@ -363,7 +365,7 @@ def build_activity_notification_data(
     }:
         # Note: This is NOT backwards, a Workflow model comes from the workflow engine, powering alerts
         # The category of 'workflow' refers to subscribers to issues, which don't come from alerts.
-        notification_category = "inbox" if inbox_item else ("alerts" if workflow else "workflow")
+        notification_category = "inbox" if inbox_event else ("alerts" if workflow else "workflow")
         action_data.update(
             {
                 "user_settings_url": organization.absolute_url(

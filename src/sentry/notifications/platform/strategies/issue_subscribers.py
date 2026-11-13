@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from sentry.models.activity import Activity
+from sentry.notifications.platform.inbox import get_inbox_notified_user_ids
 from sentry.notifications.platform.strategies.utils import get_targets_from_participant_map
 from sentry.notifications.platform.types import (
     NotificationStrategy,
@@ -21,8 +22,6 @@ class IssueSubscribersActivityStrategy(NotificationStrategy):
     activity: Activity
 
     def get_targets(self) -> list[NotificationTarget]:
-        from sentry.notifications.platform.inbox import get_inbox_notified_user_ids
-
         group = self.activity.group
         if not group:
             return []

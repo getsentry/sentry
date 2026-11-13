@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from enum import StrEnum
 
 from django.db import models
@@ -73,3 +74,6 @@ class InboxItemEvent(DefaultFieldsModel):
         ]
 
     __repr__ = sane_repr("id", "inbox_item_id", "type", "actor_type", "actor_id")
+
+    def get_absolute_url(self, params: Mapping[str, str] | None = None) -> str:
+        return self.inbox_item.get_absolute_url(params={**(params or {}), "event": str(self.id)})
