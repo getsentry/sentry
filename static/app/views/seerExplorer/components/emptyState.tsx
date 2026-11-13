@@ -23,7 +23,11 @@ import {t, tct} from 'sentry/locale';
 import type {ChatSuggestionsState} from 'sentry/views/seerExplorer/hooks/useChatSuggestions';
 import type {ChatSuggestion, SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 
-const SUGGESTION_PLACEHOLDER_COUNT = 3;
+const SUGGESTION_PLACEHOLDERS: readonly [string, string, string] = [
+  t('Finding suggested questions about this page…'),
+  t('Preparing useful questions for this page…'),
+  t('Finding useful questions about your application…'),
+];
 
 interface EmptyStateProps {
   composerRef?: RefObject<HTMLDivElement | null>;
@@ -53,9 +57,16 @@ export function EmptyState({
   hasDraft = false,
 }: EmptyStateProps) {
   const characterRef = useRef<HTMLDivElement>(null);
+  const sortedSuggestions =
+    suggestions && !suggestions.isLoading
+      ? suggestions.suggestions.toSorted((a, b) => a.text.length - b.text.length)
+      : [];
+  const [shortest, medium, ...longer] = sortedSuggestions;
+  const orderedSuggestions =
+    shortest && medium ? [medium, shortest, ...longer] : sortedSuggestions;
   const suggestionCount = suggestions?.isLoading
-    ? SUGGESTION_PLACEHOLDER_COUNT
-    : (suggestions?.suggestions.length ?? 0);
+    ? SUGGESTION_PLACEHOLDERS.length
+    : orderedSuggestions.length;
   const runIdDisplay = runId?.toString() ?? 'null';
 
   useEffect(() => {
@@ -241,7 +252,7 @@ export function EmptyState({
                   {Array.from({length: suggestionCount}, (_, index) => {
                     const suggestion = suggestions.isLoading
                       ? undefined
-                      : suggestions.suggestions[index];
+                      : orderedSuggestions[index];
                     return (
                       <SuggestionItem
                         key={index}
@@ -365,7 +376,7 @@ function SuggestionItem({
           wrap="normal"
           textWrap="pretty"
         >
-          {text ?? t('Preparing your suggested questions…')}
+          {text ?? SUGGESTION_PLACEHOLDERS[position] ?? SUGGESTION_PLACEHOLDERS[0]}
         </Text>
       </Flex>
     </ToggleCard>
