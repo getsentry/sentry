@@ -8,6 +8,7 @@ import {ImageAvatar, LetterAvatar, useAvatar} from '@sentry/scraps/avatar';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 
+import {getAvatarChonk} from './avatarImageAnalysis';
 import {useAvatarColors} from './useAvatarColors';
 
 type AvatarButtonSize = 'xs' | 'sm' | 'md';
@@ -50,6 +51,8 @@ export function AvatarButton({
   });
 
   const colors = useAvatarColors(isSuggested ? undefined : avatar);
+  const chonk =
+    colors.type === 'none' ? undefined : getAvatarChonk(colors.dominant, theme.type);
 
   const contextSize = useSizeContext();
   const size = explicitSize ?? contextSize ?? 'md';
@@ -71,17 +74,14 @@ export function AvatarButton({
   }
 
   if (avatarDefinition.type === 'letter') {
-    const avatarChonk = colors.type === 'letter' ? colors.chonk : undefined;
-
     return (
-      <StyledAvatarButton {...props} size={size} round={round} chonk={avatarChonk}>
+      <StyledAvatarButton {...props} size={size} round={round} chonk={chonk}>
         <AvatarContainer
           size={size}
           round={round}
           padded={false}
           borderColor={
-            avatarChonk ??
-            (isSuggested ? theme.tokens.border.neutral.vibrant : 'transparent')
+            chonk ?? (isSuggested ? theme.tokens.border.neutral.vibrant : 'transparent')
           }
           borderStyle={isSuggested ? 'dashed' : 'solid'}
         >
@@ -93,8 +93,6 @@ export function AvatarButton({
       </StyledAvatarButton>
     );
   }
-
-  const chonk = colors.type === 'image' ? colors.chonk : undefined;
 
   return (
     <StyledAvatarButton {...props} size={size} round={round} chonk={chonk}>

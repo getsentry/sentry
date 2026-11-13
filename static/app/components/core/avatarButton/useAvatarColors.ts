@@ -1,21 +1,18 @@
-import {useTheme} from '@emotion/react';
 import {skipToken, useQuery} from '@tanstack/react-query';
-import color from 'color';
 
 import type {BaseAvatarProps} from '@sentry/scraps/avatar';
 import {useAvatar} from '@sentry/scraps/avatar';
 
 import {resolveImageAvatarColors} from './avatarImageAnalysis';
 
-// `chonk` is tuned for the avatar button border and can be far from the
-// avatar's own color. `dominant` is the color the avatar actually shows.
+// `dominant` is the color the avatar shows. `style` says whether an image fills
+// the frame or should be inset.
 export type AvatarColorsResult =
-  | {chonk: string; dominant: string; style: 'padded' | 'fill'; type: 'image'}
-  | {chonk: string; dominant: string; type: 'letter'}
+  | {dominant: string; style: 'padded' | 'fill'; type: 'image'}
+  | {dominant: string; type: 'letter'}
   | {type: 'none'};
 
 export function useAvatarColors(avatar?: BaseAvatarProps): AvatarColorsResult {
-  const theme = useTheme();
   const avatarDefinition = useAvatar({
     identifier: avatar?.identifier ?? '',
     name: avatar?.name ?? '',
@@ -31,10 +28,10 @@ export function useAvatarColors(avatar?: BaseAvatarProps): AvatarColorsResult {
     avatarDefinition.type === 'image' ? avatarDefinition.configuration.src : null;
 
   const {data: imageResult} = useQuery({
-    queryKey: ['avatar-button-chonk', imageUrl, theme.type],
+    queryKey: ['avatar-image-analysis', imageUrl],
     queryFn:
       avatar && imageUrl && avatarDefinition.type === 'image'
-        ? () => resolveImageAvatarColors(imageUrl, theme.type)
+        ? () => resolveImageAvatarColors(imageUrl)
         : skipToken,
     staleTime: Infinity,
   });
@@ -44,18 +41,11 @@ export function useAvatarColors(avatar?: BaseAvatarProps): AvatarColorsResult {
   }
 
   if (avatarDefinition.type === 'letter') {
-    const dominant = avatarDefinition.configuration.background;
-    const chonk = color(dominant).darken(0.65).hex();
-    return {type: 'letter', chonk, dominant};
+    return {type: 'letter', dominant: avatarDefinition.configuration.background};
   }
 
-  if (imageResult?.chonk) {
-    return {
-      type: 'image',
-      chonk: imageResult.chonk,
-      dominant: imageResult.dominant,
-      style: imageResult.style,
-    };
+  if (imageResult) {
+    return {type: 'image', dominant: imageResult.dominant, style: imageResult.style};
   }
 
   return {type: 'none'};
