@@ -69,6 +69,7 @@ ISSUE_USER_ASSIGNED = InboxEventType(
     notification_setting=NotificationSettingEnum.INBOX_ASSIGNMENTS,
 )
 ISSUE_TEAM_ASSIGNED = InboxEventType(
+    recipient="team",
     event_type="issue.team_assigned",
     item_type=ISSUE,
     data_class=IssueAssignedData,
@@ -81,6 +82,7 @@ ISSUE_USER_MENTIONED = InboxEventType(
     notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
 )
 ISSUE_TEAM_MENTIONED = InboxEventType(
+    recipient="team",
     event_type="issue.team_mentioned",
     item_type=ISSUE,
     data_class=IssueMentionedData,

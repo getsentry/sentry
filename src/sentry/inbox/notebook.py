@@ -71,6 +71,7 @@ NOTEBOOK_USER_MENTIONED = InboxEventType(
     notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
 )
 NOTEBOOK_TEAM_MENTIONED = InboxEventType(
+    recipient="team",
     event_type="notebook.team_mentioned",
     item_type=NOTEBOOK,
     data_class=NotebookMentionedData,
