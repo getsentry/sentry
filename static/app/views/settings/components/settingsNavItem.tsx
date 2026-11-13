@@ -2,7 +2,7 @@ import {Fragment, type ReactElement} from 'react';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 
-import {Badge, FeatureBadge} from '@sentry/scraps/badge';
+import {Badge} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -30,11 +30,7 @@ const LabelHook = OverrideOrDefault({
 export function SettingsNavItem({badge, label, id, to, index, ...props}: Props) {
   const settingsV3 = useSettingsV3();
   const {scope} = useSettingsScope();
-  const badgeElement = badge ? (
-    // In settings v3 the badge sits before the label, so a tooltip on the
-    // right would cover the label of the hovered item.
-    <SettingsNavBadge badge={badge} tooltipPosition={settingsV3 ? 'top' : 'right'} />
-  ) : null;
+  const badgeElement = badge ? <SettingsNavBadge badge={badge} /> : null;
 
   return (
     <SecondaryNavigation.ListItem>
@@ -63,18 +59,19 @@ export function SettingsNavItem({badge, label, id, to, index, ...props}: Props) 
   );
 }
 
-interface SettingsNavBadgeProps {
-  badge: string | number | null | ReactElement;
-  tooltipPosition: 'top' | 'right';
-}
-
-function SettingsNavBadge({badge, tooltipPosition}: SettingsNavBadgeProps) {
+function SettingsNavBadge({badge}: {badge: string | number | null | ReactElement}) {
+  const settingsV3 = useSettingsV3();
   if (badge === 'new' || badge === 'beta' || badge === 'alpha') {
-    return <FeatureBadge type={badge} tooltipProps={{position: tooltipPosition}} />;
+    return <SecondaryNavigation.FeatureBadge type={badge} />;
   }
   if (badge === 'warning') {
     return (
-      <Tooltip title={t('This setting needs review')} position={tooltipPosition}>
+      // In settings v3 the badge sits before the label, so a tooltip on the
+      // right would cover the label of the hovered item.
+      <Tooltip
+        title={t('This setting needs review')}
+        position={settingsV3 ? 'top' : 'right'}
+      >
         <StyledBadge variant="warning">{badge}</StyledBadge>
       </Tooltip>
     );
