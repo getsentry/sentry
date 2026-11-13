@@ -209,6 +209,7 @@ class ProjectArtifactBundle(Model):
     organization_id = BoundedBigIntegerField(db_index=True)
     project_id = BoundedBigIntegerField()
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
+    has_debug_ids = models.BooleanField(db_default=False)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
