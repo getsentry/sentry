@@ -6,7 +6,6 @@ import pytest
 
 from sentry.constants import DataCategory
 from sentry.exceptions import InvalidSearchQuery
-from sentry.telemetry_classifiers.datasets.base import SelectedEntity
 from sentry.telemetry_classifiers.definitions import resolve_prebuilt_definition
 from sentry.telemetry_classifiers.inference import ClassifierExecutionError
 from sentry.telemetry_classifiers.models import TelemetryClassifier
@@ -27,9 +26,6 @@ from sentry.testutils.silo import cell_silo_test
 
 NOW = datetime(2020, 1, 1, 12, 7, 31, tzinfo=UTC)
 LATER = datetime(2020, 1, 1, 12, 12, 31, tzinfo=UTC)
-# When the entities' newest telemetry happened.
-SEEN = datetime(2020, 1, 1, 11, 45, 0, tzinfo=UTC)
-SEEN_LATER = datetime(2020, 1, 1, 11, 50, 0, tzinfo=UTC)
 
 
 class ClassifierTaskTestCase(TestCase):
@@ -57,19 +53,13 @@ class ClassifierTaskTestCase(TestCase):
 @cell_silo_test
 class ScheduleClassifiersTest(TestCase):
     @patch("sentry.telemetry_classifiers.tasks.select_entities.delay")
-    def test_selects_enabled_classifiers_in_enabled_organizations(
-        self, mock_select: MagicMock
-    ) -> None:
+    def test_selects_enabled_classifiers(self, mock_select: MagicMock) -> None:
         enabled = self.create_telemetry_classifier(project=self.project)
         self.create_telemetry_classifier(
             project=self.project, status=TelemetryClassifierStatus.DISABLED
         )
-        self.create_telemetry_classifier(
-            project=self.create_project(organization=self.create_organization())
-        )
 
-        with self.feature({"organizations:classifiers-ui": [self.organization.slug]}):
-            schedule_classifiers()
+        schedule_classifiers()
 
         mock_select.assert_called_once_with(enabled.id)
 
@@ -84,10 +74,8 @@ class SelectEntitiesTest(ClassifierTaskTestCase):
 
     def test_selects_recent_entities_once(self) -> None:
         classifier = self.create_telemetry_classifier(project=self.project, filter_query="a:b")
-        one = SelectedEntity("one", SEEN)
-        two = SelectedEntity("two", SEEN_LATER)
         # Windows overlap, so the second selection finds "one" again.
-        self.dataset.select.side_effect = [[one], [two, one]]
+        self.dataset.select.side_effect = [["one"], ["two", "one"]]
 
         with freeze_time(NOW):
             select_entities(classifier.id)
@@ -104,11 +92,9 @@ class SelectEntitiesTest(ClassifierTaskTestCase):
         ]
 
     @override_options({"telemetry-classifiers.select-limit": 2})
-    def test_pages_past_entities_already_sent(self) -> None:
+    def test_pages_past_entities_already_enqueued(self) -> None:
         classifier = self.create_telemetry_classifier(project=self.project)
-        one = SelectedEntity("one", SEEN)
-        two = SelectedEntity("two", SEEN)
-        self.dataset.select.side_effect = [[one, two], [one, two], [SelectedEntity("three", SEEN)]]
+        self.dataset.select.side_effect = [["one", "two"], ["one", "two"], ["three"]]
 
         select_entities(classifier.id)
         select_entities(classifier.id)
@@ -122,13 +108,11 @@ class SelectEntitiesTest(ClassifierTaskTestCase):
 
     @override_options({"telemetry-classifiers.select-limit": 2})
     @patch("sentry.telemetry_classifiers.tasks.metrics.incr")
-    def test_entities_already_sent_dont_count_toward_the_limit(self, mock_incr: MagicMock) -> None:
+    def test_entities_already_enqueued_dont_count_toward_the_limit(
+        self, mock_incr: MagicMock
+    ) -> None:
         classifier = self.create_telemetry_classifier(project=self.project)
-        self.dataset.select.side_effect = [
-            [SelectedEntity("one", SEEN)],
-            [SelectedEntity("one", SEEN), SelectedEntity("two", SEEN)],
-            [SelectedEntity("three", SEEN), SelectedEntity("four", SEEN)],
-        ]
+        self.dataset.select.side_effect = [["one"], ["one", "two"], ["three", "four"]]
 
         select_entities(classifier.id)
         select_entities(classifier.id)
@@ -143,24 +127,9 @@ class SelectEntitiesTest(ClassifierTaskTestCase):
             tags={"dataset": Dataset.CONVERSATION, "outcome": "limit_reached"},
         )
 
-    def test_sends_entities_again_after_new_activity(self) -> None:
+    def test_retries_skip_entities_already_enqueued(self) -> None:
         classifier = self.create_telemetry_classifier(project=self.project)
-        self.dataset.select.side_effect = [
-            [SelectedEntity("one", SEEN)],
-            [SelectedEntity("one", SEEN_LATER)],
-        ]
-
-        select_entities(classifier.id)
-        select_entities(classifier.id)
-
-        assert self.classify_entity.call_count == 2
-
-    def test_retries_skip_entities_already_sent(self) -> None:
-        classifier = self.create_telemetry_classifier(project=self.project)
-        self.dataset.select.return_value = [
-            SelectedEntity("one", SEEN),
-            SelectedEntity("two", SEEN),
-        ]
+        self.dataset.select.return_value = ["one", "two"]
         self.classify_entity.side_effect = [None, ConnectionError("broker unavailable")]
 
         with pytest.raises(ConnectionError):
@@ -168,7 +137,7 @@ class SelectEntitiesTest(ClassifierTaskTestCase):
         self.classify_entity.side_effect = None
         select_entities(classifier.id)
 
-        # "two" failed to send, so only it is sent again.
+        # "two" failed to enqueue, so only it is enqueued again.
         assert self.classify_entity.call_args_list == [
             call(classifier_id=classifier.id, entity_id="one"),
             call(classifier_id=classifier.id, entity_id="two"),

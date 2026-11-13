@@ -59,6 +59,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:azure-symbol-sources", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the classifiers UI
     manager.add("organizations:classifiers-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable telemetry classifiers
+    manager.add("organizations:telemetry-classifiers", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the project↔repo code mappings refactor UI
     manager.add("organizations:code-mappings-refactor", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enabled for orgs that participated in the code review beta

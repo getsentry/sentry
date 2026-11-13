@@ -9,7 +9,7 @@ from datetime import timedelta
 from django.utils import timezone
 from taskbroker_client.retry import Retry
 
-from sentry import features, options
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
@@ -18,7 +18,6 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import telemetry_classifiers_tasks
 from sentry.telemetry_classifiers.constants import RESULT_ATTRIBUTE_PREFIX
 from sentry.telemetry_classifiers.datasets import DATASETS
-from sentry.telemetry_classifiers.datasets.base import SelectedEntity
 from sentry.telemetry_classifiers.definitions import (
     InvalidClassifierDefinition,
     resolve_classifier_definition,
@@ -47,9 +46,8 @@ SCAN_INTERVAL = timedelta(minutes=5)
 # Each selection covers three scan intervals, so windows overlap and an entity one selection
 # misses is picked up by the next. Longer gaps are skipped, so selection never falls behind.
 _SELECT_WINDOW = 3 * SCAN_INTERVAL
-# Long enough to outlive retries and overlapping selections.
-_SENT_TTL_SECONDS = 60 * 60
-_PROCESSING_FEATURE = "organizations:classifiers-ui"
+# Outlives every selection whose window can include an entity, so each entity is enqueued once.
+_ENQUEUED_TTL_SECONDS = int((2 * _SELECT_WINDOW).total_seconds())
 
 
 @instrumented_task(
@@ -73,7 +71,6 @@ def schedule_classifiers() -> None:
         ).select_related("project__organization"),
         task=select_entities,
         cycle_duration=SCAN_INTERVAL,
-        prevalidate_batch=_with_processing_enabled,
     ).tick()
 
 
@@ -86,41 +83,40 @@ def schedule_classifiers() -> None:
     silo_mode=SiloMode.CELL,
 )
 def select_entities(classifier_id: int) -> None:
-    """Classify the entities whose cooldown ended recently, unless they were already sent."""
+    """Classify the entities whose cooldown ended recently, unless they were already enqueued."""
     classifier = _get_enabled_classifier(classifier_id)
     if classifier is None:
         return
     dataset = DATASETS.get(classifier.dataset)
     if dataset is None:
-        _record_selection("unsupported_dataset", classifier.dataset)
+        _count_selection("unsupported_dataset", classifier.dataset)
         return
 
     end = timezone.now()
     limit = options.get("telemetry-classifiers.select-limit")
-    sent = 0
+    enqueued = 0
     offset = 0
-    # Pages go newest first, until the window is exhausted or the limit of entities was sent.
-    # Entities already sent are skipped, so later pages can still have entities to send.
-    while sent < limit:
-        with _system_viewer(classifier.project):
-            try:
-                page = dataset.select(
-                    classifier.project,
-                    classifier.filter_query,
-                    end - _SELECT_WINDOW,
-                    end,
-                    limit,
-                    offset,
-                )
-            except InvalidSearchQuery:
-                _record_selection("invalid_filter", classifier.dataset)
-                return
-        sent += _send_unsent(classifier_id, page, limit - sent)
+    # Pages go newest first, until the window is exhausted or the limit of entities was enqueued.
+    # Entities already enqueued are skipped, so later pages can still have entities to enqueue.
+    while enqueued < limit:
+        try:
+            page = dataset.select(
+                classifier.project,
+                classifier.filter_query,
+                end - _SELECT_WINDOW,
+                end,
+                limit,
+                offset,
+            )
+        except InvalidSearchQuery:
+            _count_selection("invalid_filter", classifier.dataset)
+            return
+        enqueued += _enqueue_classifications(classifier_id, page, limit - enqueued)
         if len(page) < limit:
             return
         offset += limit
     # Older entities in the window aren't classified.
-    _record_selection("limit_reached", classifier.dataset)
+    _count_selection("limit_reached", classifier.dataset)
 
 
 @instrumented_task(
@@ -134,49 +130,50 @@ def classify_entity(classifier_id: int, entity_id: str) -> None:
     """Classify one entity's telemetry and write the result to EAP."""
     classifier = _get_enabled_classifier(classifier_id)
     if classifier is None:
-        _record_classification("classifier_missing", None)
+        _count_classification("classifier_missing", None)
         return
     dataset = DATASETS.get(classifier.dataset)
     if dataset is None:
-        _record_classification("unsupported_dataset", classifier.dataset)
+        _count_classification("unsupported_dataset", classifier.dataset)
         return
     try:
         definition = resolve_classifier_definition(classifier)
     except InvalidClassifierDefinition:
-        _record_classification("invalid_definition", classifier.dataset)
+        _count_classification("invalid_definition", classifier.dataset)
         return
     # TODO: Parse choice and score results once Seer has models for them.
     if definition.output_type != TelemetryClassifierOutputType.BINARY:
-        _record_classification("unsupported_output", classifier.dataset)
+        _count_classification("unsupported_output", classifier.dataset)
         return
 
     project = classifier.project
-    with _system_viewer(project):
-        source = dataset.load(project, entity_id)
-        if source is None:
-            _record_classification("no_input", classifier.dataset)
-            return
-        prepared = fit_events(source.events)
-        if not prepared.events:
-            _record_classification("no_input", classifier.dataset)
-            return
-        try:
+    source = dataset.load(project, entity_id)
+    if source is None:
+        _count_classification("no_input", classifier.dataset)
+        return
+    prepared = fit_events(source.events)
+    if not prepared.events:
+        _count_classification("no_input", classifier.dataset)
+        return
+    try:
+        # Seer requests carry the viewer, and this task runs without one.
+        with _system_viewer(project):
             result = classify(definition, prepared.events, project.organization)
-            probability = parse_binary_result(result)
-        except ClassifierExecutionError as error:
-            _record_classification(error.reason, classifier.dataset)
-            logger.warning(
-                "telemetry_classifiers.classify.failed",
-                extra={
-                    "classifier_id": classifier.id,
-                    "entity_id": entity_id,
-                    "reason": error.reason,
-                    "retryable": error.retryable,
-                },
-            )
-            if error.retryable:
-                raise
-            return
+        probability = parse_binary_result(result)
+    except ClassifierExecutionError as error:
+        _count_classification(error.reason, classifier.dataset)
+        logger.warning(
+            "telemetry_classifiers.classify.failed",
+            extra={
+                "classifier_id": classifier.id,
+                "entity_id": entity_id,
+                "reason": error.reason,
+                "retryable": error.retryable,
+            },
+        )
+        if error.retryable:
+            raise
+        return
 
     write_result(
         classifier,
@@ -185,7 +182,7 @@ def classify_entity(classifier_id: int, entity_id: str) -> None:
         {f"{RESULT_ATTRIBUTE_PREFIX}{classifier.result_attribute}": probability},
         dataset.data_category,
     )
-    _record_classification("success", classifier.dataset)
+    _count_classification("success", classifier.dataset)
     logger.info(
         "telemetry_classifiers.classify.succeeded",
         extra={
@@ -198,16 +195,6 @@ def classify_entity(classifier_id: int, entity_id: str) -> None:
     )
 
 
-def _with_processing_enabled(classifiers: Sequence[TelemetryClassifier]) -> list[int]:
-    organizations = {c.project.organization_id: c.project.organization for c in classifiers}
-    enabled = features.batch_has_for_organizations(
-        _PROCESSING_FEATURE, list(organizations.values())
-    )
-    if enabled is None:
-        return []
-    return [c.id for c in classifiers if enabled.get(f"organization:{c.project.organization_id}")]
-
-
 def _get_enabled_classifier(classifier_id: int) -> TelemetryClassifier | None:
     return (
         TelemetryClassifier.objects.filter(
@@ -218,34 +205,30 @@ def _get_enabled_classifier(classifier_id: int) -> TelemetryClassifier | None:
     )
 
 
-def _send_unsent(classifier_id: int, entities: Sequence[SelectedEntity], limit: int) -> int:
-    """Send up to ``limit`` entities that weren't sent yet, and return how many were sent."""
-    if not entities:
+def _enqueue_classifications(classifier_id: int, entity_ids: Sequence[str], limit: int) -> int:
+    """Enqueue classification for up to ``limit`` entities not enqueued yet, and return how many."""
+    if not entity_ids:
         return 0
     client = redis_clusters.get("default")
-    sent_keys = [_sent_key(classifier_id, entity) for entity in entities]
-    sent = 0
-    for entity, sent_key, already_sent in zip(entities, sent_keys, client.mget(sent_keys)):
-        if sent >= limit:
+    keys = [_enqueued_key(classifier_id, entity_id) for entity_id in entity_ids]
+    enqueued = 0
+    for entity_id, key, already_enqueued in zip(entity_ids, keys, client.mget(keys)):
+        if enqueued >= limit:
             break
         # Windows overlap and selections retry, so an entity can be selected again.
-        if already_sent:
+        if already_enqueued:
             continue
-        classify_entity.delay(classifier_id=classifier_id, entity_id=entity.entity_id)
-        # Marked after sending, so an entity is skipped only once it was sent.
-        client.set(sent_key, b"1", ex=_SENT_TTL_SECONDS)
-        sent += 1
-    return sent
+        classify_entity.delay(classifier_id=classifier_id, entity_id=entity_id)
+        # Marked after enqueueing, so an entity is skipped only once it was enqueued.
+        client.set(key, b"1", ex=_ENQUEUED_TTL_SECONDS)
+        enqueued += 1
+    return enqueued
 
 
-def _sent_key(classifier_id: int, entity: SelectedEntity) -> str:
-    """Key marking an entity as sent for its period of activity ending at ``last_seen``.
-
-    Newer telemetry changes ``last_seen``, so an entity that becomes active again is sent again.
-    """
+def _enqueued_key(classifier_id: int, entity_id: str) -> str:
     # Entity IDs come from telemetry, so they're hashed to bound the key's length.
-    digest = hashlib.sha256(f"{entity.entity_id}:{entity.last_seen.isoformat()}".encode())
-    return f"telemetry-classifiers:sent:{classifier_id}:{digest.hexdigest()}"
+    digest = hashlib.sha256(entity_id.encode()).hexdigest()
+    return f"telemetry-classifiers:enqueued:{classifier_id}:{digest}"
 
 
 def _system_viewer(project: Project) -> AbstractContextManager[None]:
@@ -258,11 +241,11 @@ def _system_viewer(project: Project) -> AbstractContextManager[None]:
     )
 
 
-def _record_selection(outcome: str, dataset: str) -> None:
+def _count_selection(outcome: str, dataset: str) -> None:
     metrics.incr("telemetry_classifiers.select", tags={"dataset": dataset, "outcome": outcome})
 
 
-def _record_classification(outcome: str, dataset: str | None) -> None:
+def _count_classification(outcome: str, dataset: str | None) -> None:
     metrics.incr(
         "telemetry_classifiers.classify",
         tags={"dataset": dataset or "unknown", "outcome": outcome},

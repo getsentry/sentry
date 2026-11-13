@@ -1,18 +1,12 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import NamedTuple, Protocol
+from typing import Protocol
 
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.search.events.types import SnubaParams
 from sentry.telemetry_classifiers.types import TelemetryInput
-
-
-class SelectedEntity(NamedTuple):
-    entity_id: str
-    # When the entity's newest telemetry happened. A newer value is a new period of activity.
-    last_seen: datetime
 
 
 class ClassifierDataset(Protocol):
@@ -33,8 +27,8 @@ class ClassifierDataset(Protocol):
         end: datetime,
         limit: int,
         offset: int,
-    ) -> list[SelectedEntity]:
-        """Return a page of entities whose cooldown ended in ``[start, end)`` and that match the
+    ) -> list[str]:
+        """Return a page of IDs of entities whose cooldown ended in ``[start, end)`` and that match the
         filter.
 
         That's entities whose last telemetry is in ``[start - cooldown, end - cooldown)``, with
