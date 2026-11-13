@@ -1126,10 +1126,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "issues:sentry.tasks.auto_remove_inbox",
         "schedule": crontab("*/15", "*", "*", "*", "*"),
     },
-    "cleanup-universal-inbox-events": {
-        "task": "notifications:sentry.inbox.event_retention.schedule_inbox_event_cleanup",
-        "schedule": crontab("*/15", "*", "*", "*", "*"),
-    },
     "schedule-deletions": {
         "task": "deletions:sentry.deletions.tasks.run_scheduled_deletions",
         "schedule": crontab("*/15", "*", "*", "*", "*"),

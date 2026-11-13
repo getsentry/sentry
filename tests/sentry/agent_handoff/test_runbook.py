@@ -1,5 +1,6 @@
 import shlex
-from unittest.mock import patch
+from collections.abc import Generator
+from unittest.mock import MagicMock, patch
 
 import pytest
 from pydantic import ValidationError
@@ -7,8 +8,23 @@ from pydantic import ValidationError
 from sentry.agent_handoff.codes import HandoffFlow, ProjectSetupContext
 from sentry.agent_handoff.flows import get_flow
 from sentry.agent_handoff.flows.base import InvalidHandoffContext
+from sentry.agent_handoff.installer import PinnedInstaller, installer_command
 from sentry.agent_handoff.runbook import render_agent_runbook, render_claim_runbook
 from sentry.organizations.services.organization.model import RpcOnboardingReportingCode
+
+INSTALLER = PinnedInstaller(
+    url="https://github.com/getsentry/toolkit/releases/download/cli@0.48.0/install",
+    version="0.48.0",
+    sha256="a" * 64,
+)
+
+
+@pytest.fixture(autouse=True)
+def pinned() -> Generator[MagicMock]:
+    with patch(
+        "sentry.agent_handoff.runbook.pinned_installer", return_value=None
+    ) as pinned_installer:
+        yield pinned_installer
 
 
 def render(**overrides: str) -> str:
@@ -127,6 +143,19 @@ def test_setup_page_explains_handoff_code_redemption() -> None:
     assert "new prompt from Sentry" in guide
     assert "curl -sS -X POST https://sentry.example.com/agent-handoff/" in guide
     assert "--data-urlencode 'handoff_code=HANDOFF_CODE'" in guide
+
+
+def test_runbook_verifies_and_pins_installer_to_latest_release(pinned: MagicMock) -> None:
+    pinned.return_value = INSTALLER
+    environment = (
+        "SENTRY_HOST=https://sentry.example.com SENTRY_URL=https://sentry.example.com "
+        "SENTRY_CLIENT_ID=example-client-id SENTRY_SETUP_CODE=sntryc_example-setup-code"
+    )
+
+    guide = render()
+
+    assert installer_command(environment, INSTALLER) in guide
+    assert "do not run the installer any other way" in guide
 
 
 def test_runbook_includes_flow_instructions_after_authentication() -> None:

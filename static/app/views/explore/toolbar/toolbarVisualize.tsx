@@ -17,6 +17,8 @@ import {t, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES, FieldKind} from 'sentry/utils/fields';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {optionFromTag} from 'sentry/views/explore/components/attributeOption';
 import {ConditionalAggregateFilterBar} from 'sentry/views/explore/components/conditionalAggregateFilterBar';
 import {
   ToolbarFooter,
@@ -56,6 +58,10 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import {stripNamePrefix} from 'sentry/views/explore/savedFormulas/formulaBuilder/draft';
+import {
+  isSpansHeatMap,
+  SPANS_HEAT_MAP_Y_AXES,
+} from 'sentry/views/explore/spans/charts/spansHeatMap';
 import {
   SHARED_CHART_AGGREGATE_REGIONS,
   SHARED_CHART_AGGREGATES,
@@ -217,6 +223,7 @@ function ToolbarVisualizeItem({
   visualizes,
 }: VisualizeDropdownProps) {
   const visualize = visualizes[0]!;
+  const organization = useOrganization();
   const [search, setSearch] = useState<string | undefined>(undefined);
   const [debouncedSearch] = useDebouncedValue(search, {wait: 200});
   const {attributes: stringTags, isLoading: stringTagsLoading} = useSpanItemAttributes(
@@ -248,7 +255,7 @@ function ToolbarVisualizeItem({
     [visualizes]
   );
 
-  const fieldOptions = useVisualizeFields({
+  const visualizeFieldOptions = useVisualizeFields({
     numberTags,
     stringTags,
     booleanTags,
@@ -258,6 +265,9 @@ function ToolbarVisualizeItem({
         : parsedFunction,
     traceItemType: TraceItemDataset.SPANS,
   });
+  const fieldOptions = isSpansHeatMap(visualize, organization)
+    ? HEAT_MAP_FIELD_OPTIONS
+    : visualizeFieldOptions;
 
   const filter = parsedFunction?.filter ?? '';
 
@@ -383,6 +393,13 @@ function ToolbarVisualizeItem({
     />
   );
 }
+
+const HEAT_MAP_FIELD_OPTIONS = SPANS_HEAT_MAP_Y_AXES.map(field =>
+  optionFromTag(
+    {key: field, name: field, kind: FieldKind.MEASUREMENT},
+    TraceItemDataset.SPANS
+  )
+);
 
 const SINGLE_SELECT_AGGREGATES = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.filter(
   aggregate => !SHARED_CHART_AGGREGATES.includes(aggregate)

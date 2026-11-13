@@ -21,7 +21,12 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_trace_item_stats_types import TraceItemStatsResponse
-from sentry.api.event_search import translate_escape_sequences
+from sentry.api.event_search import (
+    AggregateFilter,
+    ParenExpression,
+    QueryToken,
+    translate_escape_sequences,
+)
 from sentry.api.serializers.base import serialize
 from sentry.api.utils import TimeoutException, handle_query_errors
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
@@ -32,6 +37,7 @@ from sentry.apidocs.response_types import ValidationErrorResponse, as_validation
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.search.eap.columns import ColumnDefinitions
 from sentry.search.eap.constants import SUPPORTED_STATS_TYPES
@@ -129,6 +135,16 @@ def raise_deadline_exceeded(stage: str) -> NoReturn:
     sentry_sdk.set_attribute("query.error_reason", "Timeout")
     metrics.incr("api.trace_item_stats.deadline_exceeded", tags={"stage": stage})
     raise TimeoutException(detail=TIMEOUT_RPC_ERROR_MESSAGE)
+
+
+def _find_aggregate_filters(terms: Sequence[QueryToken]) -> list[AggregateFilter]:
+    found: list[AggregateFilter] = []
+    for term in terms:
+        if isinstance(term, AggregateFilter):
+            found.append(term)
+        elif isinstance(term, ParenExpression):
+            found.extend(_find_aggregate_filters(term.children))
+    return found
 
 
 class TraceItemStatsPaginator:
@@ -255,6 +271,19 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
         resolver = SearchResolver(
             params=snuba_params, config=resolver_config, definitions=stats_config.definitions
         )
+
+        # Stats are computed over individual trace items, so an aggregate filter has no
+        # group to apply to and Snuba rejects the query. Only parse here: a full resolve
+        # is expensive and the RPCs below resolve the query again.
+        with handle_query_errors():
+            aggregate_filters = _find_aggregate_filters(
+                resolver.parse_search_query(serialized.get("query", ""))
+            )
+            if aggregate_filters:
+                names = ", ".join(f.key.name for f in aggregate_filters)
+                raise InvalidSearchQuery(
+                    f"Aggregate filters are not supported for trace item stats: {names}"
+                )
 
         substring_match = serialized.get("substringMatch", "")
         value_substring_match = translate_escape_sequences(substring_match)

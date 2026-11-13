@@ -445,7 +445,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
     ) -> None:
         """
         Tells entrypoints (e.g. a Slack thread waiting on the run) about the run.
-        These events are internal only: no Sentry App webhook and no issue activity.
+        No Sentry App webhook; mapped event types also get an issue activity.
         """
         if not SeerAutofixOperator.has_access(organization=organization):
             return
