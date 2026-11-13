@@ -120,11 +120,16 @@ def _search_issues(
     `start` and `end` (or now), most events first.
     """
     project = ctx.group.project
-    environments = (
-        [Environment.get_for_organization_id(project.organization_id, snuba_query["environment"])]
-        if snuba_query["environment"]
-        else None
-    )
+    environments = None
+    if snuba_query["environment"]:
+        try:
+            environments = [
+                Environment.get_for_organization_id(
+                    project.organization_id, snuba_query["environment"]
+                )
+            ]
+        except Environment.DoesNotExist:
+            return []
     search_filters = parse_and_convert_issue_search_query(
         _issue_search_query(snuba_query), project.organization, [project], environments, ctx.user
     )
