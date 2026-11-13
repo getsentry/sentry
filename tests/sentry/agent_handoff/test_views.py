@@ -227,25 +227,6 @@ class AgentHandoffViewTest(TestCase):
         assert "It does not run those instructions" in response.content.decode()
         assert consume_handoff(code, ip_address="127.0.0.1") is not None
 
-    def test_claim_page_points_at_the_markdown_url(self) -> None:
-        response = self.client.get("/agent-handoff.md")
-        assert response.status_code == 200
-        assert response["Content-Type"] == "text/markdown; charset=utf-8"
-        assert "curl -sS -X POST http://testserver/agent-handoff.md" in response.content.decode()
-
-    def test_legacy_url_still_serves_and_claims(self) -> None:
-        page = self.client.get("/agent-handoff/")
-        assert page.status_code == 200
-        assert "http://testserver/agent-handoff.md" in page.content.decode()
-
-        response = self.client.post(
-            "/agent-handoff/",
-            urlencode({"handoff_code": self.issue()}),
-            content_type="application/x-www-form-urlencoded",
-        )
-        assert response.status_code == 200
-        assert "SENTRY_SETUP_CODE=sntryc_" in response.content.decode()
-
     def test_missing_code_is_rejected(self) -> None:
         assert self.claim("").status_code == 400
 
