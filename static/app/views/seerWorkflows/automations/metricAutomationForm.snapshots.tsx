@@ -20,6 +20,12 @@ import {
   snapshotOrganization,
 } from './snapshotTestUtils';
 
+// Under SSR a nested query container never measures itself and reports zero width.
+// Let it inherit the width the snapshot frame provides instead.
+jest.mock('@sentry/scraps/layout/styles', () => ({
+  ...jest.requireActual('@sentry/scraps/layout/styles'),
+  ContainerQueryProvider: ({children}: {children: React.ReactNode}) => children,
+}));
 // The markdown renderer touches `document` on import, which SSR does not have.
 jest.mock('@sentry/scraps/markdown', () => ({}));
 // Only shown inside the hovercard, and its imports don't load under SSR.
