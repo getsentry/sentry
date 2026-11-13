@@ -2,7 +2,9 @@ from collections.abc import Sequence
 from typing import Any
 
 import sentry_sdk
+from django.db import router, transaction
 from taskbroker_client.retry import Retry
+from taskbroker_client.state import current_task
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry import deletions
@@ -13,9 +15,11 @@ from sentry.locks import locks
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.models.groupinbox import GroupInbox
+from sentry.models.grouptombstone import GroupTombstone
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, track_group_async_operation
 from sentry.taskworker.namespaces import deletion_tasks
+from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 
 DISCARD_GROUP_HASH_BATCH_SIZE = 1000
@@ -119,12 +123,19 @@ def discard_group(
         duration=DISCARD_GROUP_TASK_DURATION_S,
         name="discard_group",
     )
+    extra = {"group_id": group_id, "tombstone_id": tombstone_id, "transaction_id": transaction_id}
     try:
         with lock.acquire():
             _discard_group(group_id, project_id, tombstone_id, transaction_id)
     except UnableToAcquireLock:
         # Another copy of this task is already discarding the group.
-        pass
+        metrics.incr("deletions.discard_group.lock_unavailable", sample_rate=1.0)
+    except (Exception, ProcessingDeadlineExceeded):
+        task = current_task()
+        if task is None or not task.retries_remaining:
+            logger.exception("discard_group.retries_exhausted", extra=extra)
+            metrics.incr("deletions.discard_group.retries_exhausted", sample_rate=1.0)
+        raise
 
 
 def _discard_group(group_id: int, project_id: int, tombstone_id: int, transaction_id: str) -> None:
@@ -134,16 +145,30 @@ def _discard_group(group_id: int, project_id: int, tombstone_id: int, transactio
     # A group can have so many hashes that one UPDATE exceeds the statement timeout. Each batch
     # commits on its own, so a retry continues instead of starting over.
     while True:
-        hash_ids = list(
-            GroupHash.objects.filter(group_id=group_id).values_list("id", flat=True)[
-                :DISCARD_GROUP_HASH_BATCH_SIZE
-            ]
-        )
-        if not hash_ids:
-            break
-        GroupHash.objects.filter(id__in=hash_ids, group_id=group_id).update(
-            group=None, group_tombstone_id=tombstone_id
-        )
+        with transaction.atomic(router.db_for_write(GroupHash)):
+            # The tombstone stays locked until the batch commits, so an undiscard can't run between
+            # this check and the update. An undiscarded issue keeps its group and remaining hashes.
+            if not list(
+                GroupTombstone.objects.select_for_update()
+                .filter(id=tombstone_id)
+                .values_list("id", flat=True)
+            ):
+                logger.info(
+                    "discard_group.tombstone_deleted",
+                    extra={"group_id": group_id, "tombstone_id": tombstone_id},
+                )
+                metrics.incr("deletions.discard_group.tombstone_deleted", sample_rate=1.0)
+                return
+            hash_ids = list(
+                GroupHash.objects.filter(group_id=group_id).values_list("id", flat=True)[
+                    :DISCARD_GROUP_HASH_BATCH_SIZE
+                ]
+            )
+            if not hash_ids:
+                break
+            GroupHash.objects.filter(id__in=hash_ids, group_id=group_id).update(
+                group=None, group_tombstone_id=tombstone_id
+            )
 
     deletion_statuses = [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
     if Group.objects.filter(id=group_id, status__in=deletion_statuses).exists():

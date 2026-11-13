@@ -237,6 +237,34 @@ class DiscardGroupTest(TestCase):
         delete_task.apply_async.assert_called_once()
         assert Group.objects.get(id=self.group.id).status == GroupStatus.PENDING_DELETION
 
+    def test_stops_without_deleting_when_tombstone_was_removed(self) -> None:
+        self.tombstone.delete()
+
+        with patch("sentry.deletions.tasks.groups.delete_groups_for_project") as delete_task:
+            self.run_task()
+
+        self.group_hash.refresh_from_db()
+        assert self.group_hash.group_id == self.group.id
+        assert self.group_hash.group_tombstone_id is None
+        assert Group.objects.get(id=self.group.id).status == GroupStatus.UNRESOLVED
+        delete_task.apply_async.assert_not_called()
+
+    def test_records_metric_when_retries_are_exhausted(self) -> None:
+        with (
+            patch(
+                "sentry.deletions.tasks.groups.delete_groups_for_project.apply_async",
+                side_effect=RuntimeError,
+            ),
+            patch("sentry.deletions.tasks.groups.current_task", return_value=None),
+            patch("sentry.deletions.tasks.groups.metrics") as metrics,
+            pytest.raises(RuntimeError),
+        ):
+            self.run_task()
+
+        metrics.incr.assert_called_once_with(
+            "deletions.discard_group.retries_exhausted", sample_rate=1.0
+        )
+
     def test_skips_when_another_copy_holds_the_lock(self) -> None:
         lock = locks.get(f"discard-group:{self.group.id}", duration=60, name="discard_group")
         with (
