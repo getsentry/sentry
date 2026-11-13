@@ -544,6 +544,13 @@ register(
     default=15,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Sends teapot the project's debug-files source, so that it looks up the shader
+# binaries of a GPU crash itself (with the system token).
+register(
+    "teapot.shader-sources.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Retries only on transient 5xx; low so a slow teapot can't pile up work.
 register(
     "teapot.max-attempts",

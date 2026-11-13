@@ -143,6 +143,9 @@ def _try_symbolicate(data: MutableMapping[str, Any], project_id: int, event_id: 
             metrics.incr("tasks.gpu_crash.skipped", tags={"reason": "project_missing"})
             return False
 
+        sources = (
+            [get_internal_source(project)] if options.get("teapot.shader-sources.enabled") else None
+        )
         try:
             with metrics.timer("tasks.gpu_crash.teapot"):
                 response = submit_to_teapot(
@@ -150,7 +153,7 @@ def _try_symbolicate(data: MutableMapping[str, Any], project_id: int, event_id: 
                     event_id,
                     cast(TeapotAttachment, dump),
                     cast(Sequence[TeapotAttachment], shaders),
-                    sources=[get_internal_source(project)],
+                    sources=sources,
                 )
         except TeapotUnavailable:
             # A genuine outage — feed the breaker so repeated failures trip it.

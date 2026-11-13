@@ -48,7 +48,7 @@ def circuit_breaker() -> Iterator[mock.Mock]:
 def test_try_symbolicate_happy_path(default_project: Project, circuit_breaker: mock.Mock) -> None:
     data: dict[str, Any] = {"event_id": "e", "project": default_project.id}
     with (
-        override_options({"teapot.enabled": True}),
+        override_options({"teapot.enabled": True, "teapot.shader-sources.enabled": True}),
         mock.patch(FIND_DUMP, return_value=_FakeAttachment()),
         mock.patch(FIND_SHADERS, return_value=[]),
         mock.patch(SUBMIT_TEAPOT, return_value=_completed()) as teapot,
@@ -70,6 +70,23 @@ def test_try_symbolicate_happy_path(default_project: Project, circuit_breaker: m
     # A successful decode closes the loop on the breaker.
     circuit_breaker.record_success.assert_called_once()
     circuit_breaker.record_error.assert_not_called()
+
+
+@django_db_all
+def test_try_symbolicate_sends_no_sources_by_default(
+    default_project: Project, circuit_breaker: mock.Mock
+) -> None:
+    data: dict[str, Any] = {"event_id": "e", "project": default_project.id}
+    with (
+        override_options({"teapot.enabled": True}),
+        mock.patch(FIND_DUMP, return_value=_FakeAttachment()),
+        mock.patch(FIND_SHADERS, return_value=[]),
+        mock.patch(SUBMIT_TEAPOT, return_value=_completed()) as teapot,
+        mock.patch(APPLY, return_value=data),
+    ):
+        _try_symbolicate(data, default_project.id, "e")
+
+    assert teapot.call_args.kwargs["sources"] is None
 
 
 @django_db_all
