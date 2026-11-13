@@ -337,7 +337,7 @@ The row is a list, and `label` names it — "Replay stats". Without it a screen 
 
 The label comes first, on screen and in the DOM: "Errors 3", not "3 Errors". A screen reader never announces a bare number before saying what it counts, the row reads the same whatever the count with no plural to agree ("Errors 1"), and someone using voice control meets the word they would say before the number beside it.
 
-Each half is read as itself — "Errors", then "3" — rather than composed into one announcement. Nothing is hidden and nothing is renamed, so what a screen reader reads is what is on screen.
+Each half is read as itself — "Errors", then "3" — rather than composed into one announcement. Nothing is hidden and nothing is renamed, except the dash shown for an empty value (see No data, below), so what a screen reader reads is what is on screen.
 
 A `link` stat's anchor wraps the label only, and is named by it: a links list reads "Errors", which says where it leads. The count is not part of the name and does not need to be — it sits in the same list item, which is context enough for the link's purpose.
 
@@ -427,7 +427,9 @@ Do not pass a placeholder string such as `'-'`, `'—'` or `'N/A'`. A screen rea
 
 An empty `link` stat is still a link, named by its label ("Errors"), since a stat's type must not change once its data arrives. Its value half reads "No data".
 
-Say why there is no value in `valueTooltip`: Tab lands on the value, which reads "No data" with the reason as its description. Keep that reason readable on its own, without links: nothing inside a tooltip can be reached by keyboard.
+Say why there is no value in `valueTooltip`: the reason shows in the value's tooltip. Keep that reason readable on its own, without links: nothing inside a tooltip can be reached by keyboard.
+
+Screen readers cannot reach the reason yet. Focus on the value reads "No data", but tooltip content is not announced until `Tooltip` itself is fixed, so do not put anything there that a screen reader user needs.
 
 <Storybook.Demo resizable direction="column" align="stretch">
   <EntityHeader
