@@ -4,9 +4,9 @@ import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {openModal} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {t, tn} from 'sentry/locale';
 
 interface MissingDsymModalProps {

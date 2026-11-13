@@ -1,5 +1,6 @@
 import {Fragment, useEffect} from 'react';
 import {
+  useQuery,
   mutationOptions,
   type UseMutationOptions,
   useMutation,
@@ -8,8 +9,8 @@ import {
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -19,8 +20,9 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
@@ -62,14 +64,6 @@ const getQueryParams = (notificationType: string) => {
   }
   return {type: notificationType};
 };
-
-const notificationOptionsQueryKey = (notificationType: string) =>
-  [
-    getApiUrl('/users/$userId/notification-options/', {
-      path: {userId: 'me'},
-    }),
-    {query: getQueryParams(notificationType)},
-  ] as const;
 
 /**
  * Converts legacy tuple choices `[value, label]` to options `{value, label}` for Select.
@@ -134,43 +128,41 @@ function DefaultNotificationField({
 export function NotificationSettingsByType({notificationType}: Props) {
   const {organizations} = useLegacyStore(OrganizationsStore);
   const queryClient = useQueryClient();
-  const {data: notificationOptions = [], status: notificationOptionStatus} = useApiQuery<
-    NotificationOptionsObject[]
-  >(notificationOptionsQueryKey(notificationType), {
-    staleTime: 30_000,
-  });
+  const notificationOptions = apiOptions.as<NotificationOptionsObject[]>()(
+    '/users/$userId/notification-options/',
+    {path: {userId: 'me'}, query: getQueryParams(notificationType), staleTime: 30_000}
+  );
+  const providerOptions = apiOptions.as<NotificationProvidersObject[]>()(
+    '/users/$userId/notification-providers/',
+    {path: {userId: 'me'}, query: getQueryParams(notificationType), staleTime: 30_000}
+  );
+  const {data: notificationOptionData = [], status: notificationOptionStatus} =
+    useQuery(notificationOptions);
   const {data: notificationProviders = [], status: notificationProviderStatus} =
-    useApiQuery<NotificationProvidersObject[]>(
-      [
-        getApiUrl('/users/$userId/notification-providers/', {path: {userId: 'me'}}),
-        {query: getQueryParams(notificationType)},
-      ],
-      {staleTime: 30_000}
-    );
-  const {data: allIdentities = [], status: identitiesStatus} = useApiQuery<Identity[]>(
-    [getApiUrl('/users/$userId/identities/', {path: {userId: 'me'}})],
-    {staleTime: 30_000}
+    useQuery(providerOptions);
+  const {data: allIdentities = [], status: identitiesStatus} = useQuery(
+    apiOptions.as<Identity[]>()('/users/$userId/identities/', {
+      path: {userId: 'me'},
+      staleTime: 30_000,
+    })
   );
   const identities = allIdentities.filter(identity =>
     ALLOWED_PROVIDERS.has(identity?.identityProvider?.type as SupportedProviders)
   );
 
-  const {data: allOrgIntegrations = [], status: organizationIntegrationStatus} =
-    useApiQuery<Array<OrganizationIntegration | null>>(
-      [
-        getApiUrl('/users/$userId/organization-integrations/', {path: {userId: 'me'}}),
-        {query: {provider: [...ALLOWED_PROVIDERS]}},
-      ],
-      {staleTime: 30_000}
-    );
+  const {data: allOrgIntegrations = [], status: organizationIntegrationStatus} = useQuery(
+    apiOptions.as<Array<OrganizationIntegration | null>>()(
+      '/users/$userId/organization-integrations/',
+      {path: {userId: 'me'}, query: {provider: [...ALLOWED_PROVIDERS]}, staleTime: 30_000}
+    )
+  );
   const organizationIntegrations = allOrgIntegrations.filter(
     (orgIntegration): orgIntegration is OrganizationIntegration =>
       ALLOWED_PROVIDERS.has(orgIntegration?.provider.key as SupportedProviders)
   );
-  const {data: defaultSettings, status: defaultSettingsStatus} =
-    useApiQuery<DefaultSettings>([getApiUrl('/notification-defaults/')], {
-      staleTime: 30_000,
-    });
+  const {data: defaultSettings, status: defaultSettingsStatus} = useQuery(
+    apiOptions.as<DefaultSettings>()('/notification-defaults/', {staleTime: 30_000})
+  );
 
   useEffect(() => {
     trackAnalytics('notification_settings.tuning_page_viewed', {
@@ -188,7 +180,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
   };
 
   const getInitialTopOptionData = (): Record<string, string> => {
-    const matchedOption = notificationOptions.find(
+    const matchedOption = notificationOptionData.find(
       option => option.type === notificationType && option.scopeType === 'user'
     );
     // if no match, fall back to the
@@ -207,7 +199,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
     const childTypes = typeMappedChildren[notificationType] || [];
     const childTypesDefaults = Object.fromEntries(
       childTypes.map(childType => {
-        const childMatchedOption = notificationOptions.find(
+        const childMatchedOption = notificationOptionData.find(
           option => option.type === childType && option.scopeType === 'user'
         );
         return [childType, childMatchedOption ? childMatchedOption.value : defaultValue];
@@ -281,14 +273,15 @@ export function NotificationSettingsByType({notificationType}: Props) {
         }),
       }),
     onSuccess: (_, id) => {
-      setApiQueryData<NotificationOptionsObject[]>(
-        queryClient,
-        notificationOptionsQueryKey(notificationType),
-        currentNotificationOptions => {
-          return currentNotificationOptions?.filter(
-            option => option.id.toString() !== id.toString()
-          );
-        }
+      queryClient.setQueryData(notificationOptions.queryKey, response =>
+        response?.json
+          ? {
+              ...response,
+              json: response.json.filter(
+                option => option.id.toString() !== id.toString()
+              ),
+            }
+          : response
       );
     },
   });
@@ -302,14 +295,11 @@ export function NotificationSettingsByType({notificationType}: Props) {
         data,
       }),
     onSuccess: notificationOption => {
-      setApiQueryData<NotificationOptionsObject[]>(
-        queryClient,
-        notificationOptionsQueryKey(notificationType),
-        currentNotificationOptions => [
-          ...(currentNotificationOptions ?? []),
-          notificationOption,
-        ]
-      );
+      queryClient.setQueryData(notificationOptions.queryKey, response => ({
+        ...response,
+        headers: response?.headers ?? {},
+        json: [...(response?.json ?? []), notificationOption],
+      }));
     },
   });
 
@@ -323,21 +313,20 @@ export function NotificationSettingsByType({notificationType}: Props) {
       }),
     onSuccess: notificationOption => {
       // Replace the item in state
-      setApiQueryData<NotificationOptionsObject[]>(
-        queryClient,
-        notificationOptionsQueryKey(notificationType),
-        currentNotificationOptions =>
-          currentNotificationOptions?.map(option => {
-            if (option.id === notificationOption.id) {
-              return notificationOption;
+      queryClient.setQueryData(notificationOptions.queryKey, response =>
+        response?.json
+          ? {
+              ...response,
+              json: response.json.map(option =>
+                option.id === notificationOption.id ? notificationOption : option
+              ),
             }
-            return option;
-          })
+          : response
       );
-      addSuccessMessage(t('Updated notification setting'));
+      toast.success(t('Updated notification setting'));
     },
     onError: () => {
-      addErrorMessage(t('Unable to update notification setting'));
+      toast.error(t('Unable to update notification setting'));
     },
   });
 
@@ -381,20 +370,15 @@ export function NotificationSettingsByType({notificationType}: Props) {
         }),
       onSuccess: notificationOption => {
         trackTuningUpdated('general');
-        setApiQueryData<NotificationOptionsObject[]>(
-          queryClient,
-          notificationOptionsQueryKey(notificationType),
-          currentOptions => {
-            const existing = currentOptions ?? [];
-            const idx = existing.findIndex(opt => opt.id === notificationOption.id);
-            if (idx >= 0) {
-              return existing.map(opt =>
+        queryClient.setQueryData(notificationOptions.queryKey, response => {
+          const existing = response?.json ?? [];
+          const json = existing.some(opt => opt.id === notificationOption.id)
+            ? existing.map(opt =>
                 opt.id === notificationOption.id ? notificationOption : opt
-              );
-            }
-            return [...existing, notificationOption];
-          }
-        );
+              )
+            : [...existing, notificationOption];
+          return {...response, headers: response?.headers ?? {}, json};
+        });
       },
     });
 
@@ -422,12 +406,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: [
-          getApiUrl('/users/$userId/notification-providers/', {
-            path: {userId: 'me'},
-          }),
-          {query: getQueryParams(notificationType)},
-        ],
+        queryKey: providerOptions.queryKey,
       });
     },
   });
@@ -514,7 +493,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
       {notificationType === 'reports' ? (
         <WeeklyReportProjectExclusions
           organizations={organizations}
-          notificationOptions={notificationOptions}
+          notificationOptions={notificationOptionData}
           handleRemoveNotificationOption={id => removeNotificationMutation.mutate(id)}
           handleAddNotificationOption={option => addNotificationMutation.mutate(option)}
           handleEditNotificationOption={option =>
@@ -524,7 +503,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
       ) : (
         <NotificationSettingsByEntity
           notificationType={notificationType}
-          notificationOptions={notificationOptions}
+          notificationOptions={notificationOptionData}
           organizations={organizations}
           handleRemoveNotificationOption={id => removeNotificationMutation.mutate(id)}
           handleAddNotificationOption={option => addNotificationMutation.mutate(option)}

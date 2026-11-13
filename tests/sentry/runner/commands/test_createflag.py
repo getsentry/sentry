@@ -11,7 +11,10 @@ from sentry.testutils.cases import CliTestCase
 def parse_generated_yaml(output: str) -> dict[str, Any]:
     split_output = output.split("=== GENERATED YAML ===\n")
     assert len(split_output) == 2
-    return yaml.safe_load(split_output[1])
+    generated = yaml.safe_load(split_output[1])
+    if not isinstance(generated, dict):
+        raise TypeError("Generated flag YAML is not a mapping")
+    return generated
 
 
 class TestCreateFlag(CliTestCase):

@@ -50,6 +50,7 @@ export function GroupFixture(params: Partial<Group> = {}): Group {
     status: GroupStatus.UNRESOLVED,
     statusDetails: {},
     subscriptionDetails: null,
+    substatus: null,
     title: 'RequestError: GET /issues/ 404',
     type: EventOrGroupType.ERROR,
     userCount: 35097,

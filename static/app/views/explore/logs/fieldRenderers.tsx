@@ -39,9 +39,15 @@ import type {
   TraceItemDetailsResponse,
   TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {LOG_ATTRIBUTE_LAZY_LOAD_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
-import {LogsAnsiHighlight} from 'sentry/views/explore/logs/logsAnsiHighlight';
-import {LogsTimestampTooltip} from 'sentry/views/explore/logs/logsTimeTooltip';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
+import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
+import {TraceLayoutTabKeys} from 'sentry/views/performance/traceDetails/useTraceLayoutTabs';
+
+import {LOG_ATTRIBUTE_LAZY_LOAD_HOVER_TIMEOUT} from './constants';
+import {LogsAnsiHighlight} from './logsAnsiHighlight';
+import {LogsTimestampTooltip} from './logsTimeTooltip';
 import {
   AlignedCellContent,
   ColoredLogCircle,
@@ -52,8 +58,8 @@ import {
   LogTimestamp,
   WrappingText,
   type getLogColors,
-} from 'sentry/views/explore/logs/styles';
-import {OurLogKnownFieldKey, type OurLogFieldKey} from 'sentry/views/explore/logs/types';
+} from './styles';
+import {OurLogKnownFieldKey, type OurLogFieldKey} from './types';
 import {
   adjustLogTraceID,
   getLogSeverityLevel,
@@ -61,12 +67,7 @@ import {
   logsFieldAlignment,
   SeverityLevel,
   severityLevelToText,
-} from 'sentry/views/explore/logs/utils';
-import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
-import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
-import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
-import {TraceLayoutTabKeys} from 'sentry/views/performance/traceDetails/useTraceLayoutTabs';
+} from './utils';
 
 const {fmt} = Sentry.logger;
 

@@ -24,6 +24,10 @@ import {
   DEFAULT_MAX_RUNTIME,
   MAX_RUNTIME_LIMIT,
 } from 'sentry/utils/monitor/cron';
+import {ScheduleType} from 'sentry/views/insights/crons/types';
+import {getScheduleIntervals} from 'sentry/views/insights/crons/utils';
+import {crontabAsText} from 'sentry/views/insights/crons/utils/crontabAsText';
+
 import {
   CRON_DEFAULT_FAILURE_ISSUE_THRESHOLD,
   CRON_DEFAULT_SCHEDULE_INTERVAL_UNIT,
@@ -31,10 +35,7 @@ import {
   CRON_DEFAULT_SCHEDULE_TYPE,
   DEFAULT_CRONTAB,
   useCronDetectorFormField,
-} from 'sentry/views/detectors/components/forms/cron/fields';
-import {ScheduleType} from 'sentry/views/insights/crons/types';
-import {getScheduleIntervals} from 'sentry/views/insights/crons/utils';
-import {crontabAsText} from 'sentry/views/insights/crons/utils/crontabAsText';
+} from './fields';
 
 const SCHEDULE_OPTIONS: Array<SelectValue<string>> = [
   {value: ScheduleType.CRONTAB, label: t('Crontab')},

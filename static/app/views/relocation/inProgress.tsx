@@ -2,8 +2,8 @@ import {motion} from 'framer-motion';
 
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {Wrapper} from 'sentry/views/relocation/components/wrapper';
 
+import {Wrapper} from './components/wrapper';
 import type {StepProps} from './types';
 
 export function InProgress(props: StepProps) {

@@ -12,10 +12,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import {BuilderBreadCrumbs} from 'sentry/views/alerts/builder/builderBreadCrumbs';
-import {useAlertBuilderOutlet} from 'sentry/views/alerts/builder/projectProvider';
 import {UptimeRulesEdit} from 'sentry/views/detectors/components/uptime/edit';
 
+import {BuilderBreadCrumbs} from './builder/builderBreadCrumbs';
+import {useAlertBuilderOutlet} from './builder/projectProvider';
 import {CronRulesEdit} from './rules/crons/edit';
 import {CombinedAlertType} from './types';
 

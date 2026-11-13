@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import orjson
@@ -20,11 +21,13 @@ class ProjectPreprodArtifactAssembleGenericEndpointTest(TestCase):
             state=PreprodArtifact.ArtifactState.UPLOADED
         )
 
-    def _get_url(self, artifact_id=None):
+    def _get_url(self, artifact_id: int | None = None) -> str:
         artifact_id = artifact_id or self.preprod_artifact.id
         return f"/api/0/internal/{self.organization.slug}/{self.project.slug}/files/preprodartifacts/{artifact_id}/assemble-generic/"
 
-    def _make_request(self, data, artifact_id=None, authenticated=True):
+    def _make_request(
+        self, data: Any, artifact_id: int | None = None, authenticated: bool = True
+    ) -> Any:
         url = self._get_url(artifact_id)
         json_data: bytes = orjson.dumps(data) if isinstance(data, dict) else data
 
@@ -41,7 +44,7 @@ class ProjectPreprodArtifactAssembleGenericEndpointTest(TestCase):
         else:
             return self.client.post(url, data=json_data, content_type="application/json")
 
-    def _create_blobs(self, count=2):
+    def _create_blobs(self, count: int = 2) -> list[FileBlob]:
         return [
             FileBlob.from_file_with_organization(
                 self.create_file(name=f"chunk{i}", type="application/octet-stream").getfile(),
@@ -50,7 +53,13 @@ class ProjectPreprodArtifactAssembleGenericEndpointTest(TestCase):
             for i in range(count)
         ]
 
-    def _assert_task_called_with(self, mock_task, checksum, chunks, artifact_id=None):
+    def _assert_task_called_with(
+        self,
+        mock_task: MagicMock,
+        checksum: str,
+        chunks: list[str],
+        artifact_id: int | None = None,
+    ) -> None:
         """Helper to assert task was called with expected parameters"""
         call_kwargs = mock_task.call_args[1]["kwargs"]
         assert call_kwargs["org_id"] == self.organization.id

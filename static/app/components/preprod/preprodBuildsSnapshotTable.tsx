@@ -6,7 +6,6 @@ import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {SnapshotStatusBadge} from 'sentry/components/preprod/snapshotStatusBadge';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
@@ -21,6 +20,7 @@ import {
   buildsTableColumns,
   FullRowLink,
 } from './preprodBuildsTableStyles';
+import {SnapshotStatusBadge} from './snapshotStatusBadge';
 
 interface PreprodBuildsSnapshotTableProps {
   builds: BuildDetailsApiResponse[];

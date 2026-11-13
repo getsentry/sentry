@@ -1,5 +1,6 @@
 import {
   DurationUnit,
+  FractionUnit,
   RateUnit,
   SizeUnit,
   type AggregationOutputType,
@@ -13,7 +14,7 @@ export const FALLBACK_UNIT_FOR_FIELD_TYPE = {
   integer: null,
   date: null,
   duration: DurationUnit.MILLISECOND,
-  percentage: null,
+  percentage: FractionUnit.RATIO,
   string: null,
   size: SizeUnit.BYTE,
   rate: RateUnit.PER_SECOND,

@@ -1,6 +1,8 @@
+from typing import Any
 from uuid import uuid1
 
 from sentry.models.commit import Commit
+from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.releasecommit import ReleaseCommit
@@ -28,7 +30,7 @@ class OrganizationIssuesResolvedInReleaseEndpointTest(APITestCase, SnubaTestCase
         self.group_2 = self.create_group(project=self.project_2)
         self.login_as(self.user)
 
-    def build_grouplink(self, group=None):
+    def build_grouplink(self, group: Group | None = None) -> None:
         group = self.group if group is None else group
         repo = Repository.objects.create(organization_id=self.org.id, name=group.project.name)
         commit = Commit.objects.create(
@@ -51,15 +53,20 @@ class OrganizationIssuesResolvedInReleaseEndpointTest(APITestCase, SnubaTestCase
             linked_id=commit.id,
         )
 
-    def build_group_resolution(self, group=None):
+    def build_group_resolution(self, group: Group | None = None) -> GroupResolution:
         return GroupResolution.objects.create(
             group=self.group if group is None else group,
             release=self.release,
             type=GroupResolution.Type.in_release,
         )
 
-    def run_test(self, expected_groups, project_ids=None, environment_names=None):
-        params = {}
+    def run_test(
+        self,
+        expected_groups: list[Group],
+        project_ids: list[int] | None = None,
+        environment_names: list[str] | None = None,
+    ) -> None:
+        params: dict[str, Any] = {}
         if project_ids:
             params["project"] = project_ids
         if environment_names:

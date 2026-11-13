@@ -40,7 +40,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
             },
         )
 
-    def load_trace(self):
+    def load_trace(self) -> None:
         self.root_event = self.create_event(
             trace_id=self.trace_id,
             transaction="root",

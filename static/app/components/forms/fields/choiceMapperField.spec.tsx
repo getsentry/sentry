@@ -2,7 +2,7 @@ import type {ComponentProps} from 'react';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {ChoiceMapperField} from 'sentry/components/forms/fields/choiceMapperField';
+import {ChoiceMapperField} from './choiceMapperField';
 
 describe('ChoiceMapperField', () => {
   const mockOnChange = jest.fn();
@@ -155,7 +155,7 @@ describe('ChoiceMapperField', () => {
       await userEvent.click(screen.getByRole('button', {name: /Add Item/i}));
 
       // Type in the search box
-      const searchInput = screen.getByRole('textbox');
+      const searchInput = screen.getByRole('searchbox');
       await userEvent.type(searchInput, 'test');
 
       // Wait for results to appear
@@ -178,7 +178,7 @@ describe('ChoiceMapperField', () => {
       await userEvent.click(screen.getByRole('button', {name: /Add Item/i}));
 
       // Search and select
-      const searchInput = screen.getByRole('textbox');
+      const searchInput = screen.getByRole('searchbox');
       await userEvent.type(searchInput, 'repo');
 
       await waitFor(() => {
@@ -227,7 +227,7 @@ describe('ChoiceMapperField', () => {
 
       await userEvent.click(screen.getByRole('button', {name: /Add Item/i}));
 
-      const searchInput = screen.getByRole('textbox');
+      const searchInput = screen.getByRole('searchbox');
       await userEvent.type(searchInput, 'nonexistent');
 
       await waitFor(() => {
@@ -283,7 +283,7 @@ describe('ChoiceMapperField', () => {
 
       await userEvent.click(screen.getByRole('button', {name: /Add Item/i}));
 
-      const searchInput = screen.getByRole('textbox');
+      const searchInput = screen.getByRole('searchbox');
 
       await userEvent.type(searchInput, 'test', {delay: 10});
 

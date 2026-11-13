@@ -1,6 +1,6 @@
 import {useMatches} from 'react-router';
 
-import type {SettingsRouteHandle} from 'sentry/views/settings/types';
+import type {SettingsRouteHandle} from './types';
 
 /**
  * The `switchTo` URL template of the deepest matched route that declares a

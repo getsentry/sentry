@@ -9,13 +9,6 @@ import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {DroppedDataChart} from 'sentry/components/droppedData/drawer/droppedDataChart';
-import {DroppedDataOutcomeList} from 'sentry/components/droppedData/drawer/droppedDataOutcomeList';
-import {
-  getOutcomeColors,
-  isOutcomeSelected,
-  type OutcomeSelection,
-} from 'sentry/components/droppedData/drawer/outcomeColors';
 import {droppedAndFilteredLabel} from 'sentry/components/droppedData/outcomes';
 import {
   droppedEventsToOutcomeGroups,
@@ -23,33 +16,41 @@ import {
   type AskSeerHandler,
   type DroppedDataScope,
 } from 'sentry/components/droppedData/outcomeSections';
-import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
+import {
+  useDroppedData,
+  type UseDroppedDataParams,
+} from 'sentry/components/droppedData/useDroppedData';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
 
-interface DroppedDataDrawerProps {
-  dataset: DiscoverDatasets;
-  interval?: string;
+import {DroppedDataChart} from './droppedDataChart';
+import {DroppedDataOutcomeList} from './droppedDataOutcomeList';
+import {
+  getOutcomeColors,
+  isOutcomeSelected,
+  type OutcomeSelection,
+} from './outcomeColors';
+
+interface DroppedDataDrawerProps extends UseDroppedDataParams {
   onAskSeer?: AskSeerHandler;
 }
 
 export function DroppedDataDrawer({
   dataset,
   interval,
+  projects,
   onAskSeer,
 }: DroppedDataDrawerProps) {
   const theme = useTheme();
   const organization = useOrganization();
-  const [chartInterval] = useChartInterval();
   const {droppedEvents, acceptedEvents, isPending, isError, refetch} = useDroppedData({
     dataset,
-    interval: interval ?? chartInterval,
+    interval,
+    projects,
   });
 
   const [scope, setScope] = useState<DroppedDataScope>('unexpected');

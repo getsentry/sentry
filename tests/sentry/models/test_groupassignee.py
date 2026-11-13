@@ -53,7 +53,7 @@ class GroupAssigneeTestCase(TestCase):
 
         assert GroupDerivedData.objects.filter(id=derived.id).values().get() == before
         logger.exception.assert_called_once()
-        context = logger.exception.call_args.kwargs["extra"]
+        context: dict[str, Any] = logger.exception.call_args.kwargs["extra"]
         assert context["group_id"] == self.group.id
         assert context["operation"] == "assign"
         assert context["stage"] == "decode"
@@ -114,7 +114,7 @@ class GroupAssigneeTestCase(TestCase):
         replay.assert_called_once()
         assert list(GroupDerivedData.objects.filter(group_id=self.group.id).values()) == before
         logger.exception.assert_called_once()
-        context = logger.exception.call_args.kwargs["extra"]
+        context: dict[str, Any] = logger.exception.call_args.kwargs["extra"]
         assert context["group_id"] == self.group.id
         assert context["operation"] == "assign"
         assert context["stage"] == "aggregate"
@@ -346,8 +346,8 @@ class GroupAssigneeTestCase(TestCase):
 
     @mock.patch.object(ExampleIntegration, "sync_assignee_outbound")
     def test_assignee_sync_outbound_assign_with_matching_source_integration(
-        self, mock_sync_assignee_outbound
-    ):
+        self, mock_sync_assignee_outbound: mock.MagicMock
+    ) -> None:
         group = self.group
         integration = self.create_integration(
             organization=group.organization,

@@ -15,7 +15,7 @@ from sentry_sdk import traces
 from sentry import features, roles
 from sentry.api.exceptions import DataSecrecyError
 from sentry.auth.deprecated_scope_translation import translate_deprecated_scopes
-from sentry.auth.principal import has_user
+from sentry.auth.principal import acting_user_id, has_user, require_user
 from sentry.auth.scope_declaration import check_scope_declaration, check_scope_declarations
 from sentry.auth.services.access.service import access_service
 from sentry.auth.services.auth import AuthenticatedToken, RpcAuthState, RpcMemberSsoState
@@ -37,17 +37,27 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
 from sentry.organizations.services.organization import (
+    RpcOrganization,
+    RpcOrganizationAccessContext,
+    RpcOrganizationResourceIds,
     RpcTeamMember,
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.organizations.services.organization.resources import get_active_resource_ids
 from sentry.organizations.services.organization.serial import summarize_member
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole, TeamRole
 from sentry.seer.agent_token import is_agent_auth
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.service_accounts.auth import is_service_account_auth
-from sentry.service_accounts.models import ServiceAccountProjectReplica
+from sentry.service_accounts.models import (
+    ServiceAccount,
+    ServiceAccountProjectReplica,
+    ServiceAccountReplica,
+)
+from sentry.service_accounts.principal import ServiceAccountPrincipal
+from sentry.silo.base import SiloMode
 from sentry.types.request import _HttpRequestWithUser
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -72,6 +82,31 @@ def has_role_in_organization(role: str, organization: Organization, user_id: int
         role=role,
     )
     return query.exists()
+
+
+def should_prefetch_organization_resources(request: HttpRequest | Request) -> bool:
+    """Prefetch org-wide IDs in control; members have IDs and cells can query locally."""
+    if SiloMode.get_current_mode() != SiloMode.CONTROL:
+        return False
+    if isinstance(request.auth, AuthenticatedToken) and request.auth.superuser is not None:
+        return True
+    if is_agent_auth(request.auth) or is_system_auth(request.auth):
+        return False
+    return bool(
+        request.user.is_sentry_app
+        or is_active_superuser(request)
+        or (request.auth is not None and not request.user.is_authenticated)
+    )
+
+
+def get_organization_access_context(
+    request: HttpRequest | Request, *, organization_id: int
+) -> RpcOrganizationAccessContext | None:
+    return organization_service.get_access_context(
+        organization_id=organization_id,
+        user_id=acting_user_id(request.user),
+        include_resource_ids=should_prefetch_organization_resources(request),
+    )
 
 
 class Access(abc.ABC):
@@ -794,9 +829,13 @@ class OrganizationGlobalAccess(DbAccess):
 class ServiceAccountAccess(DbAccess):
     """
     A service account's access to its organization. It has no membership, so its
-    scopes are the account's own. With open membership it reaches every active team
-    and project, like `OrganizationGlobalAccess`. Without it, it reaches only the
-    active projects linked to the account, and no teams.
+    scopes are the account's own. With `all_projects` it reaches every active project
+    in the org. Without it, it reaches only the active projects linked to the
+    account. It never reaches teams, and it can't create projects for now. Open
+    membership is a setting for people, so it doesn't apply.
+
+    `has_global_access` stays False even with `all_projects`: callers read it as
+    org-wide access, including team and member actions, not only projects.
     """
 
     def __init__(
@@ -805,23 +844,20 @@ class ServiceAccountAccess(DbAccess):
         service_account_id: int,
         organization_id: int,
         scopes: Iterable[str],
-        has_open_membership: bool,
+        all_projects: bool,
     ) -> None:
         self._service_account_id = service_account_id
         self._organization_id = organization_id
-        super().__init__(
-            sso_is_valid=True,
-            has_open_membership=has_open_membership,
-            has_global_access=has_open_membership,
-            scopes=frozenset(scopes),
-        )
+        self._all_projects = all_projects
+        super().__init__(sso_is_valid=True, scopes=frozenset(scopes))
+
+    @property
+    def has_all_projects(self) -> bool:
+        """Whether the account explicitly has access to current and future active projects."""
+        return self._all_projects
 
     def has_team_access(self, team: Team) -> bool:
-        return bool(
-            self.has_global_access
-            and team.organization_id == self._organization_id
-            and team.status == TeamStatus.ACTIVE
-        )
+        return False
 
     def has_project_access(self, project: Project) -> bool:
         if (
@@ -829,7 +865,7 @@ class ServiceAccountAccess(DbAccess):
             or project.status != ObjectStatus.ACTIVE
         ):
             return False
-        return self.has_global_access or project.id in self.accessible_project_ids
+        return self._all_projects or project.id in self.accessible_project_ids
 
     @cached_property
     def project_ids_with_team_membership(self) -> frozenset[int]:
@@ -839,17 +875,11 @@ class ServiceAccountAccess(DbAccess):
 
     @cached_property
     def accessible_team_ids(self) -> frozenset[int]:
-        if not self.has_global_access:
-            return frozenset()
-        return frozenset(
-            Team.objects.filter(
-                organization_id=self._organization_id, status=TeamStatus.ACTIVE
-            ).values_list("id", flat=True)
-        )
+        return frozenset()
 
     @cached_property
     def accessible_project_ids(self) -> frozenset[int]:
-        if self.has_global_access:
+        if self._all_projects:
             return frozenset(
                 Project.objects.filter(
                     organization_id=self._organization_id, status=ObjectStatus.ACTIVE
@@ -902,20 +932,33 @@ class ApiBackedOrganizationGlobalAccess(RpcBackedAccess):
         )
 
     @cached_property
+    def _resource_ids(self) -> RpcOrganizationResourceIds:
+        context = self.rpc_user_organization_context
+        if isinstance(context, RpcOrganizationAccessContext):
+            if context.resource_ids is not None:
+                return context.resource_ids
+            assert SiloMode.get_current_mode() != SiloMode.CONTROL, (
+                "Org-wide control access requires prefetched resource IDs"
+            )
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            # Preserve full-context callers until their providers migrate to access contexts.
+            return RpcOrganizationResourceIds(
+                project_ids=[
+                    p.id for p in context.organization.projects if p.status == ObjectStatus.ACTIVE
+                ],
+                team_ids=[
+                    t.id for t in context.organization.teams if t.status == TeamStatus.ACTIVE
+                ],
+            )
+        return get_active_resource_ids(organization_id=context.organization.id)
+
+    @cached_property
     def accessible_team_ids(self) -> frozenset[int]:
-        return frozenset(
-            t.id
-            for t in self.rpc_user_organization_context.organization.teams
-            if t.status == TeamStatus.ACTIVE
-        )
+        return frozenset(self._resource_ids.team_ids)
 
     @cached_property
     def accessible_project_ids(self) -> frozenset[int]:
-        return frozenset(
-            p.id
-            for p in self.rpc_user_organization_context.organization.projects
-            if p.status == ObjectStatus.ACTIVE
-        )
+        return frozenset(self._resource_ids.project_ids)
 
 
 class OrganizationGlobalMembership(OrganizationGlobalAccess):
@@ -1201,7 +1244,9 @@ def organizationless_access(
     )
 
 
-def normalize_valid_user(user: User | RpcUser | AnonymousUser | None) -> User | RpcUser | None:
+def normalize_valid_user(
+    user: User | RpcUser | AnonymousUser | ServiceAccountPrincipal | None,
+) -> User | RpcUser | None:
     if not user or not has_user(user) or not user.is_active:
         return None
     return user
@@ -1257,7 +1302,7 @@ def from_request(
             raise DataSecrecyError()
 
     if request.user.is_authenticated and request.user.is_sentry_app:
-        return _from_sentry_app(request.user, organization=organization)
+        return _from_sentry_app(require_user(request), organization=organization)
 
     if is_active_superuser(request):
         member: OrganizationMember | None = None
@@ -1297,6 +1342,16 @@ def from_request(
     return from_user(user=request.user, organization=organization, scopes=scopes, is_staff=is_staff)
 
 
+def _sentry_app_scopes(
+    scope_list: Iterable[str], organization: Organization | RpcOrganization
+) -> frozenset[str]:
+    # Sentry App scopes aren't capped by member role scopes, so add granular
+    # scopes only where the organization's roles grant them too.
+    if features.has("organizations:granular-permission-scopes", organization):
+        return translate_deprecated_scopes(scope_list)
+    return frozenset(scope_list)
+
+
 # only used internally
 def _from_sentry_app(user: User, organization: Organization | None = None) -> Access:
     if not organization:
@@ -1313,7 +1368,7 @@ def _from_sentry_app(user: User, organization: Organization | None = None) -> Ac
         return NoAccess()
 
     return OrganizationGlobalMembership(
-        organization, translate_deprecated_scopes(sentry_app.scope_list), sso_is_valid=True
+        organization, _sentry_app_scopes(sentry_app.scope_list, organization), sso_is_valid=True
     )
 
 
@@ -1338,12 +1393,12 @@ def _from_rpc_sentry_app(context: RpcUserOrganizationContext | None = None) -> A
             ),
             permissions=[],
         ),
-        scopes=translate_deprecated_scopes(installation.sentry_app.scope_list),
+        scopes=_sentry_app_scopes(installation.sentry_app.scope_list, context.organization),
     )
 
 
 def from_user(
-    user: User | RpcUser | AnonymousUser | None,
+    user: User | RpcUser | AnonymousUser | ServiceAccountPrincipal | None,
     organization: Organization | None = None,
     scopes: Iterable[str] | None = None,
     is_superuser: bool = False,
@@ -1410,16 +1465,15 @@ def from_rpc_member(
 
 def from_auth(auth: AuthenticatedToken, organization: Organization) -> Access:
     if isinstance(auth, AuthenticatedToken) and auth.superuser is not None:
-        context = organization_service.get_organization_by_id(
-            id=organization.id, user_id=auth.user_id
+        context = organization_service.get_access_context(
+            organization_id=organization.id,
+            user_id=auth.user_id,
         )
         return from_superuser_access(auth, context) if context is not None else DEFAULT
     if is_system_auth(auth):
         return SystemAccess()
     if is_service_account_auth(auth):
-        return from_service_account_auth(
-            auth, organization.id, bool(organization.flags.allow_joinleave)
-        )
+        return from_service_account_auth(auth, organization.id)
     if is_agent_auth(auth):
         access: Access = DEFAULT
         if auth.user_id is not None and auth.organization_id == organization.id:
@@ -1450,8 +1504,7 @@ def from_rpc_auth(
     if is_system_auth(auth):
         return SystemAccess()
     if is_service_account_auth(auth):
-        organization = rpc_user_org_context.organization
-        return from_service_account_auth(auth, organization.id, organization.flags.allow_joinleave)
+        return from_service_account_auth(auth, rpc_user_org_context.organization.id)
     if is_agent_auth(auth):
         # Agents are non-user actors with member-derived, capped authority -- never the
         # org-global access an org token gets. Dispatched here so the cap holds at the
@@ -1494,17 +1547,35 @@ def from_agent_auth(
     return from_rpc_member(rpc_user_org_context, scopes=auth.get_scopes())
 
 
-def from_service_account_auth(
-    auth: AuthenticatedToken, organization_id: int, has_open_membership: bool
-) -> Access:
+def from_service_account_auth(auth: AuthenticatedToken, organization_id: int) -> Access:
     # Bound to the account's own org, like agent tokens.
     if auth.entity_id is None or auth.organization_id != organization_id:
+        return DEFAULT
+    # The token doesn't carry `all_projects`, so read it from a replica of the account:
+    # a read replica on control, the cell replica elsewhere. An account deactivated since
+    # authentication gets no access.
+    if SiloMode.get_current_mode() == SiloMode.CONTROL:
+        all_projects = (
+            ServiceAccount.objects.using_replica()
+            .filter(id=auth.entity_id, organization_id=organization_id, is_active=True)
+            .values_list("all_projects", flat=True)
+            .first()
+        )
+    else:
+        all_projects = (
+            ServiceAccountReplica.objects.filter(
+                service_account_id=auth.entity_id, organization_id=organization_id, is_active=True
+            )
+            .values_list("all_projects", flat=True)
+            .first()
+        )
+    if all_projects is None:
         return DEFAULT
     return ServiceAccountAccess(
         service_account_id=auth.entity_id,
         organization_id=organization_id,
         scopes=auth.get_scopes(),
-        has_open_membership=has_open_membership,
+        all_projects=all_projects,
     )
 
 

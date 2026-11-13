@@ -6,7 +6,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {makeCloseButton} from '@sentry/scraps/modal';
 
-import CreateTeamModal from 'sentry/components/modals/createTeamModal';
+import CreateTeamModal from './createTeamModal';
 
 describe('CreateTeamModal', () => {
   const org = OrganizationFixture();

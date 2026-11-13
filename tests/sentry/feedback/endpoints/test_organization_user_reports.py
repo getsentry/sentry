@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
@@ -67,7 +68,7 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
             date_added=datetime.now(UTC) - timedelta(days=7),
         )
 
-    def run_test(self, expected, **params):
+    def run_test(self, expected: Sequence[UserReport], **params: object) -> None:
         response = self.get_response(self.project_1.organization.slug, **params)
 
         assert response.status_code == 200, response.content
@@ -175,6 +176,7 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
             },
             project_id=self.project_1.id,
         )
+        assert old_event.group is not None
         UserReport.objects.create(
             project_id=self.project_1.id,
             event_id=old_event.event_id,

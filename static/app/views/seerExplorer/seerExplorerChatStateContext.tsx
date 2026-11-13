@@ -9,11 +9,12 @@ import {
 } from 'react';
 
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
-import type {ChatPrompt} from 'sentry/views/seerExplorer/chatPrompt';
-import {useRefreshPageOnSeerWrite} from 'sentry/views/seerExplorer/hooks/useRefreshPageOnSeerWrite';
-import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
-import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
-import {SeerExplorerDeepLinkParamProvider} from 'sentry/views/seerExplorer/utils';
+
+import {useRefreshPageOnSeerWrite} from './hooks/useRefreshPageOnSeerWrite';
+import {useSeerExplorerPolling} from './hooks/useSeerExplorerPolling';
+import type {ChatPrompt} from './chatPrompt';
+import type {SeerExplorerRunId} from './types';
+import {SeerExplorerDeepLinkParamProvider} from './utils';
 
 export type PollingState =
   | 'polling'

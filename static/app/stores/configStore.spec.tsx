@@ -1,5 +1,6 @@
-import {ConfigStore} from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
+
+import {ConfigStore} from './configStore';
 
 describe('ConfigStore', () => {
   let configState: Config;
@@ -30,6 +31,17 @@ describe('ConfigStore', () => {
 
   it('should have customerDomain', () => {
     expect(ConfigStore.get('customerDomain')).toBeNull();
+  });
+
+  it('notifies subscribers when a value is set', () => {
+    const listener = jest.fn();
+    const unsubscribe = ConfigStore.subscribe(listener);
+
+    ConfigStore.set('theme', 'dark');
+
+    expect(ConfigStore.get('theme')).toBe('dark');
+    expect(listener).toHaveBeenCalledTimes(1);
+    unsubscribe();
   });
 
   it('returns a stable reference from getState()', () => {

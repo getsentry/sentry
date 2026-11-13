@@ -406,9 +406,9 @@ def test_convert_renamed_attribute_meta() -> None:
     [(123, 123), ("123", 123), (None, 0)],
     ids=["int_key_id", "str_key_id", "none_key_id"],
 )
-def test_convert_outcomes(key_id, expected_key_id) -> None:
+def test_convert_outcomes(key_id: int | str | None, expected_key_id: int) -> None:
     message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
-    message["key_id"] = key_id
+    message["key_id"] = cast(int, key_id)
 
     item = convert_span_to_item(cast(CompatibleSpan, message))
 

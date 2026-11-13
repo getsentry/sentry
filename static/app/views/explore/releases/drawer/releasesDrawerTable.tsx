@@ -2,6 +2,7 @@ import {useCallback} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -28,15 +29,14 @@ import type {Release, ReleaseProject} from 'sentry/types/release';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import {
-  cleanReleaseCursors,
-  ReleasesDrawerFields,
-} from 'sentry/views/explore/releases/drawer/utils';
 import {getReleaseNewIssuesUrl} from 'sentry/views/explore/releases/utils';
+
+import {cleanReleaseCursors, ReleasesDrawerFields} from './utils';
 
 type ReleaseHealthItem = {
   date: string;
@@ -77,13 +77,17 @@ export function ReleasesDrawerTable({
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
+  const [rdListCursor, setRdListCursor] = useQueryState(
+    ReleasesDrawerFields.LIST_CURSOR,
+    parseAsString
+  );
   const {data, isLoading, isError} = useQuery({
     ...apiOptions.as<Release[]>()('/organizations/$organizationIdOrSlug/releases/', {
       path: {organizationIdOrSlug: organization.slug},
       query: {
         project: projects,
         environment: environments,
-        cursor: location.query[ReleasesDrawerFields.LIST_CURSOR],
+        cursor: rdListCursor ?? undefined,
         ...normalizeDateTimeParams(datetime),
         per_page: 15,
       },
@@ -215,13 +219,8 @@ export function ReleasesDrawerTable({
         }}
       />
       <PaginationNoMargin
-        pageLinks={pageLinks}
-        onCursor={(cursor, path, searchQuery) => {
-          navigate({
-            pathname: path,
-            query: {...searchQuery, [ReleasesDrawerFields.LIST_CURSOR]: cursor},
-          });
-        }}
+        {...getPaginationProps(pageLinks)}
+        onCursor={cursor => setRdListCursor(cursor ?? null)}
       />
     </div>
   );

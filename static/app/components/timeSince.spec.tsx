@@ -2,7 +2,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {DateTimeProvider} from '@sentry/scraps/datetime';
 
-import {getRelativeDate, TimeSince} from 'sentry/components/timeSince';
+import {getRelativeDate, TimeSince} from './timeSince';
 
 describe('TimeSince', () => {
   const now = new Date();

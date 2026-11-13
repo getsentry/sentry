@@ -1,6 +1,6 @@
 import signal
 import time
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from requests import Response
@@ -38,7 +38,7 @@ class WebhookTimeoutTest(TestCase):
         }
     )
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
-    def test_webhook_completes_before_timeout(self, mock_safe_urlopen):
+    def test_webhook_completes_before_timeout(self, mock_safe_urlopen: MagicMock) -> None:
         # Mock successful response
         mock_response = Mock(spec=Response)
         mock_response.status_code = 200
@@ -67,9 +67,9 @@ class WebhookTimeoutTest(TestCase):
         }
     )
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
-    def test_webhook_interrupted_by_hard_timeout(self, mock_safe_urlopen):
+    def test_webhook_interrupted_by_hard_timeout(self, mock_safe_urlopen: MagicMock) -> None:
         # Make safe_urlopen sleep longer than the timeout
-        def slow_urlopen(*args, **kwargs):
+        def slow_urlopen(*args: object, **kwargs: object) -> Mock:
             time.sleep(6.0)  # Sleep longer than 1 second timeout
             mock_response = Mock(spec=Response)
             mock_response.status_code = 200
@@ -97,9 +97,9 @@ class WebhookTimeoutTest(TestCase):
         }
     )
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
-    def test_timeout_exception_propagates(self, mock_safe_urlopen):
+    def test_timeout_exception_propagates(self, mock_safe_urlopen: MagicMock) -> None:
         # Make safe_urlopen sleep
-        def slow_urlopen(*args, **kwargs):
+        def slow_urlopen(*args: object, **kwargs: object) -> Mock:
             time.sleep(2.0)
             return Mock(spec=Response)
 
@@ -124,9 +124,11 @@ class WebhookTimeoutTest(TestCase):
     )
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_lifecycle_record_halt_called_on_timeout(self, mock_record, mock_safe_urlopen):
+    def test_lifecycle_record_halt_called_on_timeout(
+        self, mock_record: MagicMock, mock_safe_urlopen: MagicMock
+    ) -> None:
         # Make safe_urlopen sleep
-        def slow_urlopen(*args, **kwargs):
+        def slow_urlopen(*args: object, **kwargs: object) -> Mock:
             time.sleep(2.0)
             return Mock(spec=Response)
 
@@ -156,7 +158,7 @@ class WebhookTimeoutTest(TestCase):
         }
     )
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
-    def test_timeout_alarm_restores_signal_handler(self, mock_safe_urlopen):
+    def test_timeout_alarm_restores_signal_handler(self, mock_safe_urlopen: MagicMock) -> None:
         # Get original handler
         original_handler = signal.signal(signal.SIGALRM, signal.SIG_DFL)
         signal.signal(signal.SIGALRM, original_handler)
@@ -190,7 +192,7 @@ class WebhookTimeoutTest(TestCase):
         }
     )
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
-    def test_alarm_cancelled_after_successful_webhook(self, mock_safe_urlopen):
+    def test_alarm_cancelled_after_successful_webhook(self, mock_safe_urlopen: MagicMock) -> None:
         mock_response = Mock(spec=Response)
         mock_response.status_code = 200
         mock_response.headers = {}

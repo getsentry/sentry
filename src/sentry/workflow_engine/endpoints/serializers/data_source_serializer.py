@@ -1,14 +1,40 @@
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any
+from typing import Annotated, Any, Literal, TypedDict, cast
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.apidocs.descriptions import ApiDescription
+from sentry.incidents.typings.query_subscription import QuerySubscriptionSerializerResponse
+from sentry.monitors.serializers import MonitorSerializerResponse
+from sentry.uptime.endpoints.serializers import UptimeSubscriptionSerializerResponse
 from sentry.workflow_engine.models import DataSource
 from sentry.workflow_engine.types import DataSourceTypeHandler
 
+# The types registered in data_source_type_registry.
+DataSourceTypeName = Literal["snuba_query_subscription", "cron_monitor", "uptime_subscription"]
+
+
+class DataSourceSerializerResponse(TypedDict):
+    id: Annotated[str, ApiDescription("ID of the data source")]
+    organizationId: Annotated[str, ApiDescription("ID of the organization")]
+    type: Annotated[DataSourceTypeName, ApiDescription("Type of the data source")]
+    sourceId: Annotated[
+        str, ApiDescription("ID of the query subscription, cron monitor or uptime subscription")
+    ]
+    queryObj: Annotated[
+        QuerySubscriptionSerializerResponse
+        | MonitorSerializerResponse
+        | UptimeSubscriptionSerializerResponse
+        | None,
+        ApiDescription(
+            "The query subscription, cron monitor or uptime subscription, which depends on "
+            "type. Null when it no longer exists"
+        ),
+    ]
+
 
 @register(DataSource)
-class DataSourceSerializer(Serializer[dict[str, Any]]):
+class DataSourceSerializer(Serializer[DataSourceSerializerResponse]):
     def get_attrs(
         self, item_list: Sequence[DataSource], user: Any, **kwargs: Any
     ) -> MutableMapping[DataSource, dict[str, Any]]:
@@ -31,17 +57,18 @@ class DataSourceSerializer(Serializer[dict[str, Any]]):
                 }
             )
         for item in item_list:
-            attrs[item]["query_obj"] = serialized_query_objs.get(item.id, [])
+            attrs[item]["query_obj"] = serialized_query_objs.get(item.id)
 
         return attrs
 
     def serialize(
         self, obj: DataSource, attrs: Mapping[str, Any], user: Any, **kwargs: Any
-    ) -> dict[str, Any]:
+    ) -> DataSourceSerializerResponse:
         return {
             "id": str(obj.id),
             "organizationId": str(obj.organization_id),
-            "type": obj.type,
+            # test_response_literals keeps DataSourceTypeName in sync with the registry.
+            "type": cast(DataSourceTypeName, obj.type),
             "sourceId": str(obj.source_id),
             "queryObj": attrs["query_obj"],
         }

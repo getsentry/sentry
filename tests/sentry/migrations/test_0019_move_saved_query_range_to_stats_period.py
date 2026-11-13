@@ -1,3 +1,5 @@
+from typing import Any
+from django.db.migrations.state import StateApps
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestMigrations
 
@@ -7,7 +9,7 @@ class MoveSavedQueryRangeToStatsPeriodTest(TestMigrations):
     migrate_from = "0018_add_prebuilt_delete_to_formulas"
     migrate_to = "0019_move_saved_query_range_to_stats_period"
 
-    def setup_before_migration(self, apps):
+    def setup_before_migration(self, apps: StateApps) -> None:
         Organization = apps.get_model("sentry", "Organization")
         ExploreSavedQuery = apps.get_model("explore", "ExploreSavedQuery")
         DiscoverSavedQuery = apps.get_model("discover", "DiscoverSavedQuery")
@@ -15,8 +17,10 @@ class MoveSavedQueryRangeToStatsPeriodTest(TestMigrations):
         with unguarded_write(using="default"):
             organization = Organization.objects.create(slug="range-migration", name="Range")
 
-        def create(model, name: str, query: dict[str, object]) -> int:
-            return model.objects.create(organization_id=organization.id, name=name, query=query).id
+        def create(model: Any, name: str, query: dict[str, object]) -> int:
+            return int(
+                model.objects.create(organization_id=organization.id, name=name, query=query).id
+            )
 
         self.explore_range = create(ExploreSavedQuery, "explore-range", {"range": "24h"})
         self.explore_both = create(

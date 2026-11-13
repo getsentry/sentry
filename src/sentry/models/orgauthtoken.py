@@ -40,7 +40,7 @@ ORG_AUTH_TOKEN_ALLOWED_SCOPES = frozenset({"org:ci"})
 ORG_AUTH_TOKEN_FORBIDDEN_SCOPES = frozenset({"org:tokens"})
 
 
-def validate_scope_list(value):
+def validate_scope_list(value: list[str]) -> None:
     for choice in value:
         if choice not in SENTRY_SCOPES:
             raise ValidationError(f"{choice} is not a valid scope.")
@@ -80,16 +80,16 @@ class OrgAuthToken(ReplicatedControlModel):
     def __str__(self) -> str:
         return force_str(self.token_hashed)
 
-    def get_audit_log_data(self):
+    def get_audit_log_data(self) -> dict[str, object]:
         return {"name": self.name, "scopes": self.get_scopes()}
 
     def get_allowed_origins(self) -> list[str]:
         return []
 
-    def get_scopes(self):
+    def get_scopes(self) -> list[str]:
         return self.scope_list
 
-    def has_scope(self, scope):
+    def has_scope(self, scope: str) -> bool:
         return scope in self.get_scopes()
 
     def is_active(self) -> bool:

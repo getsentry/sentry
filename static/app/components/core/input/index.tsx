@@ -1,8 +1,6 @@
 export {
   Input,
   InputGroup,
-  NumberDragInput,
-  NumberInput,
   OTPInput,
   useAutosizeInput,
   type InputProps,

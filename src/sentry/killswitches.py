@@ -317,7 +317,9 @@ def get_killswitch_value(killswitch_name: str) -> KillswitchConfig:
     return normalize_value(killswitch_name, raw_option_value)
 
 
-def killswitch_matches_context(killswitch_name: str, context: Context, emit_metrics=True) -> bool:
+def killswitch_matches_context(
+    killswitch_name: str, context: Context, emit_metrics: bool = True
+) -> bool:
     option_value = get_killswitch_value(killswitch_name)
     assert set(ALL_KILLSWITCH_OPTIONS[killswitch_name].fields) == set(context)
     return value_matches(killswitch_name, option_value, context, emit_metrics)
@@ -327,7 +329,7 @@ def value_matches(
     killswitch_name: str,
     option_value: KillswitchConfig,
     context: Context,
-    emit_metrics=True,
+    emit_metrics: bool = True,
 ) -> bool:
     decision = False
     for condition in option_value:

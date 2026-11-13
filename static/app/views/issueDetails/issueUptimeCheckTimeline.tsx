@@ -25,10 +25,11 @@ import {
   tickStyle,
 } from 'sentry/views/insights/uptime/timelineConfig';
 import {useUptimeMonitorStats} from 'sentry/views/insights/uptime/utils/useUptimeMonitorStats';
-import {useIssueDetails} from 'sentry/views/issueDetails/context';
-import {useDispatchIssueEventCount} from 'sentry/views/issueDetails/hooks/useDispatchIssueEventCount';
-import {useIssueTimeWindowConfig} from 'sentry/views/issueDetails/useIssueTimeWindowConfig';
-import {groupEventApiOptions} from 'sentry/views/issueDetails/utils';
+
+import {useDispatchIssueEventCount} from './hooks/useDispatchIssueEventCount';
+import {useIssueDetails} from './context';
+import {useIssueTimeWindowConfig} from './useIssueTimeWindowConfig';
+import {groupEventApiOptions} from './utils';
 
 export function useUptimeIssueDetectorId({
   groupId,
@@ -63,7 +64,6 @@ export function useUptimeIssueDetectorId({
     ? String(event?.occurrence?.evidenceData.detectorId)
     : undefined;
 
-  // Fall back to the fetched event since the legacy UI isn't nested within the provider the provider
   return hasUptimeDetector ? detectorId : evidenceDetectorId;
 }
 

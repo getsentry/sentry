@@ -1,39 +1,40 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Generator, Sequence
-from typing import Any
+from typing import Any, TypedDict
 from unittest.mock import patch
 
 import orjson
 import pytest
-from django.contrib.auth.models import AnonymousUser
 
 from sentry.auth.access import Access
+from sentry.auth.principal import RequestPrincipal
 from sentry.db.models.fields.bounded import I32_MAX, I64_MAX
 from sentry.investigations.contracts import (
     MAX_PROJECTION_BYTES,
-    ActionPayloadSerializer,
     ActionRequestedPayloadSerializer,
     ActionWithdrawnPayloadSerializer,
     OrchestrationProjectionSerializer,
-    RelaxedContractSerializer,
     ReportBlockStartedPayloadSerializer,
     ReportBlockUpsertedPayloadSerializer,
     ReportClearPayloadSerializer,
     ReportTextDeltaPayloadSerializer,
-    StrictCharField,
     valid_action_request,
     valid_action_requests,
+    valid_linked_issues,
 )
-from sentry.investigations.services.action_kinds import ACTION_KINDS
-from sentry.investigations.services.action_kinds.base import (
+from sentry.notebooks.contracts import (
+    ActionPayloadSerializer,
+    RelaxedContractSerializer,
+    StrictCharField,
+)
+from sentry.notebooks.models import Notebook, NotebookActionRequest
+from sentry.notebooks.services.action_kinds import ACTION_KINDS
+from sentry.notebooks.services.action_kinds.base import (
     ActionKind,
     ApplyContext,
     CannotApplyReason,
 )
-from sentry.notebooks.models import Notebook, NotebookActionRequest
-from sentry.users.models.user import User
-from sentry.users.services.user.model import RpcUser
 from sentry.utils import json
 from tests.sentry.notebooks.test_contracts import golden_payload
 
@@ -174,6 +175,22 @@ def test_projection_is_bounded_by_its_serialized_size() -> None:
     # An undeclared field is passed through untouched, so nothing but the size
     # guard bounds it.
     rejects(OrchestrationProjectionSerializer, projection(seerAddedThisLater="x" * (600 * 1024)))
+
+
+def test_valid_linked_issues_drops_bad_items_without_rejecting_the_projection() -> None:
+    linked = {"groupId": 7, "hypothesisId": "h-1", "hypothesisStatement": "Retries pile up"}
+    by_short_id = {**linked, "groupId": None, "shortId": "CHECKOUT-1A3"}
+    bad = [
+        {"groupId": 7},
+        {**linked, "groupId": "7"},
+        {**linked, "shortId": "CHECKOUT-1A3"},
+        {**linked, "groupId": None},
+    ]
+
+    assert valid_linked_issues([linked, by_short_id, *bad]) == [linked, by_short_id]
+    assert len(valid_linked_issues([{**linked, "groupId": n} for n in range(1, 13)])) == 10
+    assert valid_linked_issues({"groupId": 7}) == []
+    assert OrchestrationProjectionSerializer(data=projection(linkedIssues=bad)).is_valid()
 
 
 def test_projection_phase_and_status_must_be_known_values() -> None:
@@ -528,15 +545,20 @@ class _Payload(ActionPayloadSerializer):
         return None if action.get("target") == "advice" else action
 
 
-class RecordingKind(ActionKind):
+class _Details(TypedDict):
+    target: str
+
+
+class RecordingKind(ActionKind[_Details]):
     kind = "test_kind"
     payload_serializer = _Payload
+    applied_details = _Details
 
     def __init__(self) -> None:
         # The requests after_upsert ran for, in order.
         self.upserted: list[NotebookActionRequest] = []
         # The arguments from each cannot_apply_reasons call.
-        self.checked: list[tuple[list[int], list[int], Access, User | RpcUser | AnonymousUser]] = []
+        self.checked: list[tuple[list[int], list[int], Access, RequestPrincipal]] = []
         # Which of check_remote, check and apply ran, in order.
         self.calls: list[str] = []
         # What check and apply raise, if anything.
@@ -555,12 +577,12 @@ class RecordingKind(ActionKind):
         self,
         action_requests: Sequence[NotebookActionRequest],
         *,
-        investigations: dict[int, Notebook],
+        notebooks: dict[int, Notebook],
         access: Access,
-        user: User | RpcUser | AnonymousUser,
+        user: RequestPrincipal,
     ) -> dict[int, CannotApplyReason | None]:
         self.checked.append(
-            ([item.id for item in action_requests], sorted(investigations), access, user)
+            ([item.id for item in action_requests], sorted(notebooks), access, user)
         )
         return {item.id: self.reason for item in action_requests}
 
@@ -576,7 +598,7 @@ class RecordingKind(ActionKind):
         if self.raises is not None:
             raise self.raises
 
-    def apply(self, context: ApplyContext) -> dict[str, object]:
+    def apply(self, context: ApplyContext) -> _Details:
         self.calls.append("apply")
         if self.raises is not None:
             raise self.raises
@@ -615,7 +637,8 @@ def action_request(**overrides: Any) -> dict[str, Any]:
 
 
 def requested(item: Any) -> dict[str, Any] | None:
-    return validated(ActionRequestedPayloadSerializer, {"request": item})["request"]
+    request = validated(ActionRequestedPayloadSerializer, {"request": item})["request"]
+    return request if isinstance(request, dict) else None
 
 
 def test_action_requested_accepts_the_wire_shape() -> None:

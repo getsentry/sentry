@@ -11,7 +11,8 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
-import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
+
+import {useIssueDetailsEventView} from './issueDetailsEventsQuery';
 
 function SeriesRow({
   color,

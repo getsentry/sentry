@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from fnmatch import fnmatch
+from typing import Any
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -43,7 +44,9 @@ MULTI_REGION_NON_CUSTOMER_DOMAIN_URL_NAMES = [
 ]
 
 
-def resolve_redirect_url(request: HttpRequest, org_slug: str, user_id=None):
+def resolve_redirect_url(
+    request: HttpRequest, org_slug: str, user_id: int | None = None
+) -> str | None:
     org_context = organization_service.get_organization_by_slug(
         slug=org_slug,
         only_visible=False,
@@ -73,7 +76,7 @@ def resolve_activeorg_redirect_url(request: HttpRequest) -> str | None:
 
 
 class ReactMixin:
-    def meta_tags(self, request: HttpRequest, **kwargs):
+    def meta_tags(self, request: HttpRequest, **kwargs: Any) -> dict[str, str]:
         return {}
 
     def preconnect(self) -> list[str]:
@@ -89,7 +92,11 @@ class ReactMixin:
         return [generate_locality_url(locality_name) for locality_name in localities]
 
     def handle_react(
-        self, request: HttpRequest, *, organization: Organization | None = None, **kwargs
+        self,
+        request: HttpRequest,
+        *,
+        organization: Organization | None = None,
+        **kwargs: Any,
     ) -> HttpResponse:
         org_context = getattr(self, "active_organization", None)
         react_config = get_client_config(request, org_context)
@@ -192,7 +199,7 @@ class ReactMixin:
 # our tests frequently redirect to HTML views
 @control_silo_view
 class ReactPageView(ControlSiloOrganizationView, ReactMixin):
-    def handle_auth_required(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+    def handle_auth_required(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         # If user is a superuser (but not active, because otherwise this method would never be called)
         # Then allow client to handle the route and respond to any API request errors
         if request.user.is_superuser:
@@ -201,11 +208,16 @@ class ReactPageView(ControlSiloOrganizationView, ReactMixin):
         # For normal users, let parent class handle (e.g. redirect to login page)
         return super().handle_auth_required(request, *args, **kwargs)
 
-    def handle(self, request: HttpRequest, organization, **kwargs) -> HttpResponse:
+    def handle(
+        self,
+        request: HttpRequest,
+        organization: Organization,
+        **kwargs: Any,
+    ) -> HttpResponse:
         return self.handle_react(request, organization=organization)
 
 
 @control_silo_view
 class GenericReactPageView(BaseView, ReactMixin):
-    def handle(self, request: HttpRequest, **kwargs) -> HttpResponse:
+    def handle(self, request: HttpRequest, **kwargs: Any) -> HttpResponse:
         return self.handle_react(request, **kwargs)

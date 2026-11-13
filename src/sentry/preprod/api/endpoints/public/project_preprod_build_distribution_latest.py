@@ -53,61 +53,7 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
-            OpenApiParameter(
-                name="appId",
-                description="App identifier (exact match).",
-                required=True,
-                type=str,
-                location="query",
-            ),
-            OpenApiParameter(
-                name="platform",
-                description='Platform: "apple" or "android".',
-                required=True,
-                type=str,
-                location="query",
-            ),
-            OpenApiParameter(
-                name="buildVersion",
-                description="Current build version. When provided, enables check-for-updates mode.",
-                required=False,
-                type=str,
-                location="query",
-            ),
-            OpenApiParameter(
-                name="buildNumber",
-                description=(
-                    "Current build number. Accepts a plain integer (e.g. 42) or a "
-                    "version string of two or more period-separated integers (e.g. "
-                    "1.2.3), each up to 6 digits. Groups beyond the third are "
-                    "dropped. Either this or mainBinaryIdentifier must be provided "
-                    "when buildVersion is set."
-                ),
-                required=False,
-                type={"oneOf": [{"type": "integer"}, {"type": "string"}]},
-                location="query",
-            ),
-            OpenApiParameter(
-                name="mainBinaryIdentifier",
-                description="UUID of the main binary (e.g. Mach-O UUID for Apple builds). Either this or buildNumber must be provided when buildVersion is set.",
-                required=False,
-                type=str,
-                location="query",
-            ),
-            OpenApiParameter(
-                name="buildConfiguration",
-                description="Filter by build configuration name (exact match).",
-                required=False,
-                type=str,
-                location="query",
-            ),
-            OpenApiParameter(
-                name="codesigningType",
-                description="Filter by code signing type.",
-                required=False,
-                type=str,
-                location="query",
-            ),
+            PreprodLatestInstallableBuildValidator,
             OpenApiParameter(
                 name="installGroups",
                 description="Filter by install group name (repeatable for multiple groups).",

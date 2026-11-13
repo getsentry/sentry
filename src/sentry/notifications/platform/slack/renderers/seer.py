@@ -31,6 +31,7 @@ from sentry.notifications.platform.templates.seer import (
     SeerAgentError,
     SeerAgentResponse,
     SeerAutofixError,
+    SeerAutofixStopped,
     SeerAutofixTrigger,
     SeerAutofixUpdate,
     SeerInvestigationConclusion,
@@ -102,6 +103,7 @@ AUTOFIX_CONFIG: dict[AutofixStoppingPoint, AutofixStageConfig] = {
     sources=[
         NotificationSource.SEER_AUTOFIX_TRIGGER,
         NotificationSource.SEER_AUTOFIX_ERROR,
+        NotificationSource.SEER_AUTOFIX_STOPPED,
         NotificationSource.SEER_AUTOFIX_SUCCESS,
         NotificationSource.SEER_AUTOFIX_UPDATE,
         NotificationSource.SEER_AGENT_RESPONSE,
@@ -129,6 +131,15 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             )
         elif isinstance(data, SeerAutofixError):
             return cls._render_autofix_error(data)
+        elif isinstance(data, SeerAutofixStopped):
+            return SlackRenderable(
+                blocks=[
+                    SectionBlock(text="Seer stopped early"),
+                    SectionBlock(text=MarkdownTextObject(text=f">{data.reason}")),
+                    SectionBlock(text=MarkdownTextObject(text=f"*Suggestion:* {data.suggestion}")),
+                ],
+                text="Seer stopped early",
+            )
         elif isinstance(data, SeerAutofixUpdate):
             return cls._render_autofix_update(data, link_decorator)
         elif isinstance(data, SeerAgentError):
@@ -260,21 +271,20 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 if change.get("diff"):
                     change_mrkdwn.append(f"```{change['diff']}```")
                 blocks.append(SectionBlock(text=MarkdownTextObject(text="\n".join(change_mrkdwn))))
-        if data.pull_requests:
-            action_id = encode_action_id(
-                action=SlackAction.SEER_AUTOFIX_VIEW_PR.value,
-                organization_id=data.organization_id,
-                project_id=data.project_id,
-            )
-            for pr in data.pull_requests[:MAX_PRS]:
-                action_elements.append(
-                    LinkButtonElement(
-                        text=f"View PR (#{pr['pr_number']})",
-                        style="primary",
-                        url=link_decorator.decorate_url(pr["pr_url"]),
-                        action_id=f"{action_id}::{pr['pr_number']}",
-                    )
+        for pr in data.pull_requests[:MAX_PRS]:
+            action_elements.append(
+                LinkButtonElement(
+                    text=f"View PR (#{pr['pr_number']})",
+                    style="primary",
+                    url=link_decorator.decorate_url(pr["pr_url"]),
+                    action_id=encode_action_id(
+                        action=SlackAction.SEER_AUTOFIX_VIEW_PR.value,
+                        organization_id=data.organization_id,
+                        project_id=data.project_id,
+                        suffix=str(pr["pr_number"]),
+                    ),
                 )
+            )
 
         if action_elements:
             blocks.append(ActionsBlock(elements=action_elements))
@@ -379,7 +389,14 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         text = f"*{escape_slack_text(data.summary)}*"
         if data.summary_description:
             text += f"\n{escape_slack_text(data.summary_description)}"
-        blocks: list[Block] = [SectionBlock(text=MarkdownTextObject(text=text)), DividerBlock()]
+        blocks: list[Block] = [SectionBlock(text=MarkdownTextObject(text=text))]
+        if data.next_step:
+            next_step = (
+                f"*Suggested next step:* {escape_slack_text(data.next_step['title'])}\n"
+                f"{escape_slack_text(data.next_step['rationale'])}"
+            )
+            blocks.append(SectionBlock(text=MarkdownTextObject(text=next_step)))
+        blocks.append(DividerBlock())
         blocks.append(
             ActionsBlock(
                 elements=[

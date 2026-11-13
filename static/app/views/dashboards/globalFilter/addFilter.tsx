@@ -24,14 +24,12 @@ import {
   type FieldDefinition,
 } from 'sentry/utils/fields';
 import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
-import {
-  DATASET_CHOICES,
-  getDatasetLabel,
-} from 'sentry/views/dashboards/globalFilter/datasetLabels';
-import {MenuTitleWrapper} from 'sentry/views/dashboards/globalFilter/filterSelector';
-import {getFieldDefinitionForDataset} from 'sentry/views/dashboards/globalFilter/utils';
 import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
 import {shouldExcludeTracingKeys} from 'sentry/views/performance/utils';
+
+import {DATASET_CHOICES, getDatasetLabel} from './datasetLabels';
+import {MenuTitleWrapper} from './filterSelector';
+import {getFieldDefinitionForDataset} from './utils';
 
 const UNSUPPORTED_FIELD_KINDS = [FieldKind.FUNCTION];
 const UNSUPPORTED_FIELD_VALUE_TYPES = [FieldValueType.DATE];

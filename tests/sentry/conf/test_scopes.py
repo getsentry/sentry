@@ -1,3 +1,5 @@
+import re
+
 from django.conf import settings
 
 from sentry.conf.server import (
@@ -13,6 +15,21 @@ from sentry.testutils.cases import TestCase
 SERVICE_ACCOUNT_SCOPES = {"service_account:read", "service_account:write"}
 # Resources whose scopes are explicit, so write does not imply read.
 EXPLICIT_SCOPE_RESOURCES = {"service_account"}
+
+# Scopes are `<resource>:<action>`, see src/AGENTS.md. Adding a verb here should be a
+# deliberate choice made in review, not a way to name a resource.
+SCOPE_ACTIONS = {"read", "write", "admin", "create", "invite"}
+SCOPE_RESOURCE_RE = re.compile(r"[a-z]+(_[a-z]+)*")
+# OIDC requires these exact names.
+OIDC_SCOPES = {"openid", "profile", "email"}
+# Older scopes that name a resource or capability in the action slot. Do not add to this.
+LEGACY_SCOPE_NAMES = {
+    "org:integrations",
+    "org:ci",
+    "org:tokens",
+    "project:releases",
+    "project:distribution",
+}
 
 
 class ScopesTest(TestCase):
@@ -43,6 +60,18 @@ class ScopesTest(TestCase):
                 assert resource + ":read" in SENTRY_SCOPE_HIERARCHY_MAPPING[scope]
                 assert resource + ":write" in SENTRY_SCOPE_HIERARCHY_MAPPING[scope]
 
+    def test_scope_names_follow_resource_action(self) -> None:
+        for scope in SENTRY_SCOPES - OIDC_SCOPES - LEGACY_SCOPE_NAMES:
+            resource, _, action = scope.partition(":")
+            assert SCOPE_RESOURCE_RE.fullmatch(resource) and action in SCOPE_ACTIONS, (
+                f"{scope!r} must be <resource>:<action>, with a snake_case resource "
+                f"(e.g. project_key) and an action in {sorted(SCOPE_ACTIONS)}. See src/AGENTS.md."
+            )
+
+    def test_legacy_scope_names_still_exist(self) -> None:
+        # Drop an entry here once its scope is removed or renamed.
+        assert LEGACY_SCOPE_NAMES <= SENTRY_SCOPES
+
     def test_scope_sets_group_one_resource(self) -> None:
         # Each set gets one consent description, so mixing resources hides one of them.
         for scope_set in settings.SENTRY_SCOPE_SETS:
@@ -64,6 +93,11 @@ class ScopesTest(TestCase):
         for roles in (settings.SENTRY_ROLES, settings.SENTRY_GRANULAR_ROLES):
             granted = {role["id"] for role in roles if SERVICE_ACCOUNT_SCOPES <= role["scopes"]}
             assert granted == {"manager", "owner"}
+
+    def test_service_account_read_granted_to_org_readers(self) -> None:
+        for roles in (settings.SENTRY_ROLES, settings.SENTRY_GRANULAR_ROLES):
+            granted = {role["id"] for role in roles if "service_account:read" in role["scopes"]}
+            assert granted == {"member", "admin", "manager", "owner"}
 
     def test_service_account_scopes_not_grantable_to_non_humans(self) -> None:
         assert SERVICE_ACCOUNT_SCOPES <= SENTRY_SCOPES

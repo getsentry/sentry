@@ -11,7 +11,7 @@ class CatchallEndpoint(Endpoint):
 
     @csrf_exempt
     @allow_cors_options
-    def dispatch(self, request: Request, *args, **kwargs) -> HttpResponse:
+    def dispatch(self, request: Request, *args: object, **kwargs: object) -> HttpResponse:
         """
         This endpoint handles routes that did not match
         """

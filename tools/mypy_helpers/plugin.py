@@ -6,6 +6,7 @@ from typing import Any
 
 from mypy.build import PRI_MYPY
 from mypy.errorcodes import ATTR_DEFINED
+from mypy.lookup import lookup_fully_qualified
 from mypy.messages import format_type
 from mypy.nodes import ARG_POS, DictExpr, ListExpr, MypyFile, StrExpr, TypeInfo
 from mypy.plugin import (
@@ -158,6 +159,26 @@ def _adjust_request_members(ctx: ClassDefContext) -> None:
 
         # sentry.auth.middleware / sentry.api.authentication
         add_attribute_to_class(ctx.api, ctx.cls, "auth", _request_auth_tp(ctx.api))
+
+
+_REQUEST_USER_FULLNAME = "rest_framework.request.Request.user"
+_REQUEST_USER_TPS = (
+    "sentry.users.models.user.User",
+    "django.contrib.auth.models.AnonymousUser",
+    "sentry.service_accounts.principal.ServiceAccountPrincipal",
+)
+
+
+def _request_user_attribute(ctx: AttributeContext) -> Type:
+    # sentry.auth.principal.set_request_principal can set a ServiceAccountPrincipal
+    # named_generic_type walks parent packages, which don't always list these submodules
+    modules = ctx.api.modules  # type: ignore[attr-defined]
+    items: list[Type] = []
+    for tp in _REQUEST_USER_TPS:
+        st = lookup_fully_qualified(tp, modules, raise_on_missing=True)
+        assert st is not None and isinstance(st.node, TypeInfo), tp
+        items.append(Instance(st.node, ()))
+    return UnionType(items)
 
 
 def _add_principal_members_to_anonymous_user(ctx: ClassDefContext) -> None:
@@ -550,12 +571,20 @@ class SentryMypyPlugin(Plugin):
         if fullname.startswith("sentry.utils.lazy_service_wrapper.LazyServiceWrapper."):
             _, attr = fullname.rsplit(".", 1)
             return functools.partial(_lazy_service_wrapper_attribute, attr=attr)
+        elif fullname == _REQUEST_USER_FULLNAME:
+            return _request_user_attribute
         else:
             return None
 
     def get_additional_deps(self, file: MypyFile) -> list[tuple[int, str, int]]:
-        if file.fullname in {"django.http", "django.http.request", "rest_framework.request"}:
+        if file.fullname in {"django.http", "django.http.request"}:
             return [(PRI_MYPY, "sentry.auth.services.auth.model", -1)]
+        elif file.fullname == "rest_framework.request":
+            return [
+                (PRI_MYPY, "sentry.auth.services.auth.model", -1),
+                (PRI_MYPY, "sentry.users.models.user", -1),
+                (PRI_MYPY, "sentry.service_accounts.principal", -1),
+            ]
         else:
             return []
 

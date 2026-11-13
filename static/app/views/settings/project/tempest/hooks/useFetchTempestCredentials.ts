@@ -1,46 +1,47 @@
-import {useQueryClient} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {TempestCredentials} from 'sentry/views/settings/project/tempest/types';
 
-const makeFetchTempestCredentialsQueryKey = ({
+const tempestCredentialsOptions = ({
   orgSlug,
   projectSlug,
 }: {
   orgSlug: string;
   projectSlug: string;
 }) =>
-  [
-    getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/tempest-credentials/', {
+  apiOptions.as<TempestCredentials[]>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/tempest-credentials/',
+    {
       path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
-    }),
-  ] as const;
+      staleTime: Infinity,
+    }
+  );
 
 export function useFetchTempestCredentials(organization: Organization, project: Project) {
-  const tempestCredentialsQuery = useApiQuery<TempestCredentials[]>(
-    makeFetchTempestCredentialsQueryKey({
+  const tempestCredentialsQuery = useQuery(
+    tempestCredentialsOptions({
       orgSlug: organization.slug,
       projectSlug: project.slug,
-    }),
-    {staleTime: Infinity}
+    })
   );
 
   const queryClient = useQueryClient();
 
   const invalidateCredentialsCache = () => {
     queryClient.invalidateQueries({
-      queryKey: makeFetchTempestCredentialsQueryKey({
+      queryKey: tempestCredentialsOptions({
         orgSlug: organization.slug,
         projectSlug: project.slug,
-      }),
+      }).queryKey,
     });
   };
 
   return {
-    ...tempestCredentialsQuery,
+    data: tempestCredentialsQuery.data,
+    isLoading: tempestCredentialsQuery.isLoading,
     invalidateCredentialsCache,
   };
 }

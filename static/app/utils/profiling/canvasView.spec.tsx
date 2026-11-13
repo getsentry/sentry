@@ -7,11 +7,11 @@ import {
   makeFlamegraph,
 } from 'sentry-test/profiling/utils';
 
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {makeLightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {Rect} from 'sentry/utils/profiling/speedscope';
+import {makeLightFlamegraphTheme} from './flamegraph/flamegraphTheme';
+import {CanvasView} from './canvasView';
+import type {Flamegraph} from './flamegraph';
+import {FlamegraphCanvas} from './flamegraphCanvas';
+import {Rect} from './speedscope';
 
 const theme = makeLightFlamegraphTheme(ThemeFixture());
 

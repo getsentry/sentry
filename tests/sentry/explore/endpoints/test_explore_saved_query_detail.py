@@ -1,16 +1,20 @@
 from itertools import product
 
 import pytest
+from django.test import override_settings
 from django.urls import NoReverseMatch, reverse
 
 from sentry.api.serializers.models.exploresavedquery import QueryResponseType
 from sentry.explore.models import (
     ExploreSavedQuery,
     ExploreSavedQueryDataset,
+    ExploreSavedQueryLastVisited,
     ExploreSavedQueryProject,
     ExploreSavedQueryStarred,
 )
 from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.features import with_feature
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
@@ -392,7 +396,7 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
             assert self.model.name == "Test query"
             assert self.model.query == {"query": [{"fields": ["span.op"], "mode": "samples"}]}
 
-    def test_put_invalid_transformation_pipeline(self) -> None:
+    def test_put_invalid_transformation_function(self) -> None:
         for visualization_field in ["visualize", "aggregateField"]:
             url = reverse(
                 "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
@@ -750,7 +754,7 @@ class OrganizationExploreQueryVisitTest(APITestCase, SnubaTestCase):
 
         self.query.set_projects(self.project_ids)
 
-    def url(self, id):
+    def url(self, id: str) -> str:
         return reverse(
             "sentry-api-0-explore-saved-query-visit",
             kwargs={"organization_id_or_slug": self.org.slug, "id": id},
@@ -762,7 +766,7 @@ class OrganizationExploreQueryVisitTest(APITestCase, SnubaTestCase):
         assert self.query.visits == 1
 
         with self.feature(self.feature_name):
-            response = self.client.post(self.url(self.query.id))
+            response = self.client.post(self.url(str(self.query.id)))
 
         assert response.status_code == 204
 
@@ -771,12 +775,37 @@ class OrganizationExploreQueryVisitTest(APITestCase, SnubaTestCase):
         assert query.last_visited is not None
         assert query.last_visited > last_visited
 
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_visit_query_as_service_account(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.org, project_ids=self.project_ids
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.org.id,
+            ),
+            key="service-account-secret",
+        )
+
+        with self.feature(self.feature_name):
+            response = self.client.post(
+                self.url(self.query.id), HTTP_X_VIEWER_CONTEXT=viewer_context
+            )
+
+        assert response.status_code == 204, response.content
+        assert ExploreSavedQuery.objects.get(id=self.query.id).visits == 2
+        assert not ExploreSavedQueryLastVisited.objects.filter(
+            explore_saved_query=self.query
+        ).exists()
+
     def test_visit_query_no_access(self) -> None:
         last_visited = self.query.last_visited
         assert self.query.visits == 1
 
         with self.feature({self.feature_name: False}):
-            response = self.client.post(self.url(self.query.id))
+            response = self.client.post(self.url(str(self.query.id)))
 
         assert response.status_code == 404
 
@@ -808,7 +837,7 @@ class OrganizationExploreQueryVisitTest(APITestCase, SnubaTestCase):
         self.login_as(user=member_user)
 
         with self.feature(self.feature_name):
-            response = self.client.post(self.url(restricted_query.id))
+            response = self.client.post(self.url(str(restricted_query.id)))
 
         assert response.status_code == 403, response.content
 

@@ -1,5 +1,5 @@
-import {getTraceNodeAttribute} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
-import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+import {getTraceNodeAttribute} from './aiTraceNodes';
+import type {AITraceSpanNode} from './types';
 
 const TOOL_OUTPUT_ATTRIBUTES = ['gen_ai.tool.call.result', 'gen_ai.tool.output'];
 

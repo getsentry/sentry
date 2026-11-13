@@ -1,11 +1,16 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import {Navigate, Outlet} from 'react-router';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
-import {parseAsBoolean, useQueryState} from 'nuqs';
-import * as qs from 'query-string';
+import {
+  createLoader,
+  parseAsBoolean,
+  parseAsString,
+  parseAsStringLiteral,
+  useQueryState,
+  useQueryStates,
+} from 'nuqs';
 
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Container} from '@sentry/scraps/layout';
@@ -52,41 +57,65 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
-import {hasAutofixPage, makeSeerLocation} from 'sentry/views/issueDetails/autofix/utils';
-import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
-import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
-import {GroupDetailsLayout} from 'sentry/views/issueDetails/groupDetailsLayout';
-import {useGroupDistributionsDrawer} from 'sentry/views/issueDetails/groupDistributions/useGroupDistributionsDrawer';
-import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
-import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
-import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
-import {useIssueActivityDrawer} from 'sentry/views/issueDetails/hooks/useIssueActivityDrawer';
-import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/hooks/useMergedIssuesDrawer';
-import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/hooks/useSimilarIssuesDrawer';
+import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+
+import {hasAutofixPage, makeSeerLocation} from './autofix/utils';
+import {useGroupDistributionsDrawer} from './groupDistributions/useGroupDistributionsDrawer';
+import GroupEventDetails from './groupEventDetails/groupEventDetails';
+import {useAiConfig} from './hooks/useAiConfig';
+import {useIssueActivityDrawer} from './hooks/useIssueActivityDrawer';
+import {useMergedIssuesDrawer} from './hooks/useMergedIssuesDrawer';
+import {useSimilarIssuesDrawer} from './hooks/useSimilarIssuesDrawer';
+import {useOpenSeerDrawer} from './sidebar/seerDrawer';
+import {ERROR_TYPES} from './constants';
+import {GroupDataContextProvider} from './groupDataContext';
+import {GroupDetailsLayout} from './groupDetailsLayout';
+import {GroupIdProvider, useGroupId} from './groupIdContext';
 import {
   ISSUE_DETAILS_TOUR_GUIDE_KEY,
   IssueDetailsTourModal,
   IssueDetailsTourContext,
   ORDERED_ISSUE_DETAILS_TOUR,
   type IssueDetailsTour,
-} from 'sentry/views/issueDetails/issueDetailsTour';
-import {useOpenSeerDrawer} from 'sentry/views/issueDetails/sidebar/seerDrawer';
-import {Tab} from 'sentry/views/issueDetails/types';
-import {useEngagedViewTracking} from 'sentry/views/issueDetails/useEngagedViewTracking';
-import {groupApiOptions, useGroup} from 'sentry/views/issueDetails/useGroup';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-import {RESERVED_EVENT_IDS, useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
+} from './issueDetailsTour';
+import {Tab} from './types';
+import {useEngagedViewTracking} from './useEngagedViewTracking';
+import {groupApiOptions, useGroup} from './useGroup';
+import {useGroupDetailsRoute} from './useGroupDetailsRoute';
+import {RESERVED_EVENT_IDS, useGroupEvent} from './useGroupEvent';
 import {
   getGroupReprocessingStatus,
   markEventSeen,
   ReprocessingStatus,
   useDefaultIssueEvent,
   useEnvironmentsFromUrl,
-} from 'sentry/views/issueDetails/utils';
-import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
-import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+} from './utils';
 
 type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
+
+// Issue list links add `_allp` ("all projects") when no project is selected, so this page doesn't pin the issue's project into the URL and Back returns to the unfiltered list (#14731).
+const allProjectsQueryParsers = {
+  _allp: parseAsString,
+  project: parseAsString,
+};
+
+const loadAllProjectsQuery = createLoader(allProjectsQueryParsers);
+
+const seerRedirectQueryParsers = {
+  seerDrawer: parseAsStringLiteral(['true']),
+  seerDrawerAction: parseAsString,
+};
+
+const trackViewQueryParsers = {
+  alert_date: parseAsString,
+  alert_rule_id: parseAsString,
+  alert_type: parseAsString,
+  notification_uuid: parseAsString,
+  query: parseAsString,
+  ref_fallback: parseAsString,
+};
 
 type FetchGroupDetailsState = {
   error: boolean;
@@ -127,12 +156,12 @@ function getReprocessingNewRoute({
   currentTab,
   baseUrl,
   location,
-  currentParamGroupId,
+  currentGroupId,
 }: {
   /**
-   * The groupId from the URL params to compare against the group id that was loaded.
+   * The requested group ID to compare against the group ID that was loaded.
    */
-  currentParamGroupId: string;
+  currentGroupId: string;
   group: Group;
   location: ReturnType<typeof useLocation>;
   orgSlug: string;
@@ -141,7 +170,7 @@ function getReprocessingNewRoute({
 
   const reprocessingStatus = getGroupReprocessingStatus(group);
 
-  if (currentParamGroupId !== nextGroupId) {
+  if (currentGroupId !== nextGroupId) {
     // Redirects to the Activities tab
     if (
       reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT &&
@@ -207,7 +236,7 @@ function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
 
   // It's possible the overview page is still unloading the store
   useEffect(() => {
-    return GroupStore.listen(() => {
+    return GroupStore.subscribe(() => {
       const [storeGroup] = GroupStore.getState();
       if (
         defined(storeGroup) &&
@@ -226,7 +255,7 @@ function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
           prev => (prev ? {...prev, json: storeGroup as Group} : prev)
         );
       }
-    }, undefined) as () => void;
+    });
   }, [groupId, incomingEnvs, organization, queryClient]);
 }
 
@@ -234,16 +263,16 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
   const api = useApi();
   const organization = useOrganization();
   const location = useLocation();
-  const params = useParams<{groupId: string; eventId?: string}>();
+  const {eventId} = useParams<{eventId?: string}>();
+  const groupId = useGroupId();
   const navigate = useNavigate();
   const {projects} = useProjects();
 
   const [allProjectChanged, setAllProjectChanged] = useState(false);
+  const [, setAllProjectsQuery] = useQueryStates(allProjectsQueryParsers);
 
   const {currentTab, baseUrl} = useGroupDetailsRoute();
   const environments = useEnvironmentsFromUrl();
-
-  const groupId = params.groupId;
 
   const {
     data: event,
@@ -251,7 +280,7 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
     refetch: refetchEvent,
   } = useGroupEvent({
     groupId,
-    eventId: params.eventId,
+    eventId,
   });
 
   const {
@@ -263,8 +292,8 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
   } = useGroup({groupId});
 
   /**
-   * Allows the GroupEventHeader to display the previous event while the new event is loading.
-   * This is not closer to the GroupEventHeader because it is unmounted
+   * Allows issue details to keep displaying the previous event while the new event is loading.
+   * This lives here because the event components are unmounted
    * between route changes like latest event => eventId
    */
   const previousEvent = useMemoWithPrevious<{event: Event; groupId: string} | null>(
@@ -330,7 +359,7 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
         currentTab,
         location,
         baseUrl,
-        currentParamGroupId: params.groupId,
+        currentGroupId: groupId,
         orgSlug: organization.slug,
       });
 
@@ -338,16 +367,7 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
         navigate(reprocessingNewRoute, {replace: true});
       }
     }
-  }, [
-    group,
-    event,
-    location,
-    currentTab,
-    baseUrl,
-    navigate,
-    organization.slug,
-    params.groupId,
-  ]);
+  }, [group, event, location, currentTab, baseUrl, navigate, organization.slug, groupId]);
 
   useEffect(() => {
     const matchingProjectSlug = group?.project?.slug;
@@ -358,13 +378,14 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
 
     const project = projects.find(p => p.id === group?.project.id);
     if (!group.hasSeen && project?.isMember) {
-      markEventSeen(api, organization.slug, matchingProjectSlug, params.groupId);
+      markEventSeen(api, organization.slug, matchingProjectSlug, groupId);
     }
-  }, [api, group?.hasSeen, group?.project, organization.slug, params.groupId, projects]);
+  }, [api, group?.hasSeen, group?.project, organization.slug, groupId, projects]);
 
   useEffect(() => {
-    const locationQuery = qs.parse(window.location.search) || {};
-    const allProjectsFlag = locationQuery._allp;
+    const {_allp: allProjectsFlag, project: urlProject} = loadAllProjectsQuery(
+      window.location.search
+    );
 
     // We use _allp as a temporary measure to know they came from the
     // issue list page with no project selected (all projects included in
@@ -379,26 +400,23 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
     // to the issue list page with no project selected instead of the
     // locked project.
     if (
-      locationQuery.project === undefined &&
+      urlProject === null &&
       !allProjectsFlag &&
       !allProjectChanged &&
       group?.project.id
     ) {
-      locationQuery.project = group?.project.id;
-      navigate({...window.location, query: locationQuery}, {replace: true});
+      setAllProjectsQuery({project: group.project.id});
     }
 
     if (allProjectsFlag && !allProjectChanged) {
-      delete locationQuery.project;
       // We delete _allp from the URL to keep the hack a bit cleaner, but
       // this is not an ideal solution and will ultimately be replaced with
       // something smarter.
-      delete locationQuery._allp;
-      navigate({...window.location, query: locationQuery}, {replace: true});
+      setAllProjectsQuery({_allp: null, project: null});
       // oxlint-disable-next-line react/set-state-in-effect
       setAllProjectChanged(true);
     }
-  }, [group?.project.id, allProjectChanged, navigate]);
+  }, [group?.project.id, allProjectChanged, setAllProjectsQuery]);
 
   const errorType =
     groupError instanceof RequestError
@@ -484,7 +502,7 @@ function useTrackView({
 }) {
   const location = useLocation();
   const {alert_date, alert_rule_id, alert_type, ref_fallback, query, notification_uuid} =
-    location.query;
+    loadQueryParamsFromLocation(trackViewQueryParsers, location);
   const groupEventType = useLoadedEventType();
   const user = useUser();
 
@@ -494,20 +512,18 @@ function useTrackView({
     ...getAnalyticsDataForEvent(event),
     ...getAnalyicsDataForProject(project),
     tab,
-    query: typeof query === 'string' ? query : undefined,
+    query: query ?? undefined,
     // Alert properties track if the user came from email/slack alerts
-    alert_date:
-      typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
-    alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
-    alert_type: typeof alert_type === 'string' ? alert_type : undefined,
-    ref_fallback,
+    alert_date: alert_date === null ? undefined : getUtcDateString(Number(alert_date)),
+    alert_rule_id: alert_rule_id ?? undefined,
+    alert_type: alert_type ?? undefined,
+    ref_fallback: ref_fallback ?? undefined,
     group_event_type: groupEventType,
     prefers_streamlined_ui: user?.options?.prefersIssueDetailsStreamlinedUI ?? false,
     enforced_streamlined_ui: user?.options?.prefersIssueDetailsStreamlinedUI === null,
     org_streamline_only: organization.streamlineOnly ?? undefined,
     has_seer_access: hasAutofixQuota,
-    notification_uuid:
-      typeof notification_uuid === 'string' ? notification_uuid : undefined,
+    notification_uuid: notification_uuid ?? undefined,
   });
   // Set default values for properties that may be updated in subcomponents.
   // Must be separate from the above values, otherwise the actual values filled in
@@ -515,26 +531,26 @@ function useTrackView({
   useRouteAnalyticsParams({
     // Will be updated by StacktraceLink if there is a stacktrace link
     stacktrace_link_viewed: false,
-    // Will be updated by IssueQuickTrace if there is a trace
+    // Only updated by the replay trace view
     trace_status: 'none',
-    // Will be updated in GroupDetailsHeader if there are replays
+    // Will be updated in ReplayBadge if there are replays
     group_has_replay: false,
-    // Will be updated in ReplayPreview if there is a replay
+    // Will be updated by useLogEventReplayStatus if there is a replay
     event_replay_status: 'none',
     // Will be updated in SuspectCommits if there are suspect commits
     num_suspect_commits: 0,
     suspect_commit_calculation: 'no suspect commit',
-    // Will be updated in Autofix if enabled
+    // Not updated by any component
     autofix_status: 'none',
-    // Will be updated in GroupSummary if AI summary is available
+    // Not updated by any component
     has_summary: null,
-    // Will be updated in GroupSummaryWithAutofix if autofix root cause is available
+    // Will be updated in AutofixPreviews if autofix root cause is available
     has_root_cause: null,
-    // Will be updated in GroupSummaryWithAutofix if autofix solution is available
+    // Will be updated in AutofixPreviews if autofix solution is available
     has_solution: null,
-    // Will be updated in GroupSummaryWithAutofix if autofix code changes are available
+    // Will be updated in AutofixPreviews if autofix code changes are available
     has_coded_solution: null,
-    // Will be updated in GroupSummaryWithAutofix if autofix PR is available
+    // Will be updated in AutofixPreviews if autofix PR is available
     has_pr: null,
   });
   useDisableRouteAnalytics(!group || !event || !project);
@@ -548,8 +564,7 @@ function GroupDetailsContentError({
   onRetry: () => void;
 }) {
   const organization = useOrganization();
-  const location = useLocation();
-  const projectId = location.query.project;
+  const [projectId] = useQueryState('project', parseAsString);
 
   const {projects} = useProjects();
   const project = projects.find(proj => proj.id === projectId);
@@ -557,9 +572,7 @@ function GroupDetailsContentError({
   switch (errorType) {
     case ERROR_TYPES.GROUP_NOT_FOUND:
       return (
-        <StyledLoadingError
-          message={t('The issue you were looking for was not found.')}
-        />
+        <GroupLoadingError message={t('The issue you were looking for was not found.')} />
       );
 
     case ERROR_TYPES.MISSING_MEMBERSHIP:
@@ -569,7 +582,7 @@ function GroupDetailsContentError({
         </Container>
       );
     default:
-      return <StyledLoadingError onRetry={onRetry} />;
+      return <GroupLoadingError onRetry={onRetry} />;
   }
 }
 
@@ -628,7 +641,7 @@ function GroupDetailsContentInner({
   });
   const {openSimilarIssuesDrawer} = useSimilarIssuesDrawer({group, project});
   const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
-  const {openIssueActivityDrawer} = useIssueActivityDrawer({group, project});
+  const {openIssueActivityDrawer} = useIssueActivityDrawer({group});
   const {openSeerDrawer} = useOpenSeerDrawer({group, project});
   const {isAnyDrawerOpen} = useDrawer();
 
@@ -641,7 +654,11 @@ function GroupDetailsContentInner({
   // Autofix has its own tab behind the flag, so legacy `?seerDrawer=true` links
   // are redirected there instead of opening the drawer. This reads the router
   // location, which updates with the redirect, so it renders only once.
-  const redirectToAutofixTab = autofixPage && location.query.seerDrawer === 'true';
+  const seerRedirectQuery = loadQueryParamsFromLocation(
+    seerRedirectQueryParsers,
+    location
+  );
+  const redirectToAutofixTab = autofixPage && seerRedirectQuery.seerDrawer === 'true';
 
   const {hasAutofixQuota} = useAiConfig(group, project);
 
@@ -745,10 +762,7 @@ function GroupDetailsContentInner({
           makeSeerLocation({
             organization,
             groupId: group.id,
-            action:
-              typeof location.query.seerDrawerAction === 'string'
-                ? location.query.seerDrawerAction
-                : undefined,
+            action: seerRedirectQuery.seerDrawerAction ?? undefined,
             query: location.query,
           })
         )}
@@ -827,12 +841,12 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
   }
 
   if (errorFetchingProjects) {
-    return <StyledLoadingError message={t('Error loading the specified project')} />;
+    return <GroupLoadingError message={t('Error loading the specified project')} />;
   }
 
   if (projectSlug && !errorFetchingProjects && projectsLoaded && !projectWithFallback) {
     return (
-      <StyledLoadingError message={t('The project %s does not exist', projectSlug)} />
+      <GroupLoadingError message={t('The project %s does not exist', projectSlug)} />
     );
   }
 
@@ -914,6 +928,10 @@ function GroupDetailsContainer() {
 
 export default Sentry.withProfiler(GroupDetailsContainer);
 
-const StyledLoadingError = styled(LoadingError)`
-  margin: ${p => p.theme.space.xl};
-`;
+function GroupLoadingError(props: React.ComponentProps<typeof LoadingError>) {
+  return (
+    <Container padding="xl">
+      <LoadingError {...props} />
+    </Container>
+  );
+}

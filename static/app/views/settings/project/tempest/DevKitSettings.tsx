@@ -1,6 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsInteger, useQueryState} from 'nuqs';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 import devkitCrashesStep1 from 'sentry-images/tempest/devkit-crashes-step1.png';
@@ -23,8 +24,6 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {projectKeysApiOptions} from 'sentry/utils/projectKeys';
-import {decodeInteger} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 interface Props {
@@ -34,7 +33,7 @@ interface Props {
 
 export function DevKitSettings({organization, project}: Props) {
   const navigate = useNavigate();
-  const location = useLocation();
+  const [guidedStep, setGuidedStep] = useQueryState('guidedStep', parseAsInteger);
   const [expandedAccordionIndex, setExpandedAccordionIndex] = useState(-1);
 
   const {data: projectKeys, isPending: isLoadingKeys} = useQuery({
@@ -71,14 +70,9 @@ export function DevKitSettings({organization, project}: Props) {
               <Container padding="3xl">
                 <BodyTitle>{t('Setup Instructions')}</BodyTitle>
                 <GuidedSteps
-                  initialStep={decodeInteger(location.query.guidedStep)}
+                  initialStep={guidedStep ?? undefined}
                   onStepChange={step => {
-                    navigate({
-                      query: {
-                        ...location.query,
-                        guidedStep: step,
-                      },
-                    });
+                    setGuidedStep(step, {history: 'push'});
                   }}
                 >
                   <GuidedSteps.Step

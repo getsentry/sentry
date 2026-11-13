@@ -11,11 +11,14 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import type {ConversationStats} from 'sentry/views/explore/conversations/hooks/useConversation';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
+import type {ConversationStats} from './hooks/useConversation';
 import ConversationDetailPage from './conversationDetail';
 import {CONVERSATIONS_SIDEBAR_LABEL} from './settings';
+
+jest.mock('sentry/utils/analytics');
 
 const CONVERSATION_ID = 'conv-1';
 
@@ -158,6 +161,23 @@ describe('ConversationDetailPage span default selection', () => {
 
     // Timeline should open on its first span.
     await waitFor(() => expect(detailPane()).toBeInTheDocument());
+  });
+
+  it('tracks switching between the transcript and timeline tabs', async () => {
+    renderPage();
+    expect(await screen.findByText('First answer')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Timeline'}));
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.detail.tab-switch',
+      expect.objectContaining({fromTab: 'transcript', toTab: 'timeline'})
+    );
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Transcript'}));
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.detail.tab-switch',
+      expect.objectContaining({fromTab: 'timeline', toTab: 'transcript'})
+    );
   });
 
   it('shows the export transcript button only on the transcript tab', async () => {

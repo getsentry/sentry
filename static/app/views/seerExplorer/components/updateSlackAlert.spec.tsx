@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {UpdateSlackAlert} from 'sentry/views/seerExplorer/components/updateSlackAlert';
+import {UpdateSlackAlert} from './updateSlackAlert';
 
 describe('UpdateSlackAlert', () => {
   const organization = OrganizationFixture({slug: 'org-slug'});

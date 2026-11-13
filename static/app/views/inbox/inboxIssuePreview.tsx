@@ -1,20 +1,24 @@
-import {useState} from 'react';
+import {useMemo, useState} from 'react';
+import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Heading} from '@sentry/scraps/text';
 
 import {AnsiText} from 'sentry/components/ansiText';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
+import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getMessage, getTitle} from 'sentry/utils/events';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {GroupActions} from 'sentry/views/issueDetails/actions/index';
@@ -26,10 +30,17 @@ import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/group
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assigneeSelector';
 import {EventUserCounts} from 'sentry/views/issueDetails/header/eventUserCounts';
+import {
+  ExternalIssueListContent,
+  ExternalIssueListLinkButton,
+  useExternalIssueList,
+} from 'sentry/views/issueDetails/sidebar/externalIssueList';
+import {FirstLastSeenSection} from 'sentry/views/issueDetails/sidebar/firstLastSeenSection';
+import {ParticipantList} from 'sentry/views/issueDetails/sidebar/participantList';
 import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 
-type InboxIssueTab = 'activity' | 'telemetry';
+type InboxIssueTab = 'overview' | 'telemetry';
 
 interface InboxIssuePreviewProps {
   groupId: string;
@@ -38,7 +49,7 @@ interface InboxIssuePreviewProps {
 export function InboxIssuePreview({groupId}: InboxIssuePreviewProps) {
   const organization = useOrganization();
   const {projects} = useProjects();
-  const [tab, setTab] = useState<InboxIssueTab>('activity');
+  const [tab, setTab] = useState<InboxIssueTab>('overview');
   const {
     data: group,
     isPending,
@@ -67,18 +78,18 @@ export function InboxIssuePreview({groupId}: InboxIssuePreviewProps) {
 
   return (
     <GroupDataContextProvider group={group} project={project}>
-      <Container containerType="inline-size">
+      <Stack flex={1} containerType="inline-size">
         <InboxIssuePreviewHeader group={group} project={project} event={event} />
         <Tabs value={tab} onChange={setTab}>
           <Container padding="0 2xl" borderBottom="primary">
             <TabList>
-              <TabList.Item key="activity">{t('Activity')}</TabList.Item>
+              <TabList.Item key="overview">{t('Overview')}</TabList.Item>
               <TabList.Item key="telemetry">{t('Telemetry')}</TabList.Item>
             </TabList>
           </Container>
-          <TabPanels>
-            <TabPanels.Item key="activity">
-              <InboxIssueActivity group={group} />
+          <FullHeightTabPanels>
+            <TabPanels.Item key="overview">
+              <InboxIssueOverview group={group} project={project} event={event} />
             </TabPanels.Item>
             <TabPanels.Item key="telemetry">
               <PageFiltersContainer
@@ -92,9 +103,9 @@ export function InboxIssuePreview({groupId}: InboxIssuePreviewProps) {
                 <InboxIssueTelemetry group={group} project={project} event={event} />
               </PageFiltersContainer>
             </TabPanels.Item>
-          </TabPanels>
+          </FullHeightTabPanels>
         </Tabs>
-      </Container>
+      </Stack>
     </GroupDataContextProvider>
   );
 }
@@ -106,64 +117,149 @@ interface InboxIssueSectionProps {
 }
 
 function InboxIssuePreviewHeader({group, project, event}: InboxIssueSectionProps) {
+  const organization = useOrganization();
   const {title = ''} = getTitle(group);
+  const {userParticipants, teamParticipants} = useMemo(
+    () => ({
+      userParticipants: group.participants.filter(
+        (p): p is UserParticipant => p.type === 'user'
+      ),
+      teamParticipants: group.participants.filter(
+        (p): p is TeamParticipant => p.type === 'team'
+      ),
+    }),
+    [group.participants]
+  );
+  const hasParticipants = userParticipants.length > 0 || teamParticipants.length > 0;
 
   return (
-    <Stack>
-      <Stack gap="xs" borderBottom="muted" padding="lg 2xl">
-        <Flex justify="between" align="center" gap="md">
+    <Stack gap="lg" padding="lg 2xl">
+      <Grid columns="minmax(0, 1fr) auto" gap="xs xl" align="start">
+        <Stack gap="xs" minWidth={0}>
           <Heading as="h2" size="xl">
-            <AnsiText>{title}</AnsiText>
+            <IssueTitleLink
+              to={normalizeUrl(`/organizations/${organization.slug}/issues/${group.id}/`)}
+            >
+              <AnsiText>{title}</AnsiText>
+            </IssueTitleLink>
           </Heading>
-          <EventUserCounts group={group} project={project} />
-        </Flex>
-        <EventMessage level={group.level} message={getMessage(group)} type={group.type} />
-      </Stack>
-      <Flex
-        justify="between"
-        align="center"
-        gap="md"
-        wrap="wrap"
-        padding="lg 2xl"
-        borderBottom="muted"
-      >
+          <EventMessage
+            level={group.level}
+            message={getMessage(group)}
+            type={group.type}
+          />
+        </Stack>
+        <EventUserCounts group={group} project={project} />
+      </Grid>
+      <Flex justify="between" align="center" gap="md" wrap="wrap">
         <GroupActions group={group} project={project} event={event ?? null} />
-        <Flex align="center" gap="0 xl" wrap="wrap">
-          <Flex align="center" gap="xs">
-            <Text variant="muted">{t('Priority')}</Text>
-            <GroupPriority group={group} />
-          </Flex>
-          <Flex align="center" gap="xs">
-            <Text variant="muted">{t('Assignee')}</Text>
-            <GroupHeaderAssigneeSelector
-              group={group}
-              project={project}
-              event={event ?? null}
-            />
-          </Flex>
-        </Flex>
+        {hasParticipants && (
+          <ParticipantList
+            users={userParticipants}
+            teams={teamParticipants}
+            hideTimestamp
+          />
+        )}
       </Flex>
     </Stack>
   );
 }
 
-function InboxIssueActivity({group}: Pick<InboxIssueSectionProps, 'group'>) {
+function InboxIssueOverview({group, project, event}: InboxIssueSectionProps) {
   return (
-    <Container padding="xl 2xl">
-      <ActivitySection
-        group={group}
-        minHeight={40}
-        variant="standalone"
-        placeholder={t('Add a comment. Tag users with @, or teams with #')}
-      />
-    </Container>
+    <IssueDetailsContextProvider scrollContext="pane">
+      <Grid flex={1} columns={{zero: 'minmax(0, 1fr)', xl: 'minmax(0, 1fr) 300px'}}>
+        <Stack gap="lg" padding="xl 2xl" minWidth={0}>
+          <Heading as="h3" size="md">
+            {t('Issue timeline')}
+          </Heading>
+          <ActivitySection
+            group={group}
+            minHeight={40}
+            variant="standalone"
+            placeholder={t('Add a comment. Tag users with @, or teams with #')}
+          />
+        </Stack>
+        <Container
+          as="aside"
+          aria-label={t('Issue overview')}
+          padding="xl 2xl"
+          borderLeft={{zero: 'none', xl: 'primary'}}
+          borderTop={{zero: 'primary', xl: 'none'}}
+          minWidth={0}
+        >
+          <InboxIssueSidebar group={group} project={project} event={event} />
+        </Container>
+      </Grid>
+    </IssueDetailsContextProvider>
+  );
+}
+
+function InboxIssueSidebar({group, project, event}: InboxIssueSectionProps) {
+  return (
+    <Stack gap="xl">
+      <SidebarField label={t('Assignee')}>
+        <Flex>
+          <GroupHeaderAssigneeSelector
+            group={group}
+            project={project}
+            event={event ?? null}
+          />
+        </Flex>
+      </SidebarField>
+      <SidebarField label={t('Priority')}>
+        <GroupPriority group={group} />
+      </SidebarField>
+      <ErrorBoundary mini>
+        <FirstLastSeenSection group={group} event={event} />
+      </ErrorBoundary>
+      <ErrorBoundary mini>
+        <InboxIssueExternalLinks group={group} event={event} />
+      </ErrorBoundary>
+    </Stack>
+  );
+}
+
+function InboxIssueExternalLinks({
+  group,
+  event,
+}: Pick<InboxIssueSectionProps, 'group' | 'event'>) {
+  const externalIssues = useExternalIssueList({group, event});
+
+  return (
+    <SidebarField
+      label={t('External links')}
+      actions={<ExternalIssueListLinkButton {...externalIssues} />}
+    >
+      <ExternalIssueListContent {...externalIssues} />
+    </SidebarField>
+  );
+}
+
+interface SidebarFieldProps {
+  children: React.ReactNode;
+  label: string;
+  actions?: React.ReactNode;
+}
+
+function SidebarField({label, actions, children}: SidebarFieldProps) {
+  return (
+    <Stack gap="md">
+      <Flex justify="between" align="center" gap="md">
+        <Heading as="h3" size="md">
+          {label}
+        </Heading>
+        {actions}
+      </Flex>
+      <Container>{children}</Container>
+    </Stack>
   );
 }
 
 function InboxIssueTelemetry({group, project, event}: InboxIssueSectionProps) {
   return (
-    <IssueDetailsContextProvider>
-      <Stack background="secondary">
+    <IssueDetailsContextProvider scrollContext="pane">
+      <Stack flex={1} background="secondary">
         <EventDetailsHeader
           group={group}
           event={event}
@@ -177,3 +273,26 @@ function InboxIssueTelemetry({group, project, event}: InboxIssueSectionProps) {
     </IssueDetailsContextProvider>
   );
 }
+
+const IssueTitleLink = styled(Link)`
+  color: inherit;
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
+    color: inherit;
+  }
+
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
+// Lets the selected panel fill the rest of the preview's height
+const FullHeightTabPanels = styled(TabPanels)`
+  flex: 1;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  padding-top: 0;
+`;

@@ -56,6 +56,32 @@ class SeerAutofixErrorTemplate(NotificationTemplate[SeerAutofixError]):
         )
 
 
+class SeerAutofixStopped(NotificationData):
+    reason: str
+    suggestion: str
+    source: NotificationSource = NotificationSource.SEER_AUTOFIX_STOPPED
+
+
+@template_registry.register(NotificationSource.SEER_AUTOFIX_STOPPED)
+class SeerAutofixStoppedTemplate(NotificationTemplate[SeerAutofixStopped]):
+    category = NotificationCategory.SEER
+    example_data = SeerAutofixStopped(
+        organization_id=1,
+        reason="The error comes from an expired third-party API key.",
+        suggestion="Rotate the API key in your provider's dashboard.",
+    )
+    hide_from_debugger = True
+
+    def render(self, data: SeerAutofixStopped) -> NotificationRenderedTemplate:
+        return NotificationRenderedTemplate(
+            subject="Seer stopped early",
+            body=[
+                ParagraphSection(blocks=[PlainTextBlock(text=data.reason)]),
+                ParagraphSection(blocks=[PlainTextBlock(text=f"Suggestion: {data.suggestion}")]),
+            ],
+        )
+
+
 class SeerAutofixCodeChange(TypedDict):
     repo_name: str
     diff: str
@@ -297,6 +323,11 @@ class SeerInvestigationProgress(TypedDict):
     detail: str
 
 
+class SeerInvestigationNextStep(TypedDict):
+    title: str
+    rationale: str
+
+
 class SeerInvestigationStatus(NotificationData):
     """Live status of a Seer investigation, edited in place in the alert's Slack thread."""
 
@@ -361,6 +392,7 @@ class SeerInvestigationConclusion(NotificationData):
 
     summary: str
     summary_description: str | None
+    next_step: SeerInvestigationNextStep | None
     investigation_url: str
     source: NotificationSource = NotificationSource.SEER_INVESTIGATION_CONCLUSION
 
@@ -373,18 +405,21 @@ class SeerInvestigationConclusionTemplate(NotificationTemplate[SeerInvestigation
         summary="A render-blocking font slowed the login page",
         summary_description="A frontend release added a render-blocking font file, "
         "which delayed the first paint on organization login pages.",
+        next_step=SeerInvestigationNextStep(
+            title="Preload the font file",
+            rationale="Preloading lets the browser fetch the font without blocking the first paint.",
+        ),
         investigation_url="https://sentry.io/organizations/example/seer/investigations/1/",
     )
     hide_from_debugger = True
 
     def render(self, data: SeerInvestigationConclusion) -> NotificationRenderedTemplate:
+        texts = [data.summary, data.summary_description]
+        if data.next_step:
+            texts.append(f"Suggested next step: {data.next_step['title']}")
         return NotificationRenderedTemplate(
             subject="Seer investigation conclusion",
-            body=[
-                ParagraphSection(blocks=[PlainTextBlock(text=text)])
-                for text in (data.summary, data.summary_description)
-                if text
-            ],
+            body=[ParagraphSection(blocks=[PlainTextBlock(text=text)]) for text in texts if text],
             actions=[
                 NotificationRenderedAction(
                     label="View full investigation", link=data.investigation_url

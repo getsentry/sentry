@@ -1,7 +1,8 @@
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from types import ModuleType
+from typing import Any, cast
 
 import sentry_sdk
 from django.db import connections
@@ -11,8 +12,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import traces
 
-from sentry import analytics, features, quotas
-from sentry.analytics.events.agent_monitoring_events import AgentMonitoringQuery
+from sentry import features, quotas
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
@@ -59,6 +59,7 @@ from sentry.snuba import (
     spans_metrics,
     transactions,
 )
+from sentry.snuba.enrichment_attributes_rpc import EnrichmentAttributes
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.preprod_size import PreprodSize
 from sentry.snuba.query_sources import QuerySource
@@ -74,6 +75,7 @@ from sentry.utils.snuba import SnubaTSResult
 
 TOP_EVENTS_DATASETS = {
     discover,
+    EnrichmentAttributes,
     functions,
     metrics_performance,
     metrics_enhanced_performance,
@@ -279,6 +281,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             VisibilityParams.SORT,
             VisibilityParams.GROUP_BY,
             VisibilityParams.Y_AXIS,
+            VisibilityParams.TRANSFORMATIONS,
             VisibilityParams.EXPLORE_QUERY,
             VisibilityParams.DISABLE_AGGREGATE_EXTRAPOLATION,
             VisibilityParams.PREVENT_METRIC_AGGREGATES,
@@ -503,8 +506,9 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         sentry_sdk.set_attribute("query.query_source", query_source.value)
 
         # We are going to start ratcheting usage of this endpoint for legacy
-        # datasets. For now, log usage from blocked orgs but still permit the
-        # request.
+        # datasets. For now, log all external usage but still permit the
+        # request. Logging allowlisted (unblocked) orgs too lets us see who
+        # still relies on these datasets before shrinking the allowlist.
         is_external_api_request = request.auth and referrer == Referrer.API_AUTH_TOKEN_EVENTS
         is_legacy_dataset = dataset in {transactions, discover, metrics_enhanced_performance}
         is_blocked = features.has(
@@ -512,12 +516,13 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             organization,
             actor=request.user,
         )
-        if is_external_api_request and is_legacy_dataset and is_blocked:
+        if is_external_api_request and is_legacy_dataset:
             sdk_logger.warning(
-                "events endpoint called by blocked org",
+                "events endpoint called with legacy dataset",
                 attributes={
                     "org_id": organization.id,
                     "org_slug": organization.slug,
+                    "is_blocked": is_blocked,
                     "effective_dataset": DATASET_LABELS.get(dataset, ""),
                     "requested_dataset": request.GET.get("dataset", ""),
                     "endpoint_name": "organization-events-timeseries",
@@ -542,7 +547,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                         dataset, snuba_params, query, query_columns, rollup
                     )
                     if cached := default_cache.get(cache_key):
-                        cached_timestamps = sorted([item["time"] for item in cached])
+                        cached_rows = cast(Sequence[Mapping[str, int]], cached)
+                        cached_timestamps = sorted(row["time"] for row in cached_rows)
                         # Don't use the cache if we haven't queried the start before
                         # If this works well we can fork two queries in the future but keeping it simple for now
                         if cached_timestamps[0] > snuba_params.start_date.timestamp():
@@ -563,8 +569,6 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 else:
                     span.set_attribute("query.invalid_cache_reason", "non_candidate")
 
-        self._emit_analytics_event(organization, referrer)
-
         if top_events > 0:
             raw_groupby = self.get_field_list(organization, request, param_name="groupBy")
             raw_orderby = self.get_orderby(request)
@@ -576,51 +580,63 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 if "timestamp" in [col.strip("-") for col in raw_orderby]:
                     raise ParseError("Cannot order by timestamp")
             if dataset in RPC_DATASETS:
-                return dataset.run_top_events_timeseries_query(
-                    params=snuba_params,
-                    query_string=query,
-                    y_axes=query_columns,
-                    raw_groupby=raw_groupby,
-                    orderby=self.get_orderby(request),
-                    limit=top_events,
-                    include_other=include_other,
-                    referrer=referrer,
-                    config=self.get_rpc_config(dataset, request, organization),
-                    sampling_mode=snuba_params.sampling_mode,
-                    equations=self.get_equation_list(organization, request, param_name="groupBy"),
-                    additional_queries=additional_queries,
-                    transformations=transformations,
+                rpc_top_events = cast(
+                    "SnubaTSResult | dict[str, SnubaTSResult]",
+                    dataset.run_top_events_timeseries_query(
+                        params=snuba_params,
+                        query_string=query,
+                        y_axes=query_columns,
+                        raw_groupby=raw_groupby,
+                        orderby=self.get_orderby(request),
+                        limit=top_events,
+                        include_other=include_other,
+                        referrer=referrer,
+                        config=self.get_rpc_config(dataset, request, organization),
+                        sampling_mode=snuba_params.sampling_mode,
+                        equations=self.get_equation_list(
+                            organization, request, param_name="groupBy"
+                        ),
+                        additional_queries=additional_queries,
+                        transformations=transformations,
+                    ),
                 )
-            return dataset.top_events_timeseries(
-                timeseries_columns=query_columns,
-                selected_columns=raw_groupby,
-                equations=self.get_equation_list(organization, request),
-                user_query=query,
-                snuba_params=snuba_params,
-                orderby=self.get_orderby(request),
-                rollup=rollup,
-                limit=top_events,
-                organization=organization,
-                referrer=referrer + ".find-topn",
-                allow_empty=False,
-                zerofill_results=True,
-                include_other=include_other,
-                query_source=query_source,
-                transform_alias_to_input_format=True,
-                fallback_to_transactions=True,
+                return rpc_top_events
+            return cast(
+                "SnubaTSResult | dict[str, SnubaTSResult]",
+                dataset.top_events_timeseries(
+                    timeseries_columns=query_columns,
+                    selected_columns=raw_groupby,
+                    equations=self.get_equation_list(organization, request),
+                    user_query=query,
+                    snuba_params=snuba_params,
+                    orderby=self.get_orderby(request),
+                    rollup=rollup,
+                    limit=top_events,
+                    organization=organization,
+                    referrer=referrer + ".find-topn",
+                    allow_empty=False,
+                    zerofill_results=True,
+                    include_other=include_other,
+                    query_source=query_source,
+                    transform_alias_to_input_format=True,
+                    fallback_to_transactions=True,
+                ),
             )
 
         if dataset in RPC_DATASETS:
-            result = dataset.run_timeseries_query(
-                params=snuba_params,
-                query_string=query,
-                y_axes=query_columns,
-                referrer=referrer,
-                config=self.get_rpc_config(dataset, request, organization),
-                sampling_mode=snuba_params.sampling_mode,
-                comparison_delta=comparison_delta,
-                additional_queries=additional_queries,
-                transformations=transformations,
+            result = cast(
+                "SnubaTSResult | dict[str, SnubaTSResult]",
+                dataset.run_timeseries_query(
+                    params=snuba_params,
+                    query_string=query,
+                    y_axes=query_columns,
+                    referrer=referrer,
+                    config=self.get_rpc_config(dataset, request, organization),
+                    sampling_mode=snuba_params.sampling_mode,
+                    comparison_delta=comparison_delta,
+                    additional_queries=additional_queries,
+                    transformations=transformations,
+                ),
             )
             if incremental_loading and not skip_cache and is_cache_candidate:
                 with traces.start_span("set_cache"):
@@ -636,19 +652,22 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                     )
             return result
 
-        return dataset.timeseries_query(
-            selected_columns=query_columns,
-            query=query,
-            snuba_params=snuba_params,
-            rollup=rollup,
-            referrer=referrer,
-            zerofill_results=True,
-            comparison_delta=comparison_delta,
-            allow_metric_aggregates=allow_metric_aggregates,
-            has_metrics=True,
-            query_source=query_source,
-            fallback_to_transactions=True,
-            transform_alias_to_input_format=True,
+        return cast(
+            "SnubaTSResult | dict[str, SnubaTSResult]",
+            dataset.timeseries_query(
+                selected_columns=query_columns,
+                query=query,
+                snuba_params=snuba_params,
+                rollup=rollup,
+                referrer=referrer,
+                zerofill_results=True,
+                comparison_delta=comparison_delta,
+                allow_metric_aggregates=allow_metric_aggregates,
+                has_metrics=True,
+                query_source=query_source,
+                fallback_to_transactions=True,
+                transform_alias_to_input_format=True,
+            ),
         )
 
     def serialize_stats_data(
@@ -657,7 +676,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         axes: list[str],
         snuba_params: SnubaParams,
         rollup: int,
-        dataset,
+        dataset: ModuleType,
         organization: Organization,
         ingestion_delay_status: IngestionDelayStatus | None = None,
     ) -> StatsResponse:
@@ -796,16 +815,3 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         timeseries["values"] = timeseries_values
 
         return timeseries
-
-    def _emit_analytics_event(self, organization: Organization, referrer: str) -> None:
-        if "agent-monitoring" not in referrer:
-            return
-        try:
-            analytics.record(
-                AgentMonitoringQuery(
-                    organization_id=organization.id,
-                    referrer=referrer,
-                )
-            )
-        except Exception as e:
-            sentry_sdk.capture_exception(e)

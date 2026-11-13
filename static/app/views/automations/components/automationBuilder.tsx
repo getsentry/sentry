@@ -13,18 +13,15 @@ import {
   DataConditionGroupLogicType,
   DataConditionHandlerGroupType,
 } from 'sentry/types/workflowEngine/dataConditions';
-import {ActionFilterBlock} from 'sentry/views/automations/components/actionFilterBlock';
-import {AutomationBuilderConflictContext} from 'sentry/views/automations/components/automationBuilderConflictContext';
-import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
-import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
-import {DataConditionNodeList} from 'sentry/views/automations/components/dataConditionNodeList';
-import {
-  EmbeddedSelectField,
-  Step,
-  StepLead,
-} from 'sentry/views/automations/components/stepComponents';
-import {TRIGGER_MATCH_OPTIONS} from 'sentry/views/automations/components/triggers/constants';
 import {findConflictingConditions} from 'sentry/views/automations/hooks/utils';
+
+import {TRIGGER_MATCH_OPTIONS} from './triggers/constants';
+import {ActionFilterBlock} from './actionFilterBlock';
+import {AutomationBuilderConflictContext} from './automationBuilderConflictContext';
+import {useAutomationBuilderContext} from './automationBuilderContext';
+import {useAutomationBuilderErrorContext} from './automationBuilderErrorContext';
+import {DataConditionNodeList} from './dataConditionNodeList';
+import {EmbeddedSelectField, Step, StepLead} from './stepComponents';
 
 export function AutomationBuilder() {
   const {state, actions, showTriggerLogicTypeSelector} = useAutomationBuilderContext();

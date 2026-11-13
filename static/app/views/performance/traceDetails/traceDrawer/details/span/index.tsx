@@ -53,14 +53,6 @@ import {getIsAiGenerationNode} from 'sentry/views/insights/pages/agents/utils/ai
 import {traceAnalytics} from 'sentry/views/performance/traceDetails/traceAnalytics';
 import {useTransaction} from 'sentry/views/performance/traceDetails/traceApi/useTransaction';
 import {IssueList} from 'sentry/views/performance/traceDetails/traceDrawer/details/issues/issues';
-import {AIInputSection} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiInput';
-import {AIIOAlert} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiIOAlert';
-import {AIOutputSection} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiOutput';
-import {AttributesSection} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/attributes';
-import {CacheLifecycleSection} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/cacheLifecycle';
-import {Contexts} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/contexts';
-import {MCPInputSection} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/mcpInput';
-import {MCPOutputSection} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/mcpOutput';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
 import {BreadCrumbs} from 'sentry/views/performance/traceDetails/traceDrawer/details/transaction/sections/breadCrumbs';
 import {ReplayPreview} from 'sentry/views/performance/traceDetails/traceDrawer/details/transaction/sections/replayPreview';
@@ -70,7 +62,15 @@ import type {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModel
 
 import {LogDetails} from './components/logDetails';
 import {ProfileDetails} from './components/profileDetails';
+import {AIInputSection} from './eapSections/aiInput';
+import {AIIOAlert} from './eapSections/aiIOAlert';
+import {AIOutputSection} from './eapSections/aiOutput';
+import {AttributesSection} from './eapSections/attributes';
+import {CacheLifecycleSection} from './eapSections/cacheLifecycle';
+import {Contexts} from './eapSections/contexts';
 import {SpanDescription as EAPSpanDescription} from './eapSections/description';
+import {MCPInputSection} from './eapSections/mcpInput';
+import {MCPOutputSection} from './eapSections/mcpOutput';
 import {TraceSpanLinks} from './eapSections/traceSpanLinks';
 import {HttpErrorCard} from './sections/httpErrorCard';
 
@@ -105,7 +105,6 @@ export function useAvgSpanDuration(
     eventView,
     initialData: [],
     referrer: 'api.explore.spans-aggregates-table', // TODO: replace with trace span details referrer
-    trackResponseAnalytics: false,
   });
 
   return result.data?.[0]?.['avg(span.duration)'];

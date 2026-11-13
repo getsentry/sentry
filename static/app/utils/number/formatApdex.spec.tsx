@@ -1,4 +1,4 @@
-import {formatApdex} from 'sentry/utils/number/formatApdex';
+import {formatApdex} from './formatApdex';
 
 describe('formatApdex', () => {
   it.each([

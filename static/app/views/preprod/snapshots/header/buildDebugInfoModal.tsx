@@ -2,10 +2,10 @@ import {Fragment, useMemo} from 'react';
 import {css} from '@emotion/react';
 import pick from 'lodash/pick';
 
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {openModal} from '@sentry/scraps/modal';
 import {Heading} from '@sentry/scraps/text';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {openModal} from 'sentry/actionCreators/modal';
 import {StructuredEventData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
 import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapshotTypes';

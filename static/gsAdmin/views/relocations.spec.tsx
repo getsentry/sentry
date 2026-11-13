@@ -5,8 +5,6 @@ import {ConfigStore} from 'sentry/stores/configStore';
 
 import {Relocations} from 'admin/views/relocations';
 
-jest.mock('sentry/actionCreators/indicator');
-
 describe('Relocations', () => {
   beforeEach(() => {
     MockApiClient.addMockResponse({

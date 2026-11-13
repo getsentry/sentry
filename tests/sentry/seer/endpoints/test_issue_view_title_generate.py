@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import orjson
 from django.test import override_settings
+from rest_framework.response import Response
 from urllib3.response import HTTPResponse
 
 from sentry.models.apitoken import ApiToken
@@ -23,13 +24,14 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             return ApiToken.objects.create(user=self.user, scope_list=[scope])
 
-    def _post_with_token(self, token: ApiToken, query: str = "is:unresolved"):
-        return self.client.post(
+    def _post_with_token(self, token: ApiToken, query: str = "is:unresolved") -> Response:
+        response: Response = self.client.post(
             self.url,
             data={"query": query},
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {token.token}",
         )
+        return response
 
     @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
     @patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")

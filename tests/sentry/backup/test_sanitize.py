@@ -23,8 +23,6 @@ from sentry.backup.sanitize import (
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.jsonfield import JSONField
-from sentry.db.models.fields.slug import SentrySlugField
-from sentry.db.models.fields.uuid import UUIDField
 
 FAKE_EMAIL = "test@fake.com"
 FAKE_NAME = "Fake Name"
@@ -52,15 +50,15 @@ class FakeSanitizableModel(DefaultFieldsModel):
 
     email = models.EmailField(null=True, max_length=75)
     name = models.CharField(null=True, max_length=64)
-    slug = SentrySlugField(null=True)
+    slug = models.SlugField(null=True)
     nickname = models.CharField(null=True, max_length=32)
-    text = SentrySlugField(null=True, max_length=128)
+    text = models.SlugField(null=True, max_length=128)
     json_dict = JSONField(null=True, default=dict)
     json_list = JSONField(null=True, default=list)
     ip_v4 = models.GenericIPAddressField(null=True)
     ip_v6 = models.GenericIPAddressField(null=True)
     url = models.URLField(null=True)
-    uuid = UUIDField(null=True)
+    uuid = models.UUIDField(null=True)
 
     class Meta:
         app_label = "test"

@@ -1,11 +1,12 @@
 /* global process */
 
-import type {Scope} from 'sentry/constants/scopes';
 import {t} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/dataCategory';
 import {DataCategory, DataCategoryExact} from 'sentry/types/dataCategory';
 import type {PermissionResource} from 'sentry/types/permissions';
 import type {OrgRole} from 'sentry/types/roles';
+
+import type {Scope} from './scopes';
 
 export {API_ACCESS_SCOPES, ALLOWED_SCOPES} from 'sentry/constants/scopes';
 
@@ -920,13 +921,6 @@ export const EXPERIMENTAL_SPA = process.env.EXPERIMENTAL_SPA as unknown as
 // TODO(kmclb): once relay is doing the scrubbing, the masking value will be dynamic,
 // so this will have to change
 export const FILTER_MASK = '[Filtered]';
-
-// Errors that may occur during the fetching of organization details
-export const ORGANIZATION_FETCH_ERROR_TYPES = {
-  ORG_NOT_FOUND: 'ORG_NOT_FOUND',
-  ORG_NO_ACCESS: 'ORG_NO_ACCESS',
-  NO_ORGS: 'NO_ORGS',
-};
 
 // Keep in sync with RESERVED_PROJECT_SLUGS in src/sentry/constants.py
 export const RESERVED_PROJECT_SLUGS: ReadonlySet<string> = new Set([

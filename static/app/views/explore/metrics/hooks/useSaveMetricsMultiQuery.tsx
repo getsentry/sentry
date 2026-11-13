@@ -15,7 +15,7 @@ import {
   useInvalidateSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
-import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
+import {serializeAggregateFields} from 'sentry/views/explore/queryParams/aggregateField';
 import {
   isVisualize,
   isVisualizeFunction,
@@ -52,30 +52,17 @@ export function useSaveMetricsMultiQuery() {
       environment: environments,
       query: metricQueries
         .map(metricQuery => {
-          const groupBys = metricQuery.queryParams.aggregateFields
-            .filter(field => isGroupBy(field))
-            .map(field => ({groupBy: field.groupBy}));
-
-          const visualizes = metricQuery.queryParams.aggregateFields.filter(field =>
-            isVisualize(field)
-          );
-
-          const visualize = visualizes[0];
+          const visualize = metricQuery.queryParams.aggregateFields.find(isVisualize);
 
           if (!defined(visualize) || !visualize) {
             Sentry.captureException(new Error('No visualize found for metric query'));
             return null;
           }
 
-          // There can be multiple yAxes per metricQuery, with multi-aggregate support.
-          const yAxes = visualizes.map(v => v.yAxis);
-          const chartType = visualize.chartType;
-
           return {
-            aggregateField: [
-              ...groupBys,
-              ...(yAxes.length > 0 ? [{yAxes, chartType}] : []),
-            ],
+            aggregateField: serializeAggregateFields(
+              metricQuery.queryParams.aggregateFields
+            ),
             ...(isVisualizeFunction(visualize) ? {metric: metricQuery.metric} : {}),
             fields: metricQuery.queryParams.fields,
             orderby: metricQuery.queryParams.sortBys[0]

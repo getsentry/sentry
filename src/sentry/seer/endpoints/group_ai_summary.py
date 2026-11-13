@@ -11,6 +11,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
+from sentry.auth.principal import acting_user
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
 from sentry.ratelimits.config import RateLimitConfig
@@ -51,7 +52,7 @@ class GroupAiSummaryEndpoint(GroupAiEndpoint):
         try:
             summary_data = get_or_generate_issue_summary(
                 group=group,
-                user=request.user,
+                user=acting_user(request.user),
                 force_event_id=force_event_id,
                 source=SeerAutomationSource.ISSUE_DETAILS,
             )

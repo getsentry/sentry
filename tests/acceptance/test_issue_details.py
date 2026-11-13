@@ -52,6 +52,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         event = self.store_event(
             data=event_data, project_id=self.project.id, assert_no_errors=False
         )
+        assert event.group is not None
         event.group.update(
             first_seen=datetime(2015, 8, 13, 3, 8, 25, tzinfo=timezone.utc), last_seen=time
         )

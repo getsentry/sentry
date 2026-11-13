@@ -15,7 +15,7 @@ from sentry.api.serializers.rest_framework.base import (
 from sentry.testutils.cases import TestCase
 
 
-class PersonSerializer(CamelSnakeSerializer):
+class PersonSerializer(CamelSnakeSerializer[dict[str, object]]):
     name = serializers.CharField()
     works_at = serializers.CharField()
 
@@ -42,7 +42,7 @@ class CamelSnakeSerializerTest(TestCase):
             PersonSerializer(data={"name": "Rick", "worksAt": "Sentry", "_name": "Chuck"})
 
 
-class ContentTypeSerializer(CamelSnakeModelSerializer):
+class ContentTypeSerializer(CamelSnakeModelSerializer[ContentType]):
     class Meta:
         model = ContentType
         fields = ["app_label", "model"]

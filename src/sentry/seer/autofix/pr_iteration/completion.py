@@ -15,6 +15,7 @@ from sentry.models.organization import Organization
 from sentry.seer.autofix.autofix_agent import trigger_push_changes
 from sentry.seer.autofix.commit_author import SeerCommitAuthor, parse_commit_author
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
 from sentry.seer.autofix.feature.dispatch import AutofixFeatureArgs, trigger_autofix_feature
 from sentry.seer.autofix.feature.models import PrIterationStepArgs
 from sentry.seer.autofix.pr_iteration.current_iteration import triggered_iteration_id
@@ -197,7 +198,7 @@ def iteration_completed_webhook_fields(
     organization: Organization,
     group: Group,
     state: SeerRunState,
-    format_code_changes: Callable[[SeerRunState], dict],
+    format_code_changes: Callable[[SeerRunState], dict[str, Any]],
     *,
     retrying: bool,
 ) -> dict[str, Any] | None:
@@ -484,13 +485,22 @@ def _push_iteration_changes(
             run_id,
             referrer=AutofixReferrer.ON_COMPLETION_HOOK,
             state=state,
-            verify_content=features.has(
-                "organizations:autofix-verify-pr-content", organization=group.organization
-            ),
+            verify_content=True,
             author=author,
+            source="pr_iteration",
             # Never overwrite commits on the PR that Seer didn't push.
             allow_force_push=False,
         )
+    except SeerOutOfCreditsException:
+        log_ctx.info("autofix.pr_iteration.push", outcome="failed", reason="out_of_credits")
+        # TODO(CW-3066): Resume after a top-up. Until then nothing retries the push, so pause
+        # the run so that new feedback is refused.
+        pause_pr_iteration(
+            run_id=run_id,
+            organization_id=group.organization.id,
+            reason=PauseReason.RUN_ERRORED,
+        )
+        return False
     except Exception as e:
         log_ctx.error(
             "autofix.pr_iteration.push",
@@ -574,6 +584,11 @@ def _retry_push_on_moved_branch(
                 ),
             ),
         )
+    except SeerOutOfCreditsException:
+        log_ctx.info("autofix.pr_iteration.push", outcome="not_pushed", reason="out_of_credits")
+        # TODO(CW-3066): Resume after a top-up. Until then nothing retries this, so end the
+        # iteration as errored, and the caller pauses the run and records the outcome.
+        return PrIterationOutcome.PR_CREATION_ERRORED
     except Exception as e:
         # End the iteration as errored, so the caller pauses the run and records the outcome.
         log_ctx.error(

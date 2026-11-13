@@ -6,7 +6,8 @@ from typing import ClassVar, Self
 from django.conf import settings
 from django.contrib.postgres.fields.array import ArrayField
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, router, transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -19,7 +20,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.hybridcloud.models.outbox import ControlOutboxBase
+from sentry.hybridcloud.models.outbox import ControlOutboxBase, outbox_context
 from sentry.hybridcloud.outbox.base import (
     ControlOutboxProducingManager,
     ControlOutboxProducingModel,
@@ -33,6 +34,8 @@ __all__ = (
     "ServiceAccountProject",
     "ServiceAccountReplica",
     "ServiceAccountProjectReplica",
+    "ServiceAccountToken",
+    "ServiceAccountTokenReplica",
 )
 
 # Matches the `name` serializer in the service account API.
@@ -46,10 +49,14 @@ GRANTABLE_SCOPES = frozenset(
 )
 
 
+class InvalidScopeError(ValidationError):
+    pass
+
+
 def validate_grantable_scopes(value: Iterable[str]) -> None:
     for scope in value:
         if scope not in GRANTABLE_SCOPES:
-            raise ValidationError(f"{scope} is not a scope a service account can hold.")
+            raise InvalidScopeError(f"{scope} is not a scope a service account can hold.")
 
 
 def service_account_outboxes(
@@ -80,12 +87,16 @@ class ServiceAccount(ReplicatedControlModel):
     scope_list = ArrayField(
         models.TextField(), validators=[validate_grantable_scopes], default=list
     )
+    # False means the account was deleted, as on `User`. Nothing sets it back to True, and
+    # the row stays until the org is deleted so references to the account stay set.
     is_active = models.BooleanField(default=True, db_default=True)
     # Every active project in the org, including ones created later, instead of only the
     # linked `ServiceAccountProject`s. Explicit so access doesn't follow open membership.
     all_projects = models.BooleanField(default=False, db_default=False)
     # Always a human user, never another service account.
     created_by = FlexibleForeignKey("sentry.User", null=True, blank=True, on_delete=models.SET_NULL)
+    # Lets a retried create, such as an outbox redelivery, find the account it already made.
+    idempotency_key = models.CharField(max_length=64, null=True, blank=True)
     date_added = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(auto_now=True)
 
@@ -93,9 +104,15 @@ class ServiceAccount(ReplicatedControlModel):
         app_label = "service_accounts"
         db_table = "service_accounts_serviceaccount"
         constraints = [
+            # Inactive accounts don't reserve their name, so a deleted account's name can be reused.
             models.UniqueConstraint(
                 fields=["organization_id", "name"],
-                name="service_accounts_serviceaccount_org_name_unique",
+                condition=Q(is_active=True),
+                name="service_accounts_serviceaccount_org_name_unique_active",
+            ),
+            models.UniqueConstraint(
+                fields=["organization_id", "idempotency_key"],
+                name="service_accounts_serviceaccount_org_idempotency_key_unique",
             ),
         ]
 
@@ -103,6 +120,75 @@ class ServiceAccount(ReplicatedControlModel):
 
     def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
         return service_account_outboxes(self.id, self.organization_id, shard_identifier)
+
+    @classmethod
+    def create_with_projects(
+        cls,
+        *,
+        organization_id: int,
+        name: str,
+        scope_list: list[str],
+        project_ids: Iterable[int],
+        all_projects: bool,
+        created_by_id: int | None,
+        idempotency_key: str | None = None,
+    ) -> ServiceAccount:
+        """
+        Raises `InvalidScopeError` for a scope outside `GRANTABLE_SCOPES` and `IntegrityError`
+        when `name` is taken in the org. Callers must authorize the grant and write the audit
+        log.
+        """
+        validate_grantable_scopes(scope_list)
+        with outbox_context(transaction.atomic(using=router.db_for_write(cls))):
+            service_account = cls.objects.create(
+                organization_id=organization_id,
+                name=name,
+                scope_list=scope_list,
+                all_projects=all_projects,
+                created_by_id=created_by_id,
+                idempotency_key=idempotency_key,
+            )
+            if not all_projects:
+                ServiceAccountProject.objects.bulk_create(
+                    ServiceAccountProject(service_account=service_account, project_id=project_id)
+                    for project_id in set(project_ids)
+                )
+        return service_account
+
+    def deactivate(self) -> bool:
+        """
+        Delete the account: keep the row, so references to it stay set, but turn it off for
+        good and remove its project links. The outbox replicates both to the cell. Returns
+        False when the account was already deleted. Callers must write the audit log.
+        """
+        with outbox_context(transaction.atomic(using=router.db_for_write(ServiceAccount))):
+            account = (
+                ServiceAccount.objects.select_for_update()
+                .filter(id=self.id, is_active=True)
+                .first()
+            )
+            if account is None:
+                return False
+            account.replace_projects([])
+            account.all_projects = False
+            account.is_active = False
+            account.save()
+        return True
+
+    def replace_projects(self, project_ids: Iterable[int]) -> None:
+        project_ids = set(project_ids)
+        existing = set()
+        # Delete links one at a time: a queryset delete wouldn't write the account's outbox.
+        for link in ServiceAccountProject.objects.filter(service_account=self):
+            if link.project_id in project_ids:
+                existing.add(link.project_id)
+            else:
+                link.delete()
+        ServiceAccountProject.objects.bulk_create(
+            ServiceAccountProject(service_account=self, project_id=project_id)
+            for project_id in project_ids
+            if project_id not in existing
+        )
 
     def handle_async_replication(self, cell_name: str, shard_identifier: int) -> None:
         from sentry.hybridcloud.services.replica import cell_replica_service
@@ -122,7 +208,7 @@ class ServiceAccount(ReplicatedControlModel):
 @control_silo_model
 class ServiceAccountProject(DefaultFieldsModel, ControlOutboxProducingModel):
     """
-    A project a service account can access when its org doesn't have open membership.
+    A project a service account can access when it doesn't have `all_projects`.
     Projects live in the cell, so the link is a hybrid cloud foreign key and the row is
     removed by the tombstone cascade after the project is deleted.
 
@@ -163,8 +249,8 @@ class ServiceAccountProject(DefaultFieldsModel, ControlOutboxProducingModel):
 class ServiceAccountReplica(Model):
     """
     The cell's copy of a `ServiceAccount`, written by its outbox. Deleting the account
-    deletes this row through the tombstone cascade. Like the account, this doesn't
-    check `is_active`, so callers must.
+    keeps this row with `is_active=False`, so cell references to it stay set. Like the
+    account, this doesn't check `is_active`, so callers must.
     """
 
     __relocation_scope__ = RelocationScope.Excluded
@@ -214,3 +300,91 @@ class ServiceAccountProjectReplica(Model):
         ]
 
     __repr__ = sane_repr("service_account_id", "project_id")
+
+
+@control_silo_model
+class ServiceAccountToken(ReplicatedControlModel):
+    """
+    A long-lived credential an org admin creates for a service account. Requests made with
+    it act as the account, never as the admin who created it.
+
+    Revoking keeps the row and sets `date_deactivated`, so its history stays. Accounts are
+    soft-deleted, so the account foreign key only cascades when the org is deleted.
+    """
+
+    # A relocated token would need a new secret, so admins create new tokens instead.
+    __relocation_scope__ = RelocationScope.Excluded
+    category = OutboxCategory.SERVICE_ACCOUNT_TOKEN_UPDATE
+
+    service_account = FlexibleForeignKey(
+        "service_accounts.ServiceAccount", on_delete=models.CASCADE
+    )
+    # Copied from the account so outbox routing and the replica don't need a join.
+    organization_id = HybridCloudForeignKey("sentry.Organization", null=False, on_delete="CASCADE")
+    name = models.CharField(max_length=MAX_NAME_LENGTH)
+    token_hashed = models.TextField(unique=True)
+    token_last_characters = models.CharField(max_length=4)
+    # Fixed at creation. Effective access is this intersected with the account's current
+    # scopes, so narrowing the account narrows the token, but widening it doesn't.
+    scope_list = ArrayField(
+        models.TextField(), validators=[validate_grantable_scopes], default=list
+    )
+    # Always a human user, never another service account.
+    created_by = FlexibleForeignKey("sentry.User", null=True, blank=True, on_delete=models.SET_NULL)
+    date_added = models.DateTimeField(default=timezone.now)
+    date_expires = models.DateTimeField(null=True)
+    date_last_used = models.DateTimeField(null=True)
+    # Null while the token is active. There's no separate flag that could disagree with it.
+    date_deactivated = models.DateTimeField(null=True)
+
+    class Meta:
+        app_label = "service_accounts"
+        db_table = "service_accounts_serviceaccounttoken"
+
+    __repr__ = sane_repr("organization_id", "service_account_id", "name")
+
+    def handle_async_replication(self, cell_name: str, shard_identifier: int) -> None:
+        from sentry.hybridcloud.services.replica import cell_replica_service
+        from sentry.service_accounts.services.service_account.serial import (
+            serialize_service_account_token,
+        )
+
+        cell_replica_service.upsert_replicated_service_account_token(
+            token=serialize_service_account_token(self),
+            cell_name=cell_name,
+        )
+
+
+@cell_silo_model
+class ServiceAccountTokenReplica(Model):
+    """
+    The cell's copy of a `ServiceAccountToken`, written by its outbox. Revoking the token
+    keeps this row with `date_deactivated` set, so callers must check it, `date_expires` and
+    the account's `is_active`.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    service_account = FlexibleForeignKey(
+        "service_accounts.ServiceAccountReplica", on_delete=models.CASCADE
+    )
+    token_id = HybridCloudForeignKey(
+        "service_accounts.ServiceAccountToken", null=False, on_delete="CASCADE", unique=True
+    )
+    organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
+    token_hashed = models.TextField()
+    scope_list = ArrayField(models.TextField(), default=list)
+    date_expires = models.DateTimeField(null=True)
+    date_deactivated = models.DateTimeField(null=True)
+
+    class Meta:
+        app_label = "service_accounts"
+        db_table = "service_accounts_serviceaccounttokenreplica"
+        indexes = [
+            models.Index(
+                fields=["token_hashed"],
+                name="sa_token_replica_hash_idx",
+            ),
+        ]
+
+    __repr__ = sane_repr("organization_id", "token_id")

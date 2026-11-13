@@ -14,18 +14,20 @@ import {Heading} from '@sentry/scraps/text';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {AddAutofixRepoModal} from 'sentry/components/seer/legacy/addAutofixRepoModal';
-import {AutofixRepositoriesItem} from 'sentry/components/seer/projectDetails/autofixRepositoriesItem';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {isSeerTokenBasedBillingOnboardingEnabled} from 'sentry/utils/seer/isSeerTokenBasedBillingOnboardingEnabled';
 import {
   getDeleteSeerProjectRepoOptions,
   getMutateSeerProjectReposOptionsAddRepo,
   getSeerProjectReposInfiniteQueryOptions,
 } from 'sentry/utils/seer/seerProjectRepos';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {AutofixRepositoriesItem} from './autofixRepositoriesItem';
 
 const REPOSITORY_COLUMNS: TableColumnConfig[] = [
   {key: 'repositories', width: '1fr'},
@@ -39,28 +41,40 @@ interface Props {
   project: Project;
 }
 
-const getTableHeaders = (organization: Organization): React.ReactNode[] => [
-  <Flex key="connected-repositories" align="center" gap="md">
-    {t('Connected Repositories')}
-    <InfoTip
-      size="xs"
-      title={tct(
-        'Seer will only be able to see code from, and make PRs to, the repos connected here. The [link:GitHub integration] is required for Seer to access these repos.',
-        {
-          link: <Link to={`/settings/${organization.slug}/integrations/github/`} />,
+const getTableHeaders = (
+  organization: Organization,
+  isTokenBilled: boolean
+): React.ReactNode[] => {
+  const link = <Link to={`/settings/${organization.slug}/integrations/github/`} />;
+  return [
+    <Flex key="connected-repositories" align="center" gap="md">
+      {isTokenBilled ? t('Linked Repositories') : t('Connected Repositories')}
+      <InfoTip
+        size="xs"
+        title={
+          isTokenBilled
+            ? tct(
+                'Seer can read code from, and open PRs in, the repos linked to this project. Seer needs the [link:GitHub integration] to access them.',
+                {link}
+              )
+            : tct(
+                'Seer will only be able to see code from, and make PRs to, the repos connected here. The [link:GitHub integration] is required for Seer to access these repos.',
+                {link}
+              )
         }
-      )}
-    />
-  </Flex>,
-  t('Integration'),
-  null,
-];
+      />
+    </Flex>,
+    t('Integration'),
+    ...(isTokenBilled ? [] : [null]),
+  ];
+};
 
 export function AutofixRepositoriesList({canWrite, includeInstructions, project}: Props) {
   const {openModal} = useModal();
 
   const queryClient = useQueryClient();
   const organization = useOrganization();
+  const isTokenBilled = isSeerTokenBasedBillingOnboardingEnabled(organization);
 
   const seerProjectReposQuery = useInfiniteQuery({
     ...getSeerProjectReposInfiniteQueryOptions({organization, project}),
@@ -117,7 +131,10 @@ export function AutofixRepositoriesList({canWrite, includeInstructions, project}
     return <LoadingError message={error?.message} />;
   }
 
-  const tableHeaders = getTableHeaders(organization);
+  const tableHeaders = getTableHeaders(organization, isTokenBilled);
+  const addRepoLabel = isTokenBilled
+    ? t('Link Repositories')
+    : t('Add Repositories to Project');
 
   if (!data.length) {
     return (
@@ -132,11 +149,15 @@ export function AutofixRepositoriesList({canWrite, includeInstructions, project}
           <Flex padding="2xl" align="center" justify="center" gap="xl">
             <img src={seerConfigBug1} alt="" width="130px" height="130px" />
             <Stack gap="lg">
-              <Heading as="h4">{t('Connect a repository')}</Heading>
+              <Heading as="h4">
+                {isTokenBilled ? t('Link a repository') : t('Connect a repository')}
+              </Heading>
               <Flex maxWidth="250px">
-                {t(
-                  'Connect at least one repository so Seer can gather more insights from your code.'
-                )}
+                {isTokenBilled
+                  ? t('Link a repository to this project so Seer can read your code.')
+                  : t(
+                      'Connect at least one repository so Seer can gather more insights from your code.'
+                    )}
               </Flex>
               <Button
                 disabled={!canWrite}
@@ -144,7 +165,7 @@ export function AutofixRepositoriesList({canWrite, includeInstructions, project}
                 icon={<IconAdd />}
                 onClick={handleAddRepoClick}
               >
-                {t('Add Repositories to Project')}
+                {addRepoLabel}
               </Button>
             </Stack>
           </Flex>
@@ -161,12 +182,12 @@ export function AutofixRepositoriesList({canWrite, includeInstructions, project}
           icon={<IconAdd />}
           onClick={handleAddRepoClick}
         >
-          {t('Add Repositories to Project')}
+          {addRepoLabel}
         </Button>
       </Flex>
 
       <StyledSimpleTable
-        columns={REPOSITORY_COLUMNS}
+        columns={isTokenBilled ? REPOSITORY_COLUMNS.slice(0, 2) : REPOSITORY_COLUMNS}
         header={
           <SimpleTable.HeaderRow>
             {tableHeaders.map((header, i) => (

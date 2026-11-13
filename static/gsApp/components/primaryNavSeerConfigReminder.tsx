@@ -9,6 +9,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
+import {isSeerTokenBasedBillingOnboardingEnabled} from 'sentry/utils/seer/isSeerTokenBasedBillingOnboardingEnabled';
 import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -21,6 +22,7 @@ function useReminderData() {
   const canWrite = useCanWriteSettings();
 
   const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
+  const hasTokenBasedSeer = isSeerTokenBasedBillingOnboardingEnabled(organization);
   const hasLegacySeer = organization.features.includes('seer-added');
   const hasCodeReviewBeta = organization.features.includes('code-review-beta');
 
@@ -30,8 +32,9 @@ function useReminderData() {
       has_code_review_beta: hasCodeReviewBeta,
       has_legacy_seer: hasLegacySeer,
       has_seat_based_seer: hasSeatBasedSeer,
+      has_token_based_seer: hasTokenBasedSeer,
     };
-  }, [canWrite, hasSeatBasedSeer, hasLegacySeer, hasCodeReviewBeta]);
+  }, [canWrite, hasSeatBasedSeer, hasTokenBasedSeer, hasLegacySeer, hasCodeReviewBeta]);
 
   const {
     isPending,
@@ -39,7 +42,7 @@ function useReminderData() {
     data: data,
   } = useQuery(getSeerOnboardingCheckQueryOptions({organization, staleTime: 60_000}));
 
-  if (!canWrite || !hasSeatBasedSeer || isPending || isError) {
+  if (!canWrite || !(hasSeatBasedSeer || hasTokenBasedSeer) || isPending || isError) {
     return {canSeeReminder: false, analyticsParams, title: null, description: null};
   }
   const {hasSupportedScmIntegration, isAutofixEnabled} = data;
@@ -50,7 +53,7 @@ function useReminderData() {
       analyticsParams,
       title: t('Connect GitHub or GitLab'),
       description: t(
-        'Seer is enabled, but repositories are not connected. Connect your GitHub or GitLab account to enable Autofix and Code Review.'
+        'Seer is enabled, but repositories are not connected. Connect your GitHub or GitLab account to enable Autofix.'
       ),
     };
   }

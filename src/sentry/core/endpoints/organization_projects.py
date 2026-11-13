@@ -1,10 +1,10 @@
 import logging
 import random
 import string
+from collections.abc import Sequence
 from email.headerregistry import Address
 from typing import Any, TypedDict, TypeIs
 
-from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.db.models.query import QuerySet
@@ -46,7 +46,7 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.auth.principal import has_user, require_user
+from sentry.auth.principal import RequestPrincipal, has_user, is_owned_by_acting_user, require_user
 from sentry.constants import ObjectStatus
 from sentry.core.endpoints.team_projects import (
     AuditData,
@@ -130,6 +130,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (OrganizationProjectsPermission,)
     owner = ApiOwner.FOUNDATIONS
     logger = logging.getLogger("team-project.create")
@@ -247,7 +248,9 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
                     team_list = list(Team.objects.filter(organization=organization, slug__in=value))
                     queryset = queryset.exclude(teams__in=team_list)
                 elif key == "is_member":
-                    queryset = queryset.filter(teams__organizationmember__user_id=request.user.id)
+                    queryset = queryset.filter(
+                        is_owned_by_acting_user(request.user, "teams__organizationmember__user_id")
+                    )
                 else:
                     queryset = queryset.none()
 
@@ -276,7 +279,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
             if expand_context:
                 expand.add("options")
 
-            def serialize_on_result(result):
+            def serialize_on_result(result: Sequence[Project]) -> list[object]:
                 environment_id = get_environment_id(request, organization.id)
                 serializer = ProjectSummarySerializer(
                     environment_id=environment_id,
@@ -286,7 +289,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
                     collapse=collapse,
                     dataset=dataset,
                 )
-                return serialize(result, request.user, serializer)
+                return list(serialize(result, request.user, serializer))
 
             return self.paginate(
                 request=request,
@@ -296,7 +299,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
                 paginator_cls=OffsetPaginator,
             )
 
-    def should_add_creator_to_team(self, user: User | AnonymousUser) -> TypeIs[User]:
+    def should_add_creator_to_team(self, user: RequestPrincipal) -> TypeIs[User]:
         return has_user(user)
 
     @extend_schema(
@@ -337,7 +340,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
 
         if not serializer.is_valid():
             raise ValidationError(serializer.errors)
-        # The new project's default team is the creator's own, which needs a person.
+        # Service accounts can't create projects for now, and the default team is the creator's.
         require_user(request)
         if not self.should_add_creator_to_team(request.user):
             raise NotAuthenticated("User is not authenticated")
@@ -479,6 +482,8 @@ class OrganizationProjectsCountEndpoint(OrganizationEndpoint):
         queryset = Project.objects.filter(organization=organization)
 
         all_projects = queryset.count()
-        my_projects = queryset.filter(teams__organizationmember__user_id=request.user.id).count()
+        my_projects = queryset.filter(
+            is_owned_by_acting_user(request.user, "teams__organizationmember__user_id")
+        ).count()
 
         return Response({"allProjects": all_projects, "myProjects": my_projects})

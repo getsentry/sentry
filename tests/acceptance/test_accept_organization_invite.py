@@ -32,7 +32,9 @@ class AcceptOrganizationInviteTest(AcceptanceTestCase):
         )
 
     def open_invite(self) -> str:
-        invite_path = self.member.get_invite_link().split("/", 3)[-1]
+        invite_link = self.member.get_invite_link()
+        assert invite_link is not None
+        invite_path = invite_link.split("/", 3)[-1]
         self.browser.get(invite_path)
         self.browser.wait_until(xpath="//h1[normalize-space(.)='Accept Invitation']")
         return f"/{invite_path}"

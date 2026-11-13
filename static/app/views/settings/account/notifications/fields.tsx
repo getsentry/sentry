@@ -9,7 +9,8 @@ import type {Field} from 'sentry/components/forms/types';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {DataCategoryExact} from 'sentry/types/core';
-import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
+
+import {getPricingDocsLinkForEventType} from './utils';
 
 interface FineTuneField {
   description: string;

@@ -1,8 +1,12 @@
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+from rest_framework.response import Response
+
+from sentry.models.organization import Organization
 from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
 from sentry.seer.autofix.feature.models import FEATURE_ID
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.testutils.cases import APITestCase
@@ -53,7 +57,7 @@ class SeerAdminAutofixRetryTest(APITestCase):
         self.project = self.create_project(organization=self.organization)
         self.group = self.create_group(project=self.project)
 
-    def get_response(self, *args, **params):
+    def get_response(self, *args: object, **params: object) -> Response:
         with patch("sentry.api.permissions.is_active_staff", return_value=True):
             return super().get_response(*args, **params)
 
@@ -120,7 +124,7 @@ class SeerAdminAutofixRetryTest(APITestCase):
             ),
         }
 
-        def fetch(run_id, organization):
+        def fetch(run_id: int, organization: Organization) -> SeerRunState:
             if run_id == 7:
                 raise Exception("seer down")
             return states[run_id]
@@ -151,6 +155,21 @@ class SeerAdminAutofixRetryTest(APITestCase):
 
         assert response.data["results"] == [
             {"run_id": 1, "retried": False, "reason": "Failed to trigger the step"}
+        ]
+
+    def test_trigger_out_of_credits(self, mock_fetch: MagicMock, mock_trigger: MagicMock) -> None:
+        self.create_autofix_run(1)
+        mock_fetch.return_value = run_state(1, [block("root_cause")], group_id=self.group.id)
+        mock_trigger.side_effect = SeerOutOfCreditsException()
+
+        response = self.get_success_response(run_ids=[1])
+
+        assert response.data["results"] == [
+            {
+                "run_id": 1,
+                "retried": False,
+                "reason": "Organization does not have enough Seer credits",
+            }
         ]
 
     def test_invalid_payload(self, mock_fetch: MagicMock, mock_trigger: MagicMock) -> None:

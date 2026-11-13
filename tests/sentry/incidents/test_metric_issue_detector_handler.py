@@ -1,22 +1,47 @@
 from datetime import timedelta
+from types import UnionType
+from typing import Any, Literal, Union, get_args, get_origin, get_type_hints, is_typeddict
+from uuid import UUID
 
-from sentry.incidents.grouptype import (
-    MetricIssueDetectorHandler,
-    SessionsAggregate,
-    get_alert_type_from_aggregate_dataset,
-)
+from sentry.api.serializers import serialize
+from sentry.incidents.grouptype import MetricIssue, MetricIssueDetectorHandler
+from sentry.incidents.typings.metric_issue_evidence import MetricIssueOccurrenceResponse
 from sentry.incidents.utils.types import (
     DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
     ProcessedSubscriptionUpdate,
 )
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
-from sentry.testutils.cases import TestCase
+from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.workflow_engine.models import DataCondition, DataPacket, DetectorState
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.data_packet import process_data_packet
 from tests.sentry.incidents.utils.test_metric_issue_base import BaseMetricIssueTest
+
+
+def assert_matches_typed_dict(value: Any, hint: Any, path: str = "$") -> None:
+    """Assert `value` has exactly the keys its TypedDict `hint` declares, recursively."""
+    origin, args = get_origin(hint), get_args(hint)
+    if is_typeddict(hint):
+        assert isinstance(value, dict), path
+        hints = get_type_hints(hint)
+        missing = hint.__required_keys__ - value.keys()
+        extra = value.keys() - hints.keys()
+        assert not missing and not extra, f"{path}: missing {missing}, extra {extra}"
+        for key, item in value.items():
+            assert_matches_typed_dict(item, hints[key], f"{path}.{key}")
+    elif origin is list:
+        assert isinstance(value, list), path
+        for index, item in enumerate(value):
+            assert_matches_typed_dict(item, args[0], f"{path}[{index}]")
+    elif origin is Literal:
+        assert value in args, path
+    elif origin is Union or origin is UnionType:
+        typed_dicts = [arg for arg in args if is_typeddict(arg)]
+        if isinstance(value, dict) and typed_dicts:
+            assert_matches_typed_dict(value, typed_dicts[0], path)
 
 
 @freeze_time()
@@ -30,7 +55,7 @@ class TestEvaluateMetricDetector(BaseMetricIssueTest):
         value: int,
         detector_trigger: DataCondition,
         extra_trigger: DataCondition | None = None,
-    ):
+    ) -> dict[str, object]:
         self.query_subscription.refresh_from_db()
 
         conditions = [
@@ -87,7 +112,10 @@ class TestEvaluateMetricDetector(BaseMetricIssueTest):
         return evidence_data
 
     def verify_issue_occurrence(
-        self, occurrence: IssueOccurrence, evidence_data: dict, detector_trigger: DataCondition
+        self,
+        occurrence: IssueOccurrence,
+        evidence_data: dict[str, object],
+        detector_trigger: DataCondition,
     ) -> None:
         assert occurrence is not None
         assert occurrence.issue_title == self.detector.name
@@ -177,7 +205,7 @@ class TestConstructTitle(TestEvaluateMetricDetector):
         )
         assert (
             title
-            == f"Critical: Number of events in the last minute above {self.critical_detector_trigger.comparison}"
+            == f"Critical: count() of errors in the last minute above {self.critical_detector_trigger.comparison}"
         )
 
     def test_title_warning(self) -> None:
@@ -188,11 +216,11 @@ class TestConstructTitle(TestEvaluateMetricDetector):
         )
         assert (
             title
-            == f"Warning: Number of events in the last minute above {self.warning_detector_trigger.comparison}"
+            == f"Warning: count() of errors in the last minute above {self.warning_detector_trigger.comparison}"
         )
 
     def test_title_comparison_delta(self) -> None:
-        self.detector.config.update({"comparison_delta": 60 * 60})
+        self.detector.config.update({"detection_type": "percent", "comparison_delta": 60 * 60})
 
         title = self.handler.construct_title(
             snuba_query=self.snuba_query,
@@ -201,7 +229,7 @@ class TestConstructTitle(TestEvaluateMetricDetector):
         )
         assert (
             title
-            == "Critical: Number of events in the last minute greater than same time one hour ago"
+            == "Critical: count() of errors in the last minute greater than same time one hour ago"
         )
 
     def test_title_below_threshold(self) -> None:
@@ -215,7 +243,7 @@ class TestConstructTitle(TestEvaluateMetricDetector):
         )
         assert (
             title
-            == f"Warning: Number of events in the last minute below {self.warning_detector_trigger.comparison}"
+            == f"Warning: count() of errors in the last minute below {self.warning_detector_trigger.comparison}"
         )
 
     def test_title_different_aggregate(self) -> None:
@@ -227,9 +255,10 @@ class TestConstructTitle(TestEvaluateMetricDetector):
         )
         assert (
             title
-            == f"Critical: Number of users affected in the last minute above {self.critical_detector_trigger.comparison}"
+            == f"Critical: count_unique(user) of errors in the last minute above {self.critical_detector_trigger.comparison}"
         )
 
+        self.snuba_query.dataset = Dataset.Metrics.value
         self.snuba_query.aggregate = "percentage(sessions_crashed, sessions)"
         title = self.handler.construct_title(
             snuba_query=self.snuba_query,
@@ -238,10 +267,14 @@ class TestConstructTitle(TestEvaluateMetricDetector):
         )
         assert (
             title
-            == f"Critical: Crash free session rate in the last minute above {self.critical_detector_trigger.comparison}"
+            == f"Critical: crash_free_rate(session) of sessions in the last minute above {self.critical_detector_trigger.comparison}"
         )
 
     def test_title_equation_aggregate(self) -> None:
+        self.snuba_query.dataset = Dataset.EventsAnalyticsPlatform.value
+        self.snuba_query.snubaqueryeventtype_set.update(
+            type=SnubaQueryEventType.EventType.TRACE_ITEM_METRIC.value
+        )
         self.snuba_query.aggregate = (
             'equation|count_if(`agent_name:"Agent Run"`,value,metric_name,distribution,none) * 2'
         )
@@ -252,37 +285,55 @@ class TestConstructTitle(TestEvaluateMetricDetector):
         )
         assert (
             title
-            == f'Critical: count_if(`agent_name:"Agent Run"`,value,metric_name,distribution,none) * 2 in the last minute above {self.critical_detector_trigger.comparison}'
+            == f'Critical: count_if(`agent_name:"Agent Run"`,metric_name) * 2 of application metrics in the last minute above {self.critical_detector_trigger.comparison}'
         )
 
     def test_dynamic_alert_title(self) -> None:
         self.detector.config.update({"detection_type": "dynamic"})
-        self.snuba_query.aggregate = "count_unique(user)"
         title = self.handler.construct_title(
             snuba_query=self.snuba_query,
             detector_trigger=self.critical_detector_trigger,
             priority=self.critical_detector_trigger.condition_result,
         )
-        assert title == "Detected an anomaly in the query for users_experiencing_errors"
+        assert title == "Detected an anomaly in count() of errors"
 
+        self.snuba_query.dataset = Dataset.Transactions.value
         self.snuba_query.aggregate = "p95(transaction.duration)"
         title = self.handler.construct_title(
             snuba_query=self.snuba_query,
             detector_trigger=self.critical_detector_trigger,
             priority=self.critical_detector_trigger.condition_result,
         )
-        assert title == "Detected an anomaly in the query for custom_transactions"
+        assert title == "Detected an anomaly in p95(transaction.duration) of transactions"
 
-    def test_dynamic_alert_title_default(self) -> None:
+    def test_dynamic_alert_title_eap(self) -> None:
         self.detector.config.update({"detection_type": "dynamic"})
-        self.snuba_query.dataset = "asdf"
-        self.snuba_query.aggregate = "default_aggregate"
-        title = self.handler.construct_title(
-            snuba_query=self.snuba_query,
-            detector_trigger=self.critical_detector_trigger,
-            priority=self.critical_detector_trigger.condition_result,
-        )
-        assert title == "Detected an anomaly in the query for default_aggregate"
+        self.snuba_query.dataset = Dataset.EventsAnalyticsPlatform.value
+        for event_type, aggregate, expected in (
+            (
+                SnubaQueryEventType.EventType.TRACE_ITEM_LOG,
+                "count(message)",
+                "count(message) of logs",
+            ),
+            (
+                SnubaQueryEventType.EventType.TRACE_ITEM_SPAN,
+                "p95(span.duration)",
+                "p95(span.duration) of spans",
+            ),
+            (
+                SnubaQueryEventType.EventType.TRACE_ITEM_METRIC,
+                "per_second(value,metric_name,counter,-)",
+                "per_second(metric_name) of application metrics",
+            ),
+        ):
+            self.snuba_query.snubaqueryeventtype_set.update(type=event_type.value)
+            self.snuba_query.aggregate = aggregate
+            title = self.handler.construct_title(
+                snuba_query=self.snuba_query,
+                detector_trigger=self.critical_detector_trigger,
+                priority=self.critical_detector_trigger.condition_result,
+            )
+            assert title == f"Detected an anomaly in {expected}"
 
     def test_dynamic_alert_title_equation(self) -> None:
         self.detector.config.update({"detection_type": "dynamic"})
@@ -290,106 +341,45 @@ class TestConstructTitle(TestEvaluateMetricDetector):
             'equation|count_if(`agent_name:"Agent Run"`,value,metric_name,distribution,none) * 2'
         )
         self.snuba_query.dataset = Dataset.EventsAnalyticsPlatform.value
+        self.snuba_query.snubaqueryeventtype_set.update(
+            type=SnubaQueryEventType.EventType.TRACE_ITEM_METRIC.value
+        )
         title = self.handler.construct_title(
             snuba_query=self.snuba_query,
             detector_trigger=self.critical_detector_trigger,
             priority=self.critical_detector_trigger.condition_result,
         )
-        assert title == "Detected an anomaly in the query for eap_metrics"
-
-
-class TestGetAnomalyDetectionIssueTitle(TestCase):
-    def test_extract_lcp_alert(self) -> None:
         assert (
-            get_alert_type_from_aggregate_dataset("p95(measurements.lcp)", Dataset.Transactions)
-            == "lcp"
-        )
-        assert (
-            get_alert_type_from_aggregate_dataset(
-                "percentile(measurements.lcp,0.7)", Dataset.Transactions
-            )
-            == "lcp"
-        )
-        assert (
-            get_alert_type_from_aggregate_dataset("avg(measurements.lcp)", Dataset.Transactions)
-            == "lcp"
+            title
+            == 'Detected an anomaly in count_if(`agent_name:"Agent Run"`,metric_name) * 2 of application metrics'
         )
 
-    def test_extract_duration_alert(self) -> None:
-        assert (
-            get_alert_type_from_aggregate_dataset("p95(transaction.duration)", Dataset.Transactions)
-            == "trans_duration"
-        )
-        assert (
-            get_alert_type_from_aggregate_dataset(
-                "percentile(transaction.duration,0.3)", Dataset.Transactions
-            )
-            == "trans_duration"
-        )
-        assert (
-            get_alert_type_from_aggregate_dataset("avg(transaction.duration)", Dataset.Transactions)
-            == "trans_duration"
+
+@freeze_time()
+class TestMetricIssueOccurrenceResponse(BaseMetricIssueTest):
+    def test_serialized_occurrence_matches_response_type(self) -> None:
+        assert get_args(get_type_hints(MetricIssueOccurrenceResponse)["type"]) == (
+            MetricIssue.type_id,
         )
 
-    def test_extract_throughput_alert(self) -> None:
-        assert (
-            get_alert_type_from_aggregate_dataset("count()", Dataset.Transactions) == "throughput"
-        )
+        # The factory's default config still has `threshold_period`, which the schema dropped.
+        self.detector.update(config={"detection_type": "static"})
+        data_packet = self.create_subscription_packet(self.critical_detector_trigger.comparison + 1)
+        occurrence = self.process_packet_and_return_result(data_packet)
+        assert isinstance(occurrence, IssueOccurrence)
 
-    def test_extract_user_error_alert(self) -> None:
-        assert (
-            get_alert_type_from_aggregate_dataset("count_unique(user)", Dataset.Events)
-            == "users_experiencing_errors"
-        )
+        # The occurrence consumer stores the event under the hex form of the detector's UUID.
+        event = Event(
+            project_id=self.project.id,
+            event_id=UUID(occurrence.event_id).hex,
+            data={"timestamp": occurrence.detection_time.timestamp()},
+        ).for_group(self.create_group(project=self.project, type=MetricIssue.type_id))
+        event.occurrence = occurrence
+        serialized = serialize(event)["occurrence"]
 
-    def test_extract_error_count_alert(self) -> None:
-        assert get_alert_type_from_aggregate_dataset("count()", Dataset.Events) == "num_errors"
-
-    def test_extract_crash_free_sessions_alert(self) -> None:
-        assert (
-            get_alert_type_from_aggregate_dataset(
-                SessionsAggregate.CRASH_FREE_SESSIONS, Dataset.Metrics
-            )
-            == "crash_free_sessions"
-        )
-
-    def test_extract_crash_free_users_alert(self) -> None:
-        assert (
-            get_alert_type_from_aggregate_dataset(
-                SessionsAggregate.CRASH_FREE_USERS, Dataset.Metrics
-            )
-            == "crash_free_users"
-        )
-
-    def test_extract_eap_metrics_alert(self) -> None:
-        assert (
-            get_alert_type_from_aggregate_dataset(
-                "count(span.duration)", Dataset.EventsAnalyticsPlatform
-            )
-            == "eap_metrics"
-        )
-
-    def test_extract_eap_metrics_alert_trace_metrics(self) -> None:
-        assert (
-            get_alert_type_from_aggregate_dataset(
-                "per_second(value,metric_name_one,counter,-)", Dataset.EventsAnalyticsPlatform
-            )
-            == "eap_metrics"
-        )
-        assert (
-            get_alert_type_from_aggregate_dataset(
-                "count(metric.name,metric_name_two,distribution,-)",
-                Dataset.EventsAnalyticsPlatform,
-            )
-            == "eap_metrics"
-        )
-        assert (
-            get_alert_type_from_aggregate_dataset(
-                'equation|count_if(`agent_name:"Agent Run"`,value,metric_name,distribution,none) * 2',
-                Dataset.EventsAnalyticsPlatform,
-            )
-            == "eap_metrics"
-        )
+        assert_matches_typed_dict(serialized, MetricIssueOccurrenceResponse)
+        snuba_query = serialized["evidenceData"]["dataSources"][0]["queryObj"]["snubaQuery"]
+        assert snuba_query["timeWindow"] == self.snuba_query.time_window
 
 
 class TestMetricIssueDetectorActivationId(BaseMetricIssueTest):
