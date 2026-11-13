@@ -116,6 +116,8 @@ New scopes in `SENTRY_SCOPES` (`src/sentry/conf/server.py`) use `<resource>:<act
 - `<action>` is `read`, `write`, `admin`, or `create`, such as `project_key:create`. Use another verb only when those don't fit, and add it to `SCOPE_ACTIONS` in `tests/sentry/conf/test_scopes.py`.
 - `test_scope_names_follow_resource_action` enforces this. Older scopes that break it are listed in `LEGACY_SCOPE_NAMES` there; do not add to that list.
 
+**`org:ci` on release/artifact endpoints**: `org:ci` (CI org-auth-tokens, e.g. sentry-cli) is for creating releases and _uploading_ artifacts, not for _reading_ them. For a release/debug-file/artifact-bundle endpoint whose GET lists or reads uploaded artifacts, use `ProjectReleaseArtifactReadPermission` / `OrganizationReleaseArtifactReadPermission` (GET omits `org:ci`), not `ProjectReleasePermission` / `OrganizationReleasePermission`. Only use the `org:ci`-on-GET variants when CI genuinely needs to read (upload dedup/assemble status, release management). `test_org_ci_get_scope` freezes the `org:ci`-GET endpoint surface and fails on any new one.
+
 ### Logging, Tracing, Metrics, Options
 
 Logging (`LOG005`, `LOG011`), spans, metric tag cardinality, and `options.get()` → use the **`backend-conventions`** skill.
