@@ -1,4 +1,4 @@
-import {Fragment, useState, type ReactNode} from 'react';
+import {Fragment, useEffect, useState, type ReactNode} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
@@ -259,6 +259,7 @@ function AutoTopUpForm({
               invoiceGuid={pendingPayment.invoiceGuid}
               detail={pendingPayment.detail}
               onCancel={() => returnToSettings()}
+              onFailure={returnToSettings}
               onSuccess={sendSettingsAgain}
             />
           )}
@@ -491,22 +492,33 @@ function PayPendingInvoice({
   invoiceGuid,
   detail,
   onCancel,
+  onFailure,
   onSuccess,
 }: {
   invoiceGuid: string;
   onCancel: () => void;
+  onFailure: (message: string) => void;
   onSuccess: () => void;
   organization: Organization;
   detail?: string;
 }) {
   // The payment form needs the amount up front. This shares its query, so the
   // intent is created once.
-  const {intentData, isLoading} = usePaymentIntentData({
+  const {intentData, isLoading, isError, error} = usePaymentIntentData({
     organizationSlug: organization.slug,
     invoiceId: invoiceGuid,
   });
 
-  if (isLoading) {
+  useEffect(() => {
+    if (isError) {
+      onFailure(error ?? t('We could not start the payment. Please try again.'));
+    }
+  }, [isError, error, onFailure]);
+
+  // The payment form reads the same query. Mounting it on a failed query
+  // refetches it, which puts this component back to loading and unmounts the
+  // form, so it would request the intent again in a loop.
+  if (isLoading || isError) {
     return <LoadingIndicator />;
   }
 
