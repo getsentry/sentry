@@ -216,7 +216,15 @@ class ProjectArtifactBundle(Model):
         app_label = "sentry"
         db_table = "sentry_projectartifactbundle"
 
-        indexes = (models.Index(fields=("project_id", "artifact_bundle")),)
+        indexes = (
+            models.Index(fields=("project_id", "artifact_bundle")),
+            # Holds only the flagged links, so a project without any is one lookup that finds nothing.
+            models.Index(
+                fields=("project_id",),
+                condition=models.Q(has_debug_ids=True),
+                name="sentry_pab_project_debug_idx",
+            ),
+        )
 
 
 class ArtifactBundleArchive:
