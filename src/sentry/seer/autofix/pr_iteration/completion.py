@@ -310,31 +310,31 @@ def continue_pr_iteration(
         )
         return isinstance(outcome, Retrying)
 
-    errored_codes = {
-        state.repo_pr_states[repo].pr_creation_error_code
-        for repo in iteration_terminal_errored_repos(state)
-    }
-    if outcome == PrIterationOutcome.PR_CREATION_ERRORED and "out_of_credits" in errored_codes:
-        # Mark the run stopped on credits, with the push for the next drain to redo.
-        mark_out_of_credits(
-            run_id=run_id,
-            organization_id=organization.id,
-            # A single run's agent pushes on its next turn, so it has no push to redo.
-            stranded_action=None if is_single_run(state) else StrandedAction.PUSH,
-        )
-    elif (
-        state.status == "completed"
-        and not is_single_run(state)
-        and outcome == PrIterationOutcome.PR_CREATION_ERRORED
-        and "branch_moved" in errored_codes
-    ):
-        # A terminal refusal to overwrite newer PR commits is a failed iteration,
-        # not a successful hand-back to the feedback queue.
-        pause_pr_iteration(
-            run_id=run_id,
-            organization_id=organization.id,
-            reason=PauseReason.RUN_ERRORED,
-        )
+    if outcome == PrIterationOutcome.PR_CREATION_ERRORED:
+        errored_codes = {
+            state.repo_pr_states[repo].pr_creation_error_code
+            for repo in iteration_terminal_errored_repos(state)
+        }
+        if "out_of_credits" in errored_codes:
+            # Mark the run stopped on credits, with the push for the next drain to redo.
+            mark_out_of_credits(
+                run_id=run_id,
+                organization_id=organization.id,
+                # A single run's agent pushes on its next turn, so it has no push to redo.
+                stranded_action=None if is_single_run(state) else StrandedAction.PUSH,
+            )
+        elif (
+            state.status == "completed"
+            and not is_single_run(state)
+            and "branch_moved" in errored_codes
+        ):
+            # A terminal refusal to overwrite newer PR commits is a failed iteration,
+            # not a successful hand-back to the feedback queue.
+            pause_pr_iteration(
+                run_id=run_id,
+                organization_id=organization.id,
+                reason=PauseReason.RUN_ERRORED,
+            )
 
     if outcome == PrIterationOutcome.ALREADY_PUSHED:
         metrics.incr(
