@@ -209,7 +209,9 @@ S034_stale_msg = (
     "S034 stale savepoint-loop allowlist entry for {} in {}; remove it from S034_allowlist"
 )
 _S034_TRANSACTION_NAMES = frozenset(("atomic", "atomic_transaction"))
-_S034_GET_OR_CREATE_NAMES = frozenset(("get_or_create", "update_or_create"))
+_S034_SAVEPOINT_QUERYSET_METHODS = frozenset(
+    ("get_or_create", "update_or_create", "aget_or_create", "aupdate_or_create")
+)
 _S034_MODULE_SCOPE = "<module>"
 
 # Existing callers are pinned to their exact function and occurrence count. This is a
@@ -1714,7 +1716,39 @@ def get_api_violations(
     return violations
 
 
-def _callee_name(node: ast.expr) -> str | None:
+_S034LoopNode = (
+    ast.For
+    | ast.AsyncFor
+    | ast.While
+    | ast.ListComp
+    | ast.SetComp
+    | ast.GeneratorExp
+    | ast.DictComp
+)
+
+
+class _S034Opener(NamedTuple):
+    line: int
+    col: int
+    kind: str
+
+
+class _S034Finding(NamedTuple):
+    line: int
+    col: int
+    qualname: str
+    opener_kind: str
+    opener_line: int
+
+
+@dataclass
+class _S034Loop:
+    node: _S034LoopNode
+    inside_outer_transaction: bool
+    first_opener: _S034Opener | None = None
+
+
+def _s034_callee_name(node: ast.expr) -> str | None:
     if isinstance(node, ast.Name):
         return node.id
     if isinstance(node, ast.Attribute):
@@ -1727,7 +1761,7 @@ def _s034_atomic_calls(node: ast.AST) -> list[ast.Call]:
     for child in ast.walk(node):
         if not isinstance(child, ast.Call):
             continue
-        name = _callee_name(child.func)
+        name = _s034_callee_name(child.func)
         if name in _S034_TRANSACTION_NAMES:
             calls.append(child)
     return calls
@@ -1747,26 +1781,8 @@ def _s034_is_transaction_decorator(decorator: ast.expr) -> bool:
     target = decorator
     if isinstance(decorator, ast.Call):
         target = decorator.func
-    name = _callee_name(target)
+    name = _s034_callee_name(target)
     return name in _S034_TRANSACTION_NAMES
-
-
-_S034LoopNode = (
-    ast.For
-    | ast.AsyncFor
-    | ast.While
-    | ast.ListComp
-    | ast.SetComp
-    | ast.GeneratorExp
-    | ast.DictComp
-)
-
-
-@dataclass
-class _S034Loop:
-    node: _S034LoopNode
-    in_transaction: bool
-    opener: tuple[int, int, str] | None = None
 
 
 class _SavepointLoopVisitor(ast.NodeVisitor):
@@ -1774,7 +1790,7 @@ class _SavepointLoopVisitor(ast.NodeVisitor):
         self.scope: list[str] = []
         self.transaction_depth = 0
         self.loops: list[_S034Loop] = []
-        self.findings: list[tuple[int, int, str, str, int]] = []
+        self.findings: list[_S034Finding] = []
 
     def _visit_all(self, nodes: list[Any]) -> None:
         for node in nodes:
@@ -1792,28 +1808,36 @@ class _SavepointLoopVisitor(ast.NodeVisitor):
         self.loops = saved_loops
 
     def _push_loop(self, node: _S034LoopNode) -> None:
-        in_transaction = self.transaction_depth > 0
-        self.loops.append(_S034Loop(node, in_transaction))
+        inside_outer_transaction = self.transaction_depth > 0
+        self.loops.append(_S034Loop(node, inside_outer_transaction))
 
     def _pop_loop(self) -> None:
         loop = self.loops.pop()
-        if loop.opener is None or not loop.in_transaction:
+        opener = loop.first_opener
+        if opener is None or not loop.inside_outer_transaction:
             return
-        opener_line, _, opener_kind = loop.opener
         qualname = ".".join(self.scope)
         if not qualname:
             qualname = _S034_MODULE_SCOPE
-        self.findings.append(
-            (loop.node.lineno, loop.node.col_offset, qualname, opener_kind, opener_line)
+        finding = _S034Finding(
+            loop.node.lineno, loop.node.col_offset, qualname, opener.kind, opener.line
         )
+        self.findings.append(finding)
 
     def _record_opener(self, node: ast.stmt | ast.expr, kind: str) -> None:
         if not self.loops:
             return
+        # Only the innermost loop is charged: it is the one opening a savepoint per item.
         loop = self.loops[-1]
-        candidate = (node.lineno, node.col_offset, kind)
-        if loop.opener is None or candidate[:2] < loop.opener[:2]:
-            loop.opener = candidate
+        candidate = _S034Opener(node.lineno, node.col_offset, kind)
+        current = loop.first_opener
+        if current is None:
+            loop.first_opener = candidate
+            return
+        candidate_position = (candidate.line, candidate.col)
+        current_position = (current.line, current.col)
+        if candidate_position < current_position:
+            loop.first_opener = candidate
 
     def _visit_function(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
         depth = 0
@@ -1829,9 +1853,12 @@ class _SavepointLoopVisitor(ast.NodeVisitor):
         self._visit_function(node)
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
-        self._visit_scope(node.name, node.body, 0)
+        self.scope.append(node.name)
+        self._visit_all(node.body)
+        self.scope.pop()
 
     def visit_Lambda(self, node: ast.Lambda) -> None:
+        # A lambda body runs when called, not where it is defined, like a nested def.
         return
 
     def _visit_for(self, node: ast.For | ast.AsyncFor) -> None:
@@ -1909,7 +1936,7 @@ class _SavepointLoopVisitor(ast.NodeVisitor):
 
     def visit_Call(self, node: ast.Call) -> None:
         func = node.func
-        if isinstance(func, ast.Attribute) and func.attr in _S034_GET_OR_CREATE_NAMES:
+        if isinstance(func, ast.Attribute) and func.attr in _S034_SAVEPOINT_QUERYSET_METHODS:
             self._record_opener(node, func.attr)
         self.generic_visit(node)
 
@@ -1982,10 +2009,13 @@ class SentryCheck:
 
         allowed = S034_allowlist.get(rel, {})
         seen: Counter[str] = Counter()
-        for line, col, qualname, opener, opener_line in sorted(loop_visitor.findings):
-            seen[qualname] += 1
-            if seen[qualname] > allowed.get(qualname, 0):
-                yield (line, col, S034_msg.format(opener, opener_line), type(self))
+        findings = sorted(loop_visitor.findings)
+        for finding in findings:
+            seen[finding.qualname] += 1
+            allowed_count = allowed.get(finding.qualname, 0)
+            if seen[finding.qualname] > allowed_count:
+                message = S034_msg.format(finding.opener_kind, finding.opener_line)
+                yield (finding.line, finding.col, message, type(self))
 
         for qualname, expected_count in allowed.items():
             if seen[qualname] < expected_count:

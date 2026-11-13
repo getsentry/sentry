@@ -2494,7 +2494,7 @@ def with_block(items):
 def decorated(items):
     while items:
         with atomic(using="default"):
-            items.pop()
+            Model.objects.get_or_create(name=items.pop())
 
 def wrapped(items):
     with outbox_context(transaction.atomic(using="default")):
@@ -2505,12 +2505,24 @@ def nested_loops(groups):
         for group in groups:
             for item in group:
                 Model.objects.get_or_create(name=item)
+
+async def async_shapes(items):
+    async with transaction.atomic(using="default"):
+        async for item in items:
+            await Model.objects.aget_or_create(name=item)
+
+with atomic(using="default"):
+    class Seeded:
+        for name in NAMES:
+            Model.objects.get_or_create(name=name)
 """
     assert _run(src, filename="src/sentry/example.py") == [
         f"t.py:3:8: {S034_msg.format('get_or_create', 4)}",
         f"t.py:8:4: {S034_msg.format('atomic block', 9)}",
         f"t.py:14:15: {S034_msg.format('update_or_create', 14)}",
         f"t.py:19:12: {S034_msg.format('get_or_create', 20)}",
+        f"t.py:24:8: {S034_msg.format('aget_or_create', 25)}",
+        f"t.py:29:8: {S034_msg.format('get_or_create', 30)}",
     ]
 
 
