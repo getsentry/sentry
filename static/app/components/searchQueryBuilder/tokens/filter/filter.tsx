@@ -1,4 +1,4 @@
-import {useLayoutEffect, useRef, useState} from 'react';
+import {useCallback, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useFocusWithin} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
@@ -46,18 +46,26 @@ interface SearchQueryTokenProps {
   token: TokenResult<Token.FILTER>;
 }
 
+type FilterValueEditSource = 'click' | 'focusOverride' | false;
+
 interface FilterValueProps extends SearchQueryTokenProps {
+  editSource: FilterValueEditSource;
   filterRef: React.RefObject<HTMLDivElement | null>;
-  onActiveChange: (active: boolean) => void;
+  onEditSourceChange: (source: FilterValueEditSource) => void;
 }
 
-function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValueProps) {
+function FilterValue({
+  token,
+  state,
+  item,
+  filterRef,
+  editSource,
+  onEditSourceChange,
+}: FilterValueProps) {
   const ref = useRef<HTMLDivElement>(null);
   const {dispatch, focusOverride} = useSearchQueryBuilderState();
   const {disabled} = useSearchQueryBuilderConfig();
   const {menuPresentation, panelRef, portalTarget} = useSearchQueryBuilderLayout();
-
-  const [editSource, setEditSource] = useState<'click' | 'focusOverride' | false>(false);
 
   useLayoutEffect(() => {
     if (
@@ -65,12 +73,10 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
       focusOverride?.itemKey === item.key &&
       focusOverride.part === 'value'
     ) {
-      // oxlint-disable-next-line react/set-state-in-effect
-      setEditSource('focusOverride');
-      onActiveChange(true);
+      onEditSourceChange('focusOverride');
       dispatch({type: 'RESET_FOCUS_OVERRIDE'});
     }
-  }, [dispatch, editSource, focusOverride, item.key, onActiveChange]);
+  }, [dispatch, editSource, focusOverride, item.key, onEditSourceChange]);
 
   const {focusWithinProps} = useFocusWithin({
     onBlurWithin: event => {
@@ -81,7 +87,7 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
       ) {
         return;
       }
-      setEditSource(false);
+      onEditSourceChange(false);
     },
   });
 
@@ -98,12 +104,10 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
           onDelete={() => {
             filterRef.current?.focus();
             state.selectionManager.setFocusedKey(item.key);
-            setEditSource(false);
-            onActiveChange(false);
+            onEditSourceChange(false);
           }}
           onCommit={() => {
-            setEditSource(false);
-            onActiveChange(false);
+            onEditSourceChange(false);
             dispatch({type: 'COMMIT_QUERY'});
             // Committing on blur must not move focus back into a dismissed panel.
             if (
@@ -125,8 +129,7 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
     <ValueButton
       aria-label={t('Edit value for filter: %s', getKeyName(token.key))}
       onClick={() => {
-        setEditSource('click');
-        onActiveChange(true);
+        onEditSourceChange('click');
       }}
       disabled={disabled}
       showAllValues={showAllFilterValues}
@@ -138,17 +141,24 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
   );
 }
 
-function FilterDelete({token, state, item}: SearchQueryTokenProps) {
-  const {dispatch} = useSearchQueryBuilderState();
+interface FilterDeleteProps extends SearchQueryTokenProps {
+  isEditingValue: boolean;
+  onDelete: () => void;
+}
+
+function FilterDelete({token, state, item, isEditingValue, onDelete}: FilterDeleteProps) {
   const {disabled} = useSearchQueryBuilderConfig();
   const filterButtonProps = useFilterButtonProps({state, item});
 
   return (
     <DeleteButton
       aria-label={t('Remove filter: %s', getKeyName(token.key))}
-      onClick={() => {
-        dispatch({type: 'DELETE_TOKEN', token});
+      onMouseDown={event => {
+        if (isEditingValue) {
+          event.preventDefault();
+        }
       }}
+      onClick={onDelete}
       disabled={disabled}
       {...filterButtonProps}
     >
@@ -161,6 +171,12 @@ function FilterDelete({token, state, item}: SearchQueryTokenProps) {
 export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  const [valueEditSource, setValueEditSource] = useState<FilterValueEditSource>(false);
+
+  const handleValueEditSourceChange = useCallback((source: FilterValueEditSource) => {
+    setValueEditSource(source);
+    setFilterMenuOpen(source !== false);
+  }, []);
 
   const isFocused = item.key === state.selectionManager.focusedKey;
 
@@ -170,6 +186,11 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
   const {showAllFilterValues} = useSearchQueryBuilderLayout();
   const {rowProps, gridCellProps} = useQueryBuilderGridItem(item, state, ref);
 
+  const deleteFilter = () => {
+    handleValueEditSourceChange(false);
+    dispatch({type: 'DELETE_TOKEN', token});
+  };
+
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Backspace' || e.key === 'Delete') {
       e.preventDefault();
@@ -177,7 +198,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
 
       // Only delete if full filter token is focused, otherwise focus it
       if (ref.current === document.activeElement) {
-        dispatch({type: 'DELETE_TOKEN', token});
+        deleteFilter();
       } else {
         ref.current?.focus();
       }
@@ -259,11 +280,18 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
             state={state}
             item={item}
             filterRef={ref}
-            onActiveChange={setFilterMenuOpen}
+            editSource={valueEditSource}
+            onEditSourceChange={handleValueEditSourceChange}
           />
         </FilterValueGridCell>
         <BaseGridCell {...gridCellProps}>
-          <FilterDelete token={token} state={state} item={item} />
+          <FilterDelete
+            token={token}
+            state={state}
+            item={item}
+            isEditingValue={valueEditSource !== false}
+            onDelete={deleteFilter}
+          />
         </BaseGridCell>
       </GridInvalidTokenTooltip>
     </FilterWrapper>
