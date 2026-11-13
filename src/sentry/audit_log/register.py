@@ -792,3 +792,11 @@ default_manager.add(
         template="removed service account {name}",
     )
 )
+default_manager.add(
+    AuditLogEvent(
+        event_id=226,
+        name="SERVICE_ACCOUNT_TOKEN_ADD",
+        api_name="service-account-token.create",
+        template="added token {name} to service account {service_account_name}",
+    )
+)
