@@ -22,13 +22,17 @@ class ResolvedProducerSource:
 
 @dataclass(frozen=True)
 class ProducerSourceType:
-    """A kind of thing a producer writes notebooks about, such as an issue."""
+    """A kind of thing a producer writes notebooks about, such as an issue.
+
+    The create endpoint checks that the writer can reach the projects `resolve` returns.
+    """
 
     name: str
     # Who writes these notebooks, such as "autofix".
     producer: str
     # Validates the `source` object a producer sends, without its `type` field.
     validator: type[serializers.Serializer[Any]]
+    # Raise NotebookSourceNotFound for a missing source, and look up only within the organization.
     resolve: Callable[[Organization, dict[str, Any]], ResolvedProducerSource]
 
     def source_key(self, resolved: ResolvedProducerSource) -> str:
