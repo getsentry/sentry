@@ -1373,29 +1373,6 @@ def _post_conclusion(
     return True
 
 
-def _get_investigation_thread(
-    *, investigation_id: int, integration_id: int, channel_id: str, thread_ts: str
-) -> NotificationThread:
-    """Returns the investigation's thread for a Slack thread, creating it if needed."""
-    return ThreadingService.get_or_create_thread(
-        threading_config=ThreadingConfig(
-            key_type=NotificationSource.SEER_INVESTIGATION_CONCLUSION,
-            key_data={
-                "investigation_id": investigation_id,
-                "integration_id": integration_id,
-                "thread_ts": thread_ts,
-            },
-            provider_key=NotificationProviderKey.SLACK,
-            target_id=channel_id,
-            thread_identifier=thread_ts,
-            provider_data=None,
-            object_type=NotificationThreadObjectType.INVESTIGATION,
-            object_id=investigation_id,
-            integration_id=integration_id,
-        )
-    )
-
-
 def _record_status_sent(*, data: SeerInvestigationStatus, links: set[NotificationLink]) -> None:
     record_sent(
         NotificationTrackingContext(
