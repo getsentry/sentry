@@ -50,12 +50,18 @@ export interface AgentRunStepBreakdown {
   traceIds: string[];
 }
 
-function getStep(span: SpanRow): string | undefined {
-  const toolName = span[SpanFields.GEN_AI_TOOL_NAME];
+/**
+ * The step a span counts as: the tool name for tool calls, otherwise the span op of
+ * AI spans.
+ */
+export function getStepKey(
+  toolName: string | undefined,
+  op: string | undefined
+): string | undefined {
   if (toolName) {
     return toolName;
   }
-  return span['span.op']?.startsWith('gen_ai.') ? span['span.op'] : undefined;
+  return op?.startsWith('gen_ai.') ? op : undefined;
 }
 
 export function getAgentRunStepBreakdown(
@@ -68,7 +74,9 @@ export function getAgentRunStepBreakdown(
 
   for (const error of errors) {
     const span = spansById.get(error['trace.span']);
-    const step = span ? getStep(span) : undefined;
+    const step = span
+      ? getStepKey(span[SpanFields.GEN_AI_TOOL_NAME], span['span.op'])
+      : undefined;
     if (!span || !step) {
       continue;
     }
