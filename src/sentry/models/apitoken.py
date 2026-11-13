@@ -456,7 +456,8 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
                         # Remove the ApiGrant from the database to prevent reuse of the same
                         # authorization code (RFC 6749 §10.5: single-use requirement)
-                        grant.delete()
+                        with unguarded_write(using=router.db_for_write(ApiGrant)):
+                            grant.delete()
                 except (OutboxDatabaseError, OutboxFlushError):
                     # Raised by the post-commit flush; the token's outbox will replicate it later.
                     if api_token is None:
