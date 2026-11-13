@@ -2,7 +2,7 @@ import {EventFixture} from 'sentry-fixture/event';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EventOrGroupType} from 'sentry/types/event';
@@ -24,10 +24,15 @@ const event = EventFixture({
   groupID: '1',
   projectID: '2',
   type: EventOrGroupType.ERROR,
+  // Raised during the tool span, which runs from 2s to 3s.
+  dateCreated: new Date(2_500).toISOString(),
   contexts: {trace: {trace_id: traceId}},
 });
 
-function makeTrace() {
+function makeTrace({
+  agentStatus = 'ok',
+  stepsAfterError = 0,
+}: {agentStatus?: string; stepsAfterError?: number} = {}) {
   return [
     makeEAPSpan({
       event_id: 'agent-span',
@@ -39,6 +44,7 @@ function makeTrace() {
       additional_attributes: {
         'gen_ai.operation.type': 'agent',
         'gen_ai.agent.name': 'support-agent',
+        'span.status': agentStatus,
       },
       children: [
         makeEAPSpan({
@@ -65,6 +71,16 @@ function makeTrace() {
           },
           errors: [makeEAPError({event_id: errorEventId})],
         }),
+        ...Array.from({length: stepsAfterError}, (_, index) =>
+          makeEAPSpan({
+            event_id: `later-span-${index}`,
+            op: 'gen_ai.chat',
+            description: 'chat claude-sonnet-4',
+            start_timestamp: 3 + index * 0.1,
+            end_timestamp: 3.05 + index * 0.1,
+            additional_attributes: {'gen_ai.operation.type': 'ai_client'},
+          })
+        ),
       ],
     }),
   ];
@@ -78,7 +94,7 @@ function mockRecentEvents(spans: Array<{id: string; 'gen_ai.tool.name'?: string}
       data: spans.map(span => ({trace: traceId, 'trace.span': span.id})),
     },
   });
-  MockApiClient.addMockResponse({
+  return MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/events/`,
     match: [
       MockApiClient.matchQuery({
@@ -154,7 +170,58 @@ describe('AgentRunHighlights', () => {
     expect(screen.getByText('· step 3 of 3')).toBeInTheDocument();
     expect(screen.getByText('claude-sonnet-4')).toBeInTheDocument();
     expect(screen.getByText('Tool input')).toBeInTheDocument();
+    expect(screen.getByText('The run ended at this step')).toBeInTheDocument();
     expect(screen.queryByText('Across events')).not.toBeInTheDocument();
+  });
+
+  it('says when the agent continued after the error', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace/${traceId}/`,
+      body: makeTrace({stepsAfterError: 2}),
+    });
+    mockRecentEvents([]);
+    render(<AgentRunHighlights event={event} />, {organization});
+
+    expect(await screen.findByText('After the error')).toBeInTheDocument();
+    expect(screen.getByText('The agent continued for 2 more steps')).toBeInTheDocument();
+  });
+
+  it('says when the run failed after the error', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace/${traceId}/`,
+      body: makeTrace({agentStatus: 'internal_error', stepsAfterError: 1}),
+    });
+    mockRecentEvents([]);
+    render(<AgentRunHighlights event={event} />, {organization});
+
+    expect(
+      await screen.findByText('The agent took 1 more step, then the run failed')
+    ).toBeInTheDocument();
+  });
+
+  it('hides Across events when every recent event failed in this step', async () => {
+    const spansRequest = mockRecentEvents([
+      {id: 's1', 'gen_ai.tool.name': 'search_docs'},
+      {id: 's2', 'gen_ai.tool.name': 'search_docs'},
+      {id: 's3', 'gen_ai.tool.name': 'search_docs'},
+    ]);
+    render(<AgentRunHighlights event={event} />, {organization});
+
+    expect(await screen.findByText('Agent run')).toBeInTheDocument();
+    await waitFor(() => expect(spansRequest).toHaveBeenCalled());
+    expect(screen.queryByText('Across events')).not.toBeInTheDocument();
+  });
+
+  it('shows Across events when recent events failed in another step', async () => {
+    mockRecentEvents([
+      {id: 's1', 'gen_ai.tool.name': 'fetch_page'},
+      {id: 's2', 'gen_ai.tool.name': 'fetch_page'},
+      {id: 's3', 'gen_ai.tool.name': 'fetch_page'},
+    ]);
+    render(<AgentRunHighlights event={event} />, {organization});
+
+    expect(await screen.findByText('Across events')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'fetch_page'})).toBeInTheDocument();
   });
 
   it('calls out the step most recent events failed in', async () => {

@@ -6,6 +6,7 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {eventHasSyntheticTrace} from 'sentry/components/events/interfaces/performance/utils';
+import {getEventTimestampInSeconds} from 'sentry/components/events/interfaces/utils';
 import {
   KeyValueColumns,
   KeyValueTableDataRow,
@@ -30,6 +31,7 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 import {useAgentActivityLink} from './eventAgentRun';
 import {
+  getStepKey,
   STATS_PERIOD,
   useAgentRunStepBreakdown,
   type AgentRunStepBreakdown,
@@ -66,6 +68,47 @@ function getStepName(node: AITraceSpanNode) {
     node.op ||
     t('Unknown step')
   );
+}
+
+function isRunFailed(runNode: AITraceSpanNode) {
+  // Only the span's own status: the run's errors include the one on this page.
+  const status =
+    getStringAttr(runNode, SpanFields.SPAN_STATUS) ?? getStringAttr(runNode, 'status');
+  return !!status?.includes('error');
+}
+
+/**
+ * Whether the agent kept going after the error, which tells an error the agent
+ * recovered from apart from one that ended the run.
+ */
+function getRunOutcome(
+  event: Event,
+  runNode: AITraceSpanNode,
+  nodes: AITraceSpanNode[]
+): string | null {
+  const errorTimestamp = getEventTimestampInSeconds(event);
+  if (errorTimestamp === undefined) {
+    return null;
+  }
+  const laterSteps = nodes.filter(
+    node => node !== runNode && node.space[0] > errorTimestamp * 1e3
+  ).length;
+  const runFailed = isRunFailed(runNode);
+
+  if (laterSteps === 0) {
+    return runFailed ? t('The run failed at this step') : t('The run ended at this step');
+  }
+  return runFailed
+    ? tn(
+        'The agent took %s more step, then the run failed',
+        'The agent took %s more steps, then the run failed',
+        laterSteps
+      )
+    : tn(
+        'The agent continued for %s more step',
+        'The agent continued for %s more steps',
+        laterSteps
+      );
 }
 
 function getToolInput(node: AITraceSpanNode): KeyValueListDataItem['value'] | null {
@@ -214,6 +257,14 @@ export function AgentRunHighlights({event}: {event: Event}) {
       </Fragment>
     ),
   });
+  const runOutcome = getRunOutcome(event, runNode ?? failingNode, nodes);
+  if (runOutcome) {
+    thisEventItems.push({
+      key: 'after_error',
+      subject: t('After the error'),
+      value: runOutcome,
+    });
+  }
   if (model) {
     thisEventItems.push({
       key: 'model',
@@ -223,10 +274,17 @@ export function AgentRunHighlights({event}: {event: Event}) {
   }
 
   const issueItems: KeyValueListDataItem[] = [];
+  // Recent events that all failed in this event's step add nothing to the failed
+  // step row above.
+  const onlyThisStep =
+    breakdown?.steps.length === 1 &&
+    breakdown.steps[0]?.step ===
+      getStepKey(getStringAttr(failingNode, SpanFields.GEN_AI_TOOL_NAME), failingNode.op);
   if (
     breakdown &&
     breakdown.matchedEvents >= MIN_MATCHED_EVENTS &&
-    breakdown.steps.length > 0
+    breakdown.steps.length > 0 &&
+    !onlyThisStep
   ) {
     issueItems.push({
       key: 'across_events',
