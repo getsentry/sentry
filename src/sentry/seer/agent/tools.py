@@ -49,7 +49,7 @@ from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus, UseCase
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.release import Release
-from sentry.models.repository import Repository
+from sentry.models.repository import RepoResolution, Repository
 from sentry.models.team import Team, TeamStatus
 from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.replays.post_process import process_raw_response
@@ -979,23 +979,66 @@ def _may_be_under_account(repo_full_name: str, integration: RpcIntegration) -> b
     return False
 
 
+def _unique(matches: list[Repository]) -> tuple[Repository | None, RepoResolution]:
+    """The one repository in ``matches``, or why there isn't one. Two or more is ambiguous: picking
+    one could point Seer at the wrong repository. Same rule as
+    ``RepositoryManager._resolve_active_unique``."""
+    if len(matches) == 1:
+        return matches[0], "resolved"
+    return None, "ambiguous" if matches else "not_found"
+
+
+def _is_named(repo: Repository, repo_full_name: str) -> bool:
+    """Whether ``repo_full_name`` is the repository's name or URL path, ignoring case."""
+    requested = repo_full_name.casefold()
+    return requested in (repo.name.casefold(), get_repo_url_path(repo).casefold())
+
+
+def _find_repository_by_external_id(
+    organization_id: int, external_id: str, repo_full_name: str, providers: list[str]
+) -> tuple[Repository | None, RepoResolution]:
+    """Find the one repository with this external id. Each provider numbers its repositories
+    separately, so one id can name a repository on two providers (``github`` and
+    ``github_enterprise``). The unique constraint allows at most one per provider."""
+    matches = list(
+        Repository.objects.filter(
+            organization_id=organization_id,
+            external_id=external_id,
+            status=ObjectStatus.ACTIVE,
+            provider__in=providers,
+        ).order_by("id")
+    )
+    if len(matches) > 1:
+        # The name picks among the repositories this id names, never outside them.
+        named = [repo for repo in matches if _is_named(repo, repo_full_name)]
+        if len(named) == 1:
+            return named[0], "resolved"
+    return _unique(matches)
+
+
 def _find_repository(
     organization_id: int, repo_full_name: str, providers: list[str]
-) -> Repository | None:
-    """Find a repository by its name or its URL path. They're the same except on GitLab, where the
-    name is a display name ("My Group / App") and the path is "my-group/app"."""
+) -> tuple[Repository | None, RepoResolution]:
+    """Find the one repository with this name or URL path. They're the same except on GitLab, where
+    the name is a display name ("My Group / App") and the path is "my-group/app".
+
+    Several matches are ambiguous: a re-installed integration leaves a second row with the same
+    name, and a GitHub repository and its GitLab mirror share a URL path."""
     candidates = Repository.objects.filter(
         Q(name=repo_full_name) | Q(url__iendswith=f"/{repo_full_name}"),
         organization_id=organization_id,
         status=ObjectStatus.ACTIVE,
         provider__in=providers,
     ).order_by("id")
-    # A URL can also end this way for a repository further down: ".../parent/my-group/app".
-    requested = repo_full_name.casefold()
+    matches: list[Repository] = []
     for repo in candidates:
-        if requested in (repo.name.casefold(), get_repo_url_path(repo).casefold()):
-            return repo
-    return None
+        # A URL can also end this way for a repository further down: ".../parent/my-group/app".
+        if _is_named(repo, repo_full_name):
+            matches.append(repo)
+            # Two is enough: we only need to know whether there is exactly one.
+            if len(matches) == 2:
+                break
+    return _unique(matches)
 
 
 def _repository_lookup_failure(
@@ -1051,14 +1094,15 @@ def get_repository_definition(
         repo_full_name: Full repository name in format "owner/repo-name" (e.g., "getsentry/seer")
         external_id: Optional external repository ID (e.g., GitHub repo ID). Stable across renames.
                      If provided, this is used for lookup instead of name.
-        report_failure_reason: When nothing is found, say why in the response when it's known,
-                     instead of returning None: no source control connected, the repository's
-                     account isn't connected, or its account is connected but the repository isn't
-                     in Sentry. Opt-in because callers that don't ask would read that response as a
-                     repository.
+        report_failure_reason: When no single repository is found, say why in the response when
+                     it's known, instead of returning None: no source control connected, the
+                     repository's account isn't connected, its account is connected but the
+                     repository isn't in Sentry, or several repositories match. Opt-in because
+                     callers that don't ask would read that response as a repository.
 
     Returns:
-        dict with RepoDefinition fields if found, None otherwise. Includes external_id
+        dict with RepoDefinition fields if exactly one repository matches, None otherwise
+        (several matches are refused, not guessed between). Includes external_id
         which should be stored for future lookups.
     """
     try:
@@ -1068,16 +1112,16 @@ def get_repository_definition(
     supported_providers = get_supported_scm_providers(organization)
 
     repo: Repository | None = None
+    resolution: RepoResolution = "not_found"
 
     if external_id:
-        repo = Repository.objects.filter(
-            organization_id=organization_id,
-            external_id=external_id,
-            status=ObjectStatus.ACTIVE,
-            provider__in=supported_providers,
-        ).first()
+        repo, resolution = _find_repository_by_external_id(
+            organization_id, external_id, repo_full_name, supported_providers
+        )
 
-    if not repo:
+    # Only a miss falls back to a name lookup. An external_id that stays ambiguous stops here: a
+    # name lookup could pick a repository the external_id doesn't name.
+    if resolution == "not_found":
         parts = repo_full_name.split("/")
         if len(parts) < 2:
             logger.warning(
@@ -1085,9 +1129,25 @@ def get_repository_definition(
                 extra={"repo_full_name": repo_full_name},
             )
         else:
-            repo = _find_repository(organization_id, repo_full_name, supported_providers)
+            repo, resolution = _find_repository(
+                organization_id, repo_full_name, supported_providers
+            )
 
-    if not repo:
+    metrics.incr("seer.rpc.get_repository_definition.resolution", tags={"resolution": resolution})
+
+    if resolution == "ambiguous":
+        logger.warning(
+            "seer.rpc.repository_ambiguous",
+            extra={
+                "organization_id": organization_id,
+                "repo_full_name": repo_full_name,
+                "external_id": external_id,
+            },
+        )
+        if report_failure_reason:
+            return RepositoryDefinitionFailure(failure_reason="repo_ambiguous")
+        return None
+    elif not repo:
         logger.info(
             "seer.rpc.repository_not_found",
             extra={
