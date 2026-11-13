@@ -238,6 +238,11 @@ S025_body_msg = (
     "@extend_schema(request=...), so the schema does not document what this "
     "endpoint accepts. Add it as request=."
 )
+S034_msg = (
+    f"{ApiRule.S034} This method returns a {{0}} Response, but {{0}} is not a key in "
+    "@extend_schema(responses=...), so the schema does not document it and generated "
+    "clients cannot type it. Add it to responses=."
+)
 
 
 def _s015_msg() -> str:
@@ -662,6 +667,74 @@ def _decorator_response_Ts(decorator: ast.expr) -> list[ast.expr]:
         if is_inline and len(val.args) >= 2:
             out.append(val.args[1])
     return out
+
+
+def _documented_statuses(decorators: list[ast.expr]) -> set[int] | None:
+    """Status codes keyed in every `@extend_schema(responses={...})` in `decorators`.
+
+    `None` when no decorator declares `responses=`, or when a key can't be read
+    statically (a name, a `**` spread, or `responses=` that isn't a dict literal):
+    S034 then has nothing reliable to compare against. A `(status, media_type)`
+    tuple key counts as its status."""
+    statuses: set[int] | None = None
+    for value in extend_schema_kwarg(decorators, "responses"):
+        if not isinstance(value, ast.Dict):
+            return None
+        statuses = statuses or set()
+        for key in value.keys:
+            if isinstance(key, ast.Tuple) and key.elts:
+                key = key.elts[0]
+            if not isinstance(key, ast.Constant):
+                return None
+            if isinstance(key.value, int):
+                statuses.add(key.value)
+            elif isinstance(key.value, str) and key.value.isdigit():
+                statuses.add(int(key.value))
+            else:
+                return None
+    return statuses
+
+
+def _status_code(node: ast.expr) -> int | None:
+    """`404` for `404`, `status.HTTP_404_NOT_FOUND`, or a bare `HTTP_404_NOT_FOUND`."""
+    if isinstance(node, ast.Constant) and isinstance(node.value, int):
+        return node.value
+    if isinstance(node, ast.Attribute):
+        name = node.attr
+    elif isinstance(node, ast.Name):
+        name = node.id
+    else:
+        return None
+    parts = name.split("_")
+    if len(parts) >= 2 and parts[0] == "HTTP" and parts[1].isdigit():
+        return int(parts[1])
+    return None
+
+
+def _inline_response_statuses(
+    node: ast.FunctionDef | ast.AsyncFunctionDef,
+) -> Iterator[tuple[ast.Call, int]]:
+    """Each `return Response(..., status=N)` in `node`'s own body, with its status.
+
+    Nested functions, lambdas, and classes are not entered: their returns don't
+    leave this method."""
+    pending: list[ast.AST] = list(node.body)
+    while pending:
+        child = pending.pop()
+        if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.ClassDef)):
+            continue
+        pending.extend(ast.iter_child_nodes(child))
+        if not isinstance(child, ast.Return) or not isinstance(child.value, ast.Call):
+            continue
+        call = child.value
+        if _name_of(call.func).rsplit(".", 1)[-1] != "Response":
+            continue
+        status_expr = next((kw.value for kw in call.keywords if kw.arg == "status"), None)
+        if status_expr is None and len(call.args) >= 2:
+            status_expr = call.args[1]
+        code = _status_code(status_expr) if status_expr is not None else None
+        if code is not None:
+            yield call, code
 
 
 _UNION_NAMES = frozenset({"Union", "Optional"})
@@ -1272,6 +1345,7 @@ class SentryVisitor(ast.NodeVisitor):
         if len(self._class_stack) == 1 and self._function_depth == 0:
             self._check_S021(node)
             self._check_S022(node)
+            self._check_S034(node)
         ctx = self._new_input_ctx(node)
         self._function_depth += 1
         self._function_stack.append(node.name)
@@ -1394,6 +1468,21 @@ class SentryVisitor(ast.NodeVisitor):
             self.errors.append((node.lineno, node.col_offset, S022_missing_msg))
         elif _annotation_has_bare_response(node.returns):
             self.errors.append((node.lineno, node.col_offset, S022_bare_msg))
+
+    def _check_S034(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+        """A 4xx that the method returns inline must be a key in `responses=`.
+
+        Only `return Response(..., status=...)` written in the method itself, with a
+        literal or `status.HTTP_4xx_*` status, is checked. A 4xx that comes from a
+        helper's return value, a response built into a variable first, or a raised
+        exception (DRF renders `APIException`s) is not seen, so passing this rule
+        does not mean every 4xx is documented."""
+        documented = _documented_statuses(node.decorator_list)
+        if documented is None:
+            return
+        for call, code in _inline_response_statuses(node):
+            if 400 <= code < 500 and code not in documented:
+                self.errors.append((call.lineno, call.col_offset, S034_msg.format(code)))
 
     def _check_S023(self, node: ast.ClassDef) -> None:
         for dec in node.decorator_list:

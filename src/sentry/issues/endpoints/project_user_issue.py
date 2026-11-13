@@ -12,6 +12,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_NOT_FOUND
 from sentry.apidocs.parameters import GlobalParams
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import GroupType, WebVitalsGroup
@@ -224,6 +225,8 @@ class ProjectUserIssueEndpoint(ProjectEndpoint):
         request=ProjectUserIssueRequestSerializer,
         responses={
             200: ProjectUserIssueResponseSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def post(self, request: Request, project: Project) -> Response:

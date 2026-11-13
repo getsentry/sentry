@@ -22,6 +22,7 @@ from tools.flake8_plugin import (
     S027_msg,
     S028_msg,
     S030_allowlist,
+    S034_msg,
     SentryCheck,
     SentryVisitor,
     _s015_msg,
@@ -979,6 +980,173 @@ class F:
 """)
         == []
     )
+
+
+# --- S034: a 4xx returned inline must be a key in responses= ---
+
+
+def test_S034_undocumented_status_constant_fires() -> None:
+    assert _resp("""\
+class E:
+    @extend_schema(responses={200: AResponse})
+    def post(self) -> Response[AResponse]:
+        return Response({"detail": "x"}, status=status.HTTP_409_CONFLICT)
+""") == ["4:S034"]
+
+
+def test_S034_undocumented_literal_status_fires() -> None:
+    assert _resp("""\
+class E:
+    @extend_schema(responses={200: AResponse})
+    def post(self) -> Response[AResponse]:
+        return Response({"detail": "x"}, 402)
+""") == ["4:S034"]
+
+
+def test_S034_bare_status_name_fires() -> None:
+    assert _resp("""\
+class E:
+    @extend_schema(responses={200: AResponse})
+    def post(self) -> Response[AResponse]:
+        return Response(status=HTTP_404_NOT_FOUND)
+""") == ["4:S034"]
+
+
+def test_S034_documented_status_passes() -> None:
+    assert (
+        _resp("""\
+class E:
+    @extend_schema(responses={200: AResponse, 409: RESPONSE_CONFLICT})
+    def post(self) -> Response[AResponse]:
+        if self.x:
+            return Response({"detail": "x"}, status=status.HTTP_409_CONFLICT)
+        return Response({"a": "a"}, status=200)
+""")
+        == []
+    )
+
+
+def test_S034_tuple_and_string_keys_count_as_documented() -> None:
+    assert (
+        _resp("""\
+class E:
+    @extend_schema(responses={(400, "application/json"): RESPONSE_BAD_REQUEST, "404": X})
+    def post(self) -> Response[AResponse]:
+        if self.x:
+            return Response(status=400)
+        return Response(status=404)
+""")
+        == []
+    )
+
+
+def test_S034_non_4xx_statuses_skipped() -> None:
+    assert (
+        _resp("""\
+class E:
+    @extend_schema(responses={200: AResponse})
+    def post(self) -> Response[AResponse]:
+        if self.x:
+            return Response(status=status.HTTP_202_ACCEPTED)
+        return Response(status=500)
+""")
+        == []
+    )
+
+
+def test_S034_method_without_responses_skipped() -> None:
+    assert (
+        _resp("""\
+class E:
+    @extend_schema(operation_id="x")
+    def post(self) -> Response[AResponse]:
+        return Response(status=409)
+""")
+        == []
+    )
+
+
+def test_S034_unreadable_responses_skipped() -> None:
+    assert (
+        _resp("""\
+class E:
+    @extend_schema(responses=SHARED_RESPONSES)
+    def post(self) -> Response[AResponse]:
+        return Response(status=409)
+
+    @extend_schema(responses={200: AResponse, **SHARED_ERRORS})
+    def put(self) -> Response[AResponse]:
+        return Response(status=409)
+
+    @extend_schema(responses={OK: AResponse})
+    def delete(self) -> Response[AResponse]:
+        return Response(status=409)
+""")
+        == []
+    )
+
+
+def test_S034_helpers_variables_and_raises_not_followed() -> None:
+    assert (
+        _resp("""\
+class E:
+    @extend_schema(responses={200: AResponse})
+    def post(self) -> Response[AResponse]:
+        if self.a:
+            return self.helper()
+        if self.b:
+            raise Conflict()
+        response = Response(status=409)
+        return response
+""")
+        == []
+    )
+
+
+def test_S034_nested_function_return_not_attributed() -> None:
+    assert (
+        _resp("""\
+class E:
+    @extend_schema(responses={200: AResponse})
+    def post(self) -> Response[AResponse]:
+        def inner():
+            return Response(status=409)
+
+        return inner()
+""")
+        == []
+    )
+
+
+def test_S034_async_method_and_dotted_response_fire() -> None:
+    assert _resp("""\
+class E:
+    @extend_schema(responses={200: AResponse})
+    async def post(self) -> Response[AResponse]:
+        return response.Response(status=status.HTTP_402_PAYMENT_REQUIRED)
+""") == ["4:S034"]
+
+
+def test_S034_module_level_function_skipped() -> None:
+    assert (
+        _resp("""\
+@extend_schema(responses={200: AResponse})
+def post(request) -> Response[AResponse]:
+    return Response(status=409)
+""")
+        == []
+    )
+
+
+def test_S034_message_names_the_status() -> None:
+    tree = ast.parse("""\
+class E:
+    @extend_schema(responses={200: AResponse})
+    def post(self) -> Response[AResponse]:
+        return Response(status=409)
+""")
+    ((_line, _col, msg, _cls),) = SentryCheck(tree=tree, filename="t.py").run()
+    assert msg == S034_msg.format(409)
 
 
 # --- S022: published methods must declare a response shape ---

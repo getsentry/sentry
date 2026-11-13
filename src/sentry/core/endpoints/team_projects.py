@@ -207,6 +207,7 @@ class TeamProjectsEndpoint(TeamEndpoint):
             200: inline_sentry_response_serializer(
                 "ListTeamProjectResponse", list[OrganizationProjectResponse]
             ),
+            400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: OpenApiResponse(description="Team not found."),
         },
