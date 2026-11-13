@@ -35,6 +35,7 @@ import {IconClose} from '@sentry/icons/close';
 import {IconGrabbable} from '@sentry/icons/grabbable';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {FeatureBadge, type FeatureBadgeProps} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
@@ -1128,6 +1129,18 @@ const GrabHandleAnimation = styled('div')`
   }
 `;
 
+interface SecondaryNavigationFeatureBadgeProps {
+  type: FeatureBadgeProps['type'];
+}
+
+/**
+ * Feature badges can sit before the link label, so a tooltip on the right
+ * would cover the label of the hovered link.
+ */
+function SecondaryNavigationFeatureBadge({type}: SecondaryNavigationFeatureBadgeProps) {
+  return <FeatureBadge type={type} tooltipProps={{position: 'top'}} />;
+}
+
 interface SecondaryNavigationIndicatorProps {
   variant: 'accent' | 'danger' | 'warning';
   ref?: React.Ref<HTMLDivElement>;
@@ -1368,4 +1381,5 @@ export const SecondaryNavigation = {
   ReorderableList: SecondaryNavigationReorderableList,
   ReorderableLink: SecondaryNavigationReorderableLink,
   Indicator: SecondaryNavigationIndicator,
+  FeatureBadge: SecondaryNavigationFeatureBadge,
 };
