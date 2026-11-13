@@ -57,13 +57,13 @@ describe('draft focus', () => {
 });
 
 describe('suggestion loading', () => {
-  it('offers every question to the keyboard and submits the selected position immediately', async () => {
+  it('orders questions medium, short, long and submits their displayed position', async () => {
     const onSuggestionClick = jest.fn();
-    const suggestions = [
-      {text: 'Which issues should I investigate?'},
-      {text: 'Where are the slowest queries?'},
-      {text: 'What changed in this release?'},
-    ];
+    const short = {text: 'Which issues should I investigate first?'};
+    const medium = {text: 'Which issues are affecting the most users?'};
+    const long = {text: 'Which spans contribute most to database latency?'};
+    const suggestions = [long, short, medium];
+    Object.freeze(suggestions);
     render(
       <EmptyState
         onSuggestionClick={onSuggestionClick}
@@ -73,16 +73,14 @@ describe('suggestion loading', () => {
     for (const suggestion of suggestions) {
       expect(screen.getByRole('button', {name: suggestion.text})).toBeEnabled();
     }
-    await userEvent.tab();
     expect(
-      screen.getByRole('button', {name: 'Which issues should I investigate?'})
-    ).toHaveFocus();
+      screen.getAllByRole('button').map(button => button.getAttribute('aria-label'))
+    ).toEqual([medium.text, short.text, long.text]);
+    await userEvent.tab();
+    expect(screen.getByRole('button', {name: medium.text})).toHaveFocus();
     await userEvent.tab();
     await userEvent.keyboard('{Enter}');
-    expect(onSuggestionClick).toHaveBeenCalledWith(
-      {text: 'Where are the slowest queries?'},
-      1
-    );
+    expect(onSuggestionClick).toHaveBeenCalledWith(short, 1);
     expect(onSuggestionClick).toHaveBeenCalledTimes(1);
   });
 
