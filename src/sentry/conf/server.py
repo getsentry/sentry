@@ -19,6 +19,7 @@ from taskbroker_client.scheduler.config import ScheduleConfigMap, crontab
 
 import sentry
 import sentry.utils.types as env_types
+from sentry.conf import api_base_path
 from sentry.conf.api_pagination_allowlist_do_not_modify import (
     SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY,
 )
@@ -1515,11 +1516,14 @@ if os.environ.get("OPENAPIGENERATE", False):
         "POSTPROCESSING_HOOKS": [
             "sentry.apidocs.hooks.custom_postprocessing_hook",
             "drf_spectacular.hooks.postprocess_schema_enum_id_removal",
+            # Last, so the hooks above see full paths.
+            "sentry.apidocs.hooks.relative_paths_hook",
         ],
         "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
         "SERVERS": [
             {
-                "url": "https://{region}.sentry.io",
+                # The path is the API base path; operation paths are relative to it.
+                "url": f"https://{{region}}.sentry.io{api_base_path.API_BASE_PATH}",
                 "variables": {
                     "region": {
                         "default": "us",

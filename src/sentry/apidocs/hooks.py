@@ -4,6 +4,7 @@ import re
 from collections import OrderedDict
 from collections.abc import Callable, Mapping
 from typing import Any, Literal, NotRequired, TypedDict, cast
+from urllib.parse import urlsplit
 
 from django.http import HttpResponseBase
 from drf_spectacular.generators import EndpointEnumerator, SchemaGenerator
@@ -431,6 +432,28 @@ def custom_postprocessing_hook(
                 raise SentryApiBuildError(
                     f"Unable to parse body parameters due to KeyError {e} for endpoint {endpoint_name}. Please post in #discuss-api to fix."
                 )
+    return result
+
+
+def relative_paths_hook(result: dict[str, Any], generator: Any, **kwargs: Any) -> dict[str, Any]:
+    """Make every path relative to the path of the first server URL, the API base path.
+
+    Clients then read the base path, and the API version in it, from `servers` instead of
+    from each path. An endpoint's `servers` name origins, so they get the base path too.
+    """
+    base_path = urlsplit(result["servers"][0]["url"]).path.rstrip("/")
+    paths = {}
+    for path, path_item in result["paths"].items():
+        if not path.startswith(f"{base_path}/"):
+            raise SentryApiBuildError(f"{path} is not under the API base path {base_path}.")
+        for operation in path_item.values():
+            if isinstance(operation, dict) and "servers" in operation:
+                # New dicts: the originals are the endpoint class's own `servers`.
+                operation["servers"] = [
+                    {**server, "url": server["url"] + base_path} for server in operation["servers"]
+                ]
+        paths[path.removeprefix(base_path)] = path_item
+    result["paths"] = paths
     return result
 
 
