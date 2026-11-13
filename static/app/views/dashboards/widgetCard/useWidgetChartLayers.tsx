@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useCallback, useState} from 'react';
 
 import type {
   ChartLayer,
@@ -38,6 +38,7 @@ export function useWidgetChartLayers({
 }: UseWidgetChartLayersParams) {
   const organization = useOrganization();
   const [isReleasesLayerOn, setIsReleasesLayerOn] = useState(true);
+  const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
 
   // The band reflects the page filters, not this widget's own projects/query, so
   // it won't follow a fullscreen zoom. Parameterize useDroppedData for per-widget
@@ -55,34 +56,37 @@ export function useWidgetChartLayers({
         enabled &&
         defined(droppedDataDataset) &&
         organization.features.includes('dashboards-data-fidelity-annotations'),
-      hidden,
+      hidden: hidden || !isDroppedDataLayerOn,
     }
   );
 
+  // Stable so the memoized VisualizationWidget doesn't re-render on every pass.
+  const onLayerChange = useCallback((value: string, selected: boolean) => {
+    if (value === RELEASES_LAYER) {
+      setIsReleasesLayerOn(selected);
+    } else {
+      setIsDroppedDataLayerOn(selected);
+    }
+  }, []);
+
   const supportsReleases = widget.widgetType !== WidgetType.PREPROD_APP_SIZE;
-  const droppedDataLayerControl = hidden ? undefined : droppedData.layerControl;
+  const droppedDataLayers = hidden
+    ? []
+    : (droppedData.layerControl?.layers ?? []).map(layer => ({
+        ...layer,
+        selected: layer.selected && isDroppedDataLayerOn,
+      }));
   const layers: ChartLayer[] = enabled
     ? [
         ...(supportsReleases
           ? [{value: RELEASES_LAYER, label: t('Releases'), selected: isReleasesLayerOn}]
           : []),
-        ...(droppedDataLayerControl?.layers ?? []),
+        ...droppedDataLayers,
       ]
     : [];
 
   const layerControl: ChartLayersControlProps | undefined =
-    layers.length > 0
-      ? {
-          layers,
-          onChange: (value, selected) => {
-            if (value === RELEASES_LAYER) {
-              setIsReleasesLayerOn(selected);
-            } else {
-              droppedDataLayerControl?.onChange(value, selected);
-            }
-          },
-        }
-      : undefined;
+    layers.length > 0 ? {layers, onChange: onLayerChange} : undefined;
 
   return {
     showReleases: supportsReleases && isReleasesLayerOn,

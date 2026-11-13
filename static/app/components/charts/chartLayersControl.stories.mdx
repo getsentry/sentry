@@ -57,17 +57,20 @@ export function LayersDemo({triggerLabel}) {
 ## Triggers
 
 By default the trigger names the selected layer, with a count badge when there are
-more, and reads "Layers" when none are selected. Use `triggerLabel="icon"` where
-space is tight, like a dashboard widget header. The icon-only trigger keeps its
-"Chart layers" accessible name and hover tooltip.
+more, and reads "Layers" when none are selected. Use `triggerLabel="title"` to
+always read "Layers", like a fullscreen widget's legend row. Use `triggerLabel="icon"`
+where space is tight, like a dashboard widget header. The icon-only trigger keeps
+its "Chart layers" accessible name and hover tooltip.
 
 <Storybook.Demo>
   <LayersDemo />
+  <LayersDemo triggerLabel="title" />
   <LayersDemo triggerLabel="icon" />
 </Storybook.Demo>
 
 ```jsx
 <ChartLayersControl layers={layers} onChange={onChange} />
+<ChartLayersControl triggerLabel="title" layers={layers} onChange={onChange} />
 <ChartLayersControl triggerLabel="icon" layers={layers} onChange={onChange} />
 ```
 
@@ -89,11 +92,11 @@ changing shape as filters change.
 
 ## Props
 
-| Prop           | Type                        | Default      | Description                                                                  |
-| -------------- | --------------------------- | ------------ | ---------------------------------------------------------------------------- |
-| `layers`       | `ChartLayer[]`              |              | Each layer's `value`, `label`, `selected`, and optional `disabled`/`tooltip` |
-| `onChange`     | `(value, selected) => void` |              | Called with the layer that was toggled and its new state                     |
-| `triggerLabel` | `'selected' \| 'icon'`      | `'selected'` | Whether the trigger names the selected layers or shows only the icon         |
+| Prop           | Type                              | Default      | Description                                                                           |
+| -------------- | --------------------------------- | ------------ | ------------------------------------------------------------------------------------- |
+| `layers`       | `ChartLayer[]`                    |              | Each layer's `value`, `label`, `selected`, and optional `disabled`/`tooltip`          |
+| `onChange`     | `(value, selected) => void`       |              | Called with the layer that was toggled and its new state                              |
+| `triggerLabel` | `'selected' \| 'title' \| 'icon'` | `'selected'` | Whether the trigger names the selected layers, reads "Layers", or shows only the icon |
 
 ## See Also
 

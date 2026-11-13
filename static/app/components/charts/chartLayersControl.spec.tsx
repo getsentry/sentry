@@ -61,6 +61,20 @@ describe('ChartLayersControl', () => {
     );
   });
 
+  it('always shows "Layers" with the title trigger', () => {
+    render(
+      <ChartLayersControl
+        triggerLabel="title"
+        layers={[RELEASES, DROPPED_SPANS]}
+        onChange={jest.fn()}
+      />
+    );
+
+    expect(screen.getByRole('button', {name: 'Chart layers'})).toHaveTextContent(
+      /^Layers$/
+    );
+  });
+
   it('shows only the icon with the icon trigger', () => {
     render(
       <ChartLayersControl

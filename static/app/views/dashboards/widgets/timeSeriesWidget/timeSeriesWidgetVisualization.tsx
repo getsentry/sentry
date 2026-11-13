@@ -10,7 +10,7 @@ import type {
 import sum from 'lodash/sum';
 import unescape from 'lodash/unescape';
 
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 import {BaseChart} from 'sentry/components/charts/baseChart';
 import type {LegendItem} from 'sentry/components/charts/chartLegend';
@@ -106,6 +106,11 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * highlight. `onClick` is called when the band is clicked.
    */
   droppedData?: DroppedDataProps;
+
+  /**
+   * Controls rendered at the end of the legend row. They render even when the legend is hidden.
+   */
+  legendActions?: React.ReactNode;
 
   /**
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
@@ -779,16 +784,27 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     props.droppedData?.onClick
   );
 
+  const legend = showLegend ? (
+    <ChartLegend
+      items={chartLegendItems}
+      selected={normalizedLegendSelection}
+      onSelectionChange={handleLegendSelectionChange}
+      truncateMenuLabels={props.truncateLegendMenuLabels}
+    />
+  ) : null;
+
   return (
     <Stack height="100%">
       {ActionMenu}
-      {showLegend && (
-        <ChartLegend
-          items={chartLegendItems}
-          selected={normalizedLegendSelection}
-          onSelectionChange={handleLegendSelectionChange}
-          truncateMenuLabels={props.truncateLegendMenuLabels}
-        />
+      {props.legendActions ? (
+        <Flex align="center" gap="sm">
+          <Container flex="1" minWidth="0">
+            {legend}
+          </Container>
+          {props.legendActions}
+        </Flex>
+      ) : (
+        legend
       )}
       <Container flex="1 1 0%" minHeight="0">
         <BaseChart

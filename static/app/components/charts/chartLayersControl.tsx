@@ -16,12 +16,12 @@ export interface ChartLayer {
 export interface ChartLayersControlProps {
   layers: ChartLayer[];
   onChange: (value: string, selected: boolean) => void;
-  triggerLabel?: 'selected' | 'icon';
+  triggerLabel?: 'selected' | 'title' | 'icon';
 }
 
 function layersTrigger(
   triggerProps: TriggerProps,
-  triggerLabel: 'selected' | 'icon',
+  triggerLabel: 'selected' | 'title' | 'icon',
   hasSelectedLayer: boolean
 ) {
   const sharedProps = {
@@ -38,7 +38,9 @@ function layersTrigger(
 
   return (
     <OverlayTrigger.Button {...triggerProps} {...sharedProps} showChevron={false}>
-      {hasSelectedLayer ? triggerProps.children : t('Layers')}
+      {triggerLabel === 'selected' && hasSelectedLayer
+        ? triggerProps.children
+        : t('Layers')}
     </OverlayTrigger.Button>
   );
 }

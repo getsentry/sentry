@@ -654,6 +654,7 @@ function DataWidgetViewerModal(props: Props) {
               showReleases={chartLayers.showReleases}
               droppedData={chartLayers.droppedData.band}
               isDroppedDataLoading={chartLayers.droppedData.isLoading}
+              layerControl={chartLayers.layerControl}
             />
           ) : (
             <MemoizedWidgetCardChartContainer
