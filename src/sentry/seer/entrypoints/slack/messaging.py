@@ -457,7 +457,7 @@ def update_investigation_alert_message(
     with SlackEntrypointEventLifecycleMetric(
         interaction_type=SlackEntrypointInteractionType.UPDATE_EXISTING_MESSAGE,
         integration_id=install.model.id,
-        organization_id=install.organization_id,
+        organization_id=data.organization_id,
     ).capture() as lifecycle:
         lifecycle.add_extras({"channel_id": channel_id, "message_ts": message_ts})
         try:
