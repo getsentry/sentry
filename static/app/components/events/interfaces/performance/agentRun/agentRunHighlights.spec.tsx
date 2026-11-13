@@ -1,8 +1,10 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EventOrGroupType} from 'sentry/types/event';
 import {
   makeEAPError,
@@ -78,7 +80,12 @@ function mockRecentEvents(spans: Array<{id: string; 'gen_ai.tool.name'?: string}
   });
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/events/`,
-    match: [MockApiClient.matchQuery({dataset: 'spans'})],
+    match: [
+      MockApiClient.matchQuery({
+        dataset: 'spans',
+        referrer: 'issue_details.agent_run.recent_error_spans',
+      }),
+    ],
     body: {
       data: spans.map(span => ({...span, 'span.op': 'gen_ai.execute_tool'})),
     },
@@ -118,6 +125,19 @@ describe('getAgentRunStepBreakdown', () => {
 describe('AgentRunHighlights', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: event.projectID, hasInsightsAgentMonitoring: true}),
+    ]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      match: [
+        MockApiClient.matchQuery({
+          dataset: 'spans',
+          referrer: 'api.issues.agent-run.has-active-ai-span',
+        }),
+      ],
+      body: {data: [{id: 'tool-span'}]},
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace/${traceId}/`,
       body: makeTrace(),
