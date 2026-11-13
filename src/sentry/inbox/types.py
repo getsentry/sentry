@@ -87,12 +87,7 @@ class InboxEventSummary(StrEnum):
 
 @dataclass(frozen=True, kw_only=True)
 class InboxEventData:
-    """
-    Stored JSON payload with a producer-supplied summary.
-    Add fields with defaults so existing events remain readable.
-    """
-
-    summary: InboxEventSummary
+    pass
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -100,6 +95,7 @@ class InboxEventType[SubjectT, DataT: InboxEventData]:
     """Keep event_type stable so retained events can be looked up."""
 
     event_type: str
+    summary: InboxEventSummary
     item_type: InboxItemType[SubjectT]
     data_class: type[DataT]
     # Personal notification setting category that controls email and Slack for this event.

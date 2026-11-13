@@ -125,7 +125,9 @@ function InboxList({filters, setFilters, selectedSubject}: InboxListProps) {
           query={query}
           items={items}
           filters={filters}
-          onClearFilters={() => void setFilters({subjectType: null, eventType: null})}
+          onClearFilters={() =>
+            void setFilters({subjectType: null, eventType: null, recipient: null})
+          }
           selectedItemId={selectedItem?.id ?? null}
         />
       </Container>

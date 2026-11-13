@@ -4,7 +4,7 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 
 import {CodeModeDetails} from './codeModeDetails';
 
-const URL = '/projects/org-slug/1/ai/code-explanation/';
+const ENDPOINT_URL = '/projects/org-slug/1/ai/code-explanation/';
 const CODE = '  print(42)\n';
 
 beforeEach(() => {
@@ -12,7 +12,7 @@ beforeEach(() => {
 });
 
 it('does not request a summary when AI features are hidden', () => {
-  const request = MockApiClient.addMockResponse({url: URL, method: 'POST'});
+  const request = MockApiClient.addMockResponse({url: ENDPOINT_URL, method: 'POST'});
 
   render(<CodeModeDetails projectId={1} code={CODE} language="python" />, {
     organization: OrganizationFixture({hideAiFeatures: true}),
@@ -26,7 +26,7 @@ it('does not request a summary when AI features are hidden', () => {
 it('requests a summary for the first 4,000 characters of oversized code', async () => {
   const code = `${'x'.repeat(3_999)}🙂${'y'.repeat(10)}`;
   const request = MockApiClient.addMockResponse({
-    url: URL,
+    url: ENDPOINT_URL,
     method: 'POST',
     body: {summary: 'Prints values.'},
     match: [
@@ -47,7 +47,7 @@ it('requests a summary for the first 4,000 characters of oversized code', async 
 
 it('keeps code available when generation fails', async () => {
   const request = MockApiClient.addMockResponse({
-    url: URL,
+    url: ENDPOINT_URL,
     method: 'POST',
     statusCode: 502,
     body: {detail: 'Unable to generate a code explanation.'},

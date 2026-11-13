@@ -569,7 +569,8 @@ function CreditsChat({
 }) {
   const organization = useOrganization();
   const [queryClient] = useState(() => new CreditsQueryClient(run, hasEnoughCredits));
-  const {isAutofixOutOfCredits, reportOutOfCredits} = useAutofixOutOfCreditsEmbeds();
+  const {isAutofixOutOfCredits, autofixDenialReason, reportOutOfCredits} =
+    useAutofixOutOfCreditsEmbeds();
 
   return (
     <Stack gap="md">
@@ -597,7 +598,11 @@ function CreditsChat({
             <ChatShell
               notice={
                 isAutofixOutOfCredits ? (
-                  <SeerOutOfCreditsCta reason="autofix-continue" size="md" />
+                  <SeerOutOfCreditsCta
+                    reason="autofix-continue"
+                    denialReason={autofixDenialReason}
+                    size="md"
+                  />
                 ) : null
               }
             >

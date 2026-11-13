@@ -289,3 +289,7 @@ PROTO_TYPE_TO_ATTRIBUTE_TYPE_MAP: dict[AttributeKey.Type.ValueType, ColumnType] 
 # Protobuf has a max recursion depth, set a maximum on our side because snuba will 400 on parsing a request that has too
 # many functions chained together
 MAX_BOOLEAN_DEPTH = 50
+
+# Snuba rejects TraceItemStatsRequests with more attributes than this
+# (MAX_REQUEST_ATTRIBUTES in snuba/web/rpc/v1/endpoint_trace_item_stats.py)
+MAX_STATS_REQUEST_ATTRIBUTES = 500

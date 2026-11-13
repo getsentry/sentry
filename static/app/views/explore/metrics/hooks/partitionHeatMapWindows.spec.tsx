@@ -125,7 +125,7 @@ function relative(period: string): DateTimeFilter {
   return {start: null, end: null, period, utc: null};
 }
 
-const spanHours = (window: {end: string; start: string}) =>
+const spanHours = (timeWindow: {end: string; start: string}) =>
   Math.round(
-    (moment.utc(window.end).valueOf() - moment.utc(window.start).valueOf()) / HOUR
+    (moment.utc(timeWindow.end).valueOf() - moment.utc(timeWindow.start).valueOf()) / HOUR
   );

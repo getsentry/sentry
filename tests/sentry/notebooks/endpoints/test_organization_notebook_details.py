@@ -16,11 +16,8 @@ from sentry.notebooks.models import (
     NotebookSourceType,
     NotebookStatus,
 )
-from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import assume_test_silo_mode
-from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 FEATURE = "organizations:investigations"
 
@@ -48,7 +45,7 @@ class OrganizationNotebookDetailsTest(APITestCase):
             "sentry-api-0-organization-notebook-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": foreign.id,
+                "notebook_id": foreign.id,
             },
         )
         assert self.client.get(url).status_code == 404
@@ -64,7 +61,7 @@ class OrganizationNotebookDetailsTest(APITestCase):
             "sentry-api-0-organization-notebook-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": first["id"],
+                "notebook_id": first["id"],
             },
         )
 
@@ -88,49 +85,6 @@ class OrganizationNotebookDetailsTest(APITestCase):
         assert response.status_code == 200
         assert response.data["status"] == "active"
 
-    def test_org_token_can_archive_a_legacy_notebook(self) -> None:
-        notebook = self.create_notebook(
-            organization=self.organization, created_by=self.user, title="Legacy investigation"
-        )
-        token = generate_token(self.organization.slug, "")
-        self.create_org_auth_token(
-            organization_id=self.organization.id,
-            name="investigation token",
-            token_hashed=hash_token(token),
-            token_last_characters=token[-4:],
-            scope_list=["org:read"],
-        )
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.client.logout()
-
-        response = self.client.put(
-            self.details_url(notebook),
-            data={"investigationVersion": notebook.version, "status": "archived"},
-            format="json",
-            HTTP_AUTHORIZATION=f"Bearer {token}",
-        )
-        assert response.status_code == 200, response.data
-        notebook.refresh_from_db()
-        assert notebook.status == NotebookStatus.ARCHIVED
-
-        restored = self.client.put(
-            self.details_url(notebook),
-            data={"investigationVersion": notebook.version, "status": "active"},
-            format="json",
-            HTTP_AUTHORIZATION=f"Bearer {token}",
-        )
-        assert restored.status_code == 200, restored.data
-        notebook.refresh_from_db()
-        deleted = self.client.delete(
-            self.details_url(notebook),
-            data={"investigationVersion": notebook.version},
-            format="json",
-            HTTP_AUTHORIZATION=f"Bearer {token}",
-        )
-        assert deleted.status_code == 204, deleted.data
-        notebook.refresh_from_db()
-        assert notebook.status == NotebookStatus.ARCHIVED
-
     def test_archive_rejects_an_active_block_run(self) -> None:
         created = self.client.post(
             self.collection_url, data={"title": "Running investigation"}, format="json"
@@ -150,7 +104,7 @@ class OrganizationNotebookDetailsTest(APITestCase):
             "sentry-api-0-organization-notebook-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": notebook.id,
+                "notebook_id": notebook.id,
             },
         )
 
@@ -299,7 +253,7 @@ class OrganizationNotebookDetailsTest(APITestCase):
             "sentry-api-0-organization-notebook-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": notebook.id,
+                "notebook_id": notebook.id,
             },
         )
 
@@ -330,7 +284,7 @@ class OrganizationNotebookDetailsTest(APITestCase):
             "sentry-api-0-organization-notebook-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": created["id"],
+                "notebook_id": created["id"],
             },
         )
         response = self.client.put(
@@ -398,7 +352,7 @@ class OrganizationNotebookDetailsTest(APITestCase):
             "sentry-api-0-organization-notebook-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": notebook.id,
+                "notebook_id": notebook.id,
             },
         )
 

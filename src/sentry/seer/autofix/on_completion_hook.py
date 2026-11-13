@@ -63,6 +63,7 @@ from sentry.seer.autofix.utils import (
     clear_preference_automation_handoff,
     get_automation_handoff,
 )
+from sentry.seer.credits import OUT_OF_CREDITS
 from sentry.seer.entrypoints.operator import (
     SeerActivityAttribution,
     SeerAutofixOperator,
@@ -574,8 +575,15 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             if state.repo_pr_states and not pull_requests:
                 # Seer adds one entry per repository before asking the provider to open
                 # a PR. If every request fails, the entries remain but there is no PR.
+                out_of_credits = any(
+                    pr.pr_creation_error_code == OUT_OF_CREDITS
+                    for pr in state.repo_pr_states.values()
+                )
                 cls._notify_entrypoints_of_failure(
-                    organization, run_id, group, PR_CREATION_FAILED_REASON
+                    organization,
+                    run_id,
+                    group,
+                    OUT_OF_CREDITS if out_of_credits else PR_CREATION_FAILED_REASON,
                 )
                 return
 

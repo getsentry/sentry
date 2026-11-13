@@ -122,7 +122,7 @@ export default function BuildDetails() {
   const projectSlug = buildDetails?.project_slug;
   const version = buildDetails?.app_info?.version;
   const buildNumber = getBuildNumber(buildDetails?.app_info);
-  const project = ProjectsStore.getBySlug(projectSlug);
+  const project = projectSlug ? ProjectsStore.getBySlug(projectSlug) : undefined;
   const projectType = project?.platform ?? null;
 
   const {handleDownloadAction, handleRerunAction} = useBuildDetailsActions({

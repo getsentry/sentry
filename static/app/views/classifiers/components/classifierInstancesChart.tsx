@@ -39,7 +39,7 @@ interface ClassifierInstancesChartProps {
 
 export function ClassifierInstancesChart({classifier}: ClassifierInstancesChartProps) {
   const [chartType, setChartType] = useState(ChartType.BAR);
-  const [interval, setInterval] = useState(INTERVAL_OPTIONS.at(-1)!.value);
+  const [chartInterval, setChartInterval] = useState(INTERVAL_OPTIONS.at(-1)!.value);
 
   const pageFilters: PageFilters = {
     projects: [Number(classifier.projectId)],
@@ -51,7 +51,7 @@ export function ClassifierInstancesChart({classifier}: ClassifierInstancesChartP
     DiscoverDatasets.ENRICHMENT_ATTRIBUTES,
     {
       yAxis: `count(tags[${getResultAttributeKey(classifier.resultAttribute)},number])`,
-      interval,
+      interval: chartInterval,
       pageFilters,
     },
     'api.classifiers.detail.instances-chart'
@@ -121,10 +121,10 @@ export function ClassifierInstancesChart({classifier}: ClassifierInstancesChartP
               size="xs"
             />
           )}
-          value={interval}
+          value={chartInterval}
           menuTitle={t('Interval')}
           options={INTERVAL_OPTIONS}
-          onChange={option => setInterval(option.value)}
+          onChange={option => setChartInterval(option.value)}
         />
       </Tooltip>
     </Fragment>

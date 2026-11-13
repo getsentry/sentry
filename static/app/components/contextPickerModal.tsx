@@ -15,7 +15,6 @@ import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OrganizationSummary, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -56,7 +55,7 @@ type SharedProps = ModalRenderProps & {
 };
 
 type ContentProps = SharedProps & {
-  organizations: OrganizationSummary[];
+  organizations: readonly OrganizationSummary[];
   selectedOrgSlug: string | undefined;
   setSelectedOrgSlug: (slug: string) => void;
   projectSlugs?: string[];
@@ -460,7 +459,7 @@ export function ContextPickerModalContainer({
   projectSlugs,
   ...sharedProps
 }: ContainerProps) {
-  const {organizations} = useLegacyStore(OrganizationsStore);
+  const organizations = useStore(OrganizationsStore, state => state.organizations);
   const organization = useStore(OrganizationStore, state => state.organization);
   const [selectedOrgSlug, setSelectedOrgSlug] = useState(organization?.slug);
 

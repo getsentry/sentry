@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from sentry.inbox.issue import ISSUE_TEAM_MENTIONED, ISSUE_USER_MENTIONED, IssueMentionedData
 from sentry.inbox.types import SYSTEM_ACTOR as INBOX_SYSTEM_ACTOR
-from sentry.inbox.types import InboxActor, InboxEventSummary
+from sentry.inbox.types import InboxActor
 from sentry.integrations.tasks.create_comment import create_comment as create_external_comment
 from sentry.integrations.tasks.update_comment import update_comment as update_external_comment
 from sentry.issues.action_log import (
@@ -140,9 +140,7 @@ def create_comment(
                 create_inbox_items,
                 event_type=ISSUE_USER_MENTIONED,
                 subject=group,
-                data=IssueMentionedData(
-                    summary=InboxEventSummary.ISSUE_USER_MENTIONED, comment_id=note.id
-                ),
+                data=IssueMentionedData(comment_id=note.id),
                 user_ids=[
                     mention["id"] for mention in mentions if mention["actor_type"] == ActorType.USER
                 ],
@@ -152,9 +150,7 @@ def create_comment(
                 create_inbox_items,
                 event_type=ISSUE_TEAM_MENTIONED,
                 subject=group,
-                data=IssueMentionedData(
-                    summary=InboxEventSummary.ISSUE_TEAM_MENTIONED, comment_id=note.id
-                ),
+                data=IssueMentionedData(comment_id=note.id),
                 team_ids=[
                     mention["id"] for mention in mentions if mention["actor_type"] == ActorType.TEAM
                 ],
