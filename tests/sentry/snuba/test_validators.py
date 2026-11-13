@@ -76,6 +76,25 @@ class SnubaQueryValidatorTest(TestCase):
             ErrorDetail(string=f"Invalid query type {invalid_query_type}", code="invalid")
         ]
 
+    def test_time_window_out_of_bounds(self) -> None:
+        for time_window in (0, 59, 86401, 604800):
+            self.valid_data["timeWindow"] = time_window
+            validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
+            assert not validator.is_valid(), time_window
+            assert validator.errors.get("nonFieldErrors") == [
+                ErrorDetail(
+                    string="Invalid Time Window: must be between 1 minute and 24 hours",
+                    code="invalid",
+                )
+            ]
+
+    def test_time_window_at_bounds(self) -> None:
+        for time_window in (60, 86400):
+            self.valid_data["timeWindow"] = time_window
+            validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
+            assert validator.is_valid(), validator.errors
+            assert validator.validated_data["time_window"] == time_window
+
     def test_unsupported_dataset_with_query_type_returns_validation_error(self) -> None:
         """Spans dataset is a valid Dataset enum but is not alert-supported.
 

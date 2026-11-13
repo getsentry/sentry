@@ -61,8 +61,18 @@ export function createDashboard(
   orgSlug: string,
   newDashboard: DashboardDetails
 ): Promise<DashboardDetails> {
-  const {title, widgets, projects, environment, period, start, end, filters, utc} =
-    newDashboard;
+  const {
+    title,
+    widgets,
+    projects,
+    environment,
+    period,
+    start,
+    end,
+    filters,
+    utc,
+    queryPriority,
+  } = newDashboard;
 
   const promise: Promise<DashboardDetails> = api.requestPromise(
     getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
@@ -80,6 +90,7 @@ export function createDashboard(
         end,
         filters,
         utc,
+        ...(queryPriority ? {queryPriority} : {}),
       },
       query: {
         project: projects,

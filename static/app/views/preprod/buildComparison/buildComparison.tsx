@@ -1,4 +1,4 @@
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {skipToken, useMutation, useQueryClient, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
@@ -8,13 +8,16 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
-import {getCompareApiUrl} from 'sentry/views/preprod/utils/buildLinkUtils';
+import {
+  getCompareApiUrl,
+  sizeComparisonApiOptions,
+} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {handleStaffPermissionError} from 'sentry/views/preprod/utils/staffPermissionError';
 
 import {BuildCompareHeaderContent} from './header/buildCompareHeaderContent';
@@ -28,38 +31,43 @@ export default function BuildComparison() {
     headArtifactId?: string;
   }>();
 
-  const headBuildDetailsQuery = useApiQuery<BuildDetailsApiResponse>(
-    [
-      getApiUrl(
-        '/organizations/$organizationIdOrSlug/preprodartifacts/$headArtifactId/build-details/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            headArtifactId: headArtifactId!,
-          },
-        }
-      ),
-    ],
-    {
-      staleTime: 0,
-      enabled: !!headArtifactId,
-    }
+  const headBuildDetailsQuery = useQuery(
+    apiOptions.as<BuildDetailsApiResponse>()(
+      '/organizations/$organizationIdOrSlug/preprodartifacts/$headArtifactId/build-details/',
+      {
+        path: headArtifactId
+          ? {
+              organizationIdOrSlug: organization.slug,
+              headArtifactId,
+            }
+          : skipToken,
+        staleTime: 0,
+      }
+    )
   );
 
-  const compareUrl = getCompareApiUrl({
-    organizationSlug: organization.slug,
-    headArtifactId: headArtifactId!,
-    baseArtifactId: baseArtifactId!,
-  });
+  const compareOptions = sizeComparisonApiOptions(
+    headArtifactId && baseArtifactId
+      ? {
+          organizationSlug: organization.slug,
+          headArtifactId,
+          baseArtifactId,
+        }
+      : skipToken
+  );
 
   const queryClient = useQueryClient();
   const {mutate: rerunComparison, isPending: isRerunning} = useMutation<
     {status: string},
-    RequestError
+    RequestError,
+    {baseArtifactId: string; headArtifactId: string}
   >({
-    mutationFn: () => {
+    mutationFn: artifacts => {
       return fetchMutation({
-        url: compareUrl,
+        url: getCompareApiUrl({
+          organizationSlug: organization.slug,
+          ...artifacts,
+        }),
         method: 'POST',
         options: {query: {rerun: 'true'}},
       });
@@ -70,7 +78,7 @@ export default function BuildComparison() {
       } else {
         toast.success(t('Comparison rerun triggered'));
       }
-      queryClient.invalidateQueries({queryKey: [compareUrl]});
+      queryClient.invalidateQueries({queryKey: compareOptions.queryKey});
     },
     onError: (error: RequestError) => {
       if (error.status === 403) {
@@ -127,7 +135,11 @@ export default function BuildComparison() {
           buildDetails={headBuildDetailsQuery.data}
           headArtifactId={headArtifactId}
           baseArtifactId={baseArtifactId}
-          onRerunComparison={() => rerunComparison()}
+          onRerunComparison={
+            headArtifactId && baseArtifactId
+              ? () => rerunComparison({headArtifactId, baseArtifactId})
+              : undefined
+          }
           isRerunning={isRerunning}
         />
 

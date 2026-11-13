@@ -34,8 +34,8 @@ import {t, tct} from 'sentry/locale';
 import {
   OnboardingDrawerKey,
   OnboardingDrawerStore,
+  useIsOnboardingDrawerOpen,
 } from 'sentry/stores/onboardingDrawerStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -46,8 +46,7 @@ import {replayJsFrameworkOptions} from './utils';
 
 export function useReplaysOnboardingDrawer() {
   const organization = useOrganization();
-  const currentPanel = useLegacyStore(OnboardingDrawerStore);
-  const isActive = currentPanel === OnboardingDrawerKey.REPLAYS_ONBOARDING;
+  const isActive = useIsOnboardingDrawerOpen(OnboardingDrawerKey.REPLAYS_ONBOARDING);
   const hasProjectAccess = organization.access.includes('project:read');
 
   const {openDrawer} = useDrawer();

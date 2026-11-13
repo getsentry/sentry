@@ -1,4 +1,7 @@
 // Sentry's decision-model lint rules: https://github.com/getsentry/decision-model-linter
+import {execFile} from 'node:child_process';
+import {promisify} from 'node:util';
+
 import type {Config, Model, Suite} from '@sentry/decision-model-linter';
 
 const jev = {
@@ -8,7 +11,72 @@ const jev = {
   maxInputTokens: 32_768,
 } satisfies Model;
 
+const diffBase = process.env.DECISION_MODEL_LINT_BASE;
+const NO_DIFF = 'No diff available.';
+const execFileAsync = promisify(execFile);
+
+// the PR's renames (new path -> old path) which is loaded once per run and shared by every file
+let renames: Promise<Map<string, string>> | undefined;
+
+function renamedFrom(base: string): Promise<Map<string, string>> {
+  if (renames !== undefined) {
+    return renames;
+  }
+
+  renames = execFileAsync('git', ['diff', '--name-status', '--find-renames', base])
+    .then(({stdout}) => {
+      const map = new Map<string, string>();
+      let line: string;
+      for (line of stdout.split('\n')) {
+        const [status, oldPath, newPath] = line.split('\t');
+        if (status?.startsWith('R') && oldPath && newPath) {
+          map.set(newPath, oldPath);
+        }
+      }
+      return map;
+    })
+    .catch(() => new Map<string, string>());
+  return renames;
+}
+
+// the engine shows a changed file's new lines only, so a rule can't tell new code from code
+// that was already there. The diff adds the removed lines, with no context lines so unchanged
+// code stays hidden from the other rules in the suite
+async function diff({path}: {path: string}): Promise<string> {
+  if (!diffBase) {
+    return NO_DIFF;
+  }
+  try {
+    const oldPath = (await renamedFrom(diffBase)).get(path);
+    let paths: string[];
+    if (oldPath) {
+      paths = [oldPath, path];
+    } else {
+      paths = [path];
+    }
+
+    const gitArgs = ['diff', '--unified=0', '--find-renames', diffBase, '--'].concat(
+      paths
+    );
+    const result = await execFileAsync('git', gitArgs);
+    const stdout = result.stdout;
+
+    // a new file has no earlier version to compare and its diff would repeat the whole file
+    if (!stdout || /^new file mode/m.test(stdout)) {
+      return NO_DIFF;
+    }
+    return stdout;
+  } catch {
+    return NO_DIFF;
+  }
+}
+
+// added to the prompts of rules that should only report problems the change itself adds
+const CAUSED_BY_THIS_CHANGE =
+  'Use diff to tell whether this change caused it: compare its - (removed) and + (added) lines. A line that only moved or was reformatted appears as both - and +, so it already existed. If diff says No diff available., treat the whole file as under review and answer INTRODUCED for any problem.';
+
 const api = {
+  context: {diff},
   rules: {
     addsNewOmittedFields: {
       prompt:
@@ -84,6 +152,105 @@ const api = {
           value: 'FALSE',
           description:
             'The payload is validated by a serializer or schema first and values are read from the validated result, or the code only verifies a signature, reads headers, or passes the whole body to a parser without reading fields itself. Passing the whole decoded payload to a helper function without reading its keys here also does not count.',
+        },
+      ],
+    },
+    // The four rules below are a temporary, "warn only" safety net for API design rules while
+    // deterministic checks for them are built. We will remove each one once its check is enforced
+    returnsUnpaginatedList: {
+      threshold: 0.8,
+      prompt:
+        'Does an endpoint\'s GET method return a list of objects that can keep growing, such as an organization\'s projects, members, issues, releases, or monitors, without paginating it with self.paginate(...) or a paginator class? A list inside a response object (for example {"data": [...]}) counts too. Lists with a small fixed limit, lists of fixed choices or enum values, single objects, and lists that are only built for internal use and never returned do not count. ' +
+        CAUSED_BY_THIS_CHANGE,
+      values: [
+        {
+          value: 'INTRODUCED',
+          description:
+            'This change adds a GET handler, or a newly returned list, whose growing collection nothing paginates or limits, or it removes pagination from a list that had it. When diff says No diff available., this is the answer for any such problem.',
+          severity: 'warn',
+          report:
+            "List endpoints should paginate with `self.paginate(...)` and a `cursor` parameter. This change returns a list that can keep growing without paginating it. If the endpoint already existed, don't add pagination to it: that changes what existing callers get back.",
+        },
+        {
+          value: 'PREEXISTING',
+          description:
+            'The endpoint already returned the unpaginated list before this change: its handler and return lines are not added in diff, and the change only touches nearby code. Never the answer when diff says No diff available.',
+        },
+        {
+          value: 'NONE',
+          description:
+            'Every growing list the endpoint returns is paginated, or it returns a single object, a fixed set of values, or a list with a small fixed limit.',
+        },
+      ],
+    },
+    replacesMembershipWithList: {
+      threshold: 0.8,
+      prompt:
+        'Does a PUT, PATCH, or POST that updates an existing object accept a list of IDs, users, emails, teams, or members (for example a serializers.ListField of user IDs) and use it to replace the whole stored set, by comparing it to the current members and adding or removing the difference, clearing and re-adding, or calling set()? replayAccessMembers in organization_details.py is an example: two people editing the list at the same time overwrite each other. Lists sent once when an object is first created, lists that only add members, and lists of settings or values that are not memberships do not count. ' +
+        CAUSED_BY_THIS_CHANGE,
+      values: [
+        {
+          value: 'INTRODUCED',
+          description:
+            'This change adds a request list field, or new code that uses one, to replace the whole stored set of members on an existing object, and diff shows no removed line for that field or logic. When diff says No diff available., this is the answer for any such problem.',
+          severity: 'warn',
+          report:
+            "A list field that replaces a whole set of members lets two concurrent edits overwrite each other. Prefer separate endpoints to add and remove one member. Don't change or remove an existing field to fix this, because that breaks its callers.",
+        },
+        {
+          value: 'PREEXISTING',
+          description:
+            'A list already replaced the stored set before this change: the field and the replacing code are not added in diff, or appear as both removed and added lines. Never the answer when diff says No diff available.',
+        },
+        {
+          value: 'NONE',
+          description:
+            'No request list replaces a stored set of members, or the list is only used when creating a new object, only adds members, or is not a membership list.',
+        },
+      ],
+    },
+    returnsNumericIdAsInteger: {
+      prompt:
+        "Does API response code, such as a serializer's serialize() method, a response TypedDict, or the body passed to Response(...), return a numeric ID (id, or a field ending in Id or _id, such as projectId or organization_id) as an integer instead of a string? IDs converted with str(), IDs that are already strings (UUIDs, slugs, hex event IDs), counts and other numbers that are not IDs, and code that does not build an API response do not count. " +
+        CAUSED_BY_THIS_CHANGE,
+      values: [
+        {
+          value: 'INTRODUCED',
+          description:
+            'An added line returns a numeric ID as an integer, for example "id": obj.id, or declares an ID field as int in a response TypedDict, and no removed line in diff had that field: a new field, serializer, or endpoint. When diff says No diff available., this is the answer for any such problem.',
+          severity: 'warn',
+          report:
+            "API responses should return numeric IDs as strings, for example `str(obj.id)`. This change adds one returned as an integer. If the field already existed, don't change its type, because callers expect a number.",
+        },
+        {
+          value: 'PREEXISTING',
+          description:
+            'An ID is returned as an integer, but it already was before this change: the field also appears in a removed line in diff, or the change only touches nearby code. Never the answer when diff says No diff available.',
+        },
+        {
+          value: 'NONE',
+          description:
+            'Every ID in the response is a string, or the code builds no API response.',
+        },
+      ],
+    },
+    makesExistingInputStricter: {
+      threshold: 0.8,
+      prompt:
+        'Does the change make an endpoint or serializer that already existed reject input it used to accept, or change what callers get when they leave a field out? Compare the - (removed) and + (added) lines in diff for the same field or method. That includes: a field that becomes required (required=False or a default removed, or required=True added); a new required field added to an existing serializer; new or tighter validation on an existing field (a validate_<field> method, validators=, a smaller max_length or max_value, a larger min_length or min_value, a narrower choices list, or a new ValidationError raised from validate); an allowed value or format removed; or the default of an existing optional field changed. A serializer or endpoint is new, and does not count, when its class or def line is an added line in diff. New optional fields, relaxed validation, and lines that only moved or were reformatted do not count. If diff says No diff available., nothing existed to compare against, so answer FALSE.',
+      values: [
+        {
+          value: 'TRUE',
+          description:
+            "Diff shows existing input becoming stricter or changing meaning: a field became required, a required field was added to an existing serializer, validation was added or tightened, an allowed value was removed, or an optional field's default changed.",
+          severity: 'warn',
+          report:
+            "Rejecting input an endpoint accepted before, or changing a field's default, breaks existing callers, and the API spec often doesn't show it. Make the change backward compatible (keep the field optional, accept the old values, or keep the old default), or treat it as a breaking change and coordinate it.",
+        },
+        {
+          value: 'FALSE',
+          description:
+            'The change adds a new endpoint, serializer, or optional field, relaxes or keeps existing validation and defaults, only moves or reformats lines, or diff is not available.',
         },
       ],
     },
@@ -414,6 +581,27 @@ const security = {
         },
       ],
     },
+    // A temporary, warn only safety net while a deterministic check for unscoped lookups is built.
+    looksUpObjectWithoutOrgScope: {
+      threshold: 0.8,
+      prompt:
+        "Does endpoint code fetch an object using an ID from the request (request.data, request.GET, request.query_params, or a serializer's validated_data), with Model.objects.get(...), filter(...), or get_object_or_404, without also filtering by the caller's organization or project, as in Project.objects.get(id=request.data[\"project_id\"])? Lookups that filter by organization or project (organization_id=organization.id, project__organization=organization, project_id__in=...), IDs checked through self.get_projects() or a similar access-checked helper, objects checked afterwards with has_project_access or check_object_permissions, objects the endpoint's base class already resolved from the URL (organization, project, team, group), and lookups of the caller's own user do not count.",
+      values: [
+        {
+          value: 'TRUE',
+          description:
+            "An object is fetched by a request-supplied ID with no filter on the caller's organization or project and no access check on the result.",
+          severity: 'warn',
+          report:
+            "Objects fetched by an ID from the request should also be filtered by the caller's organization or project, for example `Model.objects.get(id=..., organization_id=organization.id)`, or checked with `self.get_projects()`. Without that, one organization can read or change another's data.",
+        },
+        {
+          value: 'FALSE',
+          description:
+            "Every request-supplied ID is looked up within the caller's organization or project, goes through an access-checked helper, or the object is access-checked after it is fetched, or no object is fetched by a request-supplied ID.",
+        },
+      ],
+    },
   },
 } satisfies Suite;
 
@@ -456,130 +644,6 @@ const productNames = [
   'User Feedback',
   'User Feedback Widget',
 ];
-const acronyms = [
-  '2FA',
-  'AI',
-  'ANR',
-  'AOT',
-  'API',
-  'ARN',
-  'ASGI',
-  'AWS',
-  'CD',
-  'CDN',
-  'CI',
-  'CIDR',
-  'CLI',
-  'CLS',
-  'CORS',
-  'CPU',
-  'CSP',
-  'CSS',
-  'CSV',
-  'DB',
-  'DEX',
-  'DNS',
-  'DOM',
-  'DSN',
-  'ELF',
-  'ESM',
-  'FCP',
-  'FID',
-  'FIFO',
-  'FPS',
-  'GC',
-  'GCP',
-  'GCS',
-  'GDPR',
-  'GPU',
-  'GraphQL',
-  'GUID',
-  'HEIC',
-  'HTML',
-  'HTTP',
-  'HTTPS',
-  'HMAC',
-  'IAM',
-  'ID',
-  'IdP',
-  'INP',
-  'IP',
-  'JAR',
-  'JPEG',
-  'JS',
-  'JSON',
-  'JSONL',
-  'JVM',
-  'JWT',
-  'LCP',
-  'LLM',
-  'MAUI',
-  'MCP',
-  'MIME',
-  'NDA',
-  'NDK',
-  'OAuth',
-  'OAuth2',
-  'OIDC',
-  'OOM',
-  'OS',
-  'OTel',
-  'OTLP',
-  'OTP',
-  'PDB',
-  'PE',
-  'PEM',
-  'PHP',
-  'PII',
-  'PKCE',
-  'PNG',
-  'PR',
-  'QR',
-  'RAM',
-  'REST',
-  'RSA',
-  'RPC',
-  'RSS',
-  'S3',
-  'SAML',
-  'SAML2',
-  'SCIM',
-  'SCM',
-  'SDK',
-  'SHA',
-  'SMS',
-  'SMTP',
-  'SPM',
-  'SQL',
-  'SQS',
-  'SSL',
-  'SSO',
-  'SSR',
-  'STARTTLS',
-  'SVG',
-  'TCP',
-  'TLS',
-  'TPM',
-  'TTFB',
-  'TTFD',
-  'TTID',
-  'TTL',
-  'U2F',
-  'UI',
-  'URI',
-  'URL',
-  'UTC',
-  'UDP',
-  'UTF-8',
-  'UUID',
-  'UWP',
-  'UX',
-  'WSGI',
-  'XSS',
-  'XML',
-  'YAML',
-  'ZIP',
-];
 const uiCopyScope =
   'Inspect only hardcoded English in the FIRST argument of t or tct and the FIRST TWO text arguments of tn imported from sentry/locale, including aliases. Calls to unrelated or locally shadowed helpers do not count. Ignore all other arguments, even if they contain English strings. Ignore unwrapped strings, code, URLs, identifiers, search keywords, and user data. Labels, headings, placeholders, productName fields, and body messages can be UI copy. In tct, [link:text] and [strong:text] display text; [code:text] displays code. In a diff, imports may be omitted; only changed literals count.';
 
@@ -599,28 +663,8 @@ const voice = {
   threshold: 0.7,
   unchecked: 'warn',
   rules: {
-    usesTitleCaseInUiCopy: {
-      // Distinct contexts evaluate each copy rule independently.
-      context: {
-        copyKind: 'heading and label capitalization',
-      },
-      prompt: `${uiCopyScope}\n\nDoes a heading, button, or label incorrectly use Title Case after its first word, or ALL CAPS for an ordinary English word? This includes bold section headings, table/chart labels, sidebar items, form labels, and widget titles. Use sentence case: "Last seen", not "Last Seen"; "Settings", not "SETTINGS". Preserve proper names and named products (${productNames.join(', ')}). Preserve recognized acronyms and their plurals, including ${acronyms.join(', ')}. These examples are not exhaustive. Preserve canonical mixed/lowercase names and metric notation. An ordinary English word does not become an acronym just because it is uppercase. Body prose and strings in other function arguments do not count.`,
-      values: [
-        {
-          value: 'TRUE',
-          description:
-            'An ordinary word in a translated heading or label uses title case after the first word, or unnecessary ALL CAPS. The offending word is in a translation text argument, not another argument or an unwrapped string.',
-          severity: 'warn',
-          report:
-            'Use sentence case for this title or label. Preserve the canonical spelling of product names, proper nouns, and acronyms.',
-        },
-        {
-          value: 'FALSE',
-          description:
-            'Every ordinary word has sentence-case spelling: only the first letter of an ordinary first word is capitalized, and later ordinary words are lowercase. Other capitalization belongs to proper names, acronyms, or technical notation.',
-        },
-      ],
-    },
+    // usesTitleCaseInUiCopy is off until there is a plan to migrate existing title-case copy;
+    // sentence case can't land page by page without mixing casing on one screen.
     miscapitalizesProductName: {
       context: {copyKind: 'product name capitalization'},
       threshold: 0.6,
@@ -662,6 +706,48 @@ const voice = {
   },
 } satisfies Suite;
 
+// Guardrails for the org:ci scope: endpoints reachable by CI org-auth-tokens
+// (e.g. sentry-cli) that expose data beyond what CI automation should read.
+const orgCiGuardrails = {
+  ignores: [
+    '**/tests/**',
+    '**/testutils/**',
+    '**/migrations/**',
+    'src/sentry/new_migrations/**',
+  ],
+  rules: {
+    grantsCiScopeToRepositoryContent: {
+      // Raised to cut borderline false positives, accepting that some real findings score below it.
+      threshold: 0.8,
+      prompt:
+        'Answer in two parts. First: does the code define a read endpoint (a GET handler) that returns source-control or repository content — pull request files, diffs, or patches; file, blob, or tree contents; or commit diffs — and make it reachable by an org:ci token? A caller holds org:ci when the endpoint\'s scope_map lists "org:ci" for GET, or when permission_classes uses a class that grants org:ci on GET: OrganizationIntegrationsLoosePermission, OrganizationCodeMappingsBulkPermission, OrganizationReleasePermission, or ProjectReleasePermission. In a scope_map the scopes listed for a method are alternatives, so including "org:ci" lets any org:ci token call the endpoint. The org:ci scope is for CI automation only — creating releases and uploading suspect-commit data, source maps, and debug files — so it should not read repository contents. Endpoints that only manage releases, deploys, or artifact uploads, and endpoints behind a permission whose GET scope omits org:ci (for example OrganizationIntegrationsPermission or OrganizationPermission), do not count. Second, only if the first part is true: does a comment or docstring on the endpoint explain that org:ci or CI-token access to this data is intentional or expected?',
+      values: [
+        {
+          value: 'EXPECTED',
+          description:
+            'The endpoint is a GET that returns repository or source-control content reachable by an org:ci token, AND a comment or docstring explains that org:ci or CI-token access to this data is intentional or expected.',
+          severity: 'warn',
+          report:
+            'An endpoint in this file exposes repository content to an `org:ci` token, which a comment marks as intentional. Logged as an accepted exception — confirm the justification for that endpoint still holds.',
+        },
+        {
+          value: 'TRUE',
+          description:
+            'The endpoint is a GET that returns repository or source-control content reachable by an org:ci token (its GET scope_map lists "org:ci", or it uses OrganizationIntegrationsLoosePermission, OrganizationCodeMappingsBulkPermission, OrganizationReleasePermission, or ProjectReleasePermission), and no comment or docstring explains that this org:ci access is intentional.',
+          severity: 'warn',
+          report:
+            'The `org:ci` scope is for CI automation (releases and artifact uploads), not for reading repository contents. An endpoint in this file returns source-control data but is reachable by an `org:ci` token, with no comment marking it as intentional. Find the endpoint whose permission grants `org:ci` and either use a permission class whose GET scope omits `org:ci` (for example `OrganizationIntegrationsPermission`), reject `org:ci` tokens explicitly, or add a comment on it explaining why the access is intended.',
+        },
+        {
+          value: 'FALSE',
+          description:
+            'The endpoint does not return repository or source-control content, or it is not reachable by an org:ci token — its GET scope_map omits "org:ci" and it uses no permission class that grants org:ci. Release, deploy, and artifact-upload endpoints do not count.',
+        },
+      ],
+    },
+  },
+} satisfies Suite;
+
 export default {
   model: jev,
   files: [
@@ -672,5 +758,5 @@ export default {
     'static/gsApp/**/*.tsx',
   ],
   ignores: ['**/tests/**', '**/testutils/**'],
-  suites: {api, audit, frontend, security, voice},
+  suites: {api, audit, frontend, security, voice, orgCiGuardrails},
 } satisfies Config;

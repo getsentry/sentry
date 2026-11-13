@@ -275,6 +275,11 @@ class RepositoryDefinitionResponse(BaseModel):
     external_id: str | None
 
 
+class RepositoryDefinitionFailure(BaseModel):
+    failure_reason: Literal["no_scm_integration", "scm_account_not_connected", "repo_not_in_sentry"]
+    connected_accounts: list[str] = []
+
+
 class EventFilterKeyEntry(BaseModel):
     type: str
 
@@ -881,6 +886,7 @@ class HeaderAuthConnectionData(BaseModel):
     url: str
     encrypted_auth_headers: dict[str, str] | None = None
     identity_id: int | None = None
+    integration_id: int | None = None
     auth_method: str
     refreshable: bool = True
 
@@ -946,6 +952,7 @@ class RefreshMonitoringProviderTokenErrorResponse(BaseModel):
         "encryption_failed",
         "identity_not_found",
         "identity_not_valid",
+        "integration_not_found",
         "refresh_failed",
         "refresh_not_supported",
     ]

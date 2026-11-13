@@ -8,16 +8,23 @@ from uuid import uuid4
 from django.db import router, transaction
 from django.utils import timezone
 
-from sentry.inbox.issue import record_issue_team_mention, record_issue_user_mention
-from sentry.inbox.types import InboxActor
+from sentry.inbox.issue import ISSUE_TEAM_MENTIONED, ISSUE_USER_MENTIONED, IssueMentionedData
+from sentry.inbox.types import SYSTEM_ACTOR as INBOX_SYSTEM_ACTOR
+from sentry.inbox.types import InboxActor, InboxEventSummary
 from sentry.integrations.tasks.create_comment import create_comment as create_external_comment
 from sentry.integrations.tasks.update_comment import update_comment as update_external_comment
-from sentry.issues.action_log import GroupActionActor, action_context_scope, publish_action
+from sentry.issues.action_log import (
+    SYSTEM_ACTOR,
+    GroupActionActor,
+    action_context_scope,
+    publish_action,
+)
 from sentry.issues.action_log.types import CommentDeleteAction, CommentEditAction
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupsubscription import GroupSubscription
+from sentry.notifications.platform.inbox import create_inbox_items
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import comment_created, comment_deleted, comment_updated
 from sentry.types.activity import ActivityType
@@ -78,21 +85,37 @@ def _sync_comment(note: Activity, user_id: int, *, created: bool) -> None:
 def create_comment(
     *,
     group: Group,
-    user: User | RpcUser,
+    user: User | RpcUser | None,
     data: dict[str, Any],
     source: str,
     from_email: bool = False,
+    service_account_id: int | None = None,
 ) -> Activity | None:
     """
     Create a comment, preserving the existing inbound-email policy.
 
     Email deduplicates within the project without a time limit and skips subscriptions,
     integration sync, and the comment_created signal. Activity notifications still run.
+
+    A service account comments with no user: its id is stored on the comment. It gets no
+    subscription, and the comment isn't synced to linked external issues, which name a user
+    as the author.
     """
+    if user is None:
+        assert service_account_id is not None
+        data = {**data, "service_account_id": service_account_id}
+        action_actor = SYSTEM_ACTOR
+        inbox_actor = INBOX_SYSTEM_ACTOR
+    else:
+        action_actor = GroupActionActor.user(user.id)
+        inbox_actor = InboxActor.user(user.id)
+
     with _comment_transaction(group) as group:
-        duplicates = Activity.objects.filter(
-            group=group, type=ActivityType.NOTE.value, user_id=user.id, data=data
-        )
+        duplicates = Activity.objects.filter(group=group, type=ActivityType.NOTE.value, data=data)
+        if user is None:
+            duplicates = duplicates.filter(user_id__isnull=True)
+        else:
+            duplicates = duplicates.filter(user_id=user.id)
         if from_email:
             duplicates = duplicates.filter(project_id=group.project_id)
         else:
@@ -100,35 +123,44 @@ def create_comment(
         if duplicates.exists():
             return None
 
-        if not from_email:
+        if user is not None and not from_email:
             GroupSubscription.objects.subscribe(
                 group=group, subscriber=user, reason=GroupSubscriptionReason.comment
             )
 
-        with action_context_scope(source=source, actor=GroupActionActor.user(user.id)):
+        with action_context_scope(source=source, actor=action_actor):
             note = Activity.objects.create_group_activity(
-                group=group, type=ActivityType.NOTE, user_id=user.id, data=data
+                group=group,
+                type=ActivityType.NOTE,
+                user_id=user.id if user is not None else None,
+                data=data,
             )
             mentions = data.get("mentions", [])
             safe_execute(
-                record_issue_user_mention,
-                group=group,
-                comment_id=note.id,
-                mentioned_user_ids=[
+                create_inbox_items,
+                event_type=ISSUE_USER_MENTIONED,
+                subject=group,
+                data=IssueMentionedData(
+                    summary=InboxEventSummary.ISSUE_USER_MENTIONED, comment_id=note.id
+                ),
+                user_ids=[
                     mention["id"] for mention in mentions if mention["actor_type"] == ActorType.USER
                 ],
-                actor=InboxActor.user(user.id),
+                actor=inbox_actor,
             )
             safe_execute(
-                record_issue_team_mention,
-                group=group,
-                comment_id=note.id,
-                mentioned_team_ids=[
+                create_inbox_items,
+                event_type=ISSUE_TEAM_MENTIONED,
+                subject=group,
+                data=IssueMentionedData(
+                    summary=InboxEventSummary.ISSUE_TEAM_MENTIONED, comment_id=note.id
+                ),
+                team_ids=[
                     mention["id"] for mention in mentions if mention["actor_type"] == ActorType.TEAM
                 ],
-                actor=InboxActor.user(user.id),
+                actor=inbox_actor,
             )
-            if not from_email:
+            if user is not None and not from_email:
                 _after_commit(partial(_sync_comment, note, user.id, created=True))
 
         if not from_email:

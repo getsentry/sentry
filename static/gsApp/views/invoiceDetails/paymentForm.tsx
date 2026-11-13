@@ -7,8 +7,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 
 import {CreditCardForm} from 'getsentry/components/creditCardEdit/form';
 import type {Invoice} from 'getsentry/types';
@@ -29,11 +27,6 @@ export default function InvoiceDetailsPaymentForm({
   reloadInvoice,
 }: Props) {
   const [referrer] = useQueryState('referrer');
-  const endpoint = [
-    getApiUrl('/organizations/$organizationIdOrSlug/payments/$paymentId/new/', {
-      path: {organizationIdOrSlug: organization.slug, paymentId: invoice.id},
-    }),
-  ] satisfies ApiQueryKey;
 
   return (
     <Fragment>
@@ -60,7 +53,6 @@ export default function InvoiceDetailsPaymentForm({
               closeModal();
             }}
             organization={organization}
-            intentDataQueryKey={endpoint}
             referrer={referrer || undefined}
             buttonText={t('Pay Now')}
           />

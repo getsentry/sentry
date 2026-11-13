@@ -1600,12 +1600,13 @@ def create_group_with_grouphashes(job: Job, grouphashes: list[GroupHash]) -> Gro
 
             return GroupInfo(group=group, is_new=True, is_regression=False)
 
-        # On the other hand, if we did in fact end up on the losing end of a race condition, treat
-        # this the same way we would if we'd found a grouphash to begin with (and never landed in
-        # this function at all)
-        else:
-            # TODO: should we be setting tags here, too?
-            return handle_existing_grouphash(job, existing_grouphash, grouphashes)
+    # On the other hand, if we did in fact end up on the losing end of a race condition, treat this
+    # the same way we would if we'd found a grouphash to begin with (and never landed in this
+    # function at all). We do this after the transaction ends, so that the row locks are released
+    # and so that the Redis buffer call in `handle_existing_grouphash` does not run inside the
+    # transaction.
+    # TODO: should we be setting tags here, too?
+    return handle_existing_grouphash(job, existing_grouphash, grouphashes)
 
 
 def _create_group(

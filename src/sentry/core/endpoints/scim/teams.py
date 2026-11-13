@@ -1,14 +1,14 @@
 import logging
 import re
 from collections.abc import Mapping, Sequence
-from typing import Any, cast
+from typing import Annotated, Any, cast
 
 import sentry_sdk
 from django.conf import settings
 from django.db import IntegrityError, router, transaction
 from django.http.response import HttpResponseBase
 from django.utils.text import slugify
-from drf_spectacular.utils import extend_schema, extend_schema_serializer, inline_serializer
+from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
 from rest_framework.exceptions import APIException, ParseError
 from rest_framework.request import Request
@@ -25,11 +25,13 @@ from sentry.api.serializers.models.team import (
     TeamSCIMSerializer,
 )
 from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
     RESPONSE_NOT_FOUND,
     RESPONSE_SUCCESS,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.scim_examples import SCIMExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
@@ -100,6 +102,13 @@ class SCIMTeamPatchOperationSerializer(serializers.Serializer):
         if value in [TeamPatchOps.REPLACE, TeamPatchOps.REMOVE, TeamPatchOps.ADD]:
             return value
         raise serializers.ValidationError(f'"{value}" is not a valid choice')
+
+
+class SCIMTeamRequestBodySerializer(serializers.Serializer):
+    displayName = serializers.CharField(
+        help_text="The slug of the team that is shown in the UI.",
+        required=True,
+    )
 
 
 class SCIMTeamPatchRequestSerializer(serializers.Serializer):
@@ -178,7 +187,10 @@ def _team_expand(excluded_attributes: list[str]) -> list[str] | None:
 
 
 class SCIMListTeamsResponse(SCIMListBaseResponse):
-    Resources: list[OrganizationTeamSCIMSerializerResponse]
+    Resources: Annotated[
+        list[OrganizationTeamSCIMSerializerResponse],
+        ApiDescription("Teams in this page, as SCIM groups"),
+    ]
 
 
 @extend_schema(tags=["SCIM"])
@@ -245,17 +257,10 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
         operation_id="provisionOrganizationScimV2Group",
         summary="Provision a New Team",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
-        request=inline_serializer(
-            name="SCIMTeamRequestBody",
-            fields={
-                "displayName": serializers.CharField(
-                    help_text="The slug of the team that is shown in the UI.",
-                    required=True,
-                ),
-            },
-        ),
+        request=SCIMTeamRequestBodySerializer,
         responses={
             201: TeamSCIMSerializer,
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -272,17 +277,19 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
 
         Note that teams are always created with an empty member set.
         """
+        scim_serializer = SCIMTeamRequestBodySerializer(data=request.data)
+        if not scim_serializer.is_valid():
+            return Response(
+                as_validation_errors(scim_serializer), status=status.HTTP_400_BAD_REQUEST
+            )
+        display_name = scim_serializer.validated_data["displayName"]
+
+        metrics.incr("sentry.scim.team.provision")
         # shim displayName from SCIM api in order to work with
         # our regular team index POST
-        request.data.update(
-            {
-                "name": request.data["displayName"],
-                "slug": slugify(request.data["displayName"]),
-                "idp_provisioned": True,
-            }
+        serializer = TeamPostSerializer(
+            data={"name": display_name, "slug": slugify(display_name), "idp_provisioned": True}
         )
-        metrics.incr("sentry.scim.team.provision")
-        serializer = TeamPostSerializer(data=request.data)
 
         if serializer.is_valid():
             result = serializer.validated_data
@@ -572,6 +579,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         request=SCIMTeamPatchRequestSerializer,
         responses={
             204: RESPONSE_SUCCESS,
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,

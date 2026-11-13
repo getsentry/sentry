@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal, TypedDict, cast
 
 import orjson
 from django.utils.dateparse import parse_datetime
 from rest_framework import serializers
 
-MAX_TABLE_ROWS = 100
 MAX_CHART_SERIES = 5
 MAX_POINTS_PER_SERIES = 200
 MAX_ARTIFACT_BYTES = 1024 * 1024
@@ -26,6 +25,28 @@ def json_byte_size(value: Any) -> int:
         raise serializers.ValidationError("Payload is not serializable.") from error
 
 
+class RelaxedContractSerializer(serializers.Serializer[Any]):
+    def to_internal_value(self, data: Any) -> dict[str, Any]:
+        validated = cast("dict[str, Any]", super().to_internal_value(data))
+        if not isinstance(data, dict):
+            return validated
+        passthrough = {key: value for key, value in data.items() if key not in self.fields}
+        return {**passthrough, **validated}
+
+
+class StrictCharField(serializers.CharField):
+    """A string that rejects the numbers DRF would stringify, and keeps its whitespace."""
+
+    def __init__(self, **kwargs: Any) -> None:
+        kwargs.setdefault("trim_whitespace", False)
+        super().__init__(**kwargs)
+
+    def to_internal_value(self, data: Any) -> str:
+        if not isinstance(data, str):
+            self.fail("invalid")
+        return super().to_internal_value(data)
+
+
 class StrictContractSerializer(serializers.Serializer[Any]):
     def to_internal_value(self, data: Any) -> dict[str, Any]:
         if isinstance(data, dict):
@@ -33,115 +54,6 @@ class StrictContractSerializer(serializers.Serializer[Any]):
             if unknown:
                 raise serializers.ValidationError({field: "Unknown field." for field in unknown})
         return super().to_internal_value(data)
-
-
-class QueryTimeRangeSerializer(StrictContractSerializer):
-    statsPeriod = serializers.CharField(required=False, allow_null=True)
-    start = serializers.CharField(required=False, allow_null=True)
-    end = serializers.CharField(required=False, allow_null=True)
-
-    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
-        if bool(attrs.get("start")) != bool(attrs.get("end")):
-            raise serializers.ValidationError("start and end must be provided together")
-        if attrs.get("statsPeriod") and attrs.get("start"):
-            raise serializers.ValidationError("Use a relative or absolute time range, not both.")
-        return attrs
-
-
-class CanonicalQuerySerializer(StrictContractSerializer):
-    dataset = serializers.ChoiceField(choices=("spans", "issues", "errors", "logs", "metrics"))
-    query = serializers.CharField(allow_blank=True)
-    mode = serializers.CharField(allow_blank=True)
-    fields = serializers.ListField(  # type: ignore[assignment]
-        child=serializers.CharField(), required=False, default=list
-    )
-    yAxes = serializers.ListField(child=serializers.CharField(), required=False, default=list)
-    groupBy = serializers.ListField(child=serializers.CharField(), required=False, default=list)
-    sort = serializers.CharField(required=False, allow_blank=True, default="")
-    interval = serializers.CharField(required=False, allow_null=True)
-    timeRange = QueryTimeRangeSerializer()
-    projectIds = serializers.ListField(
-        child=serializers.IntegerField(min_value=1), required=False, default=list
-    )
-    projectSlugs = serializers.ListField(
-        child=serializers.CharField(), required=False, default=list
-    )
-    spanQuery = serializers.CharField(required=False, allow_null=True)
-    logQuery = serializers.CharField(required=False, allow_null=True)
-    metricQuery = serializers.CharField(required=False, allow_null=True)
-    linkParams = serializers.DictField(required=False, default=dict)
-
-
-class TableColumnSerializer(StrictContractSerializer):
-    key = serializers.CharField()
-    label = serializers.CharField()  # type: ignore[assignment]
-    type = serializers.ChoiceField(
-        choices=(
-            "string",
-            "number",
-            "boolean",
-            "datetime",
-            "duration",
-            "percentage",
-            "bytes",
-            "issue",
-            "trace",
-            "event",
-            "project",
-            "release",
-        ),
-        default="string",
-    )
-    unit = serializers.CharField(required=False, allow_null=True)
-
-
-class TableResultSerializer(StrictContractSerializer):
-    columns = serializers.ListField(child=TableColumnSerializer(), min_length=1)
-    rows = serializers.ListField(child=serializers.ListField(), max_length=MAX_TABLE_ROWS)
-    totalRows = serializers.IntegerField(min_value=0)
-    returnedRows = serializers.IntegerField(min_value=0)
-    truncated = serializers.BooleanField(required=False, default=False)
-
-    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
-        width = len(attrs["columns"])
-        if any(len(row) != width for row in attrs["rows"]):
-            raise serializers.ValidationError("Every table row must match the column count.")
-        if attrs["returnedRows"] != len(attrs["rows"]):
-            raise serializers.ValidationError("returnedRows must match the number of rows.")
-        if attrs["totalRows"] < attrs["returnedRows"]:
-            raise serializers.ValidationError("totalRows cannot be smaller than returnedRows.")
-        if any(
-            not isinstance(value, (str, int, float, bool)) and value is not None
-            for row in attrs["rows"]
-            for value in row
-        ):
-            raise serializers.ValidationError("Table cells must be JSON scalar values.")
-        return attrs
-
-
-class ChartPointSerializer(StrictContractSerializer):
-    x = serializers.JSONField()
-    y = serializers.FloatField()
-
-    def validate_x(self, value: Any) -> str | int | float:
-        if isinstance(value, bool) or not isinstance(value, (str, int, float)):
-            raise serializers.ValidationError("Chart x values must be strings or numbers.")
-        return value
-
-
-class ChartSeriesSerializer(StrictContractSerializer):
-    name = serializers.CharField()
-    data = serializers.ListField(  # type: ignore[assignment]
-        child=ChartPointSerializer(), min_length=1, max_length=MAX_POINTS_PER_SERIES
-    )
-
-
-class ChartResultSerializer(StrictContractSerializer):
-    xAxis = serializers.ChoiceField(choices=("time", "category"))
-    series = serializers.ListField(
-        child=ChartSeriesSerializer(), min_length=1, max_length=MAX_CHART_SERIES
-    )
-    truncated = serializers.BooleanField(required=False, default=False)
 
 
 class SeerChartPointSerializer(StrictContractSerializer):
@@ -217,7 +129,7 @@ class VisualizationSerializer(StrictContractSerializer):
     topN = serializers.IntegerField(required=False, allow_null=True, min_value=1, max_value=20)
 
 
-class InvestigationQueryLinkSerializer(StrictContractSerializer):
+class NotebookQueryLinkSerializer(StrictContractSerializer):
     kind = serializers.CharField(max_length=64)
     params = serializers.DictField()
 
@@ -233,7 +145,7 @@ class InvestigationQueryLinkSerializer(StrictContractSerializer):
         return value
 
 
-class InvestigationQueryResultSerializer(StrictContractSerializer):
+class NotebookQueryResultSerializer(StrictContractSerializer):
     schemaVersion = serializers.IntegerField(min_value=1, max_value=1)
     tableMarkdown = serializers.CharField(max_length=MAX_MARKDOWN_CHARS, trim_whitespace=False)
     chart = SeerChartEmbedSerializer(required=False, allow_null=True)
@@ -241,7 +153,7 @@ class InvestigationQueryResultSerializer(StrictContractSerializer):
     isEmpty = serializers.BooleanField(default=False)
     chartUnavailableReason = serializers.CharField(required=False, allow_null=True)
     queryLinks = serializers.ListField(
-        child=InvestigationQueryLinkSerializer(), required=False, default=list
+        child=NotebookQueryLinkSerializer(), required=False, default=list
     )
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
@@ -252,7 +164,7 @@ class InvestigationQueryResultSerializer(StrictContractSerializer):
         return attrs
 
 
-class InvestigationTextResultSerializer(StrictContractSerializer):
+class NotebookTextResultSerializer(StrictContractSerializer):
     schemaVersion = serializers.IntegerField(min_value=1, max_value=1)
     markdown = serializers.CharField(max_length=MAX_MARKDOWN_CHARS, trim_whitespace=False)
 
@@ -260,7 +172,7 @@ class InvestigationTextResultSerializer(StrictContractSerializer):
 def validate_query_result(value: Any) -> dict[str, Any]:
     if json_byte_size(value) > MAX_ARTIFACT_BYTES:
         raise serializers.ValidationError("Query result exceeds the maximum artifact size.")
-    serializer = InvestigationQueryResultSerializer(data=value)
+    serializer = NotebookQueryResultSerializer(data=value)
     serializer.is_valid(raise_exception=True)
     return dict(serializer.validated_data)
 
@@ -268,6 +180,36 @@ def validate_query_result(value: Any) -> dict[str, Any]:
 def validate_text_result(value: Any) -> dict[str, Any]:
     if json_byte_size(value) > MAX_ARTIFACT_BYTES:
         raise serializers.ValidationError("Text result exceeds the maximum artifact size.")
-    serializer = InvestigationTextResultSerializer(data=value)
+    serializer = NotebookTextResultSerializer(data=value)
     serializer.is_valid(raise_exception=True)
     return dict(serializer.validated_data)
+
+
+class ActionRequestAnchor(TypedDict):
+    type: Literal["block", "hypothesis"]
+    id: str
+
+
+class ActionRequestItem(TypedDict):
+    """A request from Seer that has passed validation."""
+
+    key: str
+    reportRevision: int
+    title: str
+    rationale: str
+    impact: str | None
+    primary: bool
+    anchor: ActionRequestAnchor | None
+    # The action kind owns this, so nothing else should read inside it.
+    action: dict[str, Any] | None
+
+
+class ActionPayloadSerializer(RelaxedContractSerializer):
+    """Base class for an action kind's payload. Each kind validates its own fields."""
+
+    kind = StrictCharField(max_length=64)
+
+    @classmethod
+    def trim(cls, action: dict[str, Any]) -> dict[str, Any] | None:
+        """Remove values this kind won't accept. Return None to keep the request as advice."""
+        return action

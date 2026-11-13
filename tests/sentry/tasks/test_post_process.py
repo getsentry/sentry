@@ -2995,6 +2995,20 @@ class ProcessSimilarityTestMixin(BasePostProcessGroupMixin):
         self.assert_not_called_with(mock_safe_execute)
 
     @patch("sentry.tasks.post_process.safe_execute")
+    @override_options({"similarity.seer_grouping.all_projects": True})
+    def test_skip_process_similarity_seer_all_projects(self, mock_safe_execute: MagicMock) -> None:
+        event = self.create_event(data={}, project_id=self.project.id)
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        self.assert_not_called_with(mock_safe_execute)
+
+    @patch("sentry.tasks.post_process.safe_execute")
     @override_options({"sentry.similarity.indexing.enabled": False})
     def test_skip_process_similarity_global(self, mock_safe_execute: MagicMock) -> None:
         event = self.create_event(data={}, project_id=self.project.id)
@@ -3794,6 +3808,24 @@ class PostProcessGroupErrorTest(
             is_new=True, is_regression=False, is_new_group_environment=True, event=event
         )
         mock_generate_summary_only.assert_called_once_with(require_group(event).id)
+
+    @patch("sentry.seer.autofix.utils.is_seer_seat_based_tier_enabled", return_value=False)
+    @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
+    @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    def test_token_billed_org_generates_summary_for_new_issues(
+        self,
+        mock_generate_summary_only: MagicMock,
+        mock_generate_summary_and_run_automation: MagicMock,
+        mock_seat_based_tier: MagicMock,
+    ) -> None:
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        with self.feature("organizations:token-billed-seer-enabled"):
+            self.call_post_process_group(
+                is_new=True, is_regression=False, is_new_group_environment=True, event=event
+            )
+        mock_generate_summary_only.assert_called_once_with(require_group(event).id)
+        mock_generate_summary_and_run_automation.assert_not_called()
 
     def setUp(self) -> None:
         super().setUp()

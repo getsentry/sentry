@@ -37,6 +37,7 @@ MOBILE = {
     "javascript-capacitor",
     "ionic",
     "react-native",
+    "expo",
     "flutter",
     "dart-flutter",
     "unity",
@@ -189,6 +190,7 @@ CATEGORY_LIST = [
 SOURCE_MAPS = {
     *FRONTEND,
     "react-native",
+    "expo",
     "cordova",
     "electron",
 }

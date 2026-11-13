@@ -8,6 +8,7 @@ from typing import Any, Literal, TypedDict, cast
 
 from django.core.exceptions import BadRequest
 from django.db import models
+from django.db.models import Q
 from rest_framework.exceptions import ParseError
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
@@ -21,8 +22,12 @@ from sentry.api.serializers.models.activity import ActivitySerializer, ActivityS
 from sentry.api.serializers.models.commit import CommitSerializer, CommitSerializerResponse
 from sentry.api.serializers.models.event import EventSerializer
 from sentry.api.serializers.models.group import GroupSerializer
+from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
 from sentry.api.utils import MAX_STATS_PERIOD, default_start_end_dates, get_date_range_from_params
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
+from sentry.integrations.services.integration import RpcIntegration, integration_service
+from sentry.integrations.types import IntegrationProviderSlug
+from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.formatting.formatter import Format
 from sentry.issues.formatting.limits import LIMITS_DEFAULT, LIMITS_LOW
 from sentry.issues.formatting.mixin import FORMATTER_FEATURE, VALID_FORMATS
@@ -103,6 +108,7 @@ from sentry.seer.sentry_data_models import (
     ProfileFlamegraphSuccessResponse,
     ProjectMembersResponse,
     ReplayMetadataResponse,
+    RepositoryDefinitionFailure,
     RepositoryDefinitionResponse,
     TeamMembersResponse,
     TraceItemEventsResponse,
@@ -119,6 +125,7 @@ from sentry.snuba.utils import get_dataset
 from sentry.types.activity import ActivityType
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
+from sentry.utils.action_log.activity_translator import ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE
 from sentry.utils.committers import (
     get_event_file_committers,
     get_frame_paths,
@@ -926,25 +933,129 @@ def rpc_get_profile_flamegraph(
     )
 
 
+def _account_path(integration: RpcIntegration) -> str:
+    """The path an account's repository paths start with, so what a lookup should be given:
+    "acme-labs" for "acme-labs/app". It's the account's name, except on GitLab, where the name is
+    the group's display name ("My Group / Sub") and the path is "my-group/sub"."""
+    if integration.provider == IntegrationProviderSlug.GITLAB.value:
+        return integration.metadata.get("domain_name", "").partition("/")[2]
+    return integration.name
+
+
+def _starts_with(segments: list[str], prefix: list[str]) -> bool:
+    """Whether ``segments`` start with all of ``prefix``, with more after it."""
+    return 0 < len(prefix) < len(segments) and segments[: len(prefix)] == prefix
+
+
+def _loose_segments(name: str) -> list[str]:
+    """A name's segments, ignoring a leading "https://", spaces around each "/", and case."""
+    without_scheme = name.split("://", 1)[-1]
+    return [segment.strip().casefold() for segment in without_scheme.split("/") if segment.strip()]
+
+
+def _is_under_account(repo_full_name: str, integration: RpcIntegration) -> bool:
+    """Whether a repository name is under the integration's account, written the way a lookup
+    reads names: the account's path in any case ("ACME-Labs/app"), or on GitLab, the group's
+    display name as it is ("My Group / Sub / App"). A lookup that misses such a name means Sentry
+    has no such repository."""
+    account_path = _account_path(integration).casefold().split("/")
+    if _starts_with(repo_full_name.casefold().split("/"), account_path):
+        return True
+    return integration.provider == IntegrationProviderSlug.GITLAB.value and _starts_with(
+        repo_full_name.split(" / "), integration.name.split(" / ")
+    )
+
+
+def _may_be_under_account(repo_full_name: str, integration: RpcIntegration) -> bool:
+    """Whether a repository name is under the integration's account once spaces and case are
+    ignored ("My Group/Sub/App"), or past the account's host ("github.com/acme-labs/app"). A lookup
+    misses names written like this even when Sentry has the repository."""
+    repo_segments = _loose_segments(repo_full_name)
+    url = _loose_segments(integration.metadata.get("domain_name", ""))
+    # The URL with its host ("github.com/acme-labs") and without it ("acme-labs").
+    for account in (_loose_segments(integration.name), url, url[1:]):
+        if _starts_with(repo_segments, account):
+            return True
+    return False
+
+
+def _find_repository(
+    organization_id: int, repo_full_name: str, providers: list[str]
+) -> Repository | None:
+    """Find a repository by its name or its URL path. They're the same except on GitLab, where the
+    name is a display name ("My Group / App") and the path is "my-group/app"."""
+    candidates = Repository.objects.filter(
+        Q(name=repo_full_name) | Q(url__iendswith=f"/{repo_full_name}"),
+        organization_id=organization_id,
+        status=ObjectStatus.ACTIVE,
+        provider__in=providers,
+    ).order_by("id")
+    # A URL can also end this way for a repository further down: ".../parent/my-group/app".
+    requested = repo_full_name.casefold()
+    for repo in candidates:
+        if requested in (repo.name.casefold(), get_repo_url_path(repo).casefold()):
+            return repo
+    return None
+
+
+def _repository_lookup_failure(
+    organization_id: int, repo_full_name: str, supported_providers: list[str]
+) -> RepositoryDefinitionFailure | None:
+    """Why a lookup found nothing, when it's known."""
+    integrations = integration_service.get_integrations(
+        organization_id=organization_id,
+        providers=supported_providers,
+        status=ObjectStatus.ACTIVE,
+        org_integration_status=ObjectStatus.ACTIVE,
+    )
+    if not integrations:
+        return RepositoryDefinitionFailure(failure_reason="no_scm_integration")
+
+    # A name with no owner can't be under any account, so there's nothing to say about it.
+    if len(_loose_segments(repo_full_name)) < 2:
+        return None
+    under_connected_account = any(
+        _is_under_account(repo_full_name, integration) for integration in integrations
+    )
+    # The lookup may have missed only because of how the name is written, so the reason isn't known.
+    if not under_connected_account and any(
+        _may_be_under_account(repo_full_name, integration) for integration in integrations
+    ):
+        return None
+    return RepositoryDefinitionFailure(
+        failure_reason=(
+            "repo_not_in_sentry" if under_connected_account else "scm_account_not_connected"
+        ),
+        # What the agent can retry with, once each. Sorted: integrations come in no set order.
+        connected_accounts=sorted({_account_path(integration) for integration in integrations}),
+    )
+
+
 def get_repository_definition(
     *,
     organization_id: int,
     repo_full_name: str,
     external_id: str | None = None,
-) -> RepositoryDefinitionResponse | None:
+    report_failure_reason: bool = False,
+) -> RepositoryDefinitionResponse | RepositoryDefinitionFailure | None:
     """
     Look up a repository that the org has access to.
     Returns full RepoDefinition if found and accessible via code mappings, None otherwise.
 
     Lookup priority:
     1. external_id (GitHub's repo ID - stable across renames)
-    2. Current name (exact match)
+    2. Current name or URL path
 
     Args:
         organization_id: The ID of the organization
         repo_full_name: Full repository name in format "owner/repo-name" (e.g., "getsentry/seer")
         external_id: Optional external repository ID (e.g., GitHub repo ID). Stable across renames.
                      If provided, this is used for lookup instead of name.
+        report_failure_reason: When nothing is found, say why in the response when it's known,
+                     instead of returning None: no source control connected, the repository's
+                     account isn't connected, or its account is connected but the repository isn't
+                     in Sentry. Opt-in because callers that don't ask would read that response as a
+                     repository.
 
     Returns:
         dict with RepoDefinition fields if found, None otherwise. Includes external_id
@@ -973,14 +1084,8 @@ def get_repository_definition(
                 "seer.rpc.invalid_repo_name_format",
                 extra={"repo_full_name": repo_full_name},
             )
-            return None
-
-        repo = Repository.objects.filter(
-            organization_id=organization_id,
-            name=repo_full_name,
-            status=ObjectStatus.ACTIVE,
-            provider__in=supported_providers,
-        ).first()
+        else:
+            repo = _find_repository(organization_id, repo_full_name, supported_providers)
 
     if not repo:
         logger.info(
@@ -991,6 +1096,8 @@ def get_repository_definition(
                 "external_id": external_id,
             },
         )
+        if report_failure_reason:
+            return _repository_lookup_failure(organization_id, repo_full_name, supported_providers)
         return None
 
     # Use the actual repo name from the database, not the requested name.
@@ -1260,6 +1367,32 @@ _SEER_EXPLORER_ACTOR_REQUIRED_ACTIVITY_TYPES = [
     ActivityType.SEER_ITERATION_STARTED.value,
 ]
 
+# Keep the existing history plus external issue links, unassignment, and PR lifecycle.
+# Automated Seer progress remains excluded, even when visible in the web feed.
+_SEER_EXPLORER_ACTION_FILTER = models.Q(
+    type__in=[
+        *(
+            ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE[t].get_type()
+            for t in _SEER_EXPLORER_ACTOR_OPTIONAL_ACTIVITY_TYPES
+        ),
+        GroupActionType.UNASSIGN,
+        GroupActionType.CREATE_ISSUE,
+        GroupActionType.UNLINK_EXTERNAL_ISSUE,
+        GroupActionType.UNLINK_PLATFORM_EXTERNAL_ISSUE,
+        GroupActionType.PULL_REQUEST_CLOSED,
+        GroupActionType.PULL_REQUEST_REOPENED,
+        GroupActionType.PULL_REQUEST_MERGED,
+        GroupActionType.PULL_REQUEST_UNLINKED,
+    ]
+) | models.Q(
+    type__in=[
+        ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE[t].get_type()
+        for t in _SEER_EXPLORER_ACTOR_REQUIRED_ACTIVITY_TYPES
+    ],
+    actor_type=GroupActorType.USER,
+    actor_id__gt=0,
+)
+
 
 class _EventTroubleshootingContext(TypedDict):
     # These fields are added to the serialized event, which uses camelCase keys.
@@ -1429,18 +1562,31 @@ def get_issue_details(
         timeseries, timeseries_stats_period, timeseries_interval = None, None, None
 
     try:
-        activity_filter = models.Q(
-            type__in=_SEER_EXPLORER_ACTOR_OPTIONAL_ACTIVITY_TYPES
-        ) | models.Q(
-            type__in=_SEER_EXPLORER_ACTOR_REQUIRED_ACTIVITY_TYPES,
-            user_id__isnull=False,
+        serialized_activities = get_serialized_activity_items(
+            group,
+            user=None,
+            endpoint="seer_get_issue_details",
+            limit=50,
+            action_filter=_SEER_EXPLORER_ACTION_FILTER,
+            include_first_seen=False,
+            resolve_mentions=True,
         )
-        activities: list[Activity] = list(
-            Activity.objects.filter(group=group).filter(activity_filter).order_by("-datetime")[:50]
-        )
-        serialized_activities: list[ActivitySerializerResponse] = serialize(
-            activities, user=None, serializer=ActivitySerializer(resolve_mentions=True)
-        )
+        if serialized_activities is None:
+            activity_filter = models.Q(
+                type__in=_SEER_EXPLORER_ACTOR_OPTIONAL_ACTIVITY_TYPES
+            ) | models.Q(
+                type__in=_SEER_EXPLORER_ACTOR_REQUIRED_ACTIVITY_TYPES,
+                user_id__isnull=False,
+            )
+            activities: list[Activity] = list(
+                Activity.objects.filter(group=group)
+                .filter(activity_filter)
+                .order_by("-datetime", "-id")[:50]
+            )
+            legacy_activities: list[ActivitySerializerResponse] = serialize(
+                activities, user=None, serializer=ActivitySerializer(resolve_mentions=True)
+            )
+            serialized_activities = [dict(item) for item in legacy_activities]
     except Exception:
         logger.exception(
             "get_issue_details: Failed to get user activity",

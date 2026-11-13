@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {useQuery, keepPreviousData} from '@tanstack/react-query';
 import {parseAsString, useQueryState} from 'nuqs';
 import {z} from 'zod';
+import {useStore} from 'zustand';
 
 import {AutoSaveForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -18,24 +19,24 @@ import {SearchBar} from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Project} from 'sentry/types/project';
-import type {UserEmail} from 'sentry/types/user';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {getPaginationProps} from 'sentry/utils/pagination';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 import {ACCOUNT_NOTIFICATION_FIELDS} from './notifications/fields';
 import {OrganizationSelectHeader} from './notifications/organizationSelectHeader';
 import {groupByOrganization} from './notifications/utils';
+import {emailsOptions} from './emailsOptions';
 
 type EmailSelectOption = {label: string; value: string};
 
 type ANBPProps = {
   emailChoices: EmailSelectOption[];
-  emailsByProject: Record<string, any>;
+  emailsByProject: Record<string, string>;
   projects: Project[];
   refetchEmailsByProject: () => void;
 };
@@ -101,8 +102,8 @@ function AccountNotificationsByProject({
 }
 
 export function AccountNotificationFineTuning() {
-  const {organizations} = useLegacyStore(OrganizationsStore);
-  const config = useLegacyStore(ConfigStore);
+  const organizations = useStore(OrganizationsStore, state => state.organizations);
+  const customerDomain = useStore(ConfigStore, state => state.customerDomain);
 
   const [orgIdParam, setOrgId] = useQueryState('organizationId', parseAsString);
   const [cursor] = useQueryState('cursor', parseAsString);
@@ -114,7 +115,7 @@ export function AccountNotificationFineTuning() {
   // - default to first org
   const organizationId =
     orgIdParam ??
-    organizations.find(({slug}) => slug === config?.customerDomain?.subdomain)?.id ??
+    organizations.find(({slug}) => slug === customerDomain?.subdomain)?.id ??
     (organizations.length === 1 ? organizations[0]?.id : undefined);
 
   const {
@@ -139,24 +140,19 @@ export function AccountNotificationFineTuning() {
     data: emails = [],
     isPending: isPendingEmails,
     isError: isErrorEmails,
-  } = useApiQuery<UserEmail[]>(
-    [getApiUrl('/users/$userId/emails/', {path: {userId: 'me'}})],
-    {
-      staleTime: 0,
-    }
-  );
+  } = useQuery(emailsOptions);
   const {
     data: emailsByProject,
     isPending: isPendingEmailsByProject,
     isError: isErrorEmailsByProject,
     refetch: refetchEmailsByProject,
-  } = useApiQuery<Record<string, any>>(
-    [getApiUrl('/users/$userId/notifications/email/', {path: {userId: 'me'}})],
-    {
+  } = useQuery({
+    ...apiOptions.as<Record<string, string>>()('/users/$userId/notifications/email/', {
+      path: {userId: 'me'},
       staleTime: 0,
-      placeholderData: keepPreviousData,
-    }
-  );
+    }),
+    placeholderData: keepPreviousData,
+  });
 
   const field = ACCOUNT_NOTIFICATION_FIELDS.email!;
   const isPending = isPendingProjects || isPendingEmailsByProject || isPendingEmails;
@@ -235,7 +231,7 @@ export function AccountNotificationFineTuning() {
           )}
         </Stack>
       </Panel>
-      {projects && <Pagination pageLinks={projectsResp?.headers.Link} />}
+      {projects && <Pagination {...getPaginationProps(projectsResp?.headers.Link)} />}
     </div>
   );
 }

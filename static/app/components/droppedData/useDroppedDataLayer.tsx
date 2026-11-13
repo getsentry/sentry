@@ -1,14 +1,18 @@
 import {useState} from 'react';
 
+import type {ChartLayersControlProps} from 'sentry/components/charts/chartLayersControl';
+import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
 import {useDroppedDataDrawer} from './drawer/useDroppedDataDrawer';
 import {hasDroppedData} from './buckets';
 import type {DroppedDataFilterNoteProps} from './droppedDataFilterNote';
-import type {DroppedDataLayerControlProps} from './droppedDataLayerControl';
+import {datasetNoun, droppedDataLabel} from './outcomes';
 import type {DroppedDataProps} from './types';
 import {useDroppedData, type UseDroppedDataParams} from './useDroppedData';
+
+const DROPPED_DATA_LAYER = 'dropped-data';
 
 const SUPPORTED_DATASETS = new Set<DiscoverDatasets>([
   DiscoverDatasets.ERRORS,
@@ -29,7 +33,8 @@ interface UseDroppedDataLayerOptions {
 interface DroppedDataLayer {
   band: DroppedDataProps | undefined;
   filterNote: Pick<DroppedDataFilterNoteProps, 'dataset' | 'environments'> | undefined;
-  layerControl: DroppedDataLayerControlProps | undefined;
+  isLoading: boolean;
+  layerControl: ChartLayersControlProps | undefined;
 }
 
 /**
@@ -42,7 +47,9 @@ export function useDroppedDataLayer(
 ): DroppedDataLayer {
   const {dataset} = params;
   const isEnabled = enabled && SUPPORTED_DATASETS.has(dataset);
-  const {droppedEvents, acceptedEvents} = useDroppedData(params, {enabled: isEnabled});
+  const {droppedEvents, acceptedEvents, isLoading} = useDroppedData(params, {
+    enabled: isEnabled,
+  });
   const [isLayerOn, setIsLayerOn] = useState(true);
   const openDroppedDataDrawer = useDroppedDataDrawer(params, {enabled: isEnabled});
 
@@ -55,12 +62,24 @@ export function useDroppedDataLayer(
       ? {dataset, droppedEvents, acceptedEvents, onClick: openDroppedDataDrawer}
       : undefined,
     filterNote: isBandShown ? {dataset, environments} : undefined,
+    isLoading: isEnabled && isLayerOn && !hidden && isLoading,
     layerControl: isLoaded
       ? {
-          dataset,
-          hasDroppedData: canShowDroppedData,
-          showDroppedData: isLayerOn,
-          onChange: setIsLayerOn,
+          layers: [
+            {
+              value: DROPPED_DATA_LAYER,
+              label: droppedDataLabel(dataset),
+              selected: canShowDroppedData && isLayerOn,
+              disabled: !canShowDroppedData,
+              tooltip: canShowDroppedData
+                ? undefined
+                : t(
+                    'No significant dropped %s in this time range',
+                    datasetNoun(dataset, 2)
+                  ),
+            },
+          ],
+          onChange: (_value, selected) => setIsLayerOn(selected),
         }
       : undefined,
   };

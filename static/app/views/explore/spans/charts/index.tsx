@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconClock} from '@sentry/icons/clock';
 import {IconContract} from '@sentry/icons/contract';
@@ -6,18 +6,21 @@ import {IconExpand} from '@sentry/icons/expand';
 import {IconGraph} from '@sentry/icons/graph';
 
 import {Button} from '@sentry/scraps/button';
+import {Chip} from '@sentry/scraps/chip';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Flex, type ContainerProps} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {ChartLayersControl} from 'sentry/components/charts/chartLayersControl';
 import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
-import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
 import {useDroppedDataLayer} from 'sentry/components/droppedData/useDroppedDataLayer';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import {getTimeSeriesForQuery} from 'sentry/utils/timeSeries/getTimeSeriesForQuery';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
@@ -34,8 +37,10 @@ import {
   ChartVisualization,
   useChartInfosPlottables,
 } from 'sentry/views/explore/components/chart/chartVisualization';
+import {ExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/extrapolationConfidenceFooter';
 import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
+import {useHasExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/useHasExtrapolationConfidenceFooter';
 import {ChartContextMenu} from 'sentry/views/explore/components/chartContextMenu';
 import {
   AddTransformationButton,
@@ -44,14 +49,15 @@ import {
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {type SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
+import {useQueryParamsGroupBys} from 'sentry/views/explore/queryParams/context';
 import {
   groupVisualizes,
   serializeVisualizes,
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
-import {CHART_HEIGHT} from 'sentry/views/explore/settings';
-import {hasMultiAggregateCharts} from 'sentry/views/explore/spans/sharedChartAggregates';
+import {CHART_HEIGHT, DEV_CHART_HEIGHT} from 'sentry/views/explore/settings';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
@@ -71,6 +77,14 @@ import {
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 import {ConfidenceFooter} from './confidenceFooter';
+import {
+  canUseSpansHeatMap,
+  getSpansHeatMapDisabledReason,
+  getSpansHeatMapYAxis,
+  isSpansHeatMap,
+  SpansHeatMap,
+} from './spansHeatMap';
+import {useSpansHeatMapOutlierBound} from './useSpansHeatMapOutlierBound';
 
 interface ExploreChartsProps {
   extrapolate: boolean;
@@ -96,6 +110,13 @@ export const EXPLORE_CHART_TYPE_OPTIONS = [
     label: t('Bar'),
   },
 ];
+
+const CHART_TYPE_TO_ICON: Record<ChartType, 'line' | 'area' | 'bar' | 'heatmap'> = {
+  [ChartType.LINE]: 'line',
+  [ChartType.AREA]: 'area',
+  [ChartType.BAR]: 'bar',
+  [ChartType.HEATMAP]: 'heatmap',
+};
 
 const EXPLORE_CHART_GROUP = 'explore-charts_group';
 
@@ -291,14 +312,14 @@ function Chart({
   const visualize = visualizes[0]!;
 
   const organization = useOrganization();
-  const showTransformationControls =
-    visualize.visible &&
-    visualize.chartType !== ChartType.HEATMAP &&
-    organization.features.includes('explore-interpolation-and-smoothing');
+
   const {chartSelection, setChartSelection} = useChartSelection();
+  const [tab] = useTab();
+  const isAttributeBreakdown = tab === Tab.ATTRIBUTE_BREAKDOWNS;
+  const {selection} = usePageFilters();
+  const groupBys = useQueryParamsGroupBys();
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const dataset = useSpansDataset();
-  const droppedData = useDroppedDataLayer({dataset, interval});
 
   const {
     dismiss: dismissChartSelectionAlert,
@@ -307,15 +328,66 @@ function Chart({
     key: CHART_SELECTION_ALERT_KEY,
   });
 
-  const chartHeight = visualize.visible ? CHART_HEIGHT : 50;
-
   const chartRef = useRef<ReactEchartsRef>(null);
   const chartWrapperRef = useRef<HTMLDivElement | null>(null);
 
-  const chartType = visualize.chartType;
   const isCombinedChart = visualizes.length > 1;
-  const chartIcon =
-    chartType === ChartType.LINE ? 'line' : chartType === ChartType.AREA ? 'area' : 'bar';
+  const isHeatMapEnabled = canUseSpansHeatMap(organization);
+  const heatMapYAxis = getSpansHeatMapYAxis(visualize);
+  const isHeatMap = !isCombinedChart && isSpansHeatMap(visualize, organization);
+  const droppedData = useDroppedDataLayer({dataset, interval}, {enabled: !isHeatMap});
+  const showTransformationControls =
+    visualize.visible &&
+    (isHeatMap || visualize.chartType !== ChartType.HEATMAP) &&
+    organization.features.includes('explore-interpolation-and-smoothing');
+  const heatMapOutlierBound = useSpansHeatMapOutlierBound({
+    enabled: isHeatMap && visualize.visible,
+    query,
+    yAxis: heatMapYAxis,
+  });
+  // Outliers are hidden by default for an unfiltered query, since a filter may
+  // be narrowing in on exactly those spans. The user's toggle only sticks until
+  // the query, visualizes or page filters change.
+  const outlierToggleKey = [
+    query,
+    visualizes.map(v => v.yAxis).join(','),
+    selection.datetime.period,
+    selection.datetime.start,
+    selection.datetime.end,
+    selection.projects.join(','),
+    selection.environments.join(','),
+  ].join('|');
+  const [outlierToggle, setOutlierToggle] = useState<{
+    isHidden: boolean;
+    key: string;
+  } | null>(null);
+  const areHeatMapOutliersHidden =
+    outlierToggle?.key === outlierToggleKey
+      ? outlierToggle.isHidden
+      : query.trim() === '';
+  const chartHeight = visualize.visible
+    ? organization.features.includes('explore-dev-features')
+      ? DEV_CHART_HEIGHT
+      : CHART_HEIGHT
+    : 50;
+  // Heatmaps with unsupported aggregates fall back to line charts.
+  const chartType = isHeatMap
+    ? ChartType.HEATMAP
+    : visualize.chartType === ChartType.HEATMAP
+      ? ChartType.LINE
+      : visualize.chartType;
+  const chartIcon = CHART_TYPE_TO_ICON[chartType];
+  const chartTypeOptions = isHeatMapEnabled
+    ? [
+        ...EXPLORE_CHART_TYPE_OPTIONS,
+        {
+          value: ChartType.HEATMAP,
+          label: t('Heatmap'),
+          disabled: defined(getSpansHeatMapDisabledReason(visualize)),
+          tooltip: getSpansHeatMapDisabledReason(visualize),
+        },
+      ]
+    : EXPLORE_CHART_TYPE_OPTIONS;
 
   const chartInfos = useMemo(
     () =>
@@ -334,6 +406,7 @@ function Chart({
   );
 
   const plottables = useChartInfosPlottables(chartInfos);
+  const hasExtrapolationConfidenceFooter = useHasExtrapolationConfidenceFooter();
 
   const Title = (
     <Widget.WidgetTitle
@@ -355,18 +428,57 @@ function Chart({
     const reason = getSamplingWarningReason(info.yAxis, info.series, info.dataScanned);
     return reason ? [{yAxis: info.yAxis, reason}] : [];
   });
-  const TitleBadges = samplingWarnings.length ? (
-    <Fragment>
-      {samplingWarnings.map(({yAxis, reason}, i) => (
-        <SamplingWarning key={`${yAxis}-${i}`} yAxis={yAxis} reason={reason} />
-      ))}
-    </Fragment>
-  ) : null;
+  const showOutlierToggle = isHeatMap && visualize.visible;
+  const heatMapOutlierBounds = isHeatMap ? heatMapOutlierBound.bounds : undefined;
+  const heatMapYBounds = areHeatMapOutliersHidden ? heatMapOutlierBounds : undefined;
+  const areHeatMapOutliersHideable =
+    !heatMapOutlierBound.isPending && defined(heatMapOutlierBounds);
+  let outlierToggleTooltip: string;
+  if (!defined(heatMapOutlierBounds)) {
+    outlierToggleTooltip = t('There are no outliers far enough out to hide.');
+  } else if (areHeatMapOutliersHidden) {
+    outlierToggleTooltip = t(
+      'Spans outside %s - %s (fastest span to estimated p99.9 over the last hour) are hidden. Click to show them.',
+      getDuration(heatMapOutlierBounds.yMin / 1000, 2, true),
+      getDuration(heatMapOutlierBounds.yMax / 1000, 2, true)
+    );
+  } else {
+    outlierToggleTooltip = t('Click to hide outliers.');
+  }
+  const TitleBadges =
+    samplingWarnings.length || showOutlierToggle ? (
+      <Fragment>
+        {samplingWarnings.map(({yAxis, reason}, i) => (
+          <SamplingWarning key={`${yAxis}-${i}`} yAxis={yAxis} reason={reason} />
+        ))}
+        {showOutlierToggle && (
+          <Tooltip title={outlierToggleTooltip} disabled={heatMapOutlierBound.isPending}>
+            <Chip.Root size="xs" readonly={!areHeatMapOutliersHideable}>
+              <Chip.Value
+                onClick={
+                  areHeatMapOutliersHideable
+                    ? () =>
+                        setOutlierToggle({
+                          key: outlierToggleKey,
+                          isHidden: !areHeatMapOutliersHidden,
+                        })
+                    : undefined
+                }
+              >
+                {areHeatMapOutliersHidden && areHeatMapOutliersHideable
+                  ? t('Outliers hidden')
+                  : t('Outliers shown')}
+              </Chip.Value>
+            </Chip.Root>
+          </Tooltip>
+        )}
+      </Fragment>
+    ) : null;
 
   const Actions = visualize.visible ? (
     <Fragment>
       {droppedData.layerControl ? (
-        <DroppedDataLayerControl {...droppedData.layerControl} />
+        <ChartLayersControl {...droppedData.layerControl} />
       ) : null}
       <Tooltip
         title={
@@ -389,13 +501,14 @@ function Chart({
           )}
           value={chartType}
           menuTitle="Type"
-          options={EXPLORE_CHART_TYPE_OPTIONS}
+          options={chartTypeOptions}
           onChange={option => onChartTypeChange(option.value)}
         />
       </Tooltip>
       <Tooltip title={t('Time interval displayed in this visualization (ex. 5m)')}>
         <CompactSelect
           value={interval}
+          disabled={isHeatMap}
           onChange={option => setInterval(option.value)}
           trigger={triggerProps => (
             <OverlayTrigger.Button
@@ -436,6 +549,11 @@ function Chart({
   const initialChartSelection =
     chartSelection?.chartIndex === index ? chartSelection.selection : undefined;
 
+  // ECharts keeps its toolbox zoom window and brush across option merges, so
+  // the chart needs a fresh instance whenever the queried range or data changes.
+  const {period, start, end} = selection.datetime;
+  const chartRemountKey = `${isAttributeBreakdown ? 'attribute-breakdown' : 'zoom'}|${period}|${start}|${end}|${query}|${chartType}|${interval}|${topEvents}|${groupBys.join(',')}`;
+
   return (
     <ChartWrapper ref={chartWrapperRef} border="primary" radius="md" background="primary">
       <Widget
@@ -443,52 +561,66 @@ function Chart({
         TitleBadges={TitleBadges}
         Actions={Actions}
         Visualization={
-          visualize.visible && (
+          visualize.visible &&
+          (isHeatMap && defined(heatMapYAxis) ? (
+            <SpansHeatMap
+              chartIndex={index}
+              query={query}
+              yAxis={heatMapYAxis}
+              yBounds={heatMapYBounds}
+              isYBoundsPending={areHeatMapOutliersHidden && heatMapOutlierBound.isPending}
+              samplingMode={samplingMode}
+            />
+          ) : (
             <ChartVisualization
+              key={chartRemountKey}
               chartInfo={chartInfo}
               chartRef={chartRef}
               plottables={plottables}
-              tooltipLimit={
-                hasMultiAggregateCharts(organization) ? MAX_TOOLTIP_SERIES : undefined
-              }
+              tooltipLimit={MAX_TOOLTIP_SERIES}
               droppedData={droppedData.band}
-              chartXRangeSelection={{
-                initialSelection: initialChartSelection,
-                onSelectionEnd: () => {
-                  if (!isChartSelectionAlertDismissed) {
-                    dismissChartSelectionAlert();
-                  }
-                },
-                onInsideSelectionClick: params => {
-                  if (!params.selectionState) {
-                    return;
-                  }
+              isDroppedDataLoading={droppedData.isLoading}
+              chartXRangeSelection={
+                isAttributeBreakdown
+                  ? {
+                      initialSelection: initialChartSelection,
+                      onSelectionEnd: () => {
+                        if (!isChartSelectionAlertDismissed) {
+                          dismissChartSelectionAlert();
+                        }
+                      },
+                      onInsideSelectionClick: params => {
+                        if (!params.selectionState) {
+                          return;
+                        }
 
-                  params.setSelectionState({
-                    ...params.selectionState,
-                    isActionMenuVisible: true,
-                  });
-                },
-                onOutsideSelectionClick: params => {
-                  if (!params.selectionState?.isActionMenuVisible) {
-                    return;
-                  }
+                        params.setSelectionState({
+                          ...params.selectionState,
+                          isActionMenuVisible: true,
+                        });
+                      },
+                      onOutsideSelectionClick: params => {
+                        if (!params.selectionState?.isActionMenuVisible) {
+                          return;
+                        }
 
-                  params.setSelectionState({
-                    ...params.selectionState,
-                    isActionMenuVisible: false,
-                  });
-                },
-                onClearSelection: () => {
-                  setChartSelection(null);
-                },
-                disabled: false,
-                actionMenuRenderer: params => {
-                  return <FloatingTrigger chartIndex={index} params={params} />;
-                },
-              }}
+                        params.setSelectionState({
+                          ...params.selectionState,
+                          isActionMenuVisible: false,
+                        });
+                      },
+                      onClearSelection: () => {
+                        setChartSelection(null);
+                      },
+                      disabled: false,
+                      actionMenuRenderer: params => {
+                        return <FloatingTrigger chartIndex={index} params={params} />;
+                      },
+                    }
+                  : undefined
+              }
             />
-          )
+          ))
         }
         Footer={
           visualize.visible && (
@@ -502,21 +634,27 @@ function Chart({
                   justify="between"
                   gap={{zero: 'xs', xl: 'md'}}
                 >
-                  <ConfidenceFooter
-                    extrapolate={extrapolate}
-                    sampleCount={chartInfo.sampleCount}
-                    isLoading={chartInfo.timeseriesResult?.isPending || false}
-                    isSampled={chartInfo.isSampled}
-                    confidence={chartInfo.confidence}
-                    topEvents={
-                      topEvents
-                        ? Math.min(topEvents, chartInfos[0]!.series.length)
-                        : undefined
-                    }
-                    dataScanned={chartInfo.dataScanned}
-                    rawSpanCounts={rawSpanCounts}
-                    userQuery={query.trim()}
-                  />
+                  {hasExtrapolationConfidenceFooter ? (
+                    !chartInfo.timeseriesResult?.isPending && (
+                      <ExtrapolationConfidenceFooter plottables={plottables} />
+                    )
+                  ) : (
+                    <ConfidenceFooter
+                      extrapolate={extrapolate}
+                      sampleCount={chartInfo.sampleCount}
+                      isLoading={chartInfo.timeseriesResult?.isPending || false}
+                      isSampled={chartInfo.isSampled}
+                      confidence={chartInfo.confidence}
+                      topEvents={
+                        topEvents
+                          ? Math.min(topEvents, chartInfos[0]!.series.length)
+                          : undefined
+                      }
+                      dataScanned={chartInfo.dataScanned}
+                      rawSpanCounts={rawSpanCounts}
+                      userQuery={query.trim()}
+                    />
+                  )}
                   {droppedData.filterNote ? (
                     <DroppedDataFilterNote
                       {...droppedData.filterNote}
@@ -526,11 +664,17 @@ function Chart({
                   ) : null}
                 </Flex>
                 {showTransformationControls ? (
-                  <AddTransformationButton
-                    traceItemDataset={TraceItemDataset.SPANS}
-                    transformations={visualize.transformations}
-                    onChange={onTransformationsChange}
-                  />
+                  <Tooltip
+                    title={t('Heatmaps do not support transformations.')}
+                    disabled={!isHeatMap}
+                  >
+                    <AddTransformationButton
+                      traceItemDataset={TraceItemDataset.SPANS}
+                      transformations={visualize.transformations}
+                      onChange={onTransformationsChange}
+                      disabled={isHeatMap}
+                    />
+                  </Tooltip>
                 ) : null}
               </Flex>
             </Container>
@@ -540,7 +684,9 @@ function Chart({
         revealActions="always"
         borderless
       />
-      {showTransformationControls && visualize.transformations.length > 0 ? (
+      {showTransformationControls &&
+      !isHeatMap &&
+      visualize.transformations.length > 0 ? (
         <Container padding="xl" paddingTop="0" paddingBottom="md">
           <VisualizeTransformationRows
             traceItemDataset={TraceItemDataset.SPANS}

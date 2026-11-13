@@ -54,6 +54,7 @@ type ActionRequestApplyProps = {
   check: ApplyCheck;
   finishing: boolean;
   onApply: () => void;
+  onLinkClick: (link: string) => void;
   onRecheck: () => void;
   rechecking: boolean;
 };
@@ -64,6 +65,7 @@ export function ActionRequestApply({
   check,
   finishing,
   onApply,
+  onLinkClick,
   onRecheck,
   rechecking,
 }: ActionRequestApplyProps) {
@@ -80,6 +82,7 @@ export function ActionRequestApply({
       finishing={finishing}
       message={getApplyMessage(actionRequest, check, finishing)}
       onApply={onApply}
+      onLinkClick={onLinkClick}
       onRecheck={onRecheck}
       rechecking={rechecking}
     />

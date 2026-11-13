@@ -19,6 +19,7 @@ from taskbroker_client.scheduler.config import ScheduleConfigMap, crontab
 
 import sentry
 import sentry.utils.types as env_types
+from sentry.conf import api_base_path
 from sentry.conf.api_pagination_allowlist_do_not_modify import (
     SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY,
 )
@@ -507,6 +508,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.releases",
     "sentry.seer",
     "sentry.scm",
+    "sentry.cadence",
 )
 
 # Silence internal hints from Django's system checks
@@ -712,6 +714,10 @@ VISUALSTUDIO_APP_SECRET = ""
 VISUALSTUDIO_CLIENT_SECRET = ""
 VISUALSTUDIO_SCOPES = ["vso.work_write", "vso.project", "vso.code", "vso.release"]
 
+# Linear integration (OAuth app credentials)
+LINEAR_CLIENT_ID = ""
+LINEAR_CLIENT_SECRET = ""
+
 SOCIAL_AUTH_PIPELINE = (
     "social_auth.backends.pipeline.user.get_username",
     "social_auth.backends.pipeline.social.social_auth_user",
@@ -834,6 +840,7 @@ SENTRY_SUBNET_SECRET = os.environ.get("SENTRY_SUBNET_SECRET", None)
 
 # We prefer using crontab, as the time for timedelta will reset on each deployment.
 TIMEDELTA_ALLOW_LIST = {
+    "cadence-tick",
     "deliver-from-outbox-control",
     "deliver-webhooks-control",
     "flush-buffers",
@@ -841,6 +848,7 @@ TIMEDELTA_ALLOW_LIST = {
     "sync-options",
     "sync-options-control",
     "schedule-digests",
+    "snuba-broken-subscription-recheck",
 }
 
 BGTASKS: dict[str, BgTaskConfig] = {
@@ -888,6 +896,7 @@ TASKWORKER_DEFAULT_TOPIC = os.getenv("TASKWORKER_DEFAULT_TOPIC")
 # This list includes all tasks even if they are imported transitively by other modules.
 TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.ai_monitoring.tasks",
+    "sentry.cadence.tasks",
     "sentry.conduit.tasks",
     "sentry.data_export.tasks",
     "sentry.debug_files.objectstore_migration.tasks",
@@ -937,6 +946,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.models.counter",
     "sentry.monitors.tasks.clock_pulse",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
+    "sentry.notebooks.tasks",
     "sentry.notifications.platform.service",
     "sentry.notifications.utils.tasks",
     "sentry.preprod.size_analysis.tasks",
@@ -965,6 +975,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.seer.entrypoints.operator",
     "sentry.seer.entrypoints.slack.messaging",
     "sentry.seer.entrypoints.slack.tasks",
+    "sentry.seer.workflows.scheduled",
     "sentry.seer_workflow_outputs.tasks",
     "sentry.snuba.query_subscriptions.run",
     "sentry.snuba.tasks",
@@ -1037,6 +1048,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.seer.autofix_issue_data",
     "sentry.tasks.seer.backfill_supergroups_lightweight",
     "sentry.telemetry_classifiers.poc_tasks",
+    "sentry.telemetry_classifiers.tasks",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
@@ -1050,6 +1062,14 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "send-ping": {
         "task": "selfhosted:sentry.tasks.send_ping",
+        "schedule": crontab("*/1", "*", "*", "*", "*"),
+    },
+    "cadence-tick": {
+        "task": "issues:sentry.cadence.tasks.cadence_tick",
+        "schedule": timedelta(seconds=10),
+    },
+    "cadence-sweep": {
+        "task": "issues:sentry.cadence.tasks.cadence_sweep",
         "schedule": crontab("*/1", "*", "*", "*", "*"),
     },
     "flush-buffers": {
@@ -1112,10 +1132,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "issues:sentry.tasks.auto_remove_inbox",
         "schedule": crontab("*/15", "*", "*", "*", "*"),
     },
-    "cleanup-universal-inbox-events": {
-        "task": "notifications:sentry.inbox.event_retention.schedule_inbox_event_cleanup",
-        "schedule": crontab("*/15", "*", "*", "*", "*"),
-    },
     "schedule-deletions": {
         "task": "deletions:sentry.deletions.tasks.run_scheduled_deletions",
         "schedule": crontab("*/15", "*", "*", "*", "*"),
@@ -1149,6 +1165,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "alerts:sentry.snuba.tasks.subscription_checker",
         "schedule": crontab("*/20", "*", "*", "*", "*"),
     },
+    "snuba-broken-subscription-recheck": {
+        "task": "alerts:sentry.snuba.tasks.schedule_broken_subscription_rechecks",
+        "schedule": timedelta(minutes=15),
+    },
     "uptime-subscription-checker": {
         "task": "uptime:sentry.uptime.tasks.subscription_checker",
         "schedule": crontab("*/10", "*", "*", "*", "*"),
@@ -1180,6 +1200,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "telemetry-classifiers-conversations": {
         "task": "telemetry.classifiers:sentry.telemetry_classifiers.tasks.schedule_conversation_classifiers",
         "schedule": crontab("*/5", "*", "*", "*", "*"),
+    },
+    "telemetry-classifiers-schedule": {
+        "task": "telemetry.classifiers:sentry.telemetry_classifiers.tasks.schedule_classifiers",
+        "schedule": timedelta(minutes=1),
     },
     "weekly-escalating-forecast": {
         "task": "issues:sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
@@ -1496,11 +1520,14 @@ if os.environ.get("OPENAPIGENERATE", False):
         "POSTPROCESSING_HOOKS": [
             "sentry.apidocs.hooks.custom_postprocessing_hook",
             "drf_spectacular.hooks.postprocess_schema_enum_id_removal",
+            # Last, so the hooks above see full paths.
+            "sentry.apidocs.hooks.relative_paths_hook",
         ],
         "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
         "SERVERS": [
             {
-                "url": "https://{region}.sentry.io",
+                # The path is the API base path; operation paths are relative to it.
+                "url": f"https://{{region}}.sentry.io{api_base_path.API_BASE_PATH}",
                 "variables": {
                     "region": {
                         "default": "us",
@@ -2643,6 +2670,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.datadog.integration.DatadogIntegrationProvider",
     "sentry.integrations.gcp.integration.GcpIntegrationProvider",
     "sentry.integrations.grafana.integration.GrafanaIntegrationProvider",
+    "sentry.integrations.linear.integration.LinearIntegrationProvider",
     "sentry.integrations.github_copilot.integration.GithubCopilotIntegrationProvider",
     "sentry.integrations.perforce.integration.PerforceIntegrationProvider",
     "sentry.integrations.cursor_origin.integration.CursorOriginIntegrationProvider",
@@ -3208,6 +3236,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "snuba-generic-events-commit-log": "default",
     "group-attributes": "default",
     "snuba-items": "default",
+    "snuba-llm-proxy-cost": "default",
     "shared-resources-usage": "default",
     "buffered-segments": "default",
     "taskworker": "default",

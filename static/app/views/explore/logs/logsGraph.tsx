@@ -11,8 +11,8 @@ import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
+import {ChartLayersControl} from 'sentry/components/charts/chartLayersControl';
 import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
-import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
 import {useDroppedDataLayer} from 'sentry/components/droppedData/useDroppedDataLayer';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -39,12 +39,15 @@ import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottab
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
+import {useAlwaysMatchesCaseDetails} from 'sentry/views/explore/caseInsensitivityDefault';
 import {
   ChartVisualization,
   useChartVisualizationPlottables,
 } from 'sentry/views/explore/components/chart/chartVisualization';
+import {ExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/extrapolationConfidenceFooter';
 import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
+import {useHasExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/useHasExtrapolationConfidenceFooter';
 import {
   AddTransformationButton,
   VisualizeTransformationRows,
@@ -247,6 +250,7 @@ function Graph({
   ]);
 
   const plottables = useChartVisualizationPlottables(chartInfo);
+  const hasExtrapolationConfidenceFooter = useHasExtrapolationConfidenceFooter();
 
   const Title = (
     <Widget.WidgetTitle
@@ -283,7 +287,7 @@ function Graph({
   const Actions = visualize.visible ? (
     <Fragment>
       {droppedData.layerControl ? (
-        <DroppedDataLayerControl {...droppedData.layerControl} />
+        <ChartLayersControl {...droppedData.layerControl} />
       ) : null}
       <CompactSelect
         trigger={triggerProps => (
@@ -353,6 +357,8 @@ function Graph({
               key={chartRemountKey}
               chartInfo={chartInfo}
               droppedData={droppedData.band}
+              plottables={plottables}
+              isDroppedDataLoading={droppedData.isLoading}
             />
           )
         }
@@ -368,16 +374,22 @@ function Graph({
                   justify="between"
                   gap={{zero: 'xs', xl: 'md'}}
                 >
-                  <ConfidenceFooter
-                    chartInfo={chartInfo}
-                    isLoading={chartInfo.timeseriesResult.isPending}
-                    rawLogCounts={rawLogCounts}
-                    hasUserQuery={!!userQuery}
-                    disabled={
-                      !hasValidConditionalFilter ||
-                      (tableIsPending ? false : tableIsEmpty)
-                    }
-                  />
+                  {hasExtrapolationConfidenceFooter ? (
+                    !chartInfo.timeseriesResult.isPending && (
+                      <ExtrapolationConfidenceFooter plottables={plottables} />
+                    )
+                  ) : (
+                    <ConfidenceFooter
+                      chartInfo={chartInfo}
+                      isLoading={chartInfo.timeseriesResult.isPending}
+                      rawLogCounts={rawLogCounts}
+                      hasUserQuery={!!userQuery}
+                      disabled={
+                        !hasValidConditionalFilter ||
+                        (tableIsPending ? false : tableIsEmpty)
+                      }
+                    />
+                  )}
                   {droppedData.filterNote ? (
                     <DroppedDataFilterNote
                       {...droppedData.filterNote}
@@ -426,6 +438,14 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
   const search = useQueryParamsSearch();
   const aggregateFields = useQueryParamsAggregateFields();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
+  const groupBys = useQueryParamsGroupBys();
+  const {alert: alertCaseDetails, dashboard: dashboardCaseDetails} =
+    useAlwaysMatchesCaseDetails({
+      query: search.formatString(),
+      yAxes: [visualize.yAxis],
+      groupBys,
+      mode,
+    });
 
   const items = useMemo(() => {
     const project =
@@ -434,30 +454,34 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
         : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
     return [
-      getSaveAsAlertMenuItem({
-        disabled: hasTransformations,
-        to: getAlertsUrl({
-          project,
-          query: search.formatString(),
-          pageFilters: pageFilters.selection,
-          aggregate: visualize.yAxis,
-          organization,
-          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-          interval,
-          eventTypes: [EventTypes.TRACE_ITEM_LOG],
-        }),
-        onAction: () => {
-          trackAnalytics('logs.save_as', {
-            save_type: 'alert',
-            ui_source: 'chart',
+      {
+        ...getSaveAsAlertMenuItem({
+          disabled: hasTransformations,
+          to: getAlertsUrl({
+            project,
+            query: search.formatString(),
+            pageFilters: pageFilters.selection,
+            aggregate: visualize.yAxis,
             organization,
-          });
-          return;
-        },
-      }),
+            dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+            interval,
+            eventTypes: [EventTypes.TRACE_ITEM_LOG],
+          }),
+          onAction: () => {
+            trackAnalytics('logs.save_as', {
+              save_type: 'alert',
+              ui_source: 'chart',
+              organization,
+            });
+            return;
+          },
+        }),
+        details: alertCaseDetails,
+      },
       {
         key: 'add-to-dashboard',
         textValue: t('Add to Dashboard'),
+        details: dashboardCaseDetails,
         label: t('Add to Dashboard'),
         onAction: () => {
           trackAnalytics('logs.save_as', {
@@ -512,6 +536,8 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
   }, [
     aggregateFields,
     aggregateSortBys,
+    alertCaseDetails,
+    dashboardCaseDetails,
     interval,
     location,
     mode,

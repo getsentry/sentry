@@ -13,6 +13,7 @@ import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {getUserTimezone} from 'sentry/utils/dates';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useAttributeBreakdownComparison} from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
 import {useAttributeBreakdownsTooltipAction} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 import {useFilteredRankedAttributes} from 'sentry/views/explore/hooks/useFilteredRankedAttributes';
@@ -32,11 +33,15 @@ interface CohortComparisonProps {
   yAxis: string;
   dataset?: DiscoverDatasets;
   extrapolate?: string;
+  yAttribute?: string;
+  yRange?: [number, number];
 }
 
 export function CohortComparison({
   selection,
   yAxis,
+  yAttribute,
+  yRange,
   query,
   dataset,
   extrapolate,
@@ -52,6 +57,8 @@ export function CohortComparison({
   const {data, isLoading, error} = useAttributeBreakdownComparison({
     aggregateFunction: yAxis,
     range: selection.range,
+    yAttribute,
+    yRange,
     query,
     dataset,
     extrapolate,
@@ -116,11 +123,20 @@ export function CohortComparison({
             {selectedRangeToDates && (
               <Stack gap="xs">
                 <SelectionHint backgroundColor={theme.chart.getColorPalette(0)?.[0]}>
-                  {t(
-                    'Selection is data between %s - %s',
-                    selectedRangeToDates.start,
-                    selectedRangeToDates.end
-                  )}
+                  {yAttribute && yRange
+                    ? t(
+                        'Selection is data between %s - %s where %s is between %s - %s',
+                        selectedRangeToDates.start,
+                        selectedRangeToDates.end,
+                        yAttribute,
+                        getDuration(yRange[0] / 1000, 2, true),
+                        getDuration(yRange[1] / 1000, 2, true)
+                      )
+                    : t(
+                        'Selection is data between %s - %s',
+                        selectedRangeToDates.start,
+                        selectedRangeToDates.end
+                      )}
                 </SelectionHint>
                 <SelectionHint backgroundColor="#A29FAA">
                   {t('Baseline is all other spans from your query')}

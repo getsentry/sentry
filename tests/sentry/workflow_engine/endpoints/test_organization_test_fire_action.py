@@ -278,6 +278,80 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
         _, project_arg = mock_test_fire_actions.call_args[0]
         assert project_arg == target_project
 
+    @mock.patch("sentry.workflow_engine.endpoints.organization_test_fire_action.test_fire_actions")
+    def test_member_without_alerts_write_denied(
+        self,
+        mock_test_fire_actions: mock.MagicMock,
+    ) -> None:
+        self.organization.update_option("sentry:alerts_member_write", False)
+        member_user = self.create_user()
+        self.create_member(user=member_user, organization=self.organization, teams=[self.team])
+        self.login_as(member_user)
+
+        action_data = [
+            {
+                "type": Action.Type.EMAIL.value,
+                "data": {},
+                "config": {"target_type": "issue_owners"},
+            }
+        ]
+
+        self.get_error_response(self.organization.slug, actions=action_data, status_code=403)
+        mock_test_fire_actions.assert_not_called()
+
+    @mock.patch("sentry.workflow_engine.endpoints.organization_test_fire_action.test_fire_actions")
+    def test_member_with_alerts_write_allowed(
+        self,
+        mock_test_fire_actions: mock.MagicMock,
+    ) -> None:
+        mock_test_fire_actions.return_value = (None, None)
+        self.organization.update_option("sentry:alerts_member_write", True)
+        member_user = self.create_user()
+        self.create_member(user=member_user, organization=self.organization, teams=[self.team])
+        self.login_as(member_user)
+
+        action_data = [
+            {
+                "type": Action.Type.EMAIL.value,
+                "data": {},
+                "config": {"target_type": "issue_owners"},
+            }
+        ]
+
+        self.get_success_response(self.organization.slug, actions=action_data)
+        mock_test_fire_actions.assert_called_once()
+
+    @mock.patch("sentry.workflow_engine.endpoints.organization_test_fire_action.test_fire_actions")
+    def test_uses_project_where_member_has_alerts_write(
+        self,
+        mock_test_fire_actions: mock.MagicMock,
+    ) -> None:
+        mock_test_fire_actions.return_value = (None, None)
+        self.organization.update_option("sentry:alerts_member_write", False)
+        member_user = self.create_user()
+        admin_team = self.create_team(organization=self.organization)
+        admin_project = self.create_project(
+            organization=self.organization, slug="zzz-admin-project", teams=[admin_team]
+        )
+        self.create_member(
+            user=member_user,
+            organization=self.organization,
+            team_roles=[(self.team, "contributor"), (admin_team, "admin")],
+        )
+        self.login_as(member_user)
+
+        action_data = [
+            {
+                "type": Action.Type.EMAIL.value,
+                "data": {},
+                "config": {"target_type": "issue_owners"},
+            }
+        ]
+
+        self.get_success_response(self.organization.slug, actions=action_data)
+        _, project_arg = mock_test_fire_actions.call_args[0]
+        assert project_arg == admin_project
+
     def test_invalid_project_slug(self) -> None:
         """Test that an invalid project_slug returns with a 400 error"""
         action_data = [

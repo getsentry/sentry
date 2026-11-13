@@ -2,9 +2,12 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
-from sentry.inbox.types import InboxEventData, InboxEventType, InboxItemType
+from sentry.inbox.types import InboxEventData, InboxEventSummary, InboxEventType, InboxItemType
 from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.notebooks.access import NOTEBOOK_SCOPES, has_notebooks_access
 from sentry.notebooks.models import Notebook
+from sentry.notifications.types import NotificationSettingEnum
 
 
 class NotebookItemType(InboxItemType[Notebook]):
@@ -28,6 +31,18 @@ class NotebookItemType(InboxItemType[Notebook]):
             f"/organizations/{organization.slug}/seer/investigations/{subject_id}/"
         )
 
+    def filter_recipients(self, *, subject: Notebook, user_ids: Sequence[int]) -> list[int]:
+        if not user_ids or not has_notebooks_access(subject.organization):
+            return []
+        members = OrganizationMember.objects.filter(
+            organization_id=subject.organization_id, user_id__in=user_ids, user_is_active=True
+        )
+        return [
+            member.user_id
+            for member in members
+            if member.user_id is not None and member.get_scopes() & NOTEBOOK_SCOPES
+        ]
+
 
 @dataclass(frozen=True, kw_only=True)
 class NotebookCompletedData(InboxEventData):
@@ -49,19 +64,38 @@ NOTEBOOK = NotebookItemType()
 inbox_item_type_registry.register(NOTEBOOK.subject_type)(NOTEBOOK)
 
 NOTEBOOK_COMPLETED = InboxEventType(
-    event_type="notebook.completed", item_type=NOTEBOOK, data_class=NotebookCompletedData
+    event_type="notebook.completed",
+    summary=InboxEventSummary.NOTEBOOK_COMPLETED,
+    item_type=NOTEBOOK,
+    data_class=NotebookCompletedData,
+    notification_setting=NotificationSettingEnum.INBOX_COMPLETION_STATUS,
 )
-NOTEBOOK_MENTIONED = InboxEventType(
-    event_type="notebook.mentioned", item_type=NOTEBOOK, data_class=NotebookMentionedData
+NOTEBOOK_USER_MENTIONED = InboxEventType(
+    event_type="notebook.user_mentioned",
+    summary=InboxEventSummary.NOTEBOOK_MENTIONED,
+    item_type=NOTEBOOK,
+    data_class=NotebookMentionedData,
+    notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
+)
+NOTEBOOK_TEAM_MENTIONED = InboxEventType(
+    recipient="team",
+    event_type="notebook.team_mentioned",
+    summary=InboxEventSummary.NOTEBOOK_TEAM_MENTIONED,
+    item_type=NOTEBOOK,
+    data_class=NotebookMentionedData,
+    notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
 )
 NOTEBOOK_PARTICIPANT_ADDED = InboxEventType(
     event_type="notebook.participant_added",
+    summary=InboxEventSummary.NOTEBOOK_PARTICIPANT_ADDED,
     item_type=NOTEBOOK,
     data_class=NotebookParticipantAddedData,
+    notification_setting=NotificationSettingEnum.INBOX_ASSIGNMENTS,
 )
 
 inbox_item_event_type_registry.register(NOTEBOOK_COMPLETED.event_type)(NOTEBOOK_COMPLETED)
-inbox_item_event_type_registry.register(NOTEBOOK_MENTIONED.event_type)(NOTEBOOK_MENTIONED)
+inbox_item_event_type_registry.register(NOTEBOOK_USER_MENTIONED.event_type)(NOTEBOOK_USER_MENTIONED)
+inbox_item_event_type_registry.register(NOTEBOOK_TEAM_MENTIONED.event_type)(NOTEBOOK_TEAM_MENTIONED)
 inbox_item_event_type_registry.register(NOTEBOOK_PARTICIPANT_ADDED.event_type)(
     NOTEBOOK_PARTICIPANT_ADDED
 )

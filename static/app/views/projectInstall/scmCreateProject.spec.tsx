@@ -66,6 +66,21 @@ jest.mock('sentry/data/platforms', () => {
 
 const WIZARD_KEY = 'project-creation-wizard';
 const CREATED_PROJECT_ID = 'created-1';
+let restoreClipboard: (() => void) | undefined;
+
+function mockClipboard() {
+  const write = jest.fn().mockResolvedValue(undefined);
+  class TestClipboardItem {
+    constructor(public data: Record<string, Promise<Blob>>) {}
+  }
+  Object.assign(globalThis, {ClipboardItem: TestClipboardItem});
+  Object.assign(navigator, {clipboard: {write}});
+
+  restoreClipboard = () => {
+    Reflect.deleteProperty(navigator, 'clipboard');
+    Reflect.deleteProperty(globalThis, 'ClipboardItem');
+  };
+}
 
 const pythonPlatform: OnboardingSelectedSDK = {
   key: 'python',
@@ -245,6 +260,8 @@ describe('ScmCreateProject', () => {
   });
 
   afterEach(() => {
+    restoreClipboard?.();
+    restoreClipboard = undefined;
     MockApiClient.clearMockResponses();
     window.sessionStorage.clear();
     jest.clearAllMocks();
@@ -1260,7 +1277,7 @@ describe('ScmCreateProject', () => {
         await screen.findByRole('textbox', {name: 'Project name'})
       ).toBeInTheDocument();
       expect(
-        screen.queryByRole('heading', {name: 'Set up with your coding agent'})
+        screen.queryByRole('heading', {name: 'Let your agent set up Sentry'})
       ).not.toBeInTheDocument();
       expect(request).not.toHaveBeenCalled();
     });
@@ -1276,19 +1293,14 @@ describe('ScmCreateProject', () => {
       render(<ScmCreateProject />, {organization: agentOrganization});
 
       expect(
-        await screen.findByRole('heading', {name: 'Set up with your coding agent'})
+        await screen.findByRole('heading', {name: 'Let your agent set up Sentry'})
       ).toBeInTheDocument();
       await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
       const session = request.mock.calls[0]?.[1]?.data;
       expect(session.clientRunId).not.toBe(onboardingSession.agenticProgressClientRunId);
-      expect(session.onboardingCode).not.toBe(
-        onboardingSession.agenticProgressOnboardingCode
-      );
+      expect(session.onboardingCode).toBeUndefined();
       expect(
-        screen.getByText(
-          'Help me create and set up Sentry projects for this application.',
-          {exact: false}
-        )
+        screen.getByText('Detects your stack and installs the Sentry CLI')
       ).toBeInTheDocument();
       expect(JSON.parse(sessionStorage.getItem('onboarding') ?? '{}')).toEqual(
         onboardingSession
@@ -1309,7 +1321,7 @@ describe('ScmCreateProject', () => {
       );
 
       expect(
-        await screen.findByRole('heading', {name: 'Set up with your coding agent'})
+        await screen.findByRole('heading', {name: 'Let your agent set up Sentry'})
       ).toBeInTheDocument();
       expect(request).toHaveBeenCalledTimes(1);
       await userEvent.click(screen.getByRole('button', {name: /Set up manually/}));
@@ -1320,6 +1332,7 @@ describe('ScmCreateProject', () => {
     });
 
     it('associates setup interactions with the server run ID', async () => {
+      mockClipboard();
       const user = userEvent.setup();
       const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
       const clickTrackingSpy = jest.fn();
@@ -1333,6 +1346,14 @@ describe('ScmCreateProject', () => {
         url: endpoint + run.runId + '/',
         body: run,
       });
+      const handoffRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${agentOrganization.slug}/agent-handoff/prompts/`,
+        method: 'POST',
+        body: {
+          code: 'sntryh_example',
+          expiresAt: new Date(Date.now() + 300_000).toISOString(),
+        },
+      });
       render(
         <TrackingContextProvider value={clickTrackingSpy}>
           <ScmCreateProject />
@@ -1340,26 +1361,35 @@ describe('ScmCreateProject', () => {
         {organization: agentOrganization}
       );
       await waitFor(() => expect(progressRequest).toHaveBeenCalled());
-      expect(request.mock.calls[0]?.[1]?.data.clientRunId).not.toBe(run.runId);
+      expect(request.mock.calls[0]?.[1]?.data).toEqual({
+        clientRunId: expect.any(String),
+      });
 
-      await user.click(screen.getAllByRole('button', {name: 'Copy snippet'})[0]!);
-      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
-        'project_creation.agent_setup_command_copied',
-        expect.objectContaining({
-          source: 'install_command',
-          variant: 'scm',
-          run_id: run.runId,
-        })
-      );
-
-      await user.click(
-        screen.getByText(
-          'Help me create and set up Sentry projects for this application.',
-          {
-            exact: false,
-          }
+      await user.click(screen.getByRole('button', {name: 'Copy agent prompt'}));
+      await waitFor(() =>
+        expect(handoffRequest).toHaveBeenCalledWith(
+          `/organizations/${agentOrganization.slug}/agent-handoff/prompts/`,
+          expect.objectContaining({
+            data: {
+              context: {runId: run.runId},
+              disableIpPinning: false,
+              flow: 'create_project',
+            },
+          })
         )
       );
+      await waitFor(() =>
+        expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+          'project_creation.agent_setup_command_copied',
+          expect.objectContaining({
+            source: 'prompt',
+            variant: 'scm',
+            run_id: run.runId,
+          })
+        )
+      );
+
+      await user.click(screen.getByText('sntryh_****'));
       expect(trackAnalyticsSpy).toHaveBeenCalledWith(
         'project_creation.agent_setup_snippet_selected',
         expect.objectContaining({source: 'prompt', run_id: run.runId})
@@ -1395,7 +1425,7 @@ describe('ScmCreateProject', () => {
       render(<ScmCreateProject />, {organization: agentOrganization});
       expect(
         await screen.findByText(
-          'Could not start setup, so the prompt below will not report progress.'
+          'Could not prepare agent setup. Try again or set up manually.'
         )
       ).toBeInTheDocument();
       const originalSession = failedRequest.mock.calls[0]?.[1]?.data;
@@ -1405,11 +1435,11 @@ describe('ScmCreateProject', () => {
       await waitFor(() => expect(retryRequest).toHaveBeenCalledTimes(1));
       const replacementSession = retryRequest.mock.calls[0]?.[1]?.data;
       expect(replacementSession.clientRunId).not.toBe(originalSession.clientRunId);
-      expect(replacementSession.onboardingCode).not.toBe(originalSession.onboardingCode);
+      expect(replacementSession.onboardingCode).toBeUndefined();
       await waitFor(() =>
         expect(
           screen.queryByText(
-            'Could not start setup, so the prompt below will not report progress.'
+            'Could not prepare agent setup. Try again or set up manually.'
           )
         ).not.toBeInTheDocument()
       );
@@ -1526,7 +1556,7 @@ describe('ScmCreateProject', () => {
         await screen.findByRole('textbox', {name: 'Project name'})
       ).toBeInTheDocument();
       expect(
-        screen.queryByRole('heading', {name: 'Set up with your coding agent'})
+        screen.queryByRole('heading', {name: 'Let your agent set up Sentry'})
       ).not.toBeInTheDocument();
       expect(request).not.toHaveBeenCalled();
     });

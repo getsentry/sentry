@@ -8,6 +8,7 @@ import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -20,7 +21,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {openConfirmModal} from 'sentry/components/confirm';
 import {Duration} from 'sentry/components/duration';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {ChartContent} from 'sentry/components/seer/markdown/embeds/components/chart';
@@ -607,7 +607,8 @@ export function shouldPollInvestigationBlocks(blocks: InvestigationBlock[]) {
 /**
  * A query's results arrive as a Markdown table but render through
  * `SimpleTable`, the same table the query embeds use, so the two can't drift
- * apart.
+ * apart. The default widths are only a guess at what the agent wrote, so every
+ * column can be dragged to the split the reader actually needs.
  */
 function QueryResultTable({
   columns,
@@ -621,16 +622,24 @@ function QueryResultTable({
   return (
     <FlushSimpleTable
       data-query-result-table
-      // The same split the query embeds' tables use: the leading column tends
-      // to name the row, and the rest hold its values.
+      // The leading column usually names the row with a short label, like an
+      // issue short ID, so a fixed share of the width leaves it mostly empty
+      // while its neighbors truncate. It fits its content instead, capped so
+      // a long label can't crowd out the values beside it. A lone column has
+      // no neighbors to make room for, so it takes the full width.
       columns={columns.map((_, index) => ({
         key: String(index),
-        width: index === 0 ? 'minmax(0, 2fr)' : 'minmax(0, 1fr)',
+        resizable: true,
+        width: index === 0 && columns.length > 1 ? 'fit-content(40%)' : 'minmax(0, 1fr)',
       }))}
       header={
         <QueryResultHeaderRow>
           {header.map((cell, index) => (
-            <SimpleTable.HeaderCell key={index} align={columns[index]?.align}>
+            <SimpleTable.HeaderCell
+              key={index}
+              align={columns[index]?.align}
+              columnIndex={index}
+            >
               {cell}
             </SimpleTable.HeaderCell>
           ))}

@@ -53,7 +53,7 @@ describe('ProjectReplays', () => {
     expect(deleteJobsMock).toHaveBeenCalled();
   });
 
-  it('hides the bulk delete tab when the user lacks write access', async () => {
+  it('hides the tabs when the user lacks write access', async () => {
     const deleteJobsMock = MockApiClient.addMockResponse({
       url: `${getProjectEndpoint}replays/jobs/delete/`,
       body: {data: []},
@@ -74,10 +74,9 @@ describe('ProjectReplays', () => {
       },
     });
 
-    expect(await screen.findByRole('tab', {name: 'Replay Issues'})).toBeInTheDocument();
-    expect(screen.queryByRole('tab', {name: 'Bulk Delete'})).not.toBeInTheDocument();
+    expect(await screen.findByText('Create Rage Click Issues')).toBeInTheDocument();
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
     expect(screen.queryByText('Count Deleted')).not.toBeInTheDocument();
-    expect(screen.getByText('Create Rage Click Issues')).toBeInTheDocument();
     expect(deleteJobsMock).not.toHaveBeenCalled();
   });
 

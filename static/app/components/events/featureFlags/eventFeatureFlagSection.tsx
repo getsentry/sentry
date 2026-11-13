@@ -28,7 +28,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
-import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
+import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/issueDetailsEventsQuery';
 
 import {EventFeatureFlagDrawer} from './eventFeatureFlagDrawer';
 import {FeatureFlagSettingsButton} from './featureFlagSettingsButton';
@@ -165,9 +165,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
       () => (
         <GroupIdProvider groupId={group.id}>
           <EventFeatureFlagDrawer
-            group={group}
             event={event}
-            project={project}
             hydratedFlags={hydratedFlags}
             initialOrderBy={orderBy}
             focusControl={focusControl}

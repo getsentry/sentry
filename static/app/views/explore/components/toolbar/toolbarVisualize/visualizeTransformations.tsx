@@ -231,15 +231,19 @@ export function VisualizeTransformationRows({
 }
 
 interface AddTransformationButtonProps extends Props {
+  disabled?: boolean;
   iconOnly?: boolean;
+  variant?: 'transparent' | 'link';
 }
 
 export function AddTransformationButton({
   transformations,
   onChange,
   traceItemDataset,
+  disabled = false,
   iconOnly = false,
   analyticsSource = 'explore',
+  variant = 'transparent',
 }: AddTransformationButtonProps) {
   const organization = useOrganization();
   const kindOptions = KIND_OPTIONS.map(option => ({
@@ -250,7 +254,7 @@ export function AddTransformationButton({
   return (
     <CompactSelect
       options={kindOptions}
-      disabled={transformations.length >= KIND_OPTIONS.length}
+      disabled={disabled || transformations.length >= KIND_OPTIONS.length}
       value={undefined}
       trigger={props =>
         iconOnly ? (
@@ -265,8 +269,8 @@ export function AddTransformationButton({
         ) : (
           <OverlayTrigger.Button
             {...props}
-            variant="transparent"
-            size="zero"
+            variant={variant}
+            size={variant === 'transparent' ? 'zero' : 'md'}
             icon={<IconAdd />}
           >
             {t('Add Transformation')}

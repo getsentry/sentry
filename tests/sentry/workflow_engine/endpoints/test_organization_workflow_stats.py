@@ -5,7 +5,7 @@ from django.utils import timezone
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.skips import requires_snuba
-from sentry.workflow_engine.models import WorkflowFireHistory
+from sentry.workflow_engine.models import Workflow, WorkflowFireHistory
 
 pytestmark = [requires_snuba]
 
@@ -121,4 +121,17 @@ class WorkflowStatsEndpointTest(APITestCase):
             start="This is not a date",
             end=before_now(days=6),
             status_code=400,
+        )
+
+    def test_hidden_workflow_is_not_found(self) -> None:
+        hidden_workflow = self.create_workflow(
+            organization=self.organization, type=Workflow.Type.INBOX
+        )
+
+        self.get_error_response(
+            self.organization.slug,
+            hidden_workflow.id,
+            start=before_now(days=6),
+            end=before_now(days=0),
+            status_code=404,
         )

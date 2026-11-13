@@ -48,6 +48,9 @@ class SeerWorkflowConfigExtras(BaseModel):
     # The user who most recently updated this config through the API, or "bot" for
     # non-user callers. Unset until the first update.
     updated_by: int | Literal["bot"] | None = None
+    # Settings for the automation's trigger and action, in the shapes those classes declare.
+    trigger_settings: dict[str, Any] | None = None
+    action_settings: dict[str, Any] | None = None
 
 
 class SeerWorkflowFilters(BaseModel):

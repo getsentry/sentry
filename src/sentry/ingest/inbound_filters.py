@@ -683,6 +683,24 @@ _NEGATED_OPERATORS: Mapping[ConditionOperator, ConditionOperator] = {
 }
 
 
+def _negation(
+    matcher: _ConditionMatcher, negated: ConditionOperator, values: list[str]
+) -> RuleCondition:
+    """
+    Matches an item that carries the matcher's field and does not match it with `negated`.
+
+    Relay runs every filter against every item type and reads a field the item does not
+    carry as no match. A bare negation is true for such an item, so a span filter would
+    drop every error, log and session. An item of the filter's own data type that lacks
+    the field is kept too.
+    """
+    negation: NotCondition = {"op": "not", "inner": matcher.match(negated, values)}
+    if ConditionOperator.GLOB not in matcher.operators:
+        # The client IP belongs to the envelope, which every item type has.
+        return negation
+    return {"op": "and", "inner": [matcher.match(ConditionOperator.GLOB, ["*"]), negation]}
+
+
 _CONDITION_MATCHERS: Mapping[
     ConditionType,
     _ConditionMatcher | Mapping[DataType, _ConditionMatcher],
@@ -704,6 +722,12 @@ _CONDITION_MATCHERS: Mapping[
         DataType.LOG: _release_matcher("log.attributes.sentry.release.value"),
         DataType.METRIC: _release_matcher("trace_metric.attributes.sentry.release.value"),
         DataType.SPAN: _release_matcher("span.attributes.sentry.release.value"),
+    },
+    ConditionType.ENVIRONMENT: {
+        DataType.ERROR: _field_matcher("event.environment"),
+        DataType.LOG: _field_matcher("log.attributes.sentry.environment.value"),
+        DataType.METRIC: _field_matcher("trace_metric.attributes.sentry.environment.value"),
+        DataType.SPAN: _field_matcher("span.attributes.sentry.environment.value"),
     },
     ConditionType.IP_ADDRESS: _client_ip_matcher,
     # Relay fills the geo from the client IP before filtering, unless the SDK sent one.
@@ -804,9 +828,7 @@ def _custom_filter_condition(
         if negated is None:
             rule_conditions.append(matcher.match(operator, values))
         else:
-            # A field the item does not carry matches no glob, so the negation drops the item.
-            negation: NotCondition = {"op": "not", "inner": matcher.match(negated, values)}
-            rule_conditions.append(negation)
+            rule_conditions.append(_negation(matcher, negated, values))
 
     if len(rule_conditions) == 1:
         return rule_conditions[0]

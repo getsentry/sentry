@@ -465,6 +465,15 @@ class SearchAgentStateRequest(TypedDict):
     organization_id: int
 
 
+TransformationDataset = Literal["spans", "logs", "tracemetrics"]
+
+
+class TransformationCapabilities(TypedDict):
+    """Server-derived datasets supporting transformations. Empty or omitted means unavailable."""
+
+    datasets: list[TransformationDataset]
+
+
 class SearchAgentStartRequest(TypedDict):
     org_id: int
     org_slug: str

@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock, patch
 
 from django.urls import reverse
+from django.utils import timezone
 from requests.models import Response
 
 from sentry.sentry_apps.models.sentry_app import SentryApp
@@ -60,6 +61,9 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
 
     def test_superuser_sees_unowned_published_requests(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
+        self.create_sentry_app_installation(
+            organization=self.org, slug=self.unowned_published_app.slug, prevent_token_exchange=True
+        )
 
         buffer = SentryAppWebhookRequestsBuffer(self.unowned_published_app)
         buffer.add_request(
@@ -87,6 +91,11 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
 
     def test_superuser_sees_unpublished_stats(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
+        self.create_sentry_app_installation(
+            organization=self.org,
+            slug=self.unowned_unpublished_app.slug,
+            prevent_token_exchange=True,
+        )
 
         buffer = SentryAppWebhookRequestsBuffer(self.unowned_unpublished_app)
         buffer.add_request(
@@ -195,6 +204,9 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
 
     def test_user_sees_owned_unpublished_requests(self) -> None:
         self.login_as(user=self.user)
+        self.create_sentry_app_installation(
+            organization=self.org, slug=self.unpublished_app.slug, prevent_token_exchange=True
+        )
 
         buffer = SentryAppWebhookRequestsBuffer(self.unpublished_app)
         buffer.add_request(
@@ -663,3 +675,69 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
         assert response.data[1]["eventType"] == "issue.assigned"
         assert response.data[2]["eventType"] == "installation.created"
         assert response.data[3]["eventType"] == "issue.created"
+
+
+@control_silo_test(cells=create_test_cells("us", "de"))
+class SentryAppWebhookRequestsCellFanoutTest(APITestCase):
+    def setUp(self) -> None:
+        self.user = self.create_user(email="user@example.com")
+        self.us_org = self.create_organization(owner=self.user, cell="us")
+        self.de_org = self.create_organization(owner=self.user, cell="de")
+        self.sentry_app = self.create_sentry_app(
+            name="Fanout App", organization=self.us_org, published=True
+        )
+        self.url = reverse("sentry-api-0-sentry-app-webhook-requests", args=[self.sentry_app.slug])
+        self.login_as(user=self.user)
+
+    @patch("sentry.sentry_apps.api.utils.webhook_requests.app_request_service")
+    def test_only_queries_cells_with_installations(self, mock_service: MagicMock) -> None:
+        mock_service.get_buffer_requests_for_cell.return_value = []
+        self.create_sentry_app_installation(
+            organization=self.us_org, slug=self.sentry_app.slug, prevent_token_exchange=True
+        )
+
+        response = self.client.get(self.url, format="json")
+
+        assert response.status_code == 200
+        queried_cells = [
+            call.kwargs["cell_name"]
+            for call in mock_service.get_buffer_requests_for_cell.call_args_list
+        ]
+        assert queried_cells == ["us"]
+
+    @patch("sentry.sentry_apps.api.utils.webhook_requests.app_request_service")
+    def test_queries_no_cells_without_installations(self, mock_service: MagicMock) -> None:
+        buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
+        buffer.add_request(
+            response_code=200,
+            org_id=self.us_org.id,
+            event="installation.created",
+            url=webhook_url(self.sentry_app),
+        )
+
+        response = self.client.get(self.url, format="json")
+
+        assert response.status_code == 200
+        mock_service.get_buffer_requests_for_cell.assert_not_called()
+        assert len(response.data) == 1
+        assert response.data[0]["eventType"] == "installation.created"
+
+    @patch("sentry.sentry_apps.api.utils.webhook_requests.app_request_service")
+    def test_skips_cells_with_only_deleted_installations(self, mock_service: MagicMock) -> None:
+        mock_service.get_buffer_requests_for_cell.return_value = []
+        self.create_sentry_app_installation(
+            organization=self.us_org, slug=self.sentry_app.slug, prevent_token_exchange=True
+        )
+        de_installation = self.create_sentry_app_installation(
+            organization=self.de_org, slug=self.sentry_app.slug, prevent_token_exchange=True
+        )
+        de_installation.update(date_deleted=timezone.now())
+
+        response = self.client.get(self.url, format="json")
+
+        assert response.status_code == 200
+        queried_cells = [
+            call.kwargs["cell_name"]
+            for call in mock_service.get_buffer_requests_for_cell.call_args_list
+        ]
+        assert queried_cells == ["us"]

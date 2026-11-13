@@ -1,0 +1,24 @@
+---
+title: Agent Handoff Prompt
+description: A prompt that hands Sentry setup to a coding agent.
+category: components
+source: sentry/components/agentHandoff/agentHandoffPrompt
+---
+
+import {Container} from '@sentry/scraps/layout';
+
+import * as Storybook from 'sentry/stories';
+import {AgentHandoffPrompt} from './agentHandoffPrompt';
+import {AgentHandoffFlow} from './useAgentHandoff';
+
+## Default
+
+<Storybook.Demo>
+  <Container maxWidth="700px">
+    <AgentHandoffPrompt
+      context={{runId: '00000000000000000000000000000000'}}
+      feedbackSource="agent-handoff-prompt-story"
+      flow={AgentHandoffFlow.ONBOARDING}
+    />
+  </Container>
+</Storybook.Demo>

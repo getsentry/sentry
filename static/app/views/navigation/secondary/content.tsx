@@ -7,7 +7,6 @@ import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationCon
 import {AdminSecondaryNavigation} from './sections/admin/adminSecondaryNavigation';
 import {DashboardsSecondaryNavigation} from './sections/dashboards/dashboardsSecondaryNavigation';
 import {ExploreSecondaryNavigation} from './sections/explore/exploreSecondaryNavigation';
-import {InboxSecondaryNavigation} from './sections/inbox/inboxSecondaryNavigation';
 import {InsightsSecondaryNavigation} from './sections/insights/insightsSecondaryNavigation';
 import {IssuesSecondaryNavigation} from './sections/issues/issuesSecondaryNavigation';
 import {MonitorsSecondaryNavigation} from './sections/monitors/monitorsSecondaryNavigation';
@@ -20,8 +19,11 @@ export function SecondaryNavigationContent(): ReactNode {
   const organization = useOrganization({allowNull: true});
 
   switch (activeGroup) {
+    // Groups without a secondary navigation must also set
+    // `secondaryNavigation: false` in `PRIMARY_NAVIGATION_GROUP_CONFIG`.
     case 'inbox':
-      return <InboxSecondaryNavigation />;
+    case 'prevent':
+      return null;
     case 'issues':
       return <IssuesSecondaryNavigation />;
     case 'insights':
@@ -39,8 +41,6 @@ export function SecondaryNavigationContent(): ReactNode {
       return <ProjectsSecondaryNavigation />;
     case 'monitors':
       return <MonitorsSecondaryNavigation />;
-    case 'prevent':
-      return null;
     case 'settings':
       return <SettingsSecondaryNavigation />;
     case 'admin':

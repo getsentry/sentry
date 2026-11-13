@@ -728,6 +728,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/utils/analytics/conversationsAnalyticsEvents.tsx                           @getsentry/agent-tracing
 /static/app/utils/analytics/mcpMonitoringAnalyticsEvents.tsx                           @getsentry/agent-tracing
 /static/app/views/explore/conversations/                                               @getsentry/agent-tracing
+/static/app/views/classifiers/                                                         @getsentry/agent-tracing
 /static/app/views/performance/traceDetails/traceDrawer/details/span/eapSections/ai*    @getsentry/data-browsing @getsentry/agent-tracing
 /static/app/views/performance/traceDetails/traceDrawer/details/span/eapSections/mcp*   @getsentry/data-browsing @getsentry/agent-tracing
 /static/app/views/performance/traceDetails/traceDrawer/tabs/traceAi*                   @getsentry/data-browsing @getsentry/agent-tracing
@@ -964,7 +965,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/components/dnd/                           @getsentry/design-engineering
 /static/app/stories/                                  @getsentry/design-engineering
 /static/app/views/navigation/                         @getsentry/design-engineering
-/static/less/                                         @getsentry/design-engineering
+/static/css/                                          @getsentry/design-engineering
 /static/app/views/nav/                                @getsentry/design-engineering
 # Config files
 /figma.config.json                                     @getsentry/design-engineering
@@ -995,7 +996,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 # End of Universal Inbox
 
 # Telemetry Experience frontend (after Frontend Platform and gsApp, which would otherwise shadow these)
-/static/app/views/settings/dynamicSampling/                         @getsentry/telemetry-experience
 /static/app/views/settings/project/projectFilters/                  @getsentry/telemetry-experience
 /static/gsApp/components/features/disabledCustomInboundFilters.tsx  @getsentry/telemetry-experience
 # End of Telemetry Experience frontend
