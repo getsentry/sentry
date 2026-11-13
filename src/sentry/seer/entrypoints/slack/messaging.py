@@ -407,6 +407,40 @@ class InvalidInvestigationAlertMessage(ValueError):
     pass
 
 
+def _validate_investigation_alert_message(message: object) -> None:
+    if (
+        not isinstance(message, Mapping)
+        or not isinstance(message.get("text"), str)
+        or not isinstance(message.get("attachments"), list)
+    ):
+        raise InvalidInvestigationAlertMessage("Expected alert text and attachments")
+
+    for attachment in message["attachments"]:
+        _validate_investigation_alert_attachment(attachment)
+
+
+def _validate_investigation_alert_attachment(attachment: object) -> None:
+    if not isinstance(attachment, dict):
+        raise InvalidInvestigationAlertMessage("Expected an attachment")
+    blocks = attachment.get("blocks", [])
+    if not isinstance(blocks, list):
+        raise InvalidInvestigationAlertMessage("Expected attachment blocks")
+    for block in blocks:
+        if not isinstance(block, dict) or not isinstance(block.get("type"), str):
+            raise InvalidInvestigationAlertMessage("Expected a block")
+        if block["type"] != "actions":
+            continue
+        if not isinstance(block.get("elements"), list):
+            raise InvalidInvestigationAlertMessage("Expected action elements")
+        for element in block["elements"]:
+            if (
+                not isinstance(element, dict)
+                or not isinstance(element.get("type"), str)
+                or not isinstance(element.get("action_id", ""), str)
+            ):
+                raise InvalidInvestigationAlertMessage("Expected an action element")
+
+
 def replace_investigation_buttons(
     *, message: InvestigationAlertMessage, link_button: ButtonElement
 ) -> InvestigationAlertMessage | None:
@@ -418,23 +452,11 @@ def replace_investigation_buttons(
     # Slack action registration imports the entrypoint that imports this module.
     from sentry.integrations.slack.message_builder.types import SlackAction
 
-    if (
-        not isinstance(message, Mapping)
-        or not isinstance(message.get("text"), str)
-        or not isinstance(message.get("attachments"), list)
-    ):
-        raise InvalidInvestigationAlertMessage("Expected alert text and attachments")
-
+    _validate_investigation_alert_message(message)
     changed = False
 
     def replace_button(element: dict[str, Any]) -> dict[str, Any]:
         nonlocal changed
-        if (
-            not isinstance(element, dict)
-            or not isinstance(element.get("type"), str)
-            or not isinstance(element.get("action_id", ""), str)
-        ):
-            raise InvalidInvestigationAlertMessage("Expected an action element")
         action_id = element.get("action_id", "")
         if (
             element["type"] == "button"
@@ -445,23 +467,15 @@ def replace_investigation_buttons(
             return deepcopy(link_button.to_dict())
         return element
 
-    attachments = []
-    for attachment in message["attachments"]:
-        if not isinstance(attachment, dict):
-            raise InvalidInvestigationAlertMessage("Expected an attachment")
-        blocks = attachment.get("blocks", [])
-        if not isinstance(blocks, list):
-            raise InvalidInvestigationAlertMessage("Expected attachment blocks")
-        for block in blocks:
-            if not isinstance(block, dict) or not isinstance(block.get("type"), str):
-                raise InvalidInvestigationAlertMessage("Expected a block")
-            if block["type"] == "actions" and not isinstance(block.get("elements"), list):
-                raise InvalidInvestigationAlertMessage("Expected action elements")
-        attachments.append(
-            {**attachment, "blocks": _transform_block_actions(blocks, replace_button)}
-            if "blocks" in attachment
-            else attachment
-        )
+    attachments = [
+        {
+            **attachment,
+            "blocks": _transform_block_actions(attachment["blocks"], replace_button),
+        }
+        if "blocks" in attachment
+        else attachment
+        for attachment in message["attachments"]
+    ]
 
     return {**message, "attachments": attachments} if changed else None
 

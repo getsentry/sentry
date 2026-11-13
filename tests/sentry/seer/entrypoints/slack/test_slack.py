@@ -1610,6 +1610,16 @@ def test_replace_investigation_buttons_preserves_content() -> None:
     [
         {"attachments": []},
         {"text": "Alert", "attachments": [{"blocks": [{"type": "actions", "elements": None}]}]},
+        {
+            "text": "Alert",
+            "attachments": [
+                {
+                    "blocks": [
+                        {"type": "actions", "elements": [{"type": "button", "action_id": None}]}
+                    ]
+                }
+            ],
+        },
     ],
 )
 def test_replace_investigation_buttons_rejects_malformed_content(message: dict[str, Any]) -> None:
