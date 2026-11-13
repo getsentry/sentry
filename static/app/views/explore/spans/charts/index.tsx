@@ -318,9 +318,9 @@ function Chart({
   const isAttributeBreakdown = tab === Tab.ATTRIBUTE_BREAKDOWNS;
   const {selection} = usePageFilters();
   const groupBys = useQueryParamsGroupBys();
-  const [interval, setInterval, intervalOptions] = useChartInterval();
+  const [chartInterval, setChartInterval, intervalOptions] = useChartInterval();
   const dataset = useSpansDataset();
-  const droppedData = useDroppedDataLayer({dataset, interval});
+  const droppedData = useDroppedDataLayer({dataset, interval: chartInterval});
 
   const {
     dismiss: dismissChartSelectionAlert,
@@ -436,9 +436,9 @@ function Chart({
       </Tooltip>
       <Tooltip title={t('Time interval displayed in this visualization (ex. 5m)')}>
         <CompactSelect
-          value={interval}
+          value={chartInterval}
           disabled={isHeatMap}
-          onChange={option => setInterval(option.value)}
+          onChange={option => setChartInterval(option.value)}
           trigger={triggerProps => (
             <OverlayTrigger.Button
               {...triggerProps}
@@ -456,7 +456,7 @@ function Chart({
         key="context"
         visualizeYAxes={visualizes}
         query={query}
-        interval={interval}
+        interval={chartInterval}
         visualizeIndex={index}
       />
       <Button
@@ -481,7 +481,7 @@ function Chart({
   // ECharts keeps its toolbox zoom window and brush across option merges, so
   // the chart needs a fresh instance whenever the queried range or data changes.
   const {period, start, end} = selection.datetime;
-  const chartRemountKey = `${isAttributeBreakdown ? 'attribute-breakdown' : 'zoom'}|${period}|${start}|${end}|${query}|${chartType}|${interval}|${topEvents}|${groupBys.join(',')}`;
+  const chartRemountKey = `${isAttributeBreakdown ? 'attribute-breakdown' : 'zoom'}|${period}|${start}|${end}|${query}|${chartType}|${chartInterval}|${topEvents}|${groupBys.join(',')}`;
 
   return (
     <ChartWrapper ref={chartWrapperRef} border="primary" radius="md" background="primary">
